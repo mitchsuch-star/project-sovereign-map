@@ -135,17 +135,6 @@ class TestTheCascadeKeepsAFreshPeace:
         # nobody was refused a call they were free to answer
         assert not any(e["path"].startswith("refused") for e in result["war_entry_ledger"])
 
-    def test_the_lever_down_reproduces_the_retest(self, monkeypatch):
-        monkeypatch.setattr(D, "THE_CASCADE_KEEPS_A_FRESH_PEACE", False)
-        w = _boot()
-        w.current_turn = 10
-        _peace_with_the_coalition(w)
-        w.current_turn = 12
-        w.armistice_cooldowns.pop(w._make_diplo_key("Austria", "France"), None)
-        _declare(w, "Austria", "France")
-        assert w.get_diplomatic_state("Britain", "France") == "WAR"
-        assert w.get_diplomatic_state("Russia", "France") == "WAR"
-
     def test_the_bar_reads_its_three_seams_in_order(self):
         w = _boot()
         w.current_turn = 10
@@ -196,34 +185,6 @@ class TestTheCascadeKeepsAFreshPeace:
         assert w.get_diplomatic_state("Britain", "France") == "PEACE"
         assert "Britain" not in (w.active_coalition or {}).get("members", [])
 
-    def test_the_league_lever_down_marches_britain_back(self, monkeypatch):
-        """RS-1's lever down reproduces the cascade — with SFR-DR1's lever
-        down too (the economy audit, October 5, 2026, re-seated consciously):
-        since the league's members declare in their own right, Austria's
-        declaration no longer sweeps her allies in at all, so the shipped
-        march back needs both levers down; with SFR-DR1 up Britain keeps the
-        peace even with RS-1's lever down."""
-        monkeypatch.setattr(D, "THE_CASCADE_KEEPS_A_FRESH_PEACE", False)
-        monkeypatch.setattr(coalition, "THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT", False)
-        w = _boot()
-        w.current_turn = 10
-        _peace_with_the_coalition(w)
-        w.current_turn = 11
-        with _quiet():
-            result = coalition.form_coalition(["Austria", "Russia"], w)
-        assert result.get("success"), result
-        assert w.get_diplomatic_state("Britain", "France") == "WAR"
-
-        monkeypatch.setattr(coalition, "THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT", True)
-        w = _boot()
-        w.current_turn = 10
-        _peace_with_the_coalition(w)
-        w.current_turn = 11
-        with _quiet():
-            result = coalition.form_coalition(["Austria", "Russia"], w)
-        assert result.get("success"), result
-        assert w.get_diplomatic_state("Britain", "France") == "PEACE"
-
     def test_the_defensive_arm_is_untouched(self):
         """An attack on a court whose defensive ally just signed with the
         attacker: the ally answers the attack (the fresh peace is the
@@ -262,13 +223,6 @@ class TestTheWarPreviewNamesTheBarredAlly:
         result = _declare(w, "France", "Austria")
         assert result["success"], result
         assert w.get_diplomatic_state("Spain", "Austria") == "PEACE"
-
-    def test_the_lever_down_promises_the_ally_the_cascade_would_refuse(self, monkeypatch):
-        monkeypatch.setattr(D, "THE_CASCADE_KEEPS_A_FRESH_PEACE", False)
-        w = self._spain_bound()
-        preview = D.preview_war_declaration(w, "France", "Austria")
-        assert preview["offensive_barred"] == []
-        assert "Spain" in preview["offensive_joiners"]
 
 
 class TestTheSettlementWritesThePairCooldown:

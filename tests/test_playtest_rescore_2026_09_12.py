@@ -538,27 +538,6 @@ class TestTheMissionSaysWhatItIsDoing(unittest.TestCase):
             _is_dispatch_event_visible(cancelled[0], world, "France"),
             "the collapse notice must survive its own mission's deletion")
 
-    def test_lever_down_reproduces_the_swallowed_collapse_notice(self):
-        from backend.game_logic import diplomacy as D
-        world = _mission_world({"type": "IMPROVE_RELATIONS", "target": "Prussia",
-                                "turns_active": 4, "completed": False,
-                                "paused": True, "paused_turns": 3})
-        world.diplomatic_points = 0
-        world.pending_dispatch_events = []
-        original = D.MISSION_COLLAPSE_IS_ANNOUNCED
-        try:
-            D.MISSION_COLLAPSE_IS_ANNOUNCED = False
-            D._process_mission_dp(world)
-            from backend.game_logic.dispatch import _is_dispatch_event_visible
-            cancelled = [e for e in (world.pending_dispatch_events or [])
-                         if e.get("type") == "diplomatic_mission_cancelled"]
-            self.assertTrue(cancelled, "the event is queued either way")
-            self.assertFalse(
-                _is_dispatch_event_visible(cancelled[0], world, "France"),
-                "lever DOWN: the fog rule can no longer see its subject")
-        finally:
-            D.MISSION_COLLAPSE_IS_ANNOUNCED = original
-
 
 class TestTheMissionStopsWhenItsWorkIsDone(unittest.TestCase):
     """MS-9: at the relation ceiling it charged DP forever for nothing."""
@@ -583,17 +562,6 @@ class TestTheMissionStopsWhenItsWorkIsDone(unittest.TestCase):
         _process_mission_effects(world)
         self.assertFalse(world.active_diplomatic_mission["completed"])
 
-    def test_lever_down_reproduces_the_permanent_tax(self):
-        from backend.game_logic import diplomacy as D
-        world = self._at_ceiling()
-        original = D.MISSION_AT_THE_CEILING_IS_FINISHED
-        try:
-            D.MISSION_AT_THE_CEILING_IS_FINISHED = False
-            D._process_mission_effects(world)
-            self.assertFalse(world.active_diplomatic_mission["completed"])
-        finally:
-            D.MISSION_AT_THE_CEILING_IS_FINISHED = original
-
     def test_the_pause_survives_while_the_diplomat_is_abroad(self):
         """MS-10: the resume arm un-paused him on the very next tick."""
         from backend.game_logic.diplomacy import _process_mission_dp
@@ -615,21 +583,6 @@ class TestTheMissionStopsWhenItsWorkIsDone(unittest.TestCase):
         world.talleyrand_state = "ON_MISSION"
         _process_mission_dp(world)
         self.assertFalse(world.active_diplomatic_mission["paused"])
-
-    def test_lever_down_reproduces_the_inert_pause(self):
-        from backend.game_logic import diplomacy as D
-        world = _mission_world({"type": "IMPROVE_RELATIONS", "target": "Prussia",
-                                "turns_active": 2, "completed": False,
-                                "paused": True, "paused_turns": 1})
-        world.diplomatic_points = 10
-        world.talleyrand_state = "IN_TRANSIT"
-        original = D.MISSION_PAUSE_SURVIVES_TRANSIT
-        try:
-            D.MISSION_PAUSE_SURVIVES_TRANSIT = False
-            D._process_mission_dp(world)
-            self.assertFalse(world.active_diplomatic_mission["paused"])
-        finally:
-            D.MISSION_PAUSE_SURVIVES_TRANSIT = original
 
 
 class TestTheUndermineRowStatesItsGate(unittest.TestCase):
@@ -659,26 +612,6 @@ class TestTheUndermineRowStatesItsGate(unittest.TestCase):
         if row is not None:
             self.assertFalse(row["available"])
             self.assertEqual(row["disabled_reason"], "No alliance to undermine")
-
-    def test_lever_down_reproduces_the_silent_row(self):
-        from backend.game_logic import diplomacy as D
-        world = _europe()
-        world.diplomatic_points = 10
-        world.active_diplomatic_mission = None
-        lonely = next(
-            (c for c in world.get_active_nations()
-             if c != world.player_nation
-             and not any(world.are_allies(c, o)
-                         for o in world.get_active_nations() if o != c)), None)
-        original = D.MISSION_UNDERMINE_ROW_IS_HONEST
-        try:
-            D.MISSION_UNDERMINE_ROW_IS_HONEST = False
-            row = self._row(world, lonely)
-            if row is not None:
-                self.assertNotEqual(row.get("disabled_reason"),
-                                    "No alliance to undermine")
-        finally:
-            D.MISSION_UNDERMINE_ROW_IS_HONEST = original
 
 
 class TestTheConfirmationReadsAsEnglish(unittest.TestCase):
@@ -1120,23 +1053,6 @@ class TestTheReviewRoundsSecondLens(unittest.TestCase):
                 break
         self.assertIsNone(world.active_diplomatic_mission,
                           "a starved mission must still collapse")
-
-    def test_lever_down_reproduces_the_transit_destruction(self):
-        from backend.game_logic import diplomacy as D
-        world = _mission_world({"type": "IMPROVE_RELATIONS",
-                                "target": "Prussia", "turns_active": 3,
-                                "completed": False, "paused": True,
-                                "paused_turns": 2})
-        world.diplomatic_points = 99
-        world.talleyrand_state = "IN_TRANSIT"
-        original = D.MISSION_PAUSE_SURVIVES_TRANSIT
-        try:
-            D.MISSION_PAUSE_SURVIVES_TRANSIT = False
-            D._process_mission_dp(world)
-            self.assertFalse(world.active_diplomatic_mission["paused"],
-                             "lever DOWN: transit no longer holds the pause")
-        finally:
-            D.MISSION_PAUSE_SURVIVES_TRANSIT = original
 
     def test_the_archive_scan_is_gone(self):
         """PR-1b: a war is archived at `ended_turn + 10`, already outside

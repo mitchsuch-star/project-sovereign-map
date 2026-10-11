@@ -276,13 +276,6 @@ class TestGR5:
         assert tuple(sorted((KOI, "Austria"))) in pairs
         assert tuple(sorted((client, "France"))) in pairs
 
-    def test_the_lever_down_leaves_the_client_at_war(self, monkeypatch):
-        monkeypatch.setattr(D, "THE_CLIENTS_WAR_IS_THE_LORDS_WAR", False)
-        w = _boot()
-        _ratify(w, "Austria", "France")
-        assert _state(w, "France", "Austria") == "PEACE"
-        assert _state(w, KOI, "Austria") == "WAR"
-
 
 class TestTheFreshPeaceFloor:
 

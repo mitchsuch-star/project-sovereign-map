@@ -21,13 +21,6 @@
     "tests": "tests/test_dp1_the_bank.py::TestTheRule::test_the_refill"
   },
   {
-    "id": "the lever is ignored",
-    "file": "backend/game_logic/diplomacy.py",
-    "old": "    if not DIPLOMATIC_POINTS_CARRY:\n        return regen, 0",
-    "new": "    if False:\n        return regen, 0",
-    "tests": "tests/test_dp1_the_bank.py::TestTheRule::test_lever_down_the_pool_resets"
-  },
-  {
     "id": "the regen never banks",
     "file": "backend/game_logic/diplomacy.py",
     "old": "        dp, carried = dp_refill(regen, unspent)",

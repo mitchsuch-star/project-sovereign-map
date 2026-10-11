@@ -70,13 +70,6 @@
     "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheCollectivePetitionWaits::test_no_petition_over_small_change"
   },
   {
-    "id": "EPF4-13 the wait swallows the re-arm",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "    if len(eroding) < FONTAINEBLEAU_MIN_ERODING:\n        world.fontainebleau_armed = True\n        return\n    # F4: the fuse",
-    "new": "    if THE_COLLECTIVE_PETITION_WAITS and int(world.current_turn) < FONTAINEBLEAU_MIN_TURN:\n        return\n    if len(eroding) < FONTAINEBLEAU_MIN_ERODING:\n        world.fontainebleau_armed = True\n        return\n    # F4: the fuse",
-    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheCollectivePetitionWaits::test_the_wait_still_re_arms_the_latch"
-  },
-  {
     "id": "EPF4-14 the unmet block names everyone",
     "file": "backend/game_logic/dotation.py",
     "old": "            if grace_turns_left < 0 or grace_turns_left > UNMET_BLOCK_WINDOW_TURNS:\n                continue",

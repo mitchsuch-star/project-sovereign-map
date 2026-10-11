@@ -18,9 +18,9 @@ F10: every restored popup slot answers "is this still true?" at load, and
 each one retired leaves a receipt (`popup_retired`). PopupQueue's dead
 to_dict/from_dict pair is deleted (pinned in test_cooldown_popup_manager).
 
-Levers: `jealousy.THE_PETITION_DIES_WITH_ITS_SUBJECT`,
-`jealousy.THE_NEWER_WORD_SUPERSEDES`,
-`world_state.THE_LOADED_POPUP_IS_STILL_TRUE`.
+Lever: `world_state.THE_LOADED_POPUP_IS_STILL_TRUE`; the two jealousy rules
+(the petition dies with its subject, the newer word supersedes) are inlined
+(CODE-1 batch 3).
 """
 
 import contextlib
@@ -266,13 +266,6 @@ class TestTheNewerWordSupersedes:
         assert world.pending_marshal_petition["context"]["new_value"] == -2
         assert _receipts(world)[-1]["reason"] == "superseded"
 
-    def test_lever_down_the_audience_is_evicted_as_before(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_NEWER_WORD_SUPERSEDES", False)
-        older = _rivalry(world, -1)
-        _rivalry(world, -2)
-        assert world.pending_marshal_petition is not older
-        assert not [e for e in _receipts(world) if e["reason"] == "superseded"]
-
 
 # ═══════════════════════ EVERY DELIVERY SEAM ASKS ══════════════════════════
 
@@ -345,21 +338,6 @@ class TestTheReceiptIsNeverSilent:
             [{"type": "petition_retired", "message": "Berthier notes that x.",
               "nation": "France"}], "France")
         assert rows and rows[0]["message"] == "Berthier notes that x."
-
-    def test_lever_down_is_b1_exactly(self, world, monkeypatch):
-        """Lever down: FA-S17-D4's confrontation question only, a receipt for
-        an audience only (B1's `marshal_audience`), other kinds stand."""
-        monkeypatch.setattr(J, "THE_PETITION_DIES_WITH_ITS_SUBJECT", False)
-        card = _rivalry(world, -2)
-        world.marshals["Lannes"].set_relationship("Murat", 0)
-        assert J.petition_retirement_reason(card, world) == ""
-        world.pending_marshal_petition = None
-        world._popup_queue.clear_type("pending_marshal_petition")
-        crisis = _crisis_confrontation(world)
-        world.marshals["Ney"].jealous_of = None
-        _repush(world)
-        assert world.pending_marshal_petition is None and crisis is not None
-        assert not _receipts(world), "B1 retired a crisis in silence"
 
 
 # ═══════════════════════ F10 — THE LOAD ASKS TOO ═══════════════════════════

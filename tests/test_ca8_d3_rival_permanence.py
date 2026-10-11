@@ -61,7 +61,6 @@ class TestRivalMemory:
         _glory(world, "Davout", 7)
         _glory(world, "Ney", 4)
         _glory(world, "Lannes", 2)
-        assert J.JEALOUSY_RIVAL_MEMORY is True
         target = J.find_jealousy_target(world.marshals["Lannes"], world)
         assert target.name == "Ney"  # one rung up, never the top
 
@@ -118,18 +117,6 @@ class TestRivalMemory:
         murat = world.marshals["Murat"]
         _fire_history(murat, "Davout", [3, 5])
         murat.relationships["Davout"] = 2
-        target = J.find_jealousy_target(murat, world)
-        assert target.name == "Ney"
-
-    def test_flip_experiment_flag_restores_rung_rule(self, world, monkeypatch):
-        """The attribution instrument: memory OFF reproduces the pre-gate
-        selection exactly."""
-        _glory(world, "Davout", 7)
-        _glory(world, "Ney", 4)
-        _glory(world, "Murat", 2)
-        murat = world.marshals["Murat"]
-        _fire_history(murat, "Davout", [3])
-        monkeypatch.setattr(J, "JEALOUSY_RIVAL_MEMORY", False)
         target = J.find_jealousy_target(murat, world)
         assert target.name == "Ney"
 

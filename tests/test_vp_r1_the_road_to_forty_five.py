@@ -15,8 +15,8 @@ Four levers, each measured before it was built:
     AI's own rungs. `movement_executor.RAIDING_PARTY_HOLDS_NO_HOMELAND`.
 (c) THE GLORY ATTACK OBEYS THE ODDS. Two of three autonomous charges fired
     at `unfavorable` (0.198, 0.279); the delegation-inferred attack has been
-    gated at 0.7 since CR-5. `jealousy.GLORY_ATTACK_OBEYS_THE_ODDS`, both
-    boards.
+    gated at 0.7 since CR-5. `jealousy.glory_attack_held_by_the_odds`
+    (inlined, CODE-1 batch 3), both boards.
 (d) THE OBJECTION NAMES THE DEED. The trust option says what trusting him
     does — "attack Archduke Charles at Tyrol" — not "attack ArchdukeCharles".
 P2  `cs_shutout_pct` 60 → 50: 16 of 26 was unreachable from play.
@@ -509,9 +509,6 @@ def _murat_eyeing_john(world, john_strength=60000, fortified=True):
 
 class TestCTheGloryAttackObeysTheOdds:
 
-    def test_lever_defaults_on(self):
-        assert J.GLORY_ATTACK_OBEYS_THE_ODDS is True
-
     def test_held_at_unfavorable_and_the_beat_names_the_odds(self):
         w = _fresh()
         murat, john = _murat_eyeing_john(w)
@@ -542,14 +539,6 @@ class TestCTheGloryAttackObeysTheOdds:
         results = _quiet(J.process_autonomous_attacks, w, M.executor, {"world": w})
         assert results and results[0].get("jealousy_autonomous") == "Murat"
 
-    def test_the_lever_down_fires_at_unfavorable(self, monkeypatch):
-        monkeypatch.setattr(J, "GLORY_ATTACK_OBEYS_THE_ODDS", False)
-        w = _fresh()
-        murat, john = _murat_eyeing_john(w)
-        random.seed(1)
-        results = _quiet(J.process_autonomous_attacks, w, M.executor, {"world": w})
-        assert results and results[0].get("jealousy_autonomous") == "Murat"
-
     def test_muster_odds_is_the_previews_own_band(self):
         """Drift pin: the gate's reading and the screen's reading are one."""
         ce = M.executor._combat
@@ -570,9 +559,9 @@ class TestCTheGloryAttackObeysTheOdds:
             checked += 1
         assert checked >= 3
 
-    def test_the_ai_rung_is_held_too(self, monkeypatch):
+    def test_the_ai_rung_is_held_too(self):
         """GR5: an Austrian aggressive glory hunt at unfavorable odds is held
-        by the same predicate; with the lever down the P3.9 rung fires."""
+        by the same predicate on the P3.9 rung."""
         w = _fresh()
         charles = w.marshals["ArchdukeCharles"]
         ney = w.marshals["Ney"]
@@ -596,10 +585,6 @@ class TestCTheGloryAttackObeysTheOdds:
         action, _prio = _quiet(ai._evaluate_marshal, charles, "Austria", w)
         assert not (isinstance(action, dict) and action.get("action") == "attack"
                     and action.get("target") == "Ney"), action
-        monkeypatch.setattr(J, "GLORY_ATTACK_OBEYS_THE_ODDS", False)
-        action, _prio = _quiet(ai._evaluate_marshal, charles, "Austria", w)
-        assert isinstance(action, dict) and action.get("action") == "attack" \
-            and action.get("target") == "Ney", action
 
 
 # ═══════════════════════════════════════════════════════════════════════

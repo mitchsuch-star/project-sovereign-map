@@ -22,13 +22,12 @@ restlessness loop has a literal arm that reads `consecutive_hold_turns` and
 never touches the ladder. Measured on the shipped trust lesson: at HEAD the
 `warned >= 1` break is consumed by Davout's ladder arm at turn 2, so gating
 glory alone makes *Soult's* line appear where it does not fire today. Both
-guards ship, on separate levers, so the two are measurable apart.
+guards ship, inlined (CODE-1 batch 3).
 """
 
 from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import ast
 import importlib.util
-import inspect
 import os
 import pathlib
 import sys
@@ -77,19 +76,6 @@ class TestThePredicate:
         assert jealousy.glory_dormant(lesson) is True
         assert jealousy.glory_dormant(campaign) is False
 
-    def test_the_lever_reproduces_head(self, lesson, monkeypatch):
-        monkeypatch.setattr(jealousy, "GLORY_DORMANT_ACTIVE", False)
-        assert jealousy.glory_dormant(lesson) is False
-
-    def test_it_is_not_folded_into_jealousy_dormant(self):
-        """The two carve-outs answer different questions and one of them
-        overrules a written precedent. They keep separate names and separate
-        levers so a future reader can move one without the other."""
-        assert jealousy.GLORY_DORMANT_ACTIVE is not None
-        assert jealousy.RESTLESSNESS_SLEEPS_IN_SCHOOL is not None
-        src = inspect.getsource(jealousy.jealousy_dormant)
-        assert "GLORY_DORMANT_ACTIVE" not in src
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # The chokepoint really is one
@@ -135,20 +121,19 @@ class TestTheChokepointIsComplete:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Driven: the lesson, twelve turns, both levers
+# Driven: the lesson, twelve turns
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _drive(script, turns=12, glory=True, restless=True, field=None):
+def _drive(script, turns=12, field=None):
     """The real driver, IN-PROCESS.
 
     `field` sets `combat_executor.THE_COORDINATION_IS_READ_ON_THE_FIELD` for
     the drive (None = the shipped tree). §6 row 16 (Score Finish Step 7,
     October 4, 2026): with the coordination read on the field the lesson's
     battles fall differently (Kienmayer loses 7,134 men at Swabia, not 6,659)
-    and NOBODY is crowned in it, guards up or down, over 12, 14, 16 or 20
-    turns — so the controls that need a crown to exist run on the board
-    where the lesson crowns (the field read down), and the guard's own pin
-    runs on both.
+    and NOBODY is crowned in it over 12, 14, 16 or 20 turns — so the guard's
+    own pin runs on both boards (the shipped tree and the field read down,
+    where the lesson crowns).
 
     ⚠ `playtest_driver.main()` re-execs a subprocess, which silently
     discards a monkeypatched lever — an arm taken that way measures HEAD
@@ -174,8 +159,6 @@ def _drive(script, turns=12, glory=True, restless=True, field=None):
                            e.get("marshal")))
         return evs
 
-    prev_glory = jealousy.GLORY_DORMANT_ACTIVE
-    prev_rest = jealousy.RESTLESSNESS_SLEEPS_IN_SCHOOL
     from backend.commands import combat_executor as _ce
     prev_field = _ce.THE_COORDINATION_IS_READ_ON_THE_FIELD
     prev_save = os.environ.get("INK_IRON_SAVE_DIR")
@@ -183,8 +166,6 @@ def _drive(script, turns=12, glory=True, restless=True, field=None):
     prev_llm = os.environ.get("LLM_MODE")
     tmp = tempfile.mkdtemp()
     try:
-        jealousy.GLORY_DORMANT_ACTIVE = glory
-        jealousy.RESTLESSNESS_SLEEPS_IN_SCHOOL = restless
         if field is not None:
             _ce.THE_COORDINATION_IS_READ_ON_THE_FIELD = field
         jealousy.process_turn = wrapped
@@ -205,8 +186,6 @@ def _drive(script, turns=12, glory=True, restless=True, field=None):
                 pass
     finally:
         jealousy.process_turn = real
-        jealousy.GLORY_DORMANT_ACTIVE = prev_glory
-        jealousy.RESTLESSNESS_SLEEPS_IN_SCHOOL = prev_rest
         _ce.THE_COORDINATION_IS_READ_ON_THE_FIELD = prev_field
         for k, v in (("INK_IRON_SAVE_DIR", prev_save),
                      ("SOVEREIGN_SEED", prev_seed), ("LLM_MODE", prev_llm)):
@@ -232,79 +211,11 @@ class TestTheLessonIsSilent:
         assert [c for c in got if c[1] in ("glory_crowned",
                                            "glory_crown_lost")] == []
 
-    def test_the_negative_control_produces_both_kinds(self):
-        """If the lever-False arm produced nothing, the pin above would be
-        green on a lesson that never crowns anyone anyway."""
-        # §6 row 16: on the board where the lesson crowns (the field read
-        # down — the shipped lesson crowns nobody, guards up or down).
-        got = _drive("tutorial_lesson_trust", glory=False, restless=False,
-                     field=False)
-        gained = [c for c in got if c[1] == "glory_crowned"]
-        lost = [c for c in got if c[1] == "glory_crown_lost"]
-        # Re-measured by FA slice 17 Phase 2 (September 11, 2026): the
-        # lesson's battles resolve on the engaged-bodies pool (FA-D29) and
-        # Berthier's line no longer moves the dice (FA-D24), so the crown is
-        # won ONCE (Ney, turn 2). Whether it then PASSES depends on process
-        # state the suite leaves behind (FA-S17-2: standalone the lesson
-        # never loses it, inside the full suite Ney loses it at turn 10 —
-        # three runs in one process agree with each other, so the lesson is
-        # deterministic and the leak is upstream of it; one suite run even
-        # crowned Senarmont at turn 10 after the loss). The control keeps
-        # what holds in every context: the first crown is Ney's at turn 2,
-        # and any crown lost was one the lesson had crowned. The loss
-        # producer itself is pinned in
-        # tests/test_fa_slice17_h_the_ledger_and_the_gazette.
-        # CONSCIOUS FLIP, SR-4c "the drama's fuse" (JEALOUSY_SPEC §0.7, Sept
-        # 26 2026): the crown now wants CROWN_MIN_GLORY (3) in the window, so
-        # Ney's turn-2 crown for one early win is gone — measured, his first
-        # crown comes at turn 9. The control's purpose is unchanged: the
-        # lever-False lesson DOES crown someone, and it is Ney.
-        assert gained and gained[0][2] == "Ney" and gained[0][0] > 2, gained
-        crowned = {m for _t, _k, m in gained}
-        assert all(m in crowned for _t, _k, m in lost), (lost, crowned)
-
     def test_no_restlessness_beat_of_any_arm(self):
         """⚠ This is the pin the filed recommendation REDS on its own build:
         gating glory alone leaves §4's literal arm firing."""
         got = _drive("tutorial_lesson_trust")
         assert [c for c in got if c[1] == "jealousy_restlessness"] == []
-
-    def test_the_two_guards_are_independent(self):
-        """⚠ ADDED after a sweep: D4/g came back INERT, and it was right to.
-
-        On the lesson world `glory_dormant` and `jealousy_dormant` agree, so
-        keying the restlessness guard on the WRONG one is invisible — until
-        someone sets `GLORY_DORMANT_ACTIVE = False` to put the ladder back,
-        at which point a glory-keyed guard silently re-opens TUT-F5's
-        separate contract. This is the one combination that can tell them
-        apart, and nothing else in the file drives it.
-        """
-        # §6 row 16: on the board where the lesson crowns (see `_drive`).
-        got = _drive("tutorial_lesson_trust", glory=False, restless=True,
-                     field=False)
-        assert [c for c in got if c[1] == "jealousy_restlessness"] == []
-        # …and glory is genuinely back, so the arm is not vacuous
-        assert [c for c in got if c[1] == "glory_crowned"]
-
-    def test_gating_glory_alone_unmasks_soult(self):
-        """The measurement that forced the second guard. At HEAD the single
-        allowed warning is consumed by Davout's LADDER arm; silence the
-        ladder and Soult's LITERAL arm takes the slot — a beat that does not
-        fire in the shipped lesson appears because of the fix."""
-        head = _drive("tutorial_lesson_trust", glory=False, restless=False)
-        glory_only = _drive("tutorial_lesson_trust", glory=True,
-                            restless=False)
-        head_r = [c for c in head if c[1] == "jealousy_restlessness"]
-        only_r = [c for c in glory_only if c[1] == "jealousy_restlessness"]
-        # Re-measured by FA slice 17 Phase 2 (September 11, 2026): on the
-        # FA-D29 board Soult's LITERAL arm fires at turn 2 with the ladder
-        # LIVE as well (head: Soult, Senarmont, Davout, Senarmont), so the
-        # ladder no longer "masks" him — the reason the second guard exists
-        # is unchanged and still measured: with glory gated ALONE, Soult's
-        # arm is the ONLY beat left standing (once standalone, twice inside
-        # the full suite — FA-S17-2; the set is what is pinned).
-        assert head_r, head
-        assert only_r and {c[2] for c in only_r} == {"Soult"}, only_r
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -419,72 +330,6 @@ class TestTheSentenceIsGone:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestTheCarveOutThatWasOverruled:
-
-    def test_battles_won_is_what_the_carve_out_was_really_protecting(self):
-        """⚠ The defence of overruling PC15-D3's written clause. `battles_won`
-        — the number the Generals screen and the dotation record actually
-        need — is byte-identical with the lever either way. Measured, not
-        asserted: 6/5/5/0 on the trust script, 4/3/3/0 on the insist script.
-
-        ⚠ Do NOT hard-code those figures against a foreign script: the
-        recommendation quoted 4/3/0/3 from one branch and this build measures
-        6/5/5/0 on the other, and a literal would red on arrival.
-        """
-        import argparse
-        import contextlib
-        import io
-        import tempfile
-
-        spec = importlib.util.spec_from_file_location(
-            "pdrv_d4b", str(REPO / "tools" / "playtest_driver.py"))
-        drv = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(drv)
-
-        seen = {}
-        real = dispatch._build_marshal_arcs
-        worlds = []
-
-        def spy(world, *a, **k):
-            worlds.append(world)
-            return real(world, *a, **k)
-
-        for lever in (True, False):
-            prev = jealousy.GLORY_DORMANT_ACTIVE
-            prev_save = os.environ.get("INK_IRON_SAVE_DIR")
-            tmp = tempfile.mkdtemp()
-            try:
-                jealousy.GLORY_DORMANT_ACTIVE = lever
-                dispatch._build_marshal_arcs = spy
-                os.environ["INK_IRON_SAVE_DIR"] = os.path.join(tmp, "s")
-                os.environ["SOVEREIGN_SEED"] = "historical"
-                worlds.clear()
-                ns = argparse.Namespace(
-                    name="d4b", turns=12, seed="historical", llm="mock",
-                    scenario="",
-                    script=str(REPO / "tools" / "playtest_scripts" /
-                               "tutorial_lesson_trust.json"),
-                    from_save="", http="", out=os.path.join(tmp, "o"),
-                    save_at="", objection="", diplomacy="", cheats=False,
-                    strict=False, verbose=False, fresh=True, archive=False)
-                with contextlib.redirect_stdout(io.StringIO()):
-                    try:
-                        drv.run(ns)
-                    except SystemExit:
-                        pass
-                w = worlds[-1]
-                seen[lever] = {m.name: getattr(m, "battles_won", 0)
-                               for m in w.marshals.values()
-                               if m.nation == w.player_nation}
-            finally:
-                jealousy.GLORY_DORMANT_ACTIVE = prev
-                dispatch._build_marshal_arcs = real
-                if prev_save is None:
-                    os.environ.pop("INK_IRON_SAVE_DIR", None)
-                else:
-                    os.environ["INK_IRON_SAVE_DIR"] = prev_save
-
-        assert seen[True] == seen[False], seen
-        assert sum(seen[True].values()) > 0, "nobody won a battle — vacuous"
 
     def test_the_two_prose_sites_were_narrowed(self):
         """Both docstrings claimed glory keeps accruing. One of them is the

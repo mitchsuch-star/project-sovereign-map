@@ -7,9 +7,9 @@ on Ney on turn 1 for ONE Shadowed point, "the laurels have passed" on turn 9
 when Ney and Murat stood level, and — in the hand-played AAR — a crown for
 Oudinot's 420-against-1,007 fight with a raid, the only glory in the window.
 
-Four levers (jealousy.py): THE_LAUREL_FLOOR, THE_CROWN_WANTS_LAURELS,
-THE_AUDIENCE_WAITS, THE_FIRES_SAY_WHY. Each class pins its lever with a
-sensitivity arm (the lever down reproduces the defect).
+Four rules (jealousy.py, each inlined — CODE-1 batch 3): the laurel floor,
+the crown wants laurels, the audience waits, the fires say why. Each class
+pins its rule.
 """
 
 from pathlib import Path
@@ -92,15 +92,6 @@ class TestTheLaurelFloor:
         # (Mack, outnumbered, loses no glory — spec §1's no-stigma rule, unchanged)
         assert _glory_today(world, "Mack") == 0
 
-    def test_lever_down_a_skirmish_scores(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_LAUREL_FLOOR", False)
-        ney, mack = world.marshals["Ney"], world.marshals["Mack"]
-        _clear_glory(world)
-        J.record_battle_glory(world, ney, mack, True, False, 300, 500,
-                              conquered=True, pre_attacker_strength=4000,
-                              pre_defender_strength=5000)
-        assert _glory_today(world, "Ney") > 0
-
     def test_a_skirmish_stalemate_earns_no_partial_glory(self, world):
         ney, mack = world.marshals["Ney"], world.marshals["Mack"]
         _clear_glory(world)
@@ -145,13 +136,6 @@ class TestTheCrownWantsLaurels:
         _set_glory(world, "ArchdukeCharles", 1)
         J.recompute_crowns(world)
         assert world.marshals["ArchdukeCharles"].glory_crowned
-
-    def test_lever_down_any_point_is_crowned(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_CROWN_WANTS_LAURELS", False)
-        _clear_glory(world)
-        _set_glory(world, "Ney", 1)
-        J.recompute_crowns(world)
-        assert world.marshals["Ney"].glory_crowned
 
 
 # ═══════════════════════════ THE FIRES SAY WHY ═══════════════════════════════
@@ -207,14 +191,6 @@ class TestTheCrownLostSaysWhere:
                                         "nation": "France"})
         assert legacy.endswith("the laurels have passed")
 
-    def test_lever_down_says_passed_for_a_tie(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_FIRES_SAY_WHY", False)
-        self._crown_ney(world)
-        _set_glory(world, "Murat", 4)
-        lost, rows = self._lost(world)
-        assert lost[0]["message"].endswith("the laurels have passed.")
-        assert "why" not in rows[0]
-
 
 class TestABrokenRivalIsNotGone:
     def _envy(self, world):
@@ -241,13 +217,6 @@ class TestABrokenRivalIsNotGone:
     def test_a_destroyed_rival_is_gone(self, world):
         massena, davout = self._envy(world)
         davout.strength = 0
-        msgs = self._pass_messages(world)
-        assert msgs and "no one left to envy" in msgs[0], msgs
-
-    def test_lever_down_a_broken_rival_is_gone(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_FIRES_SAY_WHY", False)
-        massena, davout = self._envy(world)
-        davout.broken = True
         msgs = self._pass_messages(world)
         assert msgs and "no one left to envy" in msgs[0], msgs
 
@@ -333,16 +302,6 @@ class TestTheAudienceWaits:
         card = world.pending_marshal_petition
         assert card is not None and card is not stale
         assert str(card["body"]).startswith("Settled once at Tyrol"), card["body"]
-
-    def test_lever_down_he_asks_again_at_once(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_AUDIENCE_WAITS", False)
-        world.current_turn = 4
-        self._fire(world, "Massena", "Davout")
-        self._answer_and_cool(world, "Massena")
-        world.current_turn = 7
-        self._fire(world, "Massena", "Soult")
-        assert world.pending_marshal_petition is not None
-        assert "__audience__" not in world.marshals["Massena"].jealousy_history
 
     def test_the_clock_survives_the_save(self, world):
         world.current_turn = 4

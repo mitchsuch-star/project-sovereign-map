@@ -510,12 +510,6 @@ class TestTheExpeditionIsButtons:
         assert "the Emperor does not sail" in term
         assert "march Napoleon" not in term
 
-    def test_the_lever_restores_the_old_term(self, monkeypatch):
-        _board_env(monkeypatch)
-        monkeypatch.setattr(naval, "THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE", False)
-        term = naval.build_admiralty_report(M.world)["expedition_terms"][1]["detail"]
-        assert "march Napoleon (10,000) to a yard" in term
-
     def test_the_panel_names_the_real_road(self, monkeypatch):
         """The region panel's withheld landing chip said "march one there"
         at the boot, when the only corps under the lift is the Guard."""
@@ -532,12 +526,8 @@ class TestTheExpeditionIsButtons:
 
 class TestTheLiftCounselNamesThePrice:
 
-    def _soult_refusal(self, monkeypatch, price_lever=None):
-        # None = the SHIPPED lever: setting it here would mask a flipped
-        # default (the sweep caught exactly that — NUI2-24 read INERT).
+    def _soult_refusal(self, monkeypatch):
         _board_env(monkeypatch)
-        if price_lever is not None:
-            monkeypatch.setattr(naval, "THE_LIFT_COUNSEL_NAMES_THE_PRICE", price_lever)
         soult = M.world.marshals["Soult"]
         return naval.over_lift_refusal(M.world, soult)
 
@@ -546,9 +536,6 @@ class TestTheLiftCounselNamesThePrice:
         cand = recruitment.cheapest_commission_if_funded(M.world, "France")
         assert (f"Or, when the treasury allows, commission {cand['name']} — "
                 f"5,000 men for {int(cand['cost']):,}g (we hold 800g)") in text
-
-    def test_the_lever_restores_the_silence(self, monkeypatch):
-        assert "commission" not in self._soult_refusal(monkeypatch, price_lever=False)
 
     def test_an_affordable_road_keeps_its_old_sentence(self, monkeypatch):
         _board_env(monkeypatch)

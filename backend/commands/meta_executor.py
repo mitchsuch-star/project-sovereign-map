@@ -196,9 +196,7 @@ def _missions_help_block(world) -> str:
         dp = int(MISSION_DP_COSTS.get(mission_type, 1))
         qualifier = ""
         if mission_type == "REASSURE_ALLY":
-            from backend.game_logic.diplomacy import REASSURE_ONLY_AT_ALLIANCE
-            qualifier = (" (a full alliance only)" if REASSURE_ONLY_AT_ALLIANCE
-                         else " (allies only)")
+            qualifier = " (a full alliance only)"
         lines.append(f"                 {name} - {dp} DP a turn{qualifier}")
         lines.append(f"                   {mission_effect_text(world, mission_type, short=True)}")
     lines += [

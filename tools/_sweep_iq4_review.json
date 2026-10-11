@@ -30,18 +30,6 @@
   "tests": "tests/test_iq4_cabinet_visible.py"
  },
  {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "        if MISSION_PROGRESS_READS_AFTER_DRIFT:\n            # Step 4c decays",
-  "new": "        if False:\n            # Step 4c decays",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "    if UNDERMINE_ENDS_ON_THE_BREAK:\n        events.extend(_complete_undermine_if_broken(world))",
-  "new": "    if False:\n        events.extend(_complete_undermine_if_broken(world))",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
   "file": "backend/game_logic/diplomatic_dialogue.py",
   "old": "        if state == \"ALLIANCE\":\n            next_floor",
   "new": "        if False:\n            next_floor",
@@ -75,12 +63,6 @@
   "file": "backend/game_logic/diplomatic_dialogue.py",
   "old": "        if snap.get(\"type\") == \"UNDERMINE_ALLIANCE\" and A:",
   "new": "        if False:",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "            if not COURT_EXEMPTION_KEEPS_THE_THAW:\n                return 0",
-  "new": "            if True:\n                return 0",
   "tests": "tests/test_iq4_cabinet_visible.py"
  },
  {
@@ -141,12 +123,6 @@
   "file": "godot-client/project-sovereign/scripts/main.gd",
   "old": "\"]► \" + Utils.humanize_nation_keys_in_text(command) + \"[/color]\")\n\tset_input_enabled(false)\n\tapi_client.send_command(command, _on_naval_command_result)",
   "new": "\"]► \" + command + \"[/color]\")\n\tset_input_enabled(false)\n\tapi_client.send_command(command, _on_naval_command_result)",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/commands/meta_executor.py",
-  "old": "            qualifier = (\" (a full alliance only)\" if REASSURE_ONLY_AT_ALLIANCE",
-  "new": "            qualifier = (\" (allies only)\" if REASSURE_ONLY_AT_ALLIANCE",
   "tests": "tests/test_iq4_cabinet_visible.py"
  },
  {

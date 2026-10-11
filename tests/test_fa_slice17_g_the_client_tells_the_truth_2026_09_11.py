@@ -292,22 +292,6 @@ class TestFAN81TheWizardMirrorsTheTransitGate:
             if a not in TRANSIT_GATED_WIZARD_ACTIONS:
                 assert transit[a].get("available") == idle[a].get("available"), a
 
-    def test_the_defect_is_reproduced_with_the_lever_down(self, world_1805, monkeypatch):
-        from backend.game_logic import diplomacy
-        from backend.commands.diplomatic_executor import TRANSIT_GATED_WIZARD_ACTIONS
-        monkeypatch.setattr(diplomacy, "WIZARD_MIRRORS_THE_TRANSIT_GATE", False)
-        idle = _rows(world_1805)
-        restore = _in_transit(world_1805)
-        try:
-            transit = _rows(world_1805)
-        finally:
-            restore()
-        lied = [a for a in transit if a in TRANSIT_GATED_WIZARD_ACTIONS
-                and not a.startswith("mission_") and transit[a].get("available")]
-        assert lied, "the prior builder rendered at least one refused row enabled"
-        for a in lied:
-            assert transit[a].get("available") == idle[a].get("available")
-
     def test_the_vassal_branch_greys_its_cancel_row_too(self, world_1805):
         """The cancel row is built by ONE helper both branches call; a mission
         against a court later vassalized keeps it — and in transit it is

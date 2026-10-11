@@ -1,12 +1,5 @@
 [
   {
-    "id": "B1 antechamber lever down",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "THE_ANTECHAMBER = True\n",
-    "new": "THE_ANTECHAMBER = False\n",
-    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_an_audience_takes_the_slot_but_not_the_queue"
-  },
-  {
     "id": "B1 an audience rides the queue",
     "file": "backend/game_logic/jealousy.py",
     "old": "    if tier == PETITION_TIER_CRISIS:\n        if queue is not None:\n            queue.push(\"pending_marshal_petition\", petition)",
@@ -103,13 +96,6 @@
     "old": "            # B1: the antechamber's rail row leaves with the card.\n            _dismiss_audience_notice(world, petition)",
     "new": "            pass",
     "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_get_serves_the_card_and_the_same_endpoint_answers_it"
-  },
-  {
-    "id": "B1 the turn pass keeps a stale audience",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "    if _standing and THE_ANTECHAMBER and not petition_is_still_live(_standing, world):",
-    "new": "    if False:",
-    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_a_stale_audience_is_retired_by_the_turn_pass_and_says_so"
   },
   {
     "id": "B1 the load primes an audience",

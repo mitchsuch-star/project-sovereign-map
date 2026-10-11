@@ -1,19 +1,5 @@
 [
   {
-    "id": "SR-4c laurel floor lever down",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "THE_LAUREL_FLOOR = True\n",
-    "new": "THE_LAUREL_FLOOR = False\n",
-    "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheLaurelFloor::test_a_skirmish_earns_and_costs_no_glory"
-  },
-  {
-    "id": "SR-4c the floor is not read at the chokepoint",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "    if THE_LAUREL_FLOOR and not is_laurel(attacker_casualties,\n                                          defender_casualties):\n        return",
-    "new": "    if False:\n        return",
-    "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheLaurelFloor"
-  },
-  {
     "id": "SR-4c the decisive arm is dropped",
     "file": "backend/game_logic/jealousy.py",
     "old": "    return battle_scale.is_a_battle(a + b) or battle_scale.is_decisive_exchange(a, b)",
@@ -33,13 +19,6 @@
     "old": "    except (TypeError, ValueError):\n        return True\n    return battle_scale.is_a_battle(a + b)",
     "new": "    except (TypeError, ValueError):\n        return False\n    return battle_scale.is_a_battle(a + b)",
     "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheLaurelFloor::test_the_predicate_is_the_engines_own_battle_floor"
-  },
-  {
-    "id": "SR-4c crown lever down",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "THE_CROWN_WANTS_LAURELS = True\n",
-    "new": "THE_CROWN_WANTS_LAURELS = False\n",
-    "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheCrownWantsLaurels::test_one_shadowed_point_wears_no_crown"
   },
   {
     "id": "SR-4c the crown reads any point",
@@ -77,13 +56,6 @@
     "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheCrownLostSaysWhere::test_the_log_composes_its_sentence_from_the_row"
   },
   {
-    "id": "SR-4c the says-why lever down",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "THE_FIRES_SAY_WHY = True\n",
-    "new": "THE_FIRES_SAY_WHY = False\n",
-    "tests": "tests/test_sr4c_the_dramas_fuse.py::TestABrokenRivalIsNotGone::test_a_broken_rival_is_named_broken"
-  },
-  {
     "id": "SR-4c a broken rival is gone",
     "file": "backend/game_logic/jealousy.py",
     "old": "                           reason=(\"the rival is broken\" if _broken_not_gone\n                                   else \"the rival is gone\"))",
@@ -98,13 +70,6 @@
     "tests": "tests/test_sr4c_the_dramas_fuse.py::TestABrokenRivalIsNotGone::test_a_destroyed_rival_is_gone"
   },
   {
-    "id": "SR-4c audience lever down",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "THE_AUDIENCE_WAITS = True\n",
-    "new": "THE_AUDIENCE_WAITS = False\n",
-    "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheAudienceWaits::test_he_does_not_ask_again_within_the_cooldown"
-  },
-  {
     "id": "SR-4c the audience never waits",
     "file": "backend/game_logic/jealousy.py",
     "old": "    return max(0, int(AUDIENCE_COOLDOWN_TURNS) - elapsed)",
@@ -117,13 +82,6 @@
     "old": "    if int(level or 0) >= ESCALATION_PERMANENT_LEVEL:\n        return 0\n    last = last_audience_turn(marshal)",
     "new": "    last = last_audience_turn(marshal)",
     "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheAudienceWaits::test_the_damage_going_permanent_never_waits"
-  },
-  {
-    "id": "SR-4c the audience is never stamped",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "                if THE_AUDIENCE_WAITS:\n                    _stamp_audience(marshal, turn)",
-    "new": "                pass",
-    "tests": "tests/test_sr4c_the_dramas_fuse.py::TestTheAudienceWaits"
   },
   {
     "id": "SR-4c a replacement waits",

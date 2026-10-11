@@ -119,13 +119,6 @@
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestGlobalElimination::test_e2_the_alarm_is_silent_with_nobody_left"
  },
  {
-  "id": "GE1-22 E3 a dead court can be declared upon (lever)",
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "DEAD_COURTS_CANNOT_BE_FOUGHT = True",
-  "new": "DEAD_COURTS_CANNOT_BE_FOUGHT = False",
-  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestGlobalElimination::test_e3_a_dead_court_cannot_be_declared_upon"
- },
- {
   "id": "GE1-23 E3 a dead court keeps its trade dominance",
   "file": "backend/game_logic/naval.py",
   "old": "        if active is not None and nation not in active:\n            continue\n        if rec.get(\"trade_dominance\"):",

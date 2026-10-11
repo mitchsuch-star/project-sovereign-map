@@ -7,9 +7,8 @@ the ORDINARY geometry the review measured — the shipped turn-6 board
 (five real end turns through `TurnManager.end_turn`: the boot coalition's
 settlement offer CURRENT, routine letters queued, Switzerland's relief
 petition QUEUED behind them, never a modal on its own), the Tyrol staging
-the IQ-7 file uses for the province ask, and the School of War — plus each
-mechanics lever's False arm on its own surface, the X5 reap on all six
-roads, and the R5 drift pin.
+the IQ-7 file uses for the province ask, and the School of War — plus the
+X5 reap on all six roads and the R5 drift pin.
 
 THE T11(d) FLIP, RECORDED: the IQ-7 contract's T11(d) ("set lord DP to 0
 -> withdrawn, no refusal penalty") is consciously REVERSED by R2
@@ -18,19 +17,16 @@ THE T11(d) FLIP, RECORDED: the IQ-7 contract's T11(d) ("set lord DP to 0
 bond that Refuse and the lapse both charge. A lord who cannot pay has NOT
 answered: the Grant is refused WITHOUT consuming the petition (outcome
 `stands`), the question is re-carried with Grant honestly disabled, and
-the lapse then charges the refusal like any other. The old withdrawal is
-the False arm of `THE_LORD_PAYS_TO_GRANT`; the flipped pin lives in
+the lapse then charges the refusal like any other. The old withdrawal no
+longer exists; the flipped pin lives in
 `tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer
 ::test_d_a_lord_who_can_no_longer_pay`.
 
-Levers (all in `backend/game_logic/vassal.py`; False must reproduce
-`7d10e20c` on its surface — every False arm below asserts the STATE the
-integrator's `probe_levers.py` measured against the 7d10e20c module loaded
-side by side): `THE_DEED_HONOURS_THE_PETITION` (R1),
-`THE_LORD_PAYS_TO_GRANT` (R2), `THE_TRANSFER_SHEDS_THE_REMISSION` (R3),
-`A_RELIEF_OF_NOTHING_IS_WITHDRAWN` (R4's "relief whose live tribute is 0
--> None"; Builder A's extra lever). R5–R10 are copy, display and routing —
-no lever (GR6) — so their pins carry no False arm.
+The R1–R4 mechanics (the deed honours the petition, the lord pays to grant,
+the transfer sheds the remission, a relief of nothing is withdrawn) once
+rode module-level levers in `backend/game_logic/vassal.py`; CODE-1 batch 3
+(October 2026) retired them, so every pin below reads the live rule alone.
+R5–R10 are copy, display and routing (GR6).
 
 Method notes, recorded rather than hidden:
 * The turn-6 board is booted ONCE per module — `seed="historical"` passed
@@ -66,7 +62,7 @@ Pass 2 adds two ROUTING levers, both in `backend/commands/
 dialogue_routing.py` — `A_PETITION_IS_ANSWERED_PLAINLY` (P2-1) and
 `THE_MATTER_GUARD_READS_THE_TABLE` (P3-3 / P3-4 / P4-3 / P4-6) — whose
 False arms are pinned as the pass-1 router on their own surfaces; P3-1
-rides `THE_DEED_HONOURS_THE_PETITION`'s existing False arm; P3-2, P4-1,
+rides R1's deed rule; P3-2, P4-1,
 P4-2, P4-4 and P4-5 are copy and display (GR6, no lever).
 
 PASS 3 (September 18, 2026). A second verifier attacked pass 2 and filed
@@ -149,10 +145,6 @@ GODOT_SCENES = REPO / "godot-client" / "project-sovereign" / "scenes"
 PLAYER = "France"
 KOI = "KingdomOfItaly"
 SWISS = "Switzerland"
-LEVERS = ("THE_CLIENT_PETITIONS", "AN_UNANSWERED_PETITION_IS_REFUSED",
-          "COURTING_SPARES_THE_LORDS_ALLIES", "THE_WAVERING_LINE_IS_HONEST",
-          "THE_DEED_HONOURS_THE_PETITION", "THE_LORD_PAYS_TO_GRANT",
-          "THE_TRANSFER_SHEDS_THE_REMISSION", "A_RELIEF_OF_NOTHING_IS_WITHDRAWN")
 # The typed verbs the review used to spend the turn's DP to 0 (each one an
 # ordinary, useful order — the dodge cost the player nothing).
 # SR-5r DP-1 (Sept 27, 2026): the pool banks one turn, so the board holds up
@@ -399,13 +391,6 @@ def _tyrol_board(monkeypatch, *, stability=None, loyalty=86):
 # ═══════════════════════════════════════════════════════════════════════════
 # fixtures
 # ═══════════════════════════════════════════════════════════════════════════
-
-@pytest.fixture(autouse=True)
-def _restore_levers(monkeypatch):
-    for name in LEVERS:
-        monkeypatch.setattr(V, name, getattr(V, name))
-    yield
-
 
 _SNAPSHOT_SANDBOX: dict = {}       # where `turn6_snapshot`'s end turns autosaved
 
@@ -674,37 +659,6 @@ class TestR1TheDeedFulfilsThePetition:
         w.regions["Tyrol"].controller = PLAYER                                  # gift not delivered
         assert not V.petition_is_fulfilled(w, KOI, PLAYER, pet)
 
-    def test_lever_down_reproduces_the_7d10e20c_answers(self, monkeypatch):
-        """The False arm, byte-for-byte on its surface: a typed cede stamps
-        the grant cooldown, which the old order read as "withdrawn" (Grant
-        paid 0), while the lapse and Refuse charged the refusal."""
-        monkeypatch.setattr(V, "THE_DEED_HONOURS_THE_PETITION", False)
-
-        def cede_then(answer):
-            w = _europe()
-            _stage_tyrol_for_koi(w)
-            w.current_turn = 6
-            pet = V.petition_terms(w, KOI)
-            with _quiet():
-                assert V.grant_region_to_vassal(w, KOI, "Tyrol", actor=PLAYER)["success"]
-            dp0 = w.diplomatic_points
-            if answer == "grant":
-                res = V.grant_petition(w, KOI, PLAYER, pet)
-            else:
-                res = V.refuse_petition(w, KOI, PLAYER, pet, how=answer)
-            return (res["outcome"], res["success"], w.vassals[KOI]["loyalty"],
-                    _rel(w, KOI, PLAYER), w.diplomatic_points - dp0,
-                    [(e["outcome"], e["penalty"]) for e in _logged(w)], res["message"])
-
-        grant = cede_then("grant")
-        assert grant[:6] == ("withdrawn", False, 100, 0, 0, [])
-        assert "still being settled" in grant[6] and "withdrawn" in grant[6]
-        lapse = cede_then("unanswered")
-        assert lapse[:6] == ("unanswered", True, 90, -20, 0, [("unanswered", True)])
-        refuse = cede_then("refused")
-        assert refuse[:6] == ("refused", True, 90, -20, 0, [("refused", True)])
-        assert not V.petition_is_fulfilled(_europe(), KOI, PLAYER, {"subject": "province"})
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # R2 — a lord who cannot pay has not answered
@@ -819,26 +773,6 @@ class TestR2TheLordPaysToGrant:
         assert popup["grant_enabled"] is False and "diplomatic point" in popup["grant_reason"]
         assert next(o for o in popup["options"] if o["action"] == "accept_ai_proposal")["enabled"] is False
 
-    def test_lever_down_a_dp_short_grant_withdraws_like_7d10e20c(self, board, monkeypatch):
-        monkeypatch.setattr(V, "THE_LORD_PAYS_TO_GRANT", False)
-        w, client = board
-        pet = _petition_of(w)
-        _activate(client, pet)
-        w.diplomatic_points = 0
-        loy0, rel0 = w.vassals[SWISS]["loyalty"], _rel(w, SWISS, PLAYER)
-        r = _respond(client, "accept", pet["dialogue_id"])
-        assert r.get("success") is False
-        assert "withdrawn" in str(r.get("message")) and "cannot spare the diplomatic point" in str(r.get("message"))
-        assert not _petitions(w)                                          # consumed, free
-        assert not _logged(w)
-        assert w.vassals[SWISS]["loyalty"] == loy0 and _rel(w, SWISS, PLAYER) == rel0
-        assert "remission_left" not in w.vassals[SWISS]
-        assert "Petition from Switzerland" not in _titles(w)
-        # R10 (copy, no lever): a withdrawal is never titled "Rejected"
-        assert _verdict(client, r)["outcome"] == "WITHDRAWN"
-        _end_turn(client)
-        assert not _logged(w)                                             # nothing left to charge
-
     def test_gr5_the_ai_lord_maps_stands_to_a_refusal_at_the_same_price(self, monkeypatch):
         w = _holland_under_prussia()
         monkeypatch.setattr(V, "grant_petition",
@@ -923,20 +857,6 @@ class TestR3TheTransferShedsTheRemission:
         with _quiet():
             paid = V.process_vassal_tribute(w)
         assert (int(paid["Holland"]["amount"]), paid["Holland"].get("lord")) == (owed, PLAYER)
-
-    def test_lever_down_the_remission_is_inherited_like_7d10e20c(self, board, monkeypatch, tribute_spy):
-        monkeypatch.setattr(V, "THE_TRANSFER_SHEDS_THE_REMISSION", False)
-        w, client = board
-        self._relief_then_one_collection(w, client)
-        stamped = w.vassals[SWISS]["petitioned_turn"]
-        self._bribe_away(w, monkeypatch)
-        row = w.vassals[SWISS]
-        assert row["remission_left"] == V.REMISSION_COLLECTIONS - 1
-        assert row["petitioned_turn"] == stamped
-        assert V.vassal_tribute_owed(w, SWISS) == 0
-        _end_turn(client)
-        assert SWISS not in tribute_spy[-1]                                  # Britain paid nothing
-        assert w.vassals[SWISS]["remission_left"] == V.REMISSION_COLLECTIONS - 2
 
     def test_the_vs3_interlock_is_untouched_beside_the_new_pops(self):
         w = _europe()
@@ -1030,7 +950,7 @@ class TestR4OneRepricerOnTheStoredSubject:
         res = V.grant_petition(w, SWISS, PLAYER, pet)
         assert res["outcome"] == "granted" and w.vassals[SWISS]["remission_left"] == V.REMISSION_COLLECTIONS
 
-    def test_a_relief_of_nothing_is_withdrawn_and_the_lever_restores_the_old_grant(self, monkeypatch):
+    def test_a_relief_of_nothing_is_withdrawn(self):
         w = _europe()
         pet = V.petition_terms(w, SWISS)
         w.vassals[SWISS]["tribute_rate"] = 0.0
@@ -1041,12 +961,6 @@ class TestR4OneRepricerOnTheStoredSubject:
         assert res["outcome"] == "withdrawn" and "nothing to remit" in res["message"]
         assert "remission_left" not in w.vassals[SWISS] and w.diplomatic_points == dp0
         assert _rel(w, SWISS, PLAYER) == 0 and not _logged(w)
-        monkeypatch.setattr(V, "A_RELIEF_OF_NOTHING_IS_WITHDRAWN", False)
-        res = V.grant_petition(w, SWISS, PLAYER, pet)                       # 7d10e20c: granted anyway
-        assert (res["outcome"], w.vassals[SWISS]["remission_left"], w.diplomatic_points,
-                _rel(w, SWISS, PLAYER), [e["outcome"] for e in _logged(w)]) == (
-            "granted", V.REMISSION_COLLECTIONS, dp0 - 1, 20, ["granted"])
-        assert V.reprice_petition(w, PLAYER, SWISS, pet) is not None
 
     def test_the_refresh_leaves_an_ordinary_letter_alone(self):
         """The re-pricer is a PETITION seam: an ordinary letter is returned
@@ -1301,8 +1215,8 @@ class TestR7TheCardTellsTheTruth:
                 # board has the unattended France lose more battles by turn
                 # 10 (the lord's defeats, -2 each), so the Swiss stood at 67
                 # here and a -5 forecast took them under the loyal line at
-                # the advance into 15. The card now says so
-                # (THE_CARD_READS_TOMORROWS_STANDING); the second cycle's
+                # the advance into 15. The card now says so (it reads
+                # tomorrow's standing); the second cycle's
                 # standing is staged explicitly, like its relation, so the
                 # countdown is what this pin measures.
                 w.vassals[SWISS]["loyalty"] = 80
@@ -1350,7 +1264,7 @@ class TestR7TheCardTellsTheTruth:
         assert checked >= 13, checked
 
     def test_the_card_reads_the_standing_the_advance_will_leave(self):
-        """SR-5a (September 28, 2026), THE_CARD_READS_TOMORROWS_STANDING.
+        """SR-5a (September 28, 2026): the card reads tomorrow's standing.
         The producer asks after the turn's loyalty tick, so a client one
         falling tick above the loyal line has no standing at the advance.
         The card said "may petition" there (measured: loyalty 62, forecast
@@ -1372,19 +1286,6 @@ class TestR7TheCardTellsTheTruth:
         # the producer's read is today's, unchanged
         assert V.petition_gate_verdict(w, PLAYER, SWISS, projected=False)[1] != "loyalty"
         row["loyalty"] = V.PETITION_LOYAL_MIN - forecast   # the tick lands ON the line
-        assert _card(w, SWISS)["standing_key"] != "loyalty"
-
-    def test_the_card_lever_down_is_the_prior_read(self, monkeypatch):
-        w = _europe()
-        w.current_turn = 14
-        row = w.vassals[SWISS]
-        row["created_turn"] = 1
-        row.pop("petitioned_turn", None)
-        row["remission_left"] = 0
-        _set_rel(w, SWISS, PLAYER, -60)
-        forecast = V.forecast_vassal_loyalty(w, PLAYER, SWISS)["forecast"]
-        row["loyalty"] = V.PETITION_LOYAL_MIN - forecast - 1
-        monkeypatch.setattr(V, "THE_CARD_READS_TOMORROWS_STANDING", False)
         assert _card(w, SWISS)["standing_key"] != "loyalty"
 
     def test_the_standing_names_the_blocking_gate_and_never_a_second_standing(self):
@@ -1453,15 +1354,10 @@ class TestR7TheCardTellsTheTruth:
         assert issued == {"Holland": False, KOI: True, SWISS: False}
         assert V.petition_gate_verdict(w, PLAYER, SWISS, turn=7, projected=False)[0] is True
 
-    def test_the_card_is_empty_where_petitions_are_not_live(self, monkeypatch):
+    def test_the_card_carries_a_standing_where_petitions_are_live(self):
         w = _europe()
         assert V.petitions_live(w) is True
         assert "standing" in _card(w, SWISS)
-        monkeypatch.setattr(V, "THE_CLIENT_PETITIONS", False)
-        assert V.petitions_live(w) is False
-        assert V.petition_standing_keys(w, SWISS) == {}
-        assert V.petition_gate_verdict(w, PLAYER, SWISS) == (False, "dormant", 0)
-        assert "standing" not in _card(w, SWISS)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1476,14 +1372,6 @@ class TestR8TheLapseIsPricedAloud:
         assert "Grant it (keep 1 DP in hand), or refuse it" in body
         assert "Left unanswered it counts as a refusal: −10 loyalty, −20 bond." in body
 
-    def test_lever_down_the_rail_promises_no_price(self, monkeypatch):
-        monkeypatch.setattr(V, "AN_UNANSWERED_PETITION_IS_REFUSED", False)
-        w = _europe()
-        _deliver_only(w, SWISS)
-        body = _notice_body(w, "Petition from Switzerland")
-        assert "counts as a refusal" not in body and "−10" not in body
-        assert f"waits {V.PETITION_INTERVAL_TURNS} turns before asking again" in body
-
     def test_the_end_turn_gate_names_the_priced_petition_and_forgets_an_answered_one(self, board):
         w, client = board
         pet = _petition_of(w)
@@ -1496,13 +1384,6 @@ class TestR8TheLapseIsPricedAloud:
         r = _respond(client, "reject", pet["dialogue_id"])
         assert r.get("success") is True
         assert r["pending_lapsing_petitions"] == []                           # re-derived, never cached
-
-    def test_lever_down_the_gate_says_lapse_not_refused(self, board, monkeypatch):
-        monkeypatch.setattr(V, "AN_UNANSWERED_PETITION_IS_REFUSED", False)
-        w, client = board
-        lp = _cmd(client, "status")["pending_lapsing_petitions"]
-        assert len(lp) == 1 and lp[0]["refused"] is False
-        assert "lapses free" in lp[0]["price_line"] and "−10" not in lp[0]["price_line"]
 
     def test_the_queued_lapse_reaches_every_end_turn_surface(self, board):
         w, client = board
@@ -1544,28 +1425,6 @@ class TestR8TheLapseIsPricedAloud:
         assert f"Switzerland's petition for relief from tribute — left unanswered, refused: loyalty {lb} → {la}, bond {rb} → {ra}." in blob
         assert "An envoy from Switzerland has arrived with a petition" in blob
         assert "an a " not in blob and "(Client Petition)" not in blob
-
-    def test_lever_down_the_queued_lapse_is_free_on_every_surface(self, board, monkeypatch):
-        monkeypatch.setattr(V, "AN_UNANSWERED_PETITION_IS_REFUSED", False)
-        w, client = board
-        loy0, rel0 = w.vassals[SWISS]["loyalty"], _rel(w, SWISS, PLAYER)
-        r = _end_turn(client)
-        rows = _logged(w)
-        assert [(e["outcome"], e["penalty"]) for e in rows] == [("unanswered", False)]
-        assert rows[0]["loyalty_after"] == loy0 and _rel(w, SWISS, PLAYER) == rel0
-        receipt = [e for e in r["events"] if e.get("type") == "client_petition_answered"]
-        assert receipt[0]["message"] == "Switzerland's petition for relief went unanswered and lapses; it costs nothing."
-        assert receipt[0]["penalty"] is False
-        tick = [e for e in r["events"] if e.get("type") == "vassal_loyalty" and e.get("vassal") == SWISS]
-        assert all(not e.get("petition_refused") and "refused" not in str(e.get("reason")) for e in tick)
-        row = next(x for x in r["morning_dispatch"]["lapsed_offers"] if x["nation"] == SWISS)
-        assert row["penalty"] is False and row["line"].endswith("it costs nothing.")
-        turn_receipt = [e for e in r["morning_dispatch"]["turn_events"] if e.get("type") == "client_petition_answered"]
-        assert turn_receipt and turn_receipt[0]["severity"] == "info"
-        blob = _campaign_log_blob(client)
-        assert "Switzerland's petition lapsed unanswered — nothing charged" in blob
-        assert "Switzerland's petition for relief from tribute — left unanswered." in blob
-        assert "left unanswered, refused" not in blob
 
     def test_a_lapse_under_the_tick_gate_gets_its_own_loyalty_line(self):
         """R8(c): when the turn's drift fell under the >= 2 event gate there
@@ -1915,7 +1774,7 @@ class TestR10Copy:
         assert r["success"] is False
         assert r["message"] == "Insufficient AP. Showing the flag in Switzerland costs 2 AP, you have 1."
 
-    def test_the_wavering_card_key_follows_the_regiments_and_the_lever(self, monkeypatch):
+    def test_the_wavering_card_key_follows_the_regiments(self):
         w = _europe()
         rows = build_diplomatic_ledger(w)["vassals"]["rows"]
         assert rows and all(r["wavering_regiments"] is False for r in rows)
@@ -1923,8 +1782,6 @@ class TestR10Copy:
         marshal.original_nation = SWISS
         assert _card(w, SWISS)["wavering_regiments"] is True
         assert _card(w, "Holland")["wavering_regiments"] is False
-        monkeypatch.setattr(V, "THE_WAVERING_LINE_IS_HONEST", False)
-        assert "wavering_regiments" not in _card(w, SWISS)
 
     def test_the_school_of_war_issues_no_petition_and_its_card_forecasts_none(self, monkeypatch):
         w0 = _europe()
@@ -2529,22 +2386,6 @@ class TestP31ContiguityIsNotTheLordsDoing:
             assert (forecast["outcome"], forecast["penalised"]) == ("refused", True)
             assert res["outcome"] == "unanswered" and res["penalty"] is True
             assert (w.vassals[KOI]["loyalty"], _rel(w, KOI, PLAYER)) == (loy0 - 10, rel0 - 20)
-
-    def test_lever_down_the_7d10e20c_arms_return(self, monkeypatch):
-        """Grant withdrew every ungrantable province; the lapse charged it."""
-        monkeypatch.setattr(V, "THE_DEED_HONOURS_THE_PETITION", False)
-        w, client, pet = _tyrol_board(monkeypatch)
-        _milan_falls(w)
-        petition = pet["context"]["proposal"]["petition"]
-        assert V.petition_grant_verdict(w, PLAYER, KOI, petition) == (
-            "withdrawn", "Tyrol can no longer be ceded to the Kingdom of Italy — "
-                         "the petition is withdrawn.")
-        forecast = V.lapse_forecast(w, KOI, PLAYER, petition)
-        assert (forecast["outcome"], forecast["penalised"]) == ("refused", True)
-        rel0 = _rel(w, KOI, PLAYER)
-        _end_turn(client)
-        assert [(e["outcome"], e["penalty"]) for e in _logged(w)] == [("unanswered", True)]
-        assert _rel(w, KOI, PLAYER) == rel0 - V.PETITION_RELATION_STEP
 
     def test_the_classified_read_and_the_executors_read_are_one_rule_set(self, monkeypatch):
         assert V._GRANT_REFUSAL_LORDS_DOING == frozenset({"estate"})

@@ -234,6 +234,116 @@ DD-0's session).**
   `combat_executor.py`, `enemy_ai.py`, `main.py`; the October 2026 levers
   of batches 1–2 (26 + 56) join the first batch after October 2026 closes.
 
+**✅ BATCH 3 LANDING RECORD — October 11, 2026 (the head of Pre-Deploy S5,
+DD-1's session).**
+
+- **The batch, as defined and as measured.** `diplomacy.py` (26 levers),
+  `vassal.py` (24), `jealousy.py` (20) and `naval.py` (8) hold **78** levers
+  by the census regex; **12 landed in October 2026** and keep their session
+  (PRE_DEPLOY §5-4: diplomacy ×5 — `A_PEACE_EARNS_NO_TRADE`,
+  `THE_DEAD_DO_NOT_TRADE`, `A_NEW_WAR_HAS_A_PURPOSE`,
+  `A_MEMBER_AT_WAR_LEAVES_THE_SYSTEM`, `THE_SYSTEM_CHARGES_ONLY_THE_TRADE_
+  EARNED`; vassal ×6 — the IQ7-X1/X3 and SF5-RV rules; jealousy ×1 —
+  `THE_TOP_RUNG_PROMISES_NOTHING_HIGHER`); **66 retired** (every one dated
+  August 2 – September 29, 2026, every one `True` in production): diplomacy
+  ×21 (the FA slice-17 rulings, RS-1's fresh peace, GE-1's dead court, DP-1
+  the bank, the MS playtest re-score ×5, IQ-4 "The Cabinet Is Visible" ×8 —
+  `COURT_FAVOUR_ACTIVE` read from eleven sites in two modules — and
+  `REASSURE_ONLY_AT_ALLIANCE` read from three), jealousy ×19 (SR-4c's four,
+  F4, N52, CA8-D3 `JEALOUSY_RIVAL_MEMORY`, A12, WO-17, VP-R1,
+  FA-S16-D4's two, B1, SRX-9, F6, S17-12, B2's two —
+  `THE_PETITION_DIES_WITH_ITS_SUBJECT` read from thirteen sites in
+  `jealousy.py` and `main.py`), naval ×8 (`HOST_RULE_ACTIVE`, SR-5b's three,
+  SR-5c, FA-D16, NUI-2, HC-4a, FA-31), vassal ×18 (IQ-7's eight, SR-5a,
+  FA-S17-D8, WO-9's two, GE-V, FA slice 11's three, FA-N73, FA-S17-6,
+  SR-2c). 63 named in a landing record under `docs/`; three named by their
+  tests alone (`COUNSEL_NAMES_THE_COURT`, `JEALOUSY_SUPPRESS_SAME_PASS_
+  REFIRE`, `GLORY_DORMANT_ACTIVE` / `RESTLESSNESS_SLEEPS_IN_SCHOOL`'s slice
+  memos name them). **`DEAD_COURTS_CANNOT_BE_FOUGHT` was named by no test** —
+  its sweep row alone — and is retired with this note.
+- **The sites.** **195 production sites rewritten by the tool across 9
+  modules** (`diplomacy.py` 56, `jealousy.py` 44, `vassal.py` 51, `naval.py`
+  30, `main.py` 7, `diplomatic_executor.py` 4, `question_desk.py` /
+  `naval_executor.py` / `diplomatic_ledger.py` 1 each), **16 by hand**: the
+  four the dry run named (`_in_transit = (LEVER and x)` → `x`; `holds =
+  courting and LEVER` → `courting`, exact because `courting` is a bool;
+  `return LEVER and jealousy_dormant(world)` → `jealousy_dormant(world)`;
+  the broken-rival clause's leading operand) plus the two it named as reads
+  inside a Dict / a Call (`"lapse_counts_as_refusal": bool(LEVER)` → `True`;
+  `petition.get("lapse_counts_as_refusal", LEVER)` → `True`); **five
+  overlaps** (two levers in one statement: `if not (COUNSEL_NAMES_THE_COURT
+  and COURT_FAVOUR_ACTIVE)`, `_reached and … and COURT_FAVOUR_ACTIVE`, the
+  FIRES_SAY_WHY body nested in the CROWN_LOST body, the REBELLION_RETIRES
+  body nested in the BREAK_IS_BRIEFED body, and `(THE_ANTECHAMBER or
+  THE_PETITION_DIES…)` — that last one the first fold had already consumed,
+  the skip was a no-op) — all listed by the batch-2 summary as promised,
+  none reached ruff; and **one shape the tool's own parse check stopped
+  before a byte was written: an outer `if` whose WHOLE body was the import
+  and the lever test** (`mission_rows_for_state`'s DEFENSIVE_ALLIANCE
+  block in `diplomatic_dialogue.py` — the two deletions left `if key ==
+  "DEFENSIVE_ALLIANCE":` with no body; `ast.parse` raised, the run aborted
+  after writing `diplomacy.py` and `question_desk.py`, the rest was applied
+  on a second run and the block deleted by hand). The diplomacy levers'
+  cross-module reads whose definitions the first run had already deleted
+  (`COURT_FAVOUR_ACTIVE` ×3 and `REASSURE_ONLY_AT_ALLIANCE` ×2 in
+  `diplomatic_dialogue.py` / `meta_executor.py`) were the hand's too, and
+  their sweep rows dropped through the tool's own `drop_sweep_rows`. Two
+  dead tails deleted (`mission_effect_text`'s "20% blowback" fallback
+  return, the garrison arm's pop-and-return after an inlined `return`);
+  `main.py`'s `lever = bool(getattr(…, True))` folded into the one read.
+  **The orphaned lever headers** — forty-odd "flip lever … False = the
+  prior …" comment blocks the constant deletion leaves standing (the tool
+  deletes a block only when it names the lever) — re-titled to the rule they
+  document, the "False =" sentences cut; the "(the HOST_RULE_ACTIVE idiom)"
+  attributions on OTHER modules' live levers left as written. **77 sweep
+  rows dropped** from 31 `tools/_sweep_*.json` (the tool re-serialises each
+  file; the diff is a reformat plus the rows).
+- **The test arms, decided one by one** (four agents by file group, the
+  recipe and the traps as the brief, every file re-run green; 38 test
+  files, −1,103 lines net): **88 whole deletions** — every
+  `test_lever_down_*` / `test_the_lever_down_*` / `*_reproduces_*` /
+  `*_restores_*` / control-arm test and arm comparison, two whole classes
+  (`TestTheLever` in SR-5c, `TestTheFlipLever` in WO-9), the FA-S16-D4
+  "not folded" source pin and its two-guards comparison, three autouse
+  `_restore_levers` / `_levers_at_default` fixtures whose LEVERS tuples held
+  only retired names; **19 tails trimmed** (the WO-9 rebellion count keeps
+  its `capped == 18` pin and loses the uncapped arm; `test_defensive_
+  alliance_has_reassure` keeps its live head); **5 un-parametrized to the
+  lever-up arm** (IQ-4's `test_every_pair_on_the_board`, the courted pair,
+  the hostile court, the real road, the morning progress); **5 re-pointed**
+  (HC-4's lifeline arm now compares against every fleet sunk instead of the
+  lever down — sinking Britain's hulls alone still reads "lifeline" because
+  `combined_effective` pools the allies; IQ-4's `test_after_completion_
+  nothing_is_frozen` marks the mission complete by hand since COURT no
+  longer completes); **3 helpers de-armed** (`_drive` in FA-S16-D4,
+  `_soult_refusal`'s `price_lever`, WO-9's `_REBELLION_RUNNER` argv slot);
+  **5 restore lists shed** (IQ-4's `_LEVERS` loses 9 names and keeps 8
+  live; FA slice 11's two; the two IQ-7 tuples removed whole); the
+  `"JEALOUSY_SUPPRESS_SAME_PASS_REFIRE" in src` pins (A12, F6) now read
+  `cooled_this_pass`; the `is True` attribute pins deleted. **Pins the dry
+  run could not list, found by running:** `THE_REBELLION_RETIRES_ITS_
+  QUESTION` flipped in `test_fa_s17_5_to_8_…` (a vassal lever in a
+  diplomacy-grouped file). Nothing unresolved.
+- **The reading:** levers **562 → 496** (492 on, 458 named by a test);
+  functions over 500 lines 34 → 34; silent handlers 367 → 367; `CLAUDE.md`
+  61.8 KB (the new LIVE STATE row paid for by shortening the S4 row — the
+  first edit read 62,116 B and the ratchet said so). **The ratchet** lowered
+  to `LEVERS_CAP 496`.
+- **Gate:** `BASELINE_SERIES` + M1–M7 byte-identical with no re-record,
+  corpus 902/902, the ratchet / tool / series / corpus pins green (1,057);
+  every touched test file green; the full suite green on the hook.
+  `score_run check` NOT run this batch (the S5 hand-off forbids the
+  re-score; batch 2 proved the production rewrite moves no digest).
+- **Next batches:** batch 4 = `world_state.py`, `combat_executor.py`,
+  `enemy_ai.py`, `main.py` (the head of S6 or S7); **batch 5 — NEW, the
+  plan left them unnamed:** the `game_logic/` modules OVER 3,000 lines that
+  batch 2's floor excluded and batch 3 did not name hold **116** levers
+  (`dispatch.py` 50, `coalition.py` 18, `ai_diplomacy.py` 15, `congress.py`
+  13, `settlement_offers.py` 11, `diplomatic_templates.py` 4,
+  `settlement_staging.py` 3, `settlement_actions.py` 2); the October 2026
+  levers of batches 1–3 (26 + 56 + 12) join the first batch after October
+  2026 closes. The plan's "done under 40" needs batches 4 and 5 both.
+
 ## CODE-2 — Split the monster functions into named stages (1 session each)
 
 **Order:** `_execute_attack` → `_process_dialogue_choice` → `_execute_one` →

@@ -1,38 +1,10 @@
 [
  {
-  "id": "break/a the truthful line is queued at all",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n        return\n    from backend.game_logic.dispatch import queue_dispatch_event",
-  "new": "    if True:\n        return\n    from backend.game_logic.dispatch import queue_dispatch_event",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_a_rebel_is_not_said_to_have_ceased_to_exist tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_graceful_exit_is_briefed_at_all"
- },
- {
-  "id": "break/b the false line is gone",
-  "file": "backend/game_logic/vassal.py",
-  "old": "        if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n            from backend.game_logic.dispatch import queue_dispatch_event\n            queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                                {\"carved_name\": vassal_name}, \"always\")",
-  "new": "        if True:\n            from backend.game_logic.dispatch import queue_dispatch_event\n            queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                                {\"carved_name\": vassal_name}, \"always\")",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_a_rebel_is_not_said_to_have_ceased_to_exist"
- },
- {
-  "id": "break/c the defection's false line is gone",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n        queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                             {\"carved_name\": vassal_name, \"protector\": lord},\n                             \"always\")",
-  "new": "    if True:\n        queue_dispatch_event(world, \"diplomatic_carved_vassal_dissolved\",\n                             {\"carved_name\": vassal_name, \"protector\": lord},\n                             \"always\")",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_free_defection_drops_the_false_line_too"
- },
- {
   "id": "break/d the graceful exit is recorded",
   "file": "backend/game_logic/vassal.py",
   "old": "                record_vassal_break(\n                    world, vassal=vassal_name, lord=lord,\n                    exit_path=\"vassal_rebellion_independent\")",
   "new": "                pass",
   "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_graceful_exit_is_briefed_at_all tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_every_exit_writes_to_the_event_log"
- },
- {
-  "id": "break/e the armistice exit stops there",
-  "file": "backend/game_logic/vassal.py",
-  "old": "            if THE_BREAK_IS_BRIEFED_TRUTHFULLY:\n                continue",
-  "new": "            if False:\n                continue",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_armistice_exit_no_longer_declares_a_war_it_did_not"
  },
  {
   "id": "break/f the log row is written",

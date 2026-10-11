@@ -793,13 +793,6 @@ class TestAQuietBreakStillRingsTheBell:
                 if "Switzerland" in (r.get("title") or "")]
         assert any(r["priority"] == NotificationPriority.CRITICAL for r in mine)
 
-    def test_the_lever_down_restores_the_silent_tray(self, world, monkeypatch):
-        monkeypatch.setattr(V, "A_QUIET_BREAK_STILL_RINGS_THE_BELL", False)
-        _plant_satellite_corps(world, "Holland")
-        before = len(world.notifications.get_pending())
-        _break(world, "Holland")
-        assert len(world.notifications.get_pending()) == before
-
     def test_the_mechanical_tail_is_not_doubled(self, world):
         """Slice 11's own hazard, re-pinned at the new caller: the four
         effects live in `complete_vassal_break` and this slice adds only a

@@ -152,11 +152,6 @@ class TestACourtIsSubjugatedOnlyWhenBeaten:
         world.war_scores[world._make_diplo_key("Prussia", "Denmark")] = -40
         assert V.subjugation_refusal(world, "Prussia", "Denmark") == ""
 
-    def test_lever_down_restores_the_bare_war(self, board, monkeypatch):
-        monkeypatch.setattr(V, "A_COURT_IS_SUBJUGATED_ONLY_WHEN_BEATEN", False)
-        assert V.subjugation_refusal(M.world, "France", "Austria") == ""
-        assert _post(board, "vassalize Austria").get("success") is True
-
     def test_the_gate_never_raises(self):
         assert V.subjugation_refusal(object(), "France", "Austria") == ""
 

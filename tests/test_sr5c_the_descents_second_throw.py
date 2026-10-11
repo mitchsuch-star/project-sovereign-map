@@ -9,7 +9,8 @@ readiness 70, 50 at the drill ceiling 75, 25 at the blockade floor 50. A
 failed throw leaves a fleet whose readiness must be rebuilt before the next
 is worth sailing. The wait resets when the naval war ends. One source,
 `naval.diversion_odds`, for the roll, the confirm, the chip, the terms and
-the expedition's diversion lever. Lever `naval.THE_DIVERSION_IS_THROWN_AGAIN`.
+the expedition's diversion lever. The rule is unconditional (its flip lever
+retired, CODE-1 batch 3).
 """
 import contextlib
 import io
@@ -293,24 +294,6 @@ class TestTheMigration:
         for _nation, rec in N.iter_fleets(w):
             assert rec["diversion_last_turn"] == -1
             assert "diversion_used" not in rec
-
-
-class TestTheLever:
-
-    def test_lever_down_is_once_per_war_at_45(self, monkeypatch):
-        monkeypatch.setattr(N, "THE_DIVERSION_IS_THROWN_AGAIN", False)
-        w = _boot()
-        N.get_fleet(w, "France")["readiness"] = 60
-        assert N.diversion_odds(w, "France") == N.DIVERSION_SUCCESS_PCT
-        assert _chip(w)["note"].startswith(
-            f"{N.DIVERSION_SUCCESS_PCT}% — and once only, this war")
-        N.get_fleet(w, "France")["diversion_last_turn"] = int(w.current_turn)
-        w.current_turn += 40
-        refused = N.resolve_diversion(w, "France")
-        assert refused["success"] is False
-        assert "already attempted its grand diversion" in refused["message"]
-        assert N.diversion_terms_for(w, "France")[2]["unmet"] == (
-            "the diversion is already spent this war")
 
 
 class TestTheRecords:

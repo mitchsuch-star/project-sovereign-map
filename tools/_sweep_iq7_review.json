@@ -1,33 +1,5 @@
 [
  {
-  "id": "IQ7R-L1 THE_DEED_HONOURS_THE_PETITION down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "THE_DEED_HONOURS_THE_PETITION = True\n",
-  "new": "THE_DEED_HONOURS_THE_PETITION = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestR1TheDeedFulfilsThePetition"
- },
- {
-  "id": "IQ7R-L2 THE_LORD_PAYS_TO_GRANT down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "THE_LORD_PAYS_TO_GRANT = True\n",
-  "new": "THE_LORD_PAYS_TO_GRANT = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant tests/test_iq7_satellites_have_a_position.py::TestT11ReValidationAtAnswer::test_d_a_lord_who_can_no_longer_pay"
- },
- {
-  "id": "IQ7R-L3 THE_TRANSFER_SHEDS_THE_REMISSION down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "THE_TRANSFER_SHEDS_THE_REMISSION = True\n",
-  "new": "THE_TRANSFER_SHEDS_THE_REMISSION = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestR3TheTransferShedsTheRemission"
- },
- {
-  "id": "IQ7R-L4 A_RELIEF_OF_NOTHING_IS_WITHDRAWN down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "A_RELIEF_OF_NOTHING_IS_WITHDRAWN = True\n",
-  "new": "A_RELIEF_OF_NOTHING_IS_WITHDRAWN = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestR4OneRepricerOnTheStoredSubject::test_a_relief_of_nothing_is_withdrawn_and_the_lever_restores_the_old_grant"
- },
- {
   "id": "IQ7R-R1a fulfilled ignores VS-3 provenance",
   "file": "backend/game_logic/vassal.py",
   "old": "    if not region or region not in (row.get(\"granted_regions\") or []):\n        return False\n",
@@ -124,13 +96,6 @@
   "old": "    if kind == \"stands\":\n        return _stands(verdict_message)\n",
   "new": "    if kind == \"stands\":\n        return _withdrawn(verdict_message)\n",
   "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_verdict_seam_is_one_function tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_a_dp_short_grant_stands_and_the_lapse_then_charges_the_refusal"
- },
- {
-  "id": "IQ7R-R2b the verdict's DP arm ignores the lever",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if _dp_available(world, lord) < PETITION_DP_COST:\n        if THE_LORD_PAYS_TO_GRANT:\n            return (\"stands\",\n",
-  "new": "    if _dp_available(world, lord) < PETITION_DP_COST:\n        if False:\n            return (\"stands\",\n",
-  "tests": "tests/test_iq7_review_round.py::TestR2TheLordPaysToGrant::test_the_verdict_seam_is_one_function"
  },
  {
   "id": "IQ7R-R2c availability is always enabled",
@@ -490,20 +455,6 @@
   "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_school_of_war_issues_no_petition_and_its_card_forecasts_none"
  },
  {
-  "id": "IQ7R-S2 petitions_live ignores the lever",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if not THE_CLIENT_PETITIONS:\n        return False\n    from backend.game_logic.tutorial_state import is_tutorial_world\n",
-  "new": "    from backend.game_logic.tutorial_state import is_tutorial_world\n",
-  "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth::test_the_card_is_empty_where_petitions_are_not_live tests/test_iq7_satellites_have_a_position.py::TestT1LeverDownSilence"
- },
- {
-  "id": "IQ7R-S3 the producer reads the bare lever",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if not petitions_live(world):\n        return []\n    vassals = getattr(world, \"vassals\", None) or {}\n",
-  "new": "    if not THE_CLIENT_PETITIONS:\n        return []\n    vassals = getattr(world, \"vassals\", None) or {}\n",
-  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_school_of_war_issues_no_petition_and_its_card_forecasts_none"
- },
- {
   "id": "IQ7R-S4 the card keys are built where petitions are not live",
   "file": "backend/game_logic/vassal.py",
   "old": "    if not petitions_live(world):\n        return {}\n",
@@ -523,13 +474,6 @@
   "old": "    return {**base, \"outcome\": \"refused\", \"penalised\": True,\n",
   "new": "    return {**base, \"outcome\": \"refused\", \"penalised\": False,\n",
   "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_end_turn_gate_names_the_priced_petition_and_forgets_an_answered_one"
- },
- {
-  "id": "IQ7R-R8b the lapse forecast ignores the lever",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if not AN_UNANSWERED_PETITION_IS_REFUSED:\n        return {**base, \"outcome\": \"free\",\n",
-  "new": "    if False:\n        return {**base, \"outcome\": \"free\",\n",
-  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_lever_down_the_gate_says_lapse_not_refused"
  },
  {
   "id": "IQ7R-R8c the forecast's price line calls the lapse free",
@@ -565,13 +509,6 @@
   "old": "            _lapse = (f\"Left unanswered it counts as a refusal: −{_loy} \"\n                      f\"loyalty, −{_rel} bond.\")\n",
   "new": "            _lapse = \"\"\n",
   "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_the_rail_states_the_rule_and_the_price_on_arrival"
- },
- {
-  "id": "IQ7R-R8h the rail prices a lapse with the lever down",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "        if bool(_petition.get(\"lapse_counts_as_refusal\",\n                              AN_UNANSWERED_PETITION_IS_REFUSED)):\n",
-  "new": "        if True:\n",
-  "tests": "tests/test_iq7_review_round.py::TestR8TheLapseIsPricedAloud::test_lever_down_the_rail_promises_no_price"
  },
  {
   "id": "IQ7R-R8i the rail drops the keep-DP clause",
@@ -973,13 +910,6 @@
   "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_honest_line_without_regiments"
  },
  {
-  "id": "IQ7R-C28 the wavering card key is gone",
-  "file": "backend/game_logic/diplomatic_ledger.py",
-  "old": "        if _vassal.THE_WAVERING_LINE_IS_HONEST:\n            row[\"wavering_regiments\"] = bool(\n",
-  "new": "        if False:\n            row[\"wavering_regiments\"] = bool(\n",
-  "tests": "tests/test_iq7_review_round.py::TestR10Copy::test_the_wavering_card_key_follows_the_regiments_and_the_lever"
- },
- {
   "id": "IQ7R-C29 the wavering card key is always true",
   "file": "backend/game_logic/diplomatic_ledger.py",
   "old": "            row[\"wavering_regiments\"] = bool(\n                _vassal.lord_fields_the_vassals_regiments(world, player, name))\n",
@@ -1230,27 +1160,6 @@
   "old": "    if key == \"contiguity\":\n        return (f\"{region} no longer adjoins",
   "new": "    if False:\n        return (f\"{region} no longer adjoins",
   "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_the_refuse_press_is_free_too"
- },
- {
-  "id": "IQ7R-P31k the verdict's classification ignores its lever",
-  "file": "backend/game_logic/vassal.py",
-  "old": "        if THE_DEED_HONOURS_THE_PETITION:\n            region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n",
-  "new": "        if True:\n            region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n",
-  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_lever_down_the_7d10e20c_arms_return"
- },
- {
-  "id": "IQ7R-P31l the lapse forecast's mirror ignores its lever",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if THE_DEED_HONOURS_THE_PETITION and subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and (\n",
-  "new": "    if subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and (\n",
-  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_lever_down_the_7d10e20c_arms_return"
- },
- {
-  "id": "IQ7R-P31m the refuse arm's mirror ignores its lever",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if THE_DEED_HONOURS_THE_PETITION and subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and controller == vassal_name:\n",
-  "new": "    if subject == \"province\" and region:\n        region_obj = (getattr(world, \"regions\", {}) or {}).get(region)\n        controller = str(getattr(region_obj, \"controller\", \"\") or \"\") if region_obj else \"\"\n        if region_obj is not None and controller == vassal_name:\n",
-  "tests": "tests/test_iq7_review_round.py::TestP31ContiguityIsNotTheLordsDoing::test_lever_down_the_7d10e20c_arms_return"
  },
  {
   "id": "IQ7R-P32a the article dropped from `from {court}` and the envoy fallback",

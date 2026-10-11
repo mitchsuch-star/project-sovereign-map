@@ -303,10 +303,6 @@ class TestTheTierCrossingIsAnnounced:
         assert '"tier_crossing": crossing,' in src
         assert '+ (f" {crossing}" if crossing else "")' in src
 
-    def test_lever_down_says_nothing(self, monkeypatch):
-        monkeypatch.setattr(VS, "THE_TIER_CROSSING_IS_ANNOUNCED", False)
-        assert VS.tier_crossing_line("Bavaria", 60, 58) == ""
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-S17-D9 — the orphan is retired

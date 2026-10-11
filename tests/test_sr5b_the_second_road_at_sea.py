@@ -6,12 +6,12 @@
     diversion first, a smaller corps, the fleet at the readiness it climbs
     toward, ten more sail, an ally's squadron beside ours. Every lever is
     `naval.expedition_slip_odds` — the resolver's own odds — re-asked with
-    one thing changed (lever `naval.THE_EXPEDITION_NAMES_ITS_LEVERS`).
+    one thing changed (unconditional; its flip lever retired, CODE-1 batch 3).
   * NV-D9 "The Naval Yard" — RULED by the user ("Build them in SR-5b"): a
     court with an admiralty raises a yard at a coastal city of its own with a
     mooring, 1,200 gold, 4 turns, one administrative action, at most two per
     court; the yard is a SITE (keels, embarkation), never a RATE, and never a
-    port (lever `naval.NAVAL_YARDS_CAN_BE_BUILT`).
+    port (unconditional; its flip lever retired, CODE-1 batch 3).
   * NV-D3 privateers — STRUCK by the user's ruling ("we can strike
     privateer").
 """
@@ -296,16 +296,6 @@ class TestTheLevers:
             "What moves the odds: a won diversion first (45 in 100) → 91 · "
             "a 5,000-man corps → 75")
 
-    def test_the_lever_down_names_nothing(self, monkeypatch):
-        w = _boot()
-        lannes = w.get_marshal("Lannes")
-        lannes.strength, lannes.location = 12000, "Bordelais"
-        monkeypatch.setattr(N, "THE_EXPEDITION_NAMES_ITS_LEVERS", False)
-        assert N.expedition_odds_levers(w, "France", "London", 12000) == []
-        rows = [r for rs in N.expedition_landing_options(w, "France").values()
-                for r in rs]
-        assert rows and all("levers" not in r for r in rows)
-
     def test_every_landing_row_carries_its_own_levers(self):
         """The payload memoises the line per (corps size, watcher, mode);
         re-asked directly, every row agrees (the memo's drift pin)."""
@@ -537,15 +527,6 @@ class TestTheNavalYard:
         reply = _post("land Lannes in Munster")
         assert "A naval yard may be raised at" in (reply.get("message") or "")
 
-    def test_the_lever_down_raises_no_yard(self, monkeypatch):
-        w = _boot()
-        w.nation_gold["France"] = 20_000
-        site = _french_yard_candidates(w)[0]
-        monkeypatch.setattr(N, "NAVAL_YARDS_CAN_BE_BUILT", False)
-        ok, _why, _ = can_build(w, w.regions[site], "naval_yard", "France")
-        assert not ok
-        assert N.naval_yard_terms(w, w.regions[site], "France") is None
-        assert N.naval_yard_sites(w, "France") == []
 
 
 class TestTheAIRaisesAYard:
@@ -596,11 +577,6 @@ class TestTheAIRaisesAYard:
             set_diplomatic_state(w, "Spain", "Britain", "PEACE")
         if not w.get_nations_at_war_with("Spain"):
             assert N.find_ai_naval_yard(w, "Spain", 50_000) is None  # at peace
-
-    def test_the_lever_down_silences_the_rung(self, monkeypatch):
-        w = self._spain_without_a_yard()
-        monkeypatch.setattr(N, "NAVAL_YARDS_CAN_BE_BUILT", False)
-        assert N.find_ai_naval_yard(w, "Spain", 50_000) is None
 
     def test_the_rung_sits_after_the_keel_rung(self):
         import inspect

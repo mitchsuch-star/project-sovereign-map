@@ -103,19 +103,5 @@
     "old": "    if at_war:\n        return min(current + 8, WAR_EXHAUSTION_MAX)\n    return max(current - 5, 0)",
     "new": "    if at_war:\n        return min(current + 8, WAR_EXHAUSTION_MAX)\n    return current",
     "tests": "tests/test_sr5a_the_chest.py::TestTheForecastAndTheTick"
-  },
-  {
-    "id": "The card reads today's standing again",
-    "file": "backend/game_logic/vassal.py",
-    "old": "    if projected and THE_CARD_READS_TOMORROWS_STANDING:",
-    "new": "    if False:",
-    "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth"
-  },
-  {
-    "id": "The card reads tomorrow's standing on the producer too",
-    "file": "backend/game_logic/vassal.py",
-    "old": "    if projected and THE_CARD_READS_TOMORROWS_STANDING:",
-    "new": "    if THE_CARD_READS_TOMORROWS_STANDING:",
-    "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth"
   }
 ]

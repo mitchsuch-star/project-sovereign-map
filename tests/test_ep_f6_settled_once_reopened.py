@@ -11,7 +11,7 @@ re-fired the same pair off the rival's fresh laurels. The trigger is legal
 and untouched (it feeds `jealous_of`, which M7 and `BASELINE_SERIES` read
 through combat). What was missing was the card SAYING so.
 
-Two rules, one lever (`jealousy.THE_REOPENED_QUARREL_SAYS_SO`):
+Two rules (inlined in jealousy.py — CODE-1 batch 3):
 
 * a confrontation card built within a turn of a by-action settlement of the
   same pair opens with "Settled once at <where> — and reopened by <rival>'s
@@ -208,18 +208,6 @@ class TestTheReopenedCardSaysSo:
         assert J.settled_once_clause(world, davout, ney) == \
             "Settled once — and reopened by Ney's laurels since."
 
-    def test_the_lever_down_is_the_old_channel(self, monkeypatch):
-        monkeypatch.setattr(J, "THE_REOPENED_QUARREL_SAYS_SO", False)
-        world, client, stale = _stage(monkeypatch)
-        ney = world.marshals["Ney"]
-        davout = world.marshals["Davout"]
-        random.seed(11)
-        _cmd(client, "Davout, attack Archduke John")
-        J.apply_jealousy(world, davout, ney, delta=2, threshold=1, events=[])
-        # The latch blocks the fresh card; the stale one stands, clause-less.
-        assert world.pending_marshal_petition is stale
-        assert not str(stale["body"]).startswith("Settled once")
-
 
 class TestTheSeriesIsUntouched:
 
@@ -228,7 +216,7 @@ class TestTheSeriesIsUntouched:
         keys are untouched, so `BASELINE_SERIES` and M7 cannot move (the
         series pin file runs the shipped tree)."""
         src = (REPO / "backend" / "game_logic" / "jealousy.py").read_text(encoding="utf-8")
-        assert "JEALOUSY_SUPPRESS_SAME_PASS_REFIRE" in src
+        assert "cooled_this_pass" in src
         assert "def settled_once_clause" in src and "def _retire_pending_petition" in src
 
     def test_every_resolution_call_site_names_the_field(self):

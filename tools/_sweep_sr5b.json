@@ -63,13 +63,6 @@
     "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
   },
   {
-    "id": "Levers: the payload ignores the lever",
-    "file": "backend/game_logic/naval.py",
-    "old": "            if THE_EXPEDITION_NAMES_ITS_LEVERS and quote.get(\"coverer\"):",
-    "new": "            if quote.get(\"coverer\"):",
-    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
-  },
-  {
     "id": "Levers: the memo forgets the corps size",
     "file": "backend/game_logic/naval.py",
     "old": "                key = (int(marshal.strength), quote[\"coverer\"], quote[\"mode\"])",

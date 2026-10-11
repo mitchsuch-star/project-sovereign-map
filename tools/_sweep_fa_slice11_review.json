@@ -1,12 +1,5 @@
 [
  {
-  "id": "tail/a the helper runs at all",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    if not EVERY_BREAK_COMPLETES_ITSELF:\n        return\n    # The freed nation's own corps come home.",
-  "new": "    if True:\n        return\n    # The freed nation's own corps come home.",
-  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_sends_the_corps_home tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_graceful_exit_completes_too"
- },
- {
   "id": "tail/b the corps come home",
   "file": "backend/game_logic/vassal.py",
   "old": "    # The freed nation's own corps come home.\n    for marshal in list(world.marshals.values()):\n        if (getattr(marshal, 'original_nation', None) == vassal_name\n                and getattr(marshal, 'nation', '') == lord):",
@@ -61,20 +54,6 @@
   "old": "                complete_vassal_break(world, vassal_name, lord)\n                continue\n        else:",
   "new": "                complete_vassal_break(world, vassal_name, lord)\n        else:",
   "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_the_armistice_exit_raises_no_war_alarm tests/test_fa_slice11_review_round_2026_09_05.py::TestEveryBreakCompletesItself::test_no_exit_applies_the_tail_twice"
- },
- {
-  "id": "banner/a the rail banner is lord-gated",
-  "file": "backend/game_logic/vassal.py",
-  "old": "        if (not THE_BREAK_IS_BRIEFED_TRUTHFULLY\n                or lord == str(getattr(world, \"player_nation\", \"\") or \"\")):",
-  "new": "        if True:",
-  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheRailBannerKnowsTheLord::test_a_foreign_lords_rebellion_raises_no_crisis_banner"
- },
- {
-  "id": "banner/b our own still raises it",
-  "file": "backend/game_logic/vassal.py",
-  "old": "        if (not THE_BREAK_IS_BRIEFED_TRUTHFULLY\n                or lord == str(getattr(world, \"player_nation\", \"\") or \"\")):",
-  "new": "        if False:",
-  "tests": "tests/test_fa_slice11_review_round_2026_09_05.py::TestTheRailBannerKnowsTheLord::test_our_own_satellite_still_raises_it"
  },
  {
   "id": "banner/c the break still happens",

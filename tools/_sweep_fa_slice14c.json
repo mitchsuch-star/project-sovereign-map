@@ -77,13 +77,6 @@
   "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheTwoChannelsPriceAlike::test_the_extraction_is_byte_identical_to_the_body_it_replaced"
  },
  {
-  "id": "FA-31/a the forecast lever is down",
-  "file": "backend/game_logic/naval.py",
-  "old": "DIVERSION_WINDOW_FORECAST = True",
-  "new": "DIVERSION_WINDOW_FORECAST = False",
-  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestTheChipTellsTheTruth::test_the_boot_chip_says_what_a_success_buys"
- },
- {
   "id": "FA-31/b the forecast's finally is dropped — the leak returns",
   "file": "backend/game_logic/naval.py",
   "old": "        out[\"turn_2\"] = link_verdicts_for(world, actor)\n    finally:\n        _restore_fleets(world, snapshot)",

@@ -64,13 +64,12 @@ _DOWNGRADE_ORDER = [
 # States that allow movement through territory
 OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"}
 
-# FA-N81 (slice 17, Sept 11 2026) flip lever: the F1 wizard greys EVERY row
-# the executor's EC-Q transit gate refuses while Talleyrand is in transit —
-# the set lives beside that gate (`diplomatic_executor.
-# TRANSIT_GATED_WIZARD_ACTIONS`). False = the prior builder: only the mission
+# FA-N81 (slice 17, Sept 11 2026): the F1 wizard greys EVERY row the
+# executor's EC-Q transit gate refuses while Talleyrand is in transit — the
+# set lives beside that gate (`diplomatic_executor.
+# TRANSIT_GATED_WIZARD_ACTIONS`). The prior builder let only the mission
 # rows read the state; proposal / war / treaty / cancel rows rendered enabled
 # and were refused on the click ("Talleyrand is currently en route…").
-WIZARD_MIRRORS_THE_TRANSIT_GATE = True
 
 # ═══════ TRADE INCOME TABLE (§7e) ═══════
 # EA-3 "Trade is a treaty" (the economy audit, October 5, 2026 — N5): a PEACE
@@ -3059,8 +3058,6 @@ def _flush_hegemony_signal_defer(world, caller: str) -> None:
 # the cheat and direct test writes also pass through.
 # ═══════════════════════════════════════════════════════
 
-THE_CLIENTS_WAR_IS_THE_LORDS_WAR = True
-
 # The states a client's pair may be in when the lord signs — the truce
 # and the war. A client already at peace has nothing to follow.
 _CLIENT_FOLLOWS_FROM = ("WAR", "ARMISTICE")
@@ -3083,7 +3080,7 @@ def client_pairs_that_follow(world, nation_a: str, nation_b: str,
     court against the other court and against the other court's clients —
     that stand in WAR (or, for a peace, in ARMISTICE) today. The offer
     surface reads it to say who follows; the cascade acts on it."""
-    if not THE_CLIENTS_WAR_IS_THE_LORDS_WAR or not nation_a or not nation_b:
+    if not nation_a or not nation_b:
         return []
     followed = "ARMISTICE" if new_state == "ARMISTICE" else "PEACE"
     from_states = ("WAR",) if followed == "ARMISTICE" else _CLIENT_FOLLOWS_FROM
@@ -3174,8 +3171,6 @@ def _client_truce_follows_the_lord(world, diplo_key: str) -> bool:
     other side's pair with that client's TOP overlord (or with the other
     client's lord) also stands in ARMISTICE — the lord's expiry decides
     both (SR-1b)."""
-    if not THE_CLIENTS_WAR_IS_THE_LORDS_WAR:
-        return False
     parts = str(diplo_key).split("|")
     if len(parts) != 2:
         return False
@@ -3196,8 +3191,6 @@ def _client_truce_follows_the_lord(world, diplo_key: str) -> bool:
 def _client_truce_pairs(world, nation_a: str, nation_b: str) -> List[Tuple[str, str]]:
     """The client pairs standing in ARMISTICE beside the lords' pair —
     the ones a collapsed truce takes back to war."""
-    if not THE_CLIENTS_WAR_IS_THE_LORDS_WAR:
-        return []
     clients_a = _clients_of(world, nation_a)
     clients_b = _clients_of(world, nation_b)
     candidates = ([(v, nation_b) for v in clients_a]
@@ -3579,8 +3572,7 @@ def calculate_side_war_score(nation: str, opponents, world,
         # FA-S17-5: the docstring's own rule, finally applied to the ninth
         # component — nine courts' claims summed un-clamped outweighed a
         # lost capital and a lost frontier.
-        "ticking": (max(-TICKING_CAP, min(TICKING_CAP, sums["ticking"]))
-                    if THE_TICKING_SUM_IS_CLAMPED else int(sums["ticking"])),
+        "ticking": (max(-TICKING_CAP, min(TICKING_CAP, sums["ticking"]))),
     }
     total = int(max(-100, min(100, sum(components.values()))))
 
@@ -3751,7 +3743,9 @@ TICKING_RATES = {
     "liberation": 1,
 }
 TICKING_CAP = 25
-# FA-S17-5 (slice 17, Phase 3, September 11 2026) flip levers. The defense
+# FA-S17-5 (slice 17, Phase 3, September 11 2026): the defense claim runs
+# against the court that holds the province, and the war-level `ticking` is
+# capped like its siblings. Before: the defense
 # objective ticked +1 per lost home region per turn on EVERY pair the
 # defender had, whoever held the province — so under FA-D4's boot purpose
 # a France that lost Paris to Austria accrued a claim against Prussia,
@@ -3759,9 +3753,7 @@ TICKING_CAP = 25
 # level sum re-clamped every component at its pair cap EXCEPT `ticking`.
 # Measured (tyrant-accept / austerlitz, turn 11-12): Paris fell, France
 # held 17 provinces, the side score read "winning", and Britain PAID
-# France 3,169 gold to make peace. False = the prior behaviour.
-THE_DEFENSE_TICK_NAMES_ITS_HOLDER = True   # the claim runs against the court that holds the province
-THE_TICKING_SUM_IS_CLAMPED = True          # the war-level `ticking` is capped like its siblings
+# France 3,169 gold to make peace.
 
 SETTLEMENT_TIERS = [
     (80, "total_victory"),
@@ -4353,7 +4345,7 @@ def accumulate_war_objective_ticking(world) -> List[Dict]:
                 for target_region in obj.get("target_regions", []):
                     if target_region in world.regions:
                         _ctrl = world.regions[target_region].controller
-                        if THE_DEFENSE_TICK_NAMES_ITS_HOLDER and _holder is not None:
+                        if _holder is not None:
                             if _ctrl == _holder:
                                 gained += 1
                         elif _ctrl != nation:
@@ -4448,17 +4440,14 @@ ARMISTICE_AUTO_PEACE_RELATION = -60
 # visible: the HUD `relation_trend` reads "rising" at 3 and "stable" at 1, and
 # an invisible mechanism is what caused this defect in the first place.
 ARMISTICE_THAW_PER_TURN = 3
-# FA-D18 (slice 17, Phase 2) flip lever: the armistice projection counts the
-# thaw the truce runs. False = the relation NOW against the line (the prior
-# projection, which promised a peace the arithmetic could not deliver).
-THE_TRUCE_PROJECTION_COUNTS_THE_THAW = True
+# FA-D18 (slice 17, Phase 2): the armistice projection counts the thaw the
+# truce runs (the prior projection read the relation NOW against the line
+# and promised a peace the arithmetic could not deliver).
 
 
 def armistice_projected_relation(relation_now: int, remaining_turns: int) -> int:
     """Where relations will stand at expiry: now + the thaw per active turn,
     never above the line the thaw itself stops at."""
-    if not THE_TRUCE_PROJECTION_COUNTS_THE_THAW:
-        return int(relation_now)
     return int(relation_now) + int(ARMISTICE_THAW_PER_TURN) * int(max(0, remaining_turns))
 
 
@@ -7951,8 +7940,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # Standalone additive term OUTSIDE the composite floor (the
     # respected_estate shape): +2 per funded turn Talleyrand has spent
     # courting the target, up to +10, on the player's own cooperative
-    # proposals. Never negative. Lever down: 0, and no components key.
-    court_favour_value = int(court_favour_mod(world, proposal)) if COURT_FAVOUR_ACTIVE else 0
+    # proposals. Never negative.
+    court_favour_value = int(court_favour_mod(world, proposal))
 
     # ── Sum ──
     raw_score = (
@@ -8075,8 +8064,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "anti_renewal_active": bool(anti_renewal_active),
         "anti_renewal_turns_remaining": int(anti_renewal_turns_remaining),
     }
-    if COURT_FAVOUR_ACTIVE:
-        components["court_favour_mod"] = int(court_favour_value)
+    components["court_favour_mod"] = int(court_favour_value)
 
     # ── Feedback (§6f) ──
     feedback = _generate_feedback(outcome, components)
@@ -8093,8 +8081,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         # projected relation term and rounds ONCE, as the formula does.
         **({"relation_free_score": int(round(raw_score - relation_mod))
                                     + (hard_reject_posture
-                                       if hard_reject_posture > -100 else 0)}
-           if COUNSEL_NAMES_THE_COURT else {}),
+                                       if hard_reject_posture > -100 else 0)}),
     }
 
 
@@ -8594,9 +8581,7 @@ def _resolve_defensive_call_path(
 # ally review (`preview_war_declaration`) reads it too, so the player is
 # never promised an ally the cascade then refuses. The DEFENSIVE arm is
 # untouched by design: there the aggressor reopens its own war, and the
-# defender's ally answers an attack, not a summons. False = the pre-RS-1
-# cascade byte-for-byte.
-THE_CASCADE_KEEPS_A_FRESH_PEACE = True
+# defender's ally answers an attack, not a summons.
 
 
 def declaration_cooldown_left(world, nation_a: str, nation_b: str) -> int:
@@ -8623,8 +8608,6 @@ def offensive_call_bar(world, callee: str, target: str) -> str:
     with the Emperor — RS-D1's rider: a recognizing court is not dragged
     into the league by an alliance). Read at the cascade AND at the war
     preview, so the two never disagree."""
-    if not THE_CASCADE_KEEPS_A_FRESH_PEACE:
-        return ""
     from backend.game_logic.coalition import peace_with_target_is_fresh
     if peace_with_target_is_fresh(callee, world, target):
         return f"fresh peace with {target}"
@@ -8720,8 +8703,7 @@ def declaration_alarm(casus_belli: bool = False) -> int:
     return 10 if casus_belli else 20
 
 
-# GE-1 E3 lever: False restores the pre-GE-1 declaration on a dead court.
-DEAD_COURTS_CANNOT_BE_FOUGHT = True
+# GE-1 E3: a dead court cannot be declared upon (sandbox boards).
 
 
 def _court_is_dead(world, nation: str) -> bool:
@@ -8761,9 +8743,8 @@ def dead_court_refusal(world, target: str) -> Optional[str]:
     `declare_war` (the backstop) AND by the declare-war flow's first step,
     so the player is refused before the War Purpose card, the objection and
     the ally review rather than after all three (review round). None when
-    the court stands or the lever is down."""
-    if not (DEAD_COURTS_CANNOT_BE_FOUGHT and getattr(world, "sandbox_mode", False)
-            and _court_is_dead(world, target)):
+    the court stands (or off a sandbox board)."""
+    if not (getattr(world, "sandbox_mode", False) and _court_is_dead(world, target)):
         return None
     from backend.display_names import with_definite_article
     from backend.game_logic.formations import formed_display_name
@@ -10420,8 +10401,7 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 13. Automatic downgrade check ──
     downgrade_events = check_auto_downgrade(world)
     events.extend(downgrade_events)
-    if UNDERMINE_ENDS_ON_THE_BREAK:
-        events.extend(_complete_undermine_if_broken(world))
+    events.extend(_complete_undermine_if_broken(world))
 
     # ── 13a. War bargain lifecycle (WB-B §8.8/§8.9) ──
     bargain_events = process_bargain_lifecycle(world)
@@ -10456,8 +10436,7 @@ def _is_nation_eliminated(world, nation: str) -> bool:
 # pool never passes DP_BANK_CAP. Spending draws the oldest points first, so a
 # point lasts one turn while the regen holds; a rising regen can carry one
 # point twice (recorded, not engineered away). GR5: every court, one rule.
-# Lever: down, the pool resets to the regen each turn (the pre-DP-1 rule).
-DIPLOMATIC_POINTS_CARRY = True
+# (The pre-DP-1 rule reset the pool to the regen each turn.)
 DP_BANK_CAP = 7
 
 
@@ -10465,8 +10444,6 @@ def dp_refill(regen: int, unspent: int) -> Tuple[int, int]:
     """THE refill (§9): (pool, carried) for a court whose regen is `regen`
     and whose pool held `unspent` before the refill."""
     regen = int(regen)
-    if not DIPLOMATIC_POINTS_CARRY:
-        return regen, 0
     carry = max(0, min(int(unspent), regen))
     pool = min(DP_BANK_CAP, regen + carry)
     return pool, max(0, pool - regen)
@@ -10610,12 +10587,11 @@ def displayed_dp_ceiling(world, nation: str = "") -> int:
     # the pool shows as regen + carried, never over its own printed maximum
     # (the "DP: 6/5" lesson). The refill's split is transient; after a load
     # the pool itself stands in for it.
-    if DIPLOMATIC_POINTS_CARRY:
-        refill = (getattr(world, "_dp_refill", None) or {}).get(nation)
-        if refill:
-            ceiling = max(ceiling, int(refill[0]) + int(refill[1]))
-        if nation == getattr(world, "player_nation", None):
-            ceiling = max(ceiling, int(getattr(world, "diplomatic_points", 0) or 0))
+    refill = (getattr(world, "_dp_refill", None) or {}).get(nation)
+    if refill:
+        ceiling = max(ceiling, int(refill[0]) + int(refill[1]))
+    if nation == getattr(world, "player_nation", None):
+        ceiling = max(ceiling, int(getattr(world, "diplomatic_points", 0) or 0))
     return ceiling
 
 
@@ -10920,8 +10896,7 @@ def _process_mission_dp(world) -> List[Dict]:
         # guard — so the next tick un-paused, charged the DP and applied the
         # full relation change while the diplomat was provably elsewhere.
         # Both of those writes were inert.
-        _in_transit = (MISSION_PAUSE_SURVIVES_TRANSIT
-                       and getattr(world, 'talleyrand_state', '') == "IN_TRANSIT")
+        _in_transit = getattr(world, 'talleyrand_state', '') == "IN_TRANSIT"
         # Already paused — check if we can resume
         if world.diplomatic_points >= cost and not _in_transit:
             # Resume
@@ -10985,63 +10960,48 @@ def _process_mission_dp(world) -> List[Dict]:
         # END of the player's own mission is never a secret from him.
         from backend.game_logic.dispatch import queue_dispatch_event as _qde
         _qde(world, "diplomatic_mission_cancelled", {"nation": target},
-             "always" if MISSION_COLLAPSE_IS_ANNOUNCED else "player_mission")
+             "always")
         from backend.game_logic.diplomatic_dialogue import record_mission_end
         record_mission_end(world, _ended, "starved")
 
     return events
 
 
-# ── MS flip levers (playtest re-score, September 12 2026). False arms
-#    reproduce the pre-fix behaviour exactly. ──
-MISSION_COLLAPSE_IS_ANNOUNCED = True
-MISSION_UNDERMINE_LINE_RENDERS = True
-MISSION_UNDERMINE_ROW_IS_HONEST = True
-MISSION_AT_THE_CEILING_IS_FINISHED = True
-MISSION_PAUSE_SURVIVES_TRANSIT = True
-
-# ── IQ-4 "The Cabinet Is Visible" (September 14, 2026) flip levers. False
-#    reproduces master 7bbf82b8 exactly. ──
+# ── The MS rules (playtest re-score, September 12 2026) and IQ-4 "The
+#    Cabinet Is Visible" (September 14, 2026). The levers that landed them
+#    were retired by CODE-1 batch 3 (October 11, 2026); the rules stand. ──
 # MS-9b: MS-9 completed a relation mission on `_before == _after`, but the
 # per-turn decay (step 4c of the same `process_diplomacy_turn`) takes a
 # relation the effect has just clamped at +100 back to 99, so IMPROVE and
 # REASSURE never saw equal values: measured, both parked at 99 for 8 of 8
 # ticks and went on charging 1 DP a turn. A mission completes on the tick
 # its write LANDS on the clamp in the work's direction.
-MISSION_COMPLETES_AT_THE_CLAMP = True
 # COURT_NATION's decay exemption read only the mission TYPE — no liveness,
 # no pair — so it froze every relation of the courted court, AI-vs-AI
 # included, and kept freezing them after the mission completed (measured:
 # Prussia|Russia at 30 for 8 of 8 ticks, 6 of them after completion).
-COURT_EXEMPTION_IS_THE_COURTED_PAIR = True
 # IQ-4 review round. The courted pair is spared DECAY only — the thaw toward
-# the calm band below -10 still runs. False = the pair froze both ways.
-COURT_EXEMPTION_KEEPS_THE_THAW = True
+# the calm band below -10 still runs (the pair used to freeze both ways).
 # IQ-4 review round. An UNDERMINE mission ends on the turn step 13's
 # auto-downgrade breaks the alliance; it used to stay live one more turn and
 # bill 2 DP for work on a pair no longer allied.
-UNDERMINE_ENDS_ON_THE_BREAK = True
 # IQ-4 review round. The morning "Relations now at N" reads the relation after
 # the same tick's decay, not before it (it read one point high).
-MISSION_PROGRESS_READS_AFTER_DRIFT = True
 # PR-D3 "The Court's Favour" — ⚠ RULED, FOR USER CONFIRMATION. COURT_NATION
 # was strictly dominated (same +8 as IMPROVE at twice the DP). Every funded
 # turn at the court now adds COURT_FAVOUR_PER_TURN to the player's own
 # cooperative proposals to that court, up to COURT_FAVOUR_CAP — the lever
 # relation alone cannot pull: measured, Prussia's bare alliance scores 48
 # (COUNTER_OFFER) at relation 60, 80 and 100 alike.
-COURT_FAVOUR_ACTIVE = True
 COURT_FAVOUR_PER_TURN = 2
 COURT_FAVOUR_CAP = 10
 COURT_FAVOUR_PROPOSAL_TYPES = frozenset({
     "non_aggression", "open_borders", "defensive_alliance", "alliance",
 })
 # Talleyrand's counsel names the courting when relation can do no more.
-COUNSEL_NAMES_THE_COURT = True
 # REASSURE_ALLY (+4) beside IMPROVE_RELATIONS (+8) at the same 1 DP was
 # strictly dominated at DEFENSIVE_ALLIANCE; ALLIANCE, where it is the only
 # relation mission offered, keeps it.
-REASSURE_ONLY_AT_ALLIANCE = True
 # `WorldState.modify_nation_relation` clamps to [-RELATION_CLAMP, +RELATION_CLAMP].
 RELATION_CLAMP = 100
 
@@ -11063,8 +11023,6 @@ def court_favour_mod(world, proposal: Dict) -> int:
     favour is paid for turn by turn. Zero outside the gate — no AI arm:
     missions are the player's cabinet instrument (the world holds one slot).
     """
-    if not COURT_FAVOUR_ACTIVE:
-        return 0
     from backend.game_logic.diplomatic_dialogue import mission_is_live
     if not mission_is_live(world):
         return 0
@@ -11141,12 +11099,9 @@ def _process_mission_effects(world) -> List[Dict]:
         _before = int(world.nation_relations.get(_key, 0) or 0)
         world.modify_nation_relation(player_nation, target, scaled)
         _after = int(world.nation_relations.get(_key, 0) or 0)
-        if MISSION_COMPLETES_AT_THE_CLAMP:
-            # MS-9b: the write landed on the clamp in the work's direction.
-            _reached = ((scaled > 0 and _after >= RELATION_CLAMP)
-                        or (scaled < 0 and _after <= -RELATION_CLAMP))
-        else:
-            _reached = _before == _after
+        # MS-9b: the write landed on the clamp in the work's direction.
+        _reached = ((scaled > 0 and _after >= RELATION_CLAMP)
+                    or (scaled < 0 and _after <= -RELATION_CLAMP))
         # IQ-4: COURT's work is the Court's Favour, and the favour lasts only
         # while he stays at their court (`court_favour_mod` reads a LIVE
         # mission). Completing at the ceiling — even once the favour was
@@ -11157,33 +11112,21 @@ def _process_mission_effects(world) -> List[Dict]:
         # it HOLDS the court until the player recalls him, and the Cabinet
         # and the rail say so ("the favour holds while he stays") — not the
         # silent "DP for nothing" MS-9 closed.
-        if (_reached and MISSION_COMPLETES_AT_THE_CLAMP
-                and mission_type == "COURT_NATION" and COURT_FAVOUR_ACTIVE):
+        if _reached and mission_type == "COURT_NATION":
             _reached = False
-        if MISSION_AT_THE_CEILING_IS_FINISHED and _reached and scaled:
+        if _reached and scaled:
             mission["completed"] = True
             world.talleyrand_state = "IDLE"
-            if MISSION_COMPLETES_AT_THE_CLAMP:
-                from backend.display_names import display_nation as _dn
-                _done = {
-                    "type": "diplomatic_mission_completed",
-                    "target": target,
-                    "mission_type": mission_type,
-                    "reason": "ceiling",
-                    "message": (
-                        f"Relations with {_dn(target)} stand at {_after:+d}. "
-                        "Talleyrand's mission is done and he is home."),
-                }
-            else:
-                _ceiling = "highest" if scaled > 0 else "lowest"
-                _done = {
-                    "type": "diplomatic_mission_completed",
-                    "target": target,
-                    "mission_type": mission_type,
-                    "message": (
-                        f"Relations with {target} can go no {_ceiling}, Sire — "
-                        "Talleyrand's mission has done all it can and is closed."),
-                }
+            from backend.display_names import display_nation as _dn
+            _done = {
+                "type": "diplomatic_mission_completed",
+                "target": target,
+                "mission_type": mission_type,
+                "reason": "ceiling",
+                "message": (
+                    f"Relations with {_dn(target)} stand at {_after:+d}. "
+                    "Talleyrand's mission is done and he is home."),
+            }
             events.append(_done)
             from backend.game_logic.dispatch import queue_dispatch_event as _q
             _q(world, "diplomatic_mission_completed",
@@ -11194,11 +11137,10 @@ def _process_mission_effects(world) -> List[Dict]:
         # Dispatch event (Session 8D)
         diplo_key = world._make_diplo_key(player_nation, target)
         current_relation = world.nation_relations.get(diplo_key, 0)
-        if MISSION_PROGRESS_READS_AFTER_DRIFT:
-            # Step 4c decays this same pair after the effect; the line reads
-            # the relation the turn will actually leave.
-            current_relation = int(current_relation) + relation_drift_step(
-                world, player_nation, target, relation=int(current_relation))
+        # Step 4c decays this same pair after the effect; the line reads
+        # the relation the turn will actually leave.
+        current_relation = int(current_relation) + relation_drift_step(
+            world, player_nation, target, relation=int(current_relation))
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "diplomatic_mission_progress",
                             {"nation": target, "value": int(current_relation)},
@@ -11285,9 +11227,7 @@ def _process_mission_effects(world) -> List[Dict]:
                 # as literal "Relations now at {value}." every turn it ran.
                 queue_dispatch_event(
                     world,
-                    ("diplomatic_mission_undermine_progress"
-                     if MISSION_UNDERMINE_LINE_RENDERS
-                     else "diplomatic_mission_progress"),
+                    ("diplomatic_mission_undermine_progress"),
                     {"nation": target, "ally": target_ally,
                      "delta": int(scaled_pair),
                      "value": int(world.nation_relations.get(
@@ -11386,10 +11326,9 @@ def _check_mission_target_eliminated(world) -> List[Dict]:
         # mission that ended because its court was wiped off the map reached
         # the campaign log and nothing else. `always`, for the same reason as
         # the DP-collapse arm: the mission it would be fogged against is gone.
-        if MISSION_COLLAPSE_IS_ANNOUNCED:
-            from backend.game_logic.dispatch import queue_dispatch_event as _qde
-            _qde(world, "diplomatic_mission_cancelled", {"nation": target},
-                 "always")
+        from backend.game_logic.dispatch import queue_dispatch_event as _qde
+        _qde(world, "diplomatic_mission_cancelled", {"nation": target},
+             "always")
         # IQ-4: the rail only — this exit keeps its own campaign-log row.
         from backend.game_logic.diplomatic_dialogue import record_mission_end
         record_mission_end(world, _ended, "eliminated")
@@ -11602,8 +11541,6 @@ def _court_exemption(world):
     target = mission.get("target")
     if not target:
         return None
-    if not COURT_EXEMPTION_IS_THE_COURTED_PAIR:
-        return ("any", target)
     from backend.game_logic.diplomatic_dialogue import mission_is_live
     if not mission_is_live(world):
         return None
@@ -11640,8 +11577,6 @@ def relation_drift_step(world, nation_a: str, nation_b: str, relation=None,
             # not also cancel the thaw a hostile court would have had (+1 at
             # peace, +3 under a truce) — measured, freezing both made COURT
             # slower than IMPROVE at every court below -10.
-            if not COURT_EXEMPTION_KEEPS_THE_THAW:
-                return 0
             courted = True
     # IGR-X3: a truce thaws faster than ordinary peacetime drift.
     step = ARMISTICE_THAW_PER_TURN if state == "ARMISTICE" else 1
@@ -12102,8 +12037,6 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         active mission, so the cancel is on screen) rendered enabled and were
         refused on the click. The gate fires before every other executor
         check, so its reason is the one the click would have printed."""
-        if not WIZARD_MIRRORS_THE_TRANSIT_GATE:
-            return rows
         if getattr(world, 'talleyrand_state', 'IDLE') != "IN_TRANSIT":
             return rows
         from backend.commands.diplomatic_executor import (
@@ -12459,9 +12392,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             # the top bar beside it still said Talleyrand was idle.
             available = False
             reason = "Mission already active"
-        elif (mission_type == "UNDERMINE_ALLIANCE"
-              and MISSION_UNDERMINE_ROW_IS_HONEST
-              and not _has_any_ally(world, target_nation)):
+        elif (mission_type == "UNDERMINE_ALLIANCE" and not _has_any_ally(world, target_nation)):
             # MS-6: the only row in the diplomacy list that did not state
             # its gate. It rendered enabled at 2 DP against a court with no
             # alliances at all and dead-ended in a Dismiss-only refusal.
@@ -12693,8 +12624,6 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
         # IQ-4 §1.4: beside IMPROVE (+8) at the same 1 DP, REASSURE (+4) was
         # never the right choice here. ALLIANCE keeps it — its unique cell.
-        if not REASSURE_ONLY_AT_ALLIANCE:
-            actions.append(_mission_action("mission_reassure", "Reassure Ally", "REASSURE_ALLY"))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
         # PL-14: Ultimatums available for any non-war, non-vassal target
@@ -12991,8 +12920,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         world, target_nation, actions, dp, is_vassal, vassals)
     response["recommendation"] = _rec_text
     # IQ-4: the machine key the counsel names (display-only, GR6) — the
-    # playtest driver's advisor arm reads it; absent with the lever down.
-    if COUNSEL_NAMES_THE_COURT and _rec_mission:
+    # playtest driver's advisor arm reads it; absent when nothing is named.
+    if _rec_mission:
         response["recommended_mission"] = _rec_mission
 
     # W3: Acceptance preview — top 3 positive/negative factors for best proposal
@@ -13191,7 +13120,7 @@ def forecast_mission_to_accept(world, target_nation: str, proposal_type: str,
     relation = int(world.nation_relations.get(key, 0) or 0)
     favour_now = (int(court_favour_mod(world, {
         "type": proposal_type, "proposer_nation": player,
-        "target_nation": target_nation})) if COURT_FAVOUR_ACTIVE else 0)
+        "target_nation": target_nation})))
     if relation_free_score is None:
         relation_free_score = acceptance_relation_free_score(
             world, target_nation, proposal_type)
@@ -13204,11 +13133,10 @@ def forecast_mission_to_accept(world, target_nation: str, proposal_type: str,
         return None
     cost = int(MISSION_DP_COSTS.get(mission_type, 1))
     courting = mission_type == "COURT_NATION"
-    holds = courting and COURT_FAVOUR_ACTIVE
+    holds = courting
     exempt = None
     if courting:
-        exempt = (("pair", player, target_nation) if COURT_EXEMPTION_IS_THE_COURTED_PAIR
-                  else ("any", target_nation))
+        exempt = (("pair", player, target_nation))
     completed = False
     for n in range(int(limit) + 1):
         favour = min(COURT_FAVOUR_CAP, COURT_FAVOUR_PER_TURN * n) if holds else 0
@@ -13218,7 +13146,7 @@ def forecast_mission_to_accept(world, target_nation: str, proposal_type: str,
         if completed:
             return None
         relation = max(-RELATION_CLAMP, min(RELATION_CLAMP, relation + effect))
-        if not holds and relation >= RELATION_CLAMP and MISSION_COMPLETES_AT_THE_CLAMP:
+        if not holds and relation >= RELATION_CLAMP:
             completed = True
         relation += relation_drift_step(world, player, target_nation,
                                         relation=relation, _court=exempt)
@@ -13255,8 +13183,7 @@ def forecast_relation_to(world, target_nation: str, floor: int,
     cost = int(MISSION_DP_COSTS.get(mission_type, 1))
     exempt = None
     if mission_type == "COURT_NATION":
-        exempt = (("pair", player, target_nation) if COURT_EXEMPTION_IS_THE_COURTED_PAIR
-                  else ("any", target_nation))
+        exempt = (("pair", player, target_nation))
     for n in range(int(limit) + 1):
         if relation >= int(floor):
             return (n, n * cost)
@@ -13294,8 +13221,6 @@ def _mission_counsel(world, target_nation: str, actions: List[Dict]):
     UNPAYABLE in play — a courting France holds 3 DP and the leap costs 4–6 —
     so a counsel that waited for it never spoke.
     """
-    if not (COUNSEL_NAMES_THE_COURT and COURT_FAVOUR_ACTIVE):
-        return None
     rows = {a.get("action"): a for a in actions if isinstance(a, dict)}
 
     def _open(action_id):
@@ -13470,10 +13395,9 @@ def _base_recommendation_and_mission(world, target_nation: str, actions: List[Di
 
     # W6: When all proposals are hopeless, suggest improve relations mission if available
     if best_score < 40:
-        if COUNSEL_NAMES_THE_COURT:
-            posture = _hard_reject_counsel(world, target_nation, actions)
-            if posture:
-                return posture
+        posture = _hard_reject_counsel(world, target_nation, actions)
+        if posture:
+            return posture
         for a in actions:
             if a.get("available") and a["action"] == "mission_improve_relations":
                 text = ("No proposal would find purchase now. Talleyrand recommends: "

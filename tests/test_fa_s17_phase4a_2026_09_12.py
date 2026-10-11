@@ -1,6 +1,6 @@
 """FA slice 17, Phase 4 part A (September 12, 2026) — the re-score's P2 rows
 and three of its rulings, each behind a lever whose False arm reproduces the
-prior behaviour.
+prior behaviour (FA-S17-D4's jealousy rule is inlined — CODE-1 batch 3).
 
   FA-S17-9  the pursuit quotes the sighting it was plotted from, and a cold
             trail ends as an outcome
@@ -312,11 +312,6 @@ class TestTheAudienceIsStillOwed:
             card = self._card()
             card["kind"] = kind
             assert J.petition_is_still_live(card, world) is True, kind
-
-    def test_lever_down_delivers_the_stale_card(self, monkeypatch):
-        monkeypatch.setattr(J, "THE_AUDIENCE_IS_STILL_OWED", False)
-        world, ney = self._board(jealous_of="Soult")
-        assert J.petition_is_still_live(self._card(), world) is True
 
     def test_the_delivery_seam_asks(self):
         src = (ROOT / "backend" / "main.py").read_text(encoding="utf-8")

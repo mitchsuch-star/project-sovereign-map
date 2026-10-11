@@ -112,20 +112,6 @@
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
  {
-  "id": "WO17-17 refusal arm deleted",
-  "file": "backend/game_logic/jealousy.py",
-  "old": "        if (AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE\n                and not (isinstance(result, dict) and result.get(\"success\"))):",
-  "new": "        if False:",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
-  "id": "WO17-18 refusal lever frozen",
-  "file": "backend/game_logic/jealousy.py",
-  "old": "        if (AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE\n                and not",
-  "new": "        if (True\n                and not",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
   "id": "WO17-19 the hold is not restored",
   "file": "backend/game_logic/jealousy.py",
   "old": "            marshal.holding_position, marshal.hold_region = _hold_before",

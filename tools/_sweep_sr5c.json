@@ -56,13 +56,6 @@
     "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheWait"
   },
   {
-    "id": "Chip: the old note",
-    "file": "backend/game_logic/naval.py",
-    "old": "        if THE_DIVERSION_IS_THROWN_AGAIN:\n            note = (f\"{diversion_odds(world, player)} in 100 at readiness \"",
-    "new": "        if False:\n            note = (f\"{diversion_odds(world, player)} in 100 at readiness \"",
-    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheSurfaces"
-  },
-  {
     "id": "Payload: the wait is not carried",
     "file": "backend/game_logic/naval.py",
     "old": "            \"diversion_wait\": int(diversion_wait(world, player)),",
@@ -110,12 +103,5 @@
     "old": "            migrate_diversion_records(world)",
     "new": "            pass",
     "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheMigration"
-  },
-  {
-    "id": "Lever: the new rule under the lever down",
-    "file": "backend/game_logic/naval.py",
-    "old": "    if not THE_DIVERSION_IS_THROWN_AGAIN:\n        return int(DIVERSION_SUCCESS_PCT)",
-    "new": "    if False:\n        return int(DIVERSION_SUCCESS_PCT)",
-    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheLever"
   }
 ]

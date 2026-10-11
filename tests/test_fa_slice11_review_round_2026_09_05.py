@@ -63,20 +63,6 @@ SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
 DIALOG = (ROOT / "godot-client" / "project-sovereign" / "scripts"
           / "enemy_phase_dialog.gd")
 
-LEVERS = [
-    (VASSAL, "THE_BREAK_IS_BRIEFED_TRUTHFULLY"),
-    (VASSAL, "EVERY_BREAK_COMPLETES_ITSELF"),
-]
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = [(mod, name, getattr(mod, name)) for mod, name in LEVERS]
-    yield
-    for mod, name, value in saved:
-        setattr(mod, name, value)
-
-
 @contextlib.contextmanager
 def _quiet():
     with contextlib.redirect_stdout(io.StringIO()):
@@ -198,20 +184,11 @@ class TestEveryBreakCompletesItself:
         assert _relation(world, "France", "Switzerland") == (
             before["relation"] - 50)
 
-    def test_the_lever_down_reproduces_the_gap(self, world):
-        VASSAL.EVERY_BREAK_COMPLETES_ITSELF = False
-        corps, sibling, before, _events = self._break(
-            world, "Switzerland", armistice=True)
-        assert corps.nation == "France"
-        assert world.vassals[sibling]["loyalty"] == before["sibling"]
-        assert _relation(world, "France", "Switzerland") == before["relation"]
-
     def test_no_exit_applies_the_tail_twice(self, world):
-        """Found by the lever arm itself: the helper call has to sit INSIDE
-        the same gate as the `continue`, or with the briefing lever down the
-        armistice arm falls through to the war tail and both apply it
-        (measured: sibling -20, relation -100)."""
-        VASSAL.THE_BREAK_IS_BRIEFED_TRUTHFULLY = False
+        """Found by the (since retired) lever arm: the helper call has to
+        sit INSIDE the same gate as the `continue`, or the armistice arm
+        falls through to the war tail and both apply it (measured then:
+        sibling -20, relation -100). The tail lands exactly once."""
         _corps, sibling, before, _events = self._break(
             world, "Switzerland", armistice=True)
         assert world.vassals[sibling]["loyalty"] == before["sibling"] - 10
@@ -271,12 +248,6 @@ class TestTheRailBannerKnowsTheLord:
         fresh = world.notifications.to_list()[before:]
         assert any("Switzerland has rebelled against France" in
                    str(n.get("message") or "") for n in fresh), fresh
-
-    def test_the_lever_down_restores_the_lord_blind_banner(self, world):
-        VASSAL.THE_BREAK_IS_BRIEFED_TRUTHFULLY = False
-        fresh = self._foreign_break(world)
-        assert any("rebelled against Austria" in str(n.get("message") or "")
-                   for n in fresh), fresh
 
 
 # ═══════════════════════════════════════════════════════════════════════

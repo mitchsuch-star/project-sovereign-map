@@ -2558,9 +2558,8 @@ def _answer_points(world, player: str) -> str:
         if carried:
             head += (f" and {carried} {'was' if carried == 1 else 'were'} "
                      f"carried from last turn")
-    if D.DIPLOMATIC_POINTS_CARRY:
-        head += (f"; what he leaves unspent carries one turn, to at most "
-                 f"{D.DP_BANK_CAP}")
+    head += (f"; what he leaves unspent carries one turn, to at most "
+             f"{D.DP_BANK_CAP}")
     summary = world.get_action_summary()
     return (f"{head}. Today {int(summary['actions_remaining'])} of "
             f"{plural(int(summary['max_actions']), 'order')} remain, and "

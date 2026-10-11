@@ -9,7 +9,8 @@ booted explicitly here) through the real executor, the real
 `/respond_to_diplomatic_dialogue` endpoint and the real `end turn` route
 (`TurnManager.end_turn`), under the MOCK parser, following the TestClient
 world-swap rule (swap `backend.main.world`, `game_state["world"]` and the
-parser together). Every lever has a DOWN arm on its own surface.
+parser together). The slice's module-level levers were retired by CODE-1
+batch 3 (October 2026); every pin reads the live rule alone.
 
 Measured facts the contract's own text guessed at, recorded here rather than
 hidden (the September 16 landing measurements; navigate by symbol):
@@ -84,11 +85,6 @@ SCENARIO = str(REPO / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 DRIVER = REPO / "tools" / "playtest_driver.py"
 PLAYER = "France"
-LEVERS = ("THE_CLIENT_PETITIONS", "AN_UNANSWERED_PETITION_IS_REFUSED",
-          "COURTING_SPARES_THE_LORDS_ALLIES", "THE_WAVERING_LINE_IS_HONEST",
-          # the IQ-7 review round's four (Sept 18, 2026)
-          "THE_DEED_HONOURS_THE_PETITION", "THE_LORD_PAYS_TO_GRANT",
-          "THE_TRANSFER_SHEDS_THE_REMISSION", "A_RELIEF_OF_NOTHING_IS_WITHDRAWN")
 RAW_TAG = "KingdomOfItaly"
 
 
@@ -279,15 +275,6 @@ def _make_eligible(w, vassal, turn=6):
 # fixtures
 # ═══════════════════════════════════════════════════════════════════════════
 
-@pytest.fixture(autouse=True)
-def _restore_levers(monkeypatch):
-    """Every lever flip in this file goes through monkeypatch, so the shipped
-    values are restored after each test whatever a test did."""
-    for name in LEVERS:
-        monkeypatch.setattr(V, name, getattr(V, name))
-    yield
-
-
 @pytest.fixture
 def http(monkeypatch):
     world = _europe()
@@ -320,50 +307,15 @@ def tribute_spy(monkeypatch):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# T1 — lever-down silence
+# T1 — a stored remission is honoured
 # ═══════════════════════════════════════════════════════════════════════════
 
-class TestT1LeverDownSilence:
-    def test_twenty_end_turns_issue_nothing_and_tribute_is_the_pre_slice_formula(
-            self, http, tribute_spy, monkeypatch):
-        w, client = http
-        monkeypatch.setattr(V, "THE_CLIENT_PETITIONS", False)
-        for _ in range(20):
-            _end_turn(client)
-            assert not _petitions(w), f"a petition was issued at turn {w.current_turn}"
-            for name, row in w.vassals.items():
-                assert "petitioned_turn" not in row, name
-                assert "remission_left" not in row, name
-        assert w.current_turn == 21
-        assert not _logged(w)
-        # 20 collections: what each satellite PAID is the pre-slice arithmetic
-        # (effective income x rate, disruption skipped) on every one of them.
-        assert len(tribute_spy) == 20
-        for rec in tribute_spy:
-            for vassal, old in rec["old"].items():
-                assert rec["owed"][vassal] == old, (rec["turn"], vassal)
-                if old > 0:
-                    assert rec["paid"].get(vassal, 0) == old, (rec["turn"], vassal, rec)
-
-    def test_lever_down_hides_the_display_keys_and_the_producer_returns_nothing(
-            self, monkeypatch):
-        w = _europe()
-        monkeypatch.setattr(V, "THE_CLIENT_PETITIONS", False)
-        _make_eligible(w, "Switzerland")
-        assert V.process_vassal_petitions(w) == []
-        assert not _petitions(w)
-        for row in build_diplomatic_ledger(w)["vassals"]["rows"]:
-            for key in ("standing", "next_petition_in", "bond", "remission_left",
-                        "relation", "relation_modifier"):
-                assert key not in row, (row["name"], key)
-
-    def test_lever_down_still_honours_a_stored_remission(self, monkeypatch):
-        """Keyed on the DATA: a remission in a save is paid down with the
-        lever down (the `vassal_tribute_owed` 0 arm reads the row, never the
-        lever)."""
+class TestT1AStoredRemissionIsHonoured:
+    def test_a_stored_remission_is_honoured(self):
+        """Keyed on the DATA: a remission in a save is paid down (the
+        `vassal_tribute_owed` 0 arm reads the row)."""
         w = _europe()
         w.vassals["Switzerland"]["remission_left"] = 2
-        monkeypatch.setattr(V, "THE_CLIENT_PETITIONS", False)
         assert V.vassal_tribute_owed(w, "Switzerland") == 0
         with _quiet():
             V.process_vassal_tribute(w)
@@ -708,28 +660,9 @@ class TestT7Lapse:
         assert any(e.get("type") == "offer_lapsed" and e.get("nation") == "Switzerland"
                    and e.get("proposal_type") == V.CLIENT_PETITION_TYPE for e in w.event_log)
 
-    def test_lever_down_a_lapse_costs_nothing(self, http, monkeypatch):
-        w, client = http
-        monkeypatch.setattr(V, "AN_UNANSWERED_PETITION_IS_REFUSED", False)
-        _deliver(w, "Switzerland")
-        rel0 = _rel(w, "Switzerland", PLAYER)
-        _end_turn(client)
-        log = _logged(w, "unanswered")
-        assert len(log) == 1
-        assert log[0]["penalty"] is False
-        assert log[0]["loyalty_after"] == log[0]["loyalty_before"]
-        assert log[0]["relation_after"] == rel0
-        assert CL.format_event_oneliner(log[0]) == ("Switzerland's petition for relief from "
-                                                    "tribute — left unanswered.")
-        assert not _petitions(w)
-
-    def test_the_lapse_line_states_the_rule_in_force(self, monkeypatch):
+    def test_the_lapse_line_states_the_rule_in_force(self):
         w = _europe()
         assert V.petition_terms(w, "Switzerland")["lapse_line"].endswith("a lapse is a refusal.")
-        monkeypatch.setattr(V, "AN_UNANSWERED_PETITION_IS_REFUSED", False)
-        line = V.petition_terms(w, "Switzerland")["lapse_line"]
-        assert "lapse is a refusal" not in line
-        assert f"waits {V.PETITION_INTERVAL_TURNS} turns" in line
 
     # ── IQ-7 review [38] (R11, Sept 18, 2026): the pins above hand-deliver
     # the petition onto an EMPTY manager, where it is the current dialogue;
@@ -782,16 +715,14 @@ class TestT7Lapse:
         # both lapsed (the new turn's own mail may have arrived since)
         assert not _petitions(w) and head not in _pending(w)
 
-    def test_lever_down_a_petition_pending_in_a_save_still_lapses_as_a_refusal(self, monkeypatch):
-        """Keyed on the DATA, never on the issuing lever (the hook's own
-        docstring): a save with a pending petition, loaded with
-        `THE_CLIENT_PETITIONS` down, still charges the lapse."""
+    def test_a_petition_pending_in_a_save_still_lapses_as_a_refusal(self, monkeypatch):
+        """Keyed on the DATA (the hook's own docstring): a save with a pending
+        petition, loaded and left unanswered, still charges the lapse."""
         w = _europe()
         _deliver(w, "Switzerland")
         with _quiet():
             w2 = WorldState.from_dict(w.to_dict())
         assert len(_petitions(w2)) == 1
-        monkeypatch.setattr(V, "THE_CLIENT_PETITIONS", False)
         monkeypatch.setattr(M, "world", w2)
         monkeypatch.setattr(M, "parser", _PARSER)
         monkeypatch.setitem(M.game_state, "world", w2)
@@ -1137,8 +1068,8 @@ class TestT11ReValidationAtAnswer:
         answered: the Grant is refused WITHOUT consuming the petition (not
         popped, the rail notice kept, nothing charged, nothing logged), the
         response re-carries the question with Grant honestly disabled, and
-        the lapse then charges the refusal like any other. Lever
-        `THE_LORD_PAYS_TO_GRANT` False reproduces the withdrawal."""
+        the lapse then charges the refusal like any other. The old
+        withdrawal no longer exists (CODE-1 batch 3 retired its lever)."""
         w, client = http
         dlg = _deliver_seen(w, client, "Switzerland")
         w.diplomatic_points = 0
@@ -1170,22 +1101,6 @@ class TestT11ReValidationAtAnswer:
         assert len(log) == 1 and log[0]["penalty"] is True
         assert w.vassals["Switzerland"]["loyalty"] < loy0
         assert _rel(w, "Switzerland", PLAYER) == rel0 - V.PETITION_RELATION_STEP
-
-    def test_d_lever_down_a_lord_who_cannot_pay_withdraws(self, http, monkeypatch):
-        """The False arm of `THE_LORD_PAYS_TO_GRANT` — the 7d10e20c
-        withdrawal, byte-for-byte on this surface."""
-        w, client = http
-        monkeypatch.setattr(V, "THE_LORD_PAYS_TO_GRANT", False, raising=False)
-        dlg = _deliver_seen(w, client, "Switzerland")
-        w.diplomatic_points = 0
-        loy0, rel0 = w.vassals["Switzerland"]["loyalty"], _rel(w, "Switzerland", PLAYER)
-        r = self._grant(client, dlg)
-        assert r.get("success") is False, r
-        assert "withdrawn" in str(r.get("message")) and "cannot spare the diplomatic point" in str(r.get("message"))
-        assert not _petitions(w)
-        assert not _logged(w)
-        assert w.vassals["Switzerland"]["loyalty"] == loy0
-        assert _rel(w, "Switzerland", PLAYER) == rel0
 
     def test_a_moot_refusal_is_not_a_penalty(self, http):
         w, client = http
@@ -1685,13 +1600,6 @@ class TestT15R1TheWaveringLineTellsTheTruth:
         marshal.nation = "Prussia"
         assert not V.lord_fields_the_vassals_regiments(w, PLAYER, RAW_TAG)
 
-    def test_lever_down_gives_the_old_sentence(self, monkeypatch):
-        w = _europe()
-        monkeypatch.setattr(V, "THE_WAVERING_LINE_IS_HONEST", False)
-        line = V.tier_crossing_line(RAW_TAG, 61, 59, world=w, lord=PLAYER)
-        assert "regiments will hold back from our musters" in line
-        assert "standing to petition" not in line
-
     def test_the_two_arg_call_keeps_the_old_sentence_and_disaffected_is_unchanged(self):
         assert "musters" in V.tier_crossing_line("Bavaria", 60, 58)
         w = _europe()
@@ -1739,13 +1647,6 @@ class TestT16R2CourtingSparesTheLordsAllies:
         assert events and events[0]["type"] == "vassal_courting"
         assert w.vassals["Switzerland"]["loyalty"] < 45
         assert w.nation_dp["Britain"] == 3
-
-    def test_lever_down_the_ally_courts(self, monkeypatch):
-        w = self._board()
-        monkeypatch.setattr(V, "COURTING_SPARES_THE_LORDS_ALLIES", False)
-        events = V.attempt_vassal_courting(w, "Spain")
-        assert events and events[0]["vassal"] == "Switzerland"
-        assert w.nation_dp["Spain"] == 3
 
     def test_a_defensive_ally_is_spared_too_and_a_neutral_is_not(self):
         w = self._board()
@@ -1812,9 +1713,8 @@ class TestT18SaveLoad:
         assert w2.vassals["Switzerland"]["petitioned_turn"] == 3
         pets = _petitions(w2)
         assert len(pets) == 1 and pets[0]["dialogue_id"] == dlg["dialogue_id"]
-        # the remission continues, and the petition is answerable, with the
-        # issuing lever DOWN — both keyed on the data
-        monkeypatch.setattr(V, "THE_CLIENT_PETITIONS", False)
+        # the remission continues, and the petition is answerable — both
+        # keyed on the data
         assert V.vassal_tribute_owed(w2, "Switzerland") == 0
         with _quiet():
             V.process_vassal_tribute(w2)

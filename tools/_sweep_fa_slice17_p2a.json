@@ -84,27 +84,6 @@
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD12PeaceLeadsTheBriefing::test_a_third_partys_peace_is_not_our_headline"
   },
   {
-    "id": "D16/a the sovereign excluded",
-    "file": "backend/game_logic/naval.py",
-    "old": "                if not (THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE\n                        and getattr(m, \"is_sovereign\", False))]\n",
-    "new": "                if not (False\n                        and getattr(m, \"is_sovereign\", False))]\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD16LiftCounselNamesTheMarshalate"
-  },
-  {
-    "id": "D16/b the road",
-    "file": "backend/game_logic/naval.py",
-    "old": "    if not THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:\n        return \"\"\n    try:\n",
-    "new": "    if True:\n        return \"\"\n    try:\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD16LiftCounselNamesTheMarshalate::test_the_road_names_the_cheapest_commission_the_gate_would_pass"
-  },
-  {
-    "id": "D18/a the arithmetic",
-    "file": "backend/game_logic/diplomacy.py",
-    "old": "    if not THE_TRUCE_PROJECTION_COUNTS_THE_THAW:\n        return int(relation_now)\n",
-    "new": "    if True:\n        return int(relation_now)\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD18TruceProjectionCountsTheThaw"
-  },
-  {
     "id": "D18/b the HUD fork",
     "file": "backend/game_logic/war_status.py",
     "old": "                \"peace\" if armistice_projected_relation(relation, remaining)\n",

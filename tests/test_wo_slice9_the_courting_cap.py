@@ -303,24 +303,6 @@ class TestTheStampRidesTheVassalRow:
         assert _court(restored, "Russia") == []
 
 
-class TestTheFlipLever:
-
-    def test_the_lever_is_true_at_rest(self):
-        assert V.COURTING_TARGET_CAP_ACTIVE is True
-
-    def test_false_reproduces_the_pile_on(self, monkeypatch):
-        """The BASELINE_SERIES attribution arm, as a behaviour test: with
-        the lever down, five courtiers strip one satellite in a single
-        tick and the self-court returns."""
-        monkeypatch.setattr(V, "COURTING_TARGET_CAP_ACTIVE", False)
-        world = _world()
-        courtiers = ["Britain", "Russia", "Austria", "Prussia", "Switzerland"]
-        events = [e for n in courtiers for e in _court(world, n)]
-        assert len(events) == 5, "the lever did not restore prior behaviour"
-        assert any(e["nation"] == e["vassal"] for e in events), (
-            "the self-court is part of the prior behaviour")
-
-
 # ══════════════════════════════════════════════════════════════════
 # (b) WO-D9 - the anti-pushover damper, at the quote
 # ══════════════════════════════════════════════════════════════════
@@ -767,18 +749,6 @@ class TestTheDesignStakeOutranksTheRoster:
         won = _court(world, "Britain")
         assert len(won) == 1 and won[0]["nation"] == "Britain"
 
-    def test_the_lever_is_true_at_rest(self):
-        assert V.COURTING_STAKE_PRIORITY_ACTIVE is True
-
-    def test_the_lever_down_restores_roster_order(self, monkeypatch):
-        """The attribution arm.
-
-        Killed by: reading the flag anywhere but at call time."""
-        self._patch_stake(monkeypatch, {"Austria"})
-        monkeypatch.setattr(V, "COURTING_STAKE_PRIORITY_ACTIVE", False)
-        world = _world()
-        assert len(_court(world, "Britain")) == 1
-
 
 class TestTheDamperExplainsItself:
     """WO-D12. The damper halved the trust reward and NOTHING said so:
@@ -843,14 +813,12 @@ sys.path.insert(0, sys.argv[1])
 os.environ.setdefault("LLM_MODE", "mock")
 from backend.commands.executor import CommandExecutor
 from backend.game_logic.turn_manager import TurnManager
-from backend.game_logic import vassal as V
 from backend.models.world_state import WorldState
 
-V.COURTING_TARGET_CAP_ACTIVE = sys.argv[3] == "1"
 # FA slice 17 Phase 2: optional MODULE:LEVER=VALUE flips, set in THIS child
 # before the world boots (never a source edit) — the series runner's idiom.
 import importlib
-for _arg in sys.argv[4:]:
+for _arg in sys.argv[3:]:
     _mod, _rest = _arg.split(":", 1)
     _name, _val = _rest.split("=", 1)
     setattr(importlib.import_module(_mod), _name, eval(_val))
@@ -870,9 +838,10 @@ sys.stderr.write("REBELLION=%s\\n" % answer)
 '''
 
 
-def _rebellion_turn(cap: bool, flips=()):
-    """The turn France|Switzerland stops being a VASSAL, or None.
-    `flips` = MODULE:LEVER=VALUE strings applied in the child before boot."""
+def _rebellion_turn(flips=()):
+    """The turn France|Switzerland stops being a VASSAL, or None, on the
+    shipped (capped) board. `flips` = MODULE:LEVER=VALUE strings applied in
+    the child before boot."""
     import json  # noqa: F401  (kept: mirrors the series runner's imports)
     import subprocess
     import sys
@@ -893,8 +862,7 @@ def _rebellion_turn(cap: bool, flips=()):
         script = handle.name
     try:
         result = subprocess.run(
-            [sys.executable, script, str(REPO), str(scenario),
-             "1" if cap else "0", *flips],
+            [sys.executable, script, str(REPO), str(scenario), *flips],
             env=env, cwd=str(REPO), capture_output=True, text=True,
             timeout=300)
     finally:
@@ -964,12 +932,11 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
     """
 
     def test_the_cap_delays_the_rebellion_it_does_not_prevent_it(self):
-        """Killed by: deleting the cap (both arms then leave France on the
-        uncapped arm's turn — measured 16 on this tree, September 16, 2026,
-        IQ-7; the 29 this line first carried belonged to an earlier board),
-        and by any change that lets the satellite hold indefinitely."""
-        uncapped = _rebellion_turn(False)
-        capped = _rebellion_turn(True)
+        """Killed by: any change that lets the satellite hold indefinitely,
+        and by any board change that moves the capped rebellion. The
+        uncapped arm (the cap's flip lever) was retired by CODE-1 batch 3;
+        the comment trail below is the record of what it measured."""
+        capped = _rebellion_turn()
         # Re-measured by FA slice 2 (September 4, 2026): the capped
         # satellite rebelled at 35 (was 33). The first note attributed
         # the +2 to "a French corps captured rather than ground to dust";
@@ -1019,9 +986,9 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #   - Capped, Britain, Russia and Austria court it once a turn,
         #     t15–t20 (47 → 0), and it rebels at t21.
         # The cap buys FIVE turns; the contract holds.
-        # Attribution, measured through THIS runner's `flips`: with the four
-        # IQ-7 vassal levers down, or with only
-        # AN_UNANSWERED_PETITION_IS_REFUSED down, it reads 28 / 30 verbatim.
+        # Attribution, measured through THIS runner's `flips` at the time:
+        # with the IQ-7 lapse rule (an unanswered petition is a refusal)
+        # absent, it read 28 / 30 verbatim.
         # A correction to the Phase 3 note, from a per-turn probe of that
         # board: its 28 / 30 were not rebellions. Both were Britain's VS-6
         # bribe transferring Switzerland — uncapped at t27 after the pile-on
@@ -1107,10 +1074,7 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # buys FIVE turns; the contract holds. With every gate lever down in
         # the child it reads 12 / 18 verbatim
         # (`tools/_econ_gate_wo_attribution.py`, measured).
-        assert uncapped == 13, uncapped
         assert capped == 18, capped
-        assert capped - uncapped >= 1, (
-            "the cap must buy the lord turns to react, not save him")
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.
@@ -1281,4 +1245,4 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         assert ordinary.count(worst) == 1, (
             f"the largest ordinary fall {worst} is no longer unique: {steps}")
         index = ordinary.index(worst) + 1
-        assert _rebellion_turn(True) == index + 1
+        assert _rebellion_turn() == index + 1

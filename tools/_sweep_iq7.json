@@ -1,33 +1,5 @@
 [
  {
-  "id": "IQ7-L1 THE_CLIENT_PETITIONS down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "THE_CLIENT_PETITIONS = True\n",
-  "new": "THE_CLIENT_PETITIONS = False\n",
-  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT2IssuanceOnTheBootBoard::test_the_first_petition_is_switzerlands_relief_at_turn_six"
- },
- {
-  "id": "IQ7-L2 AN_UNANSWERED_PETITION_IS_REFUSED down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "AN_UNANSWERED_PETITION_IS_REFUSED = True\n",
-  "new": "AN_UNANSWERED_PETITION_IS_REFUSED = False\n",
-  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT7Lapse::test_an_unanswered_petition_lapses_as_a_refusal_through_the_real_end_turn"
- },
- {
-  "id": "IQ7-L3 COURTING_SPARES_THE_LORDS_ALLIES down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "COURTING_SPARES_THE_LORDS_ALLIES = True\n",
-  "new": "COURTING_SPARES_THE_LORDS_ALLIES = False\n",
-  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_the_ally_courts_nothing_and_spends_nothing"
- },
- {
-  "id": "IQ7-L4 THE_WAVERING_LINE_IS_HONEST down",
-  "file": "backend/game_logic/vassal.py",
-  "old": "THE_WAVERING_LINE_IS_HONEST = True\n",
-  "new": "THE_WAVERING_LINE_IS_HONEST = False\n",
-  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT15R1TheWaveringLineTellsTheTruth::test_the_honest_line_without_regiments"
- },
- {
   "id": "IQ7-L5 THE_DIGEST_SEES_THE_WEB down",
   "file": "tools/playtest_driver.py",
   "old": "THE_DIGEST_SEES_THE_WEB = True\n",
@@ -133,13 +105,6 @@
   "tests": "tests/test_iq7_satellites_have_a_position.py::TestT3ReliefGrantShownEqualsApplied::test_grant_then_eight_remitted_collections_then_tribute_resumes tests/test_iq7_satellites_have_a_position.py::TestT12GR5TheAILord::test_the_relief_is_granted_in_place_with_no_dialogue_or_notification"
  },
  {
-  "id": "IQ7-P a refusal costs nothing",
-  "file": "backend/game_logic/vassal.py",
-  "old": "    penalty = not (how == \"unanswered\" and not AN_UNANSWERED_PETITION_IS_REFUSED)\n",
-  "new": "    penalty = False\n",
-  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT6Refuse::test_refusal_prices_the_client_and_never_touches_the_ai3_ladder tests/test_iq7_satellites_have_a_position.py::TestT7Lapse::test_an_unanswered_petition_lapses_as_a_refusal_through_the_real_end_turn"
- },
- {
   "id": "IQ7-V the grant ignores a changed lord",
   "file": "backend/game_logic/vassal.py",
   "old": "    if str(row.get(\"lord\") or \"\") != lord:\n        return (\"withdrawn\", f\"{vd_cap} no longer answers to {ld} — the petition is withdrawn.\")\n",
@@ -187,20 +152,6 @@
   "old": "    return world.get_diplomatic_state(nation, lord) in (\n        \"ALLIANCE\", \"DEFENSIVE_ALLIANCE\")\n",
   "new": "    return False\n",
   "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_the_ally_courts_nothing_and_spends_nothing tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_a_defensive_ally_is_spared_too_and_a_neutral_is_not"
- },
- {
-  "id": "IQ7-R2 the courting guard is skipped",
-  "file": "backend/game_logic/vassal.py",
-  "old": "        if (COURTING_SPARES_THE_LORDS_ALLIES\n                and courtier_is_the_lords_ally(world, nation, state)):\n            continue\n",
-  "new": "        if False:\n            continue\n",
-  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_the_ally_courts_nothing_and_spends_nothing"
- },
- {
-  "id": "IQ7-R2 the design-stake loop yields to an allied stakeholder",
-  "file": "backend/game_logic/vassal.py",
-  "old": "        if (COURTING_SPARES_THE_LORDS_ALLIES\n                and courtier_is_the_lords_ally(world, rival, state)):\n            continue\n",
-  "new": "        if False:\n            continue\n",
-  "tests": "tests/test_iq7_satellites_have_a_position.py::TestT16R2CourtingSparesTheLordsAllies::test_a_design_stake_holder_that_is_the_lords_ally_is_not_yielded_to"
  },
  {
   "id": "IQ7-R3 the Garrison option promises a garrison again",

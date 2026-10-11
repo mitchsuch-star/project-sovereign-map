@@ -8,7 +8,7 @@ preserves the wrongness and collapses the correct lines).
 (a) A pair that cooled in step 1 of the jealousy pass could be handed
     straight back by step 3 of the SAME pass — `clear_jealousy` writes no
     "cooled this turn" marker, so the marshal reads `jealous_of is None`
-    and `JEALOUSY_RIVAL_MEMORY` returns the man he just stopped
+    and rival memory (CA8-D3) returns the man he just stopped
     resenting. Measured: 26 events over 20 of 40 ambient turns, and a
     briefing page carrying "his resentment has cooled" above "he resents
     him, for the fourth time".
@@ -116,19 +116,6 @@ class TestNoSamePassRefire:
         _new_events(world)
         assert ney.jealous_of == "Murat"
 
-    def test_the_flag_reproduces_the_prior_behaviour(self, feud, monkeypatch):
-        """The flip-experiment discipline: disabling the flag restores the
-        exact defect, which is what makes the BASELINE_SERIES attribution
-        in `test_ai_intent_threat_migration.py` checkable."""
-        world, ney, murat = feud
-        monkeypatch.setattr(J, "JEALOUSY_SUPPRESS_SAME_PASS_REFIRE", False)
-        self._arm(world, ney, murat)
-        events = _new_events(world)
-        assert [e for e in events if e["type"] == "jealousy_resolved"]
-        assert [e for e in events if e["type"] == "jealousy_fired"
-                and e.get("target") == "Murat"]
-        assert ney.jealous_of == "Murat"
-
     def test_a_DIFFERENT_pair_may_still_fire_in_the_same_pass(self, feud):
         """Scoped to the pair, not to the turn or the nation. Another
         marshal's first grievance is real news and must not be eaten."""
@@ -231,7 +218,7 @@ class TestNoSamePassRefire:
         import inspect
         src = _strip_comments(inspect.getsource(J.process_turn))
         assert "forced=True" not in src
-        assert "JEALOUSY_SUPPRESS_SAME_PASS_REFIRE" in src
+        assert "cooled_this_pass" in src
         # ...and the forced writer is elsewhere, unguarded by the set.
         esc = _strip_comments(inspect.getsource(J._check_escalation))
         assert "cooled_this_pass" not in esc

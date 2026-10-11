@@ -1,5 +1,5 @@
 """FA slice 17, Phase 3 (September 11, 2026) — the fixes the re-score playtest
-forced, each behind a lever whose False arm reproduces the prior board.
+forced (the FA-S17-5 pair are the live rule since CODE-1 batch 3).
 
   FA-S17-5 (P1) the defense claim names its holder, and the war-level
            `ticking` sum is clamped like its eight siblings
@@ -66,14 +66,6 @@ class TestTheDefenseClaimNamesItsHolder:
         for court in ("Austria", "Britain", "Russia"):
             assert self._tick(w, court) == 0
 
-    def test_lever_down_charges_every_court_for_one_loss(self, monkeypatch):
-        monkeypatch.setattr(D, "THE_DEFENSE_TICK_NAMES_ITS_HOLDER", False)
-        w = _boot()
-        self._paris_to_austria(w)
-        assert self._tick(w, "Austria") == 1
-        assert self._tick(w, "Britain") == 1
-        assert self._tick(w, "Russia") == 1
-
     def test_the_war_level_ticking_is_clamped_like_its_siblings(self):
         w = _boot()
         courts = ["Austria", "Britain", "Russia"]
@@ -84,17 +76,6 @@ class TestTheDefenseClaimNamesItsHolder:
             comps = D.calculate_side_war_score("France", courts, w, return_components=True)
         assert comps["ticking"] == D.TICKING_CAP
         assert abs(comps["ticking"]) <= D.TICKING_CAP
-
-    def test_lever_down_sums_the_claims_unclamped(self, monkeypatch):
-        monkeypatch.setattr(D, "THE_TICKING_SUM_IS_CLAMPED", False)
-        w = _boot()
-        courts = ["Austria", "Britain", "Russia"]
-        for court in courts:
-            key = w._make_diplo_key("France", court)
-            w.war_objectives[key]["France"]["accumulated_ticking"] = D.TICKING_CAP
-        with _quiet():
-            comps = D.calculate_side_war_score("France", courts, w, return_components=True)
-        assert comps["ticking"] == 3 * D.TICKING_CAP
 
     def test_a_france_that_lost_paris_is_not_winning_the_coalition_war(self):
         """The measured shape: Paris held by Austria, and nine turns of the
@@ -149,17 +130,6 @@ class TestTheRebellionRetiresItsQuestion:
             V.check_vassal_rebellion(w)
         assert "Switzerland" not in w.vassals
         assert not self._standing(w), "the question outlived the rebellion"
-
-    def test_lever_down_leaves_it_standing(self, monkeypatch):
-        from backend.game_logic import vassal as V
-        monkeypatch.setattr(V, "THE_REBELLION_RETIRES_ITS_QUESTION", False)
-        w = _boot()
-        self._staged(w)
-        w.vassals["Switzerland"]["loyalty"] = 0
-        with _quiet():
-            V.check_vassal_rebellion(w)
-        assert "Switzerland" not in w.vassals
-        assert self._standing(w)
 
     def test_the_transfer_exit_still_retires_it(self):
         from backend.game_logic import vassal as V

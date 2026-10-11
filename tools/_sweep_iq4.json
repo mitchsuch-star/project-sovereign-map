@@ -1,12 +1,6 @@
 [
  {
   "file": "backend/game_logic/diplomacy.py",
-  "old": "        if (_reached and MISSION_COMPLETES_AT_THE_CLAMP\n                and mission_type == \"COURT_NATION\" and COURT_FAVOUR_ACTIVE):\n            _reached = False",
-  "new": "        if False:\n            _reached = False",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
   "old": "            _reached = ((scaled > 0 and _after >= RELATION_CLAMP)",
   "new": "            _reached = ((scaled > 0 and _after > RELATION_CLAMP)",
   "tests": "tests/test_iq4_cabinet_visible.py"
@@ -37,12 +31,6 @@
  },
  {
   "file": "backend/game_logic/diplomacy.py",
-  "old": "        exempt = ((\"pair\", player, target_nation) if COURT_EXEMPTION_IS_THE_COURTED_PAIR",
-  "new": "        exempt = (None if COURT_EXEMPTION_IS_THE_COURTED_PAIR",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
   "old": "        favour = min(COURT_FAVOUR_CAP, COURT_FAVOUR_PER_TURN * n) if holds else 0",
   "new": "        favour = 0",
   "tests": "tests/test_iq4_cabinet_visible.py"
@@ -69,12 +57,6 @@
   "file": "backend/game_logic/diplomacy.py",
   "old": "        if counsel[\"improve\"] is None:",
   "new": "        if counsel[\"improve\"] is not None:",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "        if not REASSURE_ONLY_AT_ALLIANCE:\n            actions.append(_mission_action(\"mission_reassure\"",
-  "new": "        if True:\n            actions.append(_mission_action(\"mission_reassure\"",
   "tests": "tests/test_iq4_cabinet_visible.py"
  },
  {

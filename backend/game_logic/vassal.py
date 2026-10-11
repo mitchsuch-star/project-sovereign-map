@@ -91,77 +91,12 @@ BRIBE_VASSAL_PAUSE = 1         # per-vassal latch: one bribe attempt per turn
 CONTRIBUTION_LOYAL_MIN = 60
 CONTRIBUTION_DISAFFECTED_BELOW = 35
 
-# ═══════ IQ-7 "THE SATELLITES HAVE A POSITION" — THE CLIENT'S PETITION ═══════
-# (September 16, 2026. Build contract: the IQ-7 judge's ruling; landing record
-# docs/IMPROVEMENT_QUEUE_SPEC.md §1.6; rules docs/SYSTEMS_REFERENCE.md.)
-#
-# Measured on the commanded 40-turn board once IQ-3's peace holds: a competent
-# France AT PEACE loses 2 / 3 / 3 of its three satellites to the -2 satellite
-# drift alone (6 rebellions and 2 VS-6 defections across the three seeds), and
-# the only question the web ever asked was the loyalty-<=10 rebellion modal.
-# Loyalty had only a downside — no benefit of a vassal scaled with it.
-#
-# The petition gives loyalty above 60 its first upside. Only a LOYAL client
-# (>= CONTRIBUTION_LOYAL_MIN) has the STANDING to petition the Emperor, and a
-# client whose petitions are honoured is BONDED: the step-6 relation term
-# (`relation // 20`, 0 at boot for every satellite, dead on every measured
-# arm) finally lives, +1 loyalty/turn per honoured petition, capped — the same
-# idea the NA-6c carve already relies on (formations.CARVE_PATRON_RELATION).
-# Refused, or left unanswered, the client spends that standing until a rival
-# court can buy it. The mechanic itself lives after the LAND GRANTS section.
-#
-# Four flip levers, the HOST_RULE_ACTIVE idiom (BASELINE_SERIES attribution
-# arms; never a config surface):
-#   THE_CLIENT_PETITIONS               False = no petition is ever ISSUED.
-#                                      Branches keyed on the DATA — a stored
-#                                      remission, a petition pending across a
-#                                      save/load — still honour it.
-#   AN_UNANSWERED_PETITION_IS_REFUSED  False = a lapse costs only the stamp.
-#   COURTING_SPARES_THE_LORDS_ALLIES   False = R2 off (an ally may court).
-#   THE_WAVERING_LINE_IS_HONEST        False = R1 off (the old regiments line).
-THE_CLIENT_PETITIONS = True
-AN_UNANSWERED_PETITION_IS_REFUSED = True
 # IQ7-X1 (VD-C's rider, Step 5): `attempt_vassal_courting` and
 # `check_defection_cascade` walk EVERY lord's satellites (GR5) — an AI lord's
 # client is courted and cascades exactly as the player's. False = the
 # player's satellites only, byte for byte.
 THREATS_WALK_EVERY_LORD = True
-COURTING_SPARES_THE_LORDS_ALLIES = True
-THE_WAVERING_LINE_IS_HONEST = True
 
-# IQ-7 review round (September 18, 2026) — four more flip levers, the same
-# idiom: False reproduces the 7d10e20c behaviour byte-for-byte on its surface.
-#   THE_DEED_HONOURS_THE_PETITION      R1 — a province the lord has ALREADY
-#       ceded to the petitioner by VS-3's own verb (typed `cede`, the F1
-#       wizard) FULFILS the petition: the capped bond step once, no DP, no
-#       second loyalty gain, never a refusal — consulted FIRST in both
-#       answers, before any cooldown or DP check. The refuse/lapse price is
-#       waived only when the province was lost OUTSIDE the lord's hands (it
-#       fell in war): a province he endowed on a marshal, or gave to another
-#       client, stays a refusal. On the GRANT arm a loss of the lord's own
-#       making leaves the petition STANDING (see the next lever) rather than
-#       withdrawing it free. Pass 2 (P3-1): "the lord's own making" is a
-#       CLASSIFICATION (`_grant_region_refusal` / `_GRANT_REFUSAL_LORDS_
-#       DOING`) — a province he still holds but the WORLD made ungrantable
-#       (contiguity: the client lost its adjoining province to an enemy) is
-#       withdrawn free on Grant, Refuse and the lapse alike. False keeps the
-#       7d10e20c arms (every ungrantable province withdrawn at the Grant; the
-#       refuse/lapse arms never read the province).
-#   THE_LORD_PAYS_TO_GRANT             R2 — a Grant the lord cannot pay for
-#       is refused WITHOUT consuming the petition (outcome "stands": it lapses
-#       at the quoted price unless refused first). False = the T11(d)
-#       withdrawal, the free exit a player bought by spending DP first.
-#   THE_TRANSFER_SHEDS_THE_REMISSION   R3 — `transfer_vassal` pops the old
-#       lord's `remission_left` and `petitioned_turn` beside the VS-3 pops
-#       (a remission is the OLD lord's purchase; the new lord never made it).
-#   A_RELIEF_OF_NOTHING_IS_WITHDRAWN   R4 — a relief whose live tribute is 0
-#       is withdrawn at the grant (there is nothing to remit) — the
-#       re-pricer's None arm. Refusing it still costs: the waiver is for
-#       inability, never for a cheaper way of saying no.
-THE_DEED_HONOURS_THE_PETITION = True
-THE_LORD_PAYS_TO_GRANT = True
-THE_TRANSFER_SHEDS_THE_REMISSION = True
-A_RELIEF_OF_NOTHING_IS_WITHDRAWN = True
 # SR-5a (September 28, 2026; found re-seating the IQ-7 R7 card pin on the
 # ruled balance board): the producer asks AFTER the turn's loyalty tick
 # (`diplomacy` steps 5-7), so the Vassals card, forecasting the NEXT advance,
@@ -171,8 +106,7 @@ A_RELIEF_OF_NOTHING_IS_WITHDRAWN = True
 # promise R7 says the card may never make. The projected gate (a) now adds
 # the knowable steady-state delta (`forecast_vassal_loyalty`, the tick term
 # for term but for the battle term, which no forecast can know — a stated
-# limit). The producer's own read is unchanged. Flip lever.
-THE_CARD_READS_TOMORROWS_STANDING = True
+# limit). The producer's own read is unchanged.
 
 # The blessed numbers. Every constant not marked "reused" is ⚠ FOR USER
 # CONFIRMATION (in-band tunable; the contract's §1.1 table).
@@ -188,8 +122,8 @@ PETITION_DP_COST = 1            # reused price (grant_region_to_vassal charges i
 # NOT "petition": `--petition` and "marshal petition" are the Jealousy channel.
 CLIENT_PETITION_TYPE = "client_petition"
 
-# FA-S17-D8 (slice 17, Phase 4) flip lever: the band where the mechanic BITES
-# says so, once per band per vassal.
+# FA-S17-D8 (slice 17, Phase 4): the band where the mechanic BITES says so,
+# once per band per vassal.
 #
 # The row filed this as "the rebellion warning arrives one tick before the
 # rebellion" and its own reproduction narrows it: the blocking modal fires at
@@ -211,8 +145,7 @@ CLIENT_PETITION_TYPE = "client_petition"
 # reading THIS tick's own old and new loyalty fires each boundary exactly once
 # by construction, with no store, no new field and no latch to go stale. A
 # satellite that recovers and falls again is announced again, which is
-# correct: it is news the second time. False = no crossing beat.
-THE_TIER_CROSSING_IS_ANNOUNCED = True
+# correct: it is news the second time.
 
 # IQ7-X3 (VD-C's rider, Step 5, October 3, 2026): the recovery hint rides the
 # CROSSING ticks and the first falling tick after one that did not fall —
@@ -311,8 +244,6 @@ def tier_crossing_line(vassal_name: str, old_loyalty: int,
     own, and the grip-aware hint is appended here so the player is never
     told a cost with no lever beside it.
     """
-    if not THE_TIER_CROSSING_IS_ANNOUNCED:
-        return ""
     old_v, new_v = int(old_loyalty), int(new_loyalty)
     # No separate "is this a fall" guard: each clause below is of the form
     # `old >= BOUND > new`, which already entails `new < old`. The first cut
@@ -326,7 +257,7 @@ def tier_crossing_line(vassal_name: str, old_loyalty: int,
     if not tier:
         return ""
     shown_name = display_nation(vassal_name)
-    if tier == "wavering" and THE_WAVERING_LINE_IS_HONEST and world is not None:
+    if tier == "wavering" and world is not None:
         line = _WAVERING_HONEST_LINE.format(vassal=shown_name)
         if lord_fields_the_vassals_regiments(world, lord, vassal_name):
             line += _WAVERING_REGIMENTS_CLAUSE
@@ -368,11 +299,7 @@ LOYALTY_MAX = 100
 # courting itself, both reachable because the three French client states
 # are full roster nations: they sit in world.enemy_nations AND in
 # world.vassals at once.
-# Flip lever for the BASELINE_SERIES attribution experiment: False
-# reproduces the pre-slice behaviour byte-identically (the
-# HOST_RULE_ACTIVE idiom). Not a config surface.
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 9.
-COURTING_TARGET_CAP_ACTIVE = True
 
 
 # ═══════ WO-8 rider — THE DESIGN STAKE OUTRANKS THE ROSTER ═══════
@@ -384,10 +311,6 @@ COURTING_TARGET_CAP_ACTIVE = True
 # the slot an Austria that covets Milan should have had. A courtier with
 # no stake now stands aside for one that has, when that one can still act
 # this turn.
-# Flip lever for the BASELINE_SERIES attribution experiment: False
-# reproduces the pre-rider behaviour byte-identically (the
-# HOST_RULE_ACTIVE idiom). Not a config surface.
-COURTING_STAKE_PRIORITY_ACTIVE = True
 
 
 def courtier_yields_to_a_design_stake(world, nation: str, vassal_name: str,
@@ -406,8 +329,6 @@ def courtier_yields_to_a_design_stake(world, nation: str, vassal_name: str,
     guaranteed, and the alternative — reserving the slot — would need
     cross-courtier state the cap deliberately does not keep.
     """
-    if not COURTING_STAKE_PRIORITY_ACTIVE:
-        return False
     from backend.game_logic.agendas import vassal_holds_agenda_target
     if vassal_holds_agenda_target(nation, vassal_name, world):
         return False
@@ -425,8 +346,7 @@ def courtier_yields_to_a_design_stake(world, nation: str, vassal_name: str,
         # IQ-7 R2, for consistency with the guard in attempt_vassal_courting:
         # a rival that is the lord's ally will stand aside itself, so it
         # cannot be the stakeholder this courtier yields the slot to.
-        if (COURTING_SPARES_THE_LORDS_ALLIES
-                and courtier_is_the_lords_ally(world, rival, state)):
+        if (courtier_is_the_lords_ally(world, rival, state)):
             continue
         if vassal_holds_agenda_target(rival, vassal_name, world):
             return True
@@ -616,15 +536,12 @@ def create_vassal_treaty(
 # at or below SUBJUGATION_WAR_SCORE (the Congress's own `sue_score`, the
 # point at which a court sues); or the court has no corps left standing.
 # The ratify seam passes `by_treaty=True` (the court signed).
-A_COURT_IS_SUBJUGATED_ONLY_WHEN_BEATEN = True
 SUBJUGATION_WAR_SCORE = -40
 
 
 def subjugation_refusal(world, lord: str, vassal: str) -> str:
     """The reason a unilateral subjugation of `vassal` by `lord` is refused
     today, or "" when the court is beaten. Never raises."""
-    if not A_COURT_IS_SUBJUGATED_ONLY_WHEN_BEATEN:
-        return ""
     try:
         top = getattr(world, "_top_overlord", None)
         lord_top = top(lord) if callable(top) else lord
@@ -1352,9 +1269,9 @@ def process_vassal_loyalty(world) -> List[dict]:
 # REBELLION CHECK (advance_turn Step 7)
 # ═══════════════════════════════════════════════════════
 
-# FA slice 11 flip lever: False restores the pre-slice briefing (the
-# "ceased to exist" line on every break, no log row, no per-exit copy).
-THE_BREAK_IS_BRIEFED_TRUTHFULLY = True
+# FA slice 11: every break is briefed truthfully (the pre-slice briefing
+# said "ceased to exist" on every break, wrote no log row, had no per-exit
+# copy).
 
 # The three ways a satellite stops being one, and what the player is told.
 _VASSAL_BREAK_TEMPLATE = {
@@ -1363,9 +1280,8 @@ _VASSAL_BREAK_TEMPLATE = {
     "vassal_rebellion_independent": "diplomatic_vassal_broke_free_peace",
 }
 
-# FA-N73 (slice 12) flip lever.  False restores the pre-slice tray exactly:
-# the war exit alone raises an alert and the two soft exits raise none.
-A_QUIET_BREAK_STILL_RINGS_THE_BELL = True
+# FA-N73 (slice 12): a quiet break still rings the bell (before, the war
+# exit alone raised an alert and the two soft exits raised none).
 
 # The two exits that are NOT a declaration of war, and the sentence each is
 # owed.  Neither may say "War declared." — the armistice exit's rail line one
@@ -1414,12 +1330,10 @@ def record_vassal_break(
     France's war and hit the war-instance side conflict.
     """
     # GE-3 §2.5: a satellite breaking free during the Congress breaks the
-    # hold — latched here, ahead of the briefing lever, so every exit counts
+    # hold — latched here, ahead of the briefing, so every exit counts
     # whatever the rail says (dormant when no Congress sits).
     from backend.game_logic.congress import note_rebellion as _congress_rebellion
     _congress_rebellion(world, vassal, lord)
-    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
-        return
     from backend.game_logic.dispatch import queue_dispatch_event
 
     player = str(getattr(world, "player_nation", "") or "")
@@ -1453,8 +1367,6 @@ def record_vassal_break(
     # contradiction slice 11 closed — a CRITICAL banner announcing a war one
     # row above a rail line saying no war was declared.  HIGH, not CRITICAL:
     # a satellite walking out is grave, and it is not a crisis.
-    if not A_QUIET_BREAK_STILL_RINGS_THE_BELL:
-        return
     if exit_path not in _SOFT_BREAK_BODY or lord != player:
         # Lord-gated exactly like the war exit's own notification — the
         # slice-11 round closed a rail banner about somebody else's
@@ -1484,13 +1396,12 @@ def record_vassal_break(
     ))
 
 
-# Slice-11 review round: False restores the round's pre-review behaviour
-# (the armistice exit's bare `continue`, and the graceful exit's
-# long-standing one, both dropping the mechanical tail).
-EVERY_BREAK_COMPLETES_ITSELF = True
+# Slice-11 review round: every break completes itself (the round's pre-review
+# behaviour — the armistice exit's bare `continue`, and the graceful exit's
+# long-standing one — dropped the mechanical tail).
 
 
-# FA-S17-6 (slice 17, Phase 3, September 11 2026) flip lever: every exit a
+# FA-S17-6 (slice 17, Phase 3, September 11 2026): every exit a
 # rebellion takes retires the "rebellion imminent" question. Only
 # `transfer_vassal` and `release_vassal` purged it; the WAR, independent and
 # armistice exits of `check_vassal_rebellion` left it standing — delivered
@@ -1498,7 +1409,6 @@ EVERY_BREAK_COMPLETES_ITSELF = True
 # follow", and, as the current dialogue, refusing the letter-book and a
 # settlement offer for 2-5 turns ("A satellite on the edge of revolt still
 # awaits your word"). Measured on 9 of 17 ambient/tyrant/emperor boards.
-THE_REBELLION_RETIRES_ITS_QUESTION = True
 
 
 def _retire_rebellion_question(world, vassal_name: str) -> None:
@@ -1533,7 +1443,7 @@ def complete_vassal_break(world, vassal_name: str, lord: str) -> None:
         the lord's coalition threat              70   /  60
 
     The GRACEFUL-INDEPENDENCE exit has had the same gap since long before this
-    slice — its own `continue` predates it, and the lever does not touch that
+    slice — its own `continue` predates it, and the slice did not touch that
     branch — which matters, because that is the exit BOTH big satellites take
     on the 1805 board. Measured there too: the marshal is not returned, the
     siblings do not notice, the relation does not move. So all three exits
@@ -1544,8 +1454,6 @@ def complete_vassal_break(world, vassal_name: str, lord: str) -> None:
     the VS-3 granted-province reclaim (documented WAR-only — flipping
     provinces back during a respected armistice would itself be a violation).
     """
-    if not EVERY_BREAK_COMPLETES_ITSELF:
-        return
     # VD-C: a serving contingent walks out of its lord's lines with its men
     # (the record is read off its own store — the row is already gone on
     # the rebellion exit); the loop below hands the marshal to his flag.
@@ -1608,12 +1516,7 @@ def check_vassal_rebellion(world) -> List[dict]:
         # stood here was FALSE on every exit — the satellite is breaking free,
         # not being dissolved — and it was the only dispatch trace the player
         # got, because the true line was dropped at render time. Each exit now
-        # briefs itself through `record_vassal_break`. Kept behind the lever
-        # so False reproduces the pre-slice briefing exactly.
-        if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
-            from backend.game_logic.dispatch import queue_dispatch_event
-            queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
-                                {"carved_name": vassal_name}, "always")
+        # briefs itself through `record_vassal_break`.
 
         # Remove vassal state
         del world.vassals[vassal_name]
@@ -1638,16 +1541,13 @@ def check_vassal_rebellion(world) -> List[dict]:
             # ("War declared.") and raised the CRITICAL "has rebelled against
             # France! War declared." notification — while the state stayed
             # ARMISTICE. The armistice exit ends here, like its two siblings.
-            if THE_BREAK_IS_BRIEFED_TRUTHFULLY:
-                # The four mechanical effects belong INSIDE this
-                # gate: with the lever down the arm falls through to
-                # the war tail, which applies them itself, and a call
-                # out here would double them (measured: sibling
-                # loyalty -20, relation -100).
-                complete_vassal_break(world, vassal_name, lord)
-                if THE_REBELLION_RETIRES_ITS_QUESTION:
-                    _retire_rebellion_question(world, vassal_name)  # FA-S17-6
-                continue
+            # The four mechanical effects belong INSIDE this
+            # gate: the war tail below applies them itself, and a
+            # call out here would double them (measured: sibling
+            # loyalty -20, relation -100).
+            complete_vassal_break(world, vassal_name, lord)
+            _retire_rebellion_question(world, vassal_name)  # FA-S17-6
+            continue
         else:
             from backend.game_logic.diplomacy import (
                 _process_war_cascade,
@@ -1744,31 +1644,12 @@ def check_vassal_rebellion(world) -> List[dict]:
                 # mechanical effects, and it is the exit BOTH big satellites
                 # take on the 1805 board.
                 complete_vassal_break(world, vassal_name, lord)
-                if THE_REBELLION_RETIRES_ITS_QUESTION:
-                    _retire_rebellion_question(world, vassal_name)  # FA-S17-6
+                _retire_rebellion_question(world, vassal_name)  # FA-S17-6
                 continue
 
         # The four mechanical effects, shared with the other two exits.
         complete_vassal_break(world, vassal_name, lord)
-        if THE_REBELLION_RETIRES_ITS_QUESTION:
-            _retire_rebellion_question(world, vassal_name)  # FA-S17-6
-        if not EVERY_BREAK_COMPLETES_ITSELF:
-            for marshal in list(world.marshals.values()):
-                if (getattr(marshal, 'original_nation', None) == vassal_name
-                        and getattr(marshal, 'nation', '') == lord):
-                    _set_nation(world, marshal, vassal_name)
-                    marshal.original_nation = None
-                    marshal.trust = Trust()
-                    if hasattr(marshal, 'relationship_with_lord'):
-                        delattr(marshal, 'relationship_with_lord')
-            for other_vassal, other_state in world.vassals.items():
-                if other_state["lord"] == lord:
-                    other_state["loyalty"] = max(
-                        LOYALTY_MIN, other_state["loyalty"] - 10)
-            if lord:
-                from backend.game_logic.coalition import reduce_threat
-                reduce_threat(world, 10, "vassal_rebellion", target=lord)
-            world.modify_nation_relation(lord, vassal_name, -50)
+        _retire_rebellion_question(world, vassal_name)  # FA-S17-6
 
         # Notification: vassal rebellion (Session 8C).
         #
@@ -1781,8 +1662,7 @@ def check_vassal_rebellion(world) -> List[dict]:
         # somebody else's satellite, with no fog gate at all. A foreign
         # lord's rebellion still reaches the player through the dispatch
         # line, which IS fog-gated.
-        if (not THE_BREAK_IS_BRIEFED_TRUTHFULLY
-                or lord == str(getattr(world, "player_nation", "") or "")):
+        if (lord == str(getattr(world, "player_nation", "") or "")):
             from backend.notifications import (
                 create_notification as _cr_notif, NotificationPriority as _NP,
             )
@@ -1808,10 +1688,6 @@ def check_vassal_rebellion(world) -> List[dict]:
         record_vassal_break(
             world, vassal=vassal_name, lord=lord,
             exit_path="vassal_rebellion")
-        if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
-            from backend.game_logic.dispatch import queue_dispatch_event
-            queue_dispatch_event(world, "diplomatic_vassal_rebellion",
-                                {"nation": vassal_name}, "player_vassal")
 
     return events
 
@@ -1925,9 +1801,9 @@ def vassal_tribute_owed(world, vassal_name: str) -> int:
     (`remission_left > 0`). Four hand-copies of this arithmetic existed
     (process_vassal_tribute, ledger._build_economy, diplomatic_ledger.
     _build_vassals and the diplomacy.py wizard mirror); every one now calls
-    here, so shown = applied by construction. Keyed on the row's DATA, not
-    on THE_CLIENT_PETITIONS: a remission stored in a save is honoured with
-    the lever down. Golden Rule 8: rides the cached region index.
+    here, so shown = applied by construction. Keyed on the row's DATA: a
+    remission stored in a save is honoured as stored. Golden Rule 8: rides
+    the cached region index.
     """
     row = (getattr(world, "vassals", {}) or {}).get(vassal_name)
     if not row:
@@ -1958,7 +1834,7 @@ def process_vassal_tribute(world) -> dict:
         applied = getattr(world, "_applied_income_transfers", None)
 
         # IQ-7 THE RELIEF: a remitted collection moves no gold and counts
-        # itself down. Keyed on the row's data, never on the lever.
+        # itself down. Keyed on the row's data.
         remission_left = int(state.get("remission_left", 0) or 0)
         if remission_left > 0:
             state["remission_left"] = int(remission_left - 1)
@@ -2512,7 +2388,7 @@ def is_client_petition(dialogue) -> bool:
 
 def petitions_live(world) -> bool:
     """IQ-7 review round [36] (September 18, 2026): ONE predicate for "may a
-    petition be ISSUED on this world" — the lever AND the School of War's
+    petition be ISSUED on this world" — the School of War's
     dormancy (the `jealousy_dormant` / `dotation_dormant` doctrine: an
     untaught modal does not intrude on the lesson, and the tutorial world
     seeds the three satellites at loyalty 100, so without this gate it
@@ -2524,8 +2400,6 @@ def petitions_live(world) -> bool:
     measured). The DATA-keyed branches — a stored remission, a petition
     pending across a save/load — never read this.
     """
-    if not THE_CLIENT_PETITIONS:
-        return False
     from backend.game_logic.tutorial_state import is_tutorial_world
     return not is_tutorial_world(world)
 
@@ -2984,7 +2858,7 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
         "standing_now": int(standing_now),
         "standing_after_grant": int(standing_after_grant),
         "standing_after_refusal": int(standing_after_refusal),
-        "lapse_counts_as_refusal": bool(AN_UNANSWERED_PETITION_IS_REFUSED),
+        "lapse_counts_as_refusal": True,
         "design_note": design_note,
         "fulfilled": bool(fulfilled),
     })
@@ -3036,22 +2910,13 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
         terms["refuse_line"] = (
             f"Refuse it, and {vassal_the} loses {refusal_loyalty_applied} loyalty"
             f"{stakes_clause} and {bond_refuse}; nothing is charged.")
-        if AN_UNANSWERED_PETITION_IS_REFUSED:
-            terms["lapse_line"] = (
-                "Left unanswered at the turn's end, the petition lapses — and a "
-                "lapse is a refusal.")
-            terms["lapse_price_line"] = (
-                f"A lapse costs {vassal_the} {refusal_loyalty_applied} loyalty"
-                f"{stakes_clause} and "
-                f"{refusal_step_applied} bond — the same as a refusal.")
-        else:
-            terms["lapse_line"] = (
-                f"Left unanswered at the turn's end, the petition lapses; "
-                f"{vassal_the} waits {PETITION_INTERVAL_TURNS} turns before "
-                f"asking again.")
-            terms["lapse_price_line"] = (
-                f"A lapse costs nothing; {vassal_the} waits "
-                f"{PETITION_INTERVAL_TURNS} turns before asking again.")
+        terms["lapse_line"] = (
+            "Left unanswered at the turn's end, the petition lapses — and a "
+            "lapse is a refusal.")
+        terms["lapse_price_line"] = (
+            f"A lapse costs {vassal_the} {refusal_loyalty_applied} loyalty"
+            f"{stakes_clause} and "
+            f"{refusal_step_applied} bond — the same as a refusal.")
     terms["vassal_display_the_cap"] = vassal_the_cap
     return terms
 
@@ -3084,8 +2949,6 @@ def petition_is_fulfilled(world, vassal_tag: str, lord: str, petition: dict) -> 
     any cooldown or DP check (a typed cede stamps the grant cooldown, which
     the old order read as "withdrawn" — so pressing Grant paid 0 while
     ignoring the petition paid +20)."""
-    if not THE_DEED_HONOURS_THE_PETITION:
-        return False
     petition = petition or {}
     row = (getattr(world, "vassals", {}) or {}).get(vassal_tag)
     if not row or str(row.get("lord") or "") != lord:
@@ -3188,8 +3051,8 @@ def _grant_verdict(world, lord: str, vassal_name: str, petition: dict) -> tuple:
     his is still settling. An eligibility refusal that is a change in the
     world (`_grant_region_refusal`'s keys outside `_GRANT_REFUSAL_LORDS_
     DOING` — contiguity: the client lost its adjoining province) is
-    `withdrawn`, free. THE_DEED_HONOURS_THE_PETITION down restores the
-    7d10e20c arms, which withdrew every ungrantable province."""
+    `withdrawn`, free. (The 7d10e20c arms, which withdrew every
+    ungrantable province, were retired by IQ-7 review R1.)"""
     petition = petition or {}
     row = (getattr(world, "vassals", {}) or {}).get(vassal_name)
     vd_cap = _court_name(world, vassal_name, article=True, capitalize=True)
@@ -3208,64 +3071,52 @@ def _grant_verdict(world, lord: str, vassal_name: str, petition: dict) -> tuple:
                     f"{region} has already passed to {vd} by our own hand — "
                     f"granting it honours the petition.")
         cooldown = int(row.get("grant_cooldown", 0) or 0)
-        if THE_DEED_HONOURS_THE_PETITION:
-            region_obj = (getattr(world, "regions", {}) or {}).get(region)
-            controller = str(getattr(region_obj, "controller", "") or "") if region_obj else ""
-            if region_obj is None:
-                return ("withdrawn", f"{region} is not a known province — the petition is withdrawn.")
-            if controller == vassal_name:
-                return ("withdrawn", f"{vd_cap} already holds {region} — the petition is withdrawn.")
-            if controller != lord:
-                if _province_lost_outside_the_lords_hands(world, lord, vassal_name, region):
-                    return ("withdrawn",
-                            f"{region} can no longer be ceded to {vd} — it fell to "
-                            f"another power; the petition is withdrawn.")
-                return ("stands",
-                        f"{region} was given elsewhere by our own hand — it cannot be "
-                        f"ceded to {vd}. The petition stands until the turn ends, and "
-                        f"a lapse is a refusal.")
-            # P3-1 (pass 2): the eligibility refusals are CLASSIFIED. Only
-            # the lord's own act (an estate he endowed) leaves the petition
-            # standing at the refusal's price; a change in the world — the
-            # CLIENT lost the province that adjoined this one — withdraws it
-            # free, exactly as a province lost in war does.
-            key, reason = _grant_region_refusal(world, vassal_name, region, lord)
-            if key and key not in _GRANT_REFUSAL_LORDS_DOING:
-                cause = _world_void_cause(world, vassal_name, region, key, reason)
-                return ("withdrawn", f"{cause} — the petition is withdrawn.")
-            if key:
-                return ("stands",
-                        f"{region} cannot be ceded to {vd} now ({reason.rstrip('.')}) — "
-                        f"the petition stands until the turn ends, and a lapse is a "
-                        f"refusal.")
-            if cooldown > 0:
-                return ("stands",
-                        f"A grant to {vd} is still being settled ({cooldown} "
-                        f"turn{'s' if cooldown != 1 else ''} remaining) — the petition "
-                        f"stands until the turn ends, and a lapse is a refusal.")
-        else:
-            # 7d10e20c: the pre-review arms, byte-for-byte on their surface.
-            if cooldown > 0:
-                return ("withdrawn", f"A grant to {vd} is still being settled — "
-                                     f"the petition is withdrawn.")
-            grantable = {e["region"] for e in
-                         list_grantable_regions(world, vassal_name, actor=lord)}
-            if region not in grantable:
-                return ("withdrawn", f"{region} can no longer be ceded to {vd} — "
-                                     f"the petition is withdrawn.")
+        region_obj = (getattr(world, "regions", {}) or {}).get(region)
+        controller = str(getattr(region_obj, "controller", "") or "") if region_obj else ""
+        if region_obj is None:
+            return ("withdrawn", f"{region} is not a known province — the petition is withdrawn.")
+        if controller == vassal_name:
+            return ("withdrawn", f"{vd_cap} already holds {region} — the petition is withdrawn.")
+        if controller != lord:
+            if _province_lost_outside_the_lords_hands(world, lord, vassal_name, region):
+                return ("withdrawn",
+                        f"{region} can no longer be ceded to {vd} — it fell to "
+                        f"another power; the petition is withdrawn.")
+            return ("stands",
+                    f"{region} was given elsewhere by our own hand — it cannot be "
+                    f"ceded to {vd}. The petition stands until the turn ends, and "
+                    f"a lapse is a refusal.")
+        # P3-1 (pass 2): the eligibility refusals are CLASSIFIED. Only
+        # the lord's own act (an estate he endowed) leaves the petition
+        # standing at the refusal's price; a change in the world — the
+        # CLIENT lost the province that adjoined this one — withdraws it
+        # free, exactly as a province lost in war does.
+        key, reason = _grant_region_refusal(world, vassal_name, region, lord)
+        if key and key not in _GRANT_REFUSAL_LORDS_DOING:
+            cause = _world_void_cause(world, vassal_name, region, key, reason)
+            return ("withdrawn", f"{cause} — the petition is withdrawn.")
+        if key:
+            return ("stands",
+                    f"{region} cannot be ceded to {vd} now ({reason.rstrip('.')}) — "
+                    f"the petition stands until the turn ends, and a lapse is a "
+                    f"refusal.")
+        if cooldown > 0:
+            return ("stands",
+                    f"A grant to {vd} is still being settled ({cooldown} "
+                    f"turn{'s' if cooldown != 1 else ''} remaining) — the petition "
+                    f"stands until the turn ends, and a lapse is a refusal.")
     elif subject == "relief":
-        if A_RELIEF_OF_NOTHING_IS_WITHDRAWN and int(vassal_tribute_owed(world, vassal_name)) <= 0:
+        if int(vassal_tribute_owed(world, vassal_name)) <= 0:
             return ("withdrawn", f"{vd_cap} pays no tribute now — there is nothing to "
                                  f"remit; the petition is withdrawn.")
     else:
         return ("withdrawn", "The petition names nothing that can be granted — "
                              "it is withdrawn.")
     if _dp_available(world, lord) < PETITION_DP_COST:
-        if THE_LORD_PAYS_TO_GRANT:
-            return ("stands",
-                    f"{ld_cap} cannot spare the diplomatic point — the petition "
-                    f"stands until the turn ends; keep {PETITION_DP_COST} DP to grant "
-                    f"it, or refuse it.")
+        return ("stands",
+                f"{ld_cap} cannot spare the diplomatic point — the petition "
+                f"stands until the turn ends; keep {PETITION_DP_COST} DP to grant "
+                f"it, or refuse it.")
         return ("withdrawn", f"{ld_cap} cannot spare the diplomatic point — the "
                              f"petition is withdrawn.")
     return ("ok", "")
@@ -3424,9 +3275,9 @@ def _petition_gate(world, lord: str, vassal_name: str, *, turn: int,
     if not row or str(row.get("lord") or "") != lord:
         return ("no_row", 0, None)
     threshold = 1 if projected else 0
-    # (a) standing — the card reads tomorrow's (see the lever above).
+    # (a) standing — the card reads tomorrow's (SR-5a, see the note above).
     standing = int(row.get("loyalty", 0) or 0)
-    if projected and THE_CARD_READS_TOMORROWS_STANDING:
+    if projected:
         standing += int(forecast_vassal_loyalty(world, lord, vassal_name)
                         .get("forecast", 0) or 0)
     if standing < PETITION_LOYAL_MIN:
@@ -3547,7 +3398,7 @@ def petition_standing_keys(world, vassal_name: str) -> dict:
     same gate (a relief remission of r is r+1, never r). "Standing" means
     ONE thing on the card — the standing to petition (loyalty ≥ 60); the
     relation term is the BOND. Empty on a world where petitions are not
-    live (the lever down, or the School of War) — the card then carries no
+    live (the School of War) — the card then carries no
     petition keys at all, so it cannot forecast what the producer will
     never issue ([36]).
 
@@ -3708,9 +3559,8 @@ def grant_petition(world, vassal_name: str, lord: str, petition: dict) -> dict:
         if not result.get("success"):
             message = str(result.get("message")
                           or "The province could not be ceded")
-            if THE_LORD_PAYS_TO_GRANT:
-                return _stands(f"{message.rstrip('.')} — the petition stands until "
-                               f"the turn ends, and a lapse is a refusal.")
+            return _stands(f"{message.rstrip('.')} — the petition stands until "
+                           f"the turn ends, and a lapse is a refusal.")
             return _withdrawn(f"{message.rstrip('.')} — the petition is withdrawn.")
         dp_charged = int(GRANT_DP_COST)
     else:
@@ -3718,10 +3568,9 @@ def grant_petition(world, vassal_name: str, lord: str, petition: dict) -> dict:
         charge = _charge_dp(world, lord, PETITION_DP_COST)
         if not charge["ok"]:
             ld_cap = _court_name(world, lord, article=True, capitalize=True)
-            if THE_LORD_PAYS_TO_GRANT:
-                return _stands(f"{ld_cap} cannot spare the diplomatic point — the "
-                               f"petition stands until the turn ends; keep "
-                               f"{PETITION_DP_COST} DP to grant it, or refuse it.")
+            return _stands(f"{ld_cap} cannot spare the diplomatic point — the "
+                           f"petition stands until the turn ends; keep "
+                           f"{PETITION_DP_COST} DP to grant it, or refuse it.")
             return _withdrawn(f"{ld_cap} cannot spare the diplomatic point — the "
                               f"petition is withdrawn.")
         # GE-3: × the Congress's stakes — the figure `_price_petition` quoted.
@@ -3776,8 +3625,8 @@ def refuse_petition(world, vassal_name: str, lord: str, petition: dict,
                     how: str) -> dict:
     """Refuse a client's petition — `how` is "refused" (the lord said no) or
     "unanswered" (it lapsed). Loyalty −PETITION_REFUSAL_LOYALTY (never
-    blunted) and the relation −PETITION_RELATION_STEP; a lapse with
-    AN_UNANSWERED_PETITION_IS_REFUSED down logs and costs nothing.
+    blunted) and the relation −PETITION_RELATION_STEP; a lapse is charged
+    like a refusal (IQ-7: an unanswered petition is refused).
 
     IQ-7 review R1: consults `petition_is_fulfilled` FIRST — a province the
     lord already ceded by his own verb is honoured (outcome `fulfilled`),
@@ -3809,7 +3658,7 @@ def refuse_petition(world, vassal_name: str, lord: str, petition: dict,
         return _honour_fulfilled(world, vassal_name, lord, petition, how=how)
     subject = str(petition.get("subject") or "")
     region = str(petition.get("region") or "")
-    if THE_DEED_HONOURS_THE_PETITION and subject == "province" and region:
+    if subject == "province" and region:
         region_obj = (getattr(world, "regions", {}) or {}).get(region)
         controller = str(getattr(region_obj, "controller", "") or "") if region_obj else ""
         if region_obj is not None and controller == vassal_name:
@@ -3828,7 +3677,7 @@ def refuse_petition(world, vassal_name: str, lord: str, petition: dict,
         if voided:
             return _withdrawn(f"{voided} — the petition is withdrawn and nothing "
                               f"is charged.")
-    penalty = not (how == "unanswered" and not AN_UNANSWERED_PETITION_IS_REFUSED)
+    penalty = True
     loyalty_before = int(row.get("loyalty", 0) or 0)
     relation_before = _lord_relation(world, vassal_name, lord)
     if penalty:
@@ -3892,7 +3741,7 @@ def lapse_forecast(world, vassal_name: str, lord: str, petition: dict) -> dict:
                 "price_line": f"{region} is already ceded — the lapse closes the "
                               f"petition as honoured; nothing is charged."}
     subject = str(petition.get("subject") or "")
-    if THE_DEED_HONOURS_THE_PETITION and subject == "province" and region:
+    if subject == "province" and region:
         region_obj = (getattr(world, "regions", {}) or {}).get(region)
         controller = str(getattr(region_obj, "controller", "") or "") if region_obj else ""
         if region_obj is not None and (
@@ -3909,10 +3758,6 @@ def lapse_forecast(world, vassal_name: str, lord: str, petition: dict) -> dict:
             return {**base, "outcome": "withdrawn",
                     "price_line": f"{voided} — a lapse withdraws the petition; "
                                   f"nothing is charged."}
-    if not AN_UNANSWERED_PETITION_IS_REFUSED:
-        return {**base, "outcome": "free",
-                "price_line": f"{vd_cap}'s petition lapses free; it waits "
-                              f"{PETITION_INTERVAL_TURNS} turns before asking again."}
     loyalty = int(row.get("loyalty", 0) or 0)
     relation = _lord_relation(world, vassal_name, lord)
     # GE-3: × the Congress's stakes — the same `_refusal_loyalty` the lapse
@@ -3932,12 +3777,12 @@ def client_petition_notice(sender: str, petition: dict) -> tuple:
     """The rail row a client petition raises on arrival — (title, body).
     IQ-7 review R8(a): the rail is the ONE surface every player sees on
     arrival, so it states the rule and the price the lapse applies, from the
-    petition's own terms (the SAME figures `refuse_petition` charges), gated
-    on the lever so the lever-down copy stays honest ("costs nothing")."""
+    petition's own terms (the SAME figures `refuse_petition` charges), read
+    off the row's own `lapse_counts_as_refusal` so the copy stays honest."""
     from backend.display_names import with_definite_article
     petition = petition if isinstance(petition, dict) else {}
     dp = int(petition.get("dp_cost", 1) or 1)
-    if bool(petition.get("lapse_counts_as_refusal", AN_UNANSWERED_PETITION_IS_REFUSED)):
+    if bool(petition.get("lapse_counts_as_refusal", True)):
         loy = int(petition.get("refusal_loyalty", 10) or 10)
         rel = int(petition.get("relation_refusal_step", 20) or 20)
         stakes = int(petition.get("loyalty_stakes", 1) or 1)
@@ -4156,7 +4001,7 @@ def present_pending_asks(world, lord: str) -> List[str]:
       bills BEFORE the executor charges the summons' 2 DP, so the live read
       would be of a purse the summons is about to spend; and with the
       one-per-lord rule waived a per-client read of one purse proves
-      nothing (N asks, one DP). THE_LORD_PAYS_TO_GRANT already makes a
+      nothing (N asks, one DP). IQ-7 review R2 already makes a
       DP-short Grant STAND (nothing charged, nothing consumed) rather than
       withdraw, and a refusal costs no DP — so every ask presented has an
       answer with a stated price. The summons is the Emperor's choice of
@@ -4164,7 +4009,7 @@ def present_pending_asks(world, lord: str) -> List[str]:
     A client whose petition is already ON THE DESK (issued at the last end
     turn, unanswered) is not asked again. (f) a standing remission, (a) the
     standing to petition, (d) a disrupted province and (g) a subject all
-    hold. Dormant where petitions are not live (the lever, the School).
+    hold. Dormant where petitions are not live (the School).
     """
     if not petitions_live(world):
         return []
@@ -4205,7 +4050,6 @@ _GARRISON_LOYALTY = 10
 # rule, ported from the marshal-petition channel: the arm runs FIRST; the
 # decision is retired by SUCCESS; a refusal re-seats the modal. False
 # restores the pop-first handlers.
-A_REFUSED_ARM_KEEPS_THE_DECISION = True
 
 
 def build_rebellion_popup(world, vassal_name: str, loyalty: int, *,
@@ -4382,16 +4226,15 @@ def transfer_vassal(world, vassal_name: str, to_lord: str,
     state["loyalty"] = int(TRANSFER_LOYALTY_RESET)
     state.pop("granted_regions", None)   # VS-3 interlock
     state.pop("grant_cooldown", None)
-    if THE_TRANSFER_SHEDS_THE_REMISSION:
-        # IQ-7 review R3 ([02]/[27]/[32]): a relief remission is the OLD
-        # lord's purchase (its loyalty and bond went to him; the transfer
-        # resets the one and leaves the other on the old pair) — the new lord
-        # never granted it and collects in full from his next collection.
-        # The cadence stamp is the old court's too. The collection itself
-        # stays keyed on the row's data (a stored remission is still honoured
-        # with the lever down); only the POP is levered.
-        state.pop("remission_left", None)
-        state.pop("petitioned_turn", None)
+    # IQ-7 review R3 ([02]/[27]/[32]): a relief remission is the OLD
+    # lord's purchase (its loyalty and bond went to him; the transfer
+    # resets the one and leaves the other on the old pair) — the new lord
+    # never granted it and collects in full from his next collection.
+    # The cadence stamp is the old court's too. The collection itself
+    # stays keyed on the row's data (a stored remission is still honoured);
+    # only the POP moves here.
+    state.pop("remission_left", None)
+    state.pop("petitioned_turn", None)
     world.invalidate_active_nations_cache()
 
     # Diplomatic states: old pair loses VASSAL; new pair gains it.
@@ -4862,46 +4705,43 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         # has: the DP debit, the loyalty write, the cooldown set, the
         # notification, the event, and the 60% dispatch roll. A courtier the
         # cap turns away therefore spends nothing.
-        if COURTING_TARGET_CAP_ACTIVE:
-            # (b) + (c) — no self-court, no courting a fellow satellite of
-            # one's own lord. Both live in the pure predicate above, where
-            # a non-player lord is reachable and the rule is falsifiable.
-            if courtier_is_of_the_same_house(world, nation, vassal_name, state):
-                continue
-            # The design stake outranks the roster (rider above). Sited
-            # with the other guards, above every side effect, so a
-            # courtier that stands aside spends nothing doing it.
-            if courtier_yields_to_a_design_stake(world, nation, vassal_name,
-                                                 state):
-                continue
-            # (a) one successful court per TARGET per turn, world-wide. The
-            # first courtier in enemy-nation order wins; that order is a
-            # list all the way down (EUROPE_ROSTER -> enemy_nations ->
-            # turn_manager's filtering comprehension), so it is deterministic
-            # without a sort.
-            #
-            # Two consequences, recorded rather than fixed (WO slice 9):
-            # the winner is whoever comes FIRST, not whoever bites hardest,
-            # so a Britain court worth -5 can consume the slot and block a
-            # Prussia court worth -15; and the NA-2 courting bias above
-            # sorts a courtier's candidate VASSALS, never courtiers per
-            # target, so it is overruled by roster order on exactly the
-            # contested case. A strongest-bite tiebreak would be a new
-            # mechanic and would re-open the determinism this cap was
-            # asked for. Note this is a `continue`, not a `break`: a
-            # courtier the cap turns away still courts a DIFFERENT
-            # eligible satellite this turn, so the cap redistributes
-            # courting rather than destroying it.
-            if state.get("courted_turn") == int(world.current_turn):
-                continue
+        # (b) + (c) — no self-court, no courting a fellow satellite of
+        # one's own lord. Both live in the pure predicate above, where
+        # a non-player lord is reachable and the rule is falsifiable.
+        if courtier_is_of_the_same_house(world, nation, vassal_name, state):
+            continue
+        # The design stake outranks the roster (rider above). Sited
+        # with the other guards, above every side effect, so a
+        # courtier that stands aside spends nothing doing it.
+        if courtier_yields_to_a_design_stake(world, nation, vassal_name,
+                                             state):
+            continue
+        # (a) one successful court per TARGET per turn, world-wide. The
+        # first courtier in enemy-nation order wins; that order is a
+        # list all the way down (EUROPE_ROSTER -> enemy_nations ->
+        # turn_manager's filtering comprehension), so it is deterministic
+        # without a sort.
+        #
+        # Two consequences, recorded rather than fixed (WO slice 9):
+        # the winner is whoever comes FIRST, not whoever bites hardest,
+        # so a Britain court worth -5 can consume the slot and block a
+        # Prussia court worth -15; and the NA-2 courting bias above
+        # sorts a courtier's candidate VASSALS, never courtiers per
+        # target, so it is overruled by roster order on exactly the
+        # contested case. A strongest-bite tiebreak would be a new
+        # mechanic and would re-open the determinism this cap was
+        # asked for. Note this is a `continue`, not a `break`: a
+        # courtier the cap turns away still courts a DIFFERENT
+        # eligible satellite this turn, so the cap redistributes
+        # courting rather than destroying it.
+        if state.get("courted_turn") == int(world.current_turn):
+            continue
 
         # IQ-7 R2: the lord's own allies do not court its satellites. Sited
         # with the WO-8 guards — below the per-courtier cooldown read, above
         # the DP debit and every other side effect — so an ally that stands
-        # aside spends nothing and sets no cooldown. Its own lever, so the
-        # BASELINE_SERIES attribution arms can isolate it.
-        if (COURTING_SPARES_THE_LORDS_ALLIES
-                and courtier_is_the_lords_ally(world, nation, state)):
+        # aside spends nothing and sets no cooldown.
+        if courtier_is_the_lords_ally(world, nation, state):
             continue
 
         # Cost 2 DP
@@ -4929,8 +4769,7 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         # rides the vassal row, so it serializes for free with the vassals
         # dict — zero new serialized fields (the VS-3 `grant_cooldown`
         # precedent above).
-        if COURTING_TARGET_CAP_ACTIVE:
-            state["courted_turn"] = int(world.current_turn)
+        state["courted_turn"] = int(world.current_turn)
 
         # Notification: courting detected (Session 8C) — of the player's own
         # satellites (IQ7-X1: a rival lord's client is not his tray's news).
@@ -4994,13 +4833,7 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     # Switzerland against France." — of a court that keeps Bern and takes
     # the field. Measured on seeds 1/3/4/7/8. `attempt_vassal_bribe` briefs
     # every landed outcome already, and the TRANSFER outcome never queued
-    # this line at all, so the two arms now agree. Behind FA-2's lever, so
-    # False reproduces the pre-slice briefing on this arm too.
-    if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
-        from backend.game_logic.dispatch import queue_dispatch_event
-        queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
-                             {"carved_name": vassal_name, "protector": lord},
-                             "always")
+    # this line at all, so the two arms now agree.
 
     del world.vassals[vassal_name]
     world.invalidate_active_nations_cache()

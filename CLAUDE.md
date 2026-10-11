@@ -33,10 +33,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > user owes — read it first, every session.** The Score Finish residue
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
-**▶ LIVE STATE (October 10, 2026).** The three most recent landed rows:
-- **S4 — DD-0 THE COMMAND ROAD — ✅ STRUCK October 11, 2026** (`SYSTEMS_REFERENCE.md` §100–§104; `reading.py`, `exit_predicate.py`, the `_chain_*` / `_exec_*` stages, `unrehearsed_census.py --by-hand`). **RULED Oct 11: the done-when reads READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set (`as_meant` beside).** DD0-18 + DD0-19 fixed (the fifth and sixth sets 289 / 290 of 300 by hand, 0 executions); **the SEVENTH fresh author reads 255 of 300 by hand (85.0 %), 0 executions — MET at the floor**; DD0-20 (its register) OPEN, S5's head. Ledger 0, the third set 273 / 179 as meant, HOLD 18 of 20. **NEXT = S5–S6 DD-1, head CODE-1 batch 3** (`PRE_DEPLOY_PLAN.md` §3.1).
+**▶ LIVE STATE (October 11, 2026).** The three most recent landed rows:
+- **S5 head — CODE-1 batch 3 (October 11, 2026) — LANDED.** 66 of the 78 levers in `diplomacy.py` / `vassal.py` / `jealousy.py` / `naval.py` retired (562 → 496; 12 October ones kept); batch 5 filed for the 116 levers in the game_logic modules over 3,000 lines (`docs/CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3). **NEXT = DD0-20, then DD-1.**
+- **S4 — DD-0 THE COMMAND ROAD — ✅ STRUCK October 11, 2026** (`SYSTEMS_REFERENCE.md` §100–§104; `reading.py`, `exit_predicate.py`, `unrehearsed_census.py --by-hand`). **RULED Oct 11: the done-when reads READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set.** DD0-18 + DD0-19 fixed; **the SEVENTH fresh author reads 255 of 300 by hand (85.0 %), 0 executions — MET at the floor**; DD0-20 (its register) OPEN. Ledger 0, HOLD 18 of 20 (`PRE_DEPLOY_PLAN.md` §3.0).
 - **S3 head — CODE-1 batch 2 (October 10, 2026) — LANDED.** 83 of 138 game_logic levers retired (645 → 562) (`docs/CODE_HEALTH_PLAN.md` §CODE-1 BATCH 2).
-- **S2 (October 9, 2026) — COMPLETE.** The parallel hook 26:13 → 5:12; CODE-4 the docs diet; CODE-1 batch 1 + the ratchet (`docs/CODE_HEALTH_PLAN.md`).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 

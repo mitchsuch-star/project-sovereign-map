@@ -1044,22 +1044,22 @@ def _pending_lapsing_petitions(world) -> list:
     −10 loyalty / −20 standing") instead of counting them among the free
     envoys. Derived from the live dialogue manager on every response, never
     cached (a value stamped at delivery goes stale after a mailbox answer,
-    a save/load or the lapse itself). `refused` follows the lever, so the
-    lever-down copy says "lapse", never "REFUSED"."""
+    a save/load or the lapse itself). `refused` follows each row's own
+    `penalised` verdict, so a free lapse says "lapse", never "REFUSED"."""
     from backend.game_logic import vassal as _vassal
     from backend.game_logic.mailbox_payloads import lapsing_petitions
     try:
         rows = lapsing_petitions(world, str(getattr(world, "player_nation", "France")))
     except Exception:
         return []
-    lever = bool(getattr(_vassal, "AN_UNANSWERED_PETITION_IS_REFUSED", True))
     out = []
     for row in rows or []:
         if not isinstance(row, dict):
             continue
         # `penalised` is the forecast's own verdict for THIS petition (a
-        # moot or already-honoured one lapses free even with the lever up).
-        refused = bool(row["penalised"]) if "penalised" in row else lever
+        # moot or already-honoured one lapses free; an unanswered petition
+        # is otherwise refused).
+        refused = bool(row["penalised"]) if "penalised" in row else True
         out.append({
             "vassal": str(row.get("vassal") or ""),
             "court": str(row.get("court") or row.get("vassal") or ""),
@@ -2072,7 +2072,6 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
             _petition = world._popup_queue.get("pending_marshal_petition")
             if _petition is not None and _popup_dialogue_is_current(world, _petition):
                 from backend.game_logic.jealousy import (
-                    THE_PETITION_DIES_WITH_ITS_SUBJECT,
                     petition_is_still_live, petition_retirement_reason,
                     refresh_petition_affordability, retire_petition,
                 )
@@ -2082,7 +2081,7 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
                 if petition_is_still_live(_petition, world):
                     response["deferred_marshal_petition"] = refresh_petition_affordability(
                         dict(_petition), world)
-                elif THE_PETITION_DIES_WITH_ITS_SUBJECT:
+                else:
                     # B2 (F2): retired NOW, with its receipt — it had been
                     # left in the slot for the next turn's re-push to retire.
                     retire_petition(world, _petition,
@@ -2476,13 +2475,11 @@ def _pop_deliverable_popup(world):
             # takes this cycle instead.
             if winner_attr == "pending_marshal_petition" and isinstance(winner_value, dict):
                 from backend.game_logic.jealousy import (
-                    THE_PETITION_DIES_WITH_ITS_SUBJECT,
                     petition_retirement_reason, retire_petition)
-                if THE_PETITION_DIES_WITH_ITS_SUBJECT:
-                    _why = petition_retirement_reason(winner_value, world)
-                    if _why:
-                        retire_petition(world, winner_value, _why)
-                        continue
+                _why = petition_retirement_reason(winner_value, world)
+                if _why:
+                    retire_petition(world, winner_value, _why)
+                    continue
             if _popup_dialogue_is_current(world, winner_value):
                 return winner_attr, winner_key, winner_value
             if _popup_dialogue_is_dead(world, winner_value):
@@ -4813,7 +4810,6 @@ def get_marshal_petition():
     cooled is retired here and says so rather than being handed over."""
     from backend.display_names import humanize_entity_name
     from backend.game_logic.jealousy import (
-        THE_PETITION_DIES_WITH_ITS_SUBJECT,
         _petition_speaker, _retire_pending_petition, petition_is_still_live,
         petition_retirement_reason, refresh_petition_affordability,
         retire_petition)
@@ -4825,11 +4821,10 @@ def get_marshal_petition():
     if not petition_is_still_live(petition, world):
         # B2 (F2): the one retirement, with its receipt — and the answer
         # names why, not only who.
-        if THE_PETITION_DIES_WITH_ITS_SUBJECT:
-            clause = retire_petition(
-                world, petition, petition_retirement_reason(petition, world))
-            return {"success": True, "petition": None,
-                    "message": f"The moment has passed — {clause}"}
+        clause = retire_petition(
+            world, petition, petition_retirement_reason(petition, world))
+        return {"success": True, "petition": None,
+                "message": f"The moment has passed — {clause}"}
         speaker = _petition_speaker(petition)
         _retire_pending_petition(world, petition)
         return {"success": True, "petition": None,

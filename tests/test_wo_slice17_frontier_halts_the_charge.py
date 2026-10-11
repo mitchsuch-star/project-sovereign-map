@@ -573,20 +573,6 @@ class TestWO28TheRefusedAttackRestoresTheOrder:
         assert _types(world) == ["order_voided_by_battle", "marker",
                                  "jealousy_autonomous_attack"]
 
-    def test_with_the_lever_down_the_refusal_is_narrated_as_a_battle(
-            self, monkeypatch):
-        """The measured defect, reproduced by the flip lever."""
-        monkeypatch.setattr(J, "AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE", False)
-        world, ney = _jealous_world(fortified=True, order=_move_order())
-        results = _quiet(J.process_autonomous_attacks, world, _executor(),
-                         {"world": world})
-        assert len(results) == 1 and results[0]["success"] is False
-        assert ney.strategic_order is None
-        types = _types(world)
-        assert "jealousy_autonomous_attack" in types
-        assert "order_voided_by_battle" in types
-        assert "jealousy_autonomous_refused" not in types
-
     def test_the_refusal_beat_reaches_the_dispatch_uncapped(self):
         """A new pending-event type is dropped at the dispatch whitelist
         unless added there (the shadow_petition lesson), and collapsed
@@ -778,7 +764,6 @@ class TestTheLeversAreRealLevers:
         assert WS.CHARGE_FRONTIER_HALT_ACTIVE is True
         assert CE.AUTONOMOUS_CHARGE_GUARD_ACTIVE is True
         assert CE.SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE is True
-        assert J.AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE is True
 
     def test_the_charge_reads_world_states_lever_at_call_time(self):
         """A from-import would freeze the lever at import and make the

@@ -21,13 +21,6 @@
     "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
   },
   {
-    "id": "N52/e the laurels passing is not logged",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "THE_CROWN_LOST_IS_LOGGED = True\n",
-    "new": "THE_CROWN_LOST_IS_LOGGED = False\n",
-    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
-  },
-  {
     "id": "N52/f the new type has no one-liner arm (prints its key)",
     "file": "backend/campaign_log.py",
     "old": "    if event_type == \"glory_crown_lost\":\n        marshal = event.get(\"marshal\", \"Unknown\")\n        nation = event.get(\"nation\", \"\")\n        return (f\"{_name_tag(marshal, nation)} is no longer the army's most \"\n                f\"celebrated commander — the laurels have passed\")\n",

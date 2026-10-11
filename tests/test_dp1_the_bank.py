@@ -8,8 +8,7 @@ unspent pool before the refill IS the carry. Shown = applied: the dispatch's
 regen breakdown names "+N carried from last turn", and the displayed ceiling
 is regen + carried — never a pool over its own printed maximum (the NP
 audit's "DP: 6/5" lesson), even after a load drops the refill's transient.
-Lever `diplomacy.DIPLOMATIC_POINTS_CARRY` — down, the pool resets to the
-regen each turn exactly as before.
+The pool carries one turn (DP-1) — the live rule since CODE-1 batch 3.
 
 Measured before landing (`tools/_dp1_measure.py`): on the ambient board the
 fuller AI pools (≈3–4 → ≈6–7) unlock NOTHING — the same 21 spends (27 points)
@@ -84,10 +83,6 @@ class TestTheRule:
     def test_the_cap(self):
         assert DG.DP_BANK_CAP == 7
 
-    def test_lever_down_the_pool_resets(self, monkeypatch):
-        monkeypatch.setattr(DG, "DIPLOMATIC_POINTS_CARRY", False)
-        assert DG.dp_refill(5, 5) == (5, 0)
-
 
 class TestT6:
 
@@ -116,12 +111,6 @@ class TestT6:
         world.diplomatic_points = 1
         refill(world)
         assert world.diplomatic_points == regen + 1
-
-    def test_lever_down_nothing_banks(self, world, monkeypatch):
-        monkeypatch.setattr(DG, "DIPLOMATIC_POINTS_CARRY", False)
-        regen = regen_of(world, "France")
-        refill(world)
-        assert world.diplomatic_points == regen
 
 
 class TestShownIsApplied:

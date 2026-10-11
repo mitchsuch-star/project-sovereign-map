@@ -98,20 +98,6 @@
   "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestWhatTheGateDoesNotCover::test_the_third_party_limit_is_stated"
  },
  {
-  "id": "D4/a the predicate stops discriminating",
-  "file": "backend/game_logic/jealousy.py",
-  "old": "    return GLORY_DORMANT_ACTIVE and jealousy_dormant(world)",
-  "new": "    return False",
-  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py"
- },
- {
-  "id": "D4/b the lever stops reproducing HEAD",
-  "file": "backend/game_logic/jealousy.py",
-  "old": "# teaches.\nGLORY_DORMANT_ACTIVE = True",
-  "new": "# teaches.\nGLORY_DORMANT_ACTIVE = False",
-  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestThePredicate"
- },
- {
   "id": "D4/c the accrual gate is removed",
   "file": "backend/game_logic/jealousy.py",
   "old": "    if glory_dormant(world):\n        return\n    turn = int(world.current_turn)",
@@ -133,32 +119,11 @@
   "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestALoadedLesson::test_a_migrated_crown_is_cleared_in_silence"
  },
  {
-  "id": "D4/f the restlessness guard is removed",
-  "file": "backend/game_logic/jealousy.py",
-  "old": "    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world))\n              else 0)",
-  "new": "    warned = 0",
-  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheLessonIsSilent"
- },
- {
-  "id": "D4/g the restlessness guard is keyed on GLORY (the measured mistake)",
-  "file": "backend/game_logic/jealousy.py",
-  "old": "    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world))",
-  "new": "    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and glory_dormant(world))",
-  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheLessonIsSilent"
- },
- {
   "id": "D4/h the ladder payload stops standing down",
   "file": "backend/game_logic/jealousy.py",
   "old": "    if glory_dormant(world):\n        return []\n    ladder = get_nation_ladder(world, world.player_nation)",
   "new": "    ladder = get_nation_ladder(world, world.player_nation)",
   "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestTheMechanicSleeps::test_the_ladder_payload_is_empty_in_the_school"
- },
- {
-  "id": "D4/i the glory predicate reads the OTHER lever",
-  "file": "backend/game_logic/jealousy.py",
-  "old": "    return GLORY_DORMANT_ACTIVE and jealousy_dormant(world)",
-  "new": "    return RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world)",
-  "tests": "tests/test_fa_s16_d4_the_school_has_no_laurels_2026_09_06.py::TestThePredicate::test_the_lever_reproduces_head"
  },
  {
   "id": "D4/j the jealousy_dormant prose reverts its claim about glory",

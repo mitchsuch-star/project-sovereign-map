@@ -78,30 +78,6 @@
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
  },
  {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "        _qde(world, \"diplomatic_mission_cancelled\", {\"nation\": target},\n             \"always\" if MISSION_COLLAPSE_IS_ANNOUNCED else \"player_mission\")",
-  "new": "        _qde(world, \"diplomatic_mission_cancelled\", {\"nation\": target},\n             \"player_mission\")",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "        if MISSION_AT_THE_CEILING_IS_FINISHED and _before == _after and scaled:",
-  "new": "        if False:",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "        elif (mission_type == \"UNDERMINE_ALLIANCE\"\n              and MISSION_UNDERMINE_ROW_IS_HONEST\n              and not _has_any_ally(world, target_nation)):",
-  "new": "        elif False:",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/diplomacy.py",
-  "old": "                    (\"diplomatic_mission_undermine_progress\"\n                     if MISSION_UNDERMINE_LINE_RENDERS\n                     else \"diplomatic_mission_progress\"),",
-  "new": "                    \"diplomatic_mission_progress\",",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
   "file": "backend/game_logic/diplomatic_ledger.py",
   "old": "        _undermining = (MISSION_PROGRESS_READS_THE_PAIR_IT_MOVES\n                        and mission.get(\"type\") == \"UNDERMINE_ALLIANCE\"\n                        and mission.get(\"target_ally\"))",
   "new": "        _undermining = False",

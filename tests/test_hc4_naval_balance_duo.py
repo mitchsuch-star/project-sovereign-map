@@ -10,9 +10,10 @@
     bill at the `world._action_costs` TABLE price (2 / 1) against its
     2-AP admin budget, and the expedition rung is affordability-gated.
 
-Both halves carry a flip lever (`naval.SHORE_SUPPLY_ACTIVE`,
-`enemy_ai.AI_NAVAL_AP_PARITY`) for the BASELINE_SERIES attribution
-experiment — False reproduces the pre-slice behavior byte-identically.
+The bill carries a flip lever (`enemy_ai.AI_NAVAL_AP_PARITY`) for the
+BASELINE_SERIES attribution experiment — False reproduces the pre-slice
+billing byte-identically. The lifeline is unconditional (its flip lever
+retired, CODE-1 batch 3).
 """
 
 from pathlib import Path
@@ -64,11 +65,6 @@ class TestShoreVerdicts:
         world = WorldFactory.with_war("France", "Britain")
         assert naval.shore_supply_state(world, "France", "Brittany") is None
 
-    def test_flip_lever_restores_none(self, europe, monkeypatch):
-        monkeypatch.setattr(naval, "SHORE_SUPPLY_ACTIVE", False)
-        assert naval.shore_supply_state(
-            europe, "Britain", "Lisbon") is None
-
 
 class TestLifelineArm:
     """The supply-attrition integration — the arm grants/strips the
@@ -88,59 +84,73 @@ class TestLifelineArm:
         europe.process_supply_attrition()
         return before - marshal.strength
 
-    def test_lifeline_feeds_the_landed_army(self, europe, monkeypatch):
+    def _sink_every_fleet(self, europe):
+        """The live reference arm: no sail on either side → the verdict
+        reads None → the base cap (what the retired lever-down arm used
+        to measure). Britain's own hulls are not enough — the pooled
+        allied squadrons still run her convoys."""
+        for _nation, rec in naval.iter_fleets(europe):
+            rec["ships"] = 0
+        assert naval.shore_supply_state(
+            europe, "Britain", "Brittany") is None
+
+    def test_lifeline_feeds_the_landed_army(self, europe):
         # Britain over-stacked on FRENCH coastal soil (at war, hostile
-        # shore): with the arm the RN lifeline applies the 1.5× cap the
-        # army would only have at home — measured as LOWER attrition
-        # than with the lever off.
+        # shore): the RN lifeline applies the 1.5× cap the army would
+        # only have at home — measured as LOWER attrition than the same
+        # corps suffers once the Royal Navy is sunk.
         m = self._overstacked(europe, "Britain", "Brittany")
         region = europe.regions["Brittany"]
         assert region.is_coastal and region.controller == "France"
-        with_arm = self._attrition_losses(europe, m)
+        assert naval.shore_supply_state(
+            europe, "Britain", "Brittany") == "lifeline"
+        with_lifeline = self._attrition_losses(europe, m)
 
         m.strength = 90000
-        monkeypatch.setattr(naval, "SHORE_SUPPLY_ACTIVE", False)
-        without_arm = self._attrition_losses(europe, m)
-        assert with_arm < without_arm
+        self._sink_every_fleet(europe)
+        without_lifeline = self._attrition_losses(europe, m)
+        assert with_lifeline < without_lifeline
 
-    def test_strangled_shore_strips_the_home_bonus(self, europe,
-                                                   monkeypatch):
-        # Post-Trafalgar France over-stacked on its OWN coast: the
-        # dominating hostile fleet strips the 1.5× home treatment —
-        # measured as HIGHER attrition than with the lever off.
+    def test_strangled_shore_strips_the_home_bonus(self, europe):
+        # France over-stacked on its OWN coast: at the boot (contested
+        # water) the home 1.5× holds; post-Trafalgar the dominating
+        # hostile fleet strips it — measured as HIGHER attrition.
+        m = self._overstacked(europe, "France", "Brittany")
+        assert naval.shore_supply_state(europe, "France", "Brittany") is None
+        contested = self._attrition_losses(europe, m)
+
+        m.strength = 90000
         for nation in ("France", "Spain", "Holland"):
             naval.get_fleets(europe)[nation]["ships"] = 0
-        m = self._overstacked(europe, "France", "Brittany")
-        with_arm = self._attrition_losses(europe, m)
+        assert naval.shore_supply_state(
+            europe, "France", "Brittany") == "strangled"
+        strangled = self._attrition_losses(europe, m)
+        assert strangled > contested
 
-        m.strength = 90000
-        monkeypatch.setattr(naval, "SHORE_SUPPLY_ACTIVE", False)
-        without_arm = self._attrition_losses(europe, m)
-        assert with_arm > without_arm
-
-    def test_inland_army_untouched(self, europe, monkeypatch):
+    def test_inland_army_untouched(self, europe):
         # The arm never reaches a non-coastal province — byte-identical
-        # attrition with the lever on or off.
+        # attrition with the Royal Navy afloat or sunk.
         m = self._overstacked(europe, "Britain", "Swabia")
         assert not europe.regions["Swabia"].is_coastal
-        with_arm = self._attrition_losses(europe, m)
+        afloat = self._attrition_losses(europe, m)
         m.strength = 90000
-        monkeypatch.setattr(naval, "SHORE_SUPPLY_ACTIVE", False)
-        without_arm = self._attrition_losses(europe, m)
-        assert with_arm == without_arm
+        self._sink_every_fleet(europe)
+        sunk = self._attrition_losses(europe, m)
+        assert afloat == sunk
 
-    def test_peacetime_army_untouched(self, europe, monkeypatch):
+    def test_peacetime_army_untouched(self, europe):
         # An army whose nation wages no war keeps today's numbers even
-        # on a coastal province (the arm gates on AT WAR).
+        # on a coastal province (the arm gates on AT WAR) — byte-identical
+        # with the Royal Navy afloat or sunk.
         for key in list(europe.diplomatic_states):
             if "Britain" in key.split("|"):
                 europe.diplomatic_states[key] = "PEACE"
         m = self._overstacked(europe, "Britain", "Brittany")
-        with_arm = self._attrition_losses(europe, m)
+        afloat = self._attrition_losses(europe, m)
         m.strength = 90000
-        monkeypatch.setattr(naval, "SHORE_SUPPLY_ACTIVE", False)
-        without_arm = self._attrition_losses(europe, m)
-        assert with_arm == without_arm
+        naval.get_fleets(europe)["Britain"]["ships"] = 0
+        sunk = self._attrition_losses(europe, m)
+        assert afloat == sunk
 
 
 class TestShownEqualsAppliedCap:

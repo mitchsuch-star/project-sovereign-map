@@ -8,10 +8,10 @@ siblings the FA-31 sweep filed inside the same machinery, **FA-N82** and
 Landing record: the boxed SLICE 14 (part 2b) block in
 `docs/BUG_FIXES.md` §Final Whole-Game Audit.
 
-Three levers, every one with a False arm that reproduces HEAD:
+Two levers, each with a False arm that reproduces HEAD:
 `ai_diplomacy.PURSE_SCALED_BILATERAL_INDEMNITY`,
-`ai_diplomacy.P8_REDUCER_READS_THE_PURSE`,
-`naval.DIVERSION_WINDOW_FORECAST`.
+`ai_diplomacy.P8_REDUCER_READS_THE_PURSE`. The diversion window forecast
+is unconditional (its flip lever retired, CODE-1 batch 3).
 """
 
 import contextlib
@@ -605,16 +605,6 @@ class TestTheAiAsksTheSameQuestion:
         assert any_open is True
         assert forecast["opens_t1"] is False and forecast["opens_t2"] is False
 
-    def test_the_lever_down_restores_the_old_rung(self, boot, monkeypatch):
-        monkeypatch.setattr(N, "DIVERSION_WINDOW_FORECAST", False)
-        _rot(boot, 6, stage_at=5)
-        assert N.find_ai_diversion(boot, "France") is not None
-        # SR-5c (Sept 28, 2026), flipped consciously: the Grand Diversion is sailed again four turns after its last throw, at the fleet's readiness less 25 (`naval.diversion_odds`).
-        readiness = N.get_fleet(boot, "France")["readiness"]
-        assert _diversion_chip(boot)["note"] == (
-            f"{N.diversion_odds(boot, 'France')} in 100 at readiness "
-            f"{readiness} — and again {N.DIVERSION_WAIT_TURNS} turns after, "
-            f"whatever the outcome")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

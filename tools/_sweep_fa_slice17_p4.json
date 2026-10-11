@@ -49,13 +49,6 @@
     "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheGuardCountsItsRoads"
   },
   {
-    "id": "S17-12/a a cooled quarrel is delivered again",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "    if not THE_AUDIENCE_IS_STILL_OWED:",
-    "new": "    if True:",
-    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheAudienceIsStillOwed"
-  },
-  {
     "id": "S17-12/b the delivery seam stops asking",
     "file": "backend/main.py",
     "old": "                if petition_is_still_live(_petition, world):",
@@ -313,13 +306,6 @@
     "old": "    \"40\": [\"status\", \"Ney, drill\", \"Massena, fortify\", \"Davout, fortify\"]",
     "new": "    \"40\": [\"status\"]",
     "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheCommandedArmExists"
-  },
-  {
-    "id": "D8/a the crossing is never derived",
-    "file": "backend/game_logic/vassal.py",
-    "old": "    if not THE_TIER_CROSSING_IS_ANNOUNCED:\n        return \"\"",
-    "new": "    if True:\n        return \"\"",
-    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheTierCrossingIsAnnounced"
   },
   {
     "id": "D8/c the cascade names the band it has left, not the one that binds",

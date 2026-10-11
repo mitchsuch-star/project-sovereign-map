@@ -780,15 +780,7 @@ class NavalExecutor:
                          f"opens for {naval.WINDOW_TURNS} turns; otherwise "
                          f"she is caught coming home and fights at readiness "
                          f"{readiness}. Whatever the outcome, she may try it "
-                         f"again {naval.DIVERSION_WAIT_TURNS} turns from now."
-                         if naval.THE_DIVERSION_IS_THROWN_AGAIN else
-                         f"The Grand Diversion is drawn up, Sire — once, "
-                         f"and once only, this war. The fleet sails to draw "
-                         f"the enemy squadrons off station: "
-                         f"{naval.DIVERSION_SUCCESS_PCT} times in 100 the "
-                         f"strait opens for {naval.WINDOW_TURNS} turns; "
-                         f"otherwise she is caught coming home and fights "
-                         f"at readiness {readiness}.")
+                         f"again {naval.DIVERSION_WAIT_TURNS} turns from now.")
                         + f"{camp_line}{forecast_line} "
                         f"Sail? (yes / no)"),
                     "options": [

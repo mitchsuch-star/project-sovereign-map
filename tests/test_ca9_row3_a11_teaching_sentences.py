@@ -9,7 +9,7 @@ Four surfaces:
 
 1. The ladder caption said *"glory, last 5 turns"* against a live
    `GLORY_WINDOW = 8` — stale since DR-2 lengthened it — and described
-   envy as fixing on "the man below", when `JEALOUSY_RIVAL_MEMORY` makes
+   envy as fixing on "the man below", when rival memory (CA8-D3) makes
    it fix on a REMEMBERED rival. The number is now served by the backend
    and interpolated, so it cannot drift again.
 2. *"reward them before they ask"* was false in both halves:
@@ -91,15 +91,10 @@ class TestTheLadderCaptionStatesTheRealRule:
 
     def test_the_rival_memory_rule_is_stated(self):
         """Envy re-fixes on a REMEMBERED man, not on whoever stands one
-        rung up this turn (`JEALOUSY_RIVAL_MEMORY`)."""
+        rung up this turn (rival memory, CA8-D3)."""
         src = (GD / "marshal_management.gd").read_text(encoding="utf-8")
         assert "keeps that rival while he stays above" in src
         assert "the man below" not in src
-
-    def test_rival_memory_is_actually_on(self):
-        """The caption is only true while the flag is. If this ever
-        flips, the sentence must change with it."""
-        assert J.JEALOUSY_RIVAL_MEMORY is True
 
 
 # ════════════════════════════════════════════════════════════════════════

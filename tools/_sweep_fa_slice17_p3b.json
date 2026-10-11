@@ -1,12 +1,5 @@
 [
   {
-    "id": "S17-5/a the holder lever",
-    "file": "backend/game_logic/diplomacy.py",
-    "old": "                        if THE_DEFENSE_TICK_NAMES_ITS_HOLDER and _holder is not None:\n",
-    "new": "                        if False and _holder is not None:\n",
-    "tests": "tests/test_fa_s17_5_to_8_the_playtests_fixes_2026_09_11.py::TestTheDefenseClaimNamesItsHolder"
-  },
-  {
     "id": "S17-5/b the holder is the wrong side",
     "file": "backend/game_logic/diplomacy.py",
     "old": "                _holder = [p for p in _pair if p != nation]\n",
@@ -19,20 +12,6 @@
     "old": "                            if _ctrl == _holder:\n                                gained += 1\n",
     "new": "                            if _ctrl != _holder:\n                                gained += 1\n",
     "tests": "tests/test_fa_s17_5_to_8_the_playtests_fixes_2026_09_11.py::TestTheDefenseClaimNamesItsHolder"
-  },
-  {
-    "id": "S17-5/d the ticking clamp",
-    "file": "backend/game_logic/diplomacy.py",
-    "old": "        \"ticking\": (max(-TICKING_CAP, min(TICKING_CAP, sums[\"ticking\"]))\n                    if THE_TICKING_SUM_IS_CLAMPED else int(sums[\"ticking\"])),\n",
-    "new": "        \"ticking\": int(sums[\"ticking\"]),\n",
-    "tests": "tests/test_fa_s17_5_to_8_the_playtests_fixes_2026_09_11.py::TestTheDefenseClaimNamesItsHolder tests/test_ca8_gate_closeout_2026_08_07.py::TestSideWarScoreSingleSource"
-  },
-  {
-    "id": "S17-6/a the war exit's purge",
-    "file": "backend/game_logic/vassal.py",
-    "old": "\n        complete_vassal_break(world, vassal_name, lord)\n        if THE_REBELLION_RETIRES_ITS_QUESTION:\n            _retire_rebellion_question(world, vassal_name)  # FA-S17-6\n",
-    "new": "\n        complete_vassal_break(world, vassal_name, lord)\n",
-    "tests": "tests/test_fa_s17_5_to_8_the_playtests_fixes_2026_09_11.py::TestTheRebellionRetiresItsQuestion"
   },
   {
     "id": "S17-6/b the purge keeps the dialogue",

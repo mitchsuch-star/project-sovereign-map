@@ -28,13 +28,6 @@
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestNoSelfCourtAndNoFellowSatellite::test_the_guard_compares_lords_not_the_player"
   },
   {
-    "id": "WO9-5 the target stamp is never written (the cap can never engage)",
-    "file": "backend/game_logic/vassal.py",
-    "old": "        if COURTING_TARGET_CAP_ACTIVE:\n            state[\"courted_turn\"] = int(world.current_turn)",
-    "new": "        if False:\n            state[\"courted_turn\"] = int(world.current_turn)",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestOneCourtPerTargetPerTurn::test_the_second_courtier_of_the_same_vassal_wins_nothing tests/test_wo_slice9_the_courting_cap.py::TestTheStampRidesTheVassalRow"
-  },
-  {
     "id": "WO9-6 the stamp becomes a constant (the cap never lifts)",
     "file": "backend/game_logic/vassal.py",
     "old": "            state[\"courted_turn\"] = int(world.current_turn)",
@@ -54,13 +47,6 @@
     "old": "        # Anti-spam cooldown\n        cooldown_key = f\"court|{nation}|{vassal_name}\"\n        cooldown = getattr(world, 'ai_proposal_cooldowns', {}).get(cooldown_key, 0)\n        if cooldown > 0:\n            continue\n",
     "new": "        cooldown_key = f\"court|{nation}|{vassal_name}\"\n",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheCapIsSitedBelowTheOlderCooldown tests/test_session5_diplomacy.py::TestEnemyCourting::test_courting_anti_spam"
-  },
-  {
-    "id": "WO9-9 the flip lever is left down in production",
-    "file": "backend/game_logic/vassal.py",
-    "old": "COURTING_TARGET_CAP_ACTIVE = True",
-    "new": "COURTING_TARGET_CAP_ACTIVE = False",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheFlipLever::test_the_lever_is_true_at_rest tests/test_ai_intent_threat_migration.py::TestStep4SeriesPin::test_series_matches_recorded_baseline"
   },
   {
     "id": "WO9-10 the damper is bypassed at the TACTICAL quote site",
@@ -210,13 +196,6 @@
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_the_stakeholder_itself_never_yields tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_a_stakeholder_does_not_yield_to_a_FELLOW_stakeholder"
   },
   {
-    "id": "WO9-31 the stake rider's lever is left down",
-    "file": "backend/game_logic/vassal.py",
-    "old": "COURTING_STAKE_PRIORITY_ACTIVE = True",
-    "new": "COURTING_STAKE_PRIORITY_ACTIVE = False",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_the_lever_is_true_at_rest tests/test_wo_slice9_the_courting_cap.py::TestTheDesignStakeOutranksTheRoster::test_a_stakeless_courtier_stands_aside_for_a_stakeholder"
-  },
-  {
     "id": "WO9-32 the modifier stops riding the tactical objection (WO-D12 dies)",
     "file": "backend/commands/executor.py",
     "old": "                                    \"trust_gain_modifier\": (\n                                        objection_trust_modifier(world)),",
@@ -236,12 +215,5 @@
     "old": "\tif trust_mod < 1.0:",
     "new": "\tif true:",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperExplainsItself::test_the_dialog_renders_it_only_when_damped"
-  },
-  {
-    "id": "WO9-35 the cap stops delaying the rebellion",
-    "file": "backend/game_logic/vassal.py",
-    "old": "        if COURTING_TARGET_CAP_ACTIVE:\n            state[\"courted_turn\"] = int(world.current_turn)",
-    "new": "        if False:\n            state[\"courted_turn\"] = int(world.current_turn)",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestWhatTheCapActuallyDoesToTheSatellite"
   }
 ]

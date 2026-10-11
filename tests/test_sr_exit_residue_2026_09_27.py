@@ -9,7 +9,7 @@ as a modal titled "Marshal Lannes seeks an audience", the routine tier's
 words on the very modal the antechamber exists to keep for graver matters.
 The §6 confrontation's title now follows its tier.
 
-Lever `jealousy.THE_CRISIS_IS_NOT_AN_AUDIENCE` — False = one title for both.
+The rule is inlined in jealousy.py (CODE-1 batch 3).
 """
 
 import contextlib
@@ -79,12 +79,6 @@ class TestTheCrisisIsNotAnAudience:
         at = _card(world, line)
         assert "seeks an audience" in below["title"]
         assert "demands to be heard" in at["title"]
-
-    def test_lever_down_one_title(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_CRISIS_IS_NOT_AN_AUDIENCE", False)
-        card = _card(world, 2)
-        assert J.petition_tier(card) == J.PETITION_TIER_CRISIS
-        assert card["title"] == "Marshal Lannes seeks an audience"
 
 
 # ═══════════════════════════════════════════════════════════════════════

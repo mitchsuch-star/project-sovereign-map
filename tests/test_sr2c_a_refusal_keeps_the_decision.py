@@ -140,18 +140,6 @@ class TestARefusedArmKeepsTheDecision:
         assert not _rebellion_rows(w, "Holland")
         assert _rebellion_rows(w, "Switzerland")
 
-    def test_the_lever_down_is_the_old_pop_first(self, monkeypatch):
-        monkeypatch.setattr(V, "A_REFUSED_ARM_KEEPS_THE_DECISION", False)
-        w, dlg = _rebellion_world()
-        w.vassal_investment_cooldowns = {"Holland": 2}
-        from backend.commands.executor import CommandExecutor
-        ex = CommandExecutor()._diplomatic
-        with _quiet():
-            r = ex.handle_diplomatic_dialogue_response(
-                "invest_vassal_rebellion", {"world": w}, dialogue_id=dlg["dialogue_id"])
-        assert r["success"] is False
-        assert w.dialogue_manager.peek() is not dlg
-
     def test_the_wire_re_shows_the_modal_on_a_refusal(self, monkeypatch):
         """The client hides the modal before the answer arrives (its own
         `_on_invest`), so the response must carry the modal again."""

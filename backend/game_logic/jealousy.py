@@ -71,48 +71,8 @@ GLORY_SHADOW_MULT = 0.5             # NP-3 THE SHADOW (NAPOLEON_SPEC §6.2,
 #   the ambitious man wants a DETACHED command, and the existing jealousy
 #   ladder prices the legend he builds out there.
 
-# ═══════ SR-4c "THE DRAMA'S FUSE" (Score Mandate Chunk 4, AAR-D3, Sept 26 2026) ═══════
-# The Jealousy gate RE-OPENED by the user's direction (JEALOUSY_SPEC §0.7 is
-# the record). Measured first, on the exit's AAR arm (18 turns, the Creative
-# AAR player's own orders): 21 French grievances fired and 13 audience cards
-# queued — one a turn from turn 11 on, Soult's three on turns 12, 15 and 17,
-# Murat's two three turns apart; the crown went to Ney on turn 1 with ONE
-# point of glory (Ulm fought under the Emperor's eye, halved by the Shadow),
-# and "the laurels have passed" was said on turn 9 when they had passed to
-# nobody — Ney and Murat stood level. The hand-played AAR crowned Oudinot for
-# a 420-against-1,007 fight with Wellesley's raid, the only glory in an army
-# whose laurels had all run out of the window.
-#
-# ⚠ The row's own floor does NOT reach that case, measured: the Oudinot fight
-# cost 1,427 men, which `battle_scale.is_a_battle` calls a battle. The floor
-# is built as the row writes it (a skirmish earns no laurel — it binds on the
-# raid and remnant wars); the case the row NAMED is closed by the second
-# lever, the crown's own floor. Recorded on AAR-D3.
-#
-# Four levers, each one arm of the attribution (tools/_sr4c_series_arms.py):
-#   THE_LAUREL_FLOOR        an engagement below `battle_scale.is_a_battle`
-#                           size that was not a decisive exchange earns and
-#                           costs no glory (both sides, every participant) —
-#                           the single accrual chokepoint, so the ladder, the
-#                           crown, envy and F4's rank-rise deed all read it;
-#   THE_CROWN_WANTS_LAURELS the crown needs CROWN_MIN_GLORY in the window, not
-#                           any point above zero (both boards — GR5);
-#   THE_AUDIENCE_WAITS      a marshal who has asked for an audience (a §6
-#                           confrontation card queued) does not ask again for
-#                           AUDIENCE_COOLDOWN_TURNS — the grievance still
-#                           fires and is still reported, the card waits; the
-#                           damage going permanent (escalation level 2+) is
-#                           never deferred (player-only — the channel is);
-#   THE_FIRES_SAY_WHY (copy) the crown-lost line says where the laurels went
-#                           (to a man, level between two, or faded), and a
-#                           rival who broke is not called gone.
-# Every number is in-band; the SHAPE is the ruling (F4's idiom).
-THE_LAUREL_FLOOR = True
-THE_CROWN_WANTS_LAURELS = True
 CROWN_MIN_GLORY = 3
-THE_AUDIENCE_WAITS = True
 AUDIENCE_COOLDOWN_TURNS = 6
-THE_FIRES_SAY_WHY = True
 
 # Trigger thresholds by relationship with the target (spec §1).
 # None = immune. Hostile additionally requires idle >= HOSTILE_IDLE_TURNS.
@@ -168,9 +128,8 @@ FONTAINEBLEAU_COOLDOWN = 8          # turns between petitions
 # it — the live review saw it on turn 7 of a WINNING campaign. It now needs
 # turn >= FONTAINEBLEAU_MIN_TURN and >= FONTAINEBLEAU_MIN_UNMET_GOLD of
 # expectation standing unmet across the petitioners (on top of the three
-# eroding men and the cooldown). The lever is the third arm of the F4
+# eroding men and the cooldown). This was the third arm of the F4
 # BASELINE_SERIES attribution (dotation.py carries the other three).
-THE_COLLECTIVE_PETITION_WAITS = True
 FONTAINEBLEAU_MIN_TURN = 12
 FONTAINEBLEAU_MIN_UNMET_GOLD = 300
 FONTAINEBLEAU_CONCEDE_TRUST = 2
@@ -184,16 +143,13 @@ FONTAINEBLEAU_PROMISE_GRACE = 3     # extra grace turns
 # applies; the mechanic is untouched (the dispatch and the erosion tick
 # already agree on 7, and it is a balance number).
 FONTAINEBLEAU_PROMISE_WINDOW = dotation.GRACE_TURNS + FONTAINEBLEAU_PROMISE_GRACE
-THE_PROMISE_QUOTES_ITS_WINDOW = True   # False = the bare +3 in both strings
 # FA-N52 (slice 17): the laurels PASSING is written to the campaign log
 # beside the dispatch beat it always raised — the Gazette's collector key
-# for it was dead. False = beat only, no log row.
-THE_CROWN_LOST_IS_LOGGED = True
+# for it was dead (before: the beat only, no log row).
 
 
 def _promise_window_quote() -> int:
-    return (FONTAINEBLEAU_PROMISE_WINDOW if THE_PROMISE_QUOTES_ITS_WINDOW
-            else FONTAINEBLEAU_PROMISE_GRACE)
+    return (FONTAINEBLEAU_PROMISE_WINDOW)
 FONTAINEBLEAU_PROMISE_AUTHORITY = -2
 
 # ESP-2 war-weary (spec §0.3): fully-met expectation at/above this floor
@@ -235,9 +191,7 @@ CONFRONT_REBUKE_DURATION_CUT = 1
 # A PERSON. The audit measured Murat's rival changing four times in twelve
 # turns because targeting recomputed from the rolling window alone; with
 # memory, envy RE-FIXES on the man it has already fired on whenever he still
-# stands above. The flag exists for the flip-experiment discipline (disable →
-# prior behaviour reproduces byte-identically), not as a config surface.
-JEALOUSY_RIVAL_MEMORY = True
+# stands above. (Its flip-experiment flag was retired by CODE-1 batch 3.)
 
 # A12 (CA9 row 3, Aug 9 2026): A PAIR THAT COOLED THIS PASS DOES NOT RE-FIRE
 # IN THE SAME PASS. `clear_jealousy` writes no "cooled this turn" marker, so
@@ -253,9 +207,7 @@ JEALOUSY_RIVAL_MEMORY = True
 #
 # This is the arm that moves BASELINE_SERIES (it changes which marshals hold
 # a grievance, which the combat coordination chokepoint reads, on BOTH
-# boards). The flag exists for the flip-experiment discipline — disable and
-# the prior series reproduces byte-identically — not as a config surface.
-JEALOUSY_SUPPRESS_SAME_PASS_REFIRE = True
+# boards). (Its flip-experiment flag was retired by CODE-1 batch 3.)
 
 # WO-28 (row WO slice 17): THE BEAT NARRATES ONLY AN ATTACK THAT HAPPENED.
 # `process_autonomous_attacks` voided the standing order, ran the attack,
@@ -271,12 +223,7 @@ JEALOUSY_SUPPRESS_SAME_PASS_REFIRE = True
 # once, with the executor's own reason, on a type of its own so the
 # fore-warning's "he will go on his own initiative" is answered rather
 # than left hanging.
-#
-# Flip lever for the BASELINE_SERIES attribution experiment: False
-# reproduces the pre-slice behaviour byte-identically (the HOST_RULE_ACTIVE
-# idiom). Not a config surface.
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
-AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE = True
 
 # ═══════ VP-R1 (c) — "The Road to Forty-Five": THE GLORY ATTACK OBEYS THE ODDS ═══════
 #
@@ -300,10 +247,6 @@ AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE = True
 # refusal beat names the odds. "Fires WITH the muster" was already true — the
 # resolver rolled his reinforcements; from the mountains they were priced at
 # nothing — so the gate is the half that was missing.
-#
-# Flip lever for the BASELINE_SERIES attribution: False reproduces the
-# pre-slice board byte-for-byte. Not a config surface.
-GLORY_ATTACK_OBEYS_THE_ODDS = True
 
 
 def glory_attack_odds(world, executor, marshal, enemy) -> Dict:
@@ -318,8 +261,6 @@ def glory_attack_odds(world, executor, marshal, enemy) -> Dict:
 
 def glory_attack_held_by_the_odds(world, executor, marshal, enemy) -> Optional[Dict]:
     """The odds reading when the gate REFUSES the glory attack, else None."""
-    if not GLORY_ATTACK_OBEYS_THE_ODDS:
-        return None
     from backend.commands.objection_v2 import MUSTER_GATE_BAND
     odds = glory_attack_odds(world, executor, marshal, enemy)
     return odds if odds.get("band") == MUSTER_GATE_BAND else None
@@ -359,17 +300,12 @@ def jealousy_dormant(world) -> bool:
     return getattr(world, "scenario_name", "") == "tutorial"
 
 
-# ⚠ FLIP LEVER (FA-S16-D4). False reproduces HEAD: glory accrues, the crown
-# forms, and the School's dispatch reports "Ney, crowned four turns ago, has
-# been beaten in the field" about a mechanic the twelve-turn syllabus never
-# teaches.
-GLORY_DORMANT_ACTIVE = True
-
-# ⚠ ITS OWN FLIP LEVER, deliberately not folded into the one above. The
-# restlessness beat is guarded on `jealousy_dormant`, not on glory, because
-# §4's literal arm never reads the ladder — so the two changes must be
-# measurable apart. False reproduces HEAD.
-RESTLESSNESS_SLEEPS_IN_SCHOOL = True
+# FA-S16-D4: glory sleeps in the School (`glory_dormant` below). Before, glory
+# accrued, the crown formed, and the School's dispatch reported "Ney, crowned
+# four turns ago, has been beaten in the field" about a mechanic the
+# twelve-turn syllabus never teaches. The restlessness beat is guarded on
+# `jealousy_dormant`, not on glory, because §4's literal arm never reads the
+# ladder — the two were landed and measured apart.
 
 
 def glory_dormant(world) -> bool:
@@ -384,7 +320,7 @@ def glory_dormant(world) -> bool:
     a crowned Schwarzenberg is drawing in the classroom. World-scoped, so
     both sides go quiet together (GR5).
     """
-    return GLORY_DORMANT_ACTIVE and jealousy_dormant(world)
+    return jealousy_dormant(world)
 
 
 # ═══════════════════════════ GLORY SCORING ═══════════════════════════════
@@ -427,9 +363,9 @@ def is_laurel(side_a_casualties, side_b_casualties) -> bool:
 
 
 def crown_floor() -> int:
-    """SR-4c: the least glory that wears the crown (1 = any point, the
-    pre-SR-4c rule, when the lever is down)."""
-    return int(CROWN_MIN_GLORY) if THE_CROWN_WANTS_LAURELS else 1
+    """SR-4c: the least glory that wears the crown (the pre-SR-4c rule
+    crowned any point)."""
+    return int(CROWN_MIN_GLORY)
 
 
 def last_audience_turn(marshal) -> int:
@@ -450,8 +386,6 @@ def audience_wait(world, marshal, level: int = 0) -> int:
     """SR-4c: turns before this man may ask for another audience (0 = he
     may ask now). The damage going permanent (escalation level 2+ — the
     PETITION_POPUP_REVISIT_SPEC CRISIS tier) never waits."""
-    if not THE_AUDIENCE_WAITS:
-        return 0
     if int(level or 0) >= ESCALATION_PERMANENT_LEVEL:
         return 0
     last = last_audience_turn(marshal)
@@ -552,7 +486,7 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
     # gains or loses glory (the garrison-stomp principle, one size up). The
     # single accrual chokepoint, so the ladder, the crown, envy and F4's
     # rank-rise deed all read the same floor.
-    if THE_LAUREL_FLOOR and not is_laurel(attacker_casualties,
+    if not is_laurel(attacker_casualties,
                                           defender_casualties):
         return
     turn = int(world.current_turn)
@@ -748,28 +682,27 @@ def find_jealousy_target(marshal, world):
     if not candidates:
         return None
 
-    if JEALOUSY_RIVAL_MEMORY:
-        remembered = None
-        remembered_fires = 0
-        for other, _glory in candidates:
-            fires = _lifetime_fires(marshal, other.name)
-            if fires <= 0:
-                continue
-            if marshal.get_relationship(other.name) >= 2:
-                # A remembered rival repaired to Devoted is immune
-                # (THRESHOLDS None) — returning him would SHADOW a fresh
-                # non-immune rung target and make old friendship suppress
-                # all new envy. The feud is over; the ladder resumes.
-                continue
-            if remembered is None or fires > remembered_fires:
-                remembered, remembered_fires = other, fires
-            elif fires == remembered_fires:
-                cur = marshal.get_relationship(remembered.name)
-                new = marshal.get_relationship(other.name)
-                if new < cur or (new == cur and other.name < remembered.name):
-                    remembered = other
-        if remembered is not None:
-            return remembered
+    remembered = None
+    remembered_fires = 0
+    for other, _glory in candidates:
+        fires = _lifetime_fires(marshal, other.name)
+        if fires <= 0:
+            continue
+        if marshal.get_relationship(other.name) >= 2:
+            # A remembered rival repaired to Devoted is immune
+            # (THRESHOLDS None) — returning him would SHADOW a fresh
+            # non-immune rung target and make old friendship suppress
+            # all new envy. The feud is over; the ladder resumes.
+            continue
+        if remembered is None or fires > remembered_fires:
+            remembered, remembered_fires = other, fires
+        elif fires == remembered_fires:
+            cur = marshal.get_relationship(remembered.name)
+            new = marshal.get_relationship(other.name)
+            if new < cur or (new == cur and other.name < remembered.name):
+                remembered = other
+    if remembered is not None:
+        return remembered
 
     target = None
     target_glory = None
@@ -846,19 +779,17 @@ def recompute_crowns(world) -> List[Dict]:
                         "nation": marshal.nation,
                         "marshal": marshal.name,
                     })
-                    if THE_CROWN_LOST_IS_LOGGED:
-                        _row = {
-                            "type": "glory_crown_lost",
-                            "marshal": marshal.name,
-                            "nation": marshal.nation,
-                        }
-                        if THE_FIRES_SAY_WHY:
-                            # New keys on the existing log type (no
-                            # CAMPAIGN_LOG_TYPES change): the log composes
-                            # its own sentence from them.
-                            _row["why"] = _why
-                            _row["successor"] = _to
-                        world.log_event(_row)
+                    _row = {
+                        "type": "glory_crown_lost",
+                        "marshal": marshal.name,
+                        "nation": marshal.nation,
+                    }
+                    # New keys on the existing log type (no
+                    # CAMPAIGN_LOG_TYPES change): the log composes
+                    # its own sentence from them.
+                    _row["why"] = _why
+                    _row["successor"] = _to
+                    world.log_event(_row)
     return events
 
 
@@ -878,12 +809,9 @@ def _crown_lost_cause(ladder, holder, floor: int):
 
 def _crown_lost_line(marshal, why: str, to: str) -> str:
     """SR-4c: the dispatch line for a lost crown, saying where it went.
-    Lever down: the pre-SR-4c sentence ("the laurels have passed") for every
-    cause — which is the line the AAR read on turn 9 when nobody held them."""
+    The pre-SR-4c sentence ("the laurels have passed") served every cause —
+    which is the line the AAR read on turn 9 when nobody held them."""
     name = humanize_entity_name(marshal.name)
-    if not THE_FIRES_SAY_WHY:
-        return (f"{marshal.name} is no longer the army's most celebrated "
-                f"commander — the laurels have passed.")
     if why == "passed" and to:
         return (f"{name} is no longer the army's most celebrated commander — "
                 f"the laurels have passed to {humanize_entity_name(to)}.")
@@ -1286,7 +1214,7 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         # and handing the stale one over, which is the contradiction the
         # review read on consecutive turns.
         _replacing = False
-        if THE_REOPENED_QUARREL_SAYS_SO and settled_once_clause(world, marshal, target):
+        if settled_once_clause(world, marshal, target):
             stale = _pending_confrontation_for_pair(world, marshal.name, target.name)
             if stale is not None:
                 _retire_pending_petition(world, stale)
@@ -1323,8 +1251,7 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
                 seen = set(getattr(world, "jealousy_confrontations_seen", []) or [])
                 seen.add(key)
                 world.jealousy_confrontations_seen = sorted(seen)
-                if THE_AUDIENCE_WAITS:
-                    _stamp_audience(marshal, turn)
+                _stamp_audience(marshal, turn)
 
 
 def _check_escalation(world, marshal, target, events: List[Dict],
@@ -2215,15 +2142,13 @@ PETITION_DORMANT = "dormant"
 # endpoint. A crisis arriving while an audience holds the slot evicts it and
 # un-stamps its latch (and its SR-4c clock), so the audience returns on the
 # pair's next fire — "every level gets its audience" is strengthened, not
-# weakened. Lever False = every card is a crisis (the channel as it was).
-THE_ANTECHAMBER = True
+# weakened. (Before B1, every card was a crisis.)
 PETITION_TIER_AUDIENCE = "audience"
 PETITION_TIER_CRISIS = "crisis"
 # SRX-9 (the session exit of September 27, 2026): "an audience" is the
 # routine tier's word; a §6 confrontation of the CRISIS tier is titled
-# "Marshal X demands to be heard". Display only. Lever False = one title
-# ("seeks an audience") for both tiers.
-THE_CRISIS_IS_NOT_AN_AUDIENCE = True
+# "Marshal X demands to be heard". Display only (before: one title, "seeks
+# an audience", for both tiers).
 
 
 def petition_tier_for(kind: str, context: Optional[Dict] = None) -> str:
@@ -2249,7 +2174,7 @@ def petition_tier_for(kind: str, context: Optional[Dict] = None) -> str:
 
 def petition_tier(petition) -> str:
     """The tier a STANDING card travels by (a legacy card is a crisis)."""
-    if not THE_ANTECHAMBER or not isinstance(petition, dict):
+    if not isinstance(petition, dict):
         return PETITION_TIER_CRISIS
     if petition.get("tier") == PETITION_TIER_AUDIENCE:
         return PETITION_TIER_AUDIENCE
@@ -2429,8 +2354,7 @@ def _push_petition(world, petition: Dict) -> str:
     # the older card — before the occupancy rule, so an L1 audience yields
     # to its own pair's L2 crisis as SUPERSEDED (latch kept: its moment is
     # subsumed) rather than EVICTED (latch un-stamped: to return later).
-    if (THE_NEWER_WORD_SUPERSEDES and pending is not None
-            and petition_supersedes(petition, pending)):
+    if (pending is not None and petition_supersedes(petition, pending)):
         retire_petition(world, pending, "superseded")
         pending = None
     if pending is not None and pending is not petition:
@@ -2482,7 +2406,6 @@ def _push_petition(world, petition: Dict) -> str:
 # A card whose grievance no longer stands at all is still retired at
 # delivery by `petition_is_still_live` (FA-S17-D4) — that half predates F6.
 # ═══════════════════════════════════════════════════════════════════════
-THE_REOPENED_QUARREL_SAYS_SO = True
 SETTLED_ONCE_WINDOW_TURNS = 1
 
 
@@ -2509,8 +2432,6 @@ def _settled_once_record(world, marshal_name: str, target_name: str) -> Optional
 def settled_once_clause(world, marshal, target) -> str:
     """The card's first sentence when the quarrel it opens was settled by
     action within the last turn — "" otherwise (lever down: always "")."""
-    if not THE_REOPENED_QUARREL_SAYS_SO:
-        return ""
     record = _settled_once_record(world, marshal.name, target.name)
     if record is None:
         return ""
@@ -2557,8 +2478,6 @@ def _retire_pending_petition(world, petition) -> None:
 # delivered across the Phase-3 tree: the player pressed an arm and was told
 # "The moment has passed … Nothing was spent." The predicate is the same one;
 # it is asked one step earlier, at the moment the card would reach him.
-# False = deliver it and let the answer fail.
-THE_AUDIENCE_IS_STILL_OWED = True
 
 
 def petition_is_still_live(petition: Dict, world) -> bool:
@@ -2571,8 +2490,7 @@ def petition_is_still_live(petition: Dict, world) -> bool:
 
     B2 (PETITION_POPUP_REVISIT_SPEC §4 F2) generalizes it to every kind —
     each card dies with its SUBJECT — through `petition_retirement_reason`,
-    which also says WHY, so a retirement can never be silent. Lever down
-    (`THE_PETITION_DIES_WITH_ITS_SUBJECT`) = the FA-S17-D4 question only.
+    which also says WHY, so a retirement can never be silent.
     """
     return not petition_retirement_reason(petition, world)
 
@@ -2612,11 +2530,9 @@ def petition_is_still_live(petition: Dict, world) -> bool:
 # its moment is subsumed, not withdrawn (the eviction rule un-stamps
 # because an evicted audience is a DIFFERENT pair's moment, still owed).
 #
-# Lever down = the channel as B1 left it: FA-S17-D4's confrontation
-# question at the re-push, a receipt for an audience only, no supersede.
+# (B1 left the channel with FA-S17-D4's confrontation question at the
+# re-push, a receipt for an audience only, and no supersede.)
 # ═══════════════════════════════════════════════════════════════════════
-THE_PETITION_DIES_WITH_ITS_SUBJECT = True
-THE_NEWER_WORD_SUPERSEDES = True
 
 PETITION_SUPERSEDE_KINDS = ("jealousy_confrontation", "rivalry_confrontation")
 
@@ -2674,8 +2590,6 @@ def petition_retirement_reason(petition, world) -> str:
     """"" while the card still stands; otherwise the reason it retires:
     ``absent`` · ``cooled`` · ``moved_on`` · ``mended`` · ``provided`` ·
     ``at_war`` · ``court_gone`` · ``no_shadow``."""
-    if not THE_AUDIENCE_IS_STILL_OWED:
-        return ""
     if not isinstance(petition, dict):
         return ""
     kind = str(petition.get("kind") or "")
@@ -2694,16 +2608,13 @@ def petition_retirement_reason(petition, world) -> str:
         # S7: the stamped level is read at last. A card written at one rung
         # and still standing after the quarrel climbed another would serve
         # the old register against the new state.
-        if (THE_PETITION_DIES_WITH_ITS_SUBJECT
-                and "escalation_level" in context):
+        if ("escalation_level" in context):
             try:
                 stamped = int(context.get("escalation_level") or 0)
             except (TypeError, ValueError):
                 stamped = 0
             if stamped != get_escalation_level(marshal, str(asked_about)):
                 return "moved_on"
-        return ""
-    if not THE_PETITION_DIES_WITH_ITS_SUBJECT:
         return ""
     if kind == "rivalry_confrontation":
         marshal = world.get_marshal(str(context.get("marshal") or ""))
@@ -2761,8 +2672,6 @@ def petition_retirement_clause(petition, world, reason: str) -> str:
             return (f"the quarrel between {speaker} and {other} has gone "
                     f"further; the earlier word is overtaken.")
         return f"{speaker}'s earlier complaint is overtaken by graver words."
-    if not THE_PETITION_DIES_WITH_ITS_SUBJECT:
-        return f"{speaker} no longer presses the matter."
     if kind == "jealousy_confrontation":
         target = humanize_entity_name(str(context.get("target") or ""))
         if reason == "absent":
@@ -2806,28 +2715,15 @@ def retire_petition(world, petition, reason: str) -> str:
     was_audience = petition_tier(petition) == PETITION_TIER_AUDIENCE
     _retire_pending_petition(world, petition)
     speaker = _petition_speaker(petition)
-    if THE_PETITION_DIES_WITH_ITS_SUBJECT:
-        _pending_events(world).append({
-            "type": "petition_retired",
-            "message": f"Berthier notes that {clause}",
-            "nation": getattr(world, "player_nation", ""),
-            "marshal": speaker,
-            "kind": str((petition or {}).get("kind") or ""),
-            "reason": reason,
-            "retired": True,
-        })
-    elif was_audience:
-        # B1's receipt, unchanged (lever down): an audience said so; a
-        # crisis retired silently at the next re-push.
-        _pending_events(world).append({
-            "type": "marshal_audience",
-            "message": (f"Berthier notes that "
-                        f"{humanize_entity_name(speaker)} no longer presses "
-                        f"the matter."),
-            "nation": getattr(world, "player_nation", ""),
-            "marshal": speaker,
-            "retired": True,
-        })
+    _pending_events(world).append({
+        "type": "petition_retired",
+        "message": f"Berthier notes that {clause}",
+        "nation": getattr(world, "player_nation", ""),
+        "marshal": speaker,
+        "kind": str((petition or {}).get("kind") or ""),
+        "reason": reason,
+        "retired": True,
+    })
     return clause
 
 
@@ -3090,8 +2986,7 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
     _tier = petition_tier_for("jealousy_confrontation",
                               {"escalation_level": int(level)})
     _title = (f"{marshal_title(world, marshal.name, start=True)} demands to be heard"
-              if THE_CRISIS_IS_NOT_AN_AUDIENCE
-              and _tier == PETITION_TIER_CRISIS
+              if _tier == PETITION_TIER_CRISIS
               else f"{marshal_title(world, marshal.name, start=True)} seeks an audience")
     return _push_petition(world, {
         "kind": "jealousy_confrontation",
@@ -3389,12 +3284,11 @@ def check_fontainebleau(world, events: List[Dict]) -> None:
     # F4: the fuse — no collective petition before FONTAINEBLEAU_MIN_TURN,
     # and none over small change. Checked AFTER the re-arm above so a
     # count that fell and rose again still re-arms during the wait.
-    if THE_COLLECTIVE_PETITION_WAITS:
-        if int(world.current_turn) < FONTAINEBLEAU_MIN_TURN:
-            return
-        if sum(dotation.get_shortfall(m, world)
-               for m in eroding) < FONTAINEBLEAU_MIN_UNMET_GOLD:
-            return
+    if int(world.current_turn) < FONTAINEBLEAU_MIN_TURN:
+        return
+    if sum(dotation.get_shortfall(m, world)
+           for m in eroding) < FONTAINEBLEAU_MIN_UNMET_GOLD:
+        return
     last = int(getattr(world, "fontainebleau_last_turn", -999))
     if not armed or world.current_turn - last < FONTAINEBLEAU_COOLDOWN:
         return
@@ -3666,7 +3560,7 @@ def handle_petition_response(world, choice: str, executor=None,
     # receipt instead of applying an arm to a quarrel that has mended, a
     # petition every man has been paid for, a war already begun, or a
     # marshal who has left the Emperor's side.
-    if THE_PETITION_DIES_WITH_ITS_SUBJECT and kind != "jealousy_confrontation":
+    if kind != "jealousy_confrontation":
         _why = petition_retirement_reason(petition, world)
         if _why:
             _clause = retire_petition(world, petition, _why)
@@ -4342,7 +4236,7 @@ def process_turn(world) -> List[Dict]:
     # retirement leaves its receipt (`retire_petition`) — a stale crisis no
     # longer vanishes in silence at this seam.
     _standing = getattr(world, "pending_marshal_petition", None)
-    if _standing and (THE_ANTECHAMBER or THE_PETITION_DIES_WITH_ITS_SUBJECT):
+    if _standing:
         _why = petition_retirement_reason(_standing, world)
         if _why:
             retire_petition(world, _standing, _why)
@@ -4359,8 +4253,8 @@ def process_turn(world) -> List[Dict]:
     # 1) timers + ladder-shift resolution for live grievances
     #
     # A12: every pair cooled HERE is remembered for the rest of this pass,
-    # so step 3 cannot hand the same man straight back. See
-    # `JEALOUSY_SUPPRESS_SAME_PASS_REFIRE`.
+    # so step 3 cannot hand the same man straight back (the same-pass
+    # refire suppression, `cooled_this_pass`).
     cooled_this_pass = set()
     for marshal in list(world.marshals.values()):
         target_name = getattr(marshal, "jealous_of", None)
@@ -4374,7 +4268,7 @@ def process_turn(world) -> List[Dict]:
             # the army, and envied again the day he rallies. Gone and broken
             # are different causes and are now said differently.
             _broken_not_gone = (
-                THE_FIRES_SAY_WHY and target is not None
+                target is not None
                 and target.nation == marshal.nation
                 and int(getattr(target, "strength", 0) or 0) > 0
                 and not getattr(target, "captured_by", ""))
@@ -4489,8 +4383,7 @@ def process_turn(world) -> List[Dict]:
         # his nation's two fire slots (`MAX_FIRES_PER_NATION_TURN`); the
         # slot goes to the next-most-aggrieved marshal instead, which is
         # the behaviour the rate limit was written for.
-        if JEALOUSY_SUPPRESS_SAME_PASS_REFIRE \
-                and (marshal.name, target.name) in cooled_this_pass:
+        if (marshal.name, target.name) in cooled_this_pass:
             continue
         delta = get_glory_score(target, turn) - get_glory_score(marshal, turn)
         if delta >= threshold:
@@ -4515,7 +4408,7 @@ def process_turn(world) -> List[Dict]:
     # a branch where it does not fire today because Davout's ladder arm had
     # consumed the `warned >= 1` break). TUT-F5's own docstring already
     # promises no grievance of any kind; this completes that contract.
-    warned = (1 if (RESTLESSNESS_SLEEPS_IN_SCHOOL and jealousy_dormant(world))
+    warned = (1 if (jealousy_dormant(world))
               else 0)
     for marshal in world.marshals.values():
         if warned >= 1:
@@ -4935,8 +4828,7 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
             }
         }
         result = executor.execute(command, game_state)
-        if (AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE
-                and not (isinstance(result, dict) and result.get("success"))):
+        if (not (isinstance(result, dict) and result.get("success"))):
             # WO-28: nothing happened. Restore what the void took, say why
             # he did not go, and fire no beat, no log row, no report.
             marshal.strategic_order = _voided

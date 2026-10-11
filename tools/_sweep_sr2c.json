@@ -1,19 +1,5 @@
 [
  {
-  "id": "SR-2c/WO-32 a refused invest retires the decision again",
-  "file": "backend/commands/diplomatic_executor.py",
-  "old": "            if result.get(\"success\") or not A_REFUSED_ARM_KEEPS_THE_DECISION:\n                world.dialogue_manager.pop()",
-  "new": "            if True:\n                world.dialogue_manager.pop()",
-  "tests": "tests/test_sr2c_a_refusal_keeps_the_decision.py"
- },
- {
-  "id": "SR-2c/WO-32 a refused garrison pops the dialogue again",
-  "file": "backend/commands/diplomatic_executor.py",
-  "old": "                if A_REFUSED_ARM_KEEPS_THE_DECISION:\n                    world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(\n                        world, dialogue, refusal=_refusal)",
-  "new": "                if False:\n                    world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(\n                        world, dialogue, refusal=_refusal)",
-  "tests": "tests/test_sr2c_a_refusal_keeps_the_decision.py"
- },
- {
   "id": "SR-2c/WO-32 a decision about one satellite dismisses every row",
   "file": "backend/game_logic/vassal.py",
   "old": "        VASSAL_REBELLION_IMMINENT,\n        lambda n: str(((n.get(\"details\") or {}).get(\"vassal\")) or vassal_name)\n        == str(vassal_name),\n    ) or 0)",

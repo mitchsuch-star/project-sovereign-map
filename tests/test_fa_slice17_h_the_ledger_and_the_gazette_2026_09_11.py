@@ -10,8 +10,9 @@ and quoted neither), and FA-N51 (REFUTED BY EVENTS — FA-21 landed without the
 'second half' the row said it needed; the cheap honest deliverable is the
 monotonicity pin on the gold term so the asymmetry cannot drift unobserved).
 
-Every behaviour change sits behind a module-level lever whose False arm
-reproduces the prior behaviour, and each lever is pinned in both positions.
+The behaviour changes outside jealousy.py sit behind a module-level lever
+pinned in both positions; the two jealousy rules (the crown lost is logged,
+the promise quotes its window) are inlined (CODE-1 batch 3) and pinned up.
 """
 
 from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
@@ -84,10 +85,9 @@ class TestFAN52TheMoniteurReadsLiveTypes:
         assert "Holland passes from" in text, issue
         assert "yielded to Prussia" in text, issue
 
-    def test_the_laurels_passing_is_logged_beside_its_beat(self, world, monkeypatch):
+    def test_the_laurels_passing_is_logged_beside_its_beat(self, world):
         """`glory_crown_lost` had a dispatch beat and no log row — the Gazette
-        key for it was dead. The producer now writes the row; lever down, the
-        beat still fires and the log stays silent (the prior behaviour)."""
+        key for it was dead. The producer now writes the row beside the beat."""
         from backend.game_logic import jealousy as J
         ney = world.marshals["Ney"]
         davout = world.marshals["Davout"]
@@ -102,15 +102,6 @@ class TestFAN52TheMoniteurReadsLiveTypes:
         assert any(e.get("type") == "glory_crown_lost" and e.get("marshal") == "Ney" for e in events), events
         rows = [e for e in world.event_log[before:] if e.get("type") == "glory_crown_lost"]
         assert [r["marshal"] for r in rows] == ["Ney"], world.event_log[before:]
-        # lever down: same beat, no row
-        monkeypatch.setattr(J, "THE_CROWN_LOST_IS_LOGGED", False)
-        ney.glory_crowned = True
-        davout.glory_crowned = False
-        before = len(world.event_log)
-        with _quiet():
-            events = J.recompute_crowns(world)
-        assert any(e.get("type") == "glory_crown_lost" for e in events)
-        assert not [e for e in world.event_log[before:] if e.get("type") == "glory_crown_lost"]
 
     def test_the_laurels_passing_prints_a_sentence_and_reaches_the_army_section(self, world):
         from backend.campaign_log import CAMPAIGN_LOG_TYPES, filter_campaign_log, format_event_oneliner
@@ -209,13 +200,6 @@ class TestFAN53ThePromiseQuotesItsWindow:
                 break
             quiet += 1
         assert quiet == J.FONTAINEBLEAU_PROMISE_WINDOW, quiet
-
-    def test_the_lever_down_quotes_the_bare_three_again(self, world, monkeypatch):
-        from backend.game_logic import jealousy as J
-        monkeypatch.setattr(J, "THE_PROMISE_QUOTES_ITS_WINDOW", False)
-        _m, petition = self._petition(world)
-        promise = next(o for o in petition["options"] if o["id"] == "promise")
-        assert "extends 3 turns" in promise["detail"]
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -77,7 +77,6 @@ WINDOW_CROSSING_FLOOR = 0.9    # N9 — during a §5.3 window only
 # whole point. Landing on our OWN, an ally's or a neutral's shore was never
 # gated — that is the Portugal case (Mondego Bay 1808), and it is why
 # Britain's army reaches the Continent at all.
-HOST_RULE_ACTIVE = True
 
 # N5 — blockade effects
 BLOCKADE_TRADE_FACTOR = 0.5
@@ -127,8 +126,7 @@ WINDOW_COVERAGE_FACTOR = 0.5
 # blockade that rots the crews keeps the odds low). The wait resets when the
 # naval war ends (FA-N83's reading of "this war"). One source,
 # `diversion_odds`, for the roll, the confirm, the chip, the terms and the
-# expedition's diversion lever. False = the prior rule: once per war, 45%.
-THE_DIVERSION_IS_THROWN_AGAIN = True
+# expedition's diversion lever (the prior rule: once per war, 45%).
 DIVERSION_WAIT_TURNS = 4
 DIVERSION_READINESS_OFFSET = 25
 DIVERSION_ODDS_FLOOR = 5
@@ -142,8 +140,7 @@ DIVERSION_ODDS_CEILING = 95
 # sail, an ally's squadron beside ours. Each lever below is the resolver's
 # OWN odds function re-run with one thing changed (`expedition_slip_odds`
 # takes the override), so the figure a lever quotes is the figure that
-# throw would roll. False = the prior quote, which named the odds alone.
-THE_EXPEDITION_NAMES_ITS_LEVERS = True
+# throw would roll (the prior quote named the odds alone).
 EXPEDITION_LEVER_MIN_GAIN = 2      # a lever that moves the odds less is not named
 EXPEDITION_LEVER_SAIL = 10         # the "more sail" lever: 5 turns at the full keel rate
 EXPEDITION_LEVER_CORPS = 5000      # a new marshal's corps (recruitment.RECRUIT_MARSHAL_CORPS)
@@ -158,8 +155,7 @@ EXPEDITION_LEVERS_SHOWN = 3        # the three that move the odds most
 # to the Continental System's denominator. The building is an ordinary work
 # on the province (a slot, the tier upkeep, razed by a plunder, damaged by a
 # secure, restored by `repair`), and it serves as a yard only while it
-# stands undamaged. False = the prior rule: dockyards are authored data only.
-NAVAL_YARDS_CAN_BE_BUILT = True
+# stands undamaged (before SR-5b, dockyards were authored data only).
 NAVAL_YARD_BUILDING = "naval_yard"
 NAVAL_YARD_MAX_PER_NATION = 2
 
@@ -645,8 +641,6 @@ def naval_yard_site_refusal(world, region, nation: str) -> str:
     AI rung. The ordinary works' gates (a slot, stability, gold, a work
     already rising) follow it inside `can_build`."""
     name = getattr(region, "name", "")
-    if not NAVAL_YARDS_CAN_BE_BUILT:
-        return "Naval yards are not raised in this campaign."
     if not has_naval_layer(world):
         return "This campaign has no naval theatre, Sire."
     if get_fleet(world, nation) is None:
@@ -698,7 +692,7 @@ def naval_yard_sites(world, nation: str) -> List[Tuple[str, str]]:
     refusal) — refusal "" where `can_build` would start the work now. The
     lawful sites first, then by income (the richest port is the natural
     yard), then by name. Read off our OWN provinces (GR8)."""
-    if not NAVAL_YARDS_CAN_BE_BUILT or get_fleet(world, nation) is None:
+    if get_fleet(world, nation) is None:
         return []
     out: List[Tuple[int, int, str, str]] = []
     for name in world.get_nation_regions(nation):
@@ -736,7 +730,7 @@ def naval_yard_terms(world, region, nation: str) -> Optional[Dict]:
     else the price and the executor's own verdict (`can_build`): an empty
     `refusal` is a chip that builds, a non-empty one says why it does not
     (the §11.6 honest idiom). Figures from BUILDING_TYPES, never copied."""
-    if not NAVAL_YARDS_CAN_BE_BUILT or region is None:
+    if region is None:
         return None
     if getattr(region, "controller", None) != nation:
         return None
@@ -1028,8 +1022,7 @@ def over_lift_refusal(world, marshal) -> str:
          if m.name != marshal.name and 0 < int(m.strength) <= lift),
         key=lambda m: -int(m.strength))
     eligible = [m for m in under_lift
-                if not (THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE
-                        and getattr(m, "is_sovereign", False))]
+                if not getattr(m, "is_sovereign", False)]
     sovereign_only = [m for m in under_lift if m not in eligible]
     parts = [f"The transports lift {lift:,} men; {marshal.name} commands "
              f"{troops:,} — {excess:,} too many."]
@@ -1086,19 +1079,15 @@ def over_lift_refusal(world, marshal) -> str:
     return " ".join(parts)
 
 
-# FA-D16 (slice 17, Phase 2) flip lever: the lift counsel excludes the
-# sovereign and names the Marshalate's road (a 5,000-man commission). False
-# = the prior counsel, which named the Emperor.
-THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE = True
-
-
-# NUI-2 (Sept 24, 2026) flip lever: when no bench marshal is affordable yet,
-# the lift counsel still names the cheapest one the gate would pass WITH the
-# gold, and his price against the treasury. False = the prior counsel, which
-# fell silent — measured on the 1805 boot, France holds 800g against a
-# cheapest commission of 3,500g, so the one road to an expedition corps was
-# never named at the moment the player asked why nothing could sail.
-THE_LIFT_COUNSEL_NAMES_THE_PRICE = True
+# FA-D16 (slice 17, Phase 2): the lift counsel excludes the sovereign and
+# names the Marshalate's road (a 5,000-man commission); the prior counsel
+# named the Emperor.
+# NUI-2 (Sept 24, 2026): when no bench marshal is affordable yet, the lift
+# counsel still names the cheapest one the gate would pass WITH the gold,
+# and his price against the treasury. The prior counsel fell silent —
+# measured on the 1805 boot, France holds 800g against a cheapest
+# commission of 3,500g, so the one road to an expedition corps was never
+# named at the moment the player asked why nothing could sail.
 
 
 def marshalate_road(world, nation: str) -> str:
@@ -1108,8 +1097,6 @@ def marshalate_road(world, nation: str) -> str:
     under the lift by construction. When nobody is affordable yet, the
     cheapest man the gate would pass with his price in hand
     (`cheapest_commission_if_funded`) and what the treasury lacks."""
-    if not THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:
-        return ""
     try:
         from backend.game_logic.recruitment import (
             RECRUIT_MARSHAL_CORPS, cheapest_commission_if_funded,
@@ -1124,8 +1111,6 @@ def marshalate_road(world, nation: str) -> str:
             return ""
         return (f"Or commission {name} — {int(RECRUIT_MARSHAL_CORPS):,} men for {cost:,}g, "
                 f"under the transports' lift from the day he is raised — and march him to a yard.")
-    if not THE_LIFT_COUNSEL_NAMES_THE_PRICE:
-        return ""
     cand = cheapest_commission_if_funded(world, nation)
     if not cand:
         return ""
@@ -1519,10 +1504,7 @@ def covering_fleets(world, mover_nation: str,
     return covers
 
 
-# HC-4a "The Royal Navy's lifeline" (gate §5a) — flip lever for the
-# BASELINE_SERIES attribution experiment: False reproduces the pre-slice
-# supply behavior byte-identically (the HOST_RULE_ACTIVE idiom).
-SHORE_SUPPLY_ACTIVE = True
+# HC-4a "The Royal Navy's lifeline" (gate §5a).
 
 
 def shore_supply_state(world, army_nation: str,
@@ -1548,7 +1530,7 @@ def shore_supply_state(world, army_nation: str,
     ZERO new constants; fleetless worlds return None before any read;
     the caller gates on `region.is_coastal` (authored per province).
     """
-    if not SHORE_SUPPLY_ACTIVE or not has_naval_layer(world):
+    if not has_naval_layer(world):
         return None
     hostile_nation: Optional[str] = None
     hostile_cov = 0.0
@@ -1581,8 +1563,6 @@ def is_hostile_shore(world, mover_nation: str, to_region: str) -> bool:
     """NV-4 (§4.1a): is `to_region` held by a court `mover_nation` is at war
     with? The ONE reading of "opposed" — own soil, an ally's soil and a
     neutral's soil are all hosts, and a host is never stormed."""
-    if not HOST_RULE_ACTIVE:
-        return False
     holder = _controller(world, to_region)
     if not holder or holder == mover_nation:
         return False
@@ -2064,8 +2044,6 @@ def expedition_odds_levers(world, nation: str, target_region: str,
     Each lever is quoted ALONE from today's board, never stacked. The
     three that move the odds most, most first; [] for an unopposed
     passage."""
-    if not THE_EXPEDITION_NAMES_ITS_LEVERS:
-        return []
     troops = int(troops)
     base = expedition_slip_odds(world, nation, target_region, troops)
     coverer = base.get("coverer")
@@ -2326,19 +2304,14 @@ def diversion_terms_for(world, nation: str) -> List[Dict]:
     own = get_fleet(world, nation) or {}
     own_ships = int(own.get("ships", 0) or 0)
     wait = diversion_wait(world, nation)
-    if THE_DIVERSION_IS_THROWN_AGAIN:
-        ready = {"text": (f"the fleet free to sail the feint (again "
-                          f"{DIVERSION_WAIT_TURNS} turns after the last)"),
-                 "met": wait == 0,
-                 # Every term carries its negative phrasing even while met
-                 # (NV-6: a disabled chip renders it as the reason).
-                 "unmet": (diversion_wait_sentence(world, nation)
-                           or f"the fleet must wait {DIVERSION_WAIT_TURNS} "
-                              f"turns between feints")}
-    else:
-        ready = {"text": "the diversion not yet spent this war",
-                 "met": wait == 0,
-                 "unmet": "the diversion is already spent this war"}
+    ready = {"text": (f"the fleet free to sail the feint (again "
+                      f"{DIVERSION_WAIT_TURNS} turns after the last)"),
+             "met": wait == 0,
+             # Every term carries its negative phrasing even while met
+             # (NV-6: a disabled chip renders it as the reason).
+             "unmet": (diversion_wait_sentence(world, nation)
+                       or f"the fleet must wait {DIVERSION_WAIT_TURNS} "
+                          f"turns between feints")}
     return [
         {"text": "a fleet in commission", "met": own_ships > 0,
          "unmet": "we keep no fleet in commission"},
@@ -2362,13 +2335,10 @@ def last_diversion_turn(rec: Optional[dict]) -> int:
 
 
 def diversion_wait(world, nation: str) -> int:
-    """Turns before the fleet may sail the feint again — 0 when it may.
-    Under the lever down, a thrown feint waits out the war (a large wait)."""
+    """Turns before the fleet may sail the feint again — 0 when it may."""
     last = last_diversion_turn(get_fleet(world, nation))
     if last < 0:
         return 0
-    if not THE_DIVERSION_IS_THROWN_AGAIN:
-        return 10 ** 6
     return int(max(0, last + DIVERSION_WAIT_TURNS
                    - int(getattr(world, "current_turn", 0) or 0)))
 
@@ -2378,8 +2348,6 @@ def diversion_wait_sentence(world, nation: str) -> str:
     wait = diversion_wait(world, nation)
     if wait <= 0:
         return ""
-    if not THE_DIVERSION_IS_THROWN_AGAIN:
-        return "the diversion is already spent this war"
     ago = int(getattr(world, "current_turn", 0) or 0) - last_diversion_turn(
         get_fleet(world, nation))
     when = ("this turn" if ago <= 0
@@ -2393,8 +2361,6 @@ def diversion_odds(world, nation: str) -> int:
     less DIVERSION_READINESS_OFFSET, clamped to the floor and ceiling. ONE
     source for the roll, the confirm, the chip, and the expedition's
     diversion lever (shown = applied). Lever down: the flat 45."""
-    if not THE_DIVERSION_IS_THROWN_AGAIN:
-        return int(DIVERSION_SUCCESS_PCT)
     rec = get_fleet(world, nation) or {}
     readiness = int(rec.get("readiness", 0) or 0)
     return int(max(DIVERSION_ODDS_FLOOR,
@@ -2445,10 +2411,6 @@ def resolve_diversion(world, nation: str) -> Dict:
         return {"success": False,
                 "message": "We have no fleet to sail, Sire."}
     if diversion_wait(world, nation) > 0:
-        if not THE_DIVERSION_IS_THROWN_AGAIN:
-            return {"success": False, "message": (
-                "The fleet has already attempted its grand diversion this war — "
-                "the squadrons cannot repeat the feint while the enemy watches for it.")}
         sentence = diversion_wait_sentence(world, nation)
         return {"success": False, "message": (
             f"{sentence[0].upper()}{sentence[1:]}. The squadrons cannot "
@@ -2495,8 +2457,7 @@ def resolve_diversion(world, nation: str) -> Dict:
     rec["readiness"] = diversion_failure_readiness(rec)
     action = resolve_fleet_action(world, nation, hostile, context="diversion")
     ships_lost = own_ships_lost(action, nation)
-    again = ("" if not THE_DIVERSION_IS_THROWN_AGAIN else
-             f" She may try it again in {DIVERSION_WAIT_TURNS} turns, at "
+    again = (f" She may try it again in {DIVERSION_WAIT_TURNS} turns, at "
              f"the odds her readiness then gives.")
     return {
         "success": True, "window": False, "against": hostile,
@@ -2739,7 +2700,6 @@ def link_verdicts(world) -> Dict[str, Dict]:
 # CAMP and the truth is keyed on READINESS. The two are orthogonal: over a
 # fifteen-turn walk the warning and the reality disagreed on 5 turns in BOTH
 # directions.
-DIVERSION_WINDOW_FORECAST = True
 
 _OPEN_VERDICTS = frozenset({"open", "open_ratio", "window"})
 
@@ -2897,8 +2857,6 @@ def window_forecast_clause(world, actor: str) -> str:
     coming home behind the player's own success), and a three-arm clause
     renders a lie there through its fall-through.
     """
-    if not DIVERSION_WINDOW_FORECAST:
-        return ""
     forecast = window_forecast(world, actor)
     subject = forecast.get("subject")
     if not subject:
@@ -3290,8 +3248,7 @@ def _small_corps(world, nation: str) -> List:
     return sorted(
         (m for m in world.get_marshals_by_nation(nation)
          if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
-         and not (THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE
-                  and getattr(m, "is_sovereign", False))),
+         and not (getattr(m, "is_sovereign", False))),
         key=lambda m: -int(m.strength))
 
 
@@ -3310,7 +3267,7 @@ def no_small_corps_line(world, nation: str) -> str:
     guard = [m for m in world.get_marshals_by_nation(nation)
              if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
              and getattr(m, "is_sovereign", False)]
-    if guard and THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:
+    if guard:
         return (f"only {guard[0].name}'s Guard is under the "
                 f"{EXPEDITION_MAX_TROOPS:,} lift, and the Emperor does not "
                 f"sail on an expedition — {new_corps}")
@@ -3778,12 +3735,9 @@ def build_admiralty_report(world) -> Dict:
         # not being made to — but spending a once-per-war card to open
         # two turns of water with no army on the beach is a trap, so
         # the chip says so instead of quietly letting it happen.
-        if THE_DIVERSION_IS_THROWN_AGAIN:
-            note = (f"{diversion_odds(world, player)} in 100 at readiness "
-                    f"{int((own or {}).get('readiness', 0) or 0)} — and again "
-                    f"{DIVERSION_WAIT_TURNS} turns after, whatever the outcome")
-        else:
-            note = f"{DIVERSION_SUCCESS_PCT}% — and once only, this war"
+        note = (f"{diversion_odds(world, player)} in 100 at readiness "
+                f"{int((own or {}).get('readiness', 0) or 0)} — and again "
+                f"{DIVERSION_WAIT_TURNS} turns after, whatever the outcome")
         if not camp_staged(world, player):
             note += "; no army is staged to use the open water"
         # FA-31: and what the 45% actually BUYS. The staging warning above
@@ -4065,7 +4019,7 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
             # levers are exact per key — measured, this keeps the payload
             # off ~6x the quotes with two corps at a yard (GR8). A drift
             # pin re-asks every row directly.
-            if THE_EXPEDITION_NAMES_ITS_LEVERS and quote.get("coverer"):
+            if quote.get("coverer"):
                 key = (int(marshal.strength), quote["coverer"], quote["mode"])
                 if key not in lever_memo:
                     lever_memo[key] = levers_line(expedition_odds_levers(
@@ -4356,10 +4310,9 @@ def find_ai_diversion(world, nation: str) -> Optional[Dict]:
     # The gate keys on the RANKED SUBJECT, not on "any link opens". Measured
     # with the naive any-link form: in the trap state the rung still returned
     # a candidate, because a Mediterranean link the army cannot use opens.
-    if DIVERSION_WINDOW_FORECAST:
-        forecast = window_forecast(world, nation)
-        if not (forecast["opens_t1"] or forecast["opens_t2"]):
-            return None
+    forecast = window_forecast(world, nation)
+    if not (forecast["opens_t1"] or forecast["opens_t2"]):
+        return None
     return {"marshal": None, "action": "naval_diversion", "target": None,
             "_acting_nation": nation}
 
@@ -4389,8 +4342,6 @@ def find_ai_naval_yard(world, nation: str, treasury: int) -> Optional[Dict]:
     yard for a court that already holds one. The site and every refusal are
     `can_build`'s (via `naval_yard_sites`) — the same verb, price and gate
     as the player."""
-    if not NAVAL_YARDS_CAN_BE_BUILT:
-        return None
     rec = get_fleet(world, nation)
     if not rec or "readiness" not in rec:
         return None

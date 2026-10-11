@@ -175,13 +175,6 @@
     "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeparatePeaceChip::test_a_foreign_name_in_the_params_falls_back_to_the_table"
   },
   {
-    "id": "EPF6-1 the reopened lever down",
-    "file": "backend/game_logic/jealousy.py",
-    "old": "THE_REOPENED_QUARREL_SAYS_SO = True",
-    "new": "THE_REOPENED_QUARREL_SAYS_SO = False",
-    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_the_next_rung_opens_with_settled_once"
-  },
-  {
     "id": "EPF6-2 the window cannot hold last turn's settlement",
     "file": "backend/game_logic/jealousy.py",
     "old": "SETTLED_ONCE_WINDOW_TURNS = 1",

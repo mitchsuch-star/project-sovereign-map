@@ -401,8 +401,8 @@ class TestD16LiftCounselNamesTheMarshalate:
             first_affordable_commission)
         w = _boot()
         # 800g at boot clears nobody. FLIPPED CONSCIOUSLY by NUI-2 (Sept 24,
-        # 2026; lever `naval.THE_LIFT_COUNSEL_NAMES_THE_PRICE`, NAVAL_SPEC
-        # §18): this pin used to assert the road fell SILENT here, which left
+        # 2026; NAVAL_SPEC §18 — the live rule since CODE-1 batch 3): this
+        # pin used to assert the road fell SILENT here, which left
         # the lift refusal naming no road at all at exactly the moment the
         # player needed one. It now names the cheapest man the gate would pass
         # with the treasury topped up — his price, and what we hold.
@@ -420,23 +420,6 @@ class TestD16LiftCounselNamesTheMarshalate:
         assert road.startswith(f"Or commission {cand['name']} — {RECRUIT_MARSHAL_CORPS:,} men for {int(cand['cost']):,}g")
         assert road in NV.over_lift_refusal(w, w.marshals["Soult"])
 
-    def test_price_lever_down_the_boot_road_falls_silent_again(self, monkeypatch):
-        """The pre-NUI-2 reading, reproduced behind its lever."""
-        from backend.game_logic import naval as NV
-        _flip(monkeypatch, NV, "THE_LIFT_COUNSEL_NAMES_THE_PRICE", False)
-        w = _boot()
-        assert NV.marshalate_road(w, "France") == ""
-        w.nation_gold["France"] = 10_000
-        assert NV.marshalate_road(w, "France").startswith("Or commission ")
-
-    def test_lever_down_names_the_emperor_again(self, monkeypatch):
-        from backend.game_logic import naval as NV
-        _flip(monkeypatch, NV, "THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE", False)
-        w = _boot()
-        w.nation_gold["France"] = 10_000
-        text = NV.over_lift_refusal(w, w.marshals["Soult"])
-        assert "Napoleon stands at 10,000" in text
-        assert "Or commission" not in text
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -513,14 +496,6 @@ class TestD18TruceProjectionCountsTheThaw:
         blob = repr(snap)
         assert "will thaw to -84 by expiry" in blob
         assert "projected_relation" in blob
-
-    def test_lever_down_reads_the_relation_now(self, monkeypatch):
-        from backend.game_logic import diplomacy as DP
-        _flip(monkeypatch, DP, "THE_TRUCE_PROJECTION_COUNTS_THE_THAW", False)
-        w = self._truce(-64, 3)
-        row = self._hud_row(w)
-        assert row["armistice_projected_relation"] == -64
-        assert row["armistice_projected_outcome"] == "war"
 
 
 # ═══════════════════════════════════════════════════════════════════════

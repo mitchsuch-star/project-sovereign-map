@@ -393,14 +393,6 @@ class TestTheCollectivePetitionWaits:
             J.check_fontainebleau(world, [])
         assert world.fontainebleau_armed is True
 
-    def test_the_lever_down_fires_on_turn_seven(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_COLLECTIVE_PETITION_WAITS", False)
-        world.current_turn = 7
-        self._three(world, steps=2)
-        with _quiet():
-            J.check_fontainebleau(world, [])
-        assert world.pending_marshal_petition is not None
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # THE UNMET BLOCK WAITS

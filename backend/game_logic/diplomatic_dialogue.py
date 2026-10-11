@@ -255,19 +255,16 @@ def mission_effect_text(world, mission_type: str, short: bool = False) -> str:
         return f"{_m():+d} relation/turn" if short else f"{_m():+d} relation per turn"
     if mission_type == "COURT_NATION":
         from backend.game_logic import diplomacy as _d
-        if _d.COURT_FAVOUR_ACTIVE:
-            per, cap = int(_d.COURT_FAVOUR_PER_TURN), int(_d.COURT_FAVOUR_CAP)
-            _eff = MISSION_EFFECTS.get("COURT_NATION", {})
-            chance = int(round(float(_eff.get("undermine_chance", 0)) * 100))
-            loss = int(_eff.get("undermine_amount", 0))
-            if short:
-                return (f"{_m():+d} relation/turn, proposals +{per}/turn courted "
-                        f"(max +{cap}), {chance}% blowback")
-            return (f"{_m():+d} relation per turn; our proposals to them "
-                    f"+{per} per turn courted (max +{cap}, now "
-                    f"+{_court_favour_now(world)}); {chance}% chance of {loss:+d}")
-        return (f"{_m():+d} relation/turn, 20% blowback" if short
-                else f"{_m():+d} relation per turn, 20% blowback risk")
+        per, cap = int(_d.COURT_FAVOUR_PER_TURN), int(_d.COURT_FAVOUR_CAP)
+        _eff = MISSION_EFFECTS.get("COURT_NATION", {})
+        chance = int(round(float(_eff.get("undermine_chance", 0)) * 100))
+        loss = int(_eff.get("undermine_amount", 0))
+        if short:
+            return (f"{_m():+d} relation/turn, proposals +{per}/turn courted "
+                    f"(max +{cap}), {chance}% blowback")
+        return (f"{_m():+d} relation per turn; our proposals to them "
+                f"+{per} per turn courted (max +{cap}, now "
+                f"+{_court_favour_now(world)}); {chance}% chance of {loss:+d}")
     if mission_type == "GATHER_INTEL":
         return ("3 turns, then full intel for 5" if short
                 else "3 turns to complete, then full intel for 5")
@@ -343,7 +340,7 @@ def project_mission_turns(world, status: dict) -> tuple:
     # work is the favour, which lasts only while he stays. Its end is the
     # player's recall, so the note counts the funded turns to the full favour
     # and then says it holds — never a completion that is not coming.
-    if mission_type == "COURT_NATION" and _d.COURT_FAVOUR_ACTIVE:
+    if mission_type == "COURT_NATION":
         cap = int(_d.COURT_FAVOUR_CAP)
         per = max(1, int(_d.COURT_FAVOUR_PER_TURN))
         owed = cap - per * int(status["turns_active"])
@@ -461,7 +458,7 @@ def mission_status(world) -> Optional[dict]:
                            else mission_recall_command(world)),
         "relation_descriptor": _d.get_relation_descriptor(current),
     }
-    if mission_type == "COURT_NATION" and _d.COURT_FAVOUR_ACTIVE:
+    if mission_type == "COURT_NATION":
         status["favour_now"] = _court_favour_now(world)
         status["favour_cap"] = int(_d.COURT_FAVOUR_CAP)
     kind, turns, note = project_mission_turns(world, status)
@@ -1963,10 +1960,6 @@ def mission_rows_for_state(state: str):
     rows = MISSION_ROWS_BY_STATE.get(key)
     if rows is None:
         return None
-    if key == "DEFENSIVE_ALLIANCE":
-        from backend.game_logic.diplomacy import REASSURE_ONLY_AT_ALLIANCE
-        if not REASSURE_ONLY_AT_ALLIANCE:
-            rows = rows | {"REASSURE_ALLY"}
     return rows
 
 

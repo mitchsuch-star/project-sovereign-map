@@ -84,13 +84,6 @@
     "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_dispatch_identity_is_the_corps_not_the_pair"
   },
   {
-    "id": "FA-N73 the quiet break rings nothing",
-    "file": "backend/game_logic/vassal.py",
-    "old": "    if not A_QUIET_BREAK_STILL_RINGS_THE_BELL:\n        return",
-    "new": "    if True:\n        return",
-    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAQuietBreakStillRingsTheBell"
-  },
-  {
     "id": "FA-N73 the alert is not lord-gated",
     "file": "backend/game_logic/vassal.py",
     "old": "    if exit_path not in _SOFT_BREAK_BODY or lord != player:",

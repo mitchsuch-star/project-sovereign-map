@@ -13,8 +13,8 @@ the Generals card, in the dispatch, and is served on demand by
 crisis arriving while an audience holds the slot evicts it and un-stamps its
 latch, so the audience returns on the pair's next fire.
 
-Lever `jealousy.THE_ANTECHAMBER` — False = every card is CRISIS (the modal
-channel as it was).
+The antechamber is inlined in jealousy.py (CODE-1 batch 3): the modal
+channel is the crisis tier's alone.
 """
 
 import contextlib
@@ -89,11 +89,6 @@ class TestTheTierTable:
     def test_a_legacy_card_without_a_tier_is_a_crisis(self):
         assert J.petition_tier({"kind": "jealousy_confrontation"}) == "crisis"
 
-    def test_lever_down_every_card_is_a_crisis(self, monkeypatch):
-        monkeypatch.setattr(J, "THE_ANTECHAMBER", False)
-        assert J.petition_tier({"kind": "jealousy_confrontation",
-                                "tier": "audience"}) == "crisis"
-
 
 # ═══════════════════════════ THE AUDIENCE ROAD ═════════════════════════════
 
@@ -165,11 +160,9 @@ class TestAnAudienceWaitsInTheAntechamber:
         # PC15-10 B2 (F2), a conscious flip: every retirement's receipt is
         # now ONE type, `petition_retired` (exempt from the drama cap) — the
         # audience-only `marshal_audience` receipt was B1's pulled-forward
-        # half of F2 and survives only behind B2's lever.
-        _type = ("petition_retired" if J.THE_PETITION_DIES_WITH_ITS_SUBJECT
-                 else "marshal_audience")
+        # half of F2 and is gone (B2 inlined, CODE-1 batch 3).
         lines = [e["message"] for e in events
-                 if e.get("type") == _type and e.get("retired")]
+                 if e.get("type") == "petition_retired" and e.get("retired")]
         assert lines and "no longer presses the matter" in lines[-1], lines
 
     def test_get_retires_a_stale_card_and_says_so(self, world):
@@ -265,12 +258,6 @@ class TestACrisisIsStillAModal:
         crisis = world.pending_marshal_petition
         _fire(world, "Massena", "Davout")
         assert world.pending_marshal_petition is crisis
-
-    def test_lever_down_an_audience_is_a_modal(self, world, monkeypatch):
-        monkeypatch.setattr(J, "THE_ANTECHAMBER", False)
-        _fire(world, "Massena", "Davout")
-        assert _queue_has_petition(world)
-        assert not _rail(world, N.JEALOUSY_CONFRONTATION)
 
 
 class TestTheLoadReprimeReadsTheTier:

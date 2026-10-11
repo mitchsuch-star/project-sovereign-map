@@ -6205,7 +6205,7 @@ class DiplomaticExecutor:
                 world.dialogue_manager.pop()
                 return {"success": False, "message": "No vassal specified."}
             from backend.game_logic.vassal import (
-                A_REFUSED_ARM_KEEPS_THE_DECISION, dismiss_rebellion_row,
+                dismiss_rebellion_row,
                 invest_in_vassal, rebellion_popup_for_dialogue,
             )
             result = invest_in_vassal(world, vassal_name)
@@ -6213,7 +6213,7 @@ class DiplomaticExecutor:
             # Invest (cooldown / gold / DP) used to pop the dialogue and
             # dismiss every rebellion row anyway — Garrison and Accept Risk
             # gone for the turn on a vassal one tick from rebellion.
-            if result.get("success") or not A_REFUSED_ARM_KEEPS_THE_DECISION:
+            if result.get("success"):
                 world.dialogue_manager.pop()
                 world.vassal_rebellion_imminent_popup = None
                 dismiss_rebellion_row(world, vassal_name)
@@ -6244,20 +6244,17 @@ class DiplomaticExecutor:
             _court = display_nation(vassal_name)
             if world.actions_remaining < 2:
                 from backend.game_logic.vassal import (
-                    A_REFUSED_ARM_KEEPS_THE_DECISION, rebellion_popup_for_dialogue,
+                    rebellion_popup_for_dialogue,
                 )
                 _refusal = (f"Insufficient AP. Showing the flag in {_court} "
                             f"costs 2 AP, you have {int(world.actions_remaining)}.")
                 # WO-32 (SR-2c): the sibling arm — a refused Garrison kept
                 # the popup slot and the rail row but popped the dialogue,
                 # which is what kills the decision.
-                if A_REFUSED_ARM_KEEPS_THE_DECISION:
-                    world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
-                        world, dialogue, refusal=_refusal)
-                    return {"success": False, "message": _refusal,
-                            "vassal_rebellion_retained": True}
-                world.dialogue_manager.pop()
-                return {"success": False, "message": _refusal}
+                world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
+                    world, dialogue, refusal=_refusal)
+                return {"success": False, "message": _refusal,
+                        "vassal_rebellion_retained": True}
             world.actions_remaining -= 2
             vassal_state = world.vassals.get(vassal_name, {})
             old_loyalty = vassal_state.get("loyalty", 0)
@@ -7123,11 +7120,11 @@ class DiplomaticExecutor:
             # and BEFORE the notification dismiss, and its RETURNED outcome
             # decides what is consumed. `stands` (the lord cannot pay, or
             # gave the province elsewhere by his own hand — vassal's one
-            # verdict seam, lever `THE_LORD_PAYS_TO_GRANT`) is refused
+            # verdict seam, `grant_petition`) is refused
             # WITHOUT consuming the petition: the response re-carries the
             # question (slice-6 rule) so the client re-mounts it, and only
-            # Refuse or the lapse can end it now. The lever's False arm
-            # answers `withdrawn` from the same seam — the 7d10e20c exit.
+            # Refuse or the lapse can end it now. (The 7d10e20c exit
+            # answered `withdrawn` from the same seam; IQ-7 R2 retired it.)
             outcome = grant_petition(world, vassal, lord, petition)
             verdict = str(outcome.get("outcome") or "")
             if verdict == "stands":

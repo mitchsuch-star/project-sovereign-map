@@ -867,12 +867,10 @@ def _build_vassals(world) -> Dict[str, Any]:
         # marshals drag their feet" promises regiments VS-4 Rule 1b can only
         # withhold when the lord actually fields a corps of the vassal's own
         # colours. The dispatch line was made honest by R1; the card kept
-        # the claim. Display-only (GR6), keyed on the same lever, and the
-        # key is ABSENT with the lever down so an old payload or a
-        # lever-down game renders the card unchanged.
-        if _vassal.THE_WAVERING_LINE_IS_HONEST:
-            row["wavering_regiments"] = bool(
-                _vassal.lord_fields_the_vassals_regiments(world, player, name))
+        # the claim. Display-only (GR6); the client tolerates the key's
+        # absence, so an old payload renders the card unchanged.
+        row["wavering_regiments"] = bool(
+            _vassal.lord_fields_the_vassals_regiments(world, player, name))
         rows.append(row)
 
     return {

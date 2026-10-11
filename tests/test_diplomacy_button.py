@@ -885,13 +885,12 @@ class TestMissionActions:
         assert "mission_undermine" in names
 
     def test_defensive_alliance_has_reassure(self):
-        # Flipped consciously — IQ-4 §1.4 (REASSURE_ONLY_AT_ALLIANCE): at
-        # DEFENSIVE_ALLIANCE the Cabinet offered both relation missions, and
-        # REASSURE (+4) beside IMPROVE (+8) at the same 1 DP was strictly
-        # dominated — never the right choice. It is withdrawn here; ALLIANCE,
-        # where it is the only relation mission offered, keeps it (the pin
-        # below). Lever down restores the row.
-        from backend.game_logic import diplomacy as _dip
+        # Flipped consciously — IQ-4 §1.4 (REASSURE at ALLIANCE only, the
+        # live rule since CODE-1 batch 3): at DEFENSIVE_ALLIANCE the Cabinet
+        # offered both relation missions, and REASSURE (+4) beside IMPROVE
+        # (+8) at the same 1 DP was strictly dominated — never the right
+        # choice. It is withdrawn here; ALLIANCE, where it is the only
+        # relation mission offered, keeps it (the pin below).
         world = _make_world()
         world.diplomatic_points = 4
         _set_diplo_state(world, "France", "Austria", "DEFENSIVE_ALLIANCE")
@@ -900,14 +899,6 @@ class TestMissionActions:
         assert "mission_reassure" not in names
         assert "mission_gather_intel" in names
         assert "mission_improve_relations" in names
-        original = _dip.REASSURE_ONLY_AT_ALLIANCE
-        try:
-            _dip.REASSURE_ONLY_AT_ALLIANCE = False
-            names = [a["action"] for a in
-                     get_available_diplomatic_actions(world, "Austria")]
-            assert "mission_reassure" in names
-        finally:
-            _dip.REASSURE_ONLY_AT_ALLIANCE = original
 
     def test_alliance_has_reassure(self):
         world = _make_world()

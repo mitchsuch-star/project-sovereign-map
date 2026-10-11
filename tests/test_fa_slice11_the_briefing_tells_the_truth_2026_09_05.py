@@ -76,7 +76,6 @@ SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 
 LEVERS = [
-    (VASSAL, "THE_BREAK_IS_BRIEFED_TRUTHFULLY"),
     (DISPATCH, "SOIL_ALARM_IS_ONE_RUN"),
     (DISPATCH, "SOIL_ALARM_IS_HOME_SOIL_ONLY"),
     (DISPATCH, "THE_SHELLING_IS_BRIEFED"),
@@ -142,13 +141,6 @@ class TestTheSatellitesFateIsBriefedTruthfully:
         assert any("Switzerland has rebelled against France" in t
                    for t in texts), texts
         assert world.regions["Bern"].controller == "Switzerland"
-
-    def test_the_lever_down_restores_the_false_line(self, world):
-        VASSAL.THE_BREAK_IS_BRIEFED_TRUTHFULLY = False
-        world.vassals["Switzerland"]["loyalty"] = 0
-        with _quiet():
-            check_vassal_rebellion(world)
-        assert any("ceased to exist" in t for t in _rail_texts(world))
 
     def test_the_graceful_exit_is_briefed_at_all(self, world):
         """The exit BOTH big satellites take on the shipped board — they

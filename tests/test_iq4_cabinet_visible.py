@@ -60,23 +60,14 @@ SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
 SCRIPTS = ROOT / "godot-client" / "project-sovereign" / "scripts"
 
 _LEVERS = (
-    (D, "MISSION_COMPLETES_AT_THE_CLAMP"),
-    (D, "COURT_EXEMPTION_IS_THE_COURTED_PAIR"),
-    (D, "COURT_FAVOUR_ACTIVE"),
     (D, "COURT_FAVOUR_PER_TURN"),
     (D, "COURT_FAVOUR_CAP"),
-    (D, "COUNSEL_NAMES_THE_COURT"),
-    (D, "REASSURE_ONLY_AT_ALLIANCE"),
-    (D, "MISSION_AT_THE_CEILING_IS_FINISHED"),
     (DE, "MISSION_START_IS_NOT_A_REJECTION"),
     (DE, "MISSION_CANCEL_READS_THE_NAME"),
     (ME, "MISSION_HELP_BLOCK"),
     (CL, "THE_LOG_NAMES_THE_MISSION"),
     # the review round's levers
     (WS, "COUNTER_OFFER_RETURN_RESTORES_HIM"),
-    (D, "COURT_EXEMPTION_KEEPS_THE_THAW"),
-    (D, "UNDERMINE_ENDS_ON_THE_BREAK"),
-    (D, "MISSION_PROGRESS_READS_AFTER_DRIFT"),
     (DI, "IDLE_NUDGE_READS_THE_LIVE_MISSION"),
 )
 
@@ -355,30 +346,8 @@ class TestTheMissionEndsAtTheCeiling:
             "the favour stands at +10 and holds while he stays — recall him once "
             "the treaty is signed")
 
-    def test_court_without_the_favour_completes_at_the_clamp(self):
-        """The favour gate on COURT's completion rides COURT_FAVOUR_ACTIVE."""
-        D.COURT_FAVOUR_ACTIVE = False
-        w = _europe()
-        _set_rel(w, "France", "Prussia", 95)
-        _stage(w, "COURT_NATION", "Prussia")
-        charged, _ = _tick(w)
-        assert charged == 2
-        assert w.active_diplomatic_mission["completed"] is True
-        assert _tick(w)[0] == 0
-
-    def test_lever_down_parks_at_ninety_nine_and_taxes_forever(self):
-        D.MISSION_COMPLETES_AT_THE_CLAMP = False
-        w = _europe()
-        _set_rel(w, "France", "Prussia", 95)
-        _stage(w, "IMPROVE_RELATIONS", "Prussia")
-        for _ in range(8):
-            charged, _ = _tick(w)
-            assert charged == 1
-            assert _rel(w, "France", "Prussia") == 99
-            assert not w.active_diplomatic_mission.get("completed")
-
     def test_the_ms9_pins_keep_their_meaning(self):
-        """`TestTheMissionStopsWhenItsWorkIsDone` — its three cases."""
+        """`TestTheMissionStopsWhenItsWorkIsDone` — its live cases."""
         def at(relation):
             w = _europe()
             _stage(w, "IMPROVE_RELATIONS", "Prussia", turns_active=9)
@@ -389,11 +358,6 @@ class TestTheMissionEndsAtTheCeiling:
             D._process_mission_effects(w)
         assert w.active_diplomatic_mission["completed"]
         w = at(40)
-        with _quiet():
-            D._process_mission_effects(w)
-        assert not w.active_diplomatic_mission.get("completed")
-        D.MISSION_AT_THE_CEILING_IS_FINISHED = False
-        w = at(100)
         with _quiet():
             D._process_mission_effects(w)
         assert not w.active_diplomatic_mission.get("completed")
@@ -434,16 +398,13 @@ class TestTheCourtFreezesOnlyItsOwnPair:
         assert _rel(w, "Prussia", "Russia") == 29, "an AI-vs-AI pair is not courted"
 
     def test_after_completion_nothing_is_frozen(self):
-        """A courting mission ends by recall (it holds at the ceiling); with
-        the favour lever down it completes at the clamp. Either way, once it
-        is not live nothing is frozen."""
-        D.COURT_FAVOUR_ACTIVE = False
+        """A courting mission ends by recall (it holds at the ceiling); a
+        mission that carries `completed` is not live either. Either way, once
+        it is not live nothing is frozen."""
         w = self._court()
-        for _ in range(10):
-            if w.active_diplomatic_mission.get("completed"):
-                break
+        for _ in range(3):
             _tick(w)
-        assert w.active_diplomatic_mission.get("completed")
+        w.active_diplomatic_mission["completed"] = True
         fp, pr = _rel(w, "France", "Prussia"), _rel(w, "Prussia", "Russia")
         _tick(w)
         assert _rel(w, "France", "Prussia") == fp - 1
@@ -458,16 +419,6 @@ class TestTheCourtFreezesOnlyItsOwnPair:
         fp = _rel(w, "France", "Prussia")
         _tick(w)
         assert _rel(w, "France", "Prussia") == fp - 1
-
-    def test_lever_down_freezes_every_pair_of_the_court_for_good(self):
-        D.COURT_EXEMPTION_IS_THE_COURTED_PAIR = False
-        D.COURT_FAVOUR_ACTIVE = False     # the pre-IQ-4 shape: COURT completes
-        w = self._court()
-        for _ in range(8):
-            _tick(w)
-            assert _rel(w, "Prussia", "Russia") == 30
-        assert w.active_diplomatic_mission.get("completed")
-        assert _rel(w, "France", "Prussia") == 100, "frozen after completion too"
 
     def test_the_legacy_pin_still_holds(self):
         """`test_phase3_balance::test_court_nation_pair_skipped`'s shape: a
@@ -487,9 +438,7 @@ class TestTheCourtFreezesOnlyItsOwnPair:
 
 class TestTheDriftStepIsTheDecay:
 
-    @pytest.mark.parametrize("court_lever", [True, False])
-    def test_every_pair_on_the_board(self, court_lever):
-        D.COURT_EXEMPTION_IS_THE_COURTED_PAIR = court_lever
+    def test_every_pair_on_the_board(self):
         w = _europe()
         _set_state(w, "France", "Prussia", "ARMISTICE")
         _set_rel(w, "France", "Prussia", -50)
@@ -757,17 +706,6 @@ class TestTheCourtsFavour:
         from backend.game_logic.diplomatic_templates import SPOKEN_BLOCKER_PHRASES
         assert "court_favour_mod" not in SPOKEN_BLOCKER_PHRASES
 
-    def test_lever_down_the_components_are_todays(self):
-        D.COURT_FAVOUR_ACTIVE = False
-        w, ctrl = _europe(), _europe()
-        for world in (w, ctrl):
-            _set_rel(world, "France", "Prussia", 60)
-        _stage(w, "COURT_NATION", "Prussia", turns_active=5)
-        a, b = _score(w, _proposal()), _score(ctrl, _proposal())
-        assert "court_favour_mod" not in a["components"]
-        assert a["components"] == b["components"]
-        assert a["score"] == b["score"] == 48
-
 
 # ════════════════════════════════════════════════════════════════════
 # T5 — one source for the mission
@@ -864,9 +802,6 @@ def test_the_court_text_is_the_ruled_copy(monkeypatch):
         "(max +10, now +4); 20% chance of -3")
     assert DD.mission_effect_text(w, "COURT_NATION", short=True) == (
         "+8 relation/turn, proposals +2/turn courted (max +10), 20% blowback")
-    D.COURT_FAVOUR_ACTIVE = False
-    assert DD.mission_effect_text(w, "COURT_NATION") == "+8 relation per turn, 20% blowback risk"
-    assert DD.mission_effect_text(w, "COURT_NATION", short=True) == "+8 relation/turn, 20% blowback"
 
 
 def test_the_recall_button_is_the_ruled_copy():
@@ -959,12 +894,6 @@ class TestTheForecastIsLabelledAndExactInAQuietWorld:
         assert seen == [("favour", 5), ("favour", 4), ("favour", 3), ("favour", 2),
                         ("favour", 1), ("holding", -1)]
         assert DD.mission_status(w)["remaining_kind"] == "holding"
-
-    def test_court_without_the_favour_keeps_the_ceiling_forecast(self):
-        D.COURT_FAVOUR_ACTIVE = False
-        status = DD.mission_status(_typed_world("COURT_NATION"))
-        assert status["remaining_kind"] == "ceiling"
-        assert "≈" in status["remaining_note"] and "barring blowback" in status["remaining_note"]
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -1762,12 +1691,6 @@ class TestEveryMissionHasItsCell:
             D._process_mission_effects(w)
         assert _rel(w, "Austria", "Russia") - before == -4
 
-    def test_lever_down_the_court_has_no_cell(self):
-        D.COURT_FAVOUR_ACTIVE = False
-        w = _europe()
-        _set_rel(w, "France", "Prussia", 60)
-        assert _dp_to_accept(w, "COURT_NATION", "Prussia", "alliance") is None
-
 
 # ════════════════════════════════════════════════════════════════════
 # T16 — counsel names the court
@@ -1870,18 +1793,6 @@ class TestCounselNamesTheCourt:
             assert forecast == _dp_to_accept(_hesse_like(court, relation), mission, court,
                                              "open_borders")[::-1]
 
-    def test_lever_down_the_string_is_todays(self):
-        D.COUNSEL_NAMES_THE_COURT = False
-        w = self._world(60)
-        assert D._build_recommendation(w, "Prussia", _staged_actions(48), 10, False, {}) \
-            == "Talleyrand recommends: Propose Alliance"
-        w = _europe()
-        w.diplomatic_points = 10
-        with _quiet():
-            preview = D.get_diplomatic_preview(w, "Prussia")
-        assert "recommended_mission" not in preview
-        assert preview["recommendation"] == _IMPROVE_COUNSEL
-
     def test_the_counsel_can_fire_on_the_shipped_board(self):
         """S3i exists so a player can DISCOVER the Court's Favour. The
         original cell (relation 60+) never fired — every offered row carries
@@ -1926,10 +1837,6 @@ class TestReassureOnlyAtAlliance:
 
     def test_the_alliance_rows_keep_it(self):
         assert "mission_reassure" in self._rows("ALLIANCE")
-
-    def test_lever_down_restores_the_row(self):
-        D.REASSURE_ONLY_AT_ALLIANCE = False
-        assert "mission_reassure" in self._rows("DEFENSIVE_ALLIANCE")
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -2151,10 +2058,6 @@ class TestReviewTheForecastRoundsOnce:
             assert result["score"] == int(round(free + D.acceptance_relation_term(relation,
                                                                                   False)))
             assert D.acceptance_relation_free_score(w, "Prussia", "open_borders") == free
-        D.COUNSEL_NAMES_THE_COURT = False
-        w = _europe()
-        assert "relation_free_score" not in _score(w, _proposal(ptype="open_borders"))
-        assert D.acceptance_relation_free_score(w, "Prussia", "open_borders") is None
 
 
 class TestReviewTheCourtAtWar:
@@ -2245,9 +2148,7 @@ class TestReviewTheNetIsTheTick:
         _tick(w)
         assert _rel(w, "France", court) - before == status["net_per_turn"] == net
 
-    @pytest.mark.parametrize("lever", [True, False])
-    def test_the_morning_progress_reads_after_the_decay(self, lever):
-        D.MISSION_PROGRESS_READS_AFTER_DRIFT = lever
+    def test_the_morning_progress_reads_after_the_decay(self):
         w = _europe()
         _set_rel(w, "France", "Prussia", 6)
         _stage(w, "IMPROVE_RELATIONS", "Prussia")
@@ -2257,7 +2158,7 @@ class TestReviewTheNetIsTheTick:
                     if e.get("type") == "diplomatic_mission_progress"]
         after = _rel(w, "France", "Prussia")
         assert after == 13
-        assert event["template_vars"]["value"] == (after if lever else after + 1)
+        assert event["template_vars"]["value"] == after
 
 
 class TestReviewTheUndermineRoad:
@@ -2299,9 +2200,7 @@ class TestReviewTheUndermineRoad:
                           "live": DD.mission_is_live(w)})
         return w, turns
 
-    @pytest.mark.parametrize("lever", [True, False])
-    def test_the_real_road_ends_on_the_turn_of_the_break(self, lever):
-        D.UNDERMINE_ENDS_ON_THE_BREAK = lever
+    def test_the_real_road_ends_on_the_turn_of_the_break(self):
         w, turns = self._drive()
         downs = [(e["from_state"], e["to_state"]) for e in w.event_log
                  if e.get("type") == "auto_downgrade"
@@ -2325,13 +2224,8 @@ class TestReviewTheUndermineRoad:
         (ended,) = _ended(w)
         assert ended["reason"] == "alliance_broken"
         assert ended["relation_start"] == 8, "the pair's own baseline"
-        if lever:
-            assert tails == [], "he stayed a turn after the alliance broke"
-            assert (ended["turns_active"], ended["dp_spent"]) == (10, 20)
-        else:
-            assert len(tails) == 1, turns
-            assert (ended["turns_active"], ended["dp_spent"]) == (11, 22)
-            assert turns[-1]["note"] == "their alliance is broken — he reports home"
+        assert tails == [], "he stayed a turn after the alliance broke"
+        assert (ended["turns_active"], ended["dp_spent"]) == (10, 20)
         ta = w.active_diplomatic_mission["turns_active"]
         _fund_advance(w)
         assert w.active_diplomatic_mission["turns_active"] == ta, "billed after the end"
@@ -2430,32 +2324,27 @@ class TestReviewTheCourtedPairKeepsItsThaw:
     """S7: the exemption protects his gains from DECAY; it froze the thaw a
     hostile court would have had as well."""
 
-    @pytest.mark.parametrize("lever", [True, False])
     @pytest.mark.parametrize("state,relation,thaw", [
         ("PEACE", -50, 1), ("ARMISTICE", -50, 3), ("PEACE", 60, 0), ("ARMISTICE", 60, 0),
     ])
-    def test_the_courted_pair(self, lever, state, relation, thaw):
-        D.COURT_EXEMPTION_KEEPS_THE_THAW = lever
+    def test_the_courted_pair(self, state, relation, thaw):
         w = _europe()
         _set_state(w, "France", "Prussia", state)
         _set_rel(w, "France", "Prussia", relation)
         _stage(w, "COURT_NATION", "Prussia")
-        step = thaw if lever else 0
-        assert D.relation_drift_step(w, "France", "Prussia") == step
+        assert D.relation_drift_step(w, "France", "Prussia") == thaw
         with _quiet():
             D._process_relation_decay(w)
-        assert _rel(w, "France", "Prussia") - relation == step
+        assert _rel(w, "France", "Prussia") - relation == thaw
 
-    @pytest.mark.parametrize("lever,net,end", [(True, 9, -23), (False, 8, -26)])
-    def test_a_hostile_court_over_three_ticks(self, lever, net, end):
-        D.COURT_EXEMPTION_KEEPS_THE_THAW = lever
+    def test_a_hostile_court_over_three_ticks(self):
         w = _europe()
         _set_rel(w, "France", "Prussia", -50)
         _stage(w, "COURT_NATION", "Prussia")
-        assert DD.mission_status(w)["net_per_turn"] == net
+        assert DD.mission_status(w)["net_per_turn"] == 9
         for _ in range(3):
             _tick(w)
-        assert _rel(w, "France", "Prussia") == end
+        assert _rel(w, "France", "Prussia") == -23
 
 
 class TestReviewTheCounselStatesTheBlowback:
@@ -2539,13 +2428,6 @@ class TestReviewTheCounselNamesThePosture:
         preview = self._preview(w, "Saxony")
         assert preview["recommendation"] == self._HEAD.format(name="Saxony") + tail
         assert (preview.get("recommended_mission") or "") == mission
-
-    def test_lever_down_the_counsel_is_todays(self):
-        D.COUNSEL_NAMES_THE_COURT = False
-        preview = self._preview(_betrayed("Saxony", "NON_AGGRESSION", 100, "moderate"),
-                                "Saxony")
-        assert preview["recommendation"] == _IMPROVE_COUNSEL
-        assert "recommended_mission" not in preview
 
 
 class TestReviewTheCancelRowReadsTheCabinet:
@@ -2636,10 +2518,6 @@ class TestReviewTheHelpStatesTheRules:
         block = self._block()
         assert "Reassure Ally - 1 DP a turn (a full alliance only)" in block
         assert "(allies only)" not in block
-
-    def test_lever_down_reassure_is_allies_only(self):
-        D.REASSURE_ONLY_AT_ALLIANCE = False
-        assert "Reassure Ally - 1 DP a turn (allies only)" in self._block()
 
     def test_the_drift_sentence_names_the_truce_and_the_court(self):
         block = self._block()
