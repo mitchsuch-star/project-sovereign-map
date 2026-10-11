@@ -4,6 +4,12 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ PRE-DEPLOY S4 — DD-0 "THE COMMAND ROAD", PART 4: THE RE-BASED INSTRUMENT (your ruling), THEN DD0-18, THEN A SIXTH AUTHOR — IN PROGRESS October 11, 2026** (landing record `docs/PRE_DEPLOY_PLAN.md` §3.0 "S4 landing record, part 4" + the ruling line; rules `SYSTEMS_REFERENCE.md` §104 part 4; row `BUG_FIXES.md` DD0-18; pins `tests/test_dd0_fifth_blind_set.py` re-seated).
+> - **YOUR RULING, recorded (October 11, 2026) — the done-when's instrument is RE-BASED:** *a FRESH blind set reads ≥ 85 % READ RIGHT BY HAND keyless (as meant + asked + the board's own refusal + refused as meant) with 0 executed-other-than-meant*; `as_meant` is printed beside it, never in its place. Recorded in the plan (§3.0 + the §2 S4 row), here, §104 and the `CLAUDE.md` LIVE STATE line; not re-opened.
+> - **The instrument, built:** `tools/unrehearsed_census.py` prints *read right by hand N / 300* and *executed other than meant (by hand)* beside the judge's classes. The judge's `misread` / `executed_when_refusal_meant` are PROXIES — each read against its trace by a person, in a committed hand file beside the record (`docs/audits/unrehearsed/by_hand/2026_10_10_fifth.json`, applied with `--by-hand`); every verdict is pinned to the reply it was read against, so a re-read that changes the reply makes it STALE and the row unread (the count is then `None`, never a default 0). The judge itself is unchanged.
+> - **The fifth set on the re-based instrument:** keyless **241 of 300 read right (80.3 %), executed other than meant 1** (`Ney, strike camp, abandon the works.` fought — DD0-18 (a)); keyed 265 (88.3 %), 1. The eight proxy rows by hand: 1 executed, 1 staged (`Declare war on Holland.` — (b)), 1 disclosed, 2 asked, 3 honest refusals in shapes the judge does not know. **NOT met.**
+> - **▶ NEXT, this session:** DD0-18 (a) the order (an unfortify idiom outranks a bare `strike` naming no foe), (b) the Cabinet refuses a war on our own vassal before the chooser, (c)–(e) the register; the fifth set re-read keyless + keyed; the third set's floor (182 / 176) and the HOLD arm (18 of 20); then a SIXTH blind author reads the re-based done-when. ⚠ **Your eyes = UXR-4.**
+
 > **▶ ▶ ▶ PRE-DEPLOY S4 — DD-0 "THE COMMAND ROAD", PART 3: THE SPINE SPLIT, THE SLOT READER, THE WORKLIST, THE FIFTH AUTHOR — ✅ LANDED October 10, 2026** (your *"go ahead"* on `NEXT_SESSION_PROMPT.md`'s part 3; landing record `docs/PRE_DEPLOY_PLAN.md` §3.0 "S4 landing record, part 3"; rules `SYSTEMS_REFERENCE.md` §104 part 3; rows `BUG_FIXES.md` §DD-0 S4 DD0-11 … DD0-17 struck, DD0-18 filed; pins `tests/test_dd0_s4_part3_the_slots.py` (72), `tests/test_dd0_fourth_blind_set.py` re-seated, `tests/test_dd0_fifth_blind_set.py`; memo `docs/audits/UNREHEARSED_CENSUS_2026_10_10_FIFTH.md`).
 > - **The spine split, both halves, byte-identical:** `_parse_with_mock_chain` (1,704 lines, keyword-order dependent) is eleven named stages along the trace's seams reading ONE `_ChainState` (the cheat and first-contact doors, the guards, the Cabinet routes, the question desk, the marshal binding, the meta-commands, the verb chain, the target read, the slot reader, the finish); `_execute_one` (2,208 lines) is ten (the head, the pending gates, the meta-commands, the action economy, the name and the place, the objection battery, the bonuses and the clarification, the dispatch, the charge, the finish) reading ONE `_ExecState`. Every line sliced verbatim; `tools/gen_routed_order_words.py` walks the stages; `score_run check` byte-identical to `38daa024` after each half. **Found by the split:** the chain's invest idiom was dead code since S3b (the `or` sat inside the `any(...)` call) — `invest holland 50` reads now.
 > - **The second half — THE SLOT READER** (`reading.slots_of` / `_chain_read_slots`): when the verb chain finds nothing, the Reading's slots are read instead of the composed string — a man, a destination and nothing but the words of a march IS the march; a man, ONE foe and a trigger word IS the attack. `Murat — rhineland — go.`, `ney franconia pls`, `take your horse to Rhineland`, `Shift Bernadotte west to Rhineland`, `I want Ney on Mack this turn, no excuses.`, `ney go get mack` are one reading; the Reading also peels a statement after the address, a trailing statement, a dash aside, an emphatic tail, the inverted name without a comma, the second telegraph (`Ney: Frankfurt. Davout: stays.` → `Davout, hold` on the relay) and reads the courtesy modal. The strategic layer keeps the chain's KNOWN place or commander instead of re-scanning (`march his corps to Franconia` no longer marches to "His Corps"; `pursue john massena` pursues Archduke John).
@@ -48,37 +54,6 @@
 > - **The other three deep dives:** DD-A "Can a new player read it?" (= S1), DD-B "The fresh-eyes campaign" (S9), DD-C "Nothing fails silently" (S3).
 > - **Your calls, each with a default (`PRE_DEPLOY_PLAN.md` §5):** the order; pausing SF-RR behind it; the scale cap 2.0 → 3.0 with an auto default; retiring every lever landed before October 1; agents play DD-B in the client, you play the fourth campaign.
 > - ~~**▶ NEXT = S1, UXR-0 + UXR-1.**~~ ✅ S1a landed October 9, 2026 (the block above); the plan docs were committed as `05bbee2c`.
-
-> **▶ ▶ ▶ THE ECONOMY GATE — EAD-1 … EAD-9 AND EA-19 RULED AND BUILT, THE READING'S GAPS CLOSED — October 5, 2026** (your *"fix and decide on these"*; gate record `docs/SCORE_FINISH_SPEC.md` §6.8; memo of record `docs/audits/ECONOMY_GATE_2026_10_05.md`; rules `docs/SYSTEMS_REFERENCE.md` §98; rows `docs/BUG_FIXES.md` §The Economy Gate + the EAD verdicts in `docs/DESIGN_REFINEMENT.md`; pins `tests/test_economy_gate_2026_10_05.py`; sweep `tools/_sweep_econ_gate.json` 47 → 47 killed, 0 INERT, 0 BROKEN)
-> - **The rulings, under your delegation — your word overrides any of them; every built rule has its lever (§6.8):**
->   - **EAD-1 BUILT — campaign pay:** at war, a corps outside its 1805 homeland on allied or neutral soil pays 12 gold per 1,000 men a turn; enemy soil feeds itself, a satellite's soil feeds the lord. E1 re-blessed 0.66–0.74 (0.722). Three upkeep rules were rejected; each broke Austria or thinned the AI's purse.
->   - **EAD-2 BUILT — the Charges name their price:** the counsel, the ledger and the desk say what spending cuts from next turn's Charges; a political law that takes your grip under 70 says so. A crown-halving law was rejected (it pays the hoarder).
->   - **EAD-4 BUILT** — the army line at a third of Europe's men (still a men measure). **EAD-7 BUILT** — the league aims at its enemy, and the march reads the lawful road. **EAD-8 BUILT** — the league's silent courts, from public facts only.
->   - **KEPT, with the record corrected:** EAD-3 (the levy's price), EAD-5 (commissions), EAD-6 (the peaceful hoard; EA-7's real defect fixed: a court left without a general may commission), EAD-9 (the AI's purse read).
->   - **EA-19 FIXED** — a truce binds the league. Riders: a standing league enrols nobody new; a league of one is no league. **EA-E8 FIXED** — the instrument talks to no live port.
-> - **The gaps you named, closed:**
->   - The client arm ran: 262 frames at both scales, the parse check (64 scripts) and the boot smoke, all clean.
->   - A new driven client session ran: the real game scene against a sandboxed backend, every advertised key pushed as an engine event, never touching your running game. 95 of 95 checks over five turns; nothing blocked.
->   - The live-key arm ran: the key connected; the fast parser read 144 of 145 lines; 0 misreads.
->   - UI/UX is measured again. The EYES marks were re-taken from these fresh frames and records — still mine, yours override them.
-> - **The reading (item flips, never a score — §5)**, attributed by lever-down arms (`tools/_econ_gate_exit_attribution.json`):
->   - **Like for like over 13 pillars: 7.69 → 7.42**; directional 7.43 over 14 of 14.
->   - **Campaign pay costs** economy C1 and first contact C4. On the DL arm the opening war takes France's Net to −22 on turn 1, so on turn 3 the counsel has nothing it can buy.
->   - **Campaign pay and the road together** cost living balance F1, narration C4 and AI aliveness C6. A Russian corps walks to Paris on the austerlitz seed while the scripted France stands in Germany; either lever down prevents it. The road alone costs narration C1 and combat legibility C3.
->   - **Gains:** AI aliveness C1 (the road's wars spend the rivals' purses), command C6 (the live arm), and UI/UX F1, F2, C1–C3 (the client arm).
->   - **Nothing tuned. EG-D2 is yours** — keep the road, flip one of the two levers, or amend F1.
-> - **Found building, fixed:**
->   - EG-X1: a pursuit target printed as "ArchdukeCharles" on six surfaces.
->   - EG-X2: the league's news crowded off a busy morning; it now rides beneath the lead.
->   - EG-I1 / EG-I2: two living balance C5 reader defects.
->   - EG-I3: the descent arm's staging commission, 18 gold short, re-staged.
-> - **Filed open, owned:** EG-X3 (a lost satellite crowded off the page — SF-RR3), EG-X4 (an intel row against the store — SF-RR6), EG-X5 (a capital's emptied works unnamed — SF-RR4).
-> - **The series:** `BASELINE_SERIES` re-recorded once, twelve arms attributed. Arm 0 is byte-identical; the road is the sole mover; the unattended France ends turn 40 with 1 province (12 on arm 0). The WO boards are attributed; M1–M7 byte-identical. The full suite runs on the commit hook.
-> - **Census:** defect **83 OPEN, 0 P1**; design **3 OPEN**, all yours:
->   - EG-D1 — AI C1's band sits under the content's ceiling.
->   - EG-D2 — the collapse; road and campaign pay.
->   - EG-D3 — a bench for the secondaries, offered.
-> - **▶ NEXT = SF-RR1 part (ii)**, then RR2 … RR6 (`docs/SCORE_FINISH_SPEC.md` §3 Step 9; SF-RR4 now holds EG-X5 instead of EA-19 and EAD-7).
 
 ## Archives
 

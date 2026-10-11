@@ -7,6 +7,37 @@
 
 ---
 
+> **▶ ▶ ▶ THE ECONOMY GATE — EAD-1 … EAD-9 AND EA-19 RULED AND BUILT, THE READING'S GAPS CLOSED — October 5, 2026** (your *"fix and decide on these"*; gate record `docs/SCORE_FINISH_SPEC.md` §6.8; memo of record `docs/audits/ECONOMY_GATE_2026_10_05.md`; rules `docs/SYSTEMS_REFERENCE.md` §98; rows `docs/BUG_FIXES.md` §The Economy Gate + the EAD verdicts in `docs/DESIGN_REFINEMENT.md`; pins `tests/test_economy_gate_2026_10_05.py`; sweep `tools/_sweep_econ_gate.json` 47 → 47 killed, 0 INERT, 0 BROKEN)
+> - **The rulings, under your delegation — your word overrides any of them; every built rule has its lever (§6.8):**
+>   - **EAD-1 BUILT — campaign pay:** at war, a corps outside its 1805 homeland on allied or neutral soil pays 12 gold per 1,000 men a turn; enemy soil feeds itself, a satellite's soil feeds the lord. E1 re-blessed 0.66–0.74 (0.722). Three upkeep rules were rejected; each broke Austria or thinned the AI's purse.
+>   - **EAD-2 BUILT — the Charges name their price:** the counsel, the ledger and the desk say what spending cuts from next turn's Charges; a political law that takes your grip under 70 says so. A crown-halving law was rejected (it pays the hoarder).
+>   - **EAD-4 BUILT** — the army line at a third of Europe's men (still a men measure). **EAD-7 BUILT** — the league aims at its enemy, and the march reads the lawful road. **EAD-8 BUILT** — the league's silent courts, from public facts only.
+>   - **KEPT, with the record corrected:** EAD-3 (the levy's price), EAD-5 (commissions), EAD-6 (the peaceful hoard; EA-7's real defect fixed: a court left without a general may commission), EAD-9 (the AI's purse read).
+>   - **EA-19 FIXED** — a truce binds the league. Riders: a standing league enrols nobody new; a league of one is no league. **EA-E8 FIXED** — the instrument talks to no live port.
+> - **The gaps you named, closed:**
+>   - The client arm ran: 262 frames at both scales, the parse check (64 scripts) and the boot smoke, all clean.
+>   - A new driven client session ran: the real game scene against a sandboxed backend, every advertised key pushed as an engine event, never touching your running game. 95 of 95 checks over five turns; nothing blocked.
+>   - The live-key arm ran: the key connected; the fast parser read 144 of 145 lines; 0 misreads.
+>   - UI/UX is measured again. The EYES marks were re-taken from these fresh frames and records — still mine, yours override them.
+> - **The reading (item flips, never a score — §5)**, attributed by lever-down arms (`tools/_econ_gate_exit_attribution.json`):
+>   - **Like for like over 13 pillars: 7.69 → 7.42**; directional 7.43 over 14 of 14.
+>   - **Campaign pay costs** economy C1 and first contact C4. On the DL arm the opening war takes France's Net to −22 on turn 1, so on turn 3 the counsel has nothing it can buy.
+>   - **Campaign pay and the road together** cost living balance F1, narration C4 and AI aliveness C6. A Russian corps walks to Paris on the austerlitz seed while the scripted France stands in Germany; either lever down prevents it. The road alone costs narration C1 and combat legibility C3.
+>   - **Gains:** AI aliveness C1 (the road's wars spend the rivals' purses), command C6 (the live arm), and UI/UX F1, F2, C1–C3 (the client arm).
+>   - **Nothing tuned. EG-D2 is yours** — keep the road, flip one of the two levers, or amend F1.
+> - **Found building, fixed:**
+>   - EG-X1: a pursuit target printed as "ArchdukeCharles" on six surfaces.
+>   - EG-X2: the league's news crowded off a busy morning; it now rides beneath the lead.
+>   - EG-I1 / EG-I2: two living balance C5 reader defects.
+>   - EG-I3: the descent arm's staging commission, 18 gold short, re-staged.
+> - **Filed open, owned:** EG-X3 (a lost satellite crowded off the page — SF-RR3), EG-X4 (an intel row against the store — SF-RR6), EG-X5 (a capital's emptied works unnamed — SF-RR4).
+> - **The series:** `BASELINE_SERIES` re-recorded once, twelve arms attributed. Arm 0 is byte-identical; the road is the sole mover; the unattended France ends turn 40 with 1 province (12 on arm 0). The WO boards are attributed; M1–M7 byte-identical. The full suite runs on the commit hook.
+> - **Census:** defect **83 OPEN, 0 P1**; design **3 OPEN**, all yours:
+>   - EG-D1 — AI C1's band sits under the content's ceiling.
+>   - EG-D2 — the collapse; road and campaign pay.
+>   - EG-D3 — a bench for the secondaries, offered.
+> - **▶ NEXT = SF-RR1 part (ii)**, then RR2 … RR6 (`docs/SCORE_FINISH_SPEC.md` §3 Step 9; SF-RR4 now holds EG-X5 instead of EA-19 and EAD-7).
+
 > **▶ ▶ ▶ PRE-DEPLOY S1a — UXR-0 THE INSTRUMENT + UXR-1 THE SCALE FIX — ✅ LANDED October 9, 2026** (your *"go ahead and think abstract on adjustability — is UI good, anything missing, any buttons would help"*, then *"go"* on the seven decisions at their defaults; **memo of record `docs/audits/UXR_ADJUSTABILITY_REVIEW_2026_10_09.md`** (the measurements, the verdict, the missing-list A–M, decisions 1–7); landing record `docs/UX_UI_REVIEW_PLAN.md` §UXR-1 landing record; rules `docs/SYSTEMS_REFERENCE.md` §99; rows `BUG_FIXES.md` §UXR-0 / UXR-1 (UXR-X1 … X4) + `DESIGN_REFINEMENT.md` §UXR (D1 … D5); pins `tests/test_uxr1_scale_fix.py` + `tests/test_uxr0_readability.py`; records + frames `docs/audits/uxr0/`).
 > - **What was measured first.** Your monitor is ONE 5120×1440 panel at 100% (not the 3440 the plan assumed); your settings file held no Interface Scale and no terminal size — every session at 1.0 with a 400×270 command window (its 11-px output a P1 on every monitor); EB Garamond's x-height is 0.44 em, so the tutor card's 13-px body was **1.3 mm** of x-height on your panel and comfortable reading (≈ 2.8 mm at 80 cm) is Interface Scale ≈ 1.7 on this face; the whole adjustability kit was one global scale capped at 2.0, ONE grip (the plan's "four" was a grep matching *the Emperor's grip*) and a hidden unsaved edge-drag; the capture window had been parked ON your screen since September.
 > - **UXR-0.** The IQ-10 harness measures every visible text node's em / cap / x in PHYSICAL px (the screen transform does not carry `content_scale_factor` — measured), boots the real war room behind a stub (`main` mode, waited for on the boot flag — frames are not time off-screen), and `--physical` shoots five resolutions incl. yours, `--project` a pristine worktree for an honest BEFORE. The floor in ONE place (`tools/uxr0_readability_report.py`): body RED < 16 em px / P1 < 13, caption RED < 14 / P1 < 12, the map's furniture counted beside.

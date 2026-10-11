@@ -29,8 +29,29 @@ Order classes:
   executed_when_refusal_meant  meant to be refused and ran — the worst class
 Question classes: answered / shrug.
 
+DD-0 S4 part 4 (October 11, 2026) — THE RE-BASED INSTRUMENT (the user's
+ruling, PRE_DEPLOY_PLAN.md §3.0): the done-when reads READ RIGHT BY HAND —
+as_meant + asked + board_refusal + refused_as_meant — against ≥ 85 %, with
+0 EXECUTED-OTHER-THAN-MEANT by hand; `as_meant` is printed beside it, never
+in its place. The judge's `misread` / `executed_when_refusal_meant` are the
+PROXIES: each must be read against its trace (the memos' method), and that
+reading is a committed file beside the records:
+
+    .venv/Scripts/python.exe tools/unrehearsed_census.py --reclassify X.json --by-hand X_by_hand.json
+
+The hand file: {"rows": [{"line", "arm": keyless|keyed|both, "verdict",
+"reply_starts", "note"}]} — verdicts `executed` (something other than what
+was meant RAN — the dangerous class), `staged` (a chooser or dialogue opened
+against what was meant; nothing ran), `disclosed` (ran, and SAID what it
+changed), `asked`, `honest_refusal`, `wrong_desk` (the wrong desk answered,
+nothing ran). `reply_starts` pins the reply the verdict was read against: a
+re-read whose reply no longer starts so makes the verdict STALE and the row
+unread, and an unread proxy row leaves `executed_other_than_meant` None —
+the figure is never printed as 0 by default. The record gains `read_right`,
+`executed_other_than_meant`, `by_hand` (line → verdict) and `by_hand_unread`.
+
 Exit code 0 always — the census is a measurement; its pins live in
-tests/test_sf_cmd1_the_unrehearsed_census.py.
+tests/test_sf_cmd1_the_unrehearsed_census.py and the blind-set pins.
 """
 from __future__ import annotations
 
@@ -101,7 +122,58 @@ def totals(rows: list) -> dict:
     return {k: dict(v) for k, v in out.items()}
 
 
-def reclassify(record: dict) -> dict:
+READ_RIGHT_CLASSES = ("as_meant", "asked", "board_refusal", "refused_as_meant")
+PROXY_CLASSES = ("misread", "executed_when_refusal_meant")
+HAND_VERDICTS = ("executed", "staged", "disclosed", "asked", "honest_refusal", "wrong_desk")
+
+
+def read_right_of(record: dict) -> int:
+    """The re-based done-when's numerator: the lines the game read RIGHT —
+    executed as meant, asked before acting, refused by the board with its
+    reason, or refused when a refusal was meant."""
+    t = (record.get("totals") or {}).get("order") or {}
+    return sum(int(t.get(k, 0)) for k in READ_RIGHT_CLASSES)
+
+
+def load_by_hand(path) -> dict:
+    d = json.loads(Path(path).read_text(encoding="utf-8"))
+    for row in d.get("rows", []):
+        if row.get("verdict") not in HAND_VERDICTS:
+            raise ValueError(f"by-hand verdict {row.get('verdict')!r} for {row.get('line')!r} "
+                             f"is not one of {HAND_VERDICTS}")
+    return d
+
+
+def apply_by_hand(record: dict, by_hand: dict | None) -> dict:
+    """Read the judge's proxy rows by hand: each dangerous row takes the
+    hand verdict filed for its line and arm, provided the reply still
+    starts as the verdict was read against; otherwise it is unread."""
+    arm = "keyed" if record.get("llm") == "anthropic" else "keyless"
+    hand_rows = [h for h in (by_hand or {}).get("rows", [])
+                 if h.get("arm", "both") in ("both", arm)]
+    verdicts: dict = {}
+    unread: list = []
+    for r in record["rows"]:
+        if r["kind"] != "order" or r["class"] not in PROXY_CLASSES:
+            continue
+        match = next((h for h in hand_rows if h["line"] == r["line"]), None)
+        if match is None:
+            unread.append(r["line"])
+            continue
+        starts = str(match.get("reply_starts") or "")
+        if starts and not str(r.get("message") or "").startswith(starts):
+            unread.append(r["line"])
+            continue
+        verdicts[r["line"]] = match["verdict"]
+    record["read_right"] = read_right_of(record)
+    record["by_hand"] = verdicts
+    record["by_hand_unread"] = unread
+    record["executed_other_than_meant"] = (
+        None if unread else sum(1 for v in verdicts.values() if v == "executed"))
+    return record
+
+
+def reclassify(record: dict, by_hand: dict | None = None) -> dict:
     for r in record["rows"]:
         if r["kind"] == "order":
             r["class"] = classify_order(r.get("intended") or {}, r)
@@ -109,11 +181,12 @@ def reclassify(record: dict) -> dict:
             r["class"] = classify_question(r)
     record["totals"] = totals(record["rows"])
     record["dangerous"] = [r["line"] for r in record["rows"]
-                           if r["class"] in ("misread", "executed_when_refusal_meant")]
-    return record
+                           if r["class"] in PROXY_CLASSES]
+    return apply_by_hand(record, by_hand)
 
 
-def run(blind: dict, llm: str, limit: int | None, trace: bool = False) -> dict:
+def run(blind: dict, llm: str, limit: int | None, trace: bool = False,
+        by_hand: dict | None = None) -> dict:
     _env(llm)
     from fastapi.testclient import TestClient
     with contextlib.redirect_stdout(io.StringIO()):
@@ -158,12 +231,27 @@ def run(blind: dict, llm: str, limit: int | None, trace: bool = False) -> dict:
                      "message": str(reply.get("message", "") or "")[:300]})
     live = sum(1 for r in rows if r.get("parse_mode") not in (None, "mock"))
     record = {"blind": blind.get("name"), "llm": llm, "rows": rows, "live_parses": live}
-    return reclassify(record)
+    return reclassify(record, by_hand)
 
 
 def print_record(record: dict) -> None:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     print(record["llm"], json.dumps(record["totals"], ensure_ascii=False), "live parses:", record["live_parses"])
+    # DD-0 S4 part 4: the re-based instrument's two figures, `as_meant` beside.
+    orders = sum((record["totals"].get("order") or {}).values())
+    if orders:
+        t = record["totals"]["order"]
+        rr = record.get("read_right", read_right_of(record))
+        eotm = record.get("executed_other_than_meant")
+        unread = record.get("by_hand_unread") or []
+        proxies = {k: int(t.get(k, 0)) for k in PROXY_CLASSES}
+        print(f"read right by hand {rr} / {orders} ({100.0 * rr / orders:.1f} %) · "
+              f"as meant {int(t.get('as_meant', 0))} / {orders} ({100.0 * int(t.get('as_meant', 0)) / orders:.1f} %)")
+        print(f"executed other than meant (by hand): "
+              f"{'UNREAD' if eotm is None else eotm} · the judge's proxies {proxies}"
+              + (f" · unread by hand: {len(unread)}" if unread else ""))
+        for line in unread:
+            print(f"   unread: {line[:80]!r}")
     for cls in ("misread", "executed_when_refusal_meant", "shrug", "honest_refusal"):
         rows = [r for r in record["rows"] if r["class"] == cls]
         if rows:
@@ -181,15 +269,18 @@ def main() -> int:
     ap.add_argument("--reclassify", help="a stored run to re-read with the current judge (rewritten in place)")
     ap.add_argument("--trace", action="store_true",
                     help="DD-0 S3: store each order's parse trace on its row")
+    ap.add_argument("--by-hand", help="DD-0 S4 part 4: the hand reading of the judge's proxy rows "
+                                      "(a committed JSON beside the record)")
     args = ap.parse_args()
+    by_hand = load_by_hand(args.by_hand) if args.by_hand else None
     if args.reclassify:
         path = Path(args.reclassify)
-        record = reclassify(json.loads(path.read_text(encoding="utf-8")))
+        record = reclassify(json.loads(path.read_text(encoding="utf-8")), by_hand)
         path.write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8")
         print_record(record)
         return 0
     blind = json.loads(Path(args.blind).read_text(encoding="utf-8"))
-    record = run(blind, args.llm, args.limit, trace=args.trace)
+    record = run(blind, args.llm, args.limit, trace=args.trace, by_hand=by_hand)
     Path(args.out).write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8")
     print_record(record)
     return 0

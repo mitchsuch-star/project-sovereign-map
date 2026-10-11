@@ -9663,3 +9663,38 @@ only the fresh one reads the done-when.
   finding — on the boot board a quarter of every author's marches meet a neutral's
   border and a quarter of the rest an objection, both the game reading right and
   neither `as_meant` — is put to the user at part 4's head.
+
+**Part 4 — the re-based instrument (October 11, 2026; the user's ruling,
+`PRE_DEPLOY_PLAN.md` §3.0; pins `tests/test_dd0_fifth_blind_set.py`).**
+- **The ruling.** The DD-0 done-when's instrument is RE-BASED: *a FRESH blind set
+  reads ≥ 85 % READ RIGHT BY HAND keyless (as meant + asked + the board's own refusal
+  + refused as meant) with 0 executed-other-than-meant*; `as_meant` is printed beside
+  it, never in its place. On the boot board a neutral's border and a marshal's
+  objection are the game reading right and neither is `as_meant`; the figure the
+  pillar asks for is the one the memos read by hand.
+- **The tool** (`tools/unrehearsed_census.py`). `read_right_of(record)` sums the four
+  classes; `apply_by_hand(record, hand)` reads the judge's PROXY rows (`misread`,
+  `executed_when_refusal_meant`) against a committed hand file beside the record
+  (`docs/audits/unrehearsed/by_hand/<set>.json`; `--by-hand PATH` on a run or a
+  `--reclassify`). A hand row names the line, the arm (`keyless` / `keyed` / `both`),
+  a verdict — `executed` (something other than what was meant RAN: the dangerous
+  class), `staged` (a chooser or dialogue opened against what was meant; nothing
+  ran), `disclosed` (ran and said what it changed), `asked`, `honest_refusal`,
+  `wrong_desk` — and `reply_starts`, the reply it was read against: a re-read whose
+  reply no longer starts so makes the verdict STALE and the row unread. The record
+  gains `read_right`, `by_hand` (line → verdict), `by_hand_unread` and
+  `executed_other_than_meant` — `None` while any proxy row is unread (the figure is
+  never a default 0). `print_record` prints *read right by hand N / 300 (x %) · as
+  meant M / 300* and *executed other than meant (by hand): K · the judge's proxies
+  {…}*. The judge itself is UNCHANGED (its classes are the committed records' and
+  the HOLD arm's).
+- **The fifth set on the re-based instrument:** keyless **241 of 300 read right
+  (80.3 %), executed other than meant 1**; keyed 265 of 300 (88.3 %), 1. The eight
+  proxy rows by hand: `strike camp, abandon the works` EXECUTED (fought — DD0-18
+  (a)); `Declare war on Holland.` STAGED (the chooser against our own vassal —
+  DD0-18 (b)); `retreat forward into Swabia` DISCLOSED; `attack Atlantis` and `Open
+  negotiations with Britain` ASKED (the proper-name ask; the Cabinet's options card);
+  three HONEST REFUSALS in shapes the judge does not know (`No marshal of <arm> can
+  reach` ×2, `There is no law called`). NOT met at this reading; the pins assert the
+  standing on purpose (`DONE_WHEN_MET_ON_THIS_SET`), the cap on executions 1 → 0
+  when (a) lands, and the done-when is read on a SIXTH author's fresh set.
