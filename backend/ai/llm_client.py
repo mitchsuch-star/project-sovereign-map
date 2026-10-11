@@ -4666,6 +4666,19 @@ class LLMClient:
                 and not re.search(r"\b(?:recall|cancel|halt|stop|abort|war|hostilities|treaty|alliance|peace|"
                                   r"terms|ultimatum|demand|break|downgrade)\b", command_lower)):
             mission_type = "IMPROVE_RELATIONS"
+        # DD0-20 (S5, October 11, 2026): "talleyrand ask bavaria for more
+        # troops" — no letter asks a court for its men (a loyal satellite's
+        # contingent takes the field of its own accord in a shared war,
+        # VD-C); the bare card ("I await your instructions") said nothing.
+        # Refused in words that name the one road, nothing relayed.
+        if (target_nation and not question and not command_text.strip().endswith("?")
+                and re.search(r"\b(?:ask|asks|request|requests|beg|demand|call\s+on|press|get)\b.{0,40}\bfor\s+"
+                              r"(?:more\s+|some\s+|additional\s+|its\s+|their\s+|his\s+|fresh\s+)?"
+                              r"(?:troops|men|soldiers|reinforcements|a\s+corps|regiments|levies|an\s+army|battalions)\b",
+                              command_lower)):
+            return self._refusal_result(
+                command_text, "no_letter_asks_for_men", "no letter asks a court for its men",
+                detail={"court": target_nation})
         is_question = command_text.strip().endswith("?") or any(
             kw in command_lower for kw in ["what about", "who", "how is", "status of"])
         shared_question = bool(

@@ -2871,6 +2871,14 @@ class CommandParser:
     _HEAD_RESTATING_RULES = frozenset({
         "rewrite_build_idiom", "rewrite_reward_idiom", "rewrite_pass_a_law",
         "rewrite_invest_gold", "rewrite_naval_landing", "rewrite_trailing_end_turn",
+        # DD0-20 (S5, October 11, 2026): the seventh set's head shapes — "Talk
+        # to Spain …", "The Emperor commands a levy in …", "Have the Cabinet
+        # …", "Everybody on Mack …", "Sortez — Soult …", "Hit John … — Massena,
+        # …", "Where Mack is, there Ney goes …", "Mack is at Swabia, so …".
+        "rewrite_talk_to", "rewrite_levy", "rewrite_cabinet_delegation",
+        "rewrite_everybody_on", "strip_head_word_before_dash",
+        "strip_aim_before_addressed_order", "rewrite_where_foe_is_there_goes",
+        "strip_foe_premise_so", "rewrite_mend_walls", "rewrite_sound_out",
     })
 
     def parse(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> Dict:

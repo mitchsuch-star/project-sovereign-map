@@ -770,15 +770,30 @@ def extract_nation_from_command(raw_text: str) -> Optional[str]:
     """Extract target nation from a diplomatic command string."""
     text_lower = raw_text.lower()
 
-    # Try each known nation (and aliases)
+    # Try each known nation (and aliases). DD0-20 (S5, October 11, 2026):
+    # the court named EARLIEST in the line is the court — "sound out
+    # Denmark on closing the Sound to the British" is about Denmark, and
+    # the demonym later in the line is context (the table's order had let
+    # "british" outrank it). An alias is read at a word's start only, so
+    # "duke" is not the "uk".
+    best = None
     for alias, canonical in NATION_ALIASES.items():
-        if alias in text_lower and canonical != "France":
-            return canonical
-
-    # E-1: full-roster fallback — any shipped nation's display name or key.
-    found = _scan_rosters_for_nation(text_lower, exclude_france=True)
-    if found:
-        return found
+        if canonical == "France":
+            continue
+        m = re.search(r"(?<![a-z])" + re.escape(alias), text_lower)
+        if m and (best is None or m.start() < best[0]):
+            best = (m.start(), canonical)
+    # E-1: full-roster fallback — any shipped nation's display name or key
+    # — read at the same time, so a court the alias table does not know
+    # ("Denmark", "Portugal") still outranks a demonym after it.
+    for pattern, canonical in _roster_nation_patterns():
+        if canonical == "France":
+            continue
+        m = pattern.search(text_lower)
+        if m and (best is None or m.start() < best[0]):
+            best = (m.start(), canonical)
+    if best is not None:
+        return best[1]
     # DD0-18 (d): the court by its seat ("Mission to Vienna").
     return _court_named_by_seat(text_lower)
 

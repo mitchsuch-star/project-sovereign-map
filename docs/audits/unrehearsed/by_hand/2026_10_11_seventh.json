@@ -1,6 +1,6 @@
 {
  "set": "unrehearsed-2026-10-11-seventh",
- "_note": "DD-0 S4 part 4 (October 11, 2026) — the hand reading of the ONE judge's proxy rows (misread / executed_when_refusal_meant) and of the honest refusals that are the BOARD's own in shapes the judge does not know, each read against its trace (the memos' method). Applied by tools/unrehearsed_census.py --by-hand; `reply_starts` pins the reply each verdict was read against — a re-read whose reply changes makes the verdict stale and a proxy row UNREAD until a person reads it again. Verdicts: executed (something other than what was meant RAN — the dangerous class) · staged (a chooser or dialogue opened against what was meant; nothing ran) · disclosed (ran, and said what it changed) · asked · honest_refusal · wrong_desk (the wrong desk answered, nothing ran) · board_refusal (the board's own refusal, read right).",
+ "_note": "DD-0 S4 part 4 (October 11, 2026) — the hand reading of the ONE judge's proxy rows (misread / executed_when_refusal_meant) and of the honest refusals that are the BOARD's own in shapes the judge does not know, each read against its trace (the memos' method). Applied by tools/unrehearsed_census.py --by-hand; `reply_starts` pins the reply each verdict was read against — a re-read whose reply changes makes the verdict stale and a proxy row UNREAD until a person reads it again. Verdicts: executed (something other than what was meant RAN — the dangerous class) · staged (a chooser or dialogue opened against what was meant; nothing ran) · disclosed (ran, and said what it changed) · asked · honest_refusal · wrong_desk (the wrong desk answered, nothing ran) · board_refusal (the board's own refusal, read right). DD0-20 (Pre-Deploy S5, October 11, 2026): the two wrong-desk rows withdrawn (their lines execute as meant on the re-read), four board refusals the re-read reached added, each pinned to its reply.",
  "rows": [
   {
    "line": "Davout — Frankfurt, at once.",
@@ -52,25 +52,11 @@
    "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
   },
   {
-   "line": "Soult: assault Mack's position, Ney in support.",
-   "arm": "both",
-   "verdict": "wrong_desk",
-   "reply_starts": "You wish me to support Bernadotte, Sire?",
-   "note": "Meant: Soult attacks Mack with Ney in support. The relay read the support half and asked about the WRONG order — 'You wish me to support Bernadotte, Sire?' — a question about an order not given. Nothing ran; not read right (the parser's — DD0-20)."
-  },
-  {
    "line": "Recruit infantry in Paris.",
    "arm": "both",
    "verdict": "board_refusal",
    "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
    "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
-  },
-  {
-   "line": "Send 50 gold to the Kingdom of Italy's treasury.",
-   "arm": "both",
-   "verdict": "wrong_desk",
-   "reply_starts": "═══════════════════════════════════\n  FRANCE TREASURY REPORT\n═════════",
-   "note": "Meant: invest 50 in the Kingdom of Italy. The treasury REPORT answered ('FRANCE TREASURY REPORT') — the economy desk, not the vassal's. Nothing ran, nothing spent; not read right (DD0-20)."
   },
   {
    "line": "Recruit 500,000 infantry in Paris.",
@@ -113,6 +99,34 @@
    "verdict": "board_refusal",
    "reply_starts": "Cannot enter Nassau — it is controlled by Hesse (diplomatic state: PEA",
    "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Bernadotte, take the road to Frankfurt and link with Davout.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter'); read on the DD0-20 re-read"
+  },
+  {
+   "line": "Mack is at Swabia, so I want Davout at Frankfurt to cover the northern flank.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter'); read on the DD0-20 re-read"
+  },
+  {
+   "line": "I want a levy in Languedoc, infantry.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (the judge reads 'order of battle' as a refusal); read on the DD0-20 re-read"
+  },
+  {
+   "line": "Raise infantry in Provence to guard the coast.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (the judge reads 'order of battle' as a refusal); read on the DD0-20 re-read"
   }
  ]
 }

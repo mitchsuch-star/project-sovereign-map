@@ -20,6 +20,12 @@ floor exactly, no margin — with 0 executed-other-than-meant; keyed 280
 (93.3 %), 0. `as_meant` 153 / 300 beside. MET. The 27 shrugs and the
 parser's share of the honest refusals are DD0-20's worklist. Nothing in the
 file was fixed before this reading; the file stays blind.
+
+DD0-20 (Pre-Deploy S5, October 11, 2026): the register read and the set
+RE-READ as fresh runs — keyless 294 of 300 by hand (98.0 %), 0; keyed 296
+(98.7 %), 0 (SYSTEMS_REFERENCE.md §105; tests/test_dd0_s5_the_register.py).
+The one shrug left is the bare `probe <place>` (CX-R1's hand list); the
+three honest refusals left are the design's own contingencies.
 """
 from __future__ import annotations
 
@@ -37,13 +43,20 @@ KEYED = RECORDS / "2026_10_11_seventh_keyed.json"
 BY_HAND = RECORDS / "by_hand" / "2026_10_11_seventh.json"
 
 DONE_WHEN = 0.85
-KEYLESS_DANGEROUS_CAP = {"misread": 2, "executed_when_refusal_meant": 4}
-KEYED_DANGEROUS_CAP = {"misread": 2, "executed_when_refusal_meant": 4}
-# The reading: 255 of 300 — AT the floor. A re-read under this figure means
-# the done-when is not met on this set, and this pin says so.
-KEYLESS_READ_RIGHT_BY_HAND_AT_READING = 255
-KEYED_READ_RIGHT_BY_HAND_AT_READING = 274       # 280 measured
-KEYLESS_AS_MEANT_AT_READING = 147               # 153 measured; the objection dice ±4
+# DD0-20 (Pre-Deploy S5, October 11, 2026): the register's remainder read on
+# the set's RE-READ — the records rewritten as fresh runs, the file still
+# blind. Keyless: as meant 152 → 174 / 173 (two runs), shrugs 26 → 1 / 2
+# (the bare `probe`, CX-R1's own; one line with the dice), the judge's four
+# 244 → 277, READ RIGHT BY HAND 255 → 294 of 300 (98.0 %) on both runs, 0
+# executed-other-than-meant; keyed: 281 → 296 (98.7 %), 0,
+# the model consulted on 7 lines where it had been on 37. The dangerous caps
+# lowered to the reading; the floors raised to it (the dice ±4 on as meant,
+# a margin of 2 on the keyed arm).
+KEYLESS_DANGEROUS_CAP = {"misread": 0, "executed_when_refusal_meant": 4}
+KEYED_DANGEROUS_CAP = {"misread": 0, "executed_when_refusal_meant": 4}
+KEYLESS_READ_RIGHT_BY_HAND_AT_READING = 294
+KEYED_READ_RIGHT_BY_HAND_AT_READING = 294       # 296 measured
+KEYLESS_AS_MEANT_AT_READING = 170               # 174 measured; the objection dice ±4
 EXECUTED_OTHER_THAN_MEANT_CAP = 0
 DONE_WHEN_MET_ON_THIS_SET = True
 
@@ -128,16 +141,23 @@ class TestTheReBasedDoneWhen:
         assert d["executed_other_than_meant"] == fresh["executed_other_than_meant"]
 
     def test_no_proxy_row_executed_anything_by_hand(self):
-        """The six proxy rows read against their traces: two wrong desks
-        (nothing ran), one staged proposal (nothing sent), three board
-        refusals of lines meant to be refused."""
+        """The proxy rows read against their traces: one staged proposal
+        (nothing sent) and three board refusals of lines meant to be
+        refused. The two wrong desks of the first reading (`Soult: assault
+        Mack's position, Ney in support.`, `Send 50 gold to the Kingdom of
+        Italy's treasury.`) execute AS MEANT on the DD0-20 re-read (S5,
+        October 11, 2026) and are proxy rows no longer; their hand rows
+        were withdrawn with the traces they were read against."""
         d = _load(KEYLESS)
         assert d["executed_other_than_meant"] == 0
         verdicts = d["by_hand"]
-        assert verdicts["Soult: assault Mack's position, Ney in support."] == "wrong_desk"
-        assert verdicts["Send 50 gold to the Kingdom of Italy's treasury."] == "wrong_desk"
         assert verdicts["Berthier, propose peace to Austria."] == "staged"
         assert "executed" not in verdicts.values()
+        classes = {r["line"]: r["class"] for r in d["rows"] if r["kind"] == "order"}
+        assert classes["Soult: assault Mack's position, Ney in support."] == "as_meant"
+        # the investment reaches its desk; on the boot board the Kingdom of
+        # Italy's loyalty is already full, so the board refuses it in words
+        assert classes["Send 50 gold to the Kingdom of Italy's treasury."] in ("as_meant", "board_refusal")
 
     def test_the_done_when_is_read_and_met(self):
         """The ruling's instrument, on the FRESH seventh set: read right by

@@ -9796,3 +9796,127 @@ only the fresh one reads the done-when.
   20; the metamorphic ledger 0 (2,408 cases); the routed order words 367; no lever.
   The seventh set's 26 shrugs and the parser's 15 honest refusals are DD0-20 (OPEN,
   S5's head). **S4 is struck.**
+
+## 105. THE SEVENTH SET'S REGISTER — DD0-20 (Pre-Deploy S5, October 11, 2026)
+
+*The done-when was met at its floor; this is the register's remainder, read on the
+seventh set's RE-READ (the file stays blind). Row `BUG_FIXES.md` DD0-20; record
+`PRE_DEPLOY_PLAN.md` §3.0 "S5 — DD0-20"; pins `tests/test_dd0_s5_the_register.py`.*
+
+### 105.1 The Reading (`reading.py`)
+
+- **The possessive rides the name.** The slot view claims `Murat's` as Murat and
+  the `'s` leaves the residue with him (`Get Murat's horse moving towards Swabia`,
+  `assault Mack's position`).
+- **A place a destination preposition leads out of is the start.** `Lannes:
+  Franche-Comte to Swabia` — two places with `to` / `into` / `towards` / `then to`
+  between them: the first is a source, the second the destination.
+- **The haste clause names the foe as context.** `… to Swabia before Mack can slip
+  away` — a `before <foe> can / may / slips / escapes …` clause behind a destination
+  is peeled (`peel_before_foe_clause`); a clause with an order verb of its own
+  (`before Mack attacks`) is left to the contingency rule.
+- **The ground to be held is the purpose.** `Massena: Piedmont. Secure the rear.`,
+  `at Frankfurt to cover the northern flank`, `to Lorraine, to form the reserve` —
+  a `form / cover / secure / guard / protect / screen / watch / anchor / shield /
+  mask / block the <rear | flank | line | road | reserve …>` tail after a comma, a
+  `to` or a full stop is peeled (`_GROUND_PURPOSE_RX`); `hold the line` is D10's
+  own rule and is not in the list.
+- **The second man without the `with`.** `…, Ney in support` peels as the support
+  suffix exactly as `… with Ney in support` does; the relay issues `Ney, support
+  <addressee>` as the held sequel.
+- **The muster is no rhetoric.** `Everybody on Mack. Soult leads.` — a first
+  sentence of the shape `everybody / everyone / all / every corps on <foe>` is never
+  set aside as rhetoric before the address.
+- **The title alone names the one foe in view who bears it.** `fall on the
+  Archduke` is Archduke John when he is the only Archduke on the roster handed in;
+  with Charles in view too the title names nobody and the bare attack's "nearest in
+  sight" road decides, saying so.
+- **The march words** gain `moving full ur boys lads link himself herself
+  themselves` (a gerund, not an inflected order — `rides` / `moves` stay out); the
+  attack words gain `position positions lines camp works`.
+
+### 105.2 The rewrites (`dd0_rewrites.py`), in the order they run
+
+- `rewrite_arrow`: `soult->swabia` → `soult to swabia` (also `=>`, `→`, `>>`).
+- `strip_colour_tails`: `, no hurry` / `take your time`; the hour and the calendar
+  (`tomorrow at dawn`, `by the end of the week`, `this evening`, `at first light`);
+  `no matter the weather` / `come what may`; `carry 3 days rations`; `and save the
+  corps`. **A bare `tomorrow` / `next turn` is NOT colour** — it stays FA-7's
+  deferral, refused on purpose.
+- `rewrite_will_join_tail`: `…; Davout will join` → the relay's own shape
+  (`Soult, attack Swabia, then Davout, support Soult`); two or more men who will
+  join are the colour behind the one order.
+- `strip_head_word_before_dash`: `Sortez — Soult out of Lorraine …` — one word
+  before a dash and a man of ours is the cry.
+- `strip_aim_before_addressed_order`: `Hit John before he can join Mack — Massena,
+  attack Tyrol.` — an aim that names a foe and no man of ours, before a dash and an
+  addressed order, yields to the order.
+- `rewrite_cabinet_delegation`: `Have the Cabinet / Tell Talleyrand to …` →
+  `Talleyrand, …`; `a treaty of alliance` → `alliance`.
+- `rewrite_mission_purpose_aside`: `A mission to Saxony — keep the Elector out of
+  this war.` → the mission (the aim is the purpose, not a word of state).
+- `rewrite_sound_out`: `sound out / feel out / see what / find out what <court>` →
+  `Talleyrand, what about <court>?` — the Cabinet's assessment, never the bare card.
+- `strip_foe_premise_so`: `Mack is at Swabia, so I want Davout at Frankfurt` — the
+  foe's position joined by `so` to the order is the reason.
+- `rewrite_attack_idioms` gains: `<foe>'s position / lines / camp / works` is the
+  foe; `assail / assault / smite / storm <foe>` and `break <foe>` (never `break
+  camp` / `break off`) are the attack; `run <foe> to ground` is the pursuit;
+  `goes in against <ground>` is the attack on the ground; `fall on THE Archduke`
+  takes the article.
+- `rewrite_guard_subject` gains `the Guard and I …` / `I and the Guard …` → the
+  sovereign's corps.
+- `rewrite_build_idiom` reads `Berthier, a supply depot in Rhineland.` (the desk
+  addressed before the bare noun phrase).
+- `rewrite_invest_gold` gains `send / give / transfer / remit <n> gold to <court>
+  ('s treasury)` → the investment (it read as the treasury report).
+- `rewrite_pass_a_law` gains `draft and enact the Staff reform` → `enact Staff`.
+- `rewrite_where_foe_is_there_goes`: `Where Mack is, there Ney goes: Swabia.` →
+  `Ney, move to Swabia`.
+- `rewrite_is_ordered_to`: `Lannes is ordered / directed / detailed to <place>` →
+  `Lannes, move to <place>` (never to a verb: `is ordered to attack Mack` stays).
+- `rewrite_everybody_on`: `Everybody on Mack. Soult leads.` → `Soult, attack Mack`;
+  without a leader → `attack Mack`, the muster's own road.
+- `rewrite_talk_to`: `Talk to Spain about …` → `Talleyrand, negotiate with Spain`.
+- `rewrite_is_to_retire`: `Davout is to retire` (no ground named) → the retreat.
+- `rewrite_levy`: `The Emperor commands a levy in Guyenne`, `Call up men in
+  Flanders`, `I want a levy in Languedoc, infantry`, `More men at Lyonnais` →
+  `recruit [type] in <place>`. A levy named WITH its ground and a preposition; the
+  bare `levy <place>` stays CX-R1's (unrouted — pinned).
+- `rewrite_mend_walls`: `mend / patch / rebuild the walls at <place>` → `repair
+  the walls at <place>`.
+- **The head-restating rules** (`parser._HEAD_RESTATING_RULES`) gain the new
+  head shapes — `Talk`, `The Emperor`, `Have`, `Everybody`, `Sortez`, the aim
+  before the dash, `Where`, `Mack is at …`, `mend`, `sound out` — so the executor's
+  addressee gate, which reads the TYPED line, does not take the consumed head for a
+  name nobody has.
+
+### 105.3 The Cabinet (`llm_client._parse_diplomatic_command`, `diplomatic_dialogue`)
+
+- **The court named first is the court.** `extract_nation_from_command` reads the
+  alias table AND the roster patterns by POSITION and takes the earliest — `sound
+  out Denmark … to the British` is Denmark, `see what Portugal wants to leave the
+  British orbit` is Portugal; a demonym alone still names its court. An alias is
+  read at a word's start only (`duke` is not the `uk`).
+- **No letter asks a court for its men.** `talleyrand ask bavaria for more troops`
+  is refused in words before any routing (`no_letter_asks_for_men`): a loyal
+  satellite's contingent takes the field of its own accord in a war it shares with
+  us (VD-C); nothing is relayed, and the reply asks whether Talleyrand should court
+  the court instead.
+
+### 105.4 The re-read
+
+The seventh set, re-read as fresh runs on the final tree (the file blind, the
+hand file's two wrong-desk rows withdrawn with the traces they were read against,
+four board refusals the re-read reached added, each pinned to its reply):
+**keyless as meant 152 → 174 / 173 on two runs of the final tree (58.0 %), shrug 26
+→ 1 / 2 (the bare `probe <place>`, CX-R1's own; `berthier appoint mortier` with the
+dice), the judge's four classes 244 → 277, READ RIGHT BY HAND 255 → 294 of 300
+(98.0 %) on both runs, executed other than meant 0; keyed as meant 162 → 172 / 175, shrug 1 → 0,
+281 → 296 (98.7 %) on both runs, 0, the model consulted on 7 lines where it had
+been on 37.**
+The three honest refusals left on both arms are the design's own contingencies
+(`offer the Austrians a truce if they withdraw`, `receive Mack if he attacks`,
+`After the battle, Davout will pursue`). The metamorphic ledger 0, the third set's
+floor and the HOLD arm held (the dd0 / cx / cmd1 pin batch, 3,072 green); routed
+order words unchanged (no router keyword moved); no lever.

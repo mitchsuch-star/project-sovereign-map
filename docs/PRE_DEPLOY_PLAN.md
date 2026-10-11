@@ -68,7 +68,7 @@ three resolutions. The head of every session from S2 on takes one lever batch
 | S2 step 0 ✅ **LANDED October 9, 2026** | **the hook pays its way** | The pre-commit hook runs the full suite under pytest-xdist (`-n 8 --dist loadgroup`): serial 26:13 → **5:12** measured, the gate whole; two order-dependent pins fixed (an unseeded 30-draw dice test; an endpoint pin reading whatever world the previous module left in `backend.main`); the stall under xdist traced to child processes inheriting the worker's execnet stdin (now DEVNULL in a worker). Record: `CLAUDE.md` Workflow + Commands. | 0.3 | The user's October 9 ask ("it takes sooo long"); every S2 commit after it pays the new price. |
 | ~~S2~~ ✅ **LANDED October 9, 2026** | **CODE-4** (record `CODE_HEALTH_PLAN.md` §CODE-4) + **CODE-1 batch 1** (record §CODE-1; 20 of the batch's 46 levers retired — the 26 that landed in October keep their session; `tools/retire_lever.py` + the ratchet pin) | The docs diet (CLAUDE.md → rules + a one-screen state; STATUS/BUG_FIXES history to archives, the census tool reading both) + the lever-retirement tool and its first 100 levers | 1.0 | Pays back every session after it. The tool is proven on small modules before the monsters. |
 | ~~S3~~ ~~S4~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; **S3b the same day: the findings fixed — the ledger 161 → 30, the blind set 162 / 170 of 300, 0 executed-other-than-meant**; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 IN PROGRESS: part 1 ✅ LANDED October 10, 2026** (the Reading + the exit predicate + the vocabulary — §3.0 "S4 landing record, part 1": the ledger 30 → 0, the third set re-read 162 → 177, the sixteen command rows struck); the HOLD arm re-read 12 → 18 of 20; **part 2 ✅ the measurement, the same day: the FRESH fourth-author set reads keyless 119 of 300 (39.7 %) / keyed 134 — the ≥ 85 % done-when NOT met, the worklist DD0-11 … DD0-17 filed; part 3 ✅ the same day: both spines split byte-identical, the slot reader, DD0-11 … DD0-17 fixed, the fourth set re-read 119 → 145 / 141 (two runs, the dice); the FIFTH fresh author reads 125 of 300 as meant (41.7 %) / 241 read right by hand (80.3 %) — the done-when NOT met a second time; **RULED October 11, 2026: the instrument is RE-BASED — the done-when reads READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set, `as_meant` beside (§3.0 the ruling line); part 4 ✅ LANDED October 11, 2026 — the instrument (`unrehearsed_census.py --by-hand`, a hand file beside each record), DD0-18 and DD0-19 fixed (the fifth and sixth sets re-read 289 and 290 of 300 by hand, 0 executions), and the SEVENTH fresh author reads 255 of 300 by hand (85.0 %) with 0 executed-other-than-meant — MET at the floor; DD0-20 (its register) OPEN, owned by S5's head. S4 STRUCK.** | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
-| S5–S6 (▶ IN PROGRESS: **the head, CODE-1 batch 3, ✅ LANDED October 11, 2026** — 66 of the four files' 78 levers retired, 12 October ones kept; levers 562 → 496; record `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3, which also files batch 5 for the 116 levers in the game_logic modules over 3,000 lines the plan had left unnamed; DD0-20 next, then DD-1) | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
+| S5–S6 (▶ IN PROGRESS: **the head, CODE-1 batch 3, ✅ LANDED October 11, 2026** — 66 of the four files' 78 levers retired, 12 October ones kept; levers 562 → 496; record `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3, which also files batch 5 for the 116 levers in the game_logic modules over 3,000 lines the plan had left unnamed; **DD0-20 ✅ LANDED the same day** — the seventh set re-read 255 → 294 of 300 by hand keyless (98.0 %), keyed 281 → 296, 0 executed-other-than-meant (§3.0 "DD-0 S5 landing record"); **DD-1 itself ▶ NEXT, nothing of it built**) | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
 | S7 | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
 | S8 | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
 | S9 | **UXR-2** | The layout law: every panel anchors to a viewport fraction or clamps; a grip on the five big screens; the tutorial card resizable and theme-sized; the 268 font-size overrides reduced to named theme sizes | 1.0 | "Only some boxes are adjustable." |
@@ -466,6 +466,65 @@ regenerated (367); no lever landed; the full suite on the hook. `score_run check
 was NOT run: part 4 changes the parser's reading by design and the plan forbids a
 re-score. **S4 is STRUCK; next S5–S6 DD-1, its head CODE-1 batch 3 (`diplomacy.py`,
 `vassal.py`, `jealousy.py`, `naval.py`) with DD0-20 beside it.**
+
+#### DD-0 S5 landing record — DD0-20, the seventh set's register (October 11, 2026)
+
+*Landed beside CODE-1 batch 3 at S5's head (batch 3's own record:
+`CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3). Rules `SYSTEMS_REFERENCE.md` §105; row
+`BUG_FIXES.md` DD0-20 struck; pins `tests/test_dd0_s5_the_register.py` (53) and
+`tests/test_dd0_seventh_blind_set.py` re-seated; memo
+`docs/audits/UNREHEARSED_CENSUS_2026_10_11_SEVENTH.md` "The re-read".*
+
+- **What was built.** The 26 shrugs, the two wrong desks and the parser's share of
+  the 15 honest refusals, each re-typed and driven through the real `POST
+  /command` — the Reading learned the possessive on a name, the from-to pair, the
+  haste clause (`before Mack can slip away`), the ground-to-be-held purpose
+  (`Secure the rear.`, `to cover the northern flank`, `to form the reserve`), the
+  comma support suffix (`, Ney in support`), the muster that is no rhetoric and
+  the title alone (`the Archduke` when one is in view); the rewrites learned the
+  arrow, the colour tails (the hour, the calendar, the weather, the rations, `save
+  the corps` — never the bare `tomorrow`, FA-7's deferral), the cry before the dash
+  (`Sortez —`), the aim before an addressed order, the Cabinet's delegation (`Have
+  the Cabinet …`, `a treaty of alliance`), the mission's aim behind the dash,
+  `sound out <court>` (the assessment), the foe premise joined by `so`, `assail /
+  assault <foe>'s position / break <foe> / run <foe> to ground / goes in against`,
+  `the Guard and I`, the depot asked of Berthier, gold sent to a court's treasury,
+  `draft and enact`, `where the foe is, there he goes`, `is ordered to <place>`,
+  `everybody on <foe> (Soult leads)`, `talk to <court> about`, `is to retire`, the
+  levy's register (`a levy in Guyenne`, `call up men in Flanders`, `more men at
+  Lyonnais` — the bare `levy <place>` stays CX-R1's), `mend the walls at`. The
+  Cabinet reads the court named FIRST (`sound out Denmark … to the British` is
+  Denmark; the alias table and the roster patterns by position; an alias at a
+  word's start only) and refuses in words a letter that asks a court for its men
+  (`no_letter_asks_for_men` — a loyal satellite's contingent takes the field of
+  its own accord, VD-C). The head-restating rule set names every new head shape so
+  the executor's addressee gate, which reads the TYPED line, takes no consumed
+  head for a name.
+- **The re-read (fresh runs, the file blind):** keyless as meant 152 → 174 / 173
+  on two runs of the final tree, shrug 26 → 1 / 2 (the bare `probe`; `berthier
+  appoint mortier` with the dice), the judge's four 244 → 277, **read right by hand
+  255 → 294 of 300 (98.0 %) on both runs**, executed other than meant 0; keyed 162 → 172 / 175 as meant,
+  **281 → 296 (98.7 %) on both runs**, 0, the model consulted on 7 lines where it
+  had been on 37. The hand file: the two wrong-desk rows withdrawn with their traces, four
+  board refusals added (the border law ×2, the reach rule ×2), each pinned to its
+  reply. The three refusals left on both arms are the design's own contingencies.
+- **The floors held:** the dd0 / cx / cmd1 / cr7 / robustness pin batch 3,072
+  green (the metamorphic ledger 0, the third set's floor, the HOLD arm); one pin
+  moved during the build and moved back — D10's `and hold the line` had been
+  eaten by the first cut of the ground-purpose peel (`hold` left the verb list,
+  the `and` form withdrawn); **the hook's full run caught two more**, both
+  narrowed and pinned beside the register: the possessive strip had read
+  `Mack's line of retreat` as Mack and Lannes RETREATED (CRT-6's pin; the strip
+  now reads the ground he holds — position / camp / works — and never before
+  `of`), and the Cabinet's delegation head had taken `Have Talleyrand back
+  Prussia's quarrel with Austria` away from the sponsorship idiom that reads its
+  aim (the head now reads the office — the Cabinet, the foreign office — never
+  the man). Routed order words unchanged (no router keyword moved); no lever;
+  `score_run check` not run (the hand-off forbids the re-score).
+- **Recorded, not filed:** `Davout, go to Swabia before Mack attacks.` marches on
+  this tree AND on the committed one (`6633633a`) — the clause-guard reads
+  `before <foe> attacks` as no contingency; the new haste peel declines it (an
+  order verb in the clause) and leaves that reading where it was.
 
 ### DD-1 — THE TABLE AND THE TREATY: the diplomacy deep dive (S5–S6)
 

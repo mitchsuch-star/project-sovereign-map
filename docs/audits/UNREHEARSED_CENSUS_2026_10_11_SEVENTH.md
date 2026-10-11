@@ -24,3 +24,13 @@ The fourth, fifth and sixth memos' method: an agent given only the boot screen's
 
 ## What the measurement says
 The seventh author reads where the fourth, fifth and sixth did by the judge (~50 % as meant, ~81 % by the judge's four classes) and **85.0 % by hand** — the done-when at its floor. The gap to the judge's figure is the border law (seven lines) and the reach rule, the board reading right; the gap above 85 % is the parser's and is filed as DD0-20 with its 26 shrugs and 15 honest refusals by line. On every arm of every set, **0 executed-other-than-meant** — the pillar's hard clause holds on four sets (the fourth, fifth, sixth and seventh) after DD0-18 and DD0-19.
+
+## The re-read — DD0-20 (Pre-Deploy S5, October 11, 2026)
+The register's remainder built (rules `SYSTEMS_REFERENCE.md` §105; row `BUG_FIXES.md` DD0-20; pins `tests/test_dd0_s5_the_register.py`), the set re-read as fresh runs on the final tree, the file still blind. The hand file: the two wrong-desk rows withdrawn (their lines execute as meant; a verdict read against a trace that no longer exists is no verdict), four board refusals the re-read reached added, each pinned to its reply.
+
+| arm | as meant | asked | board refusal | refused as meant | honest refusal | shrug | the judge's four | **read right by hand** | **executed other than meant** | live parses |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **keyless** | 174 / 173 (58.0 %, two runs) | 32 / 33 | 45 | 26 | 18 / 17 | 1 / 2 | 277 (92.3 %) | **294 of 300 (98.0 %), both runs** | **0** | 0 |
+| keyed | 172 / 175 (two runs) | 36 / 33 | 45 | 26 | 17 | 0 | 279 (93.0 %) | **296 (98.7 %), both runs** | **0** | 7 (37 before) |
+
+The one shrug left is the bare `Massena, probe Piedmont …` (CX-R1's hand list — pinned unrouted); the honest refusals left are the border law and the levy's reach rule (the board's own, read by hand) and the design's three contingencies.

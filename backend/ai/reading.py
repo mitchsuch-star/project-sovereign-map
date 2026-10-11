@@ -136,6 +136,18 @@ _PURPOSE_TAIL_RX = re.compile(
     re.IGNORECASE)
 # The participle purpose after a destination: "in Brabant covering the Dutch
 # coast", "at Bern watching the passes", "to Rhineland screening Davout".
+_GROUND_PURPOSE_RX = re.compile(
+    r"(?:[\s,;.!]+(?:to\s+|in\s+order\s+to\s+|so\s+as\s+to\s+)?|\s+to\s+)"
+    r"(?P<why>(?:form|cover|secure|guard|protect|screen|watch|anchor|shield|mask|block)\s+"
+    r"(?:the|our|his|your|their|a)\s+(?:(?:northern|southern|eastern|western|left|right|open|exposed|whole)\s+)?"
+    r"(?:rear|flank|flanks|line|lines|road|roads|river|crossing|crossings|pass|passes|coast|frontier|"
+    r"border|approaches|reserve|reserves|retreat|position|ground|wing|centre|center))\s*[.!]*$",
+    re.IGNORECASE)
+_BEFORE_FOE_RX = re.compile(
+    r"[\s,;]+(?:before|lest|ere)\s+(?:the\s+)?(?P<foe>[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+"
+    r"(?:can|could|may|might|has|have|gets?|slips?|escapes?|moves?|marches?|reaches?|joins?|arrives?|"
+    r"is|are|does|do|comes?|makes?|finds?)\b(?P<rest>.*?)\s*[.!]*$",
+    re.IGNORECASE)
 _PARTICIPLE_TAIL_RX = re.compile(
     r"\s+(?P<tail>(?:covering|screening|watching|guarding|protecting|holding|securing|blocking|"
     r"masking|shielding|observing|keeping\s+an\s+eye\s+on|keeping\s+watch\s+(?:on|over))\s+"
@@ -148,7 +160,8 @@ _FOE_STATEMENT_VERB_RX = re.compile(
     r"\b(?:sits|is|stands|lies|waits|holds|camps|has|was|will|remains|moves|marches|"
     r"must\s+be|is\s+to\s+be|cannot|can't|shall\s+not|won't|threatens|masses|gathers)\b",
     re.IGNORECASE)
-_SUPPORT_SUFFIX_RX_T = (r"[\s,]+with\s+(?:" + HONORIFIC_RX + r")?(?P<second>{names})\s+"
+# (DD0-20, S5: ", Ney in support" — the second man without the `with`.)
+_SUPPORT_SUFFIX_RX_T = (r"[\s,]+(?:with\s+)?(?:" + HONORIFIC_RX + r")?(?P<second>{names})\s+"
                         r"(?:in\s+support|supporting|in\s+reserve|backing\s+(?:him|them)\s+up|"
                         r"to\s+back\s+him\s+up|in\s+support\s+of\s+him|behind\s+him)\s*[.!]*$")
 _TRAILING_VOCATIVE_RX_T = (r",\s*(?:please\s+)?(?:" + HONORIFIC_RX + r")?(?P<name>{names})\s*[.!]*$")
@@ -316,6 +329,18 @@ def foe_forms(enemy_names: Iterable[str]) -> List[str]:
         if len(owners) == 1 and last not in seen:
             seen.add(last)
             forms.append(last[:1].upper() + last[1:])
+    # DD0-20 (S5): the title alone — "fall on the Archduke" — when ONE foe
+    # of those in view bears it (the roster handed in is the visible one,
+    # so "the Archduke" is John while Charles is out of sight).
+    titles = {}
+    for n in names:
+        human = humanize_entity_name(n)
+        if human and " " in human:
+            titles.setdefault(human.split()[0].lower(), set()).add(n)
+    for title, owners in titles.items():
+        if len(owners) == 1 and len(title) >= 4 and title not in seen:
+            seen.add(title)
+            forms.append(title[:1].upper() + title[1:])
     return forms
 
 
@@ -358,6 +383,11 @@ def peel_rhetoric(r: Reading, friends: Iterable[str], foes: Iterable[str]) -> No
     friend_toks = _known_tokens(friends)
     first_toks = set(re.findall(r"[a-z][a-z'’-]+", first.lower()))
     if first_toks & friend_toks or ORDER_VERB_RX.search(first):
+        return
+    # DD0-20 (S5): "Everybody on Mack. Soult leads." — the muster against a
+    # foe is the order, not rhetoric before one (`rewrite_everybody_on`).
+    if re.match(r"^\s*(?:everybody|everyone|every\s+corps|all\s+corps|every\s+man|all\s+of\s+you|the\s+whole\s+army|all)\s+"
+                r"(?:on|at|against|upon|onto)\b", first, flags=re.IGNORECASE) and first_toks & _known_tokens(foes):
         return
     # DD0-19 (S4 part 4): "More men. Recruit in Orleanais." — a SHORT
     # leading exclamation before an un-addressed order (the order verb in
@@ -465,17 +495,49 @@ def peel_purpose_tail(r: Reading, known_names: Iterable[str]) -> None:
     """DD0-18 (c): "Shift Murat's horse to Lorraine so he can screen the
     Emperor." / "Get Murat's horse down to Bern, I want the Swiss road
     covered." — the purpose is set aside; a known name inside it keeps it
-    (the purpose then names a man or a place the order may be about)."""
+    (the purpose then names a man or a place the order may be about).
+    DD0-20 (S5): "…, to form the reserve", "… at Frankfurt to cover the
+    northern flank", "Massena: Piedmont. Secure the rear." — the purpose
+    said as the ground to be held, after a comma, a `to` or a full stop."""
     text = r.residue()
     m = _PURPOSE_TAIL_RX.search(text)
     if not m or not text[:m.start()].strip():
-        return
+        m = _GROUND_PURPOSE_RX.search(text)
+        if not m or not text[:m.start()].strip():
+            return
+        head = text[:m.start()]
+        if not (set(re.findall(r"[a-z][a-z'’-]+", head.lower())) & _known_tokens(r.places_roster)
+                or re.search(r"\b(?:to|into|toward|towards|at|in)\s+\w", head)):
+            return
     why = m.group("why")
     if set(re.findall(r"[a-z][a-z'’-]+", why.lower())) & _known_tokens(known_names):
         return
     before = r.text()
     if _peel_tail(r, m.group(0)):
         r._record("peel_purpose_tail", before)
+
+
+def peel_before_foe_clause(r: Reading, foes: Iterable[str]) -> None:
+    """DD0-20 (S5): "Davout should get himself to Swabia before Mack can
+    slip away." — a `before <foe> …` clause behind a destination is the
+    reason for haste, not a second order; the foe it names is context. Only
+    behind a head that holds a destination, and only when the clause gives
+    no order of its own ("before Mack attacks" stays the contingency
+    PARSE-NEG refuses)."""
+    text = r.residue()
+    m = _BEFORE_FOE_RX.search(text)
+    if not m or not text[:m.start()].strip():
+        return
+    if not foe_named_in(m.group("foe"), foes):
+        return
+    if ORDER_VERB_RX.search(m.group("rest") or ""):
+        return
+    head = text[:m.start()]
+    if not re.search(r"\b(?:to|into|toward|towards|at|in|for)\s+\w", head):
+        return
+    before = r.text()
+    if _peel_tail(r, m.group(0)):
+        r._record("peel_before_foe_clause", before)
 
 
 def peel_participle_tail(r: Reading, known_names: Iterable[str], places: Iterable[str]) -> None:
@@ -713,6 +775,9 @@ def read(typed: str, friends: Iterable[str], foes: Iterable[str],
     peel_trailing_vocative(r, friends)
     peel_precaution(r)
     peel_reason_tail(r, known)
+    # DD0-20 (S5): "… to Swabia before Mack can slip away" — the haste
+    # clause that names the foe as context.
+    peel_before_foe_clause(r, foes)
     # S4 part 4 (DD0-18): the purpose tail and the participle after the
     # destination ("so he can screen …", "I want the Swiss road covered",
     # "in Brabant covering the Dutch coast").
@@ -878,6 +943,7 @@ class Slots:
 _SOURCE_MARK_RX = re.compile(
     r"(?:\bfrom|\bout\s+of|\bvia|\bby\s+way\s+of|\bthrough|\bpast|\bleaving|\bclear\s+of|\baway\s+from)"
     r"\s+(?:the\s+)?$", re.IGNORECASE)
+_PLACE_TO_PLACE_RX = re.compile(r"\s*,?\s*(?:then\s+)?(?:to|into|toward|towards|on\s+to)\s+(?:the\s+)?", re.IGNORECASE)
 
 
 def _foe_form_map(roster: Iterable[str]) -> List[Tuple[str, str]]:
@@ -908,11 +974,14 @@ def _slots_of_reading(r: Reading) -> Slots:
         f = _fold(form)
         if not f:
             return
-        for m in re.finditer(r"(?<![\w'’-])" + re.escape(f) + r"(?![\w'’-])", low):
+        # DD0-20 (S5): the possessive rides the name — "Get Murat's horse
+        # moving", "assault Mack's position" — so "murat's" is Murat and
+        # the 's leaves the residue with him.
+        for m in re.finditer(r"(?<![\w'’-])" + re.escape(f) + r"(?:['’]s)?(?![\w'’-])", low):
             if any(m.start() < b and a < m.end() for a, b in taken):
                 continue
             taken.append((m.start(), m.end()))
-            hits.append((m.start(), bucket, canon))
+            hits.append((m.start(), m.end(), bucket, canon))
             if bucket == "place" and _SOURCE_MARK_RX.search(low[:m.start()]):
                 sources.append(canon)
             elif bucket == "place" and _DEST_PREP_RX.search(low[:m.start()]):
@@ -929,7 +998,15 @@ def _slots_of_reading(r: Reading) -> Slots:
         if r.address and f.lower() == r.address.lower():
             continue
         _claim(f, f, "friend")
-    for _, bucket, canon in sorted(hits, key=lambda h: h[0]):
+    ordered = sorted(hits, key=lambda h: h[0])
+    # DD0-20 (S5): "Lannes: Franche-Comte to Swabia" — a place that a
+    # destination preposition leads OUT of into the next place is where the
+    # march starts, not where it ends.
+    for (_, end_a, bucket_a, canon_a), (start_b, _, bucket_b, _) in zip(ordered, ordered[1:]):
+        if (bucket_a == "place" and bucket_b == "place" and canon_a not in sources
+                and _PLACE_TO_PLACE_RX.fullmatch(low[end_a:start_b])):
+            sources.append(canon_a)
+    for _, _, bucket, canon in ordered:
         {"place": places, "foe": foes, "friend": friends}[bucket].append(canon)
     blanked = list(low)
     for a, b in taken:
@@ -964,7 +1041,11 @@ let have off along across through from fall rest
 ok okay right yes sire emperor wants wishes would like you
 flank wing centre center left rear gallop await orders
 interior frontier border coast front river both berthier northern southern eastern western
+moving full ur boys lads link himself herself themselves
 """.split())
+# (DD0-20, S5: "Get Murat's horse MOVING towards Swabia", "FULL speed",
+# "take UR BOYS to nassau", "take the road to Frankfurt and LINK with
+# Davout", "get HIMSELF to Swabia" — a gerund, not an inflected order.)
 # (S4 part 4, DD0-18: the positional colour of a march — "up to Rhineland,
 # right flank", "to Nassau, then await orders" — and `gallop`, a verb no
 # chain branch routes on.)
@@ -978,6 +1059,7 @@ _DEST_PREP_RX = re.compile(r"\b(?:to|into|toward|towards|for|at|in|on|up|down|ov
 ATTACK_WORDS = frozenset("""
 on at after keep go get use them him it want i we this turn no excuses the a an under with and now today
 hard em up down into onto upon see to off set loose sic let have forces corps men army troops
+position positions lines camp works
 """.split())
 ATTACK_TRIGGERS = frozenset("on onto upon at after use get go loose sic".split())
 

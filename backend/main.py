@@ -4247,6 +4247,18 @@ def execute_command(request: CommandRequest):
                         "blockade', 'guard home waters'), lands men ('land in "
                         "Ireland') or makes a diversion; a province is attacked "
                         "by a marshal — 'Ney, attack Swabia'.\"")
+                elif parsed["refusal"] == "no_letter_asks_for_men":
+                    # DD0-20 (S5, October 11, 2026): "ask Bavaria for more
+                    # troops" — a court's men are not asked for by letter.
+                    from backend.display_names import humanize_entity_name as _hname
+                    _court = _hname(str(_detail.get("court") or "the court"))
+                    refusal_msg = (
+                        f"Berthier sets the dispatch aside. \"A court's regiments "
+                        f"march under its own colours, Sire — a loyal satellite's "
+                        f"contingent takes the field of its own accord in a war it "
+                        f"shares with us, and no letter asks for men. I have "
+                        f"relayed nothing. Shall I have Talleyrand court {_court} "
+                        f"to raise its loyalty instead?\"")
                 elif parsed["refusal"] == "contradiction":
                     # DD0-7 (October 10, 2026): the sentence ordered X and
                     # forbade X — a question, never the order.
