@@ -68,7 +68,7 @@ three resolutions. The head of every session from S2 on takes one lever batch
 | S2 step 0 ✅ **LANDED October 9, 2026** | **the hook pays its way** | The pre-commit hook runs the full suite under pytest-xdist (`-n 8 --dist loadgroup`): serial 26:13 → **5:12** measured, the gate whole; two order-dependent pins fixed (an unseeded 30-draw dice test; an endpoint pin reading whatever world the previous module left in `backend.main`); the stall under xdist traced to child processes inheriting the worker's execnet stdin (now DEVNULL in a worker). Record: `CLAUDE.md` Workflow + Commands. | 0.3 | The user's October 9 ask ("it takes sooo long"); every S2 commit after it pays the new price. |
 | ~~S2~~ ✅ **LANDED October 9, 2026** | **CODE-4** (record `CODE_HEALTH_PLAN.md` §CODE-4) + **CODE-1 batch 1** (record §CODE-1; 20 of the batch's 46 levers retired — the 26 that landed in October keep their session; `tools/retire_lever.py` + the ratchet pin) | The docs diet (CLAUDE.md → rules + a one-screen state; STATUS/BUG_FIXES history to archives, the census tool reading both) + the lever-retirement tool and its first 100 levers | 1.0 | Pays back every session after it. The tool is proven on small modules before the monsters. |
 | ~~S3~~ ~~S4~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; **S3b the same day: the findings fixed — the ledger 161 → 30, the blind set 162 / 170 of 300, 0 executed-other-than-meant**; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 IN PROGRESS: part 1 ✅ LANDED October 10, 2026** (the Reading + the exit predicate + the vocabulary — §3.0 "S4 landing record, part 1": the ledger 30 → 0, the third set re-read 162 → 177, the sixteen command rows struck); the HOLD arm re-read 12 → 18 of 20; **part 2 ✅ the measurement, the same day: the FRESH fourth-author set reads keyless 119 of 300 (39.7 %) / keyed 134 — the ≥ 85 % done-when NOT met, the worklist DD0-11 … DD0-17 filed; part 3 ✅ the same day: both spines split byte-identical, the slot reader, DD0-11 … DD0-17 fixed, the fourth set re-read 119 → 145 / 141 (two runs, the dice); the FIFTH fresh author reads 125 of 300 as meant (41.7 %) / 241 read right by hand (80.3 %) — the done-when NOT met a second time; **RULED October 11, 2026: the instrument is RE-BASED — the done-when reads READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set, `as_meant` beside (§3.0 the ruling line); part 4 ✅ LANDED October 11, 2026 — the instrument (`unrehearsed_census.py --by-hand`, a hand file beside each record), DD0-18 and DD0-19 fixed (the fifth and sixth sets re-read 289 and 290 of 300 by hand, 0 executions), and the SEVENTH fresh author reads 255 of 300 by hand (85.0 %) with 0 executed-other-than-meant — MET at the floor; DD0-20 (its register) OPEN, owned by S5's head. S4 STRUCK.** | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
-| S5–S6 (▶ IN PROGRESS: **the head, CODE-1 batch 3, ✅ LANDED October 11, 2026** — 66 of the four files' 78 levers retired, 12 October ones kept; levers 562 → 496; record `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3, which also files batch 5 for the 116 levers in the game_logic modules over 3,000 lines the plan had left unnamed; **DD0-20 ✅ LANDED the same day** — the seventh set re-read 255 → 294 of 300 by hand keyless (98.0 %), keyed 281 → 296, 0 executed-other-than-meant (§3.0 "DD-0 S5 landing record"); **DD-1 itself ▶ NEXT, nothing of it built**) | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
+| S5–S6 (▶ IN PROGRESS: **the head, CODE-1 batch 3, ✅ LANDED October 11, 2026** — 66 of the four files' 78 levers retired, 12 October ones kept; levers 562 → 496; record `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3, which also files batch 5 for the 116 levers in the game_logic modules over 3,000 lines the plan had left unnamed; **DD0-20 ✅ LANDED the same day** — the seventh set re-read 255 → 294 of 300 by hand keyless (98.0 %), keyed 281 → 296, 0 executed-other-than-meant (§3.0 "DD-0 S5 landing record"); **DD-1 S6 THE INSTRUMENT ✅ LANDED October 11, 2026** — the sign-ability sweep (A = 11, B = 2), the treaty fuzzer (81 distinct violations in 7 classes over 10 × 1,000) and the answer-binding shuffle (4 misbinds, one class) built and read, DD1-1 … DD1-12 filed (§3.1 "DD-1 S6 landing record"); **Step 2 the structural fix ▶ NEXT**) | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
 | S7 | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
 | S8 | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
 | S9 | **UXR-2** | The layout law: every panel anchors to a viewport fraction or clamps; a grip on the five big screens; the tutorial card resizable and theme-sized; the 268 font-size overrides reduced to named theme sizes | 1.0 | "Only some boxes are adjustable." |
@@ -603,6 +603,76 @@ re-score. **S4 is STRUCK; next S5–S6 DD-1, its head CODE-1 batch 3 (`diplomacy
   verb's reach counted (the AI never bids or asks back in v1 unless GR5 says
   it must); the diplomacy items hold at 8.25 or better on a re-read of the
   CONG / OP / VOLTE arms.
+
+#### DD-1 S6 landing record — the instrument before the fix (October 11, 2026)
+
+*The three instruments built and read on the committed tree, nothing fixed —
+the findings are Step 2's worklist, exactly as DD-0 S3 did. Rules
+`SYSTEMS_REFERENCE.md` §106; rows `BUG_FIXES.md` §DD-1 S6 (DD1-1 … DD1-12, all
+OPEN, owned by Step 2); memos `docs/audits/SIGN_ABILITY_SWEEP_2026_10_11.md`,
+`docs/audits/TREATY_FUZZER_2026_10_11.md`, `docs/audits/ANSWER_BINDING_2026_10_11.md`;
+records `docs/audits/dd1/`; pins `tests/test_dd1_sign_ability_sweep.py` (20),
+`tests/test_dd1_treaty_fuzzer.py` (14), `tests/test_dd1_answer_binding_shuffle.py`
+(10); ledgers `tests/data/treaty_fuzzer_known_violations.json`,
+`tests/data/answer_binding_known_misbinds.json`. No change in `backend/`:
+`BASELINE_SERIES` byte-identical by construction, no lever, no `.gd`, no
+re-score.*
+
+- **1. The sign-ability sweep** (`tools/sign_ability_sweep.py`). Every promise
+  of the six surfaces dry-run through the REAL ratifier on a clone of the
+  world at the moment it is shown (the accept road itself — never a second
+  copy of its rules; 6 ms a clone), on `score_run`'s six diplomacy arms and
+  three fresh seeds. **2,830 promises; A "shown as signable, refused when
+  signed" = 11, every one a LETTER** — the ally petition that cannot be
+  granted from the letter (×4, and its editor's raw code is B = 2), the
+  client petition for a province already given, SFR-B1's leader-only
+  settlement letter (×2, reproduced), the one-on-one settlement letter (×2);
+  **every chip (2,287), Congress row (253) and settlement verdict (148) agreed
+  with the ratifier**; the counsel never named a treaty on these arms; no real
+  sign by the player was refused on any arm (SF-V1 / SF-V5 hold for the
+  bilateral letters they govern — the eleven are petitions and settlement
+  offers, which they do not).
+- **2. The treaty state-machine fuzzer** (`tools/treaty_fuzzer.py`). Random
+  lawful sequences of the ten verbs through the real executor as structured
+  commands, the §70 / §81 invariants read after every step, the world
+  round-tripped every step, every write to `diplomatic_states` attributed to
+  its frame. **10 seeds × 1,000 steps: 81 distinct violations in 7 classes** —
+  the bilateral armistice and the conquest vassalage leave the war instance
+  claiming the pair at war (14, up to 330 steps); a WAR pair with no purpose
+  (5, papered over by the load migration); the save round trip not identity
+  on the pending popups, a counter-offer's `blocking`, a notification and the
+  purpose (55); a client taken by an AI lord keeps the wars the lord does not
+  fight (4 — SFR-D28's rule from the other side); a re-declared resolved pair
+  keeps its exited / resolved stamps (3). **I3 held on every seed — 0 writes
+  outside `set_diplomatic_state` over 10,000 steps**; nothing below zero; no
+  verb raised. The refusal tally: the raw `war_instance_side_conflict` code
+  36 times; the smoke seed's I7: `VASSAL→OPEN_BORDERS` signed by the ratifier.
+- **3. The answer-binding shuffle** (`tools/answer_binding_shuffle.py`). Three
+  letters in every order, every typed form and every button through the real
+  endpoints against the shipped contract. **312 rows: 308 bound; 4 misbinds,
+  ONE class** — `decline <court>'s pact` is not read as an answer (`pact` is no
+  matter noun) and falls to the order desk; nothing moved.
+- **The done-when, read:** the sweep 0 / 0 → **11 / 2, NOT met**; the fuzzer
+  0 → **81 in 7 classes, NOT met**; the shuffle 0 → **4, NOT met** — each
+  asserted NOT met in its pin so it is re-seated on purpose when Step 2 lands;
+  every count lower-only, every class ledger a ratchet.
+- **What the reading says about Step 2.** The five polled surfaces already
+  agree with the ratifier on these arms — the "six places" problem is live in
+  the LETTERS (petitions, settlement offers) and in the ratifier's own
+  blindness (`validate_transition` unread; the instance not restamped on the
+  bilateral exits). `can_sign` therefore has two halves: the guard sequence
+  lifted out (the state machine first, then the ladder, the floors, the
+  eligibility gates, the clauses) read by every emitter and every button; and
+  ONE exit for a pair (the ratifier, the conquest and the settlement all
+  restamp the instance through it). DD1-1 … DD1-12 are the worklist, with
+  SFR-B1 / B2 / B5 / D34 and the other open diplomacy rows beside them.
+- **Found building, kept in the tools:** the driver re-execs itself when
+  `PYTHONHASHSEED` is unset (the child sets it); a dry run on a clone must
+  restore `random`'s state or it moves the arm's own dice; the engine prints
+  through `print`, not only `debug_print`, so the fuzzer captures stdout per
+  step; `settlement_actions` imports `ratify_settlement_confirm` by name, so
+  both bindings are patched; the console's cp1252 chokes on the arrows in the
+  engine's own messages — every tool reconfigures stdout to UTF-8.
 
 ### DD-A — "Can a new player read it?" (= UXR-0 + UXR-1, S1)
 

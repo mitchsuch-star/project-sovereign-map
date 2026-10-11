@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 11, 2026).** The three most recent landed rows:
-- **S5 head (October 11, 2026) — CODE-1 batch 3 + DD0-20 LANDED.** 66 of 78 levers retired (562 → 496; batch 5 filed, `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3); the seventh set's register built (`SYSTEMS_REFERENCE.md` §105) and re-read 255 → 294 of 300 by hand keyless (98.0 %), keyed 296, 0 executions. **NEXT = DD-1** (`PRE_DEPLOY_PLAN.md` §3.1).
-- **S4 — DD-0 THE COMMAND ROAD — ✅ STRUCK October 11, 2026** (`SYSTEMS_REFERENCE.md` §100–§104; `reading.py`, `exit_predicate.py`, `unrehearsed_census.py --by-hand`). **RULED Oct 11: the done-when reads READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set.** DD0-18 + DD0-19 fixed; **the SEVENTH fresh author reads 255 of 300 by hand (85.0 %), 0 executions — MET at the floor**; DD0-20 (its register) OPEN. Ledger 0, HOLD 18 of 20 (`PRE_DEPLOY_PLAN.md` §3.0).
-- **S3 head — CODE-1 batch 2 (October 10, 2026) — LANDED.** 83 of 138 game_logic levers retired (645 → 562) (`docs/CODE_HEALTH_PLAN.md` §CODE-1 BATCH 2).
+- **S6 (October 11, 2026) — DD-1 THE INSTRUMENT BEFORE THE FIX — LANDED, nothing fixed.** The sign-ability sweep (`tools/sign_ability_sweep.py`: 2,830 promises dry-run through the real ratifier — A = 11, all letters; B = 2), the treaty fuzzer (`tools/treaty_fuzzer.py`: 10 × 1,000 steps, 81 violations in 7 classes) and the answer-binding shuffle (`tools/answer_binding_shuffle.py`: 312 rows, 4 misbinds); **DD1-1 … DD1-12 filed** (`BUG_FIXES.md` §DD-1 S6; `SYSTEMS_REFERENCE.md` §106). **NEXT = DD-1 Step 2 `can_sign`** (`PRE_DEPLOY_PLAN.md` §3.1).
+- **S5 head (October 11, 2026) — CODE-1 batch 3 + DD0-20 LANDED.** 66 of 78 levers retired (562 → 496; batch 5 filed); the seventh set re-read 255 → 294 of 300 by hand keyless (98.0 %), 0 executions (`SYSTEMS_REFERENCE.md` §105).
+- **S4 — DD-0 THE COMMAND ROAD — ✅ STRUCK October 11, 2026** (`SYSTEMS_REFERENCE.md` §100–§104). **RULED: the done-when = READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set**; the seventh author 255 of 300, 0 — MET (`PRE_DEPLOY_PLAN.md` §3.0).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 

@@ -1,0 +1,52 @@
+{
+ "I6_round_trip": {
+  "count": 55,
+  "examples": [
+   "dd1-fuzz-1 step 13: /incoming_proposal_popup: \"{'from_nation': 'Prussia', 'from_nation_display': 'Prussia',\" vs 'None'",
+   "dd1-fuzz-1 step 21: /dialogue_manager/current/blocking: 'True' vs 'False'",
+   "dd1-fuzz-1 step 32: /notifications length 12 vs 11"
+  ]
+ },
+ "I1_instance_ownership": {
+  "count": 14,
+  "examples": [
+   "dd1-fuzz-1 step 109: assert_war_instance_invariants failed in context 'treaty_fuzzer': 1 violation(s):\n  - war_instance 'war_4' claims pair 'France|Holland' as pair_status='war' but",
+   "dd1-fuzz-10 step 49: assert_war_instance_invariants failed in context 'treaty_fuzzer': 2 violation(s):\n  - war_instance 'war_1' claims pair 'Britain|France' as pair_status='war' but",
+   "dd1-fuzz-10 step 51: assert_war_instance_invariants failed in context 'treaty_fuzzer': 3 violation(s):\n  - war_instance 'war_1' claims pair 'Britain|France' as pair_status='war' but"
+  ]
+ },
+ "I1_war_without_purpose": {
+  "count": 5,
+  "examples": [
+   "dd1-fuzz-1 step 143: Austria|France",
+   "dd1-fuzz-1 step 143: France|Russia",
+   "dd1-fuzz-10 step 130: Austria|France"
+  ]
+ },
+ "I2_client_at_war_lord_is_not": {
+  "count": 4,
+  "examples": [
+   "dd1-fuzz-10 step 39: Switzerland (client of Britain) at WAR with Sweden; the lord is PEACE",
+   "dd1-fuzz-10 step 39: Switzerland (client of Britain) at WAR with Prussia; the lord is PEACE",
+   "dd1-fuzz-2 step 51: Switzerland (client of Austria) at WAR with Saxony; the lord is PEACE"
+  ]
+ },
+ "I5_active_but_exited": {
+  "count": 1,
+  "examples": [
+   "dd1-fuzz-4 step 137: war_3: Portugal"
+  ]
+ },
+ "I5_pair_both_active_and_resolved": {
+  "count": 1,
+  "examples": [
+   "dd1-fuzz-4 step 137: war_3: ['France|Portugal']"
+  ]
+ },
+ "I5_resolved_pair_not_stamped": {
+  "count": 1,
+  "examples": [
+   "dd1-fuzz-4 step 137: war_3: France|Portugal war"
+  ]
+ }
+}

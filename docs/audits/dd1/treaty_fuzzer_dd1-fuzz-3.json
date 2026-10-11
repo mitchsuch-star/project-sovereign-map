@@ -1,0 +1,7229 @@
+{
+ "seed": "dd1-fuzz-3",
+ "steps": 1000,
+ "seconds": 92.0,
+ "final_turn": 311,
+ "verbs": {
+  "end_turn": 310,
+  "common_peace": 70,
+  "declare_war": 71,
+  "white_peace": 95,
+  "make_vassal": 44,
+  "propose": 150,
+  "summon": 29,
+  "answer": 148,
+  "release_vassal": 30,
+  "break": 53
+ },
+ "refusals": {
+  "white_peace: Use bilateral peace or armistice for a one-on-one war.": 64,
+  "propose: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 34,
+  "common_peace: Use bilateral peace or armistice for a one-on-one war.": 31,
+  "answer: Use bilateral peace or armistice for a one-on-one war.": 30,
+  "summon: The Congress cannot be summoned on N titled provinces — N are needed (N more to win and settle).": 29,
+  "declare_war: Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_N' but the proposed (attacker='Fr": 23,
+  "declare_war: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 15,
+  "declare_war: Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)": 9,
+  "declare_war: Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)": 8,
+  "make_vassal: Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: N% of France).": 6,
+  "make_vassal: Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: N% of France).": 6,
+  "declare_war: Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)": 6,
+  "propose: We already have Peace with Prussia. Talleyrand sees no purpose in proposing what we already possess.": 4,
+  "make_vassal: Cannot vassalize Sweden: Sweden is too powerful to vassalize (power: N% of France).": 4,
+  "make_vassal: Cannot vassalize Britain: Britain is too powerful to vassalize (power: N% of France).": 4,
+  "propose: We already have Peace with Sardinia. Talleyrand sees no purpose in proposing what we already possess.": 4,
+  "make_vassal: Cannot vassalize Prussia: Prussia is too powerful to vassalize (power: N% of France).": 4,
+  "make_vassal: Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: N% of France).": 4,
+  "break: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 3,
+  "propose: We already have Peace with Ottoman. Talleyrand sees no purpose in proposing what we already possess.": 3,
+  "propose: We already have Peace with Britain. Talleyrand sees no purpose in proposing what we already possess.": 3,
+  "propose: We already have Peace with Naples. Talleyrand sees no purpose in proposing what we already possess.": 3,
+  "propose: We already have Peace with Denmark. Talleyrand sees no purpose in proposing what we already possess.": 3,
+  "make_vassal: Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: N% of France).": 3,
+  "propose: Cannot vassalize Switzerland: Switzerland is too powerful to vassalize (power: N% of France).": 3,
+  "make_vassal: Cannot vassalize Spain: Spain is too powerful to vassalize (power: N% of France).": 3,
+  "propose: We already have Peace with Russia. Talleyrand sees no purpose in proposing what we already possess.": 3,
+  "make_vassal: Cannot vassalize Russia: Russia is too powerful to vassalize (power: N% of France).": 2,
+  "propose: Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: N% of France).": 2,
+  "make_vassal: Cannot vassalize Naples: Naples is too powerful to vassalize (power: N% of France).": 2,
+  "propose: Cannot vassalize Naples: Naples is too powerful to vassalize (power: N% of France).": 2,
+  "propose: We already have Alliance with Spain. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "propose: Cannot vassalize Austria: Austria is too powerful to vassalize (power: N% of France).": 1,
+  "propose: Talleyrand advises patience, Sire. Saxony refused our Non-Aggression Pact proposal; she will not hear it again for N mor": 1,
+  "propose: We already have Non-Aggression with Spain. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "propose: Talleyrand advises patience, Sire. Saxony refused us; the court will not receive another envoy for N more turns.": 1,
+  "propose: We already have Peace with Saxony. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "make_vassal: Talleyrand advises patience, Sire. Britain refused us; the court will not receive another envoy for N more turns.": 1,
+  "propose: Talleyrand advises patience, Sire. Denmark refused us; the court will not receive another envoy for N more turns.": 1,
+  "propose: We already have Peace with Spain. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "propose: We already have Peace with Austria. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "propose: Insufficient Diplomatic Points. This proposal costs N DP, but we only have N.": 1,
+  "make_vassal: Talleyrand advises patience, Sire. Russia refused us; the court will not receive another envoy for N more turns.": 1,
+  "propose: Cannot vassalize Britain: Britain is too powerful to vassalize (power: N% of France).": 1,
+  "propose: We already have Peace with Hesse. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "propose: Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: N% of France).": 1,
+  "propose: Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: N% of France).": 1,
+  "propose: We already have Peace with Portugal. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "answer: That settlement offer is no longer relevant; the war has ended.": 1,
+  "propose: Talleyrand advises patience, Sire. Denmark refused our Open Borders Agreement proposal; she will not hear it again for N": 1
+ },
+ "transitions": {
+  "WAR→PEACE": 73,
+  "None→WAR": 46,
+  "PEACE→WAR": 19,
+  "OPEN_BORDERS→PEACE": 8,
+  "DEFENSIVE_ALLIANCE→NON_AGGRESSION": 7,
+  "None→OPEN_BORDERS": 4,
+  "ALLIANCE→DEFENSIVE_ALLIANCE": 4,
+  "VASSAL→WAR": 4,
+  "WAR→ARMISTICE": 4,
+  "PEACE→OPEN_BORDERS": 3,
+  "NON_AGGRESSION→OPEN_BORDERS": 3,
+  "VASSAL→PEACE": 2,
+  "NON_AGGRESSION→WAR": 2,
+  "OPEN_BORDERS→WAR": 2,
+  "WAR→VASSAL": 2,
+  "ARMISTICE→PEACE": 2,
+  "NON_AGGRESSION→DEFENSIVE_ALLIANCE": 2,
+  "ARMISTICE→WAR": 2,
+  "ALLIANCE→PEACE": 1,
+  "None→DEFENSIVE_ALLIANCE": 1,
+  "None→VASSAL": 1,
+  "PEACE→DEFENSIVE_ALLIANCE": 1
+ },
+ "invalid_transitions": {
+  "ALLIANCE→PEACE (nation_eliminated)": 1
+ },
+ "writers_outside_setter": {},
+ "violation_classes": {
+  "I6_round_trip": 5,
+  "I1_instance_ownership": 2
+ },
+ "violations": [
+  {
+   "seed": "dd1-fuzz-3",
+   "step": 12,
+   "verb": "answer",
+   "cls": "I6_round_trip",
+   "detail": "/dialogue_manager/current/blocking: 'True' vs 'False'",
+   "persisted": 8,
+   "sequence": [
+    {
+     "i": 1,
+     "verb": "end_turn",
+     "detail": "turn 2",
+     "ok": true
+    },
+    {
+     "i": 2,
+     "verb": "end_turn",
+     "detail": "turn 3",
+     "ok": true
+    },
+    {
+     "i": 3,
+     "verb": "common_peace",
+     "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
+     "ok": true
+    },
+    {
+     "i": 4,
+     "verb": "declare_war",
+     "detail": "Denmark (subjugation)",
+     "ok": true
+    },
+    {
+     "i": 5,
+     "verb": "white_peace",
+     "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+     "ok": true
+    },
+    {
+     "i": 6,
+     "verb": "end_turn",
+     "detail": "turn 4",
+     "ok": true
+    },
+    {
+     "i": 7,
+     "verb": "make_vassal",
+     "detail": "Hesse (execute_proposal)",
+     "ok": true
+    },
+    {
+     "i": 8,
+     "verb": "propose",
+     "detail": "non_aggression → Denmark",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 9,
+     "verb": "common_peace",
+     "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
+     "ok": true
+    },
+    {
+     "i": 10,
+     "verb": "propose",
+     "detail": "non_aggression → Saxony",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 11,
+     "verb": "summon",
+     "detail": "",
+     "ok": false,
+     "refused": "The Congress cannot be summoned on 35 titled provinces — 45 are needed (10 more to win and settle)."
+    },
+    {
+     "i": 12,
+     "verb": "answer",
+     "detail": "incoming_proposal → counter_ai_proposal",
+     "ok": true
+    }
+   ]
+  },
+  {
+   "seed": "dd1-fuzz-3",
+   "step": 16,
+   "verb": "answer",
+   "cls": "I6_round_trip",
+   "detail": "/incoming_proposal_popup: \"{'from_nation': 'Switzerland', 'from_nation_display': 'Switz\" vs 'None'",
+   "persisted": 180,
+   "sequence": [
+    {
+     "i": 5,
+     "verb": "white_peace",
+     "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+     "ok": true
+    },
+    {
+     "i": 6,
+     "verb": "end_turn",
+     "detail": "turn 4",
+     "ok": true
+    },
+    {
+     "i": 7,
+     "verb": "make_vassal",
+     "detail": "Hesse (execute_proposal)",
+     "ok": true
+    },
+    {
+     "i": 8,
+     "verb": "propose",
+     "detail": "non_aggression → Denmark",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 9,
+     "verb": "common_peace",
+     "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
+     "ok": true
+    },
+    {
+     "i": 10,
+     "verb": "propose",
+     "detail": "non_aggression → Saxony",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 11,
+     "verb": "summon",
+     "detail": "",
+     "ok": false,
+     "refused": "The Congress cannot be summoned on 35 titled provinces — 45 are needed (10 more to win and settle)."
+    },
+    {
+     "i": 12,
+     "verb": "answer",
+     "detail": "incoming_proposal → counter_ai_proposal",
+     "ok": true
+    },
+    {
+     "i": 13,
+     "verb": "propose",
+     "detail": "non_aggression → Portugal",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 14,
+     "verb": "end_turn",
+     "detail": "turn 5",
+     "ok": true
+    },
+    {
+     "i": 15,
+     "verb": "end_turn",
+     "detail": "turn 6",
+     "ok": true
+    },
+    {
+     "i": 16,
+     "verb": "answer",
+     "detail": "incoming_proposal → accept_ai_proposal",
+     "ok": true
+    }
+   ]
+  },
+  {
+   "seed": "dd1-fuzz-3",
+   "step": 91,
+   "verb": "answer",
+   "cls": "I6_round_trip",
+   "detail": "/incoming_settlement_offer_popup: \"{'type': 'incoming_settlement_offer', 'dialogue_type': 'inco\" vs 'None'",
+   "persisted": 537,
+   "sequence": [
+    {
+     "i": 80,
+     "verb": "end_turn",
+     "detail": "turn 23",
+     "ok": true
+    },
+    {
+     "i": 81,
+     "verb": "end_turn",
+     "detail": "turn 24",
+     "ok": true
+    },
+    {
+     "i": 82,
+     "verb": "propose",
+     "detail": "armistice → Ottoman",
+     "ok": false,
+     "refused": "We already have Peace with Ottoman. Talleyrand sees no purpose in proposing what we already possess."
+    },
+    {
+     "i": 83,
+     "verb": "common_peace",
+     "detail": "",
+     "ok": false,
+     "skipped": "no war"
+    },
+    {
+     "i": 84,
+     "verb": "common_peace",
+     "detail": "",
+     "ok": false,
+     "skipped": "no war"
+    },
+    {
+     "i": 85,
+     "verb": "end_turn",
+     "detail": "turn 25",
+     "ok": true
+    },
+    {
+     "i": 86,
+     "verb": "propose",
+     "detail": "open_borders → Spain",
+     "ok": false,
+     "refused": "We already have Non-Aggression with Spain. Talleyrand sees no purpose in proposing what we already possess."
+    },
+    {
+     "i": 87,
+     "verb": "end_turn",
+     "detail": "turn 26",
+     "ok": true
+    },
+    {
+     "i": 88,
+     "verb": "end_turn",
+     "detail": "turn 27",
+     "ok": true
+    },
+    {
+     "i": 89,
+     "verb": "summon",
+     "detail": "",
+     "ok": false,
+     "refused": "The Congress cannot be summoned on 14 titled provinces — 45 are needed (31 more to win and settle)."
+    },
+    {
+     "i": 90,
+     "verb": "propose",
+     "detail": "vassalage → Hesse (execute_proposal)",
+     "ok": true
+    },
+    {
+     "i": 91,
+     "verb": "answer",
+     "detail": "incoming_settlement_offer → reject_settlement_offer",
+     "ok": true
+    }
+   ]
+  },
+  {
+   "seed": "dd1-fuzz-3",
+   "step": 315,
+   "verb": "make_vassal",
+   "cls": "I1_instance_ownership",
+   "detail": "assert_war_instance_invariants failed in context 'treaty_fuzzer': 1 violation(s):\n  - war_instance 'war_6' claims pair 'France|Portugal' as pair_status='war' but diplomatic_states does not have it as WAR",
+   "persisted": 12,
+   "sequence": [
+    {
+     "i": 304,
+     "verb": "declare_war",
+     "detail": "Russia (conquest)",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 305,
+     "verb": "answer",
+     "detail": "",
+     "ok": false,
+     "skipped": "no dialogue"
+    },
+    {
+     "i": 306,
+     "verb": "end_turn",
+     "detail": "turn 92",
+     "ok": true
+    },
+    {
+     "i": 307,
+     "verb": "end_turn",
+     "detail": "turn 93",
+     "ok": true
+    },
+    {
+     "i": 308,
+     "verb": "answer",
+     "detail": "",
+     "ok": false,
+     "skipped": "no dialogue"
+    },
+    {
+     "i": 309,
+     "verb": "propose",
+     "detail": "open_borders → Russia (execute_proposal)",
+     "ok": true
+    },
+    {
+     "i": 310,
+     "verb": "end_turn",
+     "detail": "turn 94",
+     "ok": true
+    },
+    {
+     "i": 311,
+     "verb": "declare_war",
+     "detail": "Naples (conquest)",
+     "ok": false,
+     "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)"
+    },
+    {
+     "i": 312,
+     "verb": "end_turn",
+     "detail": "turn 95",
+     "ok": true
+    },
+    {
+     "i": 313,
+     "verb": "answer",
+     "detail": "",
+     "ok": false,
+     "skipped": "no dialogue"
+    },
+    {
+     "i": 314,
+     "verb": "propose",
+     "detail": "armistice → Prussia",
+     "ok": false,
+     "refused": "We already have Peace with Prussia. Talleyrand sees no purpose in proposing what we already possess."
+    },
+    {
+     "i": 315,
+     "verb": "make_vassal",
+     "detail": "Portugal",
+     "ok": true
+    }
+   ]
+  },
+  {
+   "seed": "dd1-fuzz-3",
+   "step": 387,
+   "verb": "answer",
+   "cls": "I6_round_trip",
+   "detail": "/incoming_proposal_popup: \"{'from_nation': 'Portugal', 'from_nation_display': 'Portugal\" vs 'None'",
+   "persisted": 20,
+   "sequence": [
+    {
+     "i": 376,
+     "verb": "break",
+     "detail": "Hesse",
+     "ok": true
+    },
+    {
+     "i": 377,
+     "verb": "end_turn",
+     "detail": "turn 113",
+     "ok": true
+    },
+    {
+     "i": 378,
+     "verb": "propose",
+     "detail": "open_borders → Switzerland (execute_proposal)",
+     "ok": true
+    },
+    {
+     "i": 379,
+     "verb": "propose",
+     "detail": "non_aggression → Russia",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 380,
+     "verb": "release_vassal",
+     "detail": "",
+     "ok": false,
+     "skipped": "no vassal of ours"
+    },
+    {
+     "i": 381,
+     "verb": "common_peace",
+     "detail": "Switzerland",
+     "ok": false,
+     "refused": "Use bilateral peace or armistice for a one-on-one war."
+    },
+    {
+     "i": 382,
+     "verb": "answer",
+     "detail": "",
+     "ok": false,
+     "skipped": "no dialogue"
+    },
+    {
+     "i": 383,
+     "verb": "white_peace",
+     "detail": "Portugal",
+     "ok": false,
+     "refused": "Use bilateral peace or armistice for a one-on-one war."
+    },
+    {
+     "i": 384,
+     "verb": "propose",
+     "detail": "defensive_alliance → Denmark",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 385,
+     "verb": "make_vassal",
+     "detail": "Hesse",
+     "ok": false,
+     "refused": "Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: 61% of France)."
+    },
+    {
+     "i": 386,
+     "verb": "end_turn",
+     "detail": "turn 114",
+     "ok": true
+    },
+    {
+     "i": 387,
+     "verb": "answer",
+     "detail": "incoming_proposal → reject_ai_proposal",
+     "ok": true
+    }
+   ]
+  },
+  {
+   "seed": "dd1-fuzz-3",
+   "step": 506,
+   "verb": "answer",
+   "cls": "I1_instance_ownership",
+   "detail": "assert_war_instance_invariants failed in context 'treaty_fuzzer': 1 violation(s):\n  - war_instance 'war_5' claims pair 'France|Switzerland' as pair_status='war' but diplomatic_states does not have it as WAR",
+   "persisted": 41,
+   "sequence": [
+    {
+     "i": 495,
+     "verb": "end_turn",
+     "detail": "turn 158",
+     "ok": true
+    },
+    {
+     "i": 496,
+     "verb": "break",
+     "detail": "Portugal",
+     "ok": true
+    },
+    {
+     "i": 497,
+     "verb": "release_vassal",
+     "detail": "",
+     "ok": false,
+     "skipped": "no vassal of ours"
+    },
+    {
+     "i": 498,
+     "verb": "end_turn",
+     "detail": "turn 159",
+     "ok": true
+    },
+    {
+     "i": 499,
+     "verb": "end_turn",
+     "detail": "turn 160",
+     "ok": true
+    },
+    {
+     "i": 500,
+     "verb": "end_turn",
+     "detail": "turn 161",
+     "ok": true
+    },
+    {
+     "i": 501,
+     "verb": "end_turn",
+     "detail": "turn 162",
+     "ok": true
+    },
+    {
+     "i": 502,
+     "verb": "declare_war",
+     "detail": "Russia (forced_alliance)",
+     "ok": false,
+     "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Russia') sides do not match)"
+    },
+    {
+     "i": 503,
+     "verb": "end_turn",
+     "detail": "turn 163",
+     "ok": true
+    },
+    {
+     "i": 504,
+     "verb": "propose",
+     "detail": "defensive_alliance → Switzerland (execute_proposal)",
+     "ok": true
+    },
+    {
+     "i": 505,
+     "verb": "declare_war",
+     "detail": "Prussia (forced_alliance)",
+     "ok": false,
+     "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+    },
+    {
+     "i": 506,
+     "verb": "answer",
+     "detail": "incoming_proposal → accept_ai_proposal",
+     "ok": true
+    }
+   ]
+  },
+  {
+   "seed": "dd1-fuzz-3",
+   "step": 926,
+   "verb": "answer",
+   "cls": "I6_round_trip",
+   "detail": "/incoming_proposal_popup: \"{'from_nation': 'Sardinia', 'from_nation_display': 'Sardinia\" vs 'None'",
+   "persisted": 11,
+   "sequence": [
+    {
+     "i": 915,
+     "verb": "break",
+     "detail": "",
+     "ok": false,
+     "skipped": "no treaty of ours"
+    },
+    {
+     "i": 916,
+     "verb": "propose",
+     "detail": "open_borders → Denmark (execute_proposal)",
+     "ok": true
+    },
+    {
+     "i": 917,
+     "verb": "answer",
+     "detail": "",
+     "ok": false,
+     "skipped": "no dialogue"
+    },
+    {
+     "i": 918,
+     "verb": "end_turn",
+     "detail": "turn 288",
+     "ok": true
+    },
+    {
+     "i": 919,
+     "verb": "answer",
+     "detail": "counter_offer_response → reject_counter_offer",
+     "ok": true
+    },
+    {
+     "i": 920,
+     "verb": "make_vassal",
+     "detail": "Spain",
+     "ok": false,
+     "refused": "Cannot vassalize Spain: Spain is too powerful to vassalize (power: 422% of France)."
+    },
+    {
+     "i": 921,
+     "verb": "white_peace",
+     "detail": "",
+     "ok": false,
+     "skipped": "no war"
+    },
+    {
+     "i": 922,
+     "verb": "white_peace",
+     "detail": "",
+     "ok": false,
+     "skipped": "no war"
+    },
+    {
+     "i": 923,
+     "verb": "break",
+     "detail": "",
+     "ok": false,
+     "skipped": "no treaty of ours"
+    },
+    {
+     "i": 924,
+     "verb": "release_vassal",
+     "detail": "",
+     "ok": false,
+     "skipped": "no vassal of ours"
+    },
+    {
+     "i": 925,
+     "verb": "answer",
+     "detail": "incoming_proposal → counter_ai_proposal",
+     "ok": true
+    },
+    {
+     "i": 926,
+     "verb": "answer",
+     "detail": "counter_offer → reject_ai_proposal",
+     "ok": true
+    }
+   ]
+  }
+ ],
+ "sequence": [
+  {
+   "i": 1,
+   "verb": "end_turn",
+   "detail": "turn 2",
+   "ok": true
+  },
+  {
+   "i": 2,
+   "verb": "end_turn",
+   "detail": "turn 3",
+   "ok": true
+  },
+  {
+   "i": 3,
+   "verb": "common_peace",
+   "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 4,
+   "verb": "declare_war",
+   "detail": "Denmark (subjugation)",
+   "ok": true
+  },
+  {
+   "i": 5,
+   "verb": "white_peace",
+   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 6,
+   "verb": "end_turn",
+   "detail": "turn 4",
+   "ok": true
+  },
+  {
+   "i": 7,
+   "verb": "make_vassal",
+   "detail": "Hesse (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 8,
+   "verb": "propose",
+   "detail": "non_aggression → Denmark",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 9,
+   "verb": "common_peace",
+   "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 10,
+   "verb": "propose",
+   "detail": "non_aggression → Saxony",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 11,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 35 titled provinces — 45 are needed (10 more to win and settle)."
+  },
+  {
+   "i": 12,
+   "verb": "answer",
+   "detail": "incoming_proposal → counter_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 13,
+   "verb": "propose",
+   "detail": "non_aggression → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 14,
+   "verb": "end_turn",
+   "detail": "turn 5",
+   "ok": true
+  },
+  {
+   "i": 15,
+   "verb": "end_turn",
+   "detail": "turn 6",
+   "ok": true
+  },
+  {
+   "i": 16,
+   "verb": "answer",
+   "detail": "incoming_proposal → accept_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 17,
+   "verb": "propose",
+   "detail": "defensive_alliance → Naples (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 18,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 19,
+   "verb": "propose",
+   "detail": "peace → KingdomOfItaly",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 20,
+   "verb": "propose",
+   "detail": "alliance → Spain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 21,
+   "verb": "common_peace",
+   "detail": "common peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 22,
+   "verb": "release_vassal",
+   "detail": "KingdomOfItaly",
+   "ok": true
+  },
+  {
+   "i": 23,
+   "verb": "end_turn",
+   "detail": "turn 7",
+   "ok": true
+  },
+  {
+   "i": 24,
+   "verb": "answer",
+   "detail": "incoming_proposal → accept_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 25,
+   "verb": "propose",
+   "detail": "open_borders → Spain",
+   "ok": false,
+   "refused": "We already have Alliance with Spain. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 26,
+   "verb": "end_turn",
+   "detail": "turn 8",
+   "ok": true
+  },
+  {
+   "i": 27,
+   "verb": "white_peace",
+   "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 28,
+   "verb": "propose",
+   "detail": "defensive_alliance → Denmark (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 29,
+   "verb": "end_turn",
+   "detail": "turn 9",
+   "ok": true
+  },
+  {
+   "i": 30,
+   "verb": "answer",
+   "detail": "incoming_proposal → accept_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 31,
+   "verb": "propose",
+   "detail": "defensive_alliance → Sweden (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 32,
+   "verb": "end_turn",
+   "detail": "turn 10",
+   "ok": true
+  },
+  {
+   "i": 33,
+   "verb": "propose",
+   "detail": "vassalage → Austria",
+   "ok": false,
+   "refused": "Cannot vassalize Austria: Austria is too powerful to vassalize (power: 64% of France)."
+  },
+  {
+   "i": 34,
+   "verb": "propose",
+   "detail": "defensive_alliance → PapalStates (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 35,
+   "verb": "propose",
+   "detail": "open_borders → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 36,
+   "verb": "white_peace",
+   "detail": "white peace Britain (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 37,
+   "verb": "break",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 38,
+   "verb": "declare_war",
+   "detail": "PapalStates (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 39,
+   "verb": "end_turn",
+   "detail": "turn 11",
+   "ok": true
+  },
+  {
+   "i": 40,
+   "verb": "answer",
+   "detail": "incoming_proposal → accept_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 41,
+   "verb": "propose",
+   "detail": "open_borders → Britain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 42,
+   "verb": "break",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 43,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 44,
+   "verb": "declare_war",
+   "detail": "Portugal (forced_alliance)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 45,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 46,
+   "verb": "white_peace",
+   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 47,
+   "verb": "end_turn",
+   "detail": "turn 12",
+   "ok": true
+  },
+  {
+   "i": 48,
+   "verb": "white_peace",
+   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 49,
+   "verb": "propose",
+   "detail": "non_aggression → Saxony (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 50,
+   "verb": "end_turn",
+   "detail": "turn 13",
+   "ok": true
+  },
+  {
+   "i": 51,
+   "verb": "end_turn",
+   "detail": "turn 14",
+   "ok": true
+  },
+  {
+   "i": 52,
+   "verb": "declare_war",
+   "detail": "Hanover (conquest)",
+   "ok": true
+  },
+  {
+   "i": 53,
+   "verb": "end_turn",
+   "detail": "turn 15",
+   "ok": true
+  },
+  {
+   "i": 54,
+   "verb": "break",
+   "detail": "Saxony",
+   "ok": true
+  },
+  {
+   "i": 55,
+   "verb": "white_peace",
+   "detail": "white peace Denmark (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 56,
+   "verb": "propose",
+   "detail": "peace → Prussia",
+   "ok": false,
+   "refused": "We already have Peace with Prussia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 57,
+   "verb": "white_peace",
+   "detail": "white peace Hanover (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 58,
+   "verb": "white_peace",
+   "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 59,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 31 titled provinces — 45 are needed (14 more to win and settle)."
+  },
+  {
+   "i": 60,
+   "verb": "end_turn",
+   "detail": "turn 16",
+   "ok": true
+  },
+  {
+   "i": 61,
+   "verb": "propose",
+   "detail": "non_aggression → Saxony",
+   "ok": false,
+   "refused": "Talleyrand advises patience, Sire. Saxony refused our Non-Aggression Pact proposal; she will not hear it again for 2 more turns."
+  },
+  {
+   "i": 62,
+   "verb": "end_turn",
+   "detail": "turn 17",
+   "ok": true
+  },
+  {
+   "i": 63,
+   "verb": "end_turn",
+   "detail": "turn 18",
+   "ok": true
+  },
+  {
+   "i": 64,
+   "verb": "white_peace",
+   "detail": "white peace Britain (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 65,
+   "verb": "break",
+   "detail": "Portugal",
+   "ok": true
+  },
+  {
+   "i": 66,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": true
+  },
+  {
+   "i": 67,
+   "verb": "answer",
+   "detail": "settlement_confirm → submit_settlement_for_review",
+   "ok": true
+  },
+  {
+   "i": 68,
+   "verb": "answer",
+   "detail": "settlement_confirm → back_out_settlement",
+   "ok": true
+  },
+  {
+   "i": 69,
+   "verb": "common_peace",
+   "detail": "common peace Denmark (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 70,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 22 titled provinces — 45 are needed (23 more to win and settle)."
+  },
+  {
+   "i": 71,
+   "verb": "end_turn",
+   "detail": "turn 19",
+   "ok": true
+  },
+  {
+   "i": 72,
+   "verb": "declare_war",
+   "detail": "PapalStates (forced_alliance)",
+   "ok": true
+  },
+  {
+   "i": 73,
+   "verb": "end_turn",
+   "detail": "turn 20",
+   "ok": true
+  },
+  {
+   "i": 74,
+   "verb": "propose",
+   "detail": "alliance → Ottoman (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 75,
+   "verb": "common_peace",
+   "detail": "common peace Denmark (confirm)",
+   "ok": true
+  },
+  {
+   "i": 76,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 77,
+   "verb": "end_turn",
+   "detail": "turn 21",
+   "ok": true
+  },
+  {
+   "i": 78,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 79,
+   "verb": "end_turn",
+   "detail": "turn 22",
+   "ok": true
+  },
+  {
+   "i": 80,
+   "verb": "end_turn",
+   "detail": "turn 23",
+   "ok": true
+  },
+  {
+   "i": 81,
+   "verb": "end_turn",
+   "detail": "turn 24",
+   "ok": true
+  },
+  {
+   "i": 82,
+   "verb": "propose",
+   "detail": "armistice → Ottoman",
+   "ok": false,
+   "refused": "We already have Peace with Ottoman. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 83,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 84,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 85,
+   "verb": "end_turn",
+   "detail": "turn 25",
+   "ok": true
+  },
+  {
+   "i": 86,
+   "verb": "propose",
+   "detail": "open_borders → Spain",
+   "ok": false,
+   "refused": "We already have Non-Aggression with Spain. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 87,
+   "verb": "end_turn",
+   "detail": "turn 26",
+   "ok": true
+  },
+  {
+   "i": 88,
+   "verb": "end_turn",
+   "detail": "turn 27",
+   "ok": true
+  },
+  {
+   "i": 89,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 14 titled provinces — 45 are needed (31 more to win and settle)."
+  },
+  {
+   "i": 90,
+   "verb": "propose",
+   "detail": "vassalage → Hesse (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 91,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 92,
+   "verb": "propose",
+   "detail": "armistice → Spain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 93,
+   "verb": "end_turn",
+   "detail": "turn 28",
+   "ok": true
+  },
+  {
+   "i": 94,
+   "verb": "white_peace",
+   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 95,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 96,
+   "verb": "end_turn",
+   "detail": "turn 29",
+   "ok": true
+  },
+  {
+   "i": 97,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 98,
+   "verb": "end_turn",
+   "detail": "turn 30",
+   "ok": true
+  },
+  {
+   "i": 99,
+   "verb": "end_turn",
+   "detail": "turn 31",
+   "ok": true
+  },
+  {
+   "i": 100,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 101,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 102,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 103,
+   "verb": "propose",
+   "detail": "defensive_alliance → Saxony (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 104,
+   "verb": "propose",
+   "detail": "vassalage → Saxony",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 105,
+   "verb": "common_peace",
+   "detail": "common peace Hesse (confirm)",
+   "ok": true
+  },
+  {
+   "i": 106,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 107,
+   "verb": "end_turn",
+   "detail": "turn 32",
+   "ok": true
+  },
+  {
+   "i": 108,
+   "verb": "propose",
+   "detail": "peace → Britain",
+   "ok": false,
+   "refused": "We already have Peace with Britain. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 109,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 110,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 111,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 112,
+   "verb": "propose",
+   "detail": "non_aggression → Saxony",
+   "ok": false,
+   "refused": "Talleyrand advises patience, Sire. Saxony refused us; the court will not receive another envoy for 3 more turns."
+  },
+  {
+   "i": 113,
+   "verb": "end_turn",
+   "detail": "turn 33",
+   "ok": true
+  },
+  {
+   "i": 114,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 115,
+   "verb": "end_turn",
+   "detail": "turn 34",
+   "ok": true
+  },
+  {
+   "i": 116,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 117,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 118,
+   "verb": "end_turn",
+   "detail": "turn 35",
+   "ok": true
+  },
+  {
+   "i": 119,
+   "verb": "propose",
+   "detail": "armistice → Saxony",
+   "ok": false,
+   "refused": "We already have Peace with Saxony. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 120,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 121,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 122,
+   "verb": "end_turn",
+   "detail": "turn 36",
+   "ok": true
+  },
+  {
+   "i": 123,
+   "verb": "end_turn",
+   "detail": "turn 37",
+   "ok": true
+  },
+  {
+   "i": 124,
+   "verb": "make_vassal",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: 163% of France)."
+  },
+  {
+   "i": 125,
+   "verb": "end_turn",
+   "detail": "turn 38",
+   "ok": true
+  },
+  {
+   "i": 126,
+   "verb": "propose",
+   "detail": "non_aggression → Britain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 127,
+   "verb": "declare_war",
+   "detail": "Saxony (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 128,
+   "verb": "make_vassal",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: 163% of France)."
+  },
+  {
+   "i": 129,
+   "verb": "declare_war",
+   "detail": "Saxony (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 130,
+   "verb": "propose",
+   "detail": "armistice → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 131,
+   "verb": "end_turn",
+   "detail": "turn 39",
+   "ok": true
+  },
+  {
+   "i": 132,
+   "verb": "end_turn",
+   "detail": "turn 40",
+   "ok": true
+  },
+  {
+   "i": 133,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 134,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 135,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 136,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 137,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 138,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 139,
+   "verb": "declare_war",
+   "detail": "Holland (forced_alliance)",
+   "ok": true
+  },
+  {
+   "i": 140,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 141,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 142,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 143,
+   "verb": "common_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 144,
+   "verb": "make_vassal",
+   "detail": "Britain",
+   "ok": false,
+   "refused": "Talleyrand advises patience, Sire. Britain refused us; the court will not receive another envoy for 2 more turns."
+  },
+  {
+   "i": 145,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 146,
+   "verb": "propose",
+   "detail": "peace → Naples",
+   "ok": false,
+   "refused": "We already have Peace with Naples. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 147,
+   "verb": "end_turn",
+   "detail": "turn 41",
+   "ok": true
+  },
+  {
+   "i": 148,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 149,
+   "verb": "propose",
+   "detail": "open_borders → Denmark (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 150,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 151,
+   "verb": "propose",
+   "detail": "alliance → Russia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 152,
+   "verb": "propose",
+   "detail": "peace → Britain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 153,
+   "verb": "common_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 154,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 155,
+   "verb": "declare_war",
+   "detail": "Switzerland (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 156,
+   "verb": "make_vassal",
+   "detail": "Russia",
+   "ok": false,
+   "refused": "Cannot vassalize Russia: Russia is too powerful to vassalize (power: 428% of France)."
+  },
+  {
+   "i": 157,
+   "verb": "end_turn",
+   "detail": "turn 42",
+   "ok": true
+  },
+  {
+   "i": 158,
+   "verb": "declare_war",
+   "detail": "Britain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 159,
+   "verb": "common_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 160,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 161,
+   "verb": "declare_war",
+   "detail": "Hesse (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 162,
+   "verb": "end_turn",
+   "detail": "turn 43",
+   "ok": true
+  },
+  {
+   "i": 163,
+   "verb": "propose",
+   "detail": "non_aggression → Denmark",
+   "ok": false,
+   "refused": "Talleyrand advises patience, Sire. Denmark refused us; the court will not receive another envoy for 2 more turns."
+  },
+  {
+   "i": 164,
+   "verb": "end_turn",
+   "detail": "turn 44",
+   "ok": true
+  },
+  {
+   "i": 165,
+   "verb": "declare_war",
+   "detail": "Denmark (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 166,
+   "verb": "answer",
+   "detail": "sabotage_confrontation → confront_sabotage",
+   "ok": true
+  },
+  {
+   "i": 167,
+   "verb": "declare_war",
+   "detail": "Prussia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 168,
+   "verb": "break",
+   "detail": "PapalStates",
+   "ok": true
+  },
+  {
+   "i": 169,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 170,
+   "verb": "end_turn",
+   "detail": "turn 45",
+   "ok": true
+  },
+  {
+   "i": 171,
+   "verb": "break",
+   "detail": "Austria",
+   "ok": true
+  },
+  {
+   "i": 172,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 173,
+   "verb": "end_turn",
+   "detail": "turn 46",
+   "ok": true
+  },
+  {
+   "i": 174,
+   "verb": "end_turn",
+   "detail": "turn 47",
+   "ok": true
+  },
+  {
+   "i": 175,
+   "verb": "end_turn",
+   "detail": "turn 48",
+   "ok": true
+  },
+  {
+   "i": 176,
+   "verb": "propose",
+   "detail": "defensive_alliance → Sweden (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 177,
+   "verb": "declare_war",
+   "detail": "Switzerland (forced_alliance)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 178,
+   "verb": "propose",
+   "detail": "non_aggression → Switzerland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 179,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 180,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 181,
+   "verb": "end_turn",
+   "detail": "turn 50",
+   "ok": true
+  },
+  {
+   "i": 182,
+   "verb": "common_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 183,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 184,
+   "verb": "end_turn",
+   "detail": "turn 51",
+   "ok": true
+  },
+  {
+   "i": 185,
+   "verb": "end_turn",
+   "detail": "turn 52",
+   "ok": true
+  },
+  {
+   "i": 186,
+   "verb": "declare_war",
+   "detail": "Ottoman (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 187,
+   "verb": "end_turn",
+   "detail": "turn 53",
+   "ok": true
+  },
+  {
+   "i": 188,
+   "verb": "end_turn",
+   "detail": "turn 54",
+   "ok": true
+  },
+  {
+   "i": 189,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 190,
+   "verb": "end_turn",
+   "detail": "turn 56",
+   "ok": true
+  },
+  {
+   "i": 191,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 192,
+   "verb": "end_turn",
+   "detail": "turn 57",
+   "ok": true
+  },
+  {
+   "i": 193,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 194,
+   "verb": "break",
+   "detail": "Portugal",
+   "ok": true
+  },
+  {
+   "i": 195,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 196,
+   "verb": "make_vassal",
+   "detail": "Sweden",
+   "ok": false,
+   "refused": "Cannot vassalize Sweden: Sweden is too powerful to vassalize (power: 224% of France)."
+  },
+  {
+   "i": 197,
+   "verb": "propose",
+   "detail": "defensive_alliance → Naples (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 198,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 199,
+   "verb": "propose",
+   "detail": "vassalage → Denmark",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 200,
+   "verb": "end_turn",
+   "detail": "turn 58",
+   "ok": true
+  },
+  {
+   "i": 201,
+   "verb": "break",
+   "detail": "Ottoman",
+   "ok": true
+  },
+  {
+   "i": 202,
+   "verb": "common_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 203,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 204,
+   "verb": "propose",
+   "detail": "open_borders → Holland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 205,
+   "verb": "declare_war",
+   "detail": "Spain (forced_alliance)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 206,
+   "verb": "end_turn",
+   "detail": "turn 59",
+   "ok": true
+  },
+  {
+   "i": 207,
+   "verb": "common_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 208,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 209,
+   "verb": "propose",
+   "detail": "defensive_alliance → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 210,
+   "verb": "end_turn",
+   "detail": "turn 60",
+   "ok": true
+  },
+  {
+   "i": 211,
+   "verb": "declare_war",
+   "detail": "Naples (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 212,
+   "verb": "end_turn",
+   "detail": "turn 61",
+   "ok": true
+  },
+  {
+   "i": 213,
+   "verb": "end_turn",
+   "detail": "turn 62",
+   "ok": true
+  },
+  {
+   "i": 214,
+   "verb": "end_turn",
+   "detail": "turn 63",
+   "ok": true
+  },
+  {
+   "i": 215,
+   "verb": "declare_war",
+   "detail": "Britain (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 216,
+   "verb": "propose",
+   "detail": "defensive_alliance → Denmark (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 217,
+   "verb": "end_turn",
+   "detail": "turn 64",
+   "ok": true
+  },
+  {
+   "i": 218,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 219,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 220,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 221,
+   "verb": "end_turn",
+   "detail": "turn 65",
+   "ok": true
+  },
+  {
+   "i": 222,
+   "verb": "end_turn",
+   "detail": "turn 66",
+   "ok": true
+  },
+  {
+   "i": 223,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 224,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 225,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 226,
+   "verb": "break",
+   "detail": "Sweden",
+   "ok": true
+  },
+  {
+   "i": 227,
+   "verb": "end_turn",
+   "detail": "turn 67",
+   "ok": true
+  },
+  {
+   "i": 228,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 229,
+   "verb": "declare_war",
+   "detail": "Sardinia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Holland)"
+  },
+  {
+   "i": 230,
+   "verb": "end_turn",
+   "detail": "turn 68",
+   "ok": true
+  },
+  {
+   "i": 231,
+   "verb": "white_peace",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 232,
+   "verb": "end_turn",
+   "detail": "turn 69",
+   "ok": true
+  },
+  {
+   "i": 233,
+   "verb": "end_turn",
+   "detail": "turn 70",
+   "ok": true
+  },
+  {
+   "i": 234,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 235,
+   "verb": "declare_war",
+   "detail": "Sweden (forced_alliance)",
+   "ok": true
+  },
+  {
+   "i": 236,
+   "verb": "propose",
+   "detail": "armistice → Naples",
+   "ok": false,
+   "refused": "We already have Peace with Naples. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 237,
+   "verb": "end_turn",
+   "detail": "turn 71",
+   "ok": true
+  },
+  {
+   "i": 238,
+   "verb": "end_turn",
+   "detail": "turn 72",
+   "ok": true
+  },
+  {
+   "i": 239,
+   "verb": "break",
+   "detail": "Prussia",
+   "ok": true
+  },
+  {
+   "i": 240,
+   "verb": "end_turn",
+   "detail": "turn 73",
+   "ok": true
+  },
+  {
+   "i": 241,
+   "verb": "propose",
+   "detail": "peace → Denmark",
+   "ok": false,
+   "refused": "We already have Peace with Denmark. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 242,
+   "verb": "end_turn",
+   "detail": "turn 74",
+   "ok": true
+  },
+  {
+   "i": 243,
+   "verb": "break",
+   "detail": "Naples",
+   "ok": true
+  },
+  {
+   "i": 244,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 245,
+   "verb": "answer",
+   "detail": "settlement_confirm → confirm_settlement",
+   "ok": true
+  },
+  {
+   "i": 246,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 247,
+   "verb": "make_vassal",
+   "detail": "Ottoman",
+   "ok": false,
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 408% of France)."
+  },
+  {
+   "i": 248,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 249,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 250,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 251,
+   "verb": "break",
+   "detail": "Holland",
+   "ok": true
+  },
+  {
+   "i": 252,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 253,
+   "verb": "propose",
+   "detail": "non_aggression → Sardinia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 254,
+   "verb": "make_vassal",
+   "detail": "Britain",
+   "ok": false,
+   "refused": "Cannot vassalize Britain: Britain is too powerful to vassalize (power: 581% of France)."
+  },
+  {
+   "i": 255,
+   "verb": "end_turn",
+   "detail": "turn 75",
+   "ok": true
+  },
+  {
+   "i": 256,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 257,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 258,
+   "verb": "end_turn",
+   "detail": "turn 76",
+   "ok": true
+  },
+  {
+   "i": 259,
+   "verb": "end_turn",
+   "detail": "turn 77",
+   "ok": true
+  },
+  {
+   "i": 260,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 261,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 262,
+   "verb": "end_turn",
+   "detail": "turn 78",
+   "ok": true
+  },
+  {
+   "i": 263,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 264,
+   "verb": "propose",
+   "detail": "defensive_alliance → Sardinia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 265,
+   "verb": "end_turn",
+   "detail": "turn 79",
+   "ok": true
+  },
+  {
+   "i": 266,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 267,
+   "verb": "end_turn",
+   "detail": "turn 80",
+   "ok": true
+  },
+  {
+   "i": 268,
+   "verb": "end_turn",
+   "detail": "turn 81",
+   "ok": true
+  },
+  {
+   "i": 269,
+   "verb": "propose",
+   "detail": "armistice → Spain",
+   "ok": false,
+   "refused": "We already have Peace with Spain. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 270,
+   "verb": "make_vassal",
+   "detail": "Britain",
+   "ok": false,
+   "refused": "Cannot vassalize Britain: Britain is too powerful to vassalize (power: 665% of France)."
+  },
+  {
+   "i": 271,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 272,
+   "verb": "propose",
+   "detail": "peace → Sardinia",
+   "ok": false,
+   "refused": "We already have Peace with Sardinia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 273,
+   "verb": "end_turn",
+   "detail": "turn 82",
+   "ok": true
+  },
+  {
+   "i": 274,
+   "verb": "propose",
+   "detail": "peace → Denmark",
+   "ok": false,
+   "refused": "We already have Peace with Denmark. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 275,
+   "verb": "end_turn",
+   "detail": "turn 83",
+   "ok": true
+  },
+  {
+   "i": 276,
+   "verb": "break",
+   "detail": "Sardinia",
+   "ok": true
+  },
+  {
+   "i": 277,
+   "verb": "end_turn",
+   "detail": "turn 84",
+   "ok": true
+  },
+  {
+   "i": 278,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 279,
+   "verb": "end_turn",
+   "detail": "turn 85",
+   "ok": true
+  },
+  {
+   "i": 280,
+   "verb": "end_turn",
+   "detail": "turn 86",
+   "ok": true
+  },
+  {
+   "i": 281,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 282,
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 283,
+   "verb": "end_turn",
+   "detail": "turn 87",
+   "ok": true
+  },
+  {
+   "i": 284,
+   "verb": "propose",
+   "detail": "alliance → Portugal (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 285,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 286,
+   "verb": "end_turn",
+   "detail": "turn 88",
+   "ok": true
+  },
+  {
+   "i": 287,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 288,
+   "verb": "propose",
+   "detail": "armistice → Austria",
+   "ok": false,
+   "refused": "We already have Peace with Austria. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 289,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 290,
+   "verb": "propose",
+   "detail": "defensive_alliance → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 291,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 292,
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 293,
+   "verb": "propose",
+   "detail": "vassalage → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 294,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 295,
+   "verb": "end_turn",
+   "detail": "turn 89",
+   "ok": true
+  },
+  {
+   "i": 296,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 297,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 298,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 299,
+   "verb": "end_turn",
+   "detail": "turn 90",
+   "ok": true
+  },
+  {
+   "i": 300,
+   "verb": "declare_war",
+   "detail": "Portugal (conquest)",
+   "ok": true
+  },
+  {
+   "i": 301,
+   "verb": "end_turn",
+   "detail": "turn 91",
+   "ok": true
+  },
+  {
+   "i": 302,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 303,
+   "verb": "propose",
+   "detail": "open_borders → Sweden (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 304,
+   "verb": "declare_war",
+   "detail": "Russia (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 305,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 306,
+   "verb": "end_turn",
+   "detail": "turn 92",
+   "ok": true
+  },
+  {
+   "i": 307,
+   "verb": "end_turn",
+   "detail": "turn 93",
+   "ok": true
+  },
+  {
+   "i": 308,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 309,
+   "verb": "propose",
+   "detail": "open_borders → Russia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 310,
+   "verb": "end_turn",
+   "detail": "turn 94",
+   "ok": true
+  },
+  {
+   "i": 311,
+   "verb": "declare_war",
+   "detail": "Naples (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)"
+  },
+  {
+   "i": 312,
+   "verb": "end_turn",
+   "detail": "turn 95",
+   "ok": true
+  },
+  {
+   "i": 313,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 314,
+   "verb": "propose",
+   "detail": "armistice → Prussia",
+   "ok": false,
+   "refused": "We already have Peace with Prussia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 315,
+   "verb": "make_vassal",
+   "detail": "Portugal",
+   "ok": true
+  },
+  {
+   "i": 316,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 317,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 318,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 319,
+   "verb": "end_turn",
+   "detail": "turn 96",
+   "ok": true
+  },
+  {
+   "i": 320,
+   "verb": "break",
+   "detail": "Denmark",
+   "ok": true
+  },
+  {
+   "i": 321,
+   "verb": "end_turn",
+   "detail": "turn 97",
+   "ok": true
+  },
+  {
+   "i": 322,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 323,
+   "verb": "declare_war",
+   "detail": "Sweden (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)"
+  },
+  {
+   "i": 324,
+   "verb": "declare_war",
+   "detail": "Hesse (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)"
+  },
+  {
+   "i": 325,
+   "verb": "end_turn",
+   "detail": "turn 98",
+   "ok": true
+  },
+  {
+   "i": 326,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 327,
+   "verb": "end_turn",
+   "detail": "turn 99",
+   "ok": true
+  },
+  {
+   "i": 328,
+   "verb": "end_turn",
+   "detail": "turn 100",
+   "ok": true
+  },
+  {
+   "i": 329,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 330,
+   "verb": "propose",
+   "detail": "vassalage → Switzerland",
+   "ok": false,
+   "refused": "Cannot vassalize Switzerland: Switzerland is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 331,
+   "verb": "propose",
+   "detail": "alliance → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 332,
+   "verb": "end_turn",
+   "detail": "turn 101",
+   "ok": true
+  },
+  {
+   "i": 333,
+   "verb": "propose",
+   "detail": "alliance → Hesse (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 334,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 335,
+   "verb": "end_turn",
+   "detail": "turn 102",
+   "ok": true
+  },
+  {
+   "i": 336,
+   "verb": "propose",
+   "detail": "alliance → Spain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 337,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 338,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 339,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 340,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 341,
+   "verb": "end_turn",
+   "detail": "turn 103",
+   "ok": true
+  },
+  {
+   "i": 342,
+   "verb": "end_turn",
+   "detail": "turn 104",
+   "ok": true
+  },
+  {
+   "i": 343,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 344,
+   "verb": "end_turn",
+   "detail": "turn 105",
+   "ok": true
+  },
+  {
+   "i": 345,
+   "verb": "make_vassal",
+   "detail": "Britain",
+   "ok": false,
+   "refused": "Cannot vassalize Britain: Britain is too powerful to vassalize (power: 755% of France)."
+  },
+  {
+   "i": 346,
+   "verb": "declare_war",
+   "detail": "Denmark (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)"
+  },
+  {
+   "i": 347,
+   "verb": "end_turn",
+   "detail": "turn 106",
+   "ok": true
+  },
+  {
+   "i": 348,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 349,
+   "verb": "declare_war",
+   "detail": "Hesse (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)"
+  },
+  {
+   "i": 350,
+   "verb": "break",
+   "detail": "Sweden",
+   "ok": true
+  },
+  {
+   "i": 351,
+   "verb": "break",
+   "detail": "Russia",
+   "ok": true
+  },
+  {
+   "i": 352,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 353,
+   "verb": "end_turn",
+   "detail": "turn 107",
+   "ok": true
+  },
+  {
+   "i": 354,
+   "verb": "common_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 355,
+   "verb": "make_vassal",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Cannot vassalize Prussia: Prussia is too powerful to vassalize (power: 916% of France)."
+  },
+  {
+   "i": 356,
+   "verb": "common_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 357,
+   "verb": "make_vassal",
+   "detail": "Portugal",
+   "ok": true
+  },
+  {
+   "i": 358,
+   "verb": "propose",
+   "detail": "non_aggression → Denmark (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 359,
+   "verb": "end_turn",
+   "detail": "turn 108",
+   "ok": true
+  },
+  {
+   "i": 360,
+   "verb": "end_turn",
+   "detail": "turn 109",
+   "ok": true
+  },
+  {
+   "i": 361,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 362,
+   "verb": "end_turn",
+   "detail": "turn 110",
+   "ok": true
+  },
+  {
+   "i": 363,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 364,
+   "verb": "declare_war",
+   "detail": "Prussia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal)"
+  },
+  {
+   "i": 365,
+   "verb": "common_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 366,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 367,
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 368,
+   "verb": "end_turn",
+   "detail": "turn 111",
+   "ok": true
+  },
+  {
+   "i": 369,
+   "verb": "end_turn",
+   "detail": "turn 112",
+   "ok": true
+  },
+  {
+   "i": 370,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 371,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 372,
+   "verb": "make_vassal",
+   "detail": "Hesse",
+   "ok": false,
+   "refused": "Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 373,
+   "verb": "declare_war",
+   "detail": "Britain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 374,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 375,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 376,
+   "verb": "break",
+   "detail": "Hesse",
+   "ok": true
+  },
+  {
+   "i": 377,
+   "verb": "end_turn",
+   "detail": "turn 113",
+   "ok": true
+  },
+  {
+   "i": 378,
+   "verb": "propose",
+   "detail": "open_borders → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 379,
+   "verb": "propose",
+   "detail": "non_aggression → Russia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 380,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 381,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 382,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 383,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 384,
+   "verb": "propose",
+   "detail": "defensive_alliance → Denmark",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 385,
+   "verb": "make_vassal",
+   "detail": "Hesse",
+   "ok": false,
+   "refused": "Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 386,
+   "verb": "end_turn",
+   "detail": "turn 114",
+   "ok": true
+  },
+  {
+   "i": 387,
+   "verb": "answer",
+   "detail": "incoming_proposal → reject_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 388,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 389,
+   "verb": "propose",
+   "detail": "peace → Sardinia",
+   "ok": false,
+   "refused": "We already have Peace with Sardinia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 390,
+   "verb": "end_turn",
+   "detail": "turn 115",
+   "ok": true
+  },
+  {
+   "i": 391,
+   "verb": "propose",
+   "detail": "alliance → Hesse (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 392,
+   "verb": "end_turn",
+   "detail": "turn 116",
+   "ok": true
+  },
+  {
+   "i": 393,
+   "verb": "end_turn",
+   "detail": "turn 117",
+   "ok": true
+  },
+  {
+   "i": 394,
+   "verb": "propose",
+   "detail": "open_borders → Britain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 395,
+   "verb": "make_vassal",
+   "detail": "Spain",
+   "ok": false,
+   "refused": "Cannot vassalize Spain: Spain is too powerful to vassalize (power: 422% of France)."
+  },
+  {
+   "i": 396,
+   "verb": "answer",
+   "detail": "sabotage_confrontation → confront_sabotage",
+   "ok": true
+  },
+  {
+   "i": 397,
+   "verb": "end_turn",
+   "detail": "turn 118",
+   "ok": true
+  },
+  {
+   "i": 398,
+   "verb": "propose",
+   "detail": "open_borders → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 399,
+   "verb": "end_turn",
+   "detail": "turn 119",
+   "ok": true
+  },
+  {
+   "i": 400,
+   "verb": "end_turn",
+   "detail": "turn 120",
+   "ok": true
+  },
+  {
+   "i": 401,
+   "verb": "declare_war",
+   "detail": "Russia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 402,
+   "verb": "break",
+   "detail": "Spain",
+   "ok": true
+  },
+  {
+   "i": 403,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 404,
+   "verb": "break",
+   "detail": "Britain",
+   "ok": true
+  },
+  {
+   "i": 405,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 406,
+   "verb": "end_turn",
+   "detail": "turn 121",
+   "ok": true
+  },
+  {
+   "i": 407,
+   "verb": "end_turn",
+   "detail": "turn 122",
+   "ok": true
+  },
+  {
+   "i": 408,
+   "verb": "end_turn",
+   "detail": "turn 123",
+   "ok": true
+  },
+  {
+   "i": 409,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 410,
+   "verb": "propose",
+   "detail": "peace → Sardinia",
+   "ok": false,
+   "refused": "We already have Peace with Sardinia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 411,
+   "verb": "propose",
+   "detail": "defensive_alliance → Sardinia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 412,
+   "verb": "end_turn",
+   "detail": "turn 124",
+   "ok": true
+  },
+  {
+   "i": 413,
+   "verb": "end_turn",
+   "detail": "turn 125",
+   "ok": true
+  },
+  {
+   "i": 414,
+   "verb": "declare_war",
+   "detail": "Britain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 415,
+   "verb": "end_turn",
+   "detail": "turn 126",
+   "ok": true
+  },
+  {
+   "i": 416,
+   "verb": "propose",
+   "detail": "vassalage → Ottoman",
+   "ok": false,
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 632% of France)."
+  },
+  {
+   "i": 417,
+   "verb": "end_turn",
+   "detail": "turn 127",
+   "ok": true
+  },
+  {
+   "i": 418,
+   "verb": "common_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 419,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 420,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 421,
+   "verb": "propose",
+   "detail": "vassalage → Ottoman",
+   "ok": false,
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 632% of France)."
+  },
+  {
+   "i": 422,
+   "verb": "end_turn",
+   "detail": "turn 128",
+   "ok": true
+  },
+  {
+   "i": 423,
+   "verb": "propose",
+   "detail": "armistice → Russia",
+   "ok": false,
+   "refused": "We already have Peace with Russia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 424,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 425,
+   "verb": "end_turn",
+   "detail": "turn 129",
+   "ok": true
+  },
+  {
+   "i": 426,
+   "verb": "end_turn",
+   "detail": "turn 130",
+   "ok": true
+  },
+  {
+   "i": 427,
+   "verb": "end_turn",
+   "detail": "turn 131",
+   "ok": true
+  },
+  {
+   "i": 428,
+   "verb": "end_turn",
+   "detail": "turn 132",
+   "ok": true
+  },
+  {
+   "i": 429,
+   "verb": "propose",
+   "detail": "alliance → Switzerland",
+   "ok": false,
+   "refused": "Insufficient Diplomatic Points. This proposal costs 9 DP, but we only have 7."
+  },
+  {
+   "i": 430,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 431,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 432,
+   "verb": "declare_war",
+   "detail": "Naples (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 433,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 434,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 435,
+   "verb": "make_vassal",
+   "detail": "Sweden",
+   "ok": false,
+   "refused": "Cannot vassalize Sweden: Sweden is too powerful to vassalize (power: 224% of France)."
+  },
+  {
+   "i": 436,
+   "verb": "propose",
+   "detail": "open_borders → Ottoman (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 437,
+   "verb": "end_turn",
+   "detail": "turn 133",
+   "ok": true
+  },
+  {
+   "i": 438,
+   "verb": "end_turn",
+   "detail": "turn 134",
+   "ok": true
+  },
+  {
+   "i": 439,
+   "verb": "end_turn",
+   "detail": "turn 135",
+   "ok": true
+  },
+  {
+   "i": 440,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 441,
+   "verb": "end_turn",
+   "detail": "turn 136",
+   "ok": true
+  },
+  {
+   "i": 442,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 443,
+   "verb": "propose",
+   "detail": "peace → Sardinia",
+   "ok": false,
+   "refused": "We already have Peace with Sardinia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 444,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 445,
+   "verb": "end_turn",
+   "detail": "turn 137",
+   "ok": true
+  },
+  {
+   "i": 446,
+   "verb": "declare_war",
+   "detail": "Spain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 447,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 448,
+   "verb": "propose",
+   "detail": "peace → Denmark",
+   "ok": false,
+   "refused": "We already have Peace with Denmark. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 449,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 450,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 451,
+   "verb": "end_turn",
+   "detail": "turn 138",
+   "ok": true
+  },
+  {
+   "i": 452,
+   "verb": "end_turn",
+   "detail": "turn 139",
+   "ok": true
+  },
+  {
+   "i": 453,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 454,
+   "verb": "end_turn",
+   "detail": "turn 140",
+   "ok": true
+  },
+  {
+   "i": 455,
+   "verb": "end_turn",
+   "detail": "turn 141",
+   "ok": true
+  },
+  {
+   "i": 456,
+   "verb": "end_turn",
+   "detail": "turn 142",
+   "ok": true
+  },
+  {
+   "i": 457,
+   "verb": "end_turn",
+   "detail": "turn 143",
+   "ok": true
+  },
+  {
+   "i": 458,
+   "verb": "end_turn",
+   "detail": "turn 144",
+   "ok": true
+  },
+  {
+   "i": 459,
+   "verb": "end_turn",
+   "detail": "turn 145",
+   "ok": true
+  },
+  {
+   "i": 460,
+   "verb": "end_turn",
+   "detail": "turn 146",
+   "ok": true
+  },
+  {
+   "i": 461,
+   "verb": "end_turn",
+   "detail": "turn 147",
+   "ok": true
+  },
+  {
+   "i": 462,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 463,
+   "verb": "declare_war",
+   "detail": "Sweden (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 464,
+   "verb": "declare_war",
+   "detail": "Russia (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 465,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 466,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 467,
+   "verb": "declare_war",
+   "detail": "Spain (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 468,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 469,
+   "verb": "end_turn",
+   "detail": "turn 148",
+   "ok": true
+  },
+  {
+   "i": 470,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 471,
+   "verb": "end_turn",
+   "detail": "turn 149",
+   "ok": true
+  },
+  {
+   "i": 472,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 473,
+   "verb": "end_turn",
+   "detail": "turn 150",
+   "ok": true
+  },
+  {
+   "i": 474,
+   "verb": "end_turn",
+   "detail": "turn 151",
+   "ok": true
+  },
+  {
+   "i": 475,
+   "verb": "propose",
+   "detail": "armistice → Britain",
+   "ok": false,
+   "refused": "We already have Peace with Britain. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 476,
+   "verb": "end_turn",
+   "detail": "turn 152",
+   "ok": true
+  },
+  {
+   "i": 477,
+   "verb": "propose",
+   "detail": "peace → Prussia",
+   "ok": false,
+   "refused": "We already have Peace with Prussia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 478,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 479,
+   "verb": "end_turn",
+   "detail": "turn 153",
+   "ok": true
+  },
+  {
+   "i": 480,
+   "verb": "propose",
+   "detail": "alliance → Britain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 481,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 482,
+   "verb": "propose",
+   "detail": "vassalage → Spain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 483,
+   "verb": "end_turn",
+   "detail": "turn 154",
+   "ok": true
+  },
+  {
+   "i": 484,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 485,
+   "verb": "end_turn",
+   "detail": "turn 155",
+   "ok": true
+  },
+  {
+   "i": 486,
+   "verb": "declare_war",
+   "detail": "Denmark (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (merge would put nation(s) on both sides: Portugal, France)"
+  },
+  {
+   "i": 487,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 488,
+   "verb": "end_turn",
+   "detail": "turn 156",
+   "ok": true
+  },
+  {
+   "i": 489,
+   "verb": "propose",
+   "detail": "open_borders → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 490,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 491,
+   "verb": "propose",
+   "detail": "open_borders → Ottoman",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 492,
+   "verb": "white_peace",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 493,
+   "verb": "answer",
+   "detail": "incoming_proposal → accept_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 494,
+   "verb": "end_turn",
+   "detail": "turn 157",
+   "ok": true
+  },
+  {
+   "i": 495,
+   "verb": "end_turn",
+   "detail": "turn 158",
+   "ok": true
+  },
+  {
+   "i": 496,
+   "verb": "break",
+   "detail": "Portugal",
+   "ok": true
+  },
+  {
+   "i": 497,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 498,
+   "verb": "end_turn",
+   "detail": "turn 159",
+   "ok": true
+  },
+  {
+   "i": 499,
+   "verb": "end_turn",
+   "detail": "turn 160",
+   "ok": true
+  },
+  {
+   "i": 500,
+   "verb": "end_turn",
+   "detail": "turn 161",
+   "ok": true
+  },
+  {
+   "i": 501,
+   "verb": "end_turn",
+   "detail": "turn 162",
+   "ok": true
+  },
+  {
+   "i": 502,
+   "verb": "declare_war",
+   "detail": "Russia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Russia') sides do not match)"
+  },
+  {
+   "i": 503,
+   "verb": "end_turn",
+   "detail": "turn 163",
+   "ok": true
+  },
+  {
+   "i": 504,
+   "verb": "propose",
+   "detail": "defensive_alliance → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 505,
+   "verb": "declare_war",
+   "detail": "Prussia (forced_alliance)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 506,
+   "verb": "answer",
+   "detail": "incoming_proposal → accept_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 507,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 508,
+   "verb": "end_turn",
+   "detail": "turn 164",
+   "ok": true
+  },
+  {
+   "i": 509,
+   "verb": "declare_war",
+   "detail": "Sardinia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Sardinia') sides do not match)"
+  },
+  {
+   "i": 510,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 511,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 512,
+   "verb": "propose",
+   "detail": "non_aggression → Sweden (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 513,
+   "verb": "declare_war",
+   "detail": "Ottoman (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 514,
+   "verb": "make_vassal",
+   "detail": "Sweden",
+   "ok": false,
+   "refused": "Cannot vassalize Sweden: Sweden is too powerful to vassalize (power: 224% of France)."
+  },
+  {
+   "i": 515,
+   "verb": "propose",
+   "detail": "defensive_alliance → Prussia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 516,
+   "verb": "propose",
+   "detail": "vassalage → Spain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 517,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 518,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 519,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 520,
+   "verb": "end_turn",
+   "detail": "turn 165",
+   "ok": true
+  },
+  {
+   "i": 521,
+   "verb": "propose",
+   "detail": "alliance → Prussia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 522,
+   "verb": "propose",
+   "detail": "alliance → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 523,
+   "verb": "break",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 524,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 525,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 526,
+   "verb": "end_turn",
+   "detail": "turn 166",
+   "ok": true
+  },
+  {
+   "i": 527,
+   "verb": "end_turn",
+   "detail": "turn 167",
+   "ok": true
+  },
+  {
+   "i": 528,
+   "verb": "make_vassal",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: 163% of France)."
+  },
+  {
+   "i": 529,
+   "verb": "propose",
+   "detail": "open_borders → Hesse (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 530,
+   "verb": "propose",
+   "detail": "peace → Naples",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 531,
+   "verb": "end_turn",
+   "detail": "turn 168",
+   "ok": true
+  },
+  {
+   "i": 532,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 533,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 534,
+   "verb": "make_vassal",
+   "detail": "Russia",
+   "ok": false,
+   "refused": "Cannot vassalize Russia: Russia is too powerful to vassalize (power: 102% of France)."
+  },
+  {
+   "i": 535,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 536,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 537,
+   "verb": "end_turn",
+   "detail": "turn 169",
+   "ok": true
+  },
+  {
+   "i": 538,
+   "verb": "end_turn",
+   "detail": "turn 170",
+   "ok": true
+  },
+  {
+   "i": 539,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 540,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 541,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 542,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 543,
+   "verb": "end_turn",
+   "detail": "turn 171",
+   "ok": true
+  },
+  {
+   "i": 544,
+   "verb": "propose",
+   "detail": "peace → Russia",
+   "ok": false,
+   "refused": "We already have Peace with Russia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 545,
+   "verb": "end_turn",
+   "detail": "turn 172",
+   "ok": true
+  },
+  {
+   "i": 546,
+   "verb": "end_turn",
+   "detail": "turn 173",
+   "ok": true
+  },
+  {
+   "i": 547,
+   "verb": "declare_war",
+   "detail": "Portugal (subjugation)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Portugal') sides do not match)"
+  },
+  {
+   "i": 548,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 549,
+   "verb": "propose",
+   "detail": "peace → Ottoman",
+   "ok": false,
+   "refused": "We already have Peace with Ottoman. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 550,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 551,
+   "verb": "propose",
+   "detail": "alliance → Portugal (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 552,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 553,
+   "verb": "end_turn",
+   "detail": "turn 174",
+   "ok": true
+  },
+  {
+   "i": 554,
+   "verb": "declare_war",
+   "detail": "Ottoman (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Ottoman') sides do not match)"
+  },
+  {
+   "i": 555,
+   "verb": "propose",
+   "detail": "alliance → Russia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 556,
+   "verb": "end_turn",
+   "detail": "turn 175",
+   "ok": true
+  },
+  {
+   "i": 557,
+   "verb": "propose",
+   "detail": "vassalage → Switzerland",
+   "ok": false,
+   "refused": "Cannot vassalize Switzerland: Switzerland is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 558,
+   "verb": "declare_war",
+   "detail": "Sweden (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Sweden') sides do not match)"
+  },
+  {
+   "i": 559,
+   "verb": "end_turn",
+   "detail": "turn 176",
+   "ok": true
+  },
+  {
+   "i": 560,
+   "verb": "make_vassal",
+   "detail": "Russia",
+   "ok": false,
+   "refused": "Talleyrand advises patience, Sire. Russia refused us; the court will not receive another envoy for 2 more turns."
+  },
+  {
+   "i": 561,
+   "verb": "propose",
+   "detail": "open_borders → Ottoman (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 562,
+   "verb": "propose",
+   "detail": "vassalage → Ottoman",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 563,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 564,
+   "verb": "end_turn",
+   "detail": "turn 177",
+   "ok": true
+  },
+  {
+   "i": 565,
+   "verb": "end_turn",
+   "detail": "turn 178",
+   "ok": true
+  },
+  {
+   "i": 566,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 567,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 568,
+   "verb": "end_turn",
+   "detail": "turn 179",
+   "ok": true
+  },
+  {
+   "i": 569,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 570,
+   "verb": "declare_war",
+   "detail": "Britain (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Britain') sides do not match)"
+  },
+  {
+   "i": 571,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 572,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 573,
+   "verb": "end_turn",
+   "detail": "turn 180",
+   "ok": true
+  },
+  {
+   "i": 574,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 575,
+   "verb": "end_turn",
+   "detail": "turn 181",
+   "ok": true
+  },
+  {
+   "i": 576,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 577,
+   "verb": "end_turn",
+   "detail": "turn 182",
+   "ok": true
+  },
+  {
+   "i": 578,
+   "verb": "end_turn",
+   "detail": "turn 183",
+   "ok": true
+  },
+  {
+   "i": 579,
+   "verb": "answer",
+   "detail": "incoming_proposal → reject_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 580,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 581,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 582,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 583,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 584,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 585,
+   "verb": "propose",
+   "detail": "vassalage → Britain",
+   "ok": false,
+   "refused": "Cannot vassalize Britain: Britain is too powerful to vassalize (power: 755% of France)."
+  },
+  {
+   "i": 586,
+   "verb": "end_turn",
+   "detail": "turn 184",
+   "ok": true
+  },
+  {
+   "i": 587,
+   "verb": "end_turn",
+   "detail": "turn 185",
+   "ok": true
+  },
+  {
+   "i": 588,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 589,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 590,
+   "verb": "end_turn",
+   "detail": "turn 186",
+   "ok": true
+  },
+  {
+   "i": 591,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 592,
+   "verb": "propose",
+   "detail": "armistice → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 593,
+   "verb": "end_turn",
+   "detail": "turn 187",
+   "ok": true
+  },
+  {
+   "i": 594,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 595,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 596,
+   "verb": "end_turn",
+   "detail": "turn 188",
+   "ok": true
+  },
+  {
+   "i": 597,
+   "verb": "make_vassal",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Cannot vassalize Prussia: Prussia is too powerful to vassalize (power: 916% of France)."
+  },
+  {
+   "i": 598,
+   "verb": "end_turn",
+   "detail": "turn 189",
+   "ok": true
+  },
+  {
+   "i": 599,
+   "verb": "end_turn",
+   "detail": "turn 190",
+   "ok": true
+  },
+  {
+   "i": 600,
+   "verb": "propose",
+   "detail": "armistice → Hesse",
+   "ok": false,
+   "refused": "We already have Peace with Hesse. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 601,
+   "verb": "declare_war",
+   "detail": "Spain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Spain') sides do not match)"
+  },
+  {
+   "i": 602,
+   "verb": "end_turn",
+   "detail": "turn 191",
+   "ok": true
+  },
+  {
+   "i": 603,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 604,
+   "verb": "end_turn",
+   "detail": "turn 192",
+   "ok": true
+  },
+  {
+   "i": 605,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 606,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 607,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 608,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 609,
+   "verb": "propose",
+   "detail": "defensive_alliance → Sweden (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 610,
+   "verb": "declare_war",
+   "detail": "Hesse (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 611,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 612,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 613,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 614,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 615,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 616,
+   "verb": "end_turn",
+   "detail": "turn 193",
+   "ok": true
+  },
+  {
+   "i": 617,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 618,
+   "verb": "end_turn",
+   "detail": "turn 194",
+   "ok": true
+  },
+  {
+   "i": 619,
+   "verb": "end_turn",
+   "detail": "turn 195",
+   "ok": true
+  },
+  {
+   "i": 620,
+   "verb": "end_turn",
+   "detail": "turn 196",
+   "ok": true
+  },
+  {
+   "i": 621,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 622,
+   "verb": "end_turn",
+   "detail": "turn 197",
+   "ok": true
+  },
+  {
+   "i": 623,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 624,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 625,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 626,
+   "verb": "propose",
+   "detail": "alliance → Britain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 627,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 628,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 629,
+   "verb": "end_turn",
+   "detail": "turn 198",
+   "ok": true
+  },
+  {
+   "i": 630,
+   "verb": "declare_war",
+   "detail": "Denmark (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Denmark') sides do not match)"
+  },
+  {
+   "i": 631,
+   "verb": "end_turn",
+   "detail": "turn 199",
+   "ok": true
+  },
+  {
+   "i": 632,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 633,
+   "verb": "end_turn",
+   "detail": "turn 200",
+   "ok": true
+  },
+  {
+   "i": 634,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 635,
+   "verb": "make_vassal",
+   "detail": "Naples",
+   "ok": false,
+   "refused": "Cannot vassalize Naples: Naples is too powerful to vassalize (power: 334% of France)."
+  },
+  {
+   "i": 636,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 637,
+   "verb": "propose",
+   "detail": "non_aggression → Ottoman (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 638,
+   "verb": "end_turn",
+   "detail": "turn 201",
+   "ok": true
+  },
+  {
+   "i": 639,
+   "verb": "end_turn",
+   "detail": "turn 202",
+   "ok": true
+  },
+  {
+   "i": 640,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 641,
+   "verb": "declare_war",
+   "detail": "Portugal (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Portugal') sides do not match)"
+  },
+  {
+   "i": 642,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 643,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 644,
+   "verb": "end_turn",
+   "detail": "turn 203",
+   "ok": true
+  },
+  {
+   "i": 645,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 646,
+   "verb": "end_turn",
+   "detail": "turn 204",
+   "ok": true
+  },
+  {
+   "i": 647,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 648,
+   "verb": "end_turn",
+   "detail": "turn 205",
+   "ok": true
+  },
+  {
+   "i": 649,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 650,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 651,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 652,
+   "verb": "end_turn",
+   "detail": "turn 206",
+   "ok": true
+  },
+  {
+   "i": 653,
+   "verb": "declare_war",
+   "detail": "Hesse (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Hesse') sides do not match)"
+  },
+  {
+   "i": 654,
+   "verb": "end_turn",
+   "detail": "turn 207",
+   "ok": true
+  },
+  {
+   "i": 655,
+   "verb": "end_turn",
+   "detail": "turn 208",
+   "ok": true
+  },
+  {
+   "i": 656,
+   "verb": "make_vassal",
+   "detail": "Naples",
+   "ok": false,
+   "refused": "Cannot vassalize Naples: Naples is too powerful to vassalize (power: 334% of France)."
+  },
+  {
+   "i": 657,
+   "verb": "end_turn",
+   "detail": "turn 209",
+   "ok": true
+  },
+  {
+   "i": 658,
+   "verb": "declare_war",
+   "detail": "Denmark (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Denmark') sides do not match)"
+  },
+  {
+   "i": 659,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 660,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 661,
+   "verb": "propose",
+   "detail": "peace → Russia",
+   "ok": false,
+   "refused": "We already have Peace with Russia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 662,
+   "verb": "end_turn",
+   "detail": "turn 210",
+   "ok": true
+  },
+  {
+   "i": 663,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 664,
+   "verb": "end_turn",
+   "detail": "turn 211",
+   "ok": true
+  },
+  {
+   "i": 665,
+   "verb": "end_turn",
+   "detail": "turn 212",
+   "ok": true
+  },
+  {
+   "i": 666,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 667,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 668,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 669,
+   "verb": "end_turn",
+   "detail": "turn 213",
+   "ok": true
+  },
+  {
+   "i": 670,
+   "verb": "end_turn",
+   "detail": "turn 214",
+   "ok": true
+  },
+  {
+   "i": 671,
+   "verb": "propose",
+   "detail": "alliance → Prussia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 672,
+   "verb": "propose",
+   "detail": "alliance → Russia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 673,
+   "verb": "propose",
+   "detail": "armistice → Ottoman",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 674,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 675,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 676,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 677,
+   "verb": "end_turn",
+   "detail": "turn 215",
+   "ok": true
+  },
+  {
+   "i": 678,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 679,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 680,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 681,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 682,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 683,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 684,
+   "verb": "end_turn",
+   "detail": "turn 216",
+   "ok": true
+  },
+  {
+   "i": 685,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 686,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 687,
+   "verb": "end_turn",
+   "detail": "turn 217",
+   "ok": true
+  },
+  {
+   "i": 688,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 689,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 690,
+   "verb": "propose",
+   "detail": "open_borders → Portugal (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 691,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 692,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 693,
+   "verb": "end_turn",
+   "detail": "turn 218",
+   "ok": true
+  },
+  {
+   "i": 694,
+   "verb": "end_turn",
+   "detail": "turn 219",
+   "ok": true
+  },
+  {
+   "i": 695,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 696,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 697,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 698,
+   "verb": "make_vassal",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Cannot vassalize Prussia: Prussia is too powerful to vassalize (power: 916% of France)."
+  },
+  {
+   "i": 699,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 700,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 701,
+   "verb": "propose",
+   "detail": "defensive_alliance → Russia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 702,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 703,
+   "verb": "propose",
+   "detail": "defensive_alliance → Ottoman",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 704,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 705,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 706,
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 707,
+   "verb": "end_turn",
+   "detail": "turn 220",
+   "ok": true
+  },
+  {
+   "i": 708,
+   "verb": "end_turn",
+   "detail": "turn 221",
+   "ok": true
+  },
+  {
+   "i": 709,
+   "verb": "propose",
+   "detail": "vassalage → Naples",
+   "ok": false,
+   "refused": "Cannot vassalize Naples: Naples is too powerful to vassalize (power: 334% of France)."
+  },
+  {
+   "i": 710,
+   "verb": "answer",
+   "detail": "incoming_proposal → reject_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 711,
+   "verb": "declare_war",
+   "detail": "Denmark (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Denmark') sides do not match)"
+  },
+  {
+   "i": 712,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 713,
+   "verb": "end_turn",
+   "detail": "turn 222",
+   "ok": true
+  },
+  {
+   "i": 714,
+   "verb": "propose",
+   "detail": "defensive_alliance → Spain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 715,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 716,
+   "verb": "end_turn",
+   "detail": "turn 223",
+   "ok": true
+  },
+  {
+   "i": 717,
+   "verb": "end_turn",
+   "detail": "turn 224",
+   "ok": true
+  },
+  {
+   "i": 718,
+   "verb": "end_turn",
+   "detail": "turn 225",
+   "ok": true
+  },
+  {
+   "i": 719,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 720,
+   "verb": "end_turn",
+   "detail": "turn 226",
+   "ok": true
+  },
+  {
+   "i": 721,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 722,
+   "verb": "propose",
+   "detail": "vassalage → Sardinia",
+   "ok": false,
+   "refused": "Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 723,
+   "verb": "make_vassal",
+   "detail": "Britain",
+   "ok": false,
+   "refused": "Cannot vassalize Britain: Britain is too powerful to vassalize (power: 755% of France)."
+  },
+  {
+   "i": 724,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 725,
+   "verb": "end_turn",
+   "detail": "turn 227",
+   "ok": true
+  },
+  {
+   "i": 726,
+   "verb": "propose",
+   "detail": "non_aggression → Prussia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 727,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 728,
+   "verb": "end_turn",
+   "detail": "turn 228",
+   "ok": true
+  },
+  {
+   "i": 729,
+   "verb": "end_turn",
+   "detail": "turn 229",
+   "ok": true
+  },
+  {
+   "i": 730,
+   "verb": "propose",
+   "detail": "alliance → Hesse (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 731,
+   "verb": "end_turn",
+   "detail": "turn 230",
+   "ok": true
+  },
+  {
+   "i": 732,
+   "verb": "end_turn",
+   "detail": "turn 231",
+   "ok": true
+  },
+  {
+   "i": 733,
+   "verb": "end_turn",
+   "detail": "turn 232",
+   "ok": true
+  },
+  {
+   "i": 734,
+   "verb": "end_turn",
+   "detail": "turn 233",
+   "ok": true
+  },
+  {
+   "i": 735,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 736,
+   "verb": "end_turn",
+   "detail": "turn 234",
+   "ok": true
+  },
+  {
+   "i": 737,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 738,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 739,
+   "verb": "propose",
+   "detail": "armistice → Naples",
+   "ok": false,
+   "refused": "We already have Peace with Naples. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 740,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 741,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 742,
+   "verb": "declare_war",
+   "detail": "Portugal (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Portugal') sides do not match)"
+  },
+  {
+   "i": 743,
+   "verb": "propose",
+   "detail": "vassalage → Hesse",
+   "ok": false,
+   "refused": "Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 744,
+   "verb": "end_turn",
+   "detail": "turn 235",
+   "ok": true
+  },
+  {
+   "i": 745,
+   "verb": "declare_war",
+   "detail": "Naples (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Naples') sides do not match)"
+  },
+  {
+   "i": 746,
+   "verb": "propose",
+   "detail": "alliance → Sardinia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 747,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 748,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 749,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 750,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 751,
+   "verb": "make_vassal",
+   "detail": "Ottoman",
+   "ok": false,
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 632% of France)."
+  },
+  {
+   "i": 752,
+   "verb": "make_vassal",
+   "detail": "Portugal (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 753,
+   "verb": "end_turn",
+   "detail": "turn 236",
+   "ok": true
+  },
+  {
+   "i": 754,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 755,
+   "verb": "declare_war",
+   "detail": "Prussia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Prussia') sides do not match)"
+  },
+  {
+   "i": 756,
+   "verb": "end_turn",
+   "detail": "turn 237",
+   "ok": true
+  },
+  {
+   "i": 757,
+   "verb": "end_turn",
+   "detail": "turn 238",
+   "ok": true
+  },
+  {
+   "i": 758,
+   "verb": "declare_war",
+   "detail": "Russia (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Russia') sides do not match)"
+  },
+  {
+   "i": 759,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 760,
+   "verb": "propose",
+   "detail": "non_aggression → Britain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 761,
+   "verb": "propose",
+   "detail": "alliance → Sardinia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 762,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 763,
+   "verb": "propose",
+   "detail": "peace → Naples",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 764,
+   "verb": "declare_war",
+   "detail": "Sweden (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 765,
+   "verb": "end_turn",
+   "detail": "turn 239",
+   "ok": true
+  },
+  {
+   "i": 766,
+   "verb": "end_turn",
+   "detail": "turn 240",
+   "ok": true
+  },
+  {
+   "i": 767,
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 768,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 769,
+   "verb": "end_turn",
+   "detail": "turn 241",
+   "ok": true
+  },
+  {
+   "i": 770,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 771,
+   "verb": "make_vassal",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Cannot vassalize Prussia: Prussia is too powerful to vassalize (power: 916% of France)."
+  },
+  {
+   "i": 772,
+   "verb": "declare_war",
+   "detail": "Britain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Britain') sides do not match)"
+  },
+  {
+   "i": 773,
+   "verb": "propose",
+   "detail": "defensive_alliance → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 774,
+   "verb": "end_turn",
+   "detail": "turn 242",
+   "ok": true
+  },
+  {
+   "i": 775,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 776,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 777,
+   "verb": "end_turn",
+   "detail": "turn 243",
+   "ok": true
+  },
+  {
+   "i": 778,
+   "verb": "make_vassal",
+   "detail": "Spain",
+   "ok": false,
+   "refused": "Cannot vassalize Spain: Spain is too powerful to vassalize (power: 422% of France)."
+  },
+  {
+   "i": 779,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 780,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 781,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 782,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 783,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 784,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 785,
+   "verb": "end_turn",
+   "detail": "turn 244",
+   "ok": true
+  },
+  {
+   "i": 786,
+   "verb": "propose",
+   "detail": "non_aggression → Naples (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 787,
+   "verb": "end_turn",
+   "detail": "turn 245",
+   "ok": true
+  },
+  {
+   "i": 788,
+   "verb": "answer",
+   "detail": "incoming_proposal → counter_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 789,
+   "verb": "make_vassal",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: 163% of France)."
+  },
+  {
+   "i": 790,
+   "verb": "answer",
+   "detail": "counter_offer → reject_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 791,
+   "verb": "end_turn",
+   "detail": "turn 246",
+   "ok": true
+  },
+  {
+   "i": 792,
+   "verb": "declare_war",
+   "detail": "Spain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Spain') sides do not match)"
+  },
+  {
+   "i": 793,
+   "verb": "end_turn",
+   "detail": "turn 247",
+   "ok": true
+  },
+  {
+   "i": 794,
+   "verb": "end_turn",
+   "detail": "turn 248",
+   "ok": true
+  },
+  {
+   "i": 795,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 796,
+   "verb": "propose",
+   "detail": "non_aggression → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 797,
+   "verb": "make_vassal",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: 163% of France)."
+  },
+  {
+   "i": 798,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 799,
+   "verb": "end_turn",
+   "detail": "turn 249",
+   "ok": true
+  },
+  {
+   "i": 800,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 801,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 802,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 803,
+   "verb": "end_turn",
+   "detail": "turn 250",
+   "ok": true
+  },
+  {
+   "i": 804,
+   "verb": "end_turn",
+   "detail": "turn 251",
+   "ok": true
+  },
+  {
+   "i": 805,
+   "verb": "end_turn",
+   "detail": "turn 252",
+   "ok": true
+  },
+  {
+   "i": 806,
+   "verb": "propose",
+   "detail": "armistice → Portugal",
+   "ok": false,
+   "refused": "We already have Peace with Portugal. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 807,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 808,
+   "verb": "propose",
+   "detail": "open_borders → Naples (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 809,
+   "verb": "answer",
+   "detail": "incoming_proposal → reject_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 810,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 811,
+   "verb": "make_vassal",
+   "detail": "Hesse",
+   "ok": false,
+   "refused": "Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 812,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 813,
+   "verb": "propose",
+   "detail": "armistice → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 814,
+   "verb": "end_turn",
+   "detail": "turn 253",
+   "ok": true
+  },
+  {
+   "i": 815,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 816,
+   "verb": "propose",
+   "detail": "vassalage → Switzerland",
+   "ok": false,
+   "refused": "Cannot vassalize Switzerland: Switzerland is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 817,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 818,
+   "verb": "declare_war",
+   "detail": "Ottoman (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Ottoman') sides do not match)"
+  },
+  {
+   "i": 819,
+   "verb": "end_turn",
+   "detail": "turn 254",
+   "ok": true
+  },
+  {
+   "i": 820,
+   "verb": "end_turn",
+   "detail": "turn 255",
+   "ok": true
+  },
+  {
+   "i": 821,
+   "verb": "propose",
+   "detail": "alliance → Denmark (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 822,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 823,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 824,
+   "verb": "end_turn",
+   "detail": "turn 256",
+   "ok": true
+  },
+  {
+   "i": 825,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 826,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 827,
+   "verb": "make_vassal",
+   "detail": "Hesse",
+   "ok": false,
+   "refused": "Cannot vassalize Hesse: Hesse is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 828,
+   "verb": "end_turn",
+   "detail": "turn 257",
+   "ok": true
+  },
+  {
+   "i": 829,
+   "verb": "propose",
+   "detail": "non_aggression → Naples (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 830,
+   "verb": "declare_war",
+   "detail": "Sweden (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 831,
+   "verb": "propose",
+   "detail": "vassalage → Russia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 832,
+   "verb": "end_turn",
+   "detail": "turn 258",
+   "ok": true
+  },
+  {
+   "i": 833,
+   "verb": "end_turn",
+   "detail": "turn 259",
+   "ok": true
+  },
+  {
+   "i": 834,
+   "verb": "end_turn",
+   "detail": "turn 260",
+   "ok": true
+  },
+  {
+   "i": 835,
+   "verb": "end_turn",
+   "detail": "turn 261",
+   "ok": true
+  },
+  {
+   "i": 836,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 837,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 838,
+   "verb": "break",
+   "detail": "Naples",
+   "ok": true
+  },
+  {
+   "i": 839,
+   "verb": "declare_war",
+   "detail": "Hesse (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Hesse') sides do not match)"
+  },
+  {
+   "i": 840,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 841,
+   "verb": "end_turn",
+   "detail": "turn 262",
+   "ok": true
+  },
+  {
+   "i": 842,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 843,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 844,
+   "verb": "propose",
+   "detail": "peace → Prussia",
+   "ok": false,
+   "refused": "We already have Peace with Prussia. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 845,
+   "verb": "end_turn",
+   "detail": "turn 263",
+   "ok": true
+  },
+  {
+   "i": 846,
+   "verb": "end_turn",
+   "detail": "turn 264",
+   "ok": true
+  },
+  {
+   "i": 847,
+   "verb": "make_vassal",
+   "detail": "Sweden",
+   "ok": false,
+   "refused": "Cannot vassalize Sweden: Sweden is too powerful to vassalize (power: 224% of France)."
+  },
+  {
+   "i": 848,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 849,
+   "verb": "end_turn",
+   "detail": "turn 265",
+   "ok": true
+  },
+  {
+   "i": 850,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 851,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 852,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 853,
+   "verb": "end_turn",
+   "detail": "turn 266",
+   "ok": true
+  },
+  {
+   "i": 854,
+   "verb": "answer",
+   "detail": "incoming_proposal → counter_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 855,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 856,
+   "verb": "end_turn",
+   "detail": "turn 267",
+   "ok": true
+  },
+  {
+   "i": 857,
+   "verb": "propose",
+   "detail": "non_aggression → Hesse (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 858,
+   "verb": "end_turn",
+   "detail": "turn 268",
+   "ok": true
+  },
+  {
+   "i": 859,
+   "verb": "make_vassal",
+   "detail": "Ottoman",
+   "ok": false,
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 632% of France)."
+  },
+  {
+   "i": 860,
+   "verb": "end_turn",
+   "detail": "turn 269",
+   "ok": true
+  },
+  {
+   "i": 861,
+   "verb": "declare_war",
+   "detail": "Sweden (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Sweden') sides do not match)"
+  },
+  {
+   "i": 862,
+   "verb": "end_turn",
+   "detail": "turn 270",
+   "ok": true
+  },
+  {
+   "i": 863,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 864,
+   "verb": "propose",
+   "detail": "open_borders → Portugal (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 865,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 866,
+   "verb": "end_turn",
+   "detail": "turn 271",
+   "ok": true
+  },
+  {
+   "i": 867,
+   "verb": "break",
+   "detail": "Portugal",
+   "ok": true
+  },
+  {
+   "i": 868,
+   "verb": "end_turn",
+   "detail": "turn 272",
+   "ok": true
+  },
+  {
+   "i": 869,
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Cannot vassalize Sardinia: Sardinia is too powerful to vassalize (power: 61% of France)."
+  },
+  {
+   "i": 870,
+   "verb": "end_turn",
+   "detail": "turn 273",
+   "ok": true
+  },
+  {
+   "i": 871,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 872,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 873,
+   "verb": "common_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 874,
+   "verb": "propose",
+   "detail": "alliance → Naples (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 875,
+   "verb": "end_turn",
+   "detail": "turn 274",
+   "ok": true
+  },
+  {
+   "i": 876,
+   "verb": "declare_war",
+   "detail": "Britain (conquest)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Britain') sides do not match)"
+  },
+  {
+   "i": 877,
+   "verb": "end_turn",
+   "detail": "turn 275",
+   "ok": true
+  },
+  {
+   "i": 878,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 879,
+   "verb": "end_turn",
+   "detail": "turn 276",
+   "ok": true
+  },
+  {
+   "i": 880,
+   "verb": "end_turn",
+   "detail": "turn 277",
+   "ok": true
+  },
+  {
+   "i": 881,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 882,
+   "verb": "end_turn",
+   "detail": "turn 278",
+   "ok": true
+  },
+  {
+   "i": 883,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 884,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 885,
+   "verb": "white_peace",
+   "detail": "Switzerland",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 886,
+   "verb": "declare_war",
+   "detail": "Prussia (forced_alliance)",
+   "ok": false,
+   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_5' but the proposed (attacker='France', defender='Prussia') sides do not match)"
+  },
+  {
+   "i": 887,
+   "verb": "propose",
+   "detail": "peace → Ottoman",
+   "ok": false,
+   "refused": "We already have Peace with Ottoman. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 888,
+   "verb": "end_turn",
+   "detail": "turn 279",
+   "ok": true
+  },
+  {
+   "i": 889,
+   "verb": "propose",
+   "detail": "armistice → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 890,
+   "verb": "declare_war",
+   "detail": "Portugal (forced_alliance)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 891,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 892,
+   "verb": "end_turn",
+   "detail": "turn 280",
+   "ok": true
+  },
+  {
+   "i": 893,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 894,
+   "verb": "end_turn",
+   "detail": "turn 281",
+   "ok": true
+  },
+  {
+   "i": 895,
+   "verb": "end_turn",
+   "detail": "turn 282",
+   "ok": true
+  },
+  {
+   "i": 896,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 897,
+   "verb": "break",
+   "detail": "Switzerland",
+   "ok": true
+  },
+  {
+   "i": 898,
+   "verb": "end_turn",
+   "detail": "turn 283",
+   "ok": true
+  },
+  {
+   "i": 899,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → accept_settlement_offer",
+   "ok": false,
+   "refused": "That settlement offer is no longer relevant; the war has ended."
+  },
+  {
+   "i": 900,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+  },
+  {
+   "i": 901,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 902,
+   "verb": "end_turn",
+   "detail": "turn 284",
+   "ok": true
+  },
+  {
+   "i": 903,
+   "verb": "end_turn",
+   "detail": "turn 285",
+   "ok": true
+  },
+  {
+   "i": 904,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 905,
+   "verb": "end_turn",
+   "detail": "turn 286",
+   "ok": true
+  },
+  {
+   "i": 906,
+   "verb": "propose",
+   "detail": "alliance → Ottoman (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 907,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 908,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 909,
+   "verb": "propose",
+   "detail": "defensive_alliance → Britain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 910,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 911,
+   "verb": "declare_war",
+   "detail": "Prussia (conquest)",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 912,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 913,
+   "verb": "end_turn",
+   "detail": "turn 287",
+   "ok": true
+  },
+  {
+   "i": 914,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 915,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 916,
+   "verb": "propose",
+   "detail": "open_borders → Denmark (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 917,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 918,
+   "verb": "end_turn",
+   "detail": "turn 288",
+   "ok": true
+  },
+  {
+   "i": 919,
+   "verb": "answer",
+   "detail": "counter_offer_response → reject_counter_offer",
+   "ok": true
+  },
+  {
+   "i": 920,
+   "verb": "make_vassal",
+   "detail": "Spain",
+   "ok": false,
+   "refused": "Cannot vassalize Spain: Spain is too powerful to vassalize (power: 422% of France)."
+  },
+  {
+   "i": 921,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 922,
+   "verb": "white_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 923,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 924,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 925,
+   "verb": "answer",
+   "detail": "incoming_proposal → counter_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 926,
+   "verb": "answer",
+   "detail": "counter_offer → reject_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 927,
+   "verb": "end_turn",
+   "detail": "turn 289",
+   "ok": true
+  },
+  {
+   "i": 928,
+   "verb": "end_turn",
+   "detail": "turn 290",
+   "ok": true
+  },
+  {
+   "i": 929,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 930,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 931,
+   "verb": "end_turn",
+   "detail": "turn 291",
+   "ok": true
+  },
+  {
+   "i": 932,
+   "verb": "propose",
+   "detail": "open_borders → Denmark",
+   "ok": false,
+   "refused": "Talleyrand advises patience, Sire. Denmark refused our Open Borders Agreement proposal; she will not hear it again for 2 more turns."
+  },
+  {
+   "i": 933,
+   "verb": "end_turn",
+   "detail": "turn 292",
+   "ok": true
+  },
+  {
+   "i": 934,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 935,
+   "verb": "end_turn",
+   "detail": "turn 293",
+   "ok": true
+  },
+  {
+   "i": 936,
+   "verb": "end_turn",
+   "detail": "turn 294",
+   "ok": true
+  },
+  {
+   "i": 937,
+   "verb": "end_turn",
+   "detail": "turn 295",
+   "ok": true
+  },
+  {
+   "i": 938,
+   "verb": "end_turn",
+   "detail": "turn 296",
+   "ok": true
+  },
+  {
+   "i": 939,
+   "verb": "make_vassal",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: 163% of France)."
+  },
+  {
+   "i": 940,
+   "verb": "end_turn",
+   "detail": "turn 297",
+   "ok": true
+  },
+  {
+   "i": 941,
+   "verb": "common_peace",
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
+  },
+  {
+   "i": 942,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 943,
+   "verb": "declare_war",
+   "detail": "Prussia (conquest)",
+   "ok": true
+  },
+  {
+   "i": 944,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 945,
+   "verb": "propose",
+   "detail": "non_aggression → Sardinia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 946,
+   "verb": "end_turn",
+   "detail": "turn 298",
+   "ok": true
+  },
+  {
+   "i": 947,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 948,
+   "verb": "propose",
+   "detail": "non_aggression → Sweden (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 949,
+   "verb": "white_peace",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 950,
+   "verb": "common_peace",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Use bilateral peace or armistice for a one-on-one war."
+  },
+  {
+   "i": 951,
+   "verb": "propose",
+   "detail": "alliance → Sweden",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 952,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 953,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 954,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 955,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 956,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 957,
+   "verb": "end_turn",
+   "detail": "turn 299",
+   "ok": true
+  },
+  {
+   "i": 958,
+   "verb": "declare_war",
+   "detail": "Switzerland (conquest)",
+   "ok": true
+  },
+  {
+   "i": 959,
+   "verb": "end_turn",
+   "detail": "turn 300",
+   "ok": true
+  },
+  {
+   "i": 960,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 961,
+   "verb": "declare_war",
+   "detail": "Hesse (forced_alliance)",
+   "ok": true
+  },
+  {
+   "i": 962,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 963,
+   "verb": "white_peace",
+   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 964,
+   "verb": "end_turn",
+   "detail": "turn 301",
+   "ok": true
+  },
+  {
+   "i": 965,
+   "verb": "end_turn",
+   "detail": "turn 302",
+   "ok": true
+  },
+  {
+   "i": 966,
+   "verb": "common_peace",
+   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 967,
+   "verb": "white_peace",
+   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 968,
+   "verb": "common_peace",
+   "detail": "common peace Switzerland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 969,
+   "verb": "propose",
+   "detail": "non_aggression → Spain (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 970,
+   "verb": "end_turn",
+   "detail": "turn 303",
+   "ok": true
+  },
+  {
+   "i": 971,
+   "verb": "end_turn",
+   "detail": "turn 304",
+   "ok": true
+  },
+  {
+   "i": 972,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 973,
+   "verb": "end_turn",
+   "detail": "turn 305",
+   "ok": true
+  },
+  {
+   "i": 974,
+   "verb": "common_peace",
+   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 975,
+   "verb": "end_turn",
+   "detail": "turn 306",
+   "ok": true
+  },
+  {
+   "i": 976,
+   "verb": "end_turn",
+   "detail": "turn 307",
+   "ok": true
+  },
+  {
+   "i": 977,
+   "verb": "end_turn",
+   "detail": "turn 308",
+   "ok": true
+  },
+  {
+   "i": 978,
+   "verb": "white_peace",
+   "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 979,
+   "verb": "propose",
+   "detail": "vassalage → Naples",
+   "ok": false,
+   "refused": "Cannot vassalize Naples: Naples is too powerful to vassalize (power: 334% of France)."
+  },
+  {
+   "i": 980,
+   "verb": "propose",
+   "detail": "non_aggression → Prussia (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 981,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 982,
+   "verb": "white_peace",
+   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 983,
+   "verb": "propose",
+   "detail": "defensive_alliance → Prussia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 984,
+   "verb": "white_peace",
+   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 985,
+   "verb": "end_turn",
+   "detail": "turn 309",
+   "ok": true
+  },
+  {
+   "i": 986,
+   "verb": "common_peace",
+   "detail": "common peace Switzerland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 987,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 988,
+   "verb": "common_peace",
+   "detail": "common peace Switzerland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 989,
+   "verb": "common_peace",
+   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 990,
+   "verb": "end_turn",
+   "detail": "turn 310",
+   "ok": true
+  },
+  {
+   "i": 991,
+   "verb": "propose",
+   "detail": "armistice → Britain",
+   "ok": false,
+   "refused": "We already have Peace with Britain. Talleyrand sees no purpose in proposing what we already possess."
+  },
+  {
+   "i": 992,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → reject_settlement_offer",
+   "ok": true
+  },
+  {
+   "i": 993,
+   "verb": "end_turn",
+   "detail": "turn 311",
+   "ok": true
+  },
+  {
+   "i": 994,
+   "verb": "common_peace",
+   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 995,
+   "verb": "common_peace",
+   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 996,
+   "verb": "common_peace",
+   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 997,
+   "verb": "white_peace",
+   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 998,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 999,
+   "verb": "propose",
+   "detail": "peace → Switzerland (execute_proposal)",
+   "ok": true
+  },
+  {
+   "i": 1000,
+   "verb": "propose",
+   "detail": "armistice → Prussia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  }
+ ]
+}
