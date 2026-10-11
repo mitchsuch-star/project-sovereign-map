@@ -8737,6 +8737,25 @@ def _court_is_dead(world, nation: str) -> bool:
     return True
 
 
+def own_vassal_refusal(world, aggressor: str, target: str) -> Optional[str]:
+    """DD0-18 (b) (S4 part 4, October 11, 2026): the Cabinet does not declare
+    war on a satellite of ours — "Declare war on Holland." had opened the
+    war-purpose chooser against our own vassal. Returns the refusal, in
+    words, or None. Read by the declare-war executor BEFORE the chooser and
+    by `declare_war` as the player's backstop."""
+    vassals = getattr(world, "vassals", None) or {}
+    data = vassals.get(target) or {}
+    lord = data.get("lord") or data.get("lord_nation")
+    if not lord or lord != aggressor:
+        return None
+    from backend.display_names import display_nation
+    shown = display_nation(target)
+    return (f"{shown} is our own vassal, Sire — the Cabinet does not declare war on a "
+            f"satellite of France. If {shown} is to be cut loose, release it first "
+            f"('release {shown}'); if it is to be brought to heel, lower its autonomy "
+            f"or invest in its loyalty.")
+
+
 def dead_court_refusal(world, target: str) -> Optional[str]:
     """The ONE refusal for a declaration on a dead court (GE-1 E3), read by
     `declare_war` (the backstop) AND by the declare-war flow's first step,
@@ -8780,6 +8799,14 @@ def declare_war(
     # Deep audit fix 7: Prevent self-war
     if aggressor == target:
         return {"success": False, "message": "A nation cannot declare war on itself."}
+
+    # DD0-18 (b) (S4 part 4, October 11, 2026): the PLAYER's war on a vassal
+    # of their own is refused at the gate (the Cabinet refuses it before the
+    # chooser; this is the backstop). The AI roads are untouched.
+    if aggressor == getattr(world, "player_nation", None):
+        _own = own_vassal_refusal(world, aggressor, target)
+        if _own:
+            return {"success": False, "message": _own}
 
     # GE-1 E3 "the dead stay dead": a court that no longer holds a province
     # or fields a corps cannot be declared upon — measured, a declaration on

@@ -9698,3 +9698,101 @@ only the fresh one reads the done-when.
   reach` ×2, `There is no law called`). NOT met at this reading; the pins assert the
   standing on purpose (`DONE_WHEN_MET_ON_THIS_SET`), the cap on executions 1 → 0
   when (a) lands, and the done-when is read on a SIXTH author's fresh set.
+- **The hand reads the honest refusals too** (the same day, once the sixth set was
+  read): a judge class `honest_refusal` may carry a hand verdict of `board_refusal`
+  when the reply is the BOARD's own refusal in a shape the judge does not know — the
+  border law's *"Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:
+  PEACE)"*, the levy's *"No marshal of infantry can reach Paris"*, the laws' *"There
+  is no law called …"* — each pinned to its reply. The record then carries
+  `read_right_by_hand` = the judge's four classes + every hand verdict of `asked` or
+  `board_refusal`; `print_record` prints *read right BY HAND N / 300 · the judge's
+  four classes M*. The judge itself learned ONE new string this part — `is our own
+  vassal`, the Cabinet's new refusal (in no committed record) — and the three WAR-state
+  openings of the Cabinet's proposal-options card (`is at a standstill`, `we hold a
+  commanding position against`, `our position against … is… precarious`) as ASKED;
+  the two PEACE-state cards were WITHHELD (each moves two lines in every third-set
+  record).
+- **DD0-18 fixed (rules; pins `tests/test_dd0_s4_part4_the_register.py`).** (a) THE
+  ORDER: an unfortify idiom in a line that names NO foe outranks a bare battle verb
+  (`_chain_read_action`, before the charge/attack family) — `Ney, strike camp,
+  abandon the works.` reaches the unfortify desk (the board: *"not currently
+  fortified"*), `Ney, strike Mack.` still fights; `strike / break camp` joins the
+  unfortify idiom, but `break camp and march to Bohemia` stays ONE march (D10's pin:
+  the and-clause split stands down for a camp-struck head, and the idiom yields to a
+  march after it). (b) `diplomacy.own_vassal_refusal(world, aggressor, target)` — the
+  declare-war executor refuses a war on a satellite of ours IN WORDS before the
+  chooser (*"Holland is our own vassal, Sire — the Cabinet does not declare war on a
+  satellite of France. If Holland is to be cut loose, release it first …"*);
+  `declare_war` carries it as the PLAYER's backstop, the AI roads untouched. (c) THE
+  REGISTER — the inflected verbs gain `ride / dig / stand / form / retire / gallop /
+  stay / take / fall / engage / shift` (`Murat rides to Nivernais`, `Massena digs in
+  at Milan`, `Davout stands fast at Rhineland`, `Lannes forms square against …`); the
+  march idiom gains `get yourself / the men / your corps to`, `shift to`, `on to
+  <place>`; the possessive march reads an adverb before the preposition (`take your
+  corps DOWN to Nassau`, `bring the corps UP to Rhineland alongside Davout`) and `the
+  Army OF Italy`; `rewrite_send_marshal` reads `Shift Murat's horse to`, `Transfer
+  Bernadotte's corps to`, `Advance Davout to`, `Pull Bernadotte back out of Franconia
+  to`, `direct Marshal Lannes to`; the Reading gains the PURPOSE tail (`so he can
+  screen the Emperor`, `, I want the Swiss road covered`, `; the Dutch coast wants
+  watching`), the PARTICIPLE after the destination (`in Brabant covering the Dutch
+  coast`), the WATCH precaution (`, and keep an eye out for Charles on the way`, `.
+  Watch the passes.` — only behind a head that holds an order or a destination; `keep
+  an eye on Berlin` alone stays the scout), the FOE STATEMENT before the order (`John
+  sits at Tyrol — go and get him`, `Mack must be destroyed. Davout, see to it.` — the
+  foe becomes the pronoun's hint and `rewrite_at_him` reads `go and get him`, `see to
+  it`), the passive about us in an aside (`we may be attacked before the others
+  arrive` is a statement), the short rhetoric before an un-addressed order (`More men.
+  Recruit in Orleanais.`), `and no dawdling`, and the generic tokens of a multi-word
+  name (`New Russia`'s `new`) no longer keep a statement; `retire on <place>` is the
+  march (FA-80's rule), `Pull Ney back behind the Rhine` the retreat, `break off,
+  rejoin Soult at Lorraine` the march to Lorraine (`join X at Y` stays the SUPPORT);
+  the scout idiom gains `probe toward`, `screen toward`, `reconnaissance`, `recon`,
+  `push scouts`, `send patrols` (a bare `probe <place>` stays unrouted — CX-R1's
+  hand-list pin); the reward desk gains `An estate for Marshal Soult`, `Bernadotte,
+  an estate`, `Estate for Ney`, `title davout`, `X receives a grant of land`; the
+  commission desk `Make Suchet a marshal`, `oudinot to marshal`, `brought from the
+  bench`, `a baton`; the laws `the staff law - enact`, `put the Staff law into
+  effect`, `establish the artillery reserve`, and `revoke / rescind / abolish /
+  strike down <law>` → repeal (never a pension, a treaty or an order); the build
+  `Fort at Milan, Massena will need it`, `Put a depot at Franconia for Bernadotte`;
+  `Hand Flanders over to Holland` / `give savoy to sardinia` → cede; the end turn in
+  other words gains `Close the turn`, `Advance the clock`, `Done.`; `We are at war
+  with Sweden from this day` declares; `To Franconia with Ney's corps` and `Ney and
+  Davout both to Frankfurt` are the march; the courtesy head (`be so good as to`,
+  `would you kindly`, `dictate:`) is set aside first; `Ney, the Emperor desires you at
+  Munich` and `Murat halts at Franche-Comte` are the march and the hold; the recruit
+  desk reads `enlist`, `raised`, `levy troops/men/horse` (never the bare `levy
+  <place>`) and `pay for replacements`; the garrison idiom reads its inflections
+  (`leaves 3000 men to hold Franconia`). (d) THE CABINET'S BARE DESK: a mission named
+  with no purpose (`Send a mission to Saxony`, `Mission to the Porte`, `mission to
+  hesse`) is the IMPROVE_RELATIONS mission; the court may be named by its SEAT
+  (`Mission to Vienna` → Austria, `Berlin`, `the Porte`; `_court_named_by_seat`, after
+  every alias and roster name has missed); `open talks with Russia` at war stays the
+  Cabinet's options card, now read as ASKED; `invest in the Kingdom of Italy, 200`
+  with Talleyrand addressed is the vassal desk's; a bare Cabinet verb at the head of a
+  diplomatic parse (`Approach Bavaria about …`) is never an addressee (the gate
+  stands down; `Pledge France` is no Cabinet verb). (e) `lannes dont move` — a bare
+  prohibition on moving with no object and no destination IS the hold
+  (`rewrite_negated_hold`); a negated order with an object stays PARSE-NEG's refusal
+  and `stay put` the WAIT family's. **DD0-19 — the sixth set's three real
+  executions, fixed the same day:** `Send the fleet to attack Swabia.` had FOUGHT with
+  Soult's corps (the attack family read the verb, no marshal was bound, the bare
+  attack guessed) — a line whose subject is the fleet / navy / ships is refused in
+  words before any routing (`_FLEET_SUBJECT_RE`, the `fleet_is_no_corps` refusal
+  kind); `Davout: drill. The new conscripts are green.` had RECRUITED (the statement
+  kept for `New Russia`'s token — fixed above); `Bernadotte leaves 3000 men to hold
+  Franconia` had become the 2-AP HOLD (the garrison idiom's inflections).
+- **Measured (October 11, 2026), every set as fresh runs on the final tree, read by
+  the ONE judge and by hand:** the fifth set keyless as meant 125 → 144, shrugs 29 → 1,
+  read right by hand 241 → **289 of 300 (96.3 %)**, executed other than meant 1 → 0;
+  keyed 291 (97.0 %), 0. The sixth set — first read at 249 by the judge with THREE
+  real executions (DD0-19) — re-read 159 as meant, 5 shrugs, **290 (96.7 %)**, 0;
+  keyed 295 (98.3 %), 0. **The SEVENTH fresh author (zero tool uses; nothing in the
+  file read or tuned before its run): keyless 152 as meant (50.7 %), 26 shrugs, the
+  judge's four classes 244 (81.3 %), READ RIGHT BY HAND 255 of 300 (85.0 %), executed
+  other than meant 0 — the re-based done-when MET, at its floor with no margin, 255
+  again on a second run of the final tree; keyed 281 (93.7 %), 0.** The fourth set 286 / 290 by hand, 0; the third set's floor 273 by
+  hand, as meant 179 (182 / 176 before — the objection dice), 0 / 0; the HOLD arm 18 of
+  20; the metamorphic ledger 0 (2,408 cases); the routed order words 367; no lever.
+  The seventh set's 26 shrugs and the parser's 15 honest refusals are DD0-20 (OPEN,
+  S5's head). **S4 is struck.**

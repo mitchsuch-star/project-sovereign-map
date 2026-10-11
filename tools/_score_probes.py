@@ -1405,7 +1405,11 @@ BOARD_GATE_RX = re.compile(
     # grepped `docs/audits/` and `tools/playtest_scripts/` first (only the S4
     # re-run record holds it), so every committed record and the score
     # archive re-read identical.
-    r"stands at [A-Z][\w'’ -]*, not ",
+    r"stands at [A-Z][\w'’ -]*, not |"
+    # DD0-18 (b) (S4 part 4, October 11, 2026): the Cabinet's refusal of a
+    # war on our own satellite — a string new this part (grepped: in no
+    # committed record but the part-4 re-reads).
+    r"is our own vassal",
     re.I,
 )
 # ASKED_RX: the game asked before acting (a clarification, an objection).
@@ -1417,7 +1421,18 @@ ASKED_RX = re.compile(
     # bare attack's "shall we engage", "whom shall … engage", the cabinet's
     # "which nation", "Attack whom" and "Which is it to be".
     r"challenges the order|shall we engage|whom shall \w+ engage|which nation|Attack whom|"
-    r"Which is it to be",
+    r"Which is it to be|"
+    # DD0-18 (d) (S4 part 4, October 11, 2026): the Cabinet's proposal-
+    # options CARD — "open talks with Russia" / "Open negotiations with
+    # Britain" answered with the war's state and the choices (propose peace /
+    # press the advantage / wait). The game asking which approach, read by
+    # the fifth memo's hand as ASKED. Grepped first: the three WAR-state
+    # openings appear in no committed record but the fourth and fifth sets,
+    # which part 4 rewrites as fresh runs; the third set, the October 3
+    # records and the score archive re-read to identical classes. The two
+    # PEACE-state cards ("relations with X are tense", "views us favorably")
+    # were WITHHELD — each moves two lines in every third-set record.
+    r"is at a standstill|we hold a commanding position against|our position against .{1,40} is\.\.\. precarious",
     re.I,
 )
 # REFUSED_RX: the game could not read the line and said so (spending nothing).

@@ -16,7 +16,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lower",
-   "secs": 0.22,
+   "secs": 0.23,
    "parse_trace": [
     {
      "stage": "typed",
@@ -95,7 +95,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lower",
-   "secs": 0.07,
+   "secs": 0.12,
    "parse_trace": [
     {
      "stage": "typed",
@@ -172,12 +172,12 @@
     "target": "Mack",
     "note": "Davout attacks Mack; a misread is a march to Swabia without battle, or a hold."
    },
-   "class": "asked",
+   "class": "as_meant",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will fortify current position instead.)",
-   "secs": 0.06,
+   "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to arrive, up to 115,003 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make i",
+   "secs": 0.11,
    "parse_trace": [
     {
      "stage": "typed",
@@ -240,20 +240,27 @@
      }
     },
     {
+     "stage": "dispatch",
+     "rule": "attack",
+     "detail": {
+      "marshal": "Davout",
+      "target": "Mack",
+      "type": "specific"
+     }
+    },
+    {
      "stage": "executor",
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi",
-      "state": "awaiting_player_choice",
-      "objection": true
+      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
      }
     },
     {
      "stage": "reply",
-     "rule": "asked",
+     "rule": "done",
      "detail": {
-      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi"
+      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
      }
     }
    ]
@@ -614,7 +621,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs more than the men: th",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -701,11 +708,11 @@
     "target": "Archduke John",
     "note": "Bernadotte attacks John; 'at once' is urgency, not a target; a misread is a move or a hold."
    },
-   "class": "as_meant",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Bernadotte notes the risks but prepares the attack. Bernadotte halts before the order is carried out. \"Before I commit the corps: the odds are against us, and I would rather be told twice than bury them once.\"\n\nThe muster reads unfavorable. 'Commit the Attack' to send him in regardless — or Cancel t",
+   "message": "Bernadotte challenges the order: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will adopt DEFENSIVE stance instead.)",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -759,27 +766,20 @@
      }
     },
     {
-     "stage": "dispatch",
-     "rule": "attack",
-     "detail": {
-      "marshal": "Bernadotte",
-      "target": "ArchdukeJohn",
-      "type": "specific"
-     }
-    },
-    {
      "stage": "executor",
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Bernadotte notes the risks but prepares the attack. Bernadotte halts before the order is carried out. \"Before I commit t"
+      "message": "Bernadotte challenges the order: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will a",
+      "state": "awaiting_player_choice",
+      "objection": true
      }
     },
     {
      "stage": "reply",
      "rule": "asked",
      "detail": {
-      "message": "Bernadotte notes the risks but prepares the attack. Bernadotte halts before the order is carried out. \"Before I commit t"
+      "message": "Bernadotte challenges the order: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will a"
      }
     }
    ]
@@ -793,12 +793,12 @@
     "target": "Mack",
     "note": "The Iron Marshal is Davout; a misread is asking which marshal or picking Ney."
    },
-   "class": "asked",
-   "success": false,
+   "class": "as_meant",
+   "success": true,
    "parse_mode": "mock",
-   "parse_confidence": 0.9,
-   "message": "There is no 'Iron Marshal' in the order of battle, Sire. Whom did you intend?",
-   "secs": 0.05,
+   "parse_confidence": 0.95,
+   "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to arrive, up to 115,003 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make i",
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -826,47 +826,72 @@
      "after": "The Iron Marshal is to attack Mack"
     },
     {
+     "stage": "parser",
+     "rule": "rewrite_epithets",
+     "span": [
+      0,
+      22
+     ],
+     "before": "The Iron Marshal is to attack Mack",
+     "after": "Davout, attack Mack"
+    },
+    {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
       "action": "attack",
+      "marshal": "Davout",
       "target": "Mack",
-      "confidence": 0.9,
+      "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "General order: attack Mack"
+      "interpretation": "Order Davout to attack Mack"
      }
+    },
+    {
+     "stage": "strategic",
+     "rule": "strip_marshal_prefix",
+     "span": [
+      0,
+      8
+     ],
+     "before": "davout, attack mack",
+     "after": "attack mack"
     },
     {
      "stage": "parse",
      "rule": "result",
      "detail": {
       "success": true,
+      "marshal": "Davout",
       "action": "attack",
       "target": "Mack",
-      "type": "auto_assign_attack",
-      "confidence": 0.9,
+      "type": "specific",
+      "confidence": 0.95,
       "mode": "mock"
      }
     },
     {
-     "stage": "executor",
-     "rule": "unbound_addressee",
-     "detail": "Iron Marshal"
+     "stage": "dispatch",
+     "rule": "attack",
+     "detail": {
+      "marshal": "Davout",
+      "target": "Mack",
+      "type": "specific"
+     }
     },
     {
      "stage": "executor",
      "rule": "result",
      "detail": {
-      "success": false,
-      "message": "There is no 'Iron Marshal' in the order of battle, Sire. Whom did you intend?",
-      "kind": "marshal_not_found"
+      "success": true,
+      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
      }
     },
     {
      "stage": "reply",
-     "rule": "refused",
+     "rule": "done",
      "detail": {
-      "message": "There is no 'Iron Marshal' in the order of battle, Sire. Whom did you intend?"
+      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
      }
     }
    ]
@@ -883,9 +908,9 @@
    "class": "as_meant",
    "success": true,
    "parse_mode": "mock",
-   "parse_confidence": 0.9,
-   "message": "MUSTER — Soult (30,000; expect about 144,247 with the corps likely to arrive, up to 146,842 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — but he and Soult are at odds; expect about half his weight — like",
-   "secs": 0.06,
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lower",
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -893,14 +918,25 @@
      "detail": "the bravest of the brave attacks the austrians in swabia"
     },
     {
+     "stage": "parser",
+     "rule": "rewrite_epithets",
+     "span": [
+      4,
+      24
+     ],
+     "before": "the bravest of the brave attacks the austrians in swabia",
+     "after": "the Ney attacks the austrians in swabia"
+    },
+    {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
       "action": "attack",
+      "marshal": "Ney",
       "target": "Swabia",
-      "confidence": 0.9,
+      "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "General order: attack Swabia"
+      "interpretation": "Order Ney to attack Swabia"
      }
     },
     {
@@ -908,46 +944,21 @@
      "rule": "result",
      "detail": {
       "success": true,
+      "marshal": "Ney",
       "action": "attack",
       "target": "Swabia",
-      "type": "auto_assign_attack",
-      "confidence": 0.9,
+      "type": "specific",
+      "confidence": 0.95,
       "mode": "mock"
-     }
-    },
-    {
-     "stage": "executor",
-     "rule": "auto_attack",
-     "detail": {
-      "kind": "named",
-      "marshal": "Soult",
-      "target": "Swabia"
      }
     },
     {
      "stage": "dispatch",
      "rule": "attack",
      "detail": {
-      "marshal": "Soult",
+      "marshal": "Ney",
       "target": "Swabia",
       "type": "specific"
-     }
-    },
-    {
-     "stage": "executor",
-     "rule": "command_changed",
-     "before": {
-      "action": "attack",
-      "target": "Swabia",
-      "type": "auto_assign_attack",
-      "confidence": 0.9
-     },
-     "after": {
-      "marshal": "Soult",
-      "action": "attack",
-      "target": "Swabia",
-      "type": "specific",
-      "confidence": 0.9
      }
     },
     {
@@ -955,14 +966,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "MUSTER — Soult (30,000; expect about 144,247 with the corps likely to arrive, up to 146,842 if all march) vs Mack (large"
+      "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large f"
      }
     },
     {
      "stage": "reply",
      "rule": "done",
      "detail": {
-      "message": "MUSTER — Soult (30,000; expect about 144,247 with the corps likely to arrive, up to 146,842 if all march) vs Mack (large"
+      "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large f"
      }
     }
    ]
@@ -1165,7 +1176,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lower",
-   "secs": 0.08,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -1265,11 +1276,11 @@
     "target": "Mack",
     "note": "Davout attacks Mack and Ney holds Rhineland; a misread is Ney attacking, or the hold being lost."
    },
-   "class": "asked",
+   "class": "as_meant",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will fortify current position instead.)",
+   "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to arrive, up to 115,003 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make i",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -1315,20 +1326,27 @@
      }
     },
     {
+     "stage": "dispatch",
+     "rule": "attack",
+     "detail": {
+      "marshal": "Davout",
+      "target": "Mack",
+      "type": "specific"
+     }
+    },
+    {
      "stage": "executor",
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi",
-      "state": "awaiting_player_choice",
-      "objection": true
+      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
      }
     },
     {
      "stage": "reply",
-     "rule": "asked",
+     "rule": "done",
      "detail": {
-      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi"
+      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
      }
     }
    ]
@@ -1603,7 +1621,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "There is no Marshal 'Emperor' in the order of battle, Sire. Whom did you intend?",
-   "secs": 0.07,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -1740,12 +1758,12 @@
     "target": "Mack",
     "note": "Davout attacks Mack; 'everything you've got' is emphasis not a recruit; the em dash must not break the parse."
    },
-   "class": "as_meant",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to arrive, up to 115,003 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make i",
-   "secs": 0.06,
+   "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will fortify current position instead.)",
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -1788,27 +1806,20 @@
      }
     },
     {
-     "stage": "dispatch",
-     "rule": "attack",
-     "detail": {
-      "marshal": "Davout",
-      "target": "Mack",
-      "type": "specific"
-     }
-    },
-    {
      "stage": "executor",
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
+      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi",
+      "state": "awaiting_player_choice",
+      "objection": true
      }
     },
     {
      "stage": "reply",
-     "rule": "done",
+     "rule": "asked",
      "detail": {
-      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
+      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi"
      }
     }
    ]
@@ -1827,7 +1838,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lower",
-   "secs": 0.06,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -1932,7 +1943,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs more than the men: th",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -2212,7 +2223,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Lannes pursues Archduke John (at Tyrol). Moves to Munich. A standing order, not a single attack: he closes 1 province a turn, attacks on arrival, may be diverted by an interrupt, and stands down if intelligence on him lapses. 'Lannes, cancel' recalls him. Lannes: \"Run him to ground, then. My sabers ",
-   "secs": 0.05,
+   "secs": 0.13,
    "parse_trace": [
     {
      "stage": "typed",
@@ -2297,11 +2308,11 @@
     "target": "Mack",
     "note": "Davout attacks Mack; 'please' and 'have' must not derail it."
    },
-   "class": "as_meant",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to arrive, up to 115,003 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make i",
+   "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will fortify current position instead.)",
    "secs": 0.06,
    "parse_trace": [
     {
@@ -2355,27 +2366,20 @@
      }
     },
     {
-     "stage": "dispatch",
-     "rule": "attack",
-     "detail": {
-      "marshal": "Davout",
-      "target": "Mack",
-      "type": "specific"
-     }
-    },
-    {
      "stage": "executor",
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
+      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi",
+      "state": "awaiting_player_choice",
+      "objection": true
      }
     },
     {
      "stage": "reply",
-     "rule": "done",
+     "rule": "asked",
      "detail": {
-      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
+      "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he wi"
      }
     }
    ]
@@ -2496,7 +2500,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Bernadotte notes the risks but prepares the attack. Bernadotte halts before the order is carried out. \"Before I commit the corps: the odds are against us, and I would rather be told twice than bury them once.\"\n\nThe muster reads unfavorable. 'Commit the Attack' to send him in regardless — or Cancel t",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -2588,12 +2592,22 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "MUSTER — Davout (26,000; expect about 109,122 with the corps likely to arrive, up to 115,003 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 99%) (The corps system lowers t",
-   "secs": 0.06,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
      "rule": "line",
      "detail": "Davout, attack him"
+    },
+    {
+     "stage": "reading",
+     "rule": "rewrite_at_him",
+     "span": [
+      14,
+      18
+     ],
+     "before": "Davout, attack him",
+     "after": "Davout, attack"
     },
     {
      "stage": "mock_chain",
@@ -2613,8 +2627,8 @@
       0,
       8
      ],
-     "before": "davout, attack him",
-     "after": "attack him"
+     "before": "davout, attack",
+     "after": "attack"
     },
     {
      "stage": "parse",
@@ -2754,6 +2768,16 @@
      "detail": "Soult, I need you to attack Swabia this turn, no excuses"
     },
     {
+     "stage": "reading",
+     "rule": "peel_comma_aside",
+     "span": [
+      44,
+      56
+     ],
+     "before": "Soult, I need you to attack Swabia this turn, no excuses",
+     "after": "Soult, I need you to attack Swabia this turn"
+    },
+    {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
@@ -2772,8 +2796,8 @@
       0,
       7
      ],
-     "before": "soult, i need you to attack swabia this turn, no excuses",
-     "after": "i need you to attack swabia this turn, no excuses"
+     "before": "soult, i need you to attack swabia this turn",
+     "after": "i need you to attack swabia this turn"
     },
     {
      "stage": "parse",
@@ -3022,7 +3046,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lower",
-   "secs": 0.08,
+   "secs": 0.1,
    "parse_trace": [
     {
      "stage": "typed",
@@ -3106,8 +3130,8 @@
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": null,
-   "message": "\"Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?\" Berthier asks carefully.",
-   "secs": 0.05,
+   "message": "Berthier frowns at the dispatch. \"I see Marshal Ney's name, Sire, but the instruction is unclear. Valid orders include: attack, move, scout, defend, fortify, recruit.\"",
+   "secs": 0.15,
    "parse_trace": [
     {
      "stage": "typed",
@@ -3143,7 +3167,7 @@
      "stage": "reply",
      "rule": "refused",
      "detail": {
-      "message": "\"Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?\" Be"
+      "message": "Berthier frowns at the dispatch. \"I see Marshal Ney's name, Sire, but the instruction is unclear. Valid orders include: "
      }
     }
    ]
@@ -3162,7 +3186,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Murat (22,000; expect about 80,897 with the corps likely to arrive, up to 81,895 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — but he and Murat are at odds; expect about half his weight — likely",
-   "secs": 0.06,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -3249,12 +3273,12 @@
     "target": "Mack",
     "note": "Davout attacks Mack at Swabia; a plain move into Swabia with no battle is a weaker reading but acceptable if the game warns; a hold is a misread."
    },
-   "class": "as_meant",
-   "success": true,
+   "class": "asked",
+   "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to arrive, up to 115,003 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make i",
-   "secs": 0.06,
+   "message": "Cannot move into Swabia - enemy forces present! Use ATTACK to engage Mack.\n\nBerthier: \"One order at a time, Sire — and the first did not go out, so \"attack Mack\", written to follow it, is not relayed.\"\nTry: 'Davout, attack Mack'",
+   "secs": 0.12,
    "parse_trace": [
     {
      "stage": "typed",
@@ -3273,14 +3297,64 @@
     },
     {
      "stage": "mock_chain",
+     "rule": "slots_march",
+     "detail": {
+      "marshal": "Davout",
+      "destination": "Swabia",
+      "residue": [
+       "go",
+       "on",
+       "into"
+      ]
+     }
+    },
+    {
+     "stage": "mock_chain",
+     "rule": "slots_march",
+     "detail": {
+      "marshal": "Davout",
+      "destination": "Swabia",
+      "residue": [
+       "go",
+       "on",
+       "into"
+      ]
+     }
+    },
+    {
+     "stage": "parser",
+     "rule": "split",
+     "span": [
+      25,
+      38
+     ],
+     "before": "Go on Davout, into Swabia, attack Mack",
+     "after": "Go on Davout, into Swabia",
+     "dropped_sequel": "attack Mack"
+    },
+    {
+     "stage": "mock_chain",
+     "rule": "slots_march",
+     "detail": {
+      "marshal": "Davout",
+      "destination": "Swabia",
+      "residue": [
+       "go",
+       "on",
+       "into"
+      ]
+     }
+    },
+    {
+     "stage": "mock_chain",
      "rule": "result",
      "detail": {
-      "action": "attack",
+      "action": "move",
       "marshal": "Davout",
-      "target": "Mack",
+      "target": "Swabia",
       "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "Order Davout to attack Mack"
+      "interpretation": "Order Davout to move Swabia"
      }
     },
     {
@@ -3289,19 +3363,21 @@
      "detail": {
       "success": true,
       "marshal": "Davout",
-      "action": "attack",
-      "target": "Mack",
+      "action": "move",
+      "target": "Swabia",
       "type": "specific",
       "confidence": 0.95,
-      "mode": "mock"
+      "mode": "mock",
+      "dropped_sequel": "attack Mack",
+      "warning": "One order at a time, Sire — I have relayed the first. \"attack Mack\" waits behind it."
      }
     },
     {
      "stage": "dispatch",
-     "rule": "attack",
+     "rule": "move",
      "detail": {
       "marshal": "Davout",
-      "target": "Mack",
+      "target": "Swabia",
       "type": "specific"
      }
     },
@@ -3309,15 +3385,15 @@
      "stage": "executor",
      "rule": "result",
      "detail": {
-      "success": true,
-      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
+      "success": false,
+      "message": "Cannot move into Swabia - enemy forces present! Use ATTACK to engage Mack."
      }
     },
     {
      "stage": "reply",
-     "rule": "done",
+     "rule": "refused",
      "detail": {
-      "message": "Davout notes the risks but prepares the attack. MUSTER — Davout (26,000; expect about 109,122 with the corps likely to a"
+      "message": "Cannot move into Swabia - enemy forces present! Use ATTACK to engage Mack."
      }
     }
    ]
@@ -3336,7 +3412,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs more than the men: th",
-   "secs": 0.07,
+   "secs": 0.16,
    "parse_trace": [
     {
      "stage": "typed",
@@ -3431,7 +3507,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if Davout can support Davout' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arri",
-   "secs": 0.05,
+   "secs": 0.11,
    "parse_trace": [
     {
      "stage": "typed",
@@ -3889,7 +3965,7 @@
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Ney pursues Mack (at Swabia). Mack spotted at Swabia! Engaging!\n\n\n[Combat] Ney leads the charge! (Aggressive: +15% attack)\n[Combat] Adjacent allies bolster Ney's attack! (+6%)\nNey's forces press forward aggressively. Ney gains the advantage over Mack. Casualties: Ney's army 5,702, Mack 18,421. Both ",
+   "message": "Ney pursues Mack (at Swabia). Mack spotted at Swabia! Engaging!\n\n\n[Combat] Ney leads the charge! (Aggressive: +15% attack)\n[Combat] Adjacent allies bolster Ney's attack! (+6%)\nNey faces a difficult fight. Ney gains the advantage over Mack. Casualties: Ney's army 5,431, Mack 16,760. Both armies remai",
    "secs": 0.06,
    "parse_trace": [
     {
@@ -4008,7 +4084,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.'",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -4287,13 +4363,23 @@
     },
     {
      "stage": "strategic",
-     "rule": "target_overrides_tactical",
+     "rule": "tactical_target_kept",
      "span": [
       8,
-      8
+      9
      ],
-     "before": "ArchdukeJohn",
-     "after": "Archduke John"
+     "before": "Archduke John",
+     "after": "ArchdukeJohn"
+    },
+    {
+     "stage": "strategic",
+     "rule": "target_resolved",
+     "span": [
+      8,
+      9
+     ],
+     "before": "Archduke John",
+     "after": "ArchdukeJohn"
     },
     {
      "stage": "parse",
@@ -4302,7 +4388,7 @@
       "success": true,
       "marshal": "Massena",
       "action": "attack",
-      "target": "Archduke John",
+      "target": "ArchdukeJohn",
       "type": "specific",
       "confidence": 0.95,
       "mode": "mock",
@@ -4315,7 +4401,7 @@
      "detail": {
       "strategic_type": "PURSUE",
       "marshal": "Massena",
-      "target": "Archduke John"
+      "target": "ArchdukeJohn"
      }
     },
     {
@@ -4493,9 +4579,9 @@
    "class": "as_meant",
    "success": true,
    "parse_mode": "mock",
-   "parse_confidence": 0.9,
-   "message": "Soult pursues Mack (at Swabia). Mack spotted at Swabia. Preparing to engage. \"the bravest of the brave is to follow Mack to the ends of the earth.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)",
-   "secs": 0.06,
+   "parse_confidence": 0.95,
+   "message": "Ney pursues Mack (at Swabia). Mack spotted at Swabia! Engaging!\n\n\n[Combat] Ney leads the charge! (Aggressive: +15% attack)\n[Combat] Adjacent allies bolster Ney's attack! (+8%)\nNey launches a decisive assault. Ney gains the advantage over Mack. Casualties: Ney's army 5,867, Mack 13,300. Both armies r",
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -4513,15 +4599,36 @@
      "after": "the bravest of the brave is to pursue Mack"
     },
     {
+     "stage": "parser",
+     "rule": "rewrite_epithets",
+     "span": [
+      0,
+      30
+     ],
+     "before": "the bravest of the brave is to pursue Mack",
+     "after": "Ney, pursue Mack"
+    },
+    {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
       "action": "attack",
+      "marshal": "Ney",
       "target": "Mack",
-      "confidence": 0.9,
+      "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "General order: attack Mack"
+      "interpretation": "Order Ney to attack Mack"
      }
+    },
+    {
+     "stage": "strategic",
+     "rule": "strip_marshal_prefix",
+     "span": [
+      0,
+      5
+     ],
+     "before": "ney, pursue mack",
+     "after": "pursue mack"
     },
     {
      "stage": "strategic",
@@ -4547,21 +4654,13 @@
      "rule": "result",
      "detail": {
       "success": true,
+      "marshal": "Ney",
       "action": "attack",
       "target": "Mack",
-      "type": "auto_assign_attack",
-      "confidence": 0.9,
+      "type": "specific",
+      "confidence": 0.95,
       "mode": "mock",
       "strategic_type": "PURSUE"
-     }
-    },
-    {
-     "stage": "executor",
-     "rule": "auto_attack",
-     "detail": {
-      "kind": "named",
-      "marshal": "Soult",
-      "target": "Mack"
      }
     },
     {
@@ -4569,7 +4668,7 @@
      "rule": "strategic_order",
      "detail": {
       "strategic_type": "PURSUE",
-      "marshal": "Soult",
+      "marshal": "Ney",
       "target": "Mack"
      }
     },
@@ -4577,25 +4676,16 @@
      "stage": "dispatch",
      "rule": "move",
      "detail": {
-      "marshal": "Soult",
+      "marshal": "Ney",
       "target": "Swabia"
      }
     },
     {
-     "stage": "executor",
-     "rule": "command_changed",
-     "before": {
-      "action": "attack",
-      "target": "Mack",
-      "type": "auto_assign_attack",
-      "confidence": 0.9
-     },
-     "after": {
-      "marshal": "Soult",
-      "action": "attack",
-      "target": "Mack",
-      "type": "specific",
-      "confidence": 0.9
+     "stage": "dispatch",
+     "rule": "attack",
+     "detail": {
+      "marshal": "Ney",
+      "target": "Mack"
      }
     },
     {
@@ -4603,14 +4693,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Soult pursues Mack (at Swabia). Mack spotted at Swabia. Preparing to engage. \"the bravest of the brave is to follow Mack"
+      "message": "Ney pursues Mack (at Swabia). Mack spotted at Swabia! Engaging!"
      }
     },
     {
      "stage": "reply",
      "rule": "done",
      "detail": {
-      "message": "Soult pursues Mack (at Swabia). Mack spotted at Swabia. Preparing to engage. \"the bravest of the brave is to follow Mack"
+      "message": "Ney pursues Mack (at Swabia). Mack spotted at Swabia! Engaging!"
      }
     }
    ]
@@ -4699,13 +4789,23 @@
     },
     {
      "stage": "strategic",
-     "rule": "target_overrides_tactical",
+     "rule": "tactical_target_kept",
      "span": [
       8,
-      8
+      9
      ],
-     "before": "ArchdukeJohn",
-     "after": "Archduke John"
+     "before": "Archduke John",
+     "after": "ArchdukeJohn"
+    },
+    {
+     "stage": "strategic",
+     "rule": "target_resolved",
+     "span": [
+      8,
+      9
+     ],
+     "before": "Archduke John",
+     "after": "ArchdukeJohn"
     },
     {
      "stage": "parse",
@@ -4714,7 +4814,7 @@
       "success": true,
       "marshal": "Murat",
       "action": "attack",
-      "target": "Archduke John",
+      "target": "ArchdukeJohn",
       "type": "specific",
       "confidence": 0.95,
       "mode": "mock",
@@ -4727,7 +4827,7 @@
      "detail": {
       "strategic_type": "PURSUE",
       "marshal": "Murat",
-      "target": "Archduke John"
+      "target": "ArchdukeJohn"
      }
     },
     {
@@ -4888,7 +4988,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Davout moves to support Ney (at Rhineland). Davout holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapses of itself once Ney is out of danger — name a duration to hold him to it. Davout: \"He will not stand alone while I am in range.\"",
-   "secs": 0.06,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -4995,7 +5095,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Soult moves to support Ney (at Rhineland). Moves to Rhineland. Soult holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapses of itself once Ney is out of danger — name a duration to hold him to it. \"Soult, back up Ney.\" No more and no less. (1 AP —",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -5464,7 +5564,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "I could not make out a destination in that order, Sire - name a province (e.g. 'Soult, move to Lorraine').",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -5581,7 +5681,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Davout moves to support Ney (at Rhineland). Davout holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapses of itself once Ney is out of danger — name a duration to hold him to it. Davout: \"He will not stand alone while I am in range.\"\n\nBerthier: \"(",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -5967,11 +6067,11 @@
     "target": "Lannes",
     "note": "Murat supports Lannes; a misread is a charge on Lannes or a move to Franche-Comte with no support."
    },
-   "class": "as_meant",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
-   "message": "Murat moves to support Lannes (at Franche-Comte). Murat holds your written order: when Lannes leads a battle within reach, he will march to the guns. The order lapses of itself once Lannes is out of danger — name a duration to hold him to it. Murat: \"He shall have my sabers the moment he needs them ",
+   "message": "Murat firmly objects: 'March to another man's guns, Sire? Give me a battle of my own.'",
    "secs": 0.06,
    "parse_trace": [
     {
@@ -6053,14 +6153,15 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Murat moves to support Lannes (at Franche-Comte). Murat holds your written order: when Lannes leads a battle within reac"
+      "message": "Murat firmly objects: 'March to another man's guns, Sire? Give me a battle of my own.'",
+      "objection": true
      }
     },
     {
      "stage": "reply",
-     "rule": "done",
+     "rule": "asked",
      "detail": {
-      "message": "Murat moves to support Lannes (at Franche-Comte). Murat holds your written order: when Lannes leads a battle within reac"
+      "message": "Murat firmly objects: 'March to another man's guns, Sire? Give me a battle of my own.'"
      }
     }
    ]
@@ -6079,7 +6180,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Napoleon moves to support Soult (at Lorraine). Napoleon holds your written order: when Soult leads a battle within reach, he will march to the guns. The order lapses of itself once Soult is out of danger — name a duration to hold him to it. (1 AP — the Emperor commands in his own name.)",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -6195,13 +6296,34 @@
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
-   "message": "Davout moves to support Ney (at Rhineland). Davout holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapses of itself once Ney is out of danger — name a duration to hold him to it. Davout: \"He will not stand alone while I am in range.\"",
+   "message": "Davout moves to support Ney (at Rhineland). Davout holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapses of itself once Ney is out of danger — name a duration to hold him to it. Davout: \"He will not stand alone while I am in range.\"\n\nBerthier: \"O",
    "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
      "rule": "line",
      "detail": "Davout: support Ney. Soult: support Davout."
+    },
+    {
+     "stage": "reading",
+     "rule": "peel_second_telegraph",
+     "span": [
+      19,
+      27
+     ],
+     "before": "Davout: support Ney. Soult: support Davout",
+     "after": "Davout: support Ney, then Soult, support Davout"
+    },
+    {
+     "stage": "parser",
+     "rule": "split",
+     "span": [
+      19,
+      47
+     ],
+     "before": "Davout: support Ney, then Soult, support Davout",
+     "after": "Davout: support Ney",
+     "dropped_sequel": "Soult, support Davout"
     },
     {
      "stage": "mock_chain",
@@ -6250,7 +6372,9 @@
       "type": "specific",
       "confidence": 0.9,
       "mode": "mock",
-      "strategic_type": "SUPPORT"
+      "strategic_type": "SUPPORT",
+      "dropped_sequel": "Soult, support Davout",
+      "warning": "One order at a time, Sire — I have relayed the first. \"Soult, support Davout\" waits behind it."
      }
     },
     {
@@ -6293,7 +6417,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs more than the men: th",
-   "secs": 0.07,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -6411,7 +6535,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if Mack moves' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arrives'; the road ",
-   "secs": 0.05,
+   "secs": 0.04,
    "parse_trace": [
     {
      "stage": "typed",
@@ -6950,7 +7074,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lower",
-   "secs": 0.06,
+   "secs": 0.11,
    "parse_trace": [
     {
      "stage": "typed",
@@ -7045,7 +7169,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Murat needs one victory first: a single battle won as the attacker arms the charge (recklessness 0 of 1).",
-   "secs": 0.05,
+   "secs": 0.1,
    "parse_trace": [
     {
      "stage": "typed",
@@ -7633,7 +7757,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Massena moves from Milan to Piedmont (2,520 lost to march)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -7723,6 +7847,16 @@
      "detail": "Move Murat to Bern"
     },
     {
+     "stage": "parser",
+     "rule": "rewrite_send_marshal",
+     "span": [
+      1,
+      10
+     ],
+     "before": "Move Murat to Bern",
+     "after": "Murat, move to Bern"
+    },
+    {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
@@ -7733,6 +7867,16 @@
       "mode": "mock",
       "interpretation": "Order Murat to move Bern"
      }
+    },
+    {
+     "stage": "strategic",
+     "rule": "strip_marshal_prefix",
+     "span": [
+      1,
+      8
+     ],
+     "before": "murat, move to bern",
+     "after": "move to bern"
     },
     {
      "stage": "parse",
@@ -7787,7 +7931,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Cannot enter Nassau — it is controlled by Hesse (diplomatic state: PEACE). Open borders or higher required.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -7889,7 +8033,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Napoleon will hold Rhineland. Marching to Rhineland. (1 AP — the Emperor commands in his own name.)",
-   "secs": 0.05,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -8009,7 +8153,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Napoleon begins marching to Paris (distance: 4). Moved to Orleanais. Route: Orleanais -> Burgundy -> Limousin -> Paris.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -8387,7 +8531,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Bernadotte moves from Franconia to Munich (340 lost to march)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -8561,7 +8705,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Ney moves from Rhineland to Brabant (432 lost to march)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -8855,7 +8999,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Davout moves from Rhineland to Lorraine",
-   "secs": 0.08,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -8937,7 +9081,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state: PEACE). Open borders or higher required.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -9047,6 +9191,16 @@
      "after": "move Marshal Lannes to Bern."
     },
     {
+     "stage": "parser",
+     "rule": "rewrite_send_marshal",
+     "span": [
+      0,
+      28
+     ],
+     "before": "move Marshal Lannes to Bern.",
+     "after": "Lannes, move to Bern"
+    },
+    {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
@@ -9057,6 +9211,16 @@
       "mode": "mock",
       "interpretation": "Order Lannes to move Bern"
      }
+    },
+    {
+     "stage": "strategic",
+     "rule": "strip_marshal_prefix",
+     "span": [
+      0,
+      8
+     ],
+     "before": "lannes, move to bern",
+     "after": "move to bern"
     },
     {
      "stage": "parse",
@@ -9203,7 +9367,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Massena begins march to Munich. Moves to Munich. Massena: \"We march. Pity whatever slows us.\"",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -9323,7 +9487,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Where shall Davout march, Sire? He stands at Rhineland.\n\nBerthier: \"One order at a time, Sire — I have relayed the first. \"Ney both to Frankfurt\" waits behind it. It waits behind the question Davout has put to you. Answer, and it returns to the line; another order, or the turn's end, lets it go.\"",
-   "secs": 0.08,
+   "secs": 0.13,
    "parse_trace": [
     {
      "stage": "typed",
@@ -9386,6 +9550,18 @@
      }
     },
     {
+     "stage": "mock_chain",
+     "rule": "slots_march",
+     "detail": {
+      "marshal": "Ney",
+      "destination": "Frankfurt",
+      "residue": [
+       "both",
+       "to"
+      ]
+     }
+    },
+    {
      "stage": "reply",
      "rule": "asked",
      "detail": {
@@ -9408,7 +9584,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Soult begins march to Rhineland Together. Moves to Rhineland. \"Soult, Napoleon, march on Rhineland together.\" It will be done exactly, Sire. (1 AP — Soult executes precise orders with fewer couriers.)\n\nBerthier: \"You named Napoleon beside Soult, Sire — Soult takes the order; Napoleon's own waits beh",
-   "secs": 0.07,
+   "secs": 0.13,
    "parse_trace": [
     {
      "stage": "typed",
@@ -9953,7 +10129,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Soult holds position at Lorraine, awaiting further orders. (Current stance: neutral)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -10027,11 +10203,11 @@
     "target": "Milan",
     "note": "Massena holds Milan (a defend reading is acceptable); a misread is an attack or a move."
    },
-   "class": "as_meant",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Massena will hold Milan At All Costs. Massena: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)",
+   "message": "Massena firmly objects: 'I would rather attack than sit idle.'",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -10118,14 +10294,15 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Massena will hold Milan At All Costs. Massena: \"Standing guard while others win laurels. As you command.\" (2 AP — a stan"
+      "message": "Massena firmly objects: 'I would rather attack than sit idle.'",
+      "objection": true
      }
     },
     {
      "stage": "reply",
-     "rule": "done",
+     "rule": "asked",
      "detail": {
-      "message": "Massena will hold Milan At All Costs. Massena: \"Standing guard while others win laurels. As you command.\" (2 AP — a stan"
+      "message": "Massena firmly objects: 'I would rather attack than sit idle.'"
      }
     }
    ]
@@ -10252,11 +10429,11 @@
     "target": "Franconia",
     "note": "Bernadotte holds; the negation 'don't move' must not become a move; an end turn is a misread."
    },
-   "class": "honest_refusal",
-   "success": false,
+   "class": "as_meant",
+   "success": true,
    "parse_mode": "mock",
-   "parse_confidence": null,
-   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "parse_confidence": 0.9,
+   "message": "Bernadotte will hold Franconia. Holding position. Bernadotte: \"I will make this position expensive.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -10265,54 +10442,96 @@
      "detail": "Bernadotte, don't move this turn"
     },
     {
-     "stage": "guards",
-     "rule": "strip_negated_clauses",
+     "stage": "parser",
+     "rule": "rewrite_negated_hold",
      "span": [
       12,
       32
      ],
      "before": "Bernadotte, don't move this turn",
-     "after": "Bernadotte,                     "
-    },
-    {
-     "stage": "guards",
-     "rule": "refusal",
-     "detail": {
-      "kind": "negation",
-      "why": "an order NOT to act"
-     }
+     "after": "Bernadotte, hold"
     },
     {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
-      "action": "unknown",
-      "confidence": 0.5,
+      "action": "hold",
+      "marshal": "Bernadotte",
+      "confidence": 0.9,
       "mode": "mock",
-      "interpretation": "No order issued — an order NOT to act",
-      "refusal": "negation"
+      "interpretation": "Order Bernadotte to hold"
      }
     },
     {
-     "stage": "parser",
-     "rule": "validation_failed",
-     "detail": "Unknown action: unknown"
+     "stage": "strategic",
+     "rule": "strip_marshal_prefix",
+     "span": [
+      0,
+      12
+     ],
+     "before": "bernadotte, hold",
+     "after": "hold"
+    },
+    {
+     "stage": "strategic",
+     "rule": "type",
+     "detail": "HOLD"
+    },
+    {
+     "stage": "strategic",
+     "rule": "target_text"
+    },
+    {
+     "stage": "strategic",
+     "rule": "detected",
+     "detail": {
+      "strategic_type": "HOLD",
+      "target": "Franconia",
+      "target_type": "region"
+     }
+    },
+    {
+     "stage": "strategic",
+     "rule": "target_overrides_tactical",
+     "before": null,
+     "after": "Franconia"
     },
     {
      "stage": "parse",
      "rule": "result",
      "detail": {
-      "success": false,
+      "success": true,
+      "marshal": "Bernadotte",
+      "action": "hold",
+      "target": "Franconia",
+      "type": "specific",
+      "confidence": 0.9,
       "mode": "mock",
-      "refusal": "negation",
-      "error": "Unknown action: unknown"
+      "strategic_type": "HOLD"
+     }
+    },
+    {
+     "stage": "dispatch",
+     "rule": "strategic_order",
+     "detail": {
+      "strategic_type": "HOLD",
+      "marshal": "Bernadotte",
+      "target": "Franconia"
+     }
+    },
+    {
+     "stage": "executor",
+     "rule": "result",
+     "detail": {
+      "success": true,
+      "message": "Bernadotte will hold Franconia. Holding position. Bernadotte: \"I will make this position expensive.\" (2 AP — a standing "
      }
     },
     {
      "stage": "reply",
-     "rule": "refused",
+     "rule": "done",
      "detail": {
-      "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood"
+      "message": "Bernadotte will hold Franconia. Holding position. Bernadotte: \"I will make this position expensive.\" (2 AP — a standing "
      }
     }
    ]
@@ -10331,7 +10550,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Napoleon holds position at Lorraine, awaiting further orders. (Current stance: neutral)",
-   "secs": 0.05,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -10516,7 +10735,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Ney will hold Rhineland. Holding position. Ney: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -10704,7 +10923,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Davout shifts from NEUTRAL to DEFENSIVE stance. Effect: -10% attack, +15% defense.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -11044,6 +11263,16 @@
      "detail": "Lannes — defend. The Austrians are close."
     },
     {
+     "stage": "reading",
+     "rule": "peel_trailing_statement",
+     "span": [
+      15,
+      40
+     ],
+     "before": "Lannes — defend. The Austrians are close",
+     "after": "Lannes — defend"
+    },
+    {
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
@@ -11061,8 +11290,8 @@
       0,
       7
      ],
-     "before": "lannes — defend. the austrians are close.",
-     "after": "— defend. the austrians are close."
+     "before": "lannes — defend",
+     "after": "— defend"
     },
     {
      "stage": "parse",
@@ -11207,11 +11436,11 @@
     "target": "",
     "note": "Ney retreats to a safe adjacent French province or is asked where; a misread is an attack or a hold."
    },
-   "class": "as_meant",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
-   "message": "Ney bristles at the retreat order but obeys. Ney retreats from Rhineland to Lorraine.  Army begins recovery (currently at -45% effectiveness). Will recover over 3 turns.",
+   "message": "Ney firmly objects: 'Retreat? We can still fight!' (Trust him and he will attack Mack at Swabia instead.)",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -11253,26 +11482,20 @@
      }
     },
     {
-     "stage": "dispatch",
-     "rule": "retreat",
-     "detail": {
-      "marshal": "Ney",
-      "type": "specific"
-     }
-    },
-    {
      "stage": "executor",
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Ney bristles at the retreat order but obeys. Ney retreats from Rhineland to Lorraine.  Army begins recovery (currently a"
+      "message": "Ney firmly objects: 'Retreat? We can still fight!' (Trust him and he will attack Mack at Swabia instead.)",
+      "state": "awaiting_player_choice",
+      "objection": true
      }
     },
     {
      "stage": "reply",
-     "rule": "done",
+     "rule": "asked",
      "detail": {
-      "message": "Ney bristles at the retreat order but obeys. Ney retreats from Rhineland to Lorraine.  Army begins recovery (currently a"
+      "message": "Ney firmly objects: 'Retreat? We can still fight!' (Trust him and he will attack Mack at Swabia instead.)"
      }
     }
    ]
@@ -11784,7 +12007,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Murat moves from Franche-Comte to Lorraine",
-   "secs": 0.06,
+   "secs": 0.13,
    "parse_trace": [
     {
      "stage": "typed",
@@ -11866,7 +12089,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Ney scouts Swabia: Controlled by Bavaria. Terrain: Plains. Enemy forces: Mack (Austria): ~52,000 troops",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -12020,7 +12243,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Bernadotte scouts Bohemia: Controlled by Austria. Terrain: Plains. No enemy forces detected.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -12374,7 +12597,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Murat scouts Bern: Controlled by Switzerland. Terrain: Mountains (+25% defense). No field army stands there. Garrison: 10,000 (Switzerland's).",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -12538,7 +12761,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Massena scouts Munich: Controlled by Bavaria. Terrain: Mountains (+25% defense). No field army stands there. Garrison: 10,000 (Bavaria's).",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -12810,7 +13033,7 @@
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
-   "message": "Ney firmly objects: 'Sire, we have the advantage. Let me strike!' (Insisting costs 2 actions — he must first go defensive.) (Trust him and he will attack Mack at Swabia instead.)",
+   "message": "Ney firmly objects: 'I would rather attack than sit idle.' (Insisting costs 2 actions — he must first go defensive.) (Trust him and he will attack Mack at Swabia instead.)",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -12856,7 +13079,7 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Ney firmly objects: 'Sire, we have the advantage. Let me strike!' (Insisting costs 2 actions — he must first go defensiv",
+      "message": "Ney firmly objects: 'I would rather attack than sit idle.' (Insisting costs 2 actions — he must first go defensive.) (Tr",
       "state": "awaiting_player_choice",
       "objection": true
      }
@@ -12865,7 +13088,7 @@
      "stage": "reply",
      "rule": "asked",
      "detail": {
-      "message": "Ney firmly objects: 'Sire, we have the advantage. Let me strike!' (Insisting costs 2 actions — he must first go defensiv"
+      "message": "Ney firmly objects: 'I would rather attack than sit idle.' (Insisting costs 2 actions — he must first go defensive.) (Tr"
      }
     }
    ]
@@ -12966,7 +13189,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Massena firmly objects: 'I would rather attack than sit idle.' (Insisting costs 2 actions — he must first go defensive.) (Trust him and he will attack Archduke John at Tyrol instead.)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -13041,7 +13264,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Bernadotte fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -13208,7 +13431,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Napoleon fortifies position at Lorraine. Defense bonus: +2% (grows +2% per turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -13297,7 +13520,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Where shall Soult march, Sire? He stands at Lorraine.",
-   "secs": 0.07,
+   "secs": 0.08,
    "parse_trace": [
     {
      "stage": "typed",
@@ -13379,7 +13602,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Ney is not currently fortified.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -13458,7 +13681,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Davout is not currently fortified.",
-   "secs": 0.05,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -13892,7 +14115,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Lannes cannot drill with enemy forces nearby! Mack is at Swabia, just one region away.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -13963,7 +14186,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Ney firmly objects: 'Form square, Sire? There is no battle in it. Give me the enemy.' (Trust him and he will attack Mack at Swabia instead.)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -14036,7 +14259,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Soult forms square at Lorraine! Bayonets bristle in all directions. (+5% defense, cavalry -40%, but artillery +50% damage vs packed ranks)\nAny order — even one that fails — will break the discipline required to hold square.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -14270,7 +14493,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Berthier shakes his head. 'We already maintain 3 garrisons, Your Majesty. Our supply lines cannot support another. Maximum 3 garrisons per nation.'",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -14486,7 +14709,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Berthier shakes his head. 'We already maintain 3 garrisons, Your Majesty. Our supply lines cannot support another. Maximum 3 garrisons per nation.'",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -14558,7 +14781,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "We do not control Franconia, Your Majesty. We cannot garrison enemy territory.",
-   "secs": 0.09,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -14630,7 +14853,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Berthier checks the order of battle. 'No marshal of infantry can reach Paris, Sire — none of ours stands within reach.' Massena commands our foot at Milan — march him within reach. Nothing was spent.",
-   "secs": 0.06,
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -14982,11 +15205,11 @@
     "target": "Burgundy",
     "note": "'horsemen' is cavalry; recruit cavalry in Burgundy; a misread is infantry."
    },
-   "class": "honest_refusal",
+   "class": "board_refusal",
    "success": false,
    "parse_mode": "mock",
-   "parse_confidence": null,
-   "message": "Berthier studies the map. \"Sire, I note the reference to Burgundy, but which marshal should act? Soult has the shortest road — try 'Soult, move to Burgundy'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.\"",
+   "parse_confidence": 0.9,
+   "message": "Murat's cavalry levy: Berthier shakes his head. 'The treasury cannot support this, Sire. Need 1,504 gold, have 800.'",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -14998,32 +15221,49 @@
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
-      "action": "unknown",
+      "action": "recruit",
       "target": "Burgundy",
-      "confidence": 0.5,
+      "confidence": 0.9,
       "mode": "mock",
-      "interpretation": "Could not parse command"
+      "interpretation": "General order: recruit Burgundy",
+      "requested_type": "cavalry"
      }
-    },
-    {
-     "stage": "parser",
-     "rule": "validation_failed",
-     "detail": "Unknown action: unknown"
     },
     {
      "stage": "parse",
      "rule": "result",
      "detail": {
+      "success": true,
+      "action": "recruit",
+      "target": "Burgundy",
+      "type": "specific",
+      "requested_type": "cavalry",
+      "confidence": 0.9,
+      "mode": "mock"
+     }
+    },
+    {
+     "stage": "dispatch",
+     "rule": "recruit",
+     "detail": {
+      "target": "Burgundy",
+      "type": "specific",
+      "requested_type": "cavalry"
+     }
+    },
+    {
+     "stage": "executor",
+     "rule": "result",
+     "detail": {
       "success": false,
-      "mode": "mock",
-      "error": "Unknown action: unknown"
+      "message": "Murat's cavalry levy: Berthier shakes his head. 'The treasury cannot support this, Sire. Need 1,504 gold, have 800.'"
      }
     },
     {
      "stage": "reply",
      "rule": "refused",
      "detail": {
-      "message": "Berthier studies the map. \"Sire, I note the reference to Burgundy, but which marshal should act? Soult has the shortest "
+      "message": "Murat's cavalry levy: Berthier shakes his head. 'The treasury cannot support this, Sire. Need 1,504 gold, have 800.'"
      }
     }
    ]
@@ -15114,7 +15354,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Soult's infantry levy: Berthier shakes his head. 'The treasury cannot support this, Sire. Need 872 gold, have 800.'",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -15189,7 +15429,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier studies the map. \"Sire, I note the reference to Normandy, but which marshal should act? Soult has the shortest road — try 'Soult, move to Normandy'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.\"",
-   "secs": 0.06,
+   "secs": 0.1,
    "parse_trace": [
     {
      "stage": "typed",
@@ -15244,7 +15484,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Construction started: Supply Depot in Lorraine (2 turns, 300 gold)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -15456,11 +15696,11 @@
     "target": "Burgundy",
     "note": "Build stables in Burgundy; a misread is a recruit of cavalry."
    },
-   "class": "honest_refusal",
+   "class": "as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
-   "message": "There is no 'Stables in Burgundy' in the order of battle, Sire — the order was not given, and nothing was spent. If it is yours to give, give it without the name: 'please'.",
+   "message": "Cannot build in Burgundy — rural regions don't support buildings (need city or larger)",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -15512,24 +15752,26 @@
      }
     },
     {
-     "stage": "executor",
-     "rule": "unbound_addressee",
-     "detail": "Stables in Burgundy"
+     "stage": "dispatch",
+     "rule": "build",
+     "detail": {
+      "target": "Burgundy",
+      "type": "specific"
+     }
     },
     {
      "stage": "executor",
      "rule": "result",
      "detail": {
       "success": false,
-      "message": "There is no 'Stables in Burgundy' in the order of battle, Sire — the order was not given, and nothing was spent. If it i",
-      "kind": "marshal_not_found"
+      "message": "Cannot build in Burgundy — rural regions don't support buildings (need city or larger)"
      }
     },
     {
      "stage": "reply",
      "rule": "refused",
      "detail": {
-      "message": "There is no 'Stables in Burgundy' in the order of battle, Sire — the order was not given, and nothing was spent. If it i"
+      "message": "Cannot build in Burgundy — rural regions don't support buildings (need city or larger)"
      }
     }
    ]
@@ -15617,7 +15859,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Construction started: Supply Depot in Rhineland (2 turns, 300 gold)",
-   "secs": 0.05,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -15684,11 +15926,11 @@
     "target": "Lorraine",
     "note": "Build a fort in Lorraine; a misread is Soult or Napoleon fortifying."
    },
-   "class": "honest_refusal",
-   "success": false,
+   "class": "as_meant",
+   "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
-   "message": "There is no 'Fortress at Lorraine' in the order of battle, Sire — the order was not given, and nothing was spent. If it is yours to give, give it without the name: 'build it'.",
+   "message": "Construction started: Fortification in Lorraine (3 turns, 400 gold)",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -15730,24 +15972,26 @@
      }
     },
     {
-     "stage": "executor",
-     "rule": "unbound_addressee",
-     "detail": "Fortress at Lorraine"
+     "stage": "dispatch",
+     "rule": "build",
+     "detail": {
+      "target": "Lorraine",
+      "type": "specific"
+     }
     },
     {
      "stage": "executor",
      "rule": "result",
      "detail": {
-      "success": false,
-      "message": "There is no 'Fortress at Lorraine' in the order of battle, Sire — the order was not given, and nothing was spent. If it ",
-      "kind": "marshal_not_found"
+      "success": true,
+      "message": "Construction started: Fortification in Lorraine (3 turns, 400 gold)"
      }
     },
     {
      "stage": "reply",
-     "rule": "refused",
+     "rule": "done",
      "detail": {
-      "message": "There is no 'Fortress at Lorraine' in the order of battle, Sire — the order was not given, and nothing was spent. If it "
+      "message": "Construction started: Fortification in Lorraine (3 turns, 400 gold)"
      }
     }
    ]
@@ -15983,7 +16227,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "No war damage to repair in Rhineland",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -16052,7 +16296,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier studies the map. \"Sire, I note the reference to Franche-Comte, but which marshal should act? Soult has the shortest road — try 'Soult, move to Franche-Comte'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command refere",
-   "secs": 0.05,
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -16107,7 +16351,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Insufficient Diplomatic Points. This proposal costs 6 DP, but we only have 5.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -16420,11 +16664,11 @@
     "target": "Denmark",
     "note": "A diplomatic mission to Denmark; a misread is moving a marshal to Copenhagen."
    },
-   "class": "honest_refusal",
+   "class": "as_meant",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Sire, I await your instructions regarding Denmark.",
+   "message": "Sire, I shall begin efforts to improve relations with Denmark. This will cost 1 DP per turn.",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -16436,13 +16680,13 @@
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
-      "action": "diplomatic_proposal",
+      "action": "diplomatic_mission",
       "target": "Denmark",
       "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "Diplomatic command: diplomatic_proposal targeting Denmark",
+      "interpretation": "Diplomatic command: diplomatic_mission targeting Denmark",
       "diplo": {
-       "action": "diplomatic_proposal",
+       "action": "diplomatic_mission",
        "target_nation": "Denmark"
       }
      }
@@ -16452,13 +16696,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "action": "diplomatic_proposal",
+      "action": "diplomatic_mission",
       "target": "Denmark",
       "type": "diplomatic",
       "confidence": 0.95,
       "diplo": {
-       "action": "diplomatic_proposal",
+       "action": "diplomatic_mission",
        "target_nation": "Denmark",
+       "mission_type": "IMPROVE_RELATIONS",
        "tone": "propose"
       },
       "mode": "mock"
@@ -16466,7 +16711,7 @@
     },
     {
      "stage": "dispatch",
-     "rule": "diplomatic_proposal",
+     "rule": "diplomatic_mission",
      "detail": {
       "target": "Denmark",
       "type": "diplomatic"
@@ -16477,14 +16722,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Sire, I await your instructions regarding Denmark."
+      "message": "Sire, I shall begin efforts to improve relations with Denmark. This will cost 1 DP per turn."
      }
     },
     {
      "stage": "reply",
      "rule": "done",
      "detail": {
-      "message": "Sire, I await your instructions regarding Denmark."
+      "message": "Sire, I shall begin efforts to improve relations with Denmark. This will cost 1 DP per turn."
      }
     }
    ]
@@ -16503,7 +16748,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if the Prussians will sign a non-aggression pact' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'ho",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -16582,7 +16827,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Sire, regarding the Peace Treaty proposal to Russia, I have prepared terms appropriate to the current military situation.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -16822,7 +17067,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -16902,7 +17147,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Insufficient Diplomatic Points. This proposal costs 9 DP, but we only have 5.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -17062,7 +17307,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Sire, regarding the Peace Treaty proposal to Britain, I have prepared terms appropriate to the current military situation.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -17141,7 +17386,7 @@
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Sire, relations with Naples are tense. There is deep mistrust between our courts. Tread carefully.",
+   "message": "Sire, I shall begin efforts to improve relations with Naples. This will cost 1 DP per turn.",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -17153,13 +17398,13 @@
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
-      "action": "diplomatic_proposal",
+      "action": "diplomatic_mission",
       "target": "Naples",
       "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "Diplomatic command: diplomatic_proposal targeting Naples",
+      "interpretation": "Diplomatic command: diplomatic_mission targeting Naples",
       "diplo": {
-       "action": "diplomatic_proposal",
+       "action": "diplomatic_mission",
        "target_nation": "Naples"
       }
      }
@@ -17169,13 +17414,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "action": "diplomatic_proposal",
+      "action": "diplomatic_mission",
       "target": "Naples",
       "type": "diplomatic",
       "confidence": 0.95,
       "diplo": {
-       "action": "diplomatic_proposal",
+       "action": "diplomatic_mission",
        "target_nation": "Naples",
+       "mission_type": "IMPROVE_RELATIONS",
        "tone": "propose"
       },
       "mode": "mock"
@@ -17183,7 +17429,7 @@
     },
     {
      "stage": "dispatch",
-     "rule": "diplomatic_proposal",
+     "rule": "diplomatic_mission",
      "detail": {
       "target": "Naples",
       "type": "diplomatic"
@@ -17194,14 +17440,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Sire, relations with Naples are tense. There is deep mistrust between our courts. Tread carefully."
+      "message": "Sire, I shall begin efforts to improve relations with Naples. This will cost 1 DP per turn."
      }
     },
     {
      "stage": "reply",
      "rule": "done",
      "detail": {
-      "message": "Sire, relations with Naples are tense. There is deep mistrust between our courts. Tread carefully."
+      "message": "Sire, I shall begin efforts to improve relations with Naples. This will cost 1 DP per turn."
      }
     }
    ]
@@ -17215,17 +17461,27 @@
     "target": "Portugal",
     "note": "A diplomatic approach to Portugal (mission or proposal); a misread is a declaration of war."
    },
-   "class": "honest_refusal",
+   "class": "as_meant",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Sire, I await your instructions regarding Portugal.",
+   "message": "Sire, relations with Portugal are tense. There is deep mistrust between our courts. Tread carefully.",
    "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
      "rule": "line",
      "detail": "Open talks with Portugal."
+    },
+    {
+     "stage": "parser",
+     "rule": "rewrite_open_talks",
+     "span": [
+      0,
+      10
+     ],
+     "before": "Open talks with Portugal.",
+     "after": "negotiate with Portugal."
     },
     {
      "stage": "mock_chain",
@@ -17272,14 +17528,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Sire, I await your instructions regarding Portugal."
+      "message": "Sire, relations with Portugal are tense. There is deep mistrust between our courts. Tread carefully."
      }
     },
     {
      "stage": "reply",
      "rule": "done",
      "detail": {
-      "message": "Sire, I await your instructions regarding Portugal."
+      "message": "Sire, relations with Portugal are tense. There is deep mistrust between our courts. Tread carefully."
      }
     }
    ]
@@ -17297,7 +17553,7 @@
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "I must warn you — my information is incomplete. Proceed with caution. We are at war with Austria, Sire. War score stands at 0 from our perspective. Their military strength is overmatched relative to ours. Metternich is calculating — skill 9. Embattled, but allied with Russia, Britain.",
+   "message": "I must warn you — my information is incomplete. Proceed with caution. We are at war with Austria, Sire. War score stands at 0 from our perspective. Their military strength is overmatched relative to ours. Metternich is calculating — skill 9. Embattled, but allied with Britain, Russia.",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -17542,7 +17798,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Sire, regarding the Peace Treaty proposal to Britain, I have prepared terms appropriate to the current military situation.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -17622,7 +17878,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Sire, regarding the Vassalage proposal to Naples, I have prepared terms that reflect the current diplomatic climate.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -17986,7 +18242,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Switzerland's loyalty is already full (100/100) — the investment would buy nothing, so nothing is charged.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18065,7 +18321,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Cannot cede Flanders: Flanders is France's own homeland — only conquered land may be ceded.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18203,7 +18459,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Choose your war purpose against Prussia.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18359,7 +18615,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Choose your war purpose against Sweden.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18515,7 +18771,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Our alliance with Spain is a bond of 1805, not a treaty of ours, Your Excellency — there is nothing to break. 'Talleyrand, downgrade relations with Spain' loosens it.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18595,7 +18851,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Our alliance with Bavaria is a bond of 1805, not a treaty of ours, Your Excellency — there is nothing to break. 'Talleyrand, downgrade relations with Bavaria' loosens it.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18673,7 +18929,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Our alliance with Bavaria is a bond of 1805, not a treaty of ours, Your Excellency — there is nothing to break. 'Talleyrand, downgrade relations with Bavaria' loosens it.",
-   "secs": 0.05,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18753,7 +19009,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
-   "secs": 0.05,
+   "secs": 0.1,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18827,7 +19083,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "I must warn you — my information is incomplete. Proceed with caution. We are at peace with Prussia, Sire. Relations stand at -10. Their military strength is overmatched relative to ours. Hardenberg is bellicose — skill 6. Neutral — could go either way.",
-   "secs": 0.06,
+   "secs": 0.12,
    "parse_trace": [
     {
      "stage": "typed",
@@ -18995,7 +19251,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Sire, regarding the Non-Aggression Pact proposal to PapalStates, I have prepared terms that reflect the current diplomatic climate.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -19075,7 +19331,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -19150,12 +19406,12 @@
     "target": "Prussia",
     "note": "A diplomatic mission to Prussia (Berlin is the court); a misread is moving a marshal to Berlin."
    },
-   "class": "asked",
+   "class": "honest_refusal",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
-   "message": "Sire, which nation shall I approach? Our diplomatic landscape includes Austria, Bavaria, Britain, Denmark, Hanover, Hesse, Holland, Kingdom of Italy, Naples, Ottoman Empire, Papal States, Portugal, Prussia, Russia, Sardinia, Saxony, Spain, Sweden, Switzerland.",
-   "secs": 0.07,
+   "message": "Sire, I await your instructions regarding Prussia.",
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -19167,11 +19423,13 @@
      "rule": "result",
      "detail": {
       "action": "diplomatic_proposal",
+      "target": "Prussia",
       "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "Diplomatic command: diplomatic_proposal targeting unspecified",
+      "interpretation": "Diplomatic command: diplomatic_proposal targeting Prussia",
       "diplo": {
-       "action": "diplomatic_proposal"
+       "action": "diplomatic_proposal",
+       "target_nation": "Prussia"
       }
      }
     },
@@ -19181,10 +19439,12 @@
      "detail": {
       "success": true,
       "action": "diplomatic_proposal",
+      "target": "Prussia",
       "type": "diplomatic",
       "confidence": 0.95,
       "diplo": {
        "action": "diplomatic_proposal",
+       "target_nation": "Prussia",
        "tone": "propose"
       },
       "mode": "mock"
@@ -19194,6 +19454,7 @@
      "stage": "dispatch",
      "rule": "diplomatic_proposal",
      "detail": {
+      "target": "Prussia",
       "type": "diplomatic"
      }
     },
@@ -19202,14 +19463,14 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "message": "Sire, which nation shall I approach? Our diplomatic landscape includes Austria, Bavaria, Britain, Denmark, Hanover, Hess"
+      "message": "Sire, I await your instructions regarding Prussia."
      }
     },
     {
      "stage": "reply",
      "rule": "done",
      "detail": {
-      "message": "Sire, which nation shall I approach? Our diplomatic landscape includes Austria, Bavaria, Britain, Denmark, Hanover, Hess"
+      "message": "Sire, I await your instructions regarding Prussia."
      }
     }
    ]
@@ -19223,12 +19484,12 @@
     "target": "Prussia",
     "note": "Tribute or a sweetened non-aggression offer to Prussia; a misread is investing in Prussia as if a vassal."
    },
-   "class": "honest_refusal",
+   "class": "shrug",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": null,
-   "message": "Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret that order. Our marshals (Ney, Davout, Soult) await clear commands — 'Ney, attack Mack', perhaps? Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command refere",
-   "secs": 0.06,
+   "message": "Berthier peers at the dispatch with concern. \"I cannot make sense of this, Sire. A clear order might be: 'Ney, attack Mack' or 'Davout, march to Lorraine'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference. For any",
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -19263,7 +19524,7 @@
      "stage": "reply",
      "rule": "refused",
      "detail": {
-      "message": "Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret that order. Our marshals (Ney, Davout, Soult) awai"
+      "message": "Berthier peers at the dispatch with concern. \"I cannot make sense of this, Sire. A clear order might be: 'Ney, attack Ma"
      }
     }
    ]
@@ -19282,7 +19543,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Insufficient Diplomatic Points. This proposal costs 9 DP, but we only have 5.",
-   "secs": 0.06,
+   "secs": 0.11,
    "parse_trace": [
     {
      "stage": "typed",
@@ -19362,7 +19623,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -19649,11 +19910,11 @@
     "target": "Ottomans",
     "note": "Alliance proposal to the Ottomans without a verb; a misread is an unknown command."
    },
-   "class": "asked",
+   "class": "as_meant",
    "success": false,
    "parse_mode": "mock",
-   "parse_confidence": 1.0,
-   "message": "Sire, which nation should I direct this proposal to? Please specify a nation.",
+   "parse_confidence": 0.95,
+   "message": "Insufficient Diplomatic Points. This proposal costs 6 DP, but we only have 5.",
    "secs": 0.05,
    "parse_trace": [
     {
@@ -19665,12 +19926,15 @@
      "stage": "mock_chain",
      "rule": "result",
      "detail": {
-      "action": "error",
-      "confidence": 1.0,
+      "action": "diplomatic_proposal",
+      "target": "Ottoman",
+      "confidence": 0.95,
       "mode": "mock",
-      "interpretation": "Diplomatic command missing target nation",
+      "interpretation": "Diplomatic command: diplomatic_proposal targeting Ottoman",
       "diplo": {
-       "action": "diplomatic_error"
+       "action": "diplomatic_proposal",
+       "proposal_type": "alliance",
+       "target_nation": "Ottoman"
       }
      }
     },
@@ -19679,19 +19943,24 @@
      "rule": "result",
      "detail": {
       "success": true,
-      "action": "diplomatic_error",
+      "action": "diplomatic_proposal",
+      "target": "Ottoman",
       "type": "diplomatic",
-      "confidence": 1.0,
+      "confidence": 0.95,
       "diplo": {
-       "action": "diplomatic_error"
+       "action": "diplomatic_proposal",
+       "proposal_type": "alliance",
+       "target_nation": "Ottoman",
+       "tone": "propose"
       },
       "mode": "mock"
      }
     },
     {
      "stage": "dispatch",
-     "rule": "diplomatic_error",
+     "rule": "diplomatic_proposal",
      "detail": {
+      "target": "Ottoman",
       "type": "diplomatic"
      }
     },
@@ -19700,14 +19969,14 @@
      "rule": "result",
      "detail": {
       "success": false,
-      "message": "Sire, which nation should I direct this proposal to? Please specify a nation."
+      "message": "Insufficient Diplomatic Points. This proposal costs 6 DP, but we only have 5."
      }
     },
     {
      "stage": "reply",
      "rule": "refused",
      "detail": {
-      "message": "Sire, which nation should I direct this proposal to? Please specify a nation."
+      "message": "Insufficient Diplomatic Points. This proposal costs 6 DP, but we only have 5."
      }
     }
    ]
@@ -20135,7 +20404,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "The fleet stands out to sea on blockade. Austria and Russia are closed — their ports watched and their trade halved. Britain is beyond our reach: 32 sail-effective against her, where 125 is needed. And we are blockaded ourselves — Britain stands off our coast, so our own crews go on rotting at ancho",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -20267,7 +20536,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "I have noted it, Sire, but that is intelligence, not an order — nothing has gone to the Admiralty. To move the fleet, say 'blockade the enemy' or 'guard home waters'.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -20436,7 +20705,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "I do not find 'Villeneuve' in the order of battle, Sire. Did you mean Ney?",
-   "secs": 0.08,
+   "secs": 0.11,
    "parse_trace": [
     {
      "stage": "typed",
@@ -20495,7 +20764,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "I have noted it, Sire, but that is intelligence, not an order — nothing has gone to the Admiralty. To move the fleet, say 'blockade the enemy' or 'guard home waters'.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -20561,7 +20830,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "The Admiralty takes its orders from the Emperor, Sire, not from a marshal in the field — and a fleet cannot invest a city. Say 'blockade the enemy' or 'guard home waters'; to invest a place, march on it.",
-   "secs": 0.05,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -20821,7 +21090,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "Which marshal shall carry out this order, Sire?",
-   "secs": 0.08,
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -20902,7 +21171,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "The fleet stands out to sea on blockade. Austria and Russia are closed — their ports watched and their trade halved. Britain is beyond our reach: 32 sail-effective against her, where 125 is needed. And we are blockaded ourselves — Britain stands off our coast, so our own crews go on rotting at ancho",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -21178,7 +21447,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "Name the marshal who is to embark, Sire — 'land <marshal> in <province>'. A corps of 15,000 or fewer sails; THE ADMIRALTY (press T, then 7) names who can, and where.",
-   "secs": 0.06,
+   "secs": 0.07,
    "parse_trace": [
     {
      "stage": "typed",
@@ -21313,7 +21582,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Name the marshal who is to embark, Sire — 'land <marshal> in <province>'. A corps of 15,000 or fewer sails; THE ADMIRALTY (press T, then 7) names who can, and where.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -21454,7 +21723,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "The Grand Diversion is drawn up, Sire. The fleet sails to draw the enemy squadrons off station: 45 times in 100 at her readiness (70) the strait opens for 2 turns; otherwise she is caught coming home and fights at readiness 60. Whatever the outcome, she may try it again 4 turns from now. No army is ",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -21523,7 +21792,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "The Grand Diversion is drawn up, Sire. The fleet sails to draw the enemy squadrons off station: 45 times in 100 at her readiness (70) the strait opens for 2 turns; otherwise she is caught coming home and fights at readiness 60. Whatever the outcome, she may try it again 4 turns from now. No army is ",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -21730,7 +21999,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "The Grand Diversion is drawn up, Sire. The fleet sails to draw the enemy squadrons off station: 45 times in 100 at her readiness (70) the strait opens for 2 turns; otherwise she is caught coming home and fights at readiness 60. Whatever the outcome, she may try it again 4 turns from now. No army is ",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -21877,7 +22146,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Marshal Davout's expectation is already met — no rente is needed, Sire.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -22171,7 +22440,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "There is no law called 'taxes' among the laws of state, Sire. They are: the Grand Quartier Général (9,000 gold); the Train des Équipages (3,500 gold); the Artillery Reserve (3,000 gold); the Anticipated Class (15 authority); the Berlin Decree (15 authority); the Code Abroad (15 authority).",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -22250,7 +22519,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "There is no law called 'conscription law' among the laws of state, Sire. They are: the Grand Quartier Général (9,000 gold); the Train des Équipages (3,500 gold); the Artillery Reserve (3,000 gold); the Anticipated Class (15 authority); the Berlin Decree (15 authority); the Code Abroad (15 authority)",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -22388,7 +22657,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "Whom shall we raise to the marshalate, Sire? Candidates: Mortier, Grouchy, Suchet, Oudinot, Augereau, Marmont, Senarmont.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -22464,7 +22733,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "Whom shall we raise to the marshalate, Sire? Candidates: Mortier, Grouchy, Suchet, Oudinot, Augereau, Marmont, Senarmont.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -22549,7 +22818,7 @@
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.8,
-   "message": "Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!\n\nIncome: 2590g | Admiralty: -90g | Blockade: -219g | Materiel: -317g | Upkeep: -2624g (incl. 208g over-limit, 756g Grande Armée, 204g campaign pay) | Other: +1295g | Net: +635g | Treasury: 1,435g",
+   "message": "Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!\n\nIncome: 2590g | Admiralty: -90g | Blockade: -219g | Materiel: -295g | Upkeep: -2654g (incl. 212g over-limit, 774g Grande Armée, 204g campaign pay) | Other: +1295g | Net: +627g | Treasury: 1,427g",
    "secs": 0.15,
    "parse_trace": [
     {
@@ -22980,8 +23249,8 @@
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.8,
-   "message": "Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!\n\nIncome: 2590g | Admiralty: -90g | Blockade: -219g | Materiel: -253g | Upkeep: -2654g (incl. 212g over-limit, 774g Grande Armée, 204g campaign pay) | Other: +1295g | Net: +669g | Treasury: 1,469g",
-   "secs": 0.13,
+   "message": "Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!\n\nIncome: 2590g | Admiralty: -90g | Blockade: -219g | Materiel: -261g | Upkeep: -2654g (incl. 212g over-limit, 774g Grande Armée, 204g campaign pay) | Other: +1295g | Net: +661g | Treasury: 1,461g",
+   "secs": 0.14,
    "parse_trace": [
     {
      "stage": "typed",
@@ -23421,8 +23690,8 @@
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": null,
-   "message": "\"Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?\" Berthier asks carefully.",
-   "secs": 0.05,
+   "message": "Berthier frowns at the dispatch. \"I see Marshal Ney's name, Sire, but the instruction is unclear. Valid orders include: attack, move, scout, defend, fortify, recruit.\"",
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -23458,7 +23727,7 @@
      "stage": "reply",
      "rule": "refused",
      "detail": {
-      "message": "\"Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?\" Be"
+      "message": "Berthier frowns at the dispatch. \"I see Marshal Ney's name, Sire, but the instruction is unclear. Valid orders include: "
      }
     }
    ]
@@ -23736,7 +24005,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "No intelligence on Archduke Charles's position, Sire. Scout for him before Massena can give chase.",
-   "secs": 0.06,
+   "secs": 0.05,
    "parse_trace": [
     {
      "stage": "typed",
@@ -23828,7 +24097,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier adjusts his spectacles. \"Sire, I understand this concerns Marshal Ney, but I cannot determine the order. Perhaps: 'Ney, attack Mack' or 'Ney, move to Paris'?\"",
-   "secs": 0.05,
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -23955,7 +24224,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Bavaria is a nation, not a province. Name a province, Sire — theirs are Franconia, Munich, Swabia.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24037,7 +24306,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Davout is a marshal of France, Sire — Ney will not attack our own. Nothing has been relayed.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24271,7 +24540,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret that order. Our marshals (Ney, Davout, Soult) await clear commands — 'Ney, attack Mack', perhaps? Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command refere",
-   "secs": 0.05,
+   "secs": 0.1,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24402,7 +24671,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "No foe called Of the clones is in sight, Sire. The nearest in sight is Mack at Swabia — shall we engage him?",
-   "secs": 0.07,
+   "secs": 0.08,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24469,7 +24738,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "\"Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?\" Berthier asks carefully.",
-   "secs": 0.05,
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24525,7 +24794,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "General Mack commands for Austria, Sire — he does not answer to us. To move against him: 'attack Mack' or 'pursue Mack'; for word of him, ask 'where is Mack'.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24645,7 +24914,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.95,
    "message": "Davout will hold Rhineland. Holding position. Davout: \"Good. Let them come to us.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)\n\nBerthier: \"One order at a time, Sire — I have relayed the first. \"march to Frankfurt a",
-   "secs": 0.07,
+   "secs": 0.08,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24760,7 +25029,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.8,
    "message": "Charge requires a marshal. Try: 'Ney, charge Wellington'",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -24826,7 +25095,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "The Admiralty takes its orders from the Emperor, Sire, not from a marshal in the field — and a fleet cannot invest a city. Say 'blockade the enemy' or 'guard home waters'; to invest a place, march on it.",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -25272,7 +25541,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Cannot build in Swabia — not controlled by France",
-   "secs": 0.05,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -25341,7 +25610,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "Berthier studies the map. \"Sire, I note the reference to Mack, but which marshal should act? Try: 'Ney, attack Mack' or 'Ney, move to Mack'.\"",
-   "secs": 0.05,
+   "secs": 0.08,
    "parse_trace": [
     {
      "stage": "typed",
@@ -25396,7 +25665,7 @@
    "parse_mode": "mock",
    "parse_confidence": null,
    "message": "There is no Marshal 'Oudinot-Lebrun' in the order of battle, Sire. Whom did you intend?",
-   "secs": 0.07,
+   "secs": 0.06,
    "parse_trace": [
     {
      "stage": "typed",
@@ -25456,7 +25725,7 @@
    "parse_mode": "mock",
    "parse_confidence": 0.9,
    "message": "Attack whom, Sire? Name the foe — in sight: Mack at Swabia, Archduke John at Tyrol.",
-   "secs": 0.08,
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -25692,8 +25961,8 @@
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": null,
-   "message": "\"Regarding Saxony, Sire — I need a marshal and an action. For example: 'Ney, move to Saxony'.\" Berthier taps the map pointedly.",
-   "secs": 0.05,
+   "message": "Berthier studies the map. \"Sire, I note the reference to Saxony, but which marshal should act? Try: 'Ney, attack Saxony' or 'Ney, move to Saxony'.\"",
+   "secs": 0.09,
    "parse_trace": [
     {
      "stage": "typed",
@@ -25729,7 +25998,7 @@
      "stage": "reply",
      "rule": "refused",
      "detail": {
-      "message": "\"Regarding Saxony, Sire — I need a marshal and an action. For example: 'Ney, move to Saxony'.\" Berthier taps the map poi"
+      "message": "Berthier studies the map. \"Sire, I note the reference to Saxony, but which marshal should act? Try: 'Ney, attack Saxony'"
      }
     }
    ]
@@ -25738,13 +26007,18 @@
  "live_parses": 0,
  "totals": {
   "order": {
-   "as_meant": 177,
-   "asked": 29,
-   "board_refusal": 31,
-   "shrug": 1,
-   "honest_refusal": 31,
+   "as_meant": 179,
+   "asked": 31,
+   "board_refusal": 32,
+   "shrug": 2,
+   "honest_refusal": 25,
    "refused_as_meant": 31
   }
  },
- "dangerous": []
+ "dangerous": [],
+ "read_right": 273,
+ "by_hand": {},
+ "by_hand_unread": [],
+ "read_right_by_hand": 273,
+ "executed_other_than_meant": 0
 }

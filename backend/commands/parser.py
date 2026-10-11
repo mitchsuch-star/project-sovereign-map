@@ -629,7 +629,14 @@ _SOVEREIGN_ORDER_VERBS = (
 # they need an object to parse ("advances ON Munich", "relocates his corps
 # TO Nivernais"), so they are not in the bare-verb constant the SF-CMD-2 pin
 # walks for every marshal.
-_INFLECTED_ORDER_VERBS = _SOVEREIGN_ORDER_VERBS + r"|relocate|advance|proceed|cover|head|go|entrench"
+_INFLECTED_ORDER_VERBS = (_SOVEREIGN_ORDER_VERBS + r"|relocate|advance|proceed|cover|head|go|entrench"
+                          # DD0-18 (c) (S4 part 4, October 11, 2026): the fifth
+                          # set's inflected register — "Murat rides to Nivernais",
+                          # "Massena digs in at Milan", "Davout stands fast at
+                          # Rhineland", "Lannes forms square against …", and the
+                          # sixth set's "takes his men to", "gallops to", "stays
+                          # at", "falls upon", "engages".
+                          r"|ride|dig|stand|form|retire|gallop|stay|take|fall|engage|shift")
 _SOVEREIGN_MODALS = r"(?:(?:will|shall|must|am\s+going\s+to)\s+)?"
 
 # "(the) Emperor, attack Vienna" — today this hard-errors
@@ -2744,6 +2751,12 @@ class CommandParser:
                 and _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail)
                 and _head_can_carry_arrival(first)):
             return None
+        # DD0-18 (a) (S4 part 4, October 11, 2026): "break camp and march to
+        # Bohemia" / "strike camp and march" is ONE order — the march (D10's
+        # pin, attack_vocabulary's note). The camp struck is the unfortify
+        # only when nothing marches after it.
+        if re.search(r"\b(?:strike|break)s?\s+camp\s*$", first, flags=re.IGNORECASE):
+            return None
         head_parse = self.llm.fast_parse(first, game_state)
         if head_parse.action == "unknown":
             return None
@@ -2991,6 +3004,16 @@ class CommandParser:
         _rewritten = bool(_arr or _friend or _halt_tail or _guard_changed
                           or _emphasis_stripped or _dd0_fired)
         result = self._parse_text(command_text, game_state, world)
+        # DD0-19 (S4 part 4, October 11, 2026): a bare Cabinet verb at the
+        # head of a DIPLOMATIC parse ("Approach Bavaria about tightening our
+        # alliance") is the order's own head, never an addressee the gate may
+        # take for a name nobody has; 'Pledge France' is no Cabinet verb and
+        # stays no officer of ours (CX-R1). Read whether or not a rewrite ran.
+        if isinstance(result, dict):
+            _cmd = result.get("command")
+            if (isinstance(_cmd, dict) and _cmd.get("type") == "diplomatic"
+                    and _lc._bare_cabinet_verb(str(typed_text or "").lower())):
+                _cmd["_head_restated"] = True
         if _rewritten and isinstance(result, dict):
             result["raw_input"] = typed_text
             command = result.get("command")
@@ -3001,6 +3024,12 @@ class CommandParser:
                 # (`_unbound_addressee`) reads the typed line and must not
                 # take that head for a name nobody has.
                 if any(rule in self._HEAD_RESTATING_RULES for rule, _, _ in _dd0_rows):
+                    command["_head_restated"] = True
+                # DD0-19 (S4 part 4, October 11, 2026): the Reading that set
+                # aside the HEAD of the line — a leading rhetoric sentence
+                # ("More men. Recruit in Orleanais.") or a foe statement — has
+                # consumed what the gate would take for an addressee ("More").
+                if any(rule in ("peel_rhetoric", "peel_foe_statement") for rule, _, _ in _read.rows):
                     command["_head_restated"] = True
             if _halt_tail and result.get("success"):
                 note = HALT_TAIL_NOTE.format(tail=_halt_tail)

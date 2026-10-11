@@ -1,0 +1,76 @@
+{
+ "set": "unrehearsed-2026-10-10-fourth",
+ "_note": "DD-0 S4 part 4 (October 11, 2026) — the hand reading of the ONE judge's proxy rows (misread / executed_when_refusal_meant) and of the honest refusals that are the BOARD's own in shapes the judge does not know, each read against its trace (the memos' method). Applied by tools/unrehearsed_census.py --by-hand; `reply_starts` pins the reply each verdict was read against — a re-read whose reply changes makes the verdict stale and a proxy row UNREAD until a person reads it again. Verdicts: executed (something other than what was meant RAN — the dangerous class) · staged (a chooser or dialogue opened against what was meant; nothing ran) · disclosed (ran, and said what it changed) · asked · honest_refusal · wrong_desk (the wrong desk answered, nothing ran) · board_refusal (the board's own refusal, read right).",
+ "rows": [
+  {
+   "line": "Ney to Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Davout, cross into Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Ney, get out of Rhineland and into Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "move ney to frankfurt",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Where is Kutuzov? Scout for him.",
+   "arm": "both",
+   "verdict": "honest_refusal",
+   "reply_starts": "We have no word of Kutuzov's whereabouts, Sire.",
+   "note": "Meant: scout for Kutuzov. The question half answered honestly (no word of him); the order half dropped by DD0-14's rule — a scout is aimed at a province and Kutuzov is out of sight. Nothing ran; not the scout meant."
+  },
+  {
+   "line": "Recruit 5,000 infantry in Paris.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "Recruit in Lyonnais — infantry, as many as 300 gold buys.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "Recruit 50,000 cavalry in Paris.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of cavalry can reach",
+   "note": "Meant: refuse (unaffordable). Refused by the board's reach rule before the price — the judge does not know `No marshal of <arm> can reach` (withheld in part 3). Refused as meant."
+  },
+  {
+   "line": "Davout, retreat to Swabia.",
+   "arm": "both",
+   "verdict": "disclosed",
+   "reply_starts": "Davout retreats from Rhineland to Lorraine. Swabia cannot be reached,",
+   "note": "Meant: refuse (a retreat into the enemy). The retreat road picked a safe province and SAID so (the exit predicate's contract); the author would have had it refused. Ran, disclosed — not an execution other than what was said."
+  },
+  {
+   "line": "Enact the Code Napoleon.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "There is no law called 'Code Napoleon' among the laws of state, Sire.",
+   "note": "Meant: refuse (no such law). Refused by name with the laws listed — the board's own (`There is no law called`, withheld from the judge in part 3). Refused as meant."
+  }
+ ]
+}

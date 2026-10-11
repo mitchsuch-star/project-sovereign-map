@@ -2453,6 +2453,15 @@ class DiplomaticExecutor:
         if _dead:
             return {"success": False, "message": _dead}
 
+        # DD0-18 (b) (S4 part 4, October 11, 2026): "Declare war on Holland."
+        # opened the war-purpose chooser against our OWN vassal (the fifth
+        # blind set). The Cabinet refuses a war on a satellite of ours HERE,
+        # before the chooser, in words — the same gate `declare_war` carries.
+        from backend.game_logic.diplomacy import own_vassal_refusal
+        _own = own_vassal_refusal(world, player, target_nation)
+        if _own:
+            return {"success": False, "message": _own}
+
         # Already at war?
         current_state = world.get_diplomatic_state(player, target_nation)
         if current_state == "WAR":

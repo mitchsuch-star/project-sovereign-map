@@ -124,7 +124,14 @@ def totals(rows: list) -> dict:
 
 READ_RIGHT_CLASSES = ("as_meant", "asked", "board_refusal", "refused_as_meant")
 PROXY_CLASSES = ("misread", "executed_when_refusal_meant")
-HAND_VERDICTS = ("executed", "staged", "disclosed", "asked", "honest_refusal", "wrong_desk")
+# The rows a hand may read: the judge's two proxies, and an `honest_refusal`
+# the judge could not place (the border law's "Cannot enter X — controlled
+# by Hesse" is the BOARD's own refusal, read by a person as such).
+HAND_READ_CLASSES = PROXY_CLASSES + ("honest_refusal",)
+HAND_VERDICTS = ("executed", "staged", "disclosed", "asked", "honest_refusal", "wrong_desk", "board_refusal")
+# The hand verdicts that are READ RIGHT (the ruling's four: the game asked
+# before acting, or the board refused with its reason).
+HAND_READ_RIGHT = ("asked", "board_refusal")
 
 
 def read_right_of(record: dict) -> int:
@@ -154,20 +161,32 @@ def apply_by_hand(record: dict, by_hand: dict | None) -> dict:
     verdicts: dict = {}
     unread: list = []
     for r in record["rows"]:
-        if r["kind"] != "order" or r["class"] not in PROXY_CLASSES:
+        if r["kind"] != "order" or r["class"] not in HAND_READ_CLASSES:
             continue
         match = next((h for h in hand_rows if h["line"] == r["line"]), None)
         if match is None:
-            unread.append(r["line"])
+            # an honest refusal is the parser's unless a hand reads it as the board's
+            if r["class"] in PROXY_CLASSES:
+                unread.append(r["line"])
             continue
         starts = str(match.get("reply_starts") or "")
         if starts and not str(r.get("message") or "").startswith(starts):
-            unread.append(r["line"])
+            if r["class"] in PROXY_CLASSES:
+                unread.append(r["line"])
             continue
         verdicts[r["line"]] = match["verdict"]
     record["read_right"] = read_right_of(record)
     record["by_hand"] = verdicts
     record["by_hand_unread"] = unread
+    # the ruling's figure: the judge's four classes, plus every row a hand
+    # read as asked or as the board's own refusal — and a line MEANT to be
+    # refused that a hand read as refused (by the parser or the board) is
+    # refused as meant.
+    meant_refuse = {r["line"] for r in record["rows"]
+                    if r["kind"] == "order" and str((r.get("intended") or {}).get("action") or "") == "refuse"}
+    record["read_right_by_hand"] = record["read_right"] + sum(
+        1 for line, v in verdicts.items()
+        if v in HAND_READ_RIGHT or (v == "honest_refusal" and line in meant_refuse))
     record["executed_other_than_meant"] = (
         None if unread else sum(1 for v in verdicts.values() if v == "executed"))
     return record
@@ -242,10 +261,11 @@ def print_record(record: dict) -> None:
     if orders:
         t = record["totals"]["order"]
         rr = record.get("read_right", read_right_of(record))
+        rrh = record.get("read_right_by_hand", rr)
         eotm = record.get("executed_other_than_meant")
         unread = record.get("by_hand_unread") or []
         proxies = {k: int(t.get(k, 0)) for k in PROXY_CLASSES}
-        print(f"read right by hand {rr} / {orders} ({100.0 * rr / orders:.1f} %) · "
+        print(f"read right BY HAND {rrh} / {orders} ({100.0 * rrh / orders:.1f} %) · the judge's four classes {rr} · "
               f"as meant {int(t.get('as_meant', 0))} / {orders} ({100.0 * int(t.get('as_meant', 0)) / orders:.1f} %)")
         print(f"executed other than meant (by hand): "
               f"{'UNREAD' if eotm is None else eotm} · the judge's proxies {proxies}"

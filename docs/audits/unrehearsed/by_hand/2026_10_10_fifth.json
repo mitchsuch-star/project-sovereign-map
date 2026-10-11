@@ -1,62 +1,118 @@
 {
  "set": "unrehearsed-2026-10-10-fifth",
- "_note": "DD-0 S4 part 4 (October 11, 2026) — the hand reading of the ONE judge's proxy rows (misread / executed_when_refusal_meant) against each row's trace, the memo's method (docs/audits/UNREHEARSED_CENSUS_2026_10_10_FIFTH.md). Applied by tools/unrehearsed_census.py --by-hand; `reply_starts` pins the reply each verdict was read against — a re-read whose reply changes makes the verdict stale and the row UNREAD until a person reads it again. Verdicts: executed (something other than what was meant RAN — the dangerous class) · staged (a chooser or dialogue opened against what was meant; nothing ran) · disclosed (ran, and said what it changed) · asked · honest_refusal · wrong_desk.",
+ "_note": "DD-0 S4 part 4 (October 11, 2026) — the hand reading of the ONE judge's proxy rows (misread / executed_when_refusal_meant) and of the honest refusals that are the BOARD's own in shapes the judge does not know, each read against its trace (the memos' method). Applied by tools/unrehearsed_census.py --by-hand; `reply_starts` pins the reply each verdict was read against — a re-read whose reply changes makes the verdict stale and a proxy row UNREAD until a person reads it again. Verdicts: executed (something other than what was meant RAN — the dangerous class) · staged (a chooser or dialogue opened against what was meant; nothing ran) · disclosed (ran, and said what it changed) · asked · honest_refusal · wrong_desk (the wrong desk answered, nothing ran) · board_refusal (the board's own refusal, read right).",
  "rows": [
   {
-   "line": "Ney, strike camp, abandon the works.",
+   "line": "Move Ney to Frankfurt.",
    "arm": "both",
-   "verdict": "executed",
-   "reply_starts": "Your words named no foe our maps know, Sire — Ney engaged Mack",
-   "note": "Meant: unfortify. The chain read `strike` as CRT-11's battle verb before the unfortify idiom read `abandon the works`; the bare attack's guessed-target road fought Mack behind a disclosure. THE ONE REAL EXECUTION of the set — DD0-18 (a)."
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
   },
   {
-   "line": "Open negotiations with Britain, Talleyrand, see what they want.",
+   "line": "Davout and Ney both march to Frankfurt.",
    "arm": "both",
-   "verdict": "asked",
-   "reply_starts": "Sire, the war with Britain is at a standstill.",
-   "note": "Meant: open talks with Britain. The Cabinet's proposal-options card (propose peace / press the advantage / wait) — the desk asking which approach, with the war's state read first. The judge does not know the card's shape (DD0-18 (d))."
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt, Sire — it is controlled by Hesse (diplomatic s",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Marshal Ney, kindly take your corps down to Nassau.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Nassau — it is controlled by Hesse (diplomatic state: PEA",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Bernadotte — Dresden — go.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Dresden — it is controlled by Saxony (diplomatic state: P",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Recruit infantry in Paris.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "raise 5000 infantry at lyonnais",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "Bernadotte goes to Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "recruit infantry paris",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "Substitutes for Massena's corps.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier closes the ledger. 'The establishment stands at 189,000 again",
+   "note": "the establishment ceiling — the board's own refusal"
+  },
+  {
+   "line": "Repeal the Staff, it drains the treasury.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "There is no law called 'Staff, it drains the treasury' among the laws",
+   "note": "the laws of state named, the law refused by name — the board's own (withheld from the judge in part 3)"
   },
   {
    "line": "Recruit 50,000 infantry in Paris.",
    "arm": "both",
-   "verdict": "honest_refusal",
-   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach Paris",
-   "note": "Meant: refuse (unaffordable). Refused by the board's own reach rule before the price — the judge does not know `No marshal of <arm> can reach` (withheld in part 3: 49 committed classes would move)."
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "Meant: refuse (unaffordable). Refused by the board's reach rule before the price (`No marshal of <arm> can reach`, withheld from the judge). Refused as meant."
   },
   {
    "line": "Davout, attack Atlantis.",
    "arm": "both",
    "verdict": "asked",
-   "reply_starts": "No foe called Atlantis is in sight, Sire.",
-   "note": "Meant: refuse (no such province). The proper-name ask (SF-V4): nothing ran, the nearest foe in sight is offered as a question."
+   "reply_starts": "No foe called Atlantis is in sight, Sire. The nearest in sight is Mack",
+   "note": "Meant: refuse (no such province). The proper-name ask (SF-V4): nothing ran; the nearest foe in sight is offered as a question."
   },
   {
    "line": "Ney, retreat forward into Swabia.",
    "arm": "both",
    "verdict": "disclosed",
-   "reply_starts": "Ney bristles at the retreat order but obeys. Ney retreats from Rhineland to Lorraine. Swabia cannot be reached, Sire",
-   "note": "Meant: refuse (a contradiction). The retreat road picked a safe province and SAID so — the exit predicate's contract (disclosed, never silent); the author would have had it refused. Recorded, not filed (the fourth set's `Davout, retreat to Swabia.` is the same class)."
-  },
-  {
-   "line": "Declare war on Holland.",
-   "arm": "both",
-   "verdict": "staged",
-   "reply_starts": "Choose your war purpose against Holland.",
-   "note": "Meant: refuse (Holland is our own vassal). The war-purpose chooser opened against our own satellite; the declaration itself waited on the chooser. Nothing ran — DD0-18 (b): the Cabinet refuses before the chooser."
+   "reply_starts": "Ney bristles at the retreat order but obeys. Ney retreats from Rhinela",
+   "note": "Meant: refuse (a contradiction). The retreat road picked a safe province and SAID so — the exit predicate's contract; the author would have had it refused. Recorded, not filed (the fourth set's `Davout, retreat to Swabia.` is the same class)."
   },
   {
    "line": "Repeal the Levee en Masse.",
    "arm": "both",
-   "verdict": "honest_refusal",
-   "reply_starts": "There is no law called 'Levee en Masse'",
-   "note": "Meant: refuse (no such law). Refused by name with the laws listed — the judge does not know `There is no law called` (withheld in part 3)."
+   "verdict": "board_refusal",
+   "reply_starts": "There is no law called 'Levee en Masse' among the laws of state, Sire.",
+   "note": "Meant: refuse (no such law). Refused by name with the laws listed — the board's own (`There is no law called`). Refused as meant."
   },
   {
    "line": "Recruit minus ten thousand cavalry.",
    "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of cavalry can reach",
+   "note": "Meant: refuse (a negative quantity). Refused by the board's reach rule before the quantity was read; nothing ran. Refused as meant."
+  },
+  {
+   "line": "Davout, sail the corps to America.",
+   "arm": "keyed",
    "verdict": "honest_refusal",
-   "reply_starts": "Berthier checks the order of battle. 'No marshal of cavalry can reach Paris",
-   "note": "Meant: refuse (a negative quantity). Refused by the board's reach rule before the quantity was read; nothing ran."
+   "reply_starts": "Sire, forgive my confusion, but America lies beyond our reach",
+   "note": "Meant: refuse (not on the map, impossible). The live model's own prose refusal — a corps is not a fleet, the destination unknown; nothing ran. Refused as meant, in a voice the judge does not know (the keyed arm's dice: the fast parser doubted the line this run)."
   }
  ]
 }

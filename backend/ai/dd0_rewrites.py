@@ -45,7 +45,8 @@ _URGENCY_TAIL_RE = re.compile(
     r"[\s,;—–-]+(?:please|at\s+once|with\s+all\s+(?:possible\s+)?speed|immediately|right\s+away|"
     r"this\s+instant|forthwith|at\s+the\s+double|without\s+delay|if\s+you\s+please|"
     r"thank\s+you)\s*[.!]*\s*$", re.IGNORECASE)
-_PLEASE_AFTER_ADDRESS_RE = re.compile(r"^(\s*(?:[Mm]arshal\s+)?[A-Za-z][\w'’-]*,\s*)please[,\s]+", re.IGNORECASE)
+_PLEASE_AFTER_ADDRESS_RE = re.compile(r"^(\s*(?:[Mm]arshal\s+)?[A-Za-z][\w'’-]*,\s*)(?:please|kindly|pray)[,\s]+",
+                                      re.IGNORECASE)
 
 
 def strip_please_and_urgency(text: str) -> str:
@@ -175,10 +176,14 @@ def rewrite_send_marshal(text: str, friendly_names: Iterable[str]) -> str:
     alt = _name_alt(friendly_names)
     if not text or not alt:
         return text
+    # DD0-18 (c) (S4 part 4): "Shift Murat's horse to Lorraine", "Transfer
+    # Bernadotte's corps to Berlin", "Advance Davout to Gelderland", "Pull
+    # Bernadotte back out of Franconia to Frankfurt".
     m = re.match(
-        r"^\s*(?:send|pull|bring|get|dispatch|order|shift|withdraw)\s+(?:marshal\s+)?"
-        r"(?P<name>" + alt + r")(?:'s\s+corps|'s\s+men)?\s+(?:back\s+|over\s+|up\s+|down\s+)?"
-        r"(?:to|toward|towards|into|for)\s+(?P<where>[A-Za-z][\w'’ -]{2,40}?)\s*[.!]*$",
+        r"^\s*(?:send|pull|bring|get|dispatch|order|shift|withdraw|transfer|advance|move|march|take|lead|direct)\s+(?:marshal\s+)?"
+        r"(?P<name>" + alt + r")(?:['’]s\s+(?:corps|men|horse|cavalry|division|army|troops|guns|infantry|column))?"
+        r"\s+(?:back\s+|over\s+|up\s+|down\s+|across\s+)?(?:out\s+of\s+[A-Za-z][\w'’-]*\s+)?"
+        r"(?:to|toward|towards|into|for|upon)\s+(?P<where>[A-Za-z][\w'’ -]{2,40}?)\s*[.!]*$",
         text, flags=re.IGNORECASE)
     if not m or _ORDER_VERB_RE.match(m.group("where").strip()):
         # "send Murat to scout Munich" — the verb after `to` is the order
@@ -188,7 +193,9 @@ def rewrite_send_marshal(text: str, friendly_names: Iterable[str]) -> str:
 
 
 def rewrite_kill(text: str, enemy_names: Iterable[str]) -> str:
-    alt = _name_alt(enemy_names)
+    # DD0-19 (S4 part 4): every form a foe is named by — "go kill archduke
+    # john" (the surname with its title, spaced).
+    alt = _foe_alt(enemy_names)
     if not text or not alt:
         return text
     # "destroy" / "crush" stay CRT-11's battle verbs (the destroy clause);
@@ -205,6 +212,21 @@ def rewrite_reward_idiom(text: str, friendly_names: Iterable[str]) -> str:
     # verb and is NOT restated; the estate, the title and the dukedom open
     # the Reward desk. S4 (SFR-D8): "reward Murat for his charge at Swabia"
     # is the Reward desk too — the "for …" is the reason, never a charge.
+    # DD0-18 (c) (S4 part 4): "An estate for Marshal Soult, with the Emperor's
+    # thanks.", "Bernadotte, an estate, grudgingly.", "Estate for Ney.",
+    # "title davout", "Lannes receives a grant of land".
+    desk = re.match(
+        r"^\s*(?:(?:an?|the)\s+)?(?P<thing>estate|title|duchy|dukedom|reward|grant\s+of\s+land|lands?)\s+for\s+"
+        r"(?:marshal\s+)?(?P<name>" + alt + r")\b.*$"
+        r"|^\s*(?:marshal\s+)?(?P<name2>" + alt + r")\s*[,:—–-]\s*(?:an?\s+)?(?:estate|title|duchy|dukedom)\b.*$"
+        r"|^\s*(?:estate|title|duchy)\s+(?:for\s+)?(?P<name3>" + alt + r")\s*[.!]*$"
+        r"|^\s*(?:berthier,?\s+)?(?:see\s+that\s+)?(?:marshal\s+)?(?P<name4>" + alt + r")\s+(?:receives|gets|is\s+to\s+receive|is\s+to\s+have|shall\s+have)\s+"
+        r"(?:an?\s+)?(?:estate|title|duchy|grant\s+of\s+land|reward)\b.*$",
+        text, flags=re.IGNORECASE)
+    if desk:
+        typed = desk.group("name") or desk.group("name2") or desk.group("name3") or desk.group("name4")
+        name = next(n for n in friendly_names if str(n).lower() == typed.lower())
+        return f"reward {name}"
     m = re.match(
         r"^\s*(?:give\s+(?:marshal\s+)?(?P<n1>" + alt + r")\s+"
         r"(?:an?\s+)?(?:estate|title|duchy|dukedom|principality|county|reward)\b"
@@ -307,7 +329,14 @@ _END_TURN_OTHER_WORDS_RX = re.compile(
     r"that'?s\s+all\s+for\s+today|that\s+will\s+be\s+all\s+for\s+today|we\s+are\s+done\s+for\s+today|"
     r"call\s+it\s+a\s+day|the\s+day\s+is\s+done|end\s+the\s+day|finish\s+the\s+turn|conclude\s+the\s+turn|"
     r"advance\s+the\s+turn|pass\s+the\s+turn|the\s+turn\s+is\s+over|wrap\s+up\s+the\s+turn|"
-    r"let\s+the\s+turn\s+pass|move\s+(?:on\s+)?to\s+the\s+next\s+turn|on\s+to\s+the\s+next\s+turn)",
+    r"let\s+the\s+turn\s+pass|move\s+(?:on\s+)?to\s+the\s+next\s+turn|on\s+to\s+the\s+next\s+turn|"
+    # DD0-18 (c) (S4 part 4, October 11, 2026): "That is all for today,
+    # Berthier. Close the turn.", "Done. Advance the clock." — the closing
+    # word and the clock; the fillers before them ("done", "that is all",
+    # "very well") are the desk's too, never an order.
+    r"close\s+the\s+turn|advance\s+the\s+clock|turn\s+the\s+clock|done|we\s+are\s+done|that\s+is\s+all|"
+    r"that'?s\s+all|that\s+will\s+be\s+all|very\s+well|good|enough\s+for\s+today|that'?s\s+it|"
+    r"nothing\s+more|no\s+more\s+orders|the\s+turn\s+is\s+done|close\s+out\s+the\s+turn)",
     re.IGNORECASE)
 
 
@@ -358,7 +387,9 @@ def rewrite_trailing_end_turn(text: str) -> str:
 # attack_vocabulary and strategic_parser only; this module is outside it.
 
 _GARRISON_IDIOM_RE = re.compile(
-    r"\b(?:drop\s+off|leave|detach|post|station|spare)\b.{0,30}?"
+    # DD0-19 (S4 part 4): the inflected forms — "Bernadotte leaves 3000 men
+    # to hold Franconia" had become the HOLD.
+    r"\b(?:drop\s+off|drops\s+off|leaves?|detach(?:es)?|posts?|stations?|spares?)\b.{0,30}?"
     r"\b(?:battalions?|regiments?|brigades?|companies|men|troops|a\s+garrison|"
     r"some\s+of\s+(?:the|his|your)\s+(?:corps|men))\b")
 
@@ -401,8 +432,17 @@ def landing_order(command_lower: str) -> bool:
 
 def scout_idiom(command_lower: str) -> bool:
     # DD0-11 / DD0-17 (S4 part 3): "eyes only", "patrol toward Bern".
+    # DD0-18 (c) (S4 part 4): "probe toward Bern and report", "screen toward
+    # Tyrol" (a screen AIMED at a place is a reconnaissance; "screen the
+    # retreat" stays the retreat branch's guard), "reconnaissance toward",
+    # "recon dresden", "push scouts into".
     return bool(re.search(r"\beyes\s+(?:on|only)\b|\bfind\s+out\b|\breport\s+back\b|\bsend\s+riders\b"
-                          r"|\bpatrol(?:s|led|ling)?\b",
+                          r"|\bpatrol(?:s|led|ling)?\b"
+                          # (a bare "probe Swabia" stays unrouted — CX-R1's hand-list pin;
+                          # the probe AIMED somewhere is the reconnaissance)
+                          r"|\bprob(?:e|es|ed|ing)\s+(?:out\s+)?(?:toward|towards|to|into|along)\b"
+                          r"|\bscreen\s+(?:toward|towards|to|into)\b"
+                          r"|\breconnaissance\b|\brecon\b|\breconnoit(?:re|er)\b|\bpush\s+scouts\b|\bsend\s+patrols\b",
                           command_lower or ""))
 
 
@@ -411,9 +451,22 @@ def earthworks_order(command_lower: str) -> bool:
 
 
 def unfortify_idiom(command_lower: str) -> bool:
-    return bool(re.search(r"\b(?:abandon|leave|quit|give\s+up)\s+(?:the\s+|your\s+|his\s+)?"
-                          r"(?:entrenchments?|earthworks|works|fortifications?|breastworks)\b",
-                          command_lower or ""))
+    # DD0-18 (a) (S4 part 4, October 11, 2026): "strike camp" / "break camp"
+    # — the works given up in the soldier's words; `strike` alone is CRT-11's
+    # battle verb, and the chain reads this idiom BEFORE it when no foe is
+    # named (`_chain_read_action`).
+    cl = command_lower or ""
+    if re.search(r"\b(?:abandon|leave|quit|give\s+up)\s+(?:the\s+|your\s+|his\s+)?"
+                 r"(?:entrenchments?|earthworks|works|fortifications?|breastworks)\b", cl):
+        return True
+    # "strike camp and march to Bohemia" is ONE order — the march (D10's
+    # pin, attack_vocabulary's note); the camp struck with nothing after it,
+    # or with the works abandoned, is the unfortify.
+    camp = re.search(r"\b(?:strike|break|strikes|breaks)\s+camp\b(?P<rest>.*)$", cl)
+    if not camp:
+        return False
+    return not re.search(r"\b(?:march|move|go|head|advance|proceed|ride|set\s+out|to|toward|towards|for|into)\b",
+                         camp.group("rest"))
 
 
 def drill_idiom(command_lower: str) -> bool:
@@ -433,9 +486,16 @@ def invest_gold(command_lower: str, known_nations_lower) -> bool:
 
 
 def march_idiom(command_lower: str) -> bool:
-    """"relocate his corps to", "bring the corps back to", "get to Munich"."""
+    """"relocate his corps to", "bring the corps back to", "get to Munich";
+    DD0-18 (c): "get yourself to Swabia", "get the men to Lorraine", "get
+    your corps over to Nassau", "shift to Piedmont", "on to Swabia"."""
     return bool(re.search(r"\b(?:relocate|redeploy)\b|\b(?:bring|get|pull|take)\b.{0,40}\bback\s+to\b"
-                          r"|\bget\s+(?:to|into)\b", command_lower or ""))
+                          r"|\bget\s+(?:to|into)\b"
+                          r"|\bget\s+(?:yourself|yourselves|the\s+men|the\s+corps|your\s+(?:corps|men|horse|cavalry|division|guns))"
+                          r"\s+(?:up\s+|down\s+|over\s+|across\s+)?(?:to|into)\b"
+                          r"|\bshift\s+(?:up\s+|down\s+|over\s+)?(?:to|into)\b"
+                          r"|^\s*(?:(?:marshal\s+)?[a-z][\w'’-]*\s*[,:]\s*)?on\s+to\s+[a-z]",
+                          command_lower or ""))
 
 
 _PRONOUN_ORDER_TAIL_RX = re.compile(
@@ -549,6 +609,14 @@ def rewrite_pass_a_law(text: str) -> str:
                    r"(?i:the\s+)?(?P<name>[A-Z][\w'’-]*(?:\s+(?:of|the|des|de|du|la|le)\s+)?(?:\s*[A-Z][\w'’-]*)+)\s*[.!]*$", text)
     if est and not _ORDER_VERB_RE.search(est.group("name")):
         return f"enact {est.group('name').strip()}"
+    # DD0-19 (S4 part 4): "establish the artillery reserve" — the law named
+    # in lower case; two words at least, never a building or a garrison.
+    est_low = re.match(r"^\s*(?:berthier,?\s+)?(?:please\s+)?(?:establish|institute)\s+(?:the\s+)?"
+                       r"(?P<name>[a-z][\w'’-]*(?:\s+[a-z][\w'’-]*)+)\s*[.!]*$", text, flags=re.IGNORECASE)
+    if (est_low and not _ORDER_VERB_RE.search(est_low.group("name"))
+            and not re.search(_BUILDING_RX + r"|\b(?:garrison|camp|base|line|position|post|outpost|magazine|hospital)\b",
+                              est_low.group("name"), flags=re.IGNORECASE)):
+        return f"enact {est_low.group('name').strip()}"
     passive = re.match(r"^\s*(?:berthier,?\s+|sire,?\s+)?(?:the\s+)?(?P<name>.+?)\s+(?:law\s+|act\s+|reform\s+)?"
                        r"(?:is|are)\s+to\s+be\s+(?:enacted|passed|adopted|made\s+law|put\s+through)\b.*$",
                        text, flags=re.IGNORECASE)
@@ -558,6 +626,16 @@ def rewrite_pass_a_law(text: str) -> str:
                    text, flags=re.IGNORECASE)
     if let:
         return f"enact {let.group('name').strip()}"
+    # DD0-18 (c) (S4 part 4): "the staff law - enact", "Staff: enact",
+    # "put the Staff law into effect".
+    dash = re.match(r"^\s*(?:the\s+)?(?P<name>[A-Za-z][\w'’ ]{1,40}?)\s*(?:law\s*)?[-—–:]\s*(?:enact|pass|adopt)(?:\s+it)?\s*[.!]*$",
+                    text, flags=re.IGNORECASE)
+    if dash and not _ORDER_VERB_RE.match(dash.group("name").strip().split()[0]):
+        return f"enact {dash.group('name').strip()}"
+    effect = re.match(r"^\s*(?:berthier,?\s+)?(?:please\s+)?(?:put|bring)\s+(?:the\s+)?(?P<name>.+?)\s+(?:law\s+)?into\s+(?:effect|force|law)\b.*$",
+                      text, flags=re.IGNORECASE)
+    if effect:
+        return f"enact {effect.group('name').strip()}"
     if not _LAW_NOUN_RX.search(text):
         return text
     m = re.match(r"^\s*(?:please\s+)?(?:pass|adopt|decree|promulgate|introduce|bring\s+in|put\s+through)\s+"
@@ -735,17 +813,250 @@ def rewrite_build_idiom(text: str) -> str:
     place = r"(?:the\s+)?(?P<place>[A-Z][\w'’-]*(?:[\s-][A-Z][\w'’-]*)?)"
     for pat in (
         r"^\s*(?:please\s+)?(?:put|throw|set|get|have|erect|raise)\s+(?:up\s+)?(?:a|an|the|some|new)\s+" + _BUILDING_RX
-        + r"\s+(?:up\s+)?(?:built\s+|erected\s+|raised\s+)?(?:in|at)\s+" + place + r"\s*[.!]*$",
+        + r"\s+(?:up\s+)?(?:built\s+|erected\s+|raised\s+)?(?:in|at)\s+" + place
+        # DD0-19 (S4 part 4): "Put a depot at Franconia for Bernadotte."
+        + r"(?:\s+for\s+(?:marshal\s+)?[A-Z][\w'’-]*(?:['’]s\s+\w+)?)?\s*[.!]*$",
         r"^\s*I\s+(?:want|need|would\s+like)\s+(?:a|an|some|new)\s+" + _BUILDING_RX + r"\s+(?:built\s+)?(?:in|at)\s+" + place + r"\s*[.!]*$",
         r"^\s*(?:a\s+|an\s+)?" + _BUILDING_RX + r"\s+(?:in|at)\s+" + place
         + r"\s*,\s*(?:build\s+(?:it|them|one|some)|please|if\s+you\s+please|at\s+once)\s*[.!]*$",
         # the bare noun phrase ("Stables in Burgundy" — the please already cut)
         r"^\s*(?:a\s+|an\s+)?" + _BUILDING_RX + r"\s+(?:in|at)\s+" + place + r"\s*[.!]*$",
+        # DD0-18 (c) (S4 part 4): "Fort at Milan, Massena will need it." — a
+        # statement behind the comma that gives no order of its own.
+        r"^\s*(?:a\s+|an\s+)?" + _BUILDING_RX + r"\s+(?:in|at)\s+" + place + r"\s*[,;—–-]\s*(?P<tail>.+?)\s*[.!]*$",
     ):
         m = re.match(pat, text, flags=re.IGNORECASE)
         if m:
+            tail = m.groupdict().get("tail")
+            if tail and (_ORDER_VERB_RE.search(tail) or re.search(r"\b(?:no|not|never|don'?t|unless|if)\b", tail, re.I)):
+                continue
             return f"build {m.group('thing').lower()} in {m.group('place')}"
     return text
+
+
+def rewrite_hand_over(text: str) -> str:
+    """DD0-18 (c) (S4 part 4): "Hand Flanders over to Holland." / "hand over
+    Savoy to Sardinia" → "cede Flanders to Holland"."""
+    if not text:
+        return text
+    # (DD0-19: "give savoy to sardinia" — the lowercase forms too; a man's
+    # name as the thing given is the reward desk's and never reaches here)
+    m = re.match(r"^\s*(?i:hand|turn|give)\s+(?i:over\s+)?(?P<place>[A-Za-z][\w'’-]*(?:[\s-][A-Za-z][\w'’-]*)?)\s+(?i:over\s+)?"
+                 r"(?i:to)\s+(?i:the\s+)?(?P<court>[A-Za-z][\w'’ -]{2,30}?)\s*[.!]*$", text)
+    if not m or _ORDER_VERB_RE.match(m.group("place").split()[0].lower()):
+        return text
+    if re.match(r"^(?:a|an|the|him|them|it|us|me|more|less|some)\b", m.group("place"), re.IGNORECASE):
+        return text
+    return f"cede {m.group('place')} to {m.group('court')}"
+
+
+# ── DD0-18 (c)/(e) (S4 part 4, October 11, 2026): the fifth set's register.
+
+def rewrite_retire_on(text: str) -> str:
+    """"Soult, retire on Franche-Comte." — a retire WITH a destination is the
+    march (FA-80's rule: `retire` bare is the retreat verb; `retire to /
+    towards <place>` the plain-speech move list already carries, as the
+    strategic MOVE_TO). Only the `on / upon` form is restated, to the form
+    that road reads — never to a tactical `move to`."""
+    if not text:
+        return text
+    return re.sub(r"\bretire\s+(?:on|upon)\s+(?=[A-Za-z])", "retire to ", text, count=1, flags=re.IGNORECASE)
+
+
+def rewrite_pull_back(text: str, friendly_names: Iterable[str]) -> str:
+    """"Pull Ney back behind the Rhine." / "pull back Davout" — no
+    destination named: the retreat; with one, `rewrite_send_marshal` has
+    already read the march."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(r"^\s*pull\s+(?:marshal\s+)?(?P<name>" + alt + r")\s+back\b(?P<rest>.*)$"
+                 r"|^\s*pull\s+back\s+(?:marshal\s+)?(?P<name2>" + alt + r")\b(?P<rest2>.*)$",
+                 text, flags=re.IGNORECASE)
+    if not m:
+        return text
+    rest = (m.group("rest") or m.group("rest2") or "")
+    if re.search(r"\b(?:to|into|toward|towards)\b", rest, flags=re.IGNORECASE):
+        return text
+    typed = m.group("name") or m.group("name2")
+    name = next(n for n in friendly_names if str(n).lower() == typed.lower())
+    return f"{name}, retreat"
+
+
+def rewrite_break_off_rejoin(text: str, friendly_names: Iterable[str]) -> str:
+    """"Lannes, break off, rejoin Soult at Lorraine." → "Lannes, move to
+    Lorraine" (the man was read as the place); "rejoin Soult at Lorraine" →
+    the march; a bare "break off" is the retreat."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(r"^(?P<head>\s*(?:(?:marshal\s+)?(?:" + alt + r")\s*[,:]\s*)?)"
+                 # ("join Davout at Lorraine" stays the SUPPORT it is — the
+                 # metamorphic corpus's own row; only a REJOINING is the march)
+                 r"(?:break\s+off[,;]?\s*(?:and\s+)?)?(?:rejoin|fall\s+back\s+on)\s+"
+                 r"(?:marshal\s+)?(?:" + alt + r")\s+(?:at|in)\s+(?P<place>[A-Z][\w'’-]*(?:[\s-][A-Z][\w'’-]*)?)\s*[.!]*$",
+                 text, flags=re.IGNORECASE)
+    if m:
+        return f"{m.group('head')}move to {m.group('place')}"
+    m = re.match(r"^(?P<head>\s*(?:(?:marshal\s+)?(?:" + alt + r")\s*[,:]\s*)?)break\s+off\s*[.!]*$",
+                 text, flags=re.IGNORECASE)
+    if m:
+        return f"{m.group('head')}retreat"
+    return text
+
+
+def rewrite_on_to_the_enemy(text: str, friendly_names: Iterable[str]) -> str:
+    """"Ney, on to Swabia and the enemy." → "Ney, attack Swabia"."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(r"^(?P<head>\s*(?:(?:marshal\s+)?(?:" + alt + r")\s*[,:]\s*)?)on\s+to\s+"
+                 r"(?P<place>[A-Z][\w'’-]*(?:[\s-][A-Z][\w'’-]*)?)\s+and\s+(?:the\s+)?(?:enemy|foe|austrians|russians|enemy's\s+army)\s*[.!]*$",
+                 text, flags=re.IGNORECASE)
+    return f"{m.group('head')}attack {m.group('place')}" if m else text
+
+
+_NEGATED_HOLD_RX_T = (r"^\s*(?:marshal\s+)?(?P<name>{names})\s*[,:]?\s+"
+                      r"(?:dont|don'?t|do\s+not|is\s+not\s+to|must\s+not|mustn'?t|should\s+not|shouldn'?t|"
+                      r"will\s+not|won'?t|shall\s+not|isn'?t\s+to)\s*"
+                      r"(?:move|march|advance|budge|stir|go\s+anywhere|leave|shift|move\s+an\s+inch|move\s+a\s+step)?"
+                      r"(?:\s+(?:this\s+turn|yet|today|tonight|anywhere|an\s+inch|a\s+step|at\s+all|"
+                      r"from\s+(?:there|here|where\s+he\s+is|[A-Za-z][\w'’-]*)))?\s*[.!]*$")
+
+
+def rewrite_negated_hold(text: str, friendly_names: Iterable[str]) -> str:
+    """DD0-18 (e): "lannes dont move" — a bare prohibition on moving, with
+    nothing else in the line and no destination, IS the hold ("Lannes,
+    hold"). A negated order with an object ("don't move to Lorraine", "do not
+    attack Mack") is PARSE-NEG's and never reaches this shape."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(_NEGATED_HOLD_RX_T.format(names=alt), text, flags=re.IGNORECASE)
+    # ("stay put" / "stays put" are the WAIT family's own words — slice 7 —
+    # and are not read here)
+    if not m or not re.search(r"\b(?:move|march|advance|budge|stir|go|leave|shift)\b", text, flags=re.IGNORECASE):
+        return text
+    name = next(n for n in friendly_names if str(n).lower() == m.group("name").lower())
+    return f"{name}, hold"
+
+
+# ── DD0-19 (S4 part 4, October 11, 2026): the sixth set's register.
+
+_PLACE_RX = r"(?P<place>[A-Z][\w'’-]*(?:[\s-][A-Z][\w'’-]*)?)"
+
+
+def rewrite_we_are_at_war(text: str) -> str:
+    """"We are at war with Sweden from this day." → "declare war on Sweden"."""
+    m = re.match(r"^\s*(?i:we\s+are\s+(?:now\s+|henceforth\s+)?at\s+war\s+with\s+(?:the\s+)?)(?P<court>[A-Z][\w'’ -]{2,30}?)"
+                 r"(?i:\s+(?:from\s+this\s+day|as\s+of\s+today|henceforth|from\s+today))?\s*[.!]*$", text or "")
+    return f"declare war on {m.group('court').strip()}" if m else text
+
+
+def rewrite_both_to(text: str, friendly_names: Iterable[str]) -> str:
+    """"Berthier: Ney and Davout both to Frankfurt." — two men and a place
+    with no verb: the march, said with its verb so the two-marshal road
+    reads it ("Ney and Davout both march to Frankfurt")."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(r"^\s*(?i:berthier\s*[,:]\s*)?(?P<a>" + alt + r")\s+(?i:and)\s+(?P<b>" + alt + r")\s+(?i:both\s+)?"
+                 r"(?i:to)\s+" + _PLACE_RX + r"\s*[.!]*$", text)
+    if not m:
+        return text
+    a = next(n for n in friendly_names if str(n).lower() == m.group("a").lower())
+    b = next(n for n in friendly_names if str(n).lower() == m.group("b").lower())
+    return f"{a} and {b} both march to {m.group('place')}"
+
+
+def rewrite_to_place_with_name(text: str, friendly_names: Iterable[str]) -> str:
+    """"To Franconia with Ney's corps, Berthier, and no dawdling." — the
+    destination first, the man after → "Ney, move to Franconia, …"."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(r"^\s*(?i:to)\s+" + _PLACE_RX + r"\s+(?i:with)\s+(?i:marshal\s+)?(?P<name>" + alt + r")"
+                 r"(?:['’]s\s+(?:corps|men|horse|cavalry|division|army|troops))?(?P<rest>.*)$", text)
+    if not m:
+        return text
+    name = next(n for n in friendly_names if str(n).lower() == m.group("name").lower())
+    return f"{name}, move to {m.group('place')}{m.group('rest')}"
+
+
+_COURTESY_HEAD_RX = re.compile(
+    r"^\s*(?:berthier,?\s+)?(?:be\s+so\s+(?:good|kind)\s+as\s+to|would\s+you\s+(?:kindly\s+|please\s+)?|"
+    r"have\s+the\s+goodness\s+to|see\s+to\s+it\s+that|see\s+that|dictate:?|i\s+want\s+you\s+to|"
+    r"you\s+will|you\s+are\s+to)\s+(?P<rest>[a-z].+)$", re.IGNORECASE)
+
+
+def rewrite_courtesy_head(text: str) -> str:
+    """"Berthier, be so good as to direct Marshal Lannes to Frankfurt." —
+    the courtesy before the order is set aside; the order stands alone."""
+    m = _COURTESY_HEAD_RX.match(text or "")
+    if not m or _ORDER_VERB_RE.match(m.group("rest").split()[0]) is None and not re.match(
+            r"^(?:direct|dispatch|send|order|have|get|bring|take|move|march)\b", m.group("rest"), re.IGNORECASE):
+        return text
+    return m.group("rest")
+
+
+def rewrite_emperor_desires(text: str, friendly_names: Iterable[str]) -> str:
+    """"Ney, the Emperor desires you at Munich." → "Ney, move to Munich"."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(r"^\s*(?i:marshal\s+)?(?P<name>" + alt + r")\s*[,:]\s*(?i:the\s+emperor|i|we|france)\s+"
+                 r"(?i:desires?|wants?|wishes|wish|needs?|would\s+have|requires?|must\s+have)\s+(?i:you|him|your\s+corps)\s+"
+                 r"(?i:at|in)\s+" + _PLACE_RX + r"\s*[.!]*$", text)
+    if not m:
+        return text
+    name = next(n for n in friendly_names if str(n).lower() == m.group("name").lower())
+    return f"{name}, move to {m.group('place')}"
+
+
+def rewrite_halts_at(text: str, friendly_names: Iterable[str]) -> str:
+    """"Murat halts at Franche-Comte." — a halt AT a place is the hold, not
+    the stand-down of a standing order ("halt" alone is the cancel)."""
+    alt = _name_alt(friendly_names)
+    if not text or not alt:
+        return text
+    m = re.match(r"^\s*(?i:marshal\s+)?(?P<name>" + alt + r")\s*[,:]?\s+(?i:halts?|stops?|pulls?\s+up)\s+"
+                 r"(?i:at|in)\s+" + _PLACE_RX + r"\s*[.!]*$", text)
+    if not m:
+        return text
+    name = next(n for n in friendly_names if str(n).lower() == m.group("name").lower())
+    return f"{name}, hold"
+
+
+_NOT_A_LAW_RX = re.compile(r"\b(?:pension|rente|alliance|treaty|pact|peace|autonomy|order|orders|command|mission|"
+                           r"truce|armistice|bargain|tribute|guarantee|sponsorship|standing|charter|licence|license|"
+                           r"blockade|posture|march|attack)\b", re.IGNORECASE)
+
+
+def rewrite_repeal(text: str) -> str:
+    """"revoke the artillery reserve" / "abolish the Staff" → "repeal <law>"
+    (never a pension, a treaty or an order — those have their own desks)."""
+    # (`withdraw` is NOT here — "withdraw south" is the free retreat, FA slice 14's pin)
+    m = re.match(r"^\s*(?:revoke|rescind|abolish|annul|strike\s+down|do\s+away\s+with)\s+(?:the\s+)?"
+                 r"(?P<name>[A-Za-z][\w'’ -]{2,40}?)(?:\s+law)?\s*[.!]*$", text or "", flags=re.IGNORECASE)
+    if not m or _NOT_A_LAW_RX.search(m.group("name")):
+        return text
+    return f"repeal {m.group('name').strip()}"
+
+
+def rewrite_attack_idioms_p4(text: str, enemy_names: Iterable[str]) -> str:
+    """The sixth set's attack register: "go at Mack directly", "throw your
+    corps at Swabia"."""
+    if not text:
+        return text
+    alt = _foe_alt(enemy_names)
+    out = text
+    if alt:
+        out = re.sub(r"\bgo\s+(?:straight\s+|directly\s+|right\s+)?at\s+(?=(?:" + alt + r")\b)", "attack ", out,
+                     count=1, flags=re.IGNORECASE)
+    out = re.sub(r"\bthrow\s+(?:your|the|his|our|every)\s+(?:whole\s+)?(?:corps|men|army|troops|division|weight|"
+                 r"everything|regiments?|battalions?)\s+(?:at|against|on|upon|into)\s+", "attack ", out,
+                 count=1, flags=re.IGNORECASE)
+    return out
 
 
 def apply_all(text: str, friendly_names: Iterable[str], enemy_names: Iterable[str],
@@ -755,6 +1066,9 @@ def apply_all(text: str, friendly_names: Iterable[str], enemy_names: Iterable[st
     known = list(friendly_names) + list(enemy_names) + list(place_names)
     steps = (
         ("strip_please_and_urgency", lambda t: strip_please_and_urgency(t)),
+        # DD0-19: the courtesy before the order is set aside FIRST, so the
+        # sent-marshal and the other head readers see the order's own head
+        ("rewrite_courtesy_head", lambda t: rewrite_courtesy_head(t)),
         ("strip_dash_aside", lambda t: strip_dash_aside(t, known)),
         ("strip_because_tail", lambda t: strip_because_tail(t, known)),
         ("strip_affordability_premise", lambda t: strip_affordability_premise(t)),
@@ -779,6 +1093,21 @@ def apply_all(text: str, friendly_names: Iterable[str], enemy_names: Iterable[st
         ("rewrite_open_talks", lambda t: rewrite_open_talks(t)),
         ("rewrite_naval_landing", lambda t: rewrite_naval_landing(t)),
         ("rewrite_trailing_end_turn", lambda t: rewrite_trailing_end_turn(t)),
+        # S4 part 4 (DD0-18): the fifth set's register
+        ("rewrite_negated_hold", lambda t: rewrite_negated_hold(t, friendly_names)),
+        ("rewrite_retire_on", lambda t: rewrite_retire_on(t)),
+        ("rewrite_pull_back", lambda t: rewrite_pull_back(t, friendly_names)),
+        ("rewrite_break_off_rejoin", lambda t: rewrite_break_off_rejoin(t, friendly_names)),
+        ("rewrite_on_to_the_enemy", lambda t: rewrite_on_to_the_enemy(t, friendly_names)),
+        ("rewrite_hand_over", lambda t: rewrite_hand_over(t)),
+        # DD0-19: the sixth set's register
+        ("rewrite_we_are_at_war", lambda t: rewrite_we_are_at_war(t)),
+        ("rewrite_to_place_with_name", lambda t: rewrite_to_place_with_name(t, friendly_names)),
+        ("rewrite_both_to", lambda t: rewrite_both_to(t, friendly_names)),
+        ("rewrite_emperor_desires", lambda t: rewrite_emperor_desires(t, friendly_names)),
+        ("rewrite_halts_at", lambda t: rewrite_halts_at(t, friendly_names)),
+        ("rewrite_repeal", lambda t: rewrite_repeal(t)),
+        ("rewrite_attack_idioms_p4", lambda t: rewrite_attack_idioms_p4(t, enemy_names)),
     )
     rows: List[Tuple[str, str, str]] = []
     cur = text

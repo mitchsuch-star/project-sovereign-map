@@ -4239,6 +4239,17 @@ def execute_command(request: CommandRequest):
                         f"{_addressee} is to do about it. Nothing has been "
                         f"relayed; give me his order and I shall carry it at "
                         f"once.\"")
+                elif parsed["refusal"] == "fleet_is_no_corps":
+                    # DD0-19 (S4 part 4, October 11, 2026): "Send the fleet
+                    # to attack Swabia" — the fleet is the Admiralty's and
+                    # no corps; a province is attacked by a marshal.
+                    refusal_msg = (
+                        "Berthier sets the dispatch aside. \"The fleet is not a "
+                        "corps, Sire — it cannot attack a province, and I have "
+                        "relayed nothing. A fleet sails on a posture ('fleet, "
+                        "blockade', 'guard home waters'), lands men ('land in "
+                        "Ireland') or makes a diversion; a province is attacked "
+                        "by a marshal — 'Ney, attack Swabia'.\"")
                 elif parsed["refusal"] == "contradiction":
                     # DD0-7 (October 10, 2026): the sentence ordered X and
                     # forbade X — a question, never the order.

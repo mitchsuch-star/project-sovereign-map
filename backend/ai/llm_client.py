@@ -54,7 +54,7 @@ from .clause_guards import (
     reason_clause_spans,
     strip_reason_clauses,
 )
-from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import marshal_title, display_nation  # SF5-X3: the ONE style for a marshal in prose
 
 # Load environment variables
 load_dotenv()
@@ -1407,6 +1407,12 @@ def _mentions_peace_intent(command_lower: str) -> bool:
 # propose …" and "if we offer …" never reach it; the court is checked by the
 # caller against the parser's own nation roster.
 THE_CABINET_VERBS_NEED_NO_ADDRESS = True
+# DD0-19 (S4 part 4): the fleet as the subject of an order — "Send the fleet
+# to attack Swabia", "the navy is to attack …" — the Admiralty's, never a
+# corps' attack (`_chain_read_action`).
+_FLEET_SUBJECT_RE = re.compile(
+    r"^\s*(?:(?:send|order|have|let|get|tell|direct|dispatch)\s+)?(?:the\s+|our\s+)?"
+    r"(?:fleet|navy|ships|squadron|flotilla|admiralty|men-of-war|frigates)\b", re.IGNORECASE)
 _BARE_CABINET_VERB_RE = re.compile(
     r"^\s*(?:so\s+|and\s+|then\s+|now\s+|please\s+|let(?:'s| us)\s+)?"
     r"(?:propose|offer|suggest|negotiate|seek|request|ask|demand|insist\s+on|"
@@ -1416,6 +1422,10 @@ _BARE_CABINET_VERB_RE = re.compile(
     r"seek\s+(?:friendship|peace|an?\s+alliance)|sue\s+for|"
     r"form\s+an?\s+alliance|ally|befriend|approach|treat\s+with|open\s+talks|"
     r"send\s+(?:an?\s+)?(?:(?:diplomatic\s+)?mission|envoy|ambassador|minister|emissary|word)|"
+    # DD0-18 (d) (S4 part 4): "Mission to Vienna.", "mission to hesse",
+    # "Dispatch an envoy to Naples", "I want an envoy at Hanover".
+    r"(?:an?\s+)?(?:diplomatic\s+)?mission\s+to|dispatch\s+(?:an?\s+)?(?:envoy|mission|ambassador|emissary)|"
+    r"(?:an?\s+)?envoy\s+(?:to|at)|i\s+want\s+an?\s+(?:envoy|mission|ambassador)|"
     # DD0-9 (October 10, 2026): "alliance with the Ottomans", "I want an
     # alliance with …", "an alliance against Russia with …".
     r"(?:an?\s+)?(?:alliance|pact|treaty|truce|armistice)\s+(?:with|against)|"
@@ -1426,6 +1436,8 @@ _BARE_CABINET_VERB_RE = re.compile(
 _CABINET_NOUN_RE = re.compile(
     r"\b(?:relations?|relationship|ties|standing|rapport|friendship|friends|alliance|"
     r"peace|treaty|armistice|truce|terms|pact|borders|non-?\s?aggression|vassal(?:age)?|"
+    # DD0-19 (S4 part 4): "Ask Sardinia for passage through Piedmont"
+    r"passage|transit|right\s+of\s+way|"
     r"envoy|ambassador|minister|emissary|amends|tribute|subsidy|subsidies|design|court)\b",
     re.IGNORECASE)
 _UNAMBIGUOUS_CABINET_VERB_RE = re.compile(
@@ -1434,6 +1446,8 @@ _UNAMBIGUOUS_CABINET_VERB_RE = re.compile(
     r"make\s+(?:friends|peace|amends)|seek\s+(?:friendship|peace)|sue\s+for|"
     r"form\s+an?\s+alliance|ally|treat\s+with|open\s+talks|open\s+(?:our\s+|the\s+)?borders|"
     r"send\s+(?:an?\s+)?(?:diplomatic\s+)?mission|"
+    r"(?:an?\s+)?(?:diplomatic\s+)?mission\s+to|dispatch\s+(?:an?\s+)?(?:envoy|mission|ambassador|emissary)|"
+    r"(?:an?\s+)?envoy\s+(?:to|at)|i\s+want\s+an?\s+(?:envoy|mission|ambassador)|"
     r"(?:an?\s+)?(?:alliance|pact|treaty|truce|armistice)\s+(?:with|against)|"
     r"i\s+(?:want|would\s+like|wish\s+for|seek)\s+(?:an?\s+)?(?:alliance|peace|truce|treaty|pact))\b", re.IGNORECASE)
 _ASKS_FOR_TERMS_RE = re.compile(
@@ -2961,7 +2975,14 @@ class LLMClient:
             )
 
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
-        if any(name in command_lower for name in DIPLOMAT_ADDRESS_NAMES):
+        # DD0-19 (S4 part 4): the gold INVESTED in a vassal is the vassal
+        # desk's even when the minister is addressed — "Talleyrand, invest in
+        # the Kingdom of Italy, 200" had fallen to the proposal arm's bare
+        # card ("I await your instructions").
+        if (any(name in command_lower for name in DIPLOMAT_ADDRESS_NAMES)
+                and not _idioms.invest_gold(
+                    command_lower,
+                    st.known_nations_lower + [display_nation(n).lower() for n in set(known_nations.values())])):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
 
@@ -3354,6 +3375,18 @@ class LLMClient:
         # Extract action (ALWAYS set a value)
         action = "unknown"  # Default
 
+        # DD0-19 (S4 part 4, October 11, 2026): "Send the fleet to attack
+        # Swabia." — the attack family read the battle verb, no marshal was
+        # bound, and the bare attack's guessed-target road FOUGHT with
+        # Soult's corps (the sixth blind set's real execution). A line whose
+        # subject is the FLEET is the Admiralty's; a fleet does not attack a
+        # province. Refused in words, nothing relayed.
+        if (not st.marshal and _FLEET_SUBJECT_RE.match(command_lower)
+                and mentions_attack(command_lower)):
+            return self._refusal_result(
+                original_text, "fleet_is_no_corps", "the fleet is not a corps",
+                detail={"clause": original_text.strip()})
+
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         # P8-2 FIX: Use exact match whitelist — "help" in command_lower matched "help Davout"
         # V2-59: "commands" uses exact match to prevent false positives (e.g. "Ney commands his troops")
@@ -3455,6 +3488,18 @@ class LLMClient:
         # pinned in the golden corpus.
         elif stand_down:
             action = "cancel"
+        # DD0-18 (a) (S4 part 4, October 11, 2026): "Ney, strike camp, abandon
+        # the works." FOUGHT — `strike` is CRT-11's battle verb and the attack
+        # family sits above the tactical states, so the unfortify idiom never
+        # got to read the line; the bare attack then fought the nearest foe
+        # behind a disclosure (the fifth set's one real execution). THE ORDER
+        # is the fix: an unfortify idiom in a line that names NO foe outranks
+        # a bare battle verb. A line that names a foe keeps the battle
+        # ("Ney, strike Mack").
+        elif (_idioms.unfortify_idiom(command_lower)
+              and not _slots.foe_named_in(
+                  command_text, list(_game_state_dict(game_state, "enemies")))):
+            action = "unfortify"
         # Cavalry recklessness (Phase 3) — must check BEFORE "attack" to avoid "charge" being eaten.
         # ORDERING RULE: More-specific keywords must come BEFORE generic ones.
         # Use \b word boundaries to prevent substring false positives (e.g. "bypass" matching "pass").
@@ -3578,7 +3623,8 @@ class LLMClient:
             # verb of all. Guarded against "go to war", which the diplomatic
             # war-declaration route above claims when it names a nation, and
             # which must not become a march on the province "war".
-            re.search(r'\bgo(?:es)?\s+(?:to|into|towards?|for)\b', command_lower)
+            # DD0-19 (S4 part 4): "go UP to Rhineland by the northern road"
+            re.search(r'\bgo(?:es)?\s+(?:up\s+|down\s+|over\s+|on\s+|back\s+|across\s+)?(?:to|into|towards?|for)\b', command_lower)
             and "go to war" not in command_lower
         ) or (
             # SF-CMD-1 W3 (Oct 3, 2026): "Ney, go" / "Ney, go now" — a march
@@ -3595,9 +3641,12 @@ class LLMClient:
             # men to Vienna". Anchored on the corps noun + a destination
             # preposition so they cannot shadow the reinforce/SUPPORT family
             # below ("send reinforcements to Davout" must stay SUPPORT).
+            # DD0-18 (c) (S4 part 4): "kindly take your corps DOWN to
+            # Nassau", "bring the corps UP to Rhineland alongside Davout" —
+            # the adverb before the preposition.
             r'\b(?:take|bring|lead|march)\s+(?:your|the|his|our)\s+'
-            r'(?:corps|men|army|troops|division|command|column)\s+'
-            r'(?:to|toward|towards|for)\b',
+            r'(?:corps|men|army|troops|division|command|column|horse|cavalry)(?:\s+of\s+\w+)?\s+'
+            r'(?:up\s+|down\s+|over\s+|across\s+|back\s+)?(?:to|toward|towards|for)\b',
             command_lower):
             action = "move"
         # July 18, 2026 playtest sweep: the delegation ASK the game itself
@@ -3708,7 +3757,14 @@ class LLMClient:
               or re.search(r'\b(?:call|bring)\s+(?:up\s+)?\w+\s+(?:up\s+)?(?:from|off)\s+the\s+bench\b', command_lower)
               or re.search(r'\bcall\s+up\s+[a-z]+\s*[.!]?$', command_lower)
               # DD0-17 (S4 part 3): "Give Oudinot a baton".
-              or re.search(r'\bgive\s+[a-z]+\s+(?:a|the|his)\s+baton\b', command_lower)):
+              or re.search(r'\bgive\s+[a-z]+\s+(?:a|the|his)\s+baton\b', command_lower)
+              # DD0-18 (c) (S4 part 4): "Make Suchet a marshal", "oudinot to
+              # marshal", "I want Suchet brought from the bench", "a baton
+              # and a corps".
+              or re.search(r'\bmake\s+[a-z]+\s+(?:a\s+)?marshal\b', command_lower)
+              or re.search(r'^\s*[a-z]+\s+to\s+(?:the\s+)?marshal(?:ate)?\s*[.!]?$', command_lower)
+              or re.search(r'\bbrought\s+(?:up\s+)?(?:from|off)\s+the\s+bench\b', command_lower)
+              or re.search(r'\ba\s+baton\b', command_lower)):
             action = "recruit_marshal"
         # IQ-1 SW-1 "The Substitute Market". ORDERING RULE: above the troop
         # recruit branch, because "purchase a levy" and "hire replacements"
@@ -3722,12 +3778,19 @@ class LLMClient:
               and (re.search(r'\bsubstitutes?\b', command_lower)
                    or re.search(r'\bremplacants?\b', command_lower)
                    or re.search(r'\bpurchase\b.{0,14}\blev(y|ies)\b', command_lower)
-                   or re.search(r'\b(buy|hire|purchase)\b.{0,20}\breplacements?\b',
+                   # DD0-19 (S4 part 4): "Pay for replacements for Napoleon's corps."
+                   or re.search(r'\b(buy|hire|purchase|pay\s+for)\b.{0,20}\breplacements?\b',
                                 command_lower))):
             action = "purchase_levy"
         elif ("recruit" in command_lower
-              or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower))
+              or (re.search(r'\brais(?:e|ed|ing)\b', command_lower) and not _mentions_pension(command_lower))
               or "conscript" in command_lower
+              # DD0-19 (S4 part 4): "Enlist 3,000 infantry at Rhineland"; "levy
+              # troops in Burgundy" (the bare "levy <place>" stays unrouted —
+              # CX-R1's hand-list pin).
+              or re.search(r'\benlist\b', command_lower)
+              or re.search(r'\blev(?:y|ies)\s+(?:\d[\d,]*\s+)?(?:troops|men|soldiers|infantry|cavalry|horse|foot|conscripts|recruits)\b',
+                           command_lower)
               # SF-V9 (Score Finish Step 7 slice 5b): "get me some cavalry in
               # franche-comte" — the levy asked for in plain words.
               or (A_GET_ME_TROOPS_IS_A_LEVY and _GET_ME_TROOPS_RE.search(command_lower))):
@@ -3863,7 +3926,11 @@ class LLMClient:
             # ("invest in the Kingdom of Italy") got Berthier's shrug while the
             # article-less form executed; `cede ... to the ...` already parsed.
             + [f"invest in the {n}" for n in known_nations_lower]
-        )) or _idioms.invest_gold(command_lower, known_nations_lower):
+        )) or _idioms.invest_gold(
+            command_lower,
+            # DD0-19 (S4 part 4): the court by its spoken name too — "invest
+            # in the Kingdom of Italy, 200" (the key is KingdomOfItaly).
+            known_nations_lower + [display_nation(n).lower() for n in set(st.known_nations.values())]):
             # DD0-9 (October 10, 2026): "invest 100 gold in switzerland",
             # "put some gold into the Kingdom of Italy".
             # S4 part 3: the `or` used to sit INSIDE the `any(...)` call, so
@@ -3994,6 +4061,14 @@ class LLMClient:
                 command_lower)
             if not _rm:
                 _rm = re.search(r'\bgive\s+([a-z][a-z\'-]+)\s+(?:a|the|his)\s+baton\b', command_lower)
+            # DD0-18 (c) (S4 part 4): "Make Suchet a marshal", "oudinot to
+            # marshal", "I want Suchet brought from the bench".
+            if not _rm:
+                _rm = re.search(r'\bmake\s+([a-z][a-z\'-]+)\s+(?:a\s+)?marshal\b', command_lower)
+            if not _rm:
+                _rm = re.search(r'^\s*([a-z][a-z\'-]+)\s+to\s+(?:the\s+)?marshal(?:ate)?\s*[.!]?$', command_lower)
+            if not _rm:
+                _rm = re.search(r'\b([a-z][a-z\'-]+)\s+brought\s+(?:up\s+)?(?:from|off)\s+the\s+bench\b', command_lower)
             if not _rm:
                 _rm = re.search(r'\bmarshal\s+([a-z][a-z\'-]+)', command_lower)
             # DD-0 S4 (SFR-H6): a placeholder is the bench, never a candidate
@@ -4577,6 +4652,20 @@ class LLMClient:
         target_nation = extract_nation_from_command(command_text)
         proposal_type = extract_proposal_type(command_text)
         mission_type = extract_mission_type(command_text)
+        # DD0-18 (d) (S4 part 4, October 11, 2026): THE CABINET'S BARE DESK —
+        # "Send a mission to Saxony", "Talleyrand, send a mission to Prussia",
+        # "Mission to Vienna" fell to the proposal arm's ultimate fallback
+        # ("I await your instructions regarding Saxony", a card with only
+        # Dismiss). A mission named with no purpose is the envoy sent to
+        # warm the court: the IMPROVE_RELATIONS mission.
+        if (mission_type is None and target_nation and proposal_type is None
+                and not question and not command_text.strip().endswith("?")
+                and re.search(r"\b(?:mission|envoy|emissary|embassy|legation|ambassador|diplomat)\b", command_lower)
+                # never a declaration ("War with Portugal. Inform their
+                # ambassador." is DD0-6's declaration), a recall, a break
+                and not re.search(r"\b(?:recall|cancel|halt|stop|abort|war|hostilities|treaty|alliance|peace|"
+                                  r"terms|ultimatum|demand|break|downgrade)\b", command_lower)):
+            mission_type = "IMPROVE_RELATIONS"
         is_question = command_text.strip().endswith("?") or any(
             kw in command_lower for kw in ["what about", "who", "how is", "status of"])
         shared_question = bool(

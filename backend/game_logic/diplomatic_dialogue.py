@@ -82,6 +82,8 @@ PROPOSAL_TYPE_KEYWORDS = {
     "armistice": ["armistice", "truce", "temporary peace", "temporary ceasefire",
                   "pause hostilities", "halt fighting", "brief truce"],
     "open_borders": ["open borders", "free passage", "passage rights", "border access",
+                     # DD0-19 (S4 part 4): "Ask Sardinia for passage through Piedmont"
+                     "passage through", "for passage", "passage of our", "right of transit",
                      "right of passage", "cross borders", "border agreement",
                      "transit rights", "march through"],
     "non_aggression": ["non-aggression", "non aggression", "nonaggression", "pact",
@@ -739,6 +741,34 @@ def resolve_nation_name(text: str) -> Optional[str]:
     return _scan_rosters_for_nation(text_lower, exclude_france=False)
 
 
+# DD0-18 (d) (S4 part 4, October 11, 2026): a court named by its CAPITAL or
+# its seat — "Mission to Vienna", "Send a mission to Berlin", "Mission to the
+# Porte". Read only after every alias and roster name has missed, and only
+# inside the Cabinet's own parse (a marshal's march to Vienna never comes
+# here). The capitals are the scenario's own (`EUROPE_NATION_CAPITALS`).
+_COURT_SEATS = {
+    "the porte": "Ottoman", "the sublime porte": "Ottoman", "constantinople": "Ottoman",
+    "the ottomans": "Ottoman", "ottomans": "Ottoman", "the turks": "Ottoman",
+    "st petersburg": "Russia", "st. petersburg": "Russia", "petersburg": "Russia", "the tsar": "Russia",
+    "the hague": "Holland", "the dutch": "Holland",
+    "the english": "Britain", "whitehall": "Britain", "the court of st james": "Britain",
+    "the hapsburgs": "Austria", "the habsburgs": "Austria", "the kaiser": "Austria",
+}
+
+
+def _court_named_by_seat(text_lower: str) -> Optional[str]:
+    for seat, nation in _COURT_SEATS.items():
+        if re.search(r"\b" + re.escape(seat) + r"\b", text_lower):
+            return nation
+    from backend.nation_config import EUROPE_NATION_CAPITALS
+    for nation, capital in EUROPE_NATION_CAPITALS.items():
+        if nation == "France":
+            continue
+        if re.search(r"\b" + re.escape(str(capital).lower()) + r"\b", text_lower):
+            return nation
+    return None
+
+
 def extract_nation_from_command(raw_text: str) -> Optional[str]:
     """Extract target nation from a diplomatic command string."""
     text_lower = raw_text.lower()
@@ -749,7 +779,11 @@ def extract_nation_from_command(raw_text: str) -> Optional[str]:
             return canonical
 
     # E-1: full-roster fallback — any shipped nation's display name or key.
-    return _scan_rosters_for_nation(text_lower, exclude_france=True)
+    found = _scan_rosters_for_nation(text_lower, exclude_france=True)
+    if found:
+        return found
+    # DD0-18 (d): the court by its seat ("Mission to Vienna").
+    return _court_named_by_seat(text_lower)
 
 
 def extract_proposal_type(raw_text: str) -> Optional[str]:

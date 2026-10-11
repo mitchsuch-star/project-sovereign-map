@@ -1,0 +1,125 @@
+{
+ "set": "unrehearsed-2026-10-11-sixth",
+ "_note": "DD-0 S4 part 4 (October 11, 2026) — the hand reading of the ONE judge's proxy rows (misread / executed_when_refusal_meant) and of the honest refusals that are the BOARD's own in shapes the judge does not know, each read against its trace (the memos' method). Applied by tools/unrehearsed_census.py --by-hand; `reply_starts` pins the reply each verdict was read against — a re-read whose reply changes makes the verdict stale and a proxy row UNREAD until a person reads it again. Verdicts: executed (something other than what was meant RAN — the dangerous class) · staged (a chooser or dialogue opened against what was meant; nothing ran) · disclosed (ran, and said what it changed) · asked · honest_refusal · wrong_desk (the wrong desk answered, nothing ran) · board_refusal (the board's own refusal, read right).",
+ "rows": [
+  {
+   "line": "ney to frankfurt",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Berthier, have Marshal Davout take his corps to Nassau.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Nassau — it is controlled by Hesse (diplomatic state: PEA",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Bernadotte — Dresden. Go.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Dresden — it is controlled by Saxony (diplomatic state: P",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Bernadotte takes his men to Frankfurt, the Hesse road.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Davout will relocate his corps to Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Send Ney to Nassau.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Nassau — it is controlled by Hesse (diplomatic state: PEA",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Recruit 9 million infantry in Paris.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "Meant: refuse (nonsense quantity). The board's reach rule refused it before the number was read. Refused as meant."
+  },
+  {
+   "line": "Berthier: Ney and Davout both to Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt, Sire — it is controlled by Hesse (diplomatic s",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Berthier, be so good as to direct Marshal Lannes to Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Recruit infantry in Paris.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "Conscription in Brittany, infantry.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "Recruit infantry in Languedoc for the southern reserve.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Berthier checks the order of battle. 'No marshal of infantry can reach",
+   "note": "the levy's reach rule — the board's own refusal (withheld from the judge in part 3: 49 committed classes)"
+  },
+  {
+   "line": "Pull Bernadotte back out of Franconia to Frankfurt.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "Cannot enter Frankfurt — it is controlled by Hesse (diplomatic state:",
+   "note": "the border law — a neutral's province (the board's own refusal; the judge knows no 'Cannot enter')"
+  },
+  {
+   "line": "Enact the Code of Hammurabi.",
+   "arm": "both",
+   "verdict": "board_refusal",
+   "reply_starts": "There is no law called 'Code of Hammurabi' among the laws of state, Si",
+   "note": "Meant: refuse (no such law). Refused by name with the laws listed — the board's own. Refused as meant."
+  },
+  {
+   "line": "Reward Mack with an estate.",
+   "arm": "both",
+   "verdict": "honest_refusal",
+   "reply_starts": "Sire, I beg your pardon, but I am uncertain how to proceed. I recognis",
+   "note": "Meant: refuse (an enemy commander). The live model's own refusal ('I am uncertain how to proceed') — nothing ran; refused as meant in a voice the judge does not know."
+  },
+  {
+   "line": "Soult, negotiate peace with Austria.",
+   "arm": "keyed",
+   "verdict": "honest_refusal",
+   "reply_starts": "Sire, I fear there is some confusion in your instruction",
+   "note": "Meant: refuse (the wrong desk — a marshal does not negotiate). The live model's own refusal naming the Cabinet; nothing ran. Refused as meant, in a voice the judge does not know (the keyed arm's dice)."
+  },
+  {
+   "line": "Lannes to Alsace.",
+   "arm": "keyed",
+   "verdict": "honest_refusal",
+   "reply_starts": "Your Majesty, I fear the order lacks its object",
+   "note": "Meant: refuse (no such province on this map). The live model's own refusal asking for the object; nothing ran. Refused as meant (the keyed arm's dice)."
+  }
+ ]
+}

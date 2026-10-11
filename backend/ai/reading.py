@@ -86,7 +86,7 @@ _ADVERBIAL_OPEN_RX = re.compile(
 # S4 part 3 (DD0-16): an EMPHATIC tail — "no excuses", "no delay", "no
 # arguments" — carries a "no" and is no prohibition; it is an aside.
 _EMPHATIC_TAIL_RX = re.compile(
-    r"^(?:no\s+(?:excuses?|delays?|arguments?|questions?|buts|dawdling|dallying|loitering|"
+    r"^(?:and\s+)?(?:no\s+(?:excuses?|delays?|arguments?|questions?|buts|dawdling|dallying|loitering|"
     r"hesitation|nonsense|objections?|complaints?|exceptions?)|without\s+fail|and\s+no\s+mistake|"
     r"and\s+be\s+quick\s+about\s+it|do\s+you\s+hear|you\s+hear|understood|is\s+that\s+clear|"
     r"that\s+is\s+an\s+order|that'?s\s+an\s+order)\s*[.!]*$",
@@ -100,18 +100,63 @@ _STATE_NOUN_RX = re.compile(r"\b(?:peace|alliance|treaty|war|gold|terms|tribute|
 _CLAUSE_SHAPE_RX = re.compile(
     r"^(?:the|our|my|his|their|your|they|we|it|he|she|you|men|lads|everyone|everybody|"
     r"morale|supplies|time|there)\b.*?\b(?:is|are|was|were|'re|'s|’re|’s|have|has|had|"
-    r"will|can|could|look|looks|seem|seems|be|been|need|needs|want|wants|"
+    r"will|can|could|may|might|must|should|would|shall|look|looks|seem|seems|be|been|need|needs|want|wants|"
     r"rested|ready|fresh|green|tired|low|high|short)\b", re.IGNORECASE)
+# DD0-19 (S4 part 4): a passive about US in an aside — "we may be attacked
+# before the others arrive", "we could be cut off" — is a statement; the
+# participle is not our order.
+_PASSIVE_ABOUT_US_RX = re.compile(
+    r"\b(?:we|they|the\s+men|the\s+corps|the\s+army|he|our\s+\w+)\s+(?:may|might|could|will|would|shall|can|must)?\s*"
+    r"(?:be|get)\s+(?:attacked|assaulted|charged|bombarded|cut\s+off|flanked|surrounded|caught|struck|engaged|"
+    r"pursued|driven|beaten|outflanked|overrun|hit)\b", re.IGNORECASE)
 _PRECAUTION_RX = re.compile(r"[\s,;]+(?:just\s+)?in\s+case\b.*$", re.IGNORECASE | re.DOTALL)
+# DD0-18 (c) (S4 part 4): "…, and keep an eye out for Charles on the way" —
+# a watchfulness clause behind the order is a precaution too (the order goes
+# out; the eye is kept without a dispatch). Only behind a HEAD that holds an
+# order or a destination — "Murat, keep an eye on Berlin" is the scout.
+_WATCH_PRECAUTION_RX = re.compile(
+    r"[\s,;.]+(?:and\s+|but\s+)?(?:keep\s+an\s+eye\s+out\s+for|keep\s+an\s+eye\s+on|keep\s+a\s+watch\s+for|"
+    r"watch\s+(?:out\s+)?for|look\s+out\s+for|beware\s+(?:of\s+)?|be\s+wary\s+of|mind|"
+    # DD0-19: "Lannes to Bern. Watch the passes." — the ground to be watched
+    r"watch\s+(?:the\s+)?(?:passes|pass|roads?|flanks?|river|frontier|border|approaches|coast|"
+    r"rear|crossings?|bridges?|fords?))\b.*$",
+    re.IGNORECASE | re.DOTALL)
 _BECAUSE_RX = re.compile(r"[\s,;]+(?:because|since|as|for)\s+(?P<why>(?:the|our|my|his|their|they|we|it)\b.+?)\s*[.!]*$",
                          re.IGNORECASE)
+# DD0-18 (c) (S4 part 4, October 11, 2026): the PURPOSE tail — "so he can
+# screen the Emperor", "so that the road is covered", ", I want the Swiss road
+# covered", "; the Dutch coast wants watching" — a reason in the future
+# tense. The verb inside it is the purpose's, never a second order, so the
+# order-verb test is not applied; a known name inside it still keeps it.
+_PURPOSE_TAIL_RX = re.compile(
+    r"[\s,;]+(?P<why>(?:so\s+(?:that\s+)?(?:he|she|they|we|it|you|the|our|his|their|my)\b.+?"
+    r"|(?:i|we)\s+(?:want|need|would\s+like|must\s+have|shall\s+want)\s+(?:the|our|a|an|his|their|that|this|some|more)\b.+?"
+    r"|(?:the|our|his|their)\s+[\w'’ -]{2,30}?\s+(?:wants?|needs?|bears?)\s+(?:watching|covering|guarding|holding|securing|screening)"
+    r"))\s*[.!]*$",
+    re.IGNORECASE)
+# The participle purpose after a destination: "in Brabant covering the Dutch
+# coast", "at Bern watching the passes", "to Rhineland screening Davout".
+_PARTICIPLE_TAIL_RX = re.compile(
+    r"\s+(?P<tail>(?:covering|screening|watching|guarding|protecting|holding|securing|blocking|"
+    r"masking|shielding|observing|keeping\s+an\s+eye\s+on|keeping\s+watch\s+(?:on|over))\s+"
+    r"(?:the|our|his|their|an?|that|those|every)\b.+?)\s*[.!]*$",
+    re.IGNORECASE)
+# A statement about a FOE before the order, set off by a dash or a period:
+# "Massena, John sits at Tyrol — go and get him.", "Mack must be destroyed.
+# Davout, see to it." — the foe is the pronoun's hint.
+_FOE_STATEMENT_VERB_RX = re.compile(
+    r"\b(?:sits|is|stands|lies|waits|holds|camps|has|was|will|remains|moves|marches|"
+    r"must\s+be|is\s+to\s+be|cannot|can't|shall\s+not|won't|threatens|masses|gathers)\b",
+    re.IGNORECASE)
 _SUPPORT_SUFFIX_RX_T = (r"[\s,]+with\s+(?:" + HONORIFIC_RX + r")?(?P<second>{names})\s+"
                         r"(?:in\s+support|supporting|in\s+reserve|backing\s+(?:him|them)\s+up|"
                         r"to\s+back\s+him\s+up|in\s+support\s+of\s+him|behind\s+him)\s*[.!]*$")
 _TRAILING_VOCATIVE_RX_T = (r",\s*(?:please\s+)?(?:" + HONORIFIC_RX + r")?(?P<name>{names})\s*[.!]*$")
 _LEADING_ADDRESS_RX_T = (r"^\s*(?:" + HONORIFIC_RX + r")?(?P<name>{names})\b\s*"
                          r"(?:(?P<sep>[,:;])\s*|(?P<modal>" + _MODAL_RX + r")|(?P<space>\s+))")
-_AT_HIM_RX = re.compile(r"^\s*(?:go\s+)?at\s+(?:him|them|'em|’em|the\s+enemy|the\s+foe|it)\s*[.!]*$",
+_AT_HIM_RX = re.compile(r"^\s*(?:go\s+(?:and\s+)?)?(?:at|get|take|finish|see\s+to|deal\s+with|destroy|crush|smash|"
+                        r"beat|fight|engage|attack|hit|strike|bring\s+(?:him|them)\s+to\s+battle)"
+                        r"(?:\s+(?:him|them|'em|’em|the\s+enemy|the\s+foe|it))?\s*[.!]*$",
                         re.IGNORECASE)
 _SENTENCE_SPLIT_RX = re.compile(r"(?<=[.!])\s+(?=[A-Za-z])")
 # S4 part 3: the separators an aside may follow — a comma or a spaced dash.
@@ -229,10 +274,23 @@ def _leading_address_match(text: str, friends: Iterable[str]):
     return re.match(_LEADING_ADDRESS_RX_T.format(names=alt), text, flags=re.IGNORECASE)
 
 
+# DD0-19 (S4 part 4): the generic words of a multi-word name — "New Russia",
+# "East Prussia", "United Netherlands", "Armed Neutrality" — are not the name;
+# "The new conscripts are green" was kept for the "new" of New Russia and
+# RECRUITED (the fifth set's sixth-author reading).
+_GENERIC_NAME_TOKENS = frozenset("""
+new old east west north south upper lower little great united free armed the of de la le du des
+saint st san santa holy grand high low royal republic kingdom empire duchy county states
+""".split())
+
+
 def _known_tokens(names: Iterable[str]) -> set:
     toks = set()
     for n in names or []:
-        for t in re.findall(r"[a-z][a-z'’-]+", str(n).lower()):
+        parts = re.findall(r"[a-z][a-z'’-]+", str(n).lower())
+        for t in parts:
+            if len(parts) > 1 and t in _GENERIC_NAME_TOKENS:
+                continue
             toks.add(t)
     return toks
 
@@ -301,7 +359,11 @@ def peel_rhetoric(r: Reading, friends: Iterable[str], foes: Iterable[str]) -> No
     first_toks = set(re.findall(r"[a-z][a-z'’-]+", first.lower()))
     if first_toks & friend_toks or ORDER_VERB_RX.search(first):
         return
-    if not _leading_address_match(rest, friends):
+    # DD0-19 (S4 part 4): "More men. Recruit in Orleanais." — a SHORT
+    # leading exclamation before an un-addressed order (the order verb in
+    # the rest) is rhetoric too; a longer sentence still needs the address.
+    short = len(first_toks) <= 3 and not first_toks & _known_tokens(foes)
+    if not _leading_address_match(rest, friends) and not (short and ORDER_VERB_RX.search(rest)):
         return
     before = r.text()
     start = r.typed.lower().find(first.lower())
@@ -371,7 +433,14 @@ def peel_precaution(r: Reading) -> None:
     text = r.residue()
     m = _PRECAUTION_RX.search(text)
     if not m or not text[:m.start()].strip():
-        return
+        m = _WATCH_PRECAUTION_RX.search(text)
+        if not m:
+            return
+        head = text[:m.start()]
+        head_body = re.sub(r"^\s*(?:" + HONORIFIC_RX + r")?[A-Za-z][\w'’-]*\s*[,:]\s*", "", head)
+        if not head_body.strip() or not (ORDER_VERB_RX.search(head_body)
+                                         or re.search(r"\b(?:to|into|toward|towards)\s+\w", head_body)):
+            return
     before = r.text()
     if _peel_tail(r, m.group(0)):
         r.notes.append("in case")
@@ -390,6 +459,89 @@ def peel_reason_tail(r: Reading, known_names: Iterable[str]) -> None:
     before = r.text()
     if _peel_tail(r, m.group(0)):
         r._record("peel_reason_tail", before)
+
+
+def peel_purpose_tail(r: Reading, known_names: Iterable[str]) -> None:
+    """DD0-18 (c): "Shift Murat's horse to Lorraine so he can screen the
+    Emperor." / "Get Murat's horse down to Bern, I want the Swiss road
+    covered." — the purpose is set aside; a known name inside it keeps it
+    (the purpose then names a man or a place the order may be about)."""
+    text = r.residue()
+    m = _PURPOSE_TAIL_RX.search(text)
+    if not m or not text[:m.start()].strip():
+        return
+    why = m.group("why")
+    if set(re.findall(r"[a-z][a-z'’-]+", why.lower())) & _known_tokens(known_names):
+        return
+    before = r.text()
+    if _peel_tail(r, m.group(0)):
+        r._record("peel_purpose_tail", before)
+
+
+def peel_participle_tail(r: Reading, known_names: Iterable[str], places: Iterable[str]) -> None:
+    """DD0-18 (c): "Davout, I want you in Brabant covering the Dutch coast."
+    — a present participle after the destination is the purpose. Only when
+    the head names a place of the map and the tail names no known name."""
+    text = r.residue()
+    m = _PARTICIPLE_TAIL_RX.search(text)
+    if not m:
+        return
+    head = text[:m.start()]
+    if not head.strip() or not (set(re.findall(r"[a-z][a-z'’-]+", head.lower())) & _known_tokens(places)):
+        return
+    tail = m.group("tail")
+    if set(re.findall(r"[a-z][a-z'’-]+", tail.lower())) & _known_tokens(known_names):
+        return
+    before = r.text()
+    if _peel_tail(r, m.group(0)):
+        r._record("peel_participle_tail", before)
+
+
+def peel_foe_statement(r: Reading, friends: Iterable[str], foes: Iterable[str]) -> None:
+    """DD0-18 (c): "Massena, John sits at Tyrol — go and get him." / "Mack
+    must be destroyed. Davout, see to it." — a statement about a foe, set
+    off by a dash or a period, before (or after) the address and the order.
+    The statement is set aside and the foe becomes the pronoun's hint, so
+    `rewrite_at_him` reads "go and get him" / "see to it" as the attack."""
+    text = r.residue()
+    if "?" in text or r.hint_foe:
+        return
+    parts = re.split(r"(?<=[.!])\s+(?=[A-Za-z])|\s+[—–]+\s+|\s+-\s+", text)
+    if len(parts) != 2:
+        return
+    for stmt, order in ((parts[0], parts[1]), (parts[1], parts[0])):
+        # the statement may carry the address: "Massena, John sits at Tyrol"
+        m = _leading_address_match(stmt, friends)
+        body = stmt[m.end():] if (m and m.group("sep")) else stmt
+        foe = foe_named_in(body, foes)
+        if not foe or not _FOE_STATEMENT_VERB_RX.search(body):
+            continue
+        if set(re.findall(r"[a-z][a-z'’-]+", body.lower())) & _known_tokens(friends):
+            continue
+        # the statement's own verbs ("stands", "holds", "must be destroyed")
+        # are not orders here
+        stripped = _FOE_STATEMENT_VERB_RX.sub(" ", body)
+        stripped = re.sub(r"\b(?:destroyed|crushed|smashed|beaten|broken|driven|taken|attacked|engaged)\b", " ", stripped)
+        if ORDER_VERB_RX.search(stripped):
+            continue
+        # the other part must hold an order, or a pronoun order ("see to it")
+        from backend.ai.dd0_rewrites import _PRONOUN_ORDER_TAIL_RX
+        om = _leading_address_match(order, friends)
+        order_body = order[om.end():] if (om and om.group("sep")) else order
+        if not (ORDER_VERB_RX.search(order_body) or _PRONOUN_ORDER_TAIL_RX.match(order_body.strip())
+                or _AT_HIM_RX.match(order_body)):
+            continue
+        before = r.text()
+        start = r.typed.lower().find(body.strip().lower())
+        if start < 0:
+            continue
+        end = start + len(body.strip())
+        while end < len(r.typed) and r.typed[end] in " .!—–-":
+            end += 1
+        r.spans.append(Span("statement", start, end, r.typed[start:end]))
+        r.hint_foe = foe
+        r._record("peel_foe_statement", before)
+        return
 
 
 def peel_trailing_vocative(r: Reading, friends: Iterable[str]) -> None:
@@ -486,7 +638,10 @@ def peel_comma_aside(r: Reading, known_names: Iterable[str], friends: Iterable[s
     if (tail_toks & _known_tokens(known_names) or re.search(r"\d", tail)
             or _STATE_NOUN_RX.search(tail)):
         return
-    if not emphatic and (ORDER_VERB_RX.search(tail) or _NEGATION_RX.search(tail)):
+    # DD0-19: "we may be attacked before the others arrive" — the passive
+    # about us is a statement, its participle no order of ours
+    tail_for_verbs = _PASSIVE_ABOUT_US_RX.sub(" ", tail)
+    if not emphatic and (ORDER_VERB_RX.search(tail_for_verbs) or _NEGATION_RX.search(tail)):
         return
     words = tail.split()
     clause = bool(_CLAUSE_SHAPE_RX.match(tail))
@@ -506,7 +661,13 @@ def rewrite_at_him(r: Reading, foes: Iterable[str]) -> None:
     if not r.address:
         return
     core = r.core()
-    if not _AT_HIM_RX.match(core):
+    from backend.ai.dd0_rewrites import _PRONOUN_ORDER_TAIL_RX
+    m = _AT_HIM_RX.match(core)
+    # "go and get him" needs its pronoun; a bare battle verb ("attack") does
+    # not reach here. "see to it" / "do it" reads only behind a foe statement.
+    if m and not re.search(r"\b(?:him|them|'em|’em|enemy|foe|it)\b", core, flags=re.IGNORECASE):
+        return
+    if not m and not (r.hint_foe and _PRONOUN_ORDER_TAIL_RX.match(core.strip())):
         return
     before = r.text()
     foe = r.hint_foe
@@ -531,6 +692,10 @@ def read(typed: str, friends: Iterable[str], foes: Iterable[str],
     r.nations_roster = [str(n) for n in nations if n]
     known = list(friends) + list(foes) + list(r.places_roster) + list(r.nations_roster)
     peel_rhetoric(r, friends, foes)
+    # S4 part 4 (DD0-18): a statement about a foe before the order — "John
+    # sits at Tyrol — go and get him", "Mack must be destroyed. Davout, see
+    # to it." — read before the sentence peels so the foe is the hint.
+    peel_foe_statement(r, friends, foes)
     # S4 part 3: "Massena, you have forty-two thousand men. Use them on
     # John." — a statement after the address, then the order; and the
     # trailing statement / the second telegraph ("Soult, to Franche-Comte.
@@ -548,6 +713,11 @@ def read(typed: str, friends: Iterable[str], foes: Iterable[str],
     peel_trailing_vocative(r, friends)
     peel_precaution(r)
     peel_reason_tail(r, known)
+    # S4 part 4 (DD0-18): the purpose tail and the participle after the
+    # destination ("so he can screen …", "I want the Swiss road covered",
+    # "in Brabant covering the Dutch coast").
+    peel_purpose_tail(r, known)
+    peel_participle_tail(r, known, r.places_roster)
     peel_comma_aside(r, known, friends)
     peel_comma_aside(r, known, friends)   # a second aside behind the first
     peel_trailing_vocative(r, friends)
@@ -792,7 +962,12 @@ head proceed carry swing wheel transfer redeploy relocate come hurry hasten adva
 walk slide shove pull draw close concentrate mass assemble converge rendezvous meet continue keep
 let have off along across through from fall rest
 ok okay right yes sire emperor wants wishes would like you
+flank wing centre center left rear gallop await orders
+interior frontier border coast front river both berthier northern southern eastern western
 """.split())
+# (S4 part 4, DD0-18: the positional colour of a march — "up to Rhineland,
+# right flank", "to Nassau, then await orders" — and `gallop`, a verb no
+# chain branch routes on.)
 # (The INFLECTED forms — "moves", "marches", "rides", "heads", "goes" — are
 # absent on purpose: "Ney moves to Lorraine" is the inflected-order rewrite's
 # own road, and its lever down must shrug as it did; `Murat rides to

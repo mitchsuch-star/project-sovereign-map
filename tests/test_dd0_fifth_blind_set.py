@@ -43,19 +43,26 @@ KEYLESS = RECORDS / "2026_10_10_fifth_keyless.json"
 KEYED = RECORDS / "2026_10_10_fifth_keyed.json"
 BY_HAND = RECORDS / "by_hand" / "2026_10_10_fifth.json"
 
-KEYLESS_DANGEROUS_CAP = {"misread": 2, "executed_when_refusal_meant": 6}
-KEYED_DANGEROUS_CAP = {"misread": 3, "executed_when_refusal_meant": 7}
-KEYLESS_AS_MEANT_AT_READING = 121      # 125 measured; the objection dice move it ±4 (asked)
-# S4 part 4 — the re-based instrument's figures at this reading (lower-only
-# for the floor, lower-only for the cap).
-KEYLESS_READ_RIGHT_AT_READING = 235    # 241 measured (80.3 %); the dice move it too
-KEYED_READ_RIGHT_AT_READING = 259      # 265 measured (88.3 %)
-EXECUTED_OTHER_THAN_MEANT_CAP = 1      # the one real execution — 0 once DD0-18 (a) lands
+# S4 part 4, after DD0-18 landed and the set was re-read as fresh runs
+# (October 11, 2026): the judge's dangerous classes 2 / 6 → 0 / 5 (the five
+# left are refuse-meant lines the board refused in shapes the judge does not
+# know — each read by hand), as meant 125 → 146, read right by hand 241 →
+# 289 (96.3 %), executed other than meant 1 → 0.
+KEYLESS_DANGEROUS_CAP = {"misread": 0, "executed_when_refusal_meant": 5}
+KEYED_DANGEROUS_CAP = {"misread": 0, "executed_when_refusal_meant": 6}   # the live model's own refusals, each read by hand
+KEYLESS_AS_MEANT_AT_READING = 140      # 146 measured; the objection dice move it ±4 (asked)
+# the judge's four classes (lower-only) and the hand's figure (lower-only)
+KEYLESS_READ_RIGHT_AT_READING = 269    # 275 measured; the dice move it too
+KEYED_READ_RIGHT_AT_READING = 271      # 277 measured
+KEYLESS_READ_RIGHT_BY_HAND_AT_READING = 283    # 289 measured (96.3 %)
+KEYED_READ_RIGHT_BY_HAND_AT_READING = 285      # 291 measured (97.0 %)
+EXECUTED_OTHER_THAN_MEANT_CAP = 0      # DD0-18 (a) landed: `strike camp` is the unfortify
 DONE_WHEN = 0.85
 # The re-based done-when's standing on THIS set, asserted on purpose so it
-# is re-seated by a hand and never by drift. The done-when itself is read on
-# a FRESH set (the sixth author's); this set is read for its fixes.
-DONE_WHEN_MET_ON_THIS_SET = False
+# is re-seated by a hand and never by drift. This set is REHEARSED by its own
+# fixes (DD0-18); the done-when itself was read on the sixth and the seventh
+# authors' fresh sets (`test_dd0_sixth_blind_set.py`, `test_dd0_seventh_blind_set.py`).
+DONE_WHEN_MET_ON_THIS_SET = True
 
 
 def _load(p: Path) -> dict:
@@ -138,7 +145,9 @@ class TestTheReBasedInstrument:
                 continue
             d = census.apply_by_hand(_load(path), hand)
             assert d["by_hand_unread"] == [], (path.name, d["by_hand_unread"])
-            assert set(d["by_hand"]) == set(d["dangerous"]), path.name
+            # every proxy row read; the hand also reads the board's own
+            # refusals among the honest refusals (a superset)
+            assert set(d["by_hand"]) >= set(d["dangerous"]), path.name
             assert d["executed_other_than_meant"] is not None
 
     @pytest.mark.parametrize("path", [KEYLESS, KEYED], ids=["keyless", "keyed"])
@@ -162,8 +171,11 @@ class TestTheReBasedInstrument:
     def test_read_right_only_rises(self):
         d = _load(KEYLESS)
         assert d["read_right"] >= KEYLESS_READ_RIGHT_AT_READING
+        assert d["read_right_by_hand"] >= KEYLESS_READ_RIGHT_BY_HAND_AT_READING
         if KEYED.exists():
-            assert _load(KEYED)["read_right"] >= KEYED_READ_RIGHT_AT_READING
+            kd = _load(KEYED)
+            assert kd["read_right"] >= KEYED_READ_RIGHT_AT_READING
+            assert kd["read_right_by_hand"] >= KEYED_READ_RIGHT_BY_HAND_AT_READING
 
     def test_the_two_figures_are_printed_and_the_done_when_is_read_on_purpose(self):
         """The re-based done-when (the user's ruling, October 11, 2026):
@@ -173,7 +185,7 @@ class TestTheReBasedInstrument:
         d = _load(KEYLESS)
         t = d["totals"]["order"]
         as_meant = int(t.get("as_meant", 0))
-        read_right, eotm = d["read_right"], d["executed_other_than_meant"]
+        read_right, eotm = d["read_right_by_hand"], d["executed_other_than_meant"]
         print(f"[dd0] fifth blind set keyless READ RIGHT BY HAND {read_right} / 300 "
               f"({100.0 * read_right / 300:.1f} %; done-when >= {DONE_WHEN:.0%}); "
               f"executed other than meant {eotm} (done-when 0); as meant {as_meant} / 300 beside")
