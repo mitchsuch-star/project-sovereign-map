@@ -51,6 +51,7 @@ from backend.commands.naval_executor import NavalExecutor
 from backend.commands.reforms_executor import ReformsExecutor
 from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog, ADMIN_ACTIONS
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.errors import report
 
 # CA9-N5: a pending objection blocked EVERYTHING, including asking what
 # is going on. These five are pure reads — they mutate no state, cost no
@@ -555,11 +556,12 @@ def _display_candidates(world, from_nation: Optional[str],
         return list(candidates)
     try:
         visible = {m.name.lower() for m in world.get_visible_enemies(from_nation)}
-    except Exception:
+    except Exception as exc:
         # FAIL CLOSED. The first cut returned `candidates` here — the
         # omniscient roster, i.e. exactly the list this function exists to
         # stop printing. On an R5 boundary an error must cost the player a
         # helpful message, never cost them the fog.
+        report(exc, "executor._display_candidates: m.name.lower / world.get_visible_enemies")
         return []
     return [name for name in candidates if name.lower() in visible]
 

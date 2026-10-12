@@ -29,6 +29,7 @@ from backend.models.authority import (
     get_imperial_grip,
 )
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.errors import report
 
 # ═══════ AUTONOMY LEVELS ═══════
 AUTONOMY_PUPPET = 0       # -4 drift/turn
@@ -570,7 +571,8 @@ def subjugation_refusal(world, lord: str, vassal: str) -> str:
                 f"{score:+d}; it submits at {SUBJUGATION_WAR_SCORE:+d}). Take the "
                 f"capital, beat it in the field, or demand vassalage at the "
                 f"peace table.")
-    except Exception:
+    except Exception as exc:
+        report(exc, "vassal.subjugation_refusal: getattr")
         return ""
 
 
@@ -4428,7 +4430,8 @@ def _release_tribute_snapshot(world, vassal_name: str, state: dict) -> int:
             if name not in disrupted
         )
         return int(income * rate)
-    except Exception:
+    except Exception as exc:
+        report(exc, "vassal._release_tribute_snapshot: float / state.get")
         return 0
 
 
@@ -4503,8 +4506,8 @@ def _build_release_report(
                     f"Should they see it through they would proclaim "
                     f"{watch.get('forms')} — {watch.get('progress')}."
                 )
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "vassal._build_release_report: import backend.game_logic.agendas")
 
     return " ".join(parts)
 

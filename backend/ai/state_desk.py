@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
+from backend.errors import report
 
 STATE_DESK_ACTIVE = True
 
@@ -769,14 +770,16 @@ def _court(world, nation: str) -> str:
     from backend.display_names import display_nation
     try:
         return display_nation(nation)
-    except Exception:
+    except Exception as exc:
+        report(exc, "state_desk._court: display_nation")
         return _display(nation)
 
 
 def _money(value) -> str:
     try:
         return f"{int(value):,}"
-    except Exception:
+    except Exception as exc:
+        report(exc, "state_desk._money: int")
         return str(value)
 
 
@@ -1125,8 +1128,8 @@ def _defence_lines(world, defenders, attacker, where: str) -> str:
             note = odds_band_note(band, weighed)
             line += f" Were {_display(attacker.name)} to attack, the odds read {ours}"
             line += (f" — {note}." if note else ".")
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "state_desk._defence_lines: inferred_attack_odds_reading / float")
     return line
 
 
@@ -1245,8 +1248,8 @@ def _answer_trust(world, name: str) -> str:
     label = ""
     try:
         label = str(trust.get_label())
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_trust: str / trust.get_label")
     line = f"{_display(me.name)}'s trust stands at {value} of 100" + (f" — {label}" if label else "") + ", Sire."
     hostile = [other for other, v in (getattr(me, "relationships", None) or {}).items()
                if int(v) < 0 and _own(world, other) is not None]
@@ -1310,8 +1313,8 @@ def _answer_skill(world, name: str, skill: str) -> str:
     value = int(skills.get(key, 5) or 5)
     try:
         value = int(me.get_effective_skill(key))
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_skill: int / me.get_effective_skill")
     return f"{_display(me.name)}'s {key} is {value} of 10, Sire — {_SKILL_NOTE.get(key, '')}."
 
 
@@ -1460,7 +1463,8 @@ def _answer_best_for(world, skill: str) -> str:
     def val(m):
         try:
             return int(m.get_effective_skill(skill))
-        except Exception:
+        except Exception as exc:
+            report(exc, "state_desk._answer_best_for.val: int / m.get_effective_skill")
             return int((getattr(m, "skills", None) or {}).get(skill, 5) or 5)
     rows.sort(key=lambda m: -val(m))
     top = rows[0]
@@ -1509,8 +1513,8 @@ def _answer_jealous(world, name: str) -> str:
             short = int(get_shortfall(m, world) or 0)
             if short > 0:
                 bits.append(f"expects a reward ({_money(short)}g short" + (", eroding" if is_eroding(m, world) else "") + ")")
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "state_desk._answer_jealous: int / get_shortfall")
         trust = int(getattr(getattr(m, "trust", None), "value", 100) or 100)
         if trust < 40:
             bits.append(f"trust low at {trust}")
@@ -1522,8 +1526,8 @@ def _answer_jealous(world, name: str) -> str:
             exp = 0
             try:
                 exp = int(get_expectation(m) or 0)
-            except Exception:
-                pass
+            except Exception as exc:
+                report(exc, "state_desk._answer_jealous: int / get_expectation")
             return (f"{_display(m.name)} is content, Sire — no grievance, no envy"
                     + (f", his expectation of {_money(exp)}g met" if exp else "") + ".")
         return griefs[0] + ", Sire."
@@ -1538,8 +1542,8 @@ def _answer_expectation(world, name: str) -> str:
     try:
         if not is_dotation_world(world):
             return "No marshal expects a reward on this board, Sire — the estates are dormant here."
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_expectation: is_dotation_world")
     rows = _standing(world) if not name else [m for m in [_own(world, name)] if m is not None]
     if name and not rows:
         return f"{_display(name)} leads no corps of ours, Sire."
@@ -1576,8 +1580,8 @@ def _answer_authority(world) -> str:
     label = ""
     try:
         label = str(tracker.get_authority_label())
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_authority: str / tracker.get_authority_label")
     grip = int(get_imperial_grip(world, world.player_nation))
     return (f"Your authority stands at {auth} of 100" + (f" ({label})" if label else "")
             + f", Sire, and the imperial grip reads {grip} — the marshals' and the courts' measure of "
@@ -1637,7 +1641,8 @@ def _answer_crossing(world, question: Dict) -> str:
         a, b = (ends + ["", ""])[:2]
         try:
             rows.append(naval.crossing_line(world, a, b, verdict, player))
-        except Exception:
+        except Exception as exc:
+            report(exc, "state_desk._answer_crossing: rows.append / naval.crossing_line")
             rows.append(f"{a}–{b}: {verdict.get('verdict', '')}")
     if not rows:
         if place:
@@ -1669,6 +1674,7 @@ def _answer_landing_odds(world, place: str) -> str:
             line += " " + naval.levers_line(levers)
         return line
     except Exception as exc:
+        report(exc, "state_desk._answer_landing_odds: naval.expedition_slip_odds")
         return f"The Admiralty cannot read the odds for {place}, Sire ({exc})."
 
 
@@ -1707,8 +1713,8 @@ def _intent_clause(world, nation: str) -> str:
         if p.get("summary"):
             summ = str(p["summary"])
             return summ[0].upper() + summ[1:] + "."
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._intent_clause: import backend.game_logic.intent")
     return ""
 
 
@@ -1799,8 +1805,8 @@ def _answer_agenda(world, nation: str, place: str) -> str:
         watch = get_formation_watch(world, nation)
         if watch and watch.get("line"):
             line += " " + str(watch["line"])
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_agenda: import backend.game_logic.formations")
     if place:
         try:
             from backend.game_logic.agendas import get_active_agenda
@@ -1810,8 +1816,8 @@ def _answer_agenda(world, nation: str, place: str) -> str:
                 line += f" {place} is named in it."
             elif view:
                 line += f" {place} is not among its provinces."
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "state_desk._answer_agenda: import backend.game_logic.agendas")
     return line
 
 
@@ -1858,6 +1864,7 @@ def _answer_peace_forecast(world, nation: str, want: str) -> str:
         verdict = calculate_acceptance({"type": ptype, "proposer_nation": player,
                                         "target_nation": nation, "terms": {}}, world) or {}
     except Exception as exc:
+        report(exc, "state_desk._answer_peace_forecast: calculate_acceptance")
         return f"Talleyrand cannot read {court}'s temper today, Sire ({exc})."
     score = int(verdict.get("score") or 0)
     outcome = str(verdict.get("outcome") or "")
@@ -1880,7 +1887,8 @@ def _autonomy_word(value) -> str:
         from backend.game_logic.vassal import AUTONOMY_AUTONOMOUS, AUTONOMY_PUPPET
         v = int(value)
         return "puppet" if v == AUTONOMY_PUPPET else "autonomous" if v == AUTONOMY_AUTONOMOUS else "satellite"
-    except Exception:
+    except Exception as exc:
+        report(exc, "state_desk._autonomy_word: import backend.game_logic.vassal")
         return str(value or "satellite")
 
 
@@ -1897,8 +1905,8 @@ def _answer_vassals(world) -> str:
             f = forecast_vassal_loyalty(world, player, name) or {}
             if f.get("trend"):
                 trend = f", {f['trend']}"
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "state_desk._answer_vassals: forecast_vassal_loyalty")
         parts.append(f"{_court(world, name)} (loyalty {int(row.get('loyalty') or 0)}, {_autonomy_word(row.get('autonomy'))}{trend})")
     return f"Our vassals, Sire: {_join(parts)}."
 
@@ -1940,8 +1948,8 @@ def _answer_loyalty(world, nation: str) -> str:
             line += f" — {delta:+d} a turn ({f.get('trend') or 'moving'})"
         else:
             line += " — holding steady"
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_loyalty: forecast_vassal_loyalty")
     line += "."
     if loyalty < 35:
         line += " Below 35 it is disaffected; invest, garrison it or grant autonomy."
@@ -1969,7 +1977,8 @@ def _rule_text(world, key: str, ap: bool) -> str:
     def cost(action):
         try:
             return int(world.get_action_cost(action))
-        except Exception:
+        except Exception as exc:
+            report(exc, "state_desk._rule_text.cost: int / world.get_action_cost")
             return int(costs.get(action, 1) or 1)
     march_ap = 2
     support_ap = 1
@@ -1978,8 +1987,8 @@ def _rule_text(world, key: str, ap: bool) -> str:
         if probe is not None:
             march_ap = int(probe.strategic_order_ap(order_type="MOVE_TO"))
             support_ap = int(probe.strategic_order_ap(order_type="SUPPORT"))
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._rule_text: next / iter")
     attack_f = getattr(M, "STANCE_ATTACK_FACTOR", {}) or {}
     def_pen = int(round((1 - float(attack_f.get("defensive", 0.9))) * 100))
     gain = int(getattr(world, "DRILL_MORALE_GAIN", 10) or 10)
@@ -2117,8 +2126,8 @@ def _answer_calendar(world) -> str:
     label = ""
     try:
         label = str(world.get_calendar_label() or "")
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_calendar: str / world.get_calendar_label")
     turn = int(getattr(world, "current_turn", 1) or 1)
     return f"It is turn {turn}" + (f" — {label}" if label else "") + ", Sire. Each turn is half a month."
 
@@ -2133,7 +2142,8 @@ def _last_turn_rows(world) -> List[Dict]:
     rows = [r for r in (getattr(world, "event_log", None) or []) if int(r.get("turn", -1) or -1) == turn - 1]
     try:
         return list(filter_campaign_log(rows, world) or [])
-    except Exception:
+    except Exception as exc:
+        report(exc, "state_desk._last_turn_rows: list / filter_campaign_log")
         return rows
 
 
@@ -2181,7 +2191,8 @@ def _answer_enemy_moves(world, subject: str, subject_type: str) -> str:
     for r in hits[:4]:
         try:
             lines.append(str(format_event_oneliner(r, world=world)))
-        except Exception:
+        except Exception as exc:
+            report(exc, "state_desk._answer_enemy_moves: lines.append / str")
             lines.append(str(r.get("message") or r.get("type")))
     return f"Last turn, Sire: " + " ".join(lines)
 
@@ -2202,7 +2213,8 @@ def _answer_attacked_us(world) -> str:
     for r in attacks[:4]:
         try:
             lines.append(str(format_event_oneliner(r, world=world)))
-        except Exception:
+        except Exception as exc:
+            report(exc, "state_desk._answer_attacked_us: lines.append / str")
             lines.append(f"{r.get('attacker')} attacked {r.get('defender')} at {r.get('location')}")
     return f"Yes, Sire — {_plural(len(attacks), 'attack')} last turn: " + " ".join(lines)
 
@@ -2217,8 +2229,8 @@ def _answer_court_news(world) -> str:
         dm = getattr(world, "dialogue_manager", None)
         pending = list(getattr(dm, "queue", None) or []) if dm is not None else []
         mailbox = [d for d in pending if isinstance(d, dict) and d.get("type")]
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_court_news: getattr")
     extra = ""
     if mailbox:
         extra = f" {_plural(len(mailbox), 'letter')} wait{'s' if len(mailbox) == 1 else ''} in the mailbox (M)."
@@ -2228,8 +2240,8 @@ def _answer_court_news(world) -> str:
         for r in rows[:4]:
             try:
                 lines.append(str(format_event_oneliner(r, world=world)))
-            except Exception:
-                pass
+            except Exception as exc:
+                report(exc, "state_desk._answer_court_news: lines.append / str")
         if lines:
             return "From the courts, Sire: " + " ".join(lines) + extra
     return (base + extra) if base else ("No word from the courts last turn, Sire." + extra)
@@ -2287,8 +2299,8 @@ def _answer_stability(world, place: str) -> str:
     label = ""
     try:
         label = str(region.get_stability_label())
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_stability: str / region.get_stability_label")
     line = f"{place}'s stability is {stab}" + (f" — {label}" if label else "") + ", Sire."
     dmg = float(getattr(region, "war_damage", 0.0) or 0.0)
     if dmg:
@@ -2305,8 +2317,8 @@ def _answer_income_region(world, place: str) -> str:
     eff = base
     try:
         eff = int(region.get_effective_income())
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_income_region: int / region.get_effective_income")
     line = f"{place} yields {_money(eff)} gold a turn" + (f" ({_money(base)} before war damage and unrest)" if eff != base else "")
     line += f" to {_court(world, holder)}" if holder else ""
     return line + ", Sire."
@@ -2448,8 +2460,8 @@ def _answer_unknown_name(world, question: Dict) -> str:
         try:
             from backend.ai.llm_client import _askable_enemy_names
             enemies = list(_askable_enemy_names({"world": world}) or enemies)
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "state_desk._answer_unknown_name: import backend.ai.llm_client")
         regions = list((getattr(world, "regions", None) or {}).keys())
         nations = list(world.get_active_nations())
         q2 = classify_question(fixed, marshals=marshals, enemies=enemies, regions=regions)
@@ -2477,8 +2489,8 @@ def _answer_reward(world, name: str) -> str:
     try:
         if not D.is_dotation_world(world):
             return f"No reward is owed on this board, Sire — the estates are dormant here."
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_reward: D.is_dotation_world")
     exp = int(D.get_expectation(me) or 0)
     sat = int(D.get_satisfaction(me, world) or 0)
     short = int(D.get_shortfall(me, world) or 0)
@@ -2487,8 +2499,8 @@ def _answer_reward(world, name: str) -> str:
     estates = []
     try:
         estates = list(D.list_eligible_estates(world, world.player_nation) or [])
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_reward: list / D.list_eligible_estates")
     if estates:
         best = estates[0] if isinstance(estates[0], str) else str(estates[0].get("name") or estates[0])
         line += (f" An estate endows a conquered province's income for good — "
@@ -2503,8 +2515,8 @@ def _answer_reward(world, name: str) -> str:
                      f"— 'grant {_display(me.name)} a rente'.")
         else:
             line += " A rente would add nothing today — his expectation is met."
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_reward: int / D.compute_rente_face")
     return line + " His Reward dialog is open."
 
 
@@ -2586,7 +2598,8 @@ def _answer_landing_shores(world) -> str:
         a, b = (ends + ["", ""])[:2]
         try:
             rows.append(naval.crossing_line(world, a, b, verdict, player))
-        except Exception:
+        except Exception as exc:
+            report(exc, "state_desk._answer_landing_shores: rows.append / naval.crossing_line")
             continue
     if not rows:
         return "No sea road of ours is charted today, Sire."
@@ -2696,8 +2709,8 @@ def _answer_what_is_in(world, place: str) -> str:
     base = _answer_region(world, "who_at", place) or f"Nothing stands in {place} that we can see, Sire."
     try:
         base += " " + _answer_garrison(world, place, "")
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "state_desk._answer_what_is_in: _answer_garrison")
     return base
 
 
@@ -2814,7 +2827,8 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
                 for key in ("tactical", "shock", "defense", "logistics", "administration", "command"):
                     try:
                         v = int(me.get_effective_skill(key))
-                    except Exception:
+                    except Exception as _exc:
+                        report(_exc, "state_desk.answer_state_question: int / me.get_effective_skill")
                         v = int((getattr(me, "skills", None) or {}).get(key, 5) or 5)
                     parts.append(f"{key} {v}")
                 return f"{_display(me.name)}'s skills, Sire: " + ", ".join(parts) + " (of 10)."

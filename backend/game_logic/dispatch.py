@@ -39,6 +39,7 @@ from backend.game_logic.formations import formed_display_name
 # fallen. It returns None off-sandbox and above one province, so the legacy
 # world and a standing realm are byte-identical by construction.
 from backend.game_logic import collapse as realm_collapse
+from backend.errors import report
 
 
 # ============================================================================
@@ -683,7 +684,8 @@ def war_declaration_cause(world, aggressor: str, event: dict) -> str:
         from backend.game_logic.agendas import get_active_agenda
         view = get_active_agenda(aggressor, world)
         title = str(getattr(view, "title", "") or "").strip() if view else ""
-    except Exception:
+    except Exception as exc:
+        report(exc, "dispatch.war_declaration_cause: import backend.game_logic.agendas")
         title = ""
     if title:
         return f"The court of {who} declares it in the name of {title}."
@@ -1812,8 +1814,8 @@ def _realm_candidates(world, player_nation: str) -> List[Dict[str, Any]]:
                             "weight": int(HEADLINE_WEIGHTS["realm_titles"]),
                             "text": _HEADLINE_TEMPLATES["realm_titles"].format(line=line + "."),
                             "identity": "realm_titles", "fields": {"titled": count}})
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "dispatch._realm_candidates: import backend.game_logic")
     return out
 
 
@@ -1839,8 +1841,8 @@ def _front_page_candidates(world, player_nation: str, candidates, window,
                     memory = {}
                     world.headline_lead_memory = memory
                 memory["realm"] = {"titled": int(_congress.titled(world)["count"])}
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "dispatch._front_page_candidates: import backend.game_logic")
 
 
 def _family_stakes(world, player_nation: str, candidate: Dict[str, Any],
@@ -1866,7 +1868,8 @@ def _front_page_order(world, player_nation: str, candidates, memory,
     Returns (ordered, family_memory, window_memory)."""
     try:
         wars = ",".join(sorted(world.get_nations_at_war_with(player_nation)))
-    except Exception:
+    except Exception as exc:
+        report(exc, "dispatch._front_page_order: sorted / world.get_nations_at_war_with")
         wars = ""
     family = dict(memory.get("family") or {}) if isinstance(memory.get("family"), dict) else {}
     stakes_now = sorted({_family_stakes(world, player_nation, c, wars)
@@ -4676,9 +4679,10 @@ def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
     try:
         orders = [str(line) for line in (what_can_i_do(
             world, player_nation, limit=FIRST_MORNING_ORDER_LIMIT) or [])]
-    except Exception:
+    except Exception as exc:
         # A briefing must never fail to build; with no counsel the doors
         # still stand.
+        report(exc, "dispatch._build_first_morning_doors: str / what_can_i_do")
         orders = []
     # SR-7d DC-3a (DOCTRINES_SPEC §4a discoverability): one line on the
     # first morning naming our doctrine and the screen that shows it.
@@ -5128,7 +5132,8 @@ def counter_punch_target(marshal, world):
             return None
         _, name, where = min(foes)
         return name, humanize_entity_name(name), where
-    except Exception:
+    except Exception as exc:
+        report(exc, "dispatch.counter_punch_target: int / getattr")
         return None
 
 
@@ -5214,7 +5219,8 @@ def restate_counter_punch_notices(world) -> None:
             restated["details"] = fresh["details"]
             restated["turn_created"] = int(getattr(world, "current_turn", 0) or 0)
             collector.refresh(restated)
-    except Exception:
+    except Exception as exc:
+        report(exc, "dispatch.restate_counter_punch_notices: import backend.notifications")
         return
 
 
@@ -5967,8 +5973,8 @@ def _pick_berthier_note(
                                   for m in jealous[:2])
                 return (f"The marshals' rivalries demand attention, Sire — "
                         f"{names} nurse a grievance, {who}'s the deepest.")
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "dispatch._pick_berthier_note: import backend.game_logic.jealousy")
 
     # 4. Aggressive marshal idle 4+ turns
     #
@@ -7249,7 +7255,8 @@ def dispatch_event_type_is_renderable(event_type: str) -> bool:
         return True
     try:
         text = _format_dispatch_event_text(event_type, {})
-    except Exception:  # noqa: BLE001 — a per-type arm that needs its vars
+    except Exception as exc:  # noqa: BLE001 — a per-type arm that needs its vars
+        report(exc, "dispatch.dispatch_event_type_is_renderable: _format_dispatch_event_text")
         return True
     return bool(text) and not text.startswith("Diplomatic event:")
 

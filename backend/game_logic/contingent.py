@@ -26,6 +26,7 @@ the wavering line becomes true for the boot satellites.
 from __future__ import annotations
 
 from typing import Dict, List, Optional
+from backend.errors import report
 
 # ═══════ levers (BASELINE_SERIES attribution arms; never a config surface) ═══════
 # THE_CLIENT_SENDS_ITS_CONTINGENT  False = no contingent is ever RAISED. Data
@@ -539,7 +540,8 @@ def _host_in_view(world, lord: str, host) -> bool:
     try:
         from backend.models.intel import PARTIAL
         return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
-    except Exception:
+    except Exception as exc:
+        report(exc, "contingent._host_in_view: import backend.models.intel")
         return False
 
 

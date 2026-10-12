@@ -64,6 +64,7 @@ record rides `world.settlement_memories`; volte-face state is derived.
 """
 
 from typing import Dict, List, Optional, Tuple
+from backend.errors import report
 
 # ── Blessed numbers (in-band tunable; shape changes escalate) ────────────
 # A settlement is PUNITIVE when it strips this many provinces in one
@@ -712,7 +713,8 @@ def maybe_fire_volte_face(world, nation_a: str, nation_b: str) -> Optional[Dict]
         live = get_active_agenda(power, world)
         if live is not None and not live.survival:
             next_design = {"id": live.id, "title": live.title}
-    except Exception:
+    except Exception as exc:
+        report(exc, "emergent_designs.maybe_fire_volte_face: world.invalidate_active_nations_cache")
         next_design = None
     if next_design is None:
         next_design = _next_design_after_contain(world, power)

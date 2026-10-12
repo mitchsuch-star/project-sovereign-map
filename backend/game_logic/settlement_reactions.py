@@ -33,6 +33,7 @@ families; the presentation surface consumes them.
 from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
+from backend.errors import report
 
 
 # Spec §14.3 line 1478 — gratitude memory window.
@@ -417,7 +418,8 @@ def _classify_proposer_ally_standing(
             side=proposer_side,
             is_named_beneficiary=is_beneficiary,
         )
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_reactions._classify_proposer_ally_standing: import backend.game_logic.war_contribution")
         return "no_standing"
 
 
@@ -544,7 +546,8 @@ def _evaluate_proposer_side_reactions(
                 material_points = int(
                     current_episode_material_total(world, war_id, ally) or 0
                 )
-            except Exception:
+            except Exception as exc:
+                report(exc, "settlement_reactions._evaluate_proposer_side_reactions: import backend.game_logic.war_contribution")
                 material_points = 0
             if material_points > 0:
                 _add_settlement_memory(
@@ -589,7 +592,8 @@ def _evaluate_proposer_side_reactions(
             material_points = int(
                 current_episode_material_total(world, war_id, ally) or 0
             )
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_reactions._evaluate_proposer_side_reactions: import backend.game_logic.war_contribution #2")
             material_share = 0.0
             material_points = 0
 
@@ -761,7 +765,8 @@ def _evaluate_bargain_outcomes(
     out: List[Dict[str, Any]] = []
     try:
         from backend.game_logic.diplomacy import _get_live_bargains, breach_bargain
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_reactions._evaluate_bargain_outcomes: import backend.game_logic.diplomacy")
         return out
     awarded_by_region: Dict[str, Mapping[str, Any]] = {}
     for term in settlement_terms or []:
@@ -1279,7 +1284,8 @@ def route_settlement_reactions(
         from backend.game_logic.diplomacy import _allocate_episode_id
 
         episode_id_alloc = _allocate_episode_id
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_reactions.route_settlement_reactions: import backend.game_logic.diplomacy")
         episode_id_alloc = None
     episode_id = (
         episode_id_alloc(world, prefix="settlement")

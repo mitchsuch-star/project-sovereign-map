@@ -87,6 +87,7 @@ from backend.game_logic.settlement_validation import (
     get_coverable_enemy_participants,
     validate_settlement_terms,
 )
+from backend.errors import report
 
 
 def _gold_headroom_for_payer(
@@ -1215,7 +1216,8 @@ def _handle_settlement_demand_action(
         if group == "demand":
             try:
                 court_regions = {str(r) for r in world.get_nation_regions(court)}
-            except Exception:
+            except Exception as exc:
+                report(exc, "settlement_actions._handle_settlement_demand_action: str / world.get_nation_regions")
                 court_regions = set()
             if not region:
                 region = str(
@@ -1249,7 +1251,8 @@ def _handle_settlement_demand_action(
                     proposer_holdings.update(
                         str(r) for r in world.get_nation_regions(participant)
                     )
-                except Exception:
+                except Exception as exc:
+                    report(exc, "settlement_actions._handle_settlement_demand_action: proposer_holdings.update / str")
                     continue
             if not region or region not in proposer_holdings:
                 return _fail(
@@ -3189,7 +3192,8 @@ def _execute_pair_substitute_handoff(
             classify_diplomatic_intent,
             generate_dialogue,
         )
-    except Exception:  # pragma: no cover - defensive
+    except Exception as exc:  # pragma: no cover - defensive
+        report(exc, "settlement_actions._execute_pair_substitute_handoff: import backend.game_logic.diplomatic_dialogue")
         classify_diplomatic_intent = None  # type: ignore[assignment]
         generate_dialogue = None  # type: ignore[assignment]
 
@@ -3206,7 +3210,8 @@ def _execute_pair_substitute_handoff(
         try:
             intent = classify_diplomatic_intent(diplomatic_data, world)
             proposal_dialogue = generate_dialogue(intent, diplomatic_data, world)
-        except Exception:  # pragma: no cover - defensive
+        except Exception as exc:  # pragma: no cover - defensive
+            report(exc, "settlement_actions._execute_pair_substitute_handoff: classify_diplomatic_intent")
             proposal_dialogue = None
 
     # G4F-8 carry-over: seed the bilateral draft from the target court's
@@ -3269,8 +3274,8 @@ def _execute_pair_substitute_handoff(
                         proposal_type,
                         world,
                     )
-                except Exception:  # pragma: no cover - defensive
-                    pass
+                except Exception as exc:  # pragma: no cover - defensive
+                    report(exc, "settlement_actions._execute_pair_substitute_handoff: import backend.game_logic.diplomatic_dialogue #2")
                 proposal_dialogue["carried_from_settlement"] = True
         if armistice_demands_dropped:
             # D3 never-wordless: the drop is voiced in the popup the player

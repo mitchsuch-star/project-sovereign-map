@@ -14,6 +14,7 @@ the strategic PURSUE arm. Lever False reproduces every pre-slice answer.
 from __future__ import annotations
 
 from typing import Dict, Optional
+from backend.errors import report
 
 
 def prisoner_of(world, name: str, viewer_nation: Optional[str] = None):
@@ -47,7 +48,8 @@ def prisoner_is_a_province(world, marshal) -> bool:
     emit region names, so its homeland-defence orders failed in silence)."""
     try:
         return marshal.name in (getattr(world, "regions", {}) or {})
-    except Exception:
+    except Exception as exc:
+        report(exc, "prisoners.prisoner_is_a_province: getattr")
         return False
 
 
@@ -60,7 +62,8 @@ def cell_in_view(world, location: str, viewer_nation: Optional[str]) -> bool:
     try:
         from backend.models.intel import PARTIAL
         return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
-    except Exception:
+    except Exception as exc:
+        report(exc, "prisoners.cell_in_view: import backend.models.intel")
         return False
 
 
@@ -91,7 +94,8 @@ def prisoner_refusal(world, marshal, viewer_nation: Optional[str]) -> Dict:
     try:
         from backend.game_logic.formations import formed_display_name
         court = formed_display_name(world, captor)
-    except Exception:
+    except Exception as exc:
+        report(exc, "prisoners.prisoner_refusal: import backend.game_logic.formations")
         court = captor or "the enemy"
     return {**base, "message": (
         f"{shown} is a prisoner of {court} at {location}, Sire — "

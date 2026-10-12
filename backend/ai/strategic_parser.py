@@ -18,6 +18,7 @@ import re
 from typing import Dict, Optional, Tuple
 
 from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
+from backend.errors import report
 
 # Try to import WorldState for type hints; not strictly required at runtime
 try:
@@ -174,7 +175,8 @@ def demonym_to_nation(token: str, world) -> str:
         return ""
     try:
         nations = get_nations() or []
-    except Exception:
+    except Exception as exc:
+        report(exc, "strategic_parser.demonym_to_nation: get_nations")
         return ""
     tokens = {t for t in re.findall(r"[A-Za-z]+", str(token).lower())}
     for nation in nations:
@@ -198,7 +200,8 @@ def _nation_demonyms(world) -> list:
         return []
     try:
         nations = get_nations() or []
-    except Exception:
+    except Exception as exc:
+        report(exc, "strategic_parser._nation_demonyms: get_nations")
         return []
     forms = []
     for nation in nations:
@@ -632,7 +635,8 @@ def _friendly_forms(marshal_name, world):
                 continue
             forms.extend(name_match_patterns(m.name))
         return tuple(sorted(set(forms), key=len, reverse=True))
-    except Exception:
+    except Exception as exc:
+        report(exc, "strategic_parser._friendly_forms: import backend.ai.llm_client")
         return ()
 
 
@@ -1114,7 +1118,8 @@ def _extract_arrival_target(command_lower: str, marshal_name: Optional[str],
         return None
     try:
         from backend.ai.condition_grammar import _resolve_marshal, _issuer_nation
-    except Exception:  # pragma: no cover
+    except Exception as exc:  # pragma: no cover
+        report(exc, "strategic_parser._extract_arrival_target: import backend.ai.condition_grammar")
         return None
     found = _resolve_marshal(obj, world)
     if found is None:

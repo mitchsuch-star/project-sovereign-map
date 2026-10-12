@@ -43,6 +43,7 @@ not a hot path. It still uses the cached helpers where they exist.
 from __future__ import annotations
 
 from typing import Dict, List, Optional
+from backend.errors import report
 
 # Flip lever: False makes every function here return an empty list, and each
 # consumer keeps the hardcoded copy it had before CX-2.
@@ -138,14 +139,16 @@ def _is_free_to_order(marshal) -> bool:
 def _military_actions_left(world) -> int:
     try:
         return int(getattr(world, "actions_remaining", 0) or 0)
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._military_actions_left: int / getattr")
         return 0
 
 
 def _admin_actions_left(world) -> int:
     try:
         return int(getattr(world, "admin_actions_remaining", 0) or 0)
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._admin_actions_left: int / getattr")
         return 0
 
 
@@ -160,7 +163,8 @@ def _crossing_open(world, nation: str, marshal, destination: str) -> bool:
         verdict = crossing_check_reach(world, nation, marshal.location,
                                        destination, int(marshal.strength))
         return bool(verdict.get("allowed", True))
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._crossing_open: import backend.game_logic.naval")
         return False
 
 
@@ -195,7 +199,8 @@ def _visible_enemy_map(world, nation: str) -> Dict[str, List]:
             if int(getattr(enemy, "strength", 0) or 0) <= 0:
                 continue
             out.setdefault(enemy.location, []).append(enemy)
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._visible_enemy_map: world.get_visible_enemies / int")
         return {}
     return out
 
@@ -203,7 +208,8 @@ def _visible_enemy_map(world, nation: str) -> Dict[str, List]:
 def _at_war_with(world, nation: str, other: str) -> bool:
     try:
         return bool(world.is_at_war(nation, other))
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._at_war_with: bool / world.is_at_war")
         return False
 
 
@@ -235,7 +241,8 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
 
     try:
         marshals = [m for m in world.get_player_marshals() if _is_free_to_order(m)]
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel.military_counsel: world.get_player_marshals / _is_free_to_order")
         return []
     enemies_here = _visible_enemy_map(world, nation)
 
@@ -279,7 +286,8 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
                 for place in enemy_places:
                     try:
                         d = world.get_distance(name, place)
-                    except Exception:
+                    except Exception as exc:
+                        report(exc, "counsel.military_counsel._closing: world.get_distance")
                         d = None
                     if d is not None and d >= 0 and (best is None or d < best):
                         best = d
@@ -340,9 +348,10 @@ def _move_would_be_refused(world, marshal, destination: str) -> bool:
             return True
         return bool(MovementExecutor.move_refusal_probe(
             world, marshal, region, destination))
-    except Exception:
+    except Exception as exc:
         # The counsel must never break the surface that calls it; a probe we
         # cannot run means we do not offer the march.
+        report(exc, "counsel._move_would_be_refused: import backend.commands.movement_executor")
         return True
 
 
@@ -382,7 +391,8 @@ def _law_terms(world, nation: str) -> Optional[str]:
         return None
     try:
         from backend.game_logic import reforms as R
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._law_terms: import backend.game_logic")
         return None
     rows = [r for r in R.deck(world, nation) if isinstance(r, dict)]
     staff = next((r for r in rows if R.is_staff(r) and not R.is_in_force(r)), None)
@@ -430,13 +440,15 @@ def _levy_terms(world, nation: str) -> Optional[str]:
     """
     try:
         from backend.commands.economy_executor import recruit_quote
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._levy_terms: import backend.commands.economy_executor")
         return None
     seen = set()
     best = None
     try:
         marshals = list(world.get_player_marshals())
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._levy_terms: list / world.get_player_marshals")
         return None
     for marshal in marshals:
         if int(getattr(marshal, "strength", 0) or 0) <= 0:
@@ -449,7 +461,8 @@ def _levy_terms(world, nation: str) -> Optional[str]:
         seen.add(where)
         try:
             quote = recruit_quote(world, where, "infantry", nation)
-        except Exception:
+        except Exception as exc:
+            report(exc, "counsel._levy_terms: recruit_quote")
             continue
         if quote.get("ok") and (best is None
                                 or int(quote["price"]) < int(best[1]["price"])):
@@ -469,7 +482,8 @@ def _first_own_region_with_a_corps(world, nation: str) -> Optional[str]:
             region = world.get_region(marshal.location)
             if region is not None and getattr(region, "controller", None) == nation:
                 return marshal.location
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._first_own_region_with_a_corps: world.get_player_marshals / int")
         return None
     return None
 
@@ -483,7 +497,8 @@ def _build_terms(world, nation: str, limit: int = 2) -> List[str]:
     out: List[str] = []
     try:
         from backend.models.region import BUILDING_TYPES, can_build
-    except Exception:
+    except Exception as exc:
+        report(exc, "counsel._build_terms: import backend.models.region")
         return []
     region_name = _first_own_region_with_a_corps(world, nation)
     if not region_name and THE_BUILD_LINE_NEEDS_NO_CORPS:
@@ -501,7 +516,8 @@ def _build_terms(world, nation: str, limit: int = 2) -> List[str]:
         for key, spec in BUILDING_TYPES.items():
             try:
                 ok = can_build(world, region, key, nation)
-            except Exception:
+            except Exception as exc:
+                report(exc, "counsel._build_terms._lines_for: can_build")
                 continue
             allowed = ok[0] if isinstance(ok, (tuple, list)) else bool(ok)
             if not allowed:
@@ -576,8 +592,9 @@ def league_counsel(world, nation: str) -> List[str]:
             return []
         return [f"{cheapest['command']} — keeps {cheapest['display']} out of "
                 f"the next league: {cheapest['clause']}"]
-    except Exception:
+    except Exception as exc:
         # The counsel must never break the surface that calls it.
+        report(exc, "counsel.league_counsel: import backend.game_logic")
         return []
 
 
@@ -603,8 +620,9 @@ def congress_counsel(world, nation: str) -> List[str]:
         return [f"{congress.SUMMON_COMMAND} — "
                 f"{plural(congress.SUMMON_DP_COST, 'diplomatic point')} and "
                 f"1 administrative action; it cannot be undone"]
-    except Exception:
+    except Exception as exc:
         # The counsel must never break the surface that calls it.
+        report(exc, "counsel.congress_counsel: import backend.game_logic")
         return []
 
 

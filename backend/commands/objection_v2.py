@@ -23,6 +23,7 @@ Unit 1: Core Data Structures
 from enum import IntEnum
 from typing import Dict, Optional
 import random
+from backend.errors import report
 
 
 
@@ -1129,7 +1130,8 @@ FAVORABLE_WEIGHED_RATIO = 1.7
 def _skill_of(marshal, name: str):
     try:
         return marshal.get_effective_skill(name)
-    except Exception:
+    except Exception as exc:
+        report(exc, "objection_v2._skill_of: marshal.get_effective_skill")
         return (getattr(marshal, "skills", {}) or {}).get(name, 5)
 
 

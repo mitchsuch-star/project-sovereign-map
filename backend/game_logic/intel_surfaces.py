@@ -39,6 +39,7 @@ from backend.models.intel import (
     FULL, LAST_KNOWN, PARTIAL, STALE, UNKNOWN, VISIBILITY_PRIORITY,
     get_strength_band,
 )
+from backend.errors import report
 
 # AAR-5: a FULL province is read live on the dispatch and the Ledger.
 THE_SIGHTING_IS_LIVE = True
@@ -69,7 +70,8 @@ def _nation_at_war_with_viewer(world, nation: str, viewer: str) -> bool:
         return False
     try:
         return bool(world.is_at_war(viewer, nation))
-    except Exception:
+    except Exception as exc:
+        report(exc, "intel_surfaces._nation_at_war_with_viewer: bool / world.is_at_war")
         return False
 
 

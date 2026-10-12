@@ -26,6 +26,7 @@ from typing import Dict, List, Optional
 
 from backend.ai.clause_guards import HONORIFIC
 from backend.display_names import humanize_entity_name
+from backend.errors import report
 
 CLARIFICATION_DIALOGUE_TYPE = "command_clarification"
 
@@ -112,7 +113,8 @@ def _answer_is_affordable(world, action: Optional[str], *,
         return remaining >= required
     try:
         required = int(world.get_action_cost(action)) if action else 1
-    except Exception:
+    except Exception as exc:
+        report(exc, "clarification._answer_is_affordable: int / world.get_action_cost")
         required = 1
     return remaining >= max(1, required)
 
@@ -156,7 +158,8 @@ def destination_refusal(world, parsed: Dict, executor) -> Optional[str]:
         return None
     try:
         region, err = executor._fuzzy_match_region(target, world)
-    except Exception:
+    except Exception as exc:
+        report(exc, "clarification.destination_refusal: executor._fuzzy_match_region")
         return None
     if region is not None:
         return None

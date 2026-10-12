@@ -23,6 +23,7 @@ from backend.nation_config import (
     get_player_diplomat,
     get_player_nation,
 )
+from backend.errors import report
 
 
 # ═══════ NATION NAME ALIASES ═══════
@@ -202,7 +203,8 @@ def mission_effect_magnitude(world, mission_type: str, key: str) -> int:
         return base
     try:
         from backend.game_logic.diplomacy import get_mission_skill_multiplier
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomatic_dialogue.mission_effect_magnitude: import backend.game_logic.diplomacy")
         return base
     # `int(round(...))`, byte-for-byte what `_process_mission_effects`
     # writes. `int()` alone gave +7 where the tick pays +8 — the same
@@ -1095,7 +1097,8 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
         else:
             dialogue["acceptance_hint"] = ""
         dialogue["acceptance_components"] = components
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomatic_dialogue._enrich_ultimatum_dialogue: calculate_acceptance")
         dialogue["acceptance_estimate"] = 20
         dialogue["acceptance_outcome"] = "REJECT"
         dialogue["acceptance_hint"] = "Unable to estimate"
@@ -1300,7 +1303,8 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
                     "severity": "high",
                     "text": str(warning),
                 })
-        except Exception:
+        except Exception as exc:
+            report(exc, "diplomatic_dialogue._enrich_proposal_summary: import backend.game_logic.diplomacy")
             dialogue["bargain_review"] = {"error": "Unable to build bargain review"}
 
     # BPH-A: Attach annotated terms with ownership fields for Godot rendering
@@ -1469,7 +1473,8 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
             )
         else:
             dialogue["acceptance_warning"] = ""
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomatic_dialogue._enrich_proposal_summary: calculate_acceptance")
         dialogue["acceptance_estimate"] = -1
         dialogue["acceptance_outcome"] = "Unable to estimate"
         dialogue["acceptance_hint"] = ""
@@ -1748,7 +1753,8 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
                 acceptance_estimate = int(acc_result["score"])
                 acceptance_estimate = max(0, min(100, acceptance_estimate))
                 acceptance_outcome = acc_result.get("outcome", "Unknown")
-            except Exception:
+            except Exception as exc:
+                report(exc, "diplomatic_dialogue._merge_pre_proposal_objection: calculate_acceptance")
                 acceptance_estimate = -1
                 acceptance_outcome = "Unable to estimate"
 

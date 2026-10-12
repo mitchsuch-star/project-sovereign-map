@@ -69,6 +69,7 @@ in pins). Everything else here is a pure read.
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+from backend.errors import report
 
 # ── The arms ────────────────────────────────────────────────────────────────
 ARM_SOIL = "soil_or_sword"
@@ -124,7 +125,8 @@ def sovereign_of(world, nation: str):
 def _at_war_with_anyone(world, nation: str) -> bool:
     try:
         return bool(world.get_nations_at_war_with(nation))
-    except Exception:
+    except Exception as exc:
+        report(exc, "fall._at_war_with_anyone: bool / world.get_nations_at_war_with")
         return False
 
 
@@ -178,7 +180,8 @@ def free_captive_sovereigns(world, nation_a: str, nation_b: str) -> List[str]:
         try:
             if world.release_captured_marshal(sov.name, reason="peace_treaty"):
                 freed.append(sov.name)
-        except Exception:
+        except Exception as exc:
+            report(exc, "fall.free_captive_sovereigns: world.release_captured_marshal / freed.append")
             continue
     return freed
 
@@ -201,7 +204,8 @@ def _soil_or_sword(world, nation: str) -> Optional[Dict[str, Any]]:
         try:
             from backend.game_logic.recruitment import first_affordable_commission
             no_sword = first_affordable_commission(world, nation) is None
-        except Exception:
+        except Exception as exc:
+            report(exc, "fall._soil_or_sword: import backend.game_logic.recruitment")
             no_sword = True
     if state is None and not no_sword:
         return None
@@ -220,7 +224,8 @@ def _chains(world, nation: str) -> Optional[Dict[str, Any]]:
         return None
     try:
         state = str(world.get_diplomatic_state(nation, captor) or "")
-    except Exception:
+    except Exception as exc:
+        report(exc, "fall._chains: str / world.get_diplomatic_state")
         state = ""
     return {
         "sovereign": sov.name,

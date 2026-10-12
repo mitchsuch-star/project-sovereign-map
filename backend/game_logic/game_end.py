@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import copy
 from typing import Any, Dict, Iterable, List, Optional
+from backend.errors import report
 
 # ════════════════════════════════════════════════════════════════════════
 # Levers (the file convention: False reproduces the pre-GE-1 game).
@@ -323,8 +324,8 @@ def record_ending(world, kind: str, cause: str,
             "tier_title": str(verdict.get("title") or ""),
             "message": f"{record['title']}: {record['cause_line']}",
         })
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "game_end.record_ending: record.get")
     return record
 
 
@@ -394,8 +395,8 @@ def close_campaign(world) -> Optional[Dict[str, Any]]:
         record["closed"] = True
         try:
             record["summary"] = build_campaign_summary(world, record)
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "game_end.close_campaign: build_campaign_summary")
     clear_unanswerable(world)
     return record
 
@@ -413,16 +414,16 @@ def clear_unanswerable(world) -> None:
         try:
             while dm.peek():
                 dm.pop()
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "game_end.clear_unanswerable: dm.peek / dm.pop")
     queue = getattr(world, "_popup_queue", None)
     if queue is not None:
         try:
             from backend.models.cooldown_manager import PopupQueue
             for popup_type in PopupQueue.PRIORITY_ORDER:
                 queue.clear_type(popup_type)
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "game_end.clear_unanswerable: import backend.models.cooldown_manager")
     for attr, empty in (("vassal_rebellion_imminent_popups", []),
                         ("nation_proclamation_popups", []),
                         ("pending_capture_choice", None),
@@ -433,8 +434,8 @@ def clear_unanswerable(world) -> None:
         if hasattr(world, attr):
             try:
                 setattr(world, attr, copy.copy(empty))
-            except Exception:
-                pass
+            except Exception as exc:
+                report(exc, "game_end.clear_unanswerable: setattr / copy.copy")
     player = _player(world)
     for marshal in (getattr(world, "marshals", {}) or {}).values():
         if getattr(marshal, "nation", None) != player:
@@ -444,7 +445,8 @@ def clear_unanswerable(world) -> None:
         if getattr(marshal, "pending_glorious_charge", False):
             try:
                 marshal.reset_recklessness()
-            except Exception:
+            except Exception as exc:
+                report(exc, "game_end.clear_unanswerable: marshal.reset_recklessness")
                 marshal.pending_glorious_charge = False
 
 
@@ -812,7 +814,8 @@ def record_province_title(world, region: str, kind: str, from_nation: str,
         if retained:
             rec["retained"] = True
         store[region] = rec
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.record_province_title: _title_store")
         return
 
 
@@ -916,7 +919,8 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
             stash.extend(entries)
             world._status_quo_titled = stash
             _announce_status_quo(world, entries)
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.title_status_quo_retentions: int / getattr")
         return entries
     return entries
 
@@ -956,7 +960,8 @@ def _announce_status_quo(world, entries: List[Dict[str, Any]]) -> None:
                 "ceder": formed_display_name(world, str(entry.get("ceder") or "")),
                 "count": len(names),
             }, "always")
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end._announce_status_quo: import backend.game_logic.dispatch")
         return
 
 
@@ -1033,7 +1038,8 @@ def status_quo_forecast(world, nation_a: str, nation_b: str,
                 "ceder": ceder,
                 "titled": kept,
             })
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.status_quo_forecast: status_quo_retentions / kept.items")
         return []
     return entries
 
@@ -1104,7 +1110,8 @@ def record_carve_titles(world, provinces: Iterable[str], ceder: str,
                 "house": str(carver or world._top_overlord(client) or client),
                 "carve": True,
             }
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.record_carve_titles: _title_store")
         return
 
 
@@ -1124,7 +1131,8 @@ def title_signed_cessions(world, terms: Iterable[Dict[str, Any]]) -> None:
     but the loser has signed — title is immediate (§2.2 "ceded by treaty")."""
     try:
         from backend.game_logic.settlement_validation import _territory_term_regions
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.title_signed_cessions: import backend.game_logic.settlement_validation")
         return
     for term in terms or []:
         if not isinstance(term, dict):
@@ -1195,7 +1203,8 @@ def congress_shelters_titles(world, nation_a: str, nation_b: str, reason: str) -
         from backend.game_logic import congress as _congress
         if not _congress.sitting(world):
             return False
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.congress_shelters_titles: import backend.game_logic")
         return False
     return not player_drew_the_sword(world, nation_a, nation_b, reason)
 
@@ -1273,7 +1282,8 @@ def lapse_contested_titles(world) -> List[str]:
     try:
         from backend.game_logic import congress as _congress
         sits = bool(_congress.sitting(world))
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.lapse_contested_titles: import backend.game_logic")
         sits = False
     turn = int(getattr(world, "current_turn", 0) or 0)
     reopened: List[str] = []
@@ -1375,8 +1385,8 @@ def break_signed_titles(world, nation_a: str, nation_b: str,
                             f"({', '.join(sorted(names))}) — counted while "
                             f"the Congress sits."),
             })
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "game_end.break_signed_titles: world.log_event / sorted")
 
 
 def reconcile_province_titles(world) -> None:
@@ -1688,7 +1698,8 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
         return None
     try:
         from backend.game_logic.settlement_validation import _territory_term_regions
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end.note_ratification: import backend.game_logic.settlement_validation")
         return None
     ceded = set()
     gained = set()
@@ -1845,7 +1856,8 @@ def great_powers(world) -> List[str]:
             continue
         try:
             tier = world.get_power_tier(nation)
-        except Exception:
+        except Exception as exc:
+            report(exc, "game_end.great_powers: world.get_power_tier")
             tier = None
         if tier == "major":
             majors.append(nation)
@@ -1858,7 +1870,8 @@ def great_powers(world) -> List[str]:
 def _eliminated(world, nation: str) -> bool:
     try:
         return not world.get_nation_regions(nation)
-    except Exception:
+    except Exception as exc:
+        report(exc, "game_end._eliminated: world.get_nation_regions")
         return False
 
 
@@ -2325,13 +2338,15 @@ def build_exile_story(world, ending: Dict[str, Any],
     def _bond(m) -> int:
         try:
             return int(m.get_relationship(sov_name)) if sov_name else 0
-        except Exception:
+        except Exception as exc:
+            report(exc, "game_end.build_exile_story._bond: int / m.get_relationship")
             return 0
 
     def _trust(m) -> int:
         try:
             return int(m.trust.value)
-        except Exception:
+        except Exception as exc:
+            report(exc, "game_end.build_exile_story._trust: int")
             return 50
 
     free_men = [m for m in ours if not getattr(m, "captured_by", "")]

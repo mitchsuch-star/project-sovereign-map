@@ -44,6 +44,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+from backend import errors as _errors
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CONSTANTS (spec §7 — gate-blessed defaults, in-band tunable; structural
@@ -611,7 +612,8 @@ def mooring_provinces(world) -> frozenset:
                 entry.get("name")
                 for entry in _load_europe_registry()["regions"].values()
                 if "port_anchor" in entry)
-        except Exception:
+        except Exception as exc:
+            _errors.report(exc, "naval.mooring_provinces: import backend.models.region")
             return frozenset()
     return _MOORINGS_CACHE
 
@@ -1101,7 +1103,8 @@ def marshalate_road(world, nation: str) -> str:
         from backend.game_logic.recruitment import (
             RECRUIT_MARSHAL_CORPS, cheapest_commission_if_funded,
             first_affordable_commission)
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "naval.marshalate_road: import backend.game_logic.recruitment")
         return ""
     cand = first_affordable_commission(world, nation)
     if cand:
@@ -3392,7 +3395,8 @@ def expedition_road_chips(world, player: str, yards: List[str],
         from backend.game_logic.recruitment import (
             RECRUIT_MARSHAL_CORPS, cheapest_commission_if_funded,
             check_commission, find_spawn_region, first_affordable_commission)
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "naval.expedition_road_chips: import backend.game_logic.recruitment")
         return chips
     cand = (first_affordable_commission(world, player)
             or cheapest_commission_if_funded(world, player))
@@ -4006,7 +4010,8 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
             try:
                 from backend.commands.state_probe import order_state_refusal
                 _why = order_state_refusal(world, marshal, "land")
-            except Exception:
+            except Exception as exc:
+                _errors.report(exc, "naval.expedition_landing_options: import backend.commands.state_probe")
                 _why = ""
             if _why:
                 row["refusal"] = _why

@@ -87,6 +87,7 @@ import math
 from typing import Dict, List, Optional, Any, Tuple
 
 from .validation import VALID_ACTIONS, VALID_STANCES
+from backend.errors import report
 
 
 # =============================================================================
@@ -1145,7 +1146,8 @@ def build_berthier_recovery_prompt(
     try:
         from backend.ai.llm_client import _counsel_lines
         counsel_lines = [c for c in _counsel_lines(game_state) if c]
-    except Exception:
+    except Exception as exc:
+        report(exc, "prompt_builder.build_berthier_recovery_prompt: import backend.ai.llm_client")
         counsel_lines = []
     counsel_block = "\n".join(f"- {line}" for line in counsel_lines) or "- (none this morning)"
 

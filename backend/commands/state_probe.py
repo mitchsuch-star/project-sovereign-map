@@ -39,6 +39,7 @@ back to their own per-verb fields, as before).
 from __future__ import annotations
 
 from typing import Dict, Optional
+from backend.errors import report
 
 THE_SCREEN_READS_THE_STATE = True
 
@@ -158,8 +159,8 @@ def _battery_reason(world, marshal, action: str, verb: str) -> str:
             from backend.game_logic.fortunes_of_war import wound_refusal
             if wound_refusal(marshal, world, "attack"):
                 return "wounded — he cannot lead an attack"
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "state_probe._battery_reason: import backend.game_logic.fortunes_of_war")
     if getattr(marshal, "retreating", False) and action in ("attack", "fortify", "drill", "scout"):
         turns = _recovery_turns(marshal)
         return f"recovering from a retreat — {turns} turn{'s' if turns != 1 else ''}"

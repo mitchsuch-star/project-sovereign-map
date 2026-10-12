@@ -46,6 +46,7 @@ from backend.models.authority import (  # noqa: F401
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
+from backend.errors import report
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
@@ -1070,7 +1071,8 @@ def _expression_for(world, marshal, target_name: str, fires: int) -> str:
         idx = seeded_int(
             seed, f"jealousy_expression::{marshal.name}::{target_name}"
                   f"::{max(1, int(fires))}", 0, len(bank) - 1)
-    except Exception:
+    except Exception as exc:
+        report(exc, "jealousy._expression_for: import backend.game_logic.campaign_variance")
         idx = max(0, (int(fires) - 1)) % len(bank)
     return bank[idx % len(bank)]
 
@@ -2264,8 +2266,8 @@ def _announce_audience(world, petition: Dict) -> None:
                 collector.add(_n.create_notification(
                     _n.JEALOUSY_CONFRONTATION, _n.NotificationPriority.HIGH,
                     title, message, int(world.current_turn), details))
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "jealousy._announce_audience: str / petition.get")
     _pending_events(world).append({
         "type": "marshal_audience",
         "message": (f"{shown} seeks an audience, Sire — his card waits on the "
@@ -2287,7 +2289,8 @@ def _dismiss_audience_notice(world, petition) -> int:
         return int(collector.dismiss_by_type(
             _audience_notice_type(petition),
             lambda n: (n.get("details") or {}).get("marshal") == speaker))
-    except Exception:
+    except Exception as exc:
+        report(exc, "jealousy._dismiss_audience_notice: int / collector.dismiss_by_type")
         return 0
 
 
@@ -2607,7 +2610,8 @@ def _nation_still_stands(world, nation: str) -> bool:
         return False
     try:
         return nation in (world.get_active_nations() or [])
-    except Exception:
+    except Exception as exc:
+        report(exc, "jealousy._nation_still_stands: world.get_active_nations")
         return True
 
 
@@ -2670,8 +2674,8 @@ def petition_retirement_reason(petition, world) -> str:
         try:
             if world.is_at_war(player, target_nation):
                 return "at_war"
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "jealousy.petition_retirement_reason: world.is_at_war")
         return ""
     if kind == "shadow_command":
         marshal = world.get_marshal(str(context.get("marshal") or
@@ -3357,7 +3361,8 @@ def _frontier_posting(world, marshal) -> str:
             continue
         try:
             d = world.get_distance(marshal.location, region.name)
-        except Exception:
+        except Exception as exc:
+            report(exc, "jealousy._frontier_posting: world.get_distance")
             d = 0
         if d is None:
             continue

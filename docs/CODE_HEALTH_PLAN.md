@@ -497,9 +497,22 @@ CODE-3 + DD-C's session).**
   `test_combat_sweep_metrics`), the CR-1 corpus harness and the tool's pins
   (1,140 together); every touched test file green; `ruff` clean; the full
   suite green on the hook.
-- **Next batch:** the October 2026 levers of batches 1–5 (26 + 56 + 12 + 32 +
-  44) and `THE_LEAGUE_TREATS_WHEN_SPENT` with its staging bundle — the first
-  batch after October 2026 closes. The plan's "done under 40" needs it.
+- **Next batches** (measured at this session's close, `tools/retire_lever.py
+  --list backend`): **batch 6 — NEW, the pre-October levers no batch named:**
+  the `backend/ai/` and `backend/commands/` modules OVER 1,500 lines (batch 1
+  took the ones under) and the top-level / `models/` modules hold **125**
+  (`strategic.py` 19, `clause_guards.py` 15, `question_desk.py` 15,
+  `economy_executor.py` 12, `llm_client.py` 11, `executor.py` 9,
+  `dialogue_routing.py` 7, `disobedience.py` 7, `parser.py` 7,
+  `campaign_log.py` 3, `diplomatic_executor.py` 3, `movement_executor.py` 3,
+  `objection_v2.py` 3, `strategic_executor.py` 3, `dialogue_manager.py` 3, and
+  one each in `meta_executor.py`, `display_names.py`, `intel_report.py`,
+  `authority.py`, `marshal.py`) — the head of S8b; `LITERALS_DRILL_TO_HEAL`
+  (AIDR-D1's decided `False`) and `THE_LEAGUE_TREATS_WHEN_SPENT` (above) are
+  not in it. Then the October 2026 levers of batches 1–5 (26 + 56 + 12 + 32
+  + 44) and `THE_LEAGUE_TREATS_WHEN_SPENT` with its staging bundle — the
+  first batch after October 2026 closes. The plan's "done under 40" needs
+  both.
 
 ## CODE-2 — Split the monster functions into named stages (1 session each)
 
@@ -531,8 +544,11 @@ CODE-3 + DD-C's session).**
 the score arms cover the executor and `main.py`. A split that passes all of
 them byte-for-byte has not changed behaviour. The one hazard the record warns
 about is the function-local import that shadows a module name (F2's
-regression) — the tool `tools/_local_import_census.py` already pins it; run it
-after every move.
+regression) — pinned by `tests/test_ep_f2_the_display_name_pass.py::
+test_the_humaniser_is_the_module_level_name_in_the_combat_executor` (which
+forbids any function-local import inside `_execute_attack`); run it after
+every move. *(Corrected October 12, 2026: this line used to name a
+`tools/_local_import_census.py`, which does not exist.)*
 
 **Done when:** no function over 500 lines in the eight named; the census pin
 caps "functions over 500 lines" at the new count and ratchets down.
@@ -630,6 +646,58 @@ record"; rules `SYSTEMS_REFERENCE.md` §110).**
   reports 0 → 39; logs 28 → 14 (`main.py`'s crash handlers report now).
 - **Next (this session):** the conversion of the remaining 339 by file, the
   normal-play reading, the residue pin — part 2.
+
+**✅ LANDING RECORD, part 2 — October 12, 2026 (Pre-Deploy S7b, the
+session's third commit: the conversion).**
+
+- **The conversion.** `tools/speak_handlers.py --apply` over every
+  `backend/` module but the hand-written four (`save_manager.py`, `main.py`,
+  `runtime_log.py`, `errors.py`): **339 handlers in 66 files**, every file
+  PROVEN before it was written (the insertions taken back out give the
+  original `ast.dump`); `ruff` clean; four modules on the `_errors` alias
+  (`combat_executor`, `strategic`, `naval`, `turn_manager` — each binds
+  `report` itself); one handler named `_exc` (`state_desk.answer_state_question`,
+  where `exc` was already a name); one site per handler, unique across
+  `backend/`, identifier-only. No handler was narrowed — the review's
+  advice (a too-narrow handler is a crash the replay pins cannot see) and
+  the readings below agree: nothing fires in ordinary play to narrow for.
+- **The reading:** silent **345 → 6** (the plan's done-when: under 60) —
+  exactly the residue, named file by file in the ratchet's new
+  `TestEveryBroadExceptSpeaks`: `runtime_log.py` 5 (the console tee —
+  logging writes to stderr, which IS the tee) and `errors.py` 1 (the
+  reporter's own guard). Reports **39 → 378**; every report names its site
+  (a literal, an f-string or a `SaveError`'s `.site`) and no two handlers
+  share one (both pinned). `SILENT_HANDLERS_CAP` **345 → 6**. 0 silent in
+  `save_manager.py`, `world_state.py`, `main.py`, `llm_client.py` and
+  `notifications.py` (DD-C's file pins).
+- **The normal-play reading** (the plan's triage step): five driver
+  campaigns played in-process with the tally dumped after each — the
+  default policy (its passive France falls at turn 34), `commanded_full40`,
+  `sf_end1_the_peace_holds`, `naval_descent`, and `commanded_full40` with
+  `--diplomacy accept` — **0 report sites fired** (a sensitivity arm with
+  `--save-faults` read the save path's four sites, so the zero is a
+  reading). The suite with a shadow-tally plugin: 36 sites — 17 the save
+  path's and the reporter's own deliberate faults, 19 others, every one a
+  planted failure ("test crash", "boom", a deliberate mutation) or a stub
+  world lacking a method (`_Memo`, `object()`); the hottest,
+  `dispatch._front_page_order` (2,039 calls), is one test's stub. Nothing
+  filed, nothing narrowed: the silent class was not hiding a live failure on
+  any road these campaigns walk — which is what the next one would have been.
+- **Found by the suite run, not by the slice:** CRT-9's agreement pin
+  (`test_the_probe_refuses_exactly_what_the_executor_refuses[no_admin-attack]`)
+  flaked with the worker's dice — its case-blind `\bBROKEN\b` matched an
+  attack's own report when the dice broke the ENEMY ("Mack's broken army
+  flees"); the pin now reads the refusal's own words (`\[BROKEN\]`, `army is
+  broken`). None of the ~60 fixed-window source pins the review warned of
+  went red (the full run's only other failure was the ratchet's cap gap).
+- **Gate:** the full suite (30,620 + the new pins) green; `BASELINE_SERIES`
+  + M1–M7 byte-identical with no re-record (the conversion adds no draw and
+  no branch a replay takes); `ruff` clean; the full suite on the hook.
+- **Done when** (§CODE-3): 0 silent handlers in `save_manager.py`,
+  `world_state.py` serialization, `main.py` save/load routes and
+  `llm_client.py` — **MET** (whole files); under 60 elsewhere, each with a
+  `report` site string — **MET** (6, each the residue's); DD-C's injected
+  faults all reach the player — **MET** (40 of 40). **CODE-3 is DONE.**
 
 ## CODE-4 — The docs diet (0.5 session)
 

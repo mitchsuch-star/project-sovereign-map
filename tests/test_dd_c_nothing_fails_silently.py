@@ -451,7 +451,9 @@ class TestTheCensusHolds:
         return census.census()
 
     @pytest.mark.parametrize("path", ["backend/save_manager.py",
+                                      "backend/models/world_state.py",
                                       "backend/main.py",
+                                      "backend/ai/llm_client.py",
                                       "backend/notifications.py"])
     def test_no_silent_handler_in(self, reading, path):
         assert [s for s in reading["silent_sites"]

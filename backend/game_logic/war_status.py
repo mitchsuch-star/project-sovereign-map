@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from backend.display_names import display_nation
 from backend.game_logic.formations import format_progress, formed_display_name
+from backend.errors import report
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 ARMISTICE_AUTO_PEACE_RELATION = -60  # Must match diplomacy.py (G4F-17)
@@ -1062,7 +1063,8 @@ def _evaluate_settlement_eligibility(world, war_id: str) -> Dict[str, Any]:
             ignore_active_dialogue=True,
         )
         return dict(eligibility)
-    except Exception:
+    except Exception as exc:
+        report(exc, "war_status._evaluate_settlement_eligibility: import backend.game_logic.settlement_validation")
         return _blocked("settlement_eligibility_unavailable", war_id=war_id)
 
 
@@ -1087,7 +1089,8 @@ def _evaluate_war_detail_actionability(
             selected_target_nation=selected_target_nation,
             covered_enemy_participants=covered_enemy_participants,
         ))
-    except Exception:
+    except Exception as exc:
+        report(exc, "war_status._evaluate_war_detail_actionability: import backend.game_logic.settlement_routes")
         return {
             "actionable": False,
             "war_id": str(war_id or ""),
@@ -1110,7 +1113,8 @@ def _evaluate_request_terms_state(world: Any, war_id: str) -> Dict[str, Any]:
             evaluate_request_terms_affordance,
         )
         affordance = evaluate_request_terms_affordance(world, war_id)
-    except Exception:
+    except Exception as exc:
+        report(exc, "war_status._evaluate_request_terms_state: import backend.game_logic.settlement_routes")
         affordance = {"state": "absent", "reason": "request_terms_ineligible"}
     entry = (getattr(world, "settlement_terms_requests", None) or {}).get(
         str(war_id or "")

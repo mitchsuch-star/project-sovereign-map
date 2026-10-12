@@ -45,6 +45,7 @@ is the one beat that is entirely the player's own doing.
 """
 
 from typing import Dict, List, Optional
+from backend.errors import report
 
 # ── Blessed constants (in-band tunable; shape changes escalate) ─────────
 SPONSORSHIP_DEFAULT_TURNS = 10      # default term of a directed sponsorship
@@ -161,13 +162,13 @@ def projected_subsidy_streams(world) -> List[Dict]:
         plan = projected_paymaster_subsidy(world)
         if plan:
             streams.append(plan)
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "instruments.projected_subsidy_streams: import backend.game_logic.coalition")
     try:
         from backend.game_logic.congress import projected_london_subsidies
         streams.extend(projected_london_subsidies(world))
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "instruments.projected_subsidy_streams: import backend.game_logic.congress")
     return streams
 
 
@@ -211,7 +212,8 @@ def _pair_aggressor(world, a: str, b: str) -> Optional[str]:
     attribution unknown, and no one may be branded on a guess."""
     try:
         war_ids = world.get_war_instances_by_participant(a)
-    except Exception:
+    except Exception as exc:
+        report(exc, "instruments._pair_aggressor: world.get_war_instances_by_participant")
         return None
     instances = getattr(world, "war_instances", {}) or {}
     for war_id in war_ids:

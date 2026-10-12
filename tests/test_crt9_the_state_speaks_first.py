@@ -125,11 +125,15 @@ COMMANDS = {
 }
 
 # The sentences only a STATE or POOL refusal speaks — an "open" verb must
-# never be answered by one of these.
+# never be answered by one of these. (Pre-Deploy S7b, October 12, 2026: the
+# bare `\bBROKEN\b`, case-blind, also matched an attack's own report when the
+# dice broke the ENEMY — "Mack's broken army flees to Munich!" — so the pin
+# flaked with the worker's dice; a refusal says "[BROKEN] … army is BROKEN"
+# or "… army is broken and cannot …", which the two alternatives below read.)
 _STATE_SENTENCES = re.compile(
     r"Not enough actions|No administrative actions remaining|locked in drill|"
     r"is fortified at|cannot march from his works|recovering from retreat|"
-    r"\bBROKEN\b|army is broken|acting independently|is securing", re.I)
+    r"\[BROKEN\]|army is broken|acting independently|is securing", re.I)
 
 
 def _davout(world):

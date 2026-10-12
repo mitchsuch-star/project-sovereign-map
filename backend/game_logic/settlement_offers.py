@@ -42,6 +42,7 @@ from backend.game_logic.settlement_validation import (
     _side_for_nation,
     get_coverable_enemy_participants,
 )
+from backend.errors import report
 
 
 ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE = "ally_settlement_petition"
@@ -985,7 +986,8 @@ def _ally_material_share(world: Any, war_id: str, ally: str, side: str) -> float
 
     try:
         return float(material_contribution_share(world, war_id, ally, side))
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_offers._ally_material_share: float / material_contribution_share")
         return 0.0
 
 
@@ -998,7 +1000,8 @@ def _ally_has_reward_standing(
 
     try:
         standing = standing_for_participant(world, war_id, ally, side=side)
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_offers._ally_has_reward_standing: standing_for_participant")
         return False
     return standing in ("seat", "consult")
 
@@ -2296,8 +2299,8 @@ def _handle_decline_ally_petition(
         from backend.game_logic.diplomacy import _allocate_episode_id
 
         episode_id = _allocate_episode_id(world, prefix="petition")
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "settlement_offers._handle_decline_ally_petition: import backend.game_logic.diplomacy")
     from backend.game_logic.settlement_reactions import _add_settlement_memory
 
     _add_settlement_memory(
@@ -3623,14 +3626,15 @@ def _is_renewed_war_between(world: Any, payer: str, recipient: str) -> bool:
         try:
             if bool(is_at_war(payer, recipient)):
                 return True
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "settlement_offers._is_renewed_war_between: bool / is_at_war")
     diplomatic_states = getattr(world, "diplomatic_states", None) or {}
     make_key = getattr(world, "_make_diplo_key", None)
     if callable(make_key):
         try:
             key = make_key(payer, recipient)
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_offers._is_renewed_war_between: make_key")
             key = "|".join(sorted([payer, recipient]))
     else:
         key = "|".join(sorted([payer, recipient]))
@@ -3702,7 +3706,8 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
     if callable(get_active_nations):
         try:
             active_nations = {str(n) for n in get_active_nations()}
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_offers.process_recurring_settlement_payments: str / get_active_nations")
             active_nations = None
 
     def _war_label_for(entry: Mapping[str, Any]) -> str:

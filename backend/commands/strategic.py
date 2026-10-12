@@ -27,6 +27,7 @@ from backend.display_names import plural as _plural_lv9  # LV-9 (row EP F2)
 from backend.game_logic.marshal_voice import interrupt_speaker
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 from backend.display_names import order_target_display  # EG-X1: an order's target in prose
+from backend import errors as _errors
 
 
 # SR-6b RS-29: False = the plural phrase.
@@ -296,7 +297,8 @@ def hostile_verb_at_peace(world, marshal, enemy, verb: str) -> str:
     try:
         if world.is_at_war(own, nation):
             return ""
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "strategic.hostile_verb_at_peace: world.is_at_war")
         return ""
     key = world._make_diplo_key(own, nation)
     state = str((getattr(world, "diplomatic_states", {}) or {}).get(key, "PEACE"))
@@ -436,7 +438,8 @@ def _province_seen(world, location: str) -> bool:
     try:
         from backend.models.intel import PARTIAL
         return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "strategic._province_seen: import backend.models.intel")
         return False
 
 

@@ -45,6 +45,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 from backend.display_names import clause_display_name, side_label_display
 
 from backend.models.intel import FULL, PARTIAL, VISIBILITY_PRIORITY
+from backend.errors import report
 
 
 # ---------------------------------------------------------------------------
@@ -655,7 +656,8 @@ def compose_summary_oneliner(
         from backend.game_logic.diplomatic_templates import (
             resolve_settlement_voice_line,
         )
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_presentation.compose_summary_oneliner: import backend.game_logic.diplomatic_templates")
         return fallback
     awe_tags = list(event.get("awe_tags") or [])
     # `standing_summary` keeps the "+N more" overflow signal so the
@@ -739,7 +741,8 @@ def compose_digest_oneliner(event: Mapping[str, Any]) -> str:
         from backend.game_logic.diplomatic_templates import (
             resolve_settlement_voice_line,
         )
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_presentation.compose_digest_oneliner: import backend.game_logic.diplomatic_templates")
         return fallback
     voiced = resolve_settlement_voice_line(
         "settlement_aftermath_digest_talleyrand",
@@ -2124,7 +2127,8 @@ def build_contribution_share_rows(
             compute_standing_inputs,
             standing_for_participant,
         )
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_presentation.build_contribution_share_rows: import backend.game_logic.war_contribution")
         return {"rows": [], "overflow_count": 0}
 
     beneficiaries = _beneficiaries_from_terms(settlement_terms or [])
@@ -2140,7 +2144,8 @@ def build_contribution_share_rows(
             standing = standing_for_participant(
                 world, war_id, nation, side=side,
             )
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_presentation.build_contribution_share_rows: compute_standing_inputs")
             inputs = {}
             standing = "no_standing"
         rows.append({

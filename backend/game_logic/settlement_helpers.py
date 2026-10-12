@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from backend.errors import report
 
 
 # ===========================================================================
@@ -296,7 +297,8 @@ def _open_contribution_episode_for_participant(
             current_episode,
             open_episode,
         )
-    except Exception:  # pragma: no cover — import guard
+    except Exception as exc:  # pragma: no cover — import guard
+        report(exc, "settlement_helpers._open_contribution_episode_for_participant: import backend.game_logic.war_contribution")
         return
     existing = current_episode(world, war_id, nation)
     if existing is not None and existing.get("exited_turn") is None:
@@ -323,7 +325,8 @@ def _close_contribution_episode_for_participant(
         return
     try:
         from backend.game_logic.war_contribution import close_episode_for_exit
-    except Exception:  # pragma: no cover — import guard
+    except Exception as exc:  # pragma: no cover — import guard
+        report(exc, "settlement_helpers._close_contribution_episode_for_participant: import backend.game_logic.war_contribution")
         return
     close_episode_for_exit(
         world,
@@ -1268,7 +1271,8 @@ def _choose_leader_for_side(
     if source == "coalition_leader":
         try:
             from backend.game_logic.coalition import select_coalition_leader
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_helpers._choose_leader_for_side: import backend.game_logic.coalition")
             select_coalition_leader = None  # type: ignore
         if callable(select_coalition_leader):
             picked = select_coalition_leader(members, world)
@@ -1929,7 +1933,8 @@ def archive_terminal_war_instances(world: Any) -> Dict[str, Any]:
             from backend.game_logic.war_contribution import (
                 compact_war_contribution_for_archive,
             )
-        except Exception:  # pragma: no cover — import guard
+        except Exception as exc:  # pragma: no cover — import guard
+            report(exc, "settlement_helpers.archive_terminal_war_instances: import backend.game_logic.war_contribution")
             compact_war_contribution_for_archive = None  # type: ignore
         if compact_war_contribution_for_archive is not None:
             for war_id in archived_ids:

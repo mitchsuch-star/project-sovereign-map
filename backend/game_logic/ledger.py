@@ -23,6 +23,7 @@ from backend.models.world_state import (
     INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE,
     ARTILLERY_RECRUIT_GOLD_COST_BASE,
 )
+from backend.errors import report
 
 
 def build_strategic_ledger(world) -> Dict[str, Any]:
@@ -748,7 +749,8 @@ def _accounts_detail(world, nation: str, econ: dict) -> dict:
     try:
         from backend.game_logic.reforms import laws_in_force
         laws = sorted(str(row.get("name") or "") for row in laws_in_force(world, nation))
-    except Exception:
+    except Exception as exc:
+        report(exc, "ledger._accounts_detail: import backend.game_logic.reforms")
         laws = []
     fleet = None
     if getattr(world, "fleets", None):
@@ -791,7 +793,8 @@ def snapshot_morning_accounts(world) -> None:
         return
     try:
         econ = _build_economy(world, player)
-    except Exception:  # display only (GR6): a world the ledger cannot read
+    except Exception as exc:  # display only (GR6): a world the ledger cannot read
+        report(exc, "ledger.snapshot_morning_accounts: _build_economy")
         return         # keeps no accounts; the morning it rides is untouched
     snap = {"turn": int(world.current_turn), "lines": net_lines(econ),
             "net": int(econ.get("net", 0) or 0),

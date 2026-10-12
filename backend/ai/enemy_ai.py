@@ -63,6 +63,7 @@ from backend.game_logic import withdrawal
 
 # Debug flag - enable with AI_DEBUG=1 env var for detailed AI decision logging
 import os as _os  # noqa: E402
+from backend.errors import report
 AI_DEBUG = _os.environ.get("AI_DEBUG", "").lower() in ("1", "true", "yes")
 
 # AI strategic scoring (Phase 5): every successful autonomous action is
@@ -3250,7 +3251,8 @@ class EnemyAI:
             return 0
         try:
             joining, _ = combat._defender_muster(target, world)
-        except Exception:
+        except Exception as exc:
+            report(exc, "enemy_ai.EnemyAI._muster_price: combat._defender_muster")
             return 0
         # Only the friends who would MARCH: a corps already standing in the
         # target's province is in the field sum the caller prices (the
@@ -6791,7 +6793,8 @@ class EnemyAI:
                 from backend.game_logic.intent import get_nation_intent, rung_index
                 at_war = (rung_index(get_nation_intent(nation, world).price)
                           >= rung_index("coerce"))
-            except Exception:
+            except Exception as exc:
+                report(exc, "enemy_ai.EnemyAI._court_arms_with_its_purse: import backend.game_logic.intent")
                 at_war = False
         force_limit = world.get_force_limit(nation)
         if not force_limit:

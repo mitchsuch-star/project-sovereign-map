@@ -106,6 +106,7 @@ from backend.game_logic.formations import (
     get_template_identity,
     template_provinces,
 )
+from backend.errors import report
 
 # SR-2a (AAR-2, September 26, 2026): the per-court table the player reads is
 # the ratify gate; the leader-level scorer no longer holds a veto
@@ -918,7 +919,8 @@ def _court_demand_suggestions(
     already_allied = False
     try:
         already_allied = bool(world.are_allies(proposer_leader, court))
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_staging._court_demand_suggestions: bool / world.are_allies")
         already_allied = False
     if not already_allied:
         demand_group.append(_guided_suggestion(
@@ -2177,7 +2179,8 @@ def build_settlement_preview(
                 for m in world.get_visible_enemies(getattr(world, "player_nation", "France"))
                 if getattr(m, "nation", "")
             }
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_staging.build_settlement_preview: str / getattr")
             visible_enemy_nations = set()
     review_covered = [
         n for n in covered
@@ -2340,7 +2343,8 @@ def _court_seat(world, court: str) -> str:
     from backend.game_logic.formations import formed_display_name
     try:
         seat = world.get_nation_capital(court)
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_staging._court_seat: world.get_nation_capital")
         seat = ""
     return str(seat or formed_display_name(world, court))
 
@@ -3299,7 +3303,8 @@ def build_settlement_confirm_dialogue(
                 guided_proposer_holdings.update(
                     str(r) for r in world.get_nation_regions(participant)
                 )
-            except Exception:
+            except Exception as exc:
+                report(exc, "settlement_staging.build_settlement_confirm_dialogue: guided_proposer_holdings.update / str")
                 continue
         guided_at_clause_cap = (
             len(staged_terms_for_gate) >= MAX_SETTLEMENT_CLAUSE_COUNT

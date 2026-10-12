@@ -44,6 +44,7 @@ from backend.display_names import display_nation
 from backend.game_logic.agendas import (
     AGENDA_GRUDGE_CAP, _is_vassal, entry_satisfied, survival_override_active,
 )
+from backend.errors import report
 
 logger = logging.getLogger(__name__)
 
@@ -872,7 +873,8 @@ def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
         capital_region.is_capital = True
         try:
             target = int(world.get_capital_garrison_target(tag))
-        except Exception:
+        except Exception as exc:
+            report(exc, "formations._seed_client_roster: int / world.get_capital_garrison_target")
             target = 0
         if target > 0:
             capital_region.garrison_strength = max(

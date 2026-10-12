@@ -24,6 +24,7 @@ from backend.models.world_state import WorldState, VICTORY_REGION_FRACTION
 from backend.commands.strategic import StrategicOrderProcessor
 from backend.utils.debug import debug_print
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
+from backend import errors as _errors
 
 
 def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
@@ -1155,7 +1156,8 @@ class TurnManager:
                     report_entry["end_result"] = end_result
                     debug_print(f"\n  AUTONOMY ENDED: {end_result['message']}")
 
-            except Exception:
+            except Exception as exc:
+                _errors.report(exc, "turn_manager.TurnManager._process_autonomous_marshals: ai.decide_single_action")
                 import traceback
                 debug_print(f"[ERROR] Autonomous marshal {marshal.name} crashed: {traceback.format_exc()}")
                 marshal.autonomy_turns -= 1
@@ -1325,7 +1327,8 @@ class TurnManager:
                 commissioned = []
                 try:
                     commissioned = ai.execute_commission_only(nation, self.world, game_state)
-                except Exception:
+                except Exception as exc:
+                    _errors.report(exc, "turn_manager.TurnManager._process_enemy_turns: ai.execute_commission_only")
                     import traceback
                     debug_print(f"[ERROR] {nation} commission crashed: {traceback.format_exc()}")
                 if commissioned:
@@ -1369,7 +1372,8 @@ class TurnManager:
                                  else [])
                 if admin_results:
                     nation_results.extend(admin_results)
-            except Exception:
+            except Exception as exc:
+                _errors.report(exc, "turn_manager.TurnManager._process_enemy_turns: ai.process_nation_turn")
                 import traceback
                 debug_print(f"[ERROR] {nation} turn crashed: {traceback.format_exc()}")
                 # V2-19: Surface error to player instead of swallowing silently

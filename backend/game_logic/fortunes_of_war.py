@@ -36,6 +36,7 @@ flip lever; `BASELINE_SERIES` was re-recorded once with it attributed.
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+from backend.errors import report
 
 KILLED_PCT = 1
 WOUNDED_PCT = 8
@@ -126,7 +127,8 @@ def roll(world, battle_result: Dict[str, Any], attacker, defender, *,
         if draw < int(KILLED_PCT) + int(WOUNDED_PCT):
             return _wound(world, loser, winner, where)
         return None
-    except Exception:
+    except Exception as exc:
+        report(exc, "fortunes_of_war.roll: losing_lead")
         return None
 
 
@@ -144,8 +146,8 @@ def _wound(world, loser, winner, where: str) -> Dict[str, Any]:
             "until_turn": int(loser.wounded_until_turn),
             "turn": turn,
         })
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "fortunes_of_war._wound: world.log_event / int")
     message = (f"{loser.name} is WOUNDED at {where} — carried from the field, "
                f"out {int(WOUND_TURNS)} turns; his corps stands under its "
                f"colonels.")
@@ -162,14 +164,16 @@ def _kill(world, loser, winner, where: str) -> Dict[str, Any]:
             from_location=str(getattr(loser, "location", "") or ""),
             nation=loser.nation, max_distance=int(TRANSFER_RANGE),
             exclude_marshal=loser.name)
-    except Exception:
+    except Exception as exc:
+        report(exc, "fortunes_of_war._kill: world.find_nearest_marshal_within_range / str")
         found = None
     if found:
         nearest, distance = found
         try:
             nearest.add_troops(men)
             men_to = nearest.name
-        except Exception:
+        except Exception as exc:
+            report(exc, "fortunes_of_war._kill: nearest.add_troops")
             men_to = ""
     loser.strength = 0
     victor = str(getattr(winner, "nation", "") or "")

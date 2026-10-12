@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import re
 from typing import Dict, List, Optional
+from backend.errors import report
 
 # ── the lever ────────────────────────────────────────────────────────────
 
@@ -189,7 +190,8 @@ def _counsel(world, limit: int = 3) -> List[str]:
         from backend.ai.counsel import what_can_i_do
         return list(what_can_i_do(world, getattr(world, "player_nation", None),
                                   limit=limit) or [])
-    except Exception:
+    except Exception as exc:
+        report(exc, "first_contact._counsel: import backend.ai.counsel")
         return []
 
 
@@ -203,7 +205,8 @@ def _standing_order_holder(world) -> Optional[str]:
         for marshal in world.get_player_marshals():
             if getattr(marshal, "strategic_order", None):
                 return humanize_entity_name(marshal.name)
-    except Exception:
+    except Exception as exc:
+        report(exc, "first_contact._standing_order_holder: import backend.display_names")
         return None
     return None
 
@@ -215,7 +218,8 @@ def _endings_armed(world) -> bool:
     try:
         from backend.game_logic.game_end import endings_armed
         return bool(endings_armed(world))
-    except Exception:
+    except Exception as exc:
+        report(exc, "first_contact._endings_armed: import backend.game_logic.game_end")
         return False
 
 
@@ -231,7 +235,8 @@ def _is_open_ended(world) -> bool:
         if _endings_armed(world):
             return False
         return bool(getattr(world, "sandbox_mode", True))
-    except Exception:
+    except Exception as exc:
+        report(exc, "first_contact._is_open_ended: _endings_armed")
         return True
 
 
@@ -271,7 +276,8 @@ def _congress_goal_clause(world) -> tuple[str, bool]:
         turns = int(congress.congress_turns(world))
         capital = world.get_nation_capital(
             getattr(world, "player_nation", "")) or "the capital"
-    except Exception:
+    except Exception as exc:
+        report(exc, "first_contact._congress_goal_clause: import backend.game_logic")
         return "", False
     return (f"The reign is WON at the Congress of Paris, Sire: hold {need} "
             f"TITLED provinces — homeland, ceded by treaty, a client's soil, or "

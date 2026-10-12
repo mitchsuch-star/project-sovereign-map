@@ -35,6 +35,7 @@ import re
 from typing import Dict, List, Optional
 
 from backend.display_names import humanize_entity_name
+from backend.errors import report
 
 A_PROPER_NAME_ASKS = True
 
@@ -155,15 +156,15 @@ def _resolves(world, words: List[str], viewer: Optional[str]) -> bool:
                 return True
             if demonym_to_nation(cand, world):
                 return True
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "proper_name._resolves: import backend.ai.nation_names")
     try:
         from backend.commands import prisoners as _prisoners
         for cand in candidates:
             if _prisoners.prisoner_of(world, cand, viewer) is not None:
                 return True
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "proper_name._resolves: import backend.commands")
     # A province TYPO resolves — "Swabbia" is still corrected (CX3-X3).
     try:
         from backend.commands.parser import _plausible_name_typo
@@ -171,8 +172,8 @@ def _resolves(world, words: List[str], viewer: Optional[str]) -> bool:
             if len(word) >= 4 and any(_plausible_name_typo(word.lower(), r.lower())
                                       for r in regions):
                 return True
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "proper_name._resolves: import backend.commands.parser")
     return False
 
 

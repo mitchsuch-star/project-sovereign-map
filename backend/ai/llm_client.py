@@ -55,6 +55,7 @@ from .clause_guards import (
     strip_reason_clauses,
 )
 from backend.display_names import marshal_title, display_nation  # SF5-X3: the ONE style for a marshal in prose
+from backend.errors import report
 
 # Load environment variables
 load_dotenv()
@@ -407,7 +408,8 @@ def _askable_enemy_names(game_state: Optional[Dict]):
             name for name, tomb in (getattr(world, "fallen_marshals", None) or {}).items()
             if (tomb or {}).get("nation") != player)
         return names
-    except Exception:
+    except Exception as exc:
+        report(exc, "llm_client._askable_enemy_names: world.player_nation")
         return list(_game_state_dict(game_state, "enemies"))
 
 
@@ -448,7 +450,8 @@ def _hostile_first(game_state: Optional[Dict], enemy_names):
         return enemy_names
     try:
         hostile = {m.name for m in world.get_hostile_marshals(world.player_nation)}
-    except Exception:
+    except Exception as exc:
+        report(exc, "llm_client._hostile_first: world.get_hostile_marshals")
         return enemy_names
     from backend.display_names import humanize_entity_name
     at_war = [humanize_entity_name(n) for n in enemy_names if n in hostile]
@@ -884,7 +887,8 @@ def _bench_names(game_state: Optional[Dict]) -> list:
         from backend.game_logic.recruitment import get_marshal_pool
         return [str(c.get("name")) for c in (get_marshal_pool(world, world.player_nation) or [])
                 if c.get("name")]
-    except Exception:
+    except Exception as exc:
+        report(exc, "llm_client._bench_names: import backend.game_logic.recruitment")
         return []
 
 
@@ -906,8 +910,8 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
     names = list(_game_state_dict(game_state, "marshals"))
     try:
         names += list(_askable_enemy_names(game_state) or [])
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "llm_client._question_subjects: list / _askable_enemy_names")
     # Provinces are subjects too — "can Vienna be taken", "could Swabia hold".
     # The map already paints every province name, so this is public by the
     # same rule the question desk states for a province's holder.
@@ -929,8 +933,8 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
                 if adjective and adjective != court:
                     names.append(adjective)
                     names.append(adjective + "s")
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "llm_client._question_subjects: import backend.display_names")
     # CX-7. The roster held the KEY and the game prints the DISPLAY form, so
     # the commanders the player can actually see named — "Archduke Charles",
     # printed everywhere, keyed `ArchdukeCharles` — were exactly the ones the
@@ -944,7 +948,8 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
     for name in names:
         try:
             pretty = humanize_entity_name(str(name))
-        except Exception:
+        except Exception as exc:
+            report(exc, "llm_client._question_subjects: humanize_entity_name / str")
             continue
         if pretty and pretty != name:
             shown.append(pretty)
@@ -991,7 +996,8 @@ def _counsel_lines(game_state: Optional[Dict]) -> list:
         from backend.ai.counsel import what_can_i_do
         return what_can_i_do(world, getattr(world, "player_nation", None),
                              limit=4)
-    except Exception:
+    except Exception as exc:
+        report(exc, "llm_client._counsel_lines: import backend.ai.counsel")
         return []
 
 
@@ -1003,7 +1009,8 @@ def _home_example(game_state: Optional[Dict]) -> str:
     try:
         capital = (world.get_nation_capital(world.player_nation)
                    if world is not None else None)
-    except Exception:
+    except Exception as exc:
+        report(exc, "llm_client._home_example: world.get_nation_capital")
         capital = None
     return str(capital or "Paris")
 
@@ -1032,7 +1039,8 @@ def _place_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
         from backend.commands.strategic import (issuance_road_refusal,
                                                 plot_route)
         from backend.display_names import humanize_entity_name
-    except Exception:
+    except Exception as exc:
+        report(exc, "llm_client._place_suggestion: import backend.commands.strategic")
         return None
     player = getattr(world, "player_nation", None)
     best = None
@@ -1053,7 +1061,8 @@ def _place_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
             rank = (0 if refusal is None else 1, len(road))
             if best is None or rank < best[0]:
                 best = (rank, marshal, refusal)
-    except Exception:
+    except Exception as exc:
+        report(exc, "llm_client._place_suggestion: world.get_player_marshals / getattr")
         return None
     if best is None:
         return (f"Berthier studies the map. \"Sire, I note the reference to "
@@ -1066,7 +1075,8 @@ def _place_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
         try:
             hostile = bool(controller and controller != player
                            and world.is_at_war(player, controller))
-        except Exception:
+        except Exception as exc:
+            report(exc, "llm_client._place_suggestion: bool / world.is_at_war")
             hostile = False
         orders = f"'{name}, move to {target}'"
         if hostile:
@@ -1168,8 +1178,8 @@ def _unresolved_address_token(command_text: str,
             getattr(_world, "player_nation", None)) or {}
         if _fleet.get("admiral"):
             known_forms.add(str(_fleet["admiral"]).lower())
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "llm_client._unresolved_address_token: getattr")
     if token_lower in known_forms:
         return None
     # A single addressed token matching the FIRST word of a multi-word
@@ -1527,8 +1537,8 @@ def _names_a_known_court(command_text: str, game_state) -> bool:
         from backend.game_logic.diplomatic_dialogue import extract_nation_from_command
         if extract_nation_from_command(command_text):
             return True
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "llm_client._names_a_known_court: import backend.game_logic.diplomatic_dialogue")
     low = (command_text or "").lower()
     world = (game_state or {}).get("world") if isinstance(game_state, dict) else None
     own = str(getattr(world, "player_nation", "") or "").lower()
@@ -2283,7 +2293,8 @@ class LLMClient:
         sentence, which the client redirects to the Cabinet."""
         try:
             result = self._parse_with_mock_chain(text, game_state)
-        except Exception:
+        except Exception as exc:
+            report(exc, "llm_client.LLMClient._quoted_order_is_taken: self._parse_with_mock_chain")
             return False
         if result is None or not getattr(result, "matched", False):
             return False
@@ -3202,8 +3213,8 @@ class LLMClient:
                     from .question_desk import own_fallen_names
                     _marshals += [n for n in own_fallen_names(
                         (game_state or {}).get("world")) if n not in _marshals]
-                except Exception:
-                    pass
+                except Exception as exc:
+                    report(exc, "llm_client.LLMClient._chain_question: import question_desk")
                 _enemies = _askable_enemy_names(game_state)
                 _regions = list(_game_state_dict(game_state, "map_data"))
                 _question = classify_question(

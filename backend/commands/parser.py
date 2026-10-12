@@ -46,6 +46,7 @@ from backend.ai.strategic_parser import (
     clause_can_carry_an_arrival, clause_is_a_standing_order,
 )
 from backend.utils.fuzzy_matcher import FuzzyMatcher
+from backend.errors import report
 
 # CR-0: split camelCase scenario keys ("ArchdukeCharles") into their typed
 # word forms when building skip-word sets (mirrors llm_client)
@@ -834,7 +835,8 @@ def _known_court(world, phrase: str):
     wanted = re.sub(r"^the\s+", "", phrase.strip().lower())
     try:
         courts = list(world.get_active_nations())
-    except Exception:
+    except Exception as exc:
+        report(exc, "parser._known_court: list / world.get_active_nations")
         return None
     for court in courts:
         shown = re.sub(r"^the\s+", "", str(display_nation(court)).lower())
@@ -861,8 +863,8 @@ def rewrite_plain_attack_forms(command_text: str, game_state):
         try:
             enemies = [m.name for m in world.marshals.values()
                        if m.nation != world.player_nation] or enemies
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "parser.rewrite_plain_attack_forms: world.marshals.values")
     text = command_text
     changed = False
     from backend.ai.llm_client import name_match_patterns
@@ -954,7 +956,8 @@ def _take_object(world, obj: str, player: Optional[str]):
         if obj.lower() in forms:
             try:
                 at_war = world.is_at_war(player, marshal.nation)
-            except Exception:
+            except Exception as exc:
+                report(exc, "parser._take_object: world.is_at_war")
                 at_war = False
             return ("foe", marshal.name) if at_war else (None, None)
     return None, None
@@ -968,7 +971,8 @@ def _province_is_hostile(world, province: str, player: Optional[str]) -> bool:
             return True
         return any(e.location == province and int(e.strength) > 0
                    for e in world.get_visible_enemies(player))
-    except Exception:
+    except Exception as exc:
+        report(exc, "parser._province_is_hostile: world.is_at_war")
         return False
 
 
@@ -1385,7 +1389,8 @@ def _names_the_admiral(token: str, world) -> bool:
         fleets = getattr(world, "fleets", None) or {}
         record = fleets.get(getattr(world, "player_nation", None)) or {}
         admiral = str(record.get("admiral") or "")
-    except Exception:
+    except Exception as exc:
+        report(exc, "parser._names_the_admiral: getattr")
         return False
     return bool(admiral) and token.strip().lower() == admiral.lower()
 
@@ -1638,7 +1643,8 @@ def _is_targetable_enemy(name: str, world) -> bool:
         return True
     try:
         marshal = world.get_marshal(name)
-    except Exception:
+    except Exception as exc:
+        report(exc, "parser._is_targetable_enemy: world.get_marshal")
         return True
     if marshal is None:
         return True
@@ -1688,7 +1694,8 @@ def _is_nation_demonym(target: Optional[str], world) -> bool:
         return False
     try:
         demonyms = set(_nation_demonyms(world))
-    except Exception:
+    except Exception as exc:
+        report(exc, "parser._is_nation_demonym: set / _nation_demonyms")
         return False
     if not demonyms:
         return False
@@ -1706,7 +1713,8 @@ def _build_fallback_known_enemies() -> List[str]:
     try:
         from backend.models.marshal import create_enemy_marshals
         return list(create_enemy_marshals().keys())
-    except Exception:
+    except Exception as exc:
+        report(exc, "parser._build_fallback_known_enemies: import backend.models.marshal")
         return []
 
 
@@ -3838,6 +3846,7 @@ class CommandParser:
                 return failure
         except Exception as e:
             # Safety net - should never happen but prevents crashes
+            report(e, "parser.CommandParser._parse_text: _find_player_sovereign")
             return {
                 "success": False,
                 "error": f"Parser error: {str(e)}",

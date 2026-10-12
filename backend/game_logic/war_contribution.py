@@ -66,6 +66,7 @@ no per-turn `world.regions.values()` walks. All readers go through
 from __future__ import annotations
 
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from backend.errors import report
 
 
 # ===========================================================================
@@ -1288,7 +1289,8 @@ def _classify_capture_occupation_kind(
         try:
             from backend.models.region import NATION_CAPITALS
             capitals = getattr(world, "nation_capitals", None) or NATION_CAPITALS
-        except Exception:  # pragma: no cover — import guard
+        except Exception as exc:  # pragma: no cover — import guard
+            report(exc, "war_contribution._classify_capture_occupation_kind: import backend.models.region")
             capitals = {}
         if capitals.get(from_controller) == region:
             return "enemy_capital_captured"
@@ -1304,7 +1306,8 @@ def _classify_capture_occupation_kind(
         from backend.models.region import get_starting_controllers
         starting_map = getattr(world, "_starting_controllers", None) or get_starting_controllers()
         starting_controller = starting_map.get(region, "") or ""
-    except Exception:  # pragma: no cover — import guard
+    except Exception as exc:  # pragma: no cover — import guard
+        report(exc, "war_contribution._classify_capture_occupation_kind: import backend.models.region #2")
         starting_controller = ""
     if (
         starting_controller

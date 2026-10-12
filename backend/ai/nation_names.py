@@ -25,6 +25,7 @@ bare names would reclassify `"march to Saxony"` as a generic army order.
 from typing import List, Optional
 
 from backend.display_names import NATION_DISPLAY
+from backend.errors import report
 
 
 def _normalize(text: str) -> str:
@@ -55,14 +56,16 @@ def resolve_typed_nation(text: Optional[str], world) -> Optional[str]:
         try:
             if region_lookup(str(text).strip()) is not None:
                 return None
-        except Exception:
+        except Exception as exc:
+            report(exc, "nation_names.resolve_typed_nation: region_lookup / str")
             return None
     get_nations = getattr(world, "get_active_nations", None)
     if not callable(get_nations):
         return None
     try:
         nations = get_nations() or []
-    except Exception:
+    except Exception as exc:
+        report(exc, "nation_names.resolve_typed_nation: get_nations")
         return None
     wanted = _normalize(text)
     if not wanted:
@@ -110,5 +113,6 @@ def nation_province_list(nation: str, world) -> List[str]:
         return []
     try:
         return sorted(getter(nation) or [])
-    except Exception:
+    except Exception as exc:
+        report(exc, "nation_names.nation_province_list: sorted / getter")
         return []

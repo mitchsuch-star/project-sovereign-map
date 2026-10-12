@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from backend.nation_config import get_player_nation
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.errors import report
 
 
 def _diplomat_name_from_record(record: Any) -> str:
@@ -3576,7 +3577,8 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     try:
         from backend.game_logic.agendas import get_agenda_covets
         agenda_covets = get_agenda_covets(target_nation, world)
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomatic_templates.generate_suggested_terms: import backend.game_logic.agendas")
         agenda_covets = []
     all_coveted = agenda_covets or profile.get("covets_regions", [])
     coveted = [r for r in all_coveted
@@ -3834,7 +3836,8 @@ def _ease_suggestion_until_not_rejected(
         }
         try:
             result = calculate_acceptance(proposal, world)
-        except Exception:
+        except Exception as exc:
+            report(exc, "diplomatic_templates._ease_suggestion_until_not_rejected._verdict: calculate_acceptance")
             return ""
         if isinstance(result, dict):
             return str(result.get("verdict") or result.get("outcome") or "")

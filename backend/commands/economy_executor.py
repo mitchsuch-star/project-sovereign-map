@@ -16,6 +16,7 @@ from backend.models.world_state import (
     LEVY_MORALE_BASE, LEVY_MORALE_PREMIUM, LEVY_MAX_BATCH, severe_band_threshold,
 )
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.errors import report
 
 
 # ── CO-4 (Combat Overhaul Phase 2): cap the per-corps regeneration ──────────
@@ -44,7 +45,8 @@ def region_has_friendly_supply(region) -> bool:
         return True
     try:
         return bool(region.has_building("supply_depot"))
-    except Exception:
+    except Exception as exc:
+        report(exc, "economy_executor.region_has_friendly_supply: bool / region.has_building")
         return False
 
 
@@ -695,8 +697,8 @@ def recruit_remedy(world, nation: Optional[str] = None) -> str:
         text = "March a corps within range, or name one directly."
     try:
         world._recruit_remedy_cache = (key, text)
-    except Exception:  # a frozen/proxy world object — the cache is optional
-        pass
+    except Exception as exc:  # a frozen/proxy world object — the cache is optional
+        report(exc, "economy_executor.recruit_remedy: world._recruit_remedy_cache")
     return text
 
 
@@ -717,7 +719,8 @@ def recruit_arm_remedy(world, nation: str, arm: str,
             try:
                 d = (world.get_distance(m.location, region_name)
                      if region_name else 0)
-            except Exception:
+            except Exception as exc:
+                report(exc, "economy_executor.recruit_arm_remedy._near: world.get_distance")
                 d = 0
             return (d if d is not None and d >= 0 else 999,
                     -int(m.strength), m.name)
@@ -927,7 +930,8 @@ def example_region(world) -> str:
     player's capital is on every board and is always their own soil."""
     try:
         capital = world.get_nation_capital(world.player_nation)
-    except Exception:
+    except Exception as exc:
+        report(exc, "economy_executor.example_region: world.get_nation_capital")
         capital = None
     return str(capital or "Paris")
 

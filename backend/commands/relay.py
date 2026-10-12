@@ -55,6 +55,7 @@ import re
 from typing import Dict, Optional
 
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+from backend.errors import report
 
 # executor.py's `strategic_override_actions` — a same-marshal tail in this set
 # ENDS a live standing order (measured: it wipes the order even on a command
@@ -96,13 +97,13 @@ def _tail_reading(parser, tail: str, llm_game_state) -> Dict:
         action = parsed.action if parsed.action != "unknown" else None
         target = parsed.target
         marshal = parsed.marshals[0] if parsed.marshals else None
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "relay._tail_reading: parser.llm.fast_parse")
     try:
         from backend.ai.strategic_parser import _detect_strategic_type
         strategic_type = _detect_strategic_type(tail.lower())
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "relay._tail_reading: import backend.ai.strategic_parser")
     return {"action": action, "target": target, "marshal": marshal,
             "strategic_type": strategic_type}
 
@@ -215,7 +216,8 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
             try:
                 from backend.commands.strategic import resolve_order_destination
                 dest = resolve_order_destination(world, marshal, order)
-            except Exception:
+            except Exception as exc:
+                report(exc, "relay.build_relay: import backend.commands.strategic")
                 dest = getattr(order, "target", "his destination")
             eta = _eta_turns(marshal, order,
                              int(getattr(world, "current_turn", 0) or 0))
@@ -264,7 +266,8 @@ def second_name_relay_note(world, second: str, order: str, *,
         if marshal is not None:
             try:
                 ap = int(marshal.strategic_order_ap(order_type="SUPPORT"))
-            except Exception:
+            except Exception as exc:
+                report(exc, "relay.second_name_relay_note: int / marshal.strategic_order_ap")
                 ap = 0
             if ap > 0:
                 price = f" ({_plural(ap, 'action')} when sent)"
@@ -305,7 +308,8 @@ def second_name_unneeded(world, second: str, tail_action: Optional[str],
                 from backend.game_logic.dotation import rente_would_change
                 if not rente_would_change(marshal, world):
                     return f"{second}'s expectation is met already — he needs no rente."
-            except Exception:
+            except Exception as exc:
+                report(exc, "relay.second_name_unneeded: import backend.game_logic.dotation")
                 return None
     return None
 

@@ -4,6 +4,7 @@ Vassal Executor — Vassal management commands (R13A)
 Extracted from executor.py: invest_vassal, change_autonomy, make_vassal, release_vassal.
 """
 from typing import Dict
+from backend.errors import report
 
 
 def _court(world, target: str, *, capitalize: bool = False) -> str:
@@ -40,7 +41,8 @@ class VassalExecutor:
             # tail (`DiplomaticExecutor._instrument_preflight`).
             return (f"{_court(world, target, capitalize=True)} no longer "
                     f"exists as a court — it was eliminated. {tail}")
-        except Exception:
+        except Exception as exc:
+            report(exc, "vassal_executor.VassalExecutor._eliminated_court_refusal: getattr")
             return ""
 
     def _execute_invest_vassal(self, command: Dict, game_state: Dict) -> Dict:

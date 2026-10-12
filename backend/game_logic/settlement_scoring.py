@@ -56,6 +56,7 @@ pass the memoized `direct_scores` map.
 from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from backend.errors import report
 
 
 # ===========================================================================
@@ -287,7 +288,8 @@ def compute_direct_scores_by_enemy(
                 continue
             try:
                 at_war = bool(world.is_at_war(member, enemy_str))
-            except Exception:
+            except Exception as exc:
+                report(exc, "settlement_scoring.compute_direct_scores_by_enemy: bool / world.is_at_war")
                 at_war = False
             if not at_war:
                 continue
@@ -897,7 +899,8 @@ def calculate_leader_own_losses(
     if accepting_leader_regions_at_evaluation is None:
         try:
             current_regions = list(world.get_nation_regions(accepting_leader))
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_scoring.calculate_leader_own_losses: list / world.get_nation_regions")
             current_regions = []
     else:
         current_regions = list(accepting_leader_regions_at_evaluation)
@@ -977,7 +980,8 @@ def capital_retained_by_proposer_bloc(
         from backend.game_logic.game_end import great_powers as _great_powers
         if accepting_leader not in set(_great_powers(world)):
             return False
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_scoring.capital_retained_by_proposer_bloc: import backend.game_logic.game_end")
         return False
     getter = getattr(world, "get_settlement_home_capital", None)
     capital = getter(accepting_leader) if callable(getter) else None
@@ -1236,7 +1240,8 @@ def _select_relevant_objective(
     def _objective_at(declarer: str, target: str) -> Optional[Dict[str, Any]]:
         try:
             diplo_key = world._make_diplo_key(declarer, target)
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_scoring._select_relevant_objective._objective_at: world._make_diplo_key")
             diplo_key = "|".join(sorted([declarer, target]))
         record = war_objectives.get(diplo_key, {}).get(declarer)
         if not record:
@@ -1434,7 +1439,8 @@ def calculate_war_objective_alignment(
     score = _clamp(int(score), ALIGN_CLAMP)
     try:
         diplo_key = world._make_diplo_key(declarer, target)
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_scoring.calculate_war_objective_alignment: world._make_diplo_key")
         diplo_key = "|".join(sorted([declarer, target]))
     return {
         "score": int(score),
@@ -1584,7 +1590,8 @@ def calculate_war_exhaustion_component(
             has_active = any(
                 world.is_at_war(accepting_leader, e) for e in covered
             )
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_scoring.calculate_war_exhaustion_component: set")
             has_active = False
         if has_active:
             relevant_we = raw_we
@@ -1813,7 +1820,8 @@ def project_balance_after_settlement(
     for n in actives:
         try:
             nation_regions[n] = set(world.get_nation_regions(n))
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_scoring.project_balance_after_settlement: set / world.get_nation_regions")
             nation_regions[n] = set()
 
     # Snapshot alliance / defensive_alliance pairs (read-only).
@@ -1822,7 +1830,8 @@ def project_balance_after_settlement(
         for m in actives[i + 1:]:
             try:
                 state = world.get_diplomatic_state(n, m)
-            except Exception:
+            except Exception as exc:
+                report(exc, "settlement_scoring.project_balance_after_settlement: world.get_diplomatic_state")
                 state = None
             if state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
                 alignments[tuple(sorted([n, m]))] = state
@@ -1963,12 +1972,14 @@ def _read_current_threat(world: Any) -> int:
     if coalition:
         try:
             return int(coalition.get("threat_level", 0))
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_scoring._read_current_threat: int / coalition.get")
             return 0
     if hasattr(world, "threat_level"):
         try:
             return int(world.threat_level or 0)
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_scoring._read_current_threat: int")
             return 0
     return 0
 
@@ -2268,7 +2279,8 @@ def calculate_common_peace_acceptance(
                 continue
             try:
                 key = world._make_diplo_key(declarer, enemy)
-            except Exception:
+            except Exception as exc:
+                report(exc, "settlement_scoring.calculate_common_peace_acceptance: world._make_diplo_key")
                 key = "|".join(sorted([declarer, enemy]))
             obj = war_objectives_global.get(key, {}).get(declarer)
             if obj and obj.get("concluded_turn") is None:
@@ -2334,7 +2346,8 @@ def calculate_common_peace_acceptance(
     if current_turn is None:
         try:
             current_turn = int(getattr(world, "current_turn", 0) or 0)
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_scoring.calculate_common_peace_acceptance: int / getattr")
             current_turn = 0
     abandoned_debug = calculate_abandoned_by_ally_mod(
         war_instance,

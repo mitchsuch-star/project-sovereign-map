@@ -7,6 +7,7 @@ R7 — Architecture Refactoring Session 6.
 """
 
 import re
+from backend.errors import report
 
 # ============================================================================
 # ACTION DISPLAY — player-facing verb form (3rd person present)
@@ -1314,8 +1315,8 @@ def ally_entry_block_line(
             try:
                 from backend.game_logic.formations import formed_display_name
                 return formed_display_name(world, tag)
-            except Exception:
-                pass
+            except Exception as exc:
+                report(exc, "display_names.ally_entry_block_line._name: import backend.game_logic.formations")
         return display_nation(tag)
 
     return template.format(

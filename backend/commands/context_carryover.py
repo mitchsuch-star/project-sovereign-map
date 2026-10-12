@@ -46,6 +46,7 @@ import re
 
 from backend.ai.attack_vocabulary import targeting_anchor_words
 from backend.ai.clause_guards import HONORIFIC
+from backend.errors import report
 
 # Actions that are not a repeatable field "order" — "again"/"not you" skip
 # past them to the last real command (checking status then typing "again"
@@ -384,7 +385,8 @@ def _readdress_command(marshal_name: str, entry: Dict) -> str:
 def _field_marshal_names(world) -> List[str]:
     try:
         return [m.name for m in world.get_field_marshals()]
-    except Exception:
+    except Exception as exc:
+        report(exc, "context_carryover._field_marshal_names: world.get_field_marshals")
         return []
 
 

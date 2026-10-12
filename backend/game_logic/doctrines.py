@@ -25,6 +25,7 @@ on the marshal (`_doctrine_terms`, RV-6) with ONE writer
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
+from backend.errors import report
 
 # ── Levers ────────────────────────────────────────────────────────────────────
 DOCTRINES_ACTIVE = True
@@ -244,8 +245,8 @@ def character_keeps_him_away(reinforcer, primary) -> bool:
     try:
         if reinforcer.get_relationship(primary.name) <= -2:
             return True
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "doctrines.character_keeps_him_away: reinforcer.get_relationship")
     return False
 
 
@@ -312,8 +313,8 @@ def supply_ground(world, nation: str, region, forecast: bool = True,
         try:
             if world.get_diplomatic_state(nation, controller) in world.ALLY_SUPPLY_STATES:
                 return None
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "doctrines.supply_ground: world.get_diplomatic_state")
     stripped_at = float(c.get("stripped_at", 0.25) or 0.25)
     damage = forward_war_damage(region, forecast, extra_damage)
     poor = name in set(poor_country(world))

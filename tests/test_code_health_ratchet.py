@@ -9,7 +9,9 @@ The caps are the plan's gains; this is what keeps them from leaking back.
 
     levers               CODE-1 retires them in batches; done under 40
     functions over 500   CODE-2 splits them; done when the eight named are staged
-    silent handlers      CODE-3 makes every broad except speak; done under 60
+    silent handlers      CODE-3 made every broad except speak (October 12,
+                         2026): 367 -> 6, the residue named file by file
+                         in TestEveryBroadExceptSpeaks
     CLAUDE.md bytes      CODE-4's diet; the cap is the dieted size
 """
 from __future__ import annotations
@@ -23,10 +25,10 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 from tools import _code_health_census as census_tool  # noqa: E402
 
-# ── the caps: the reading after CODE-3 slice 1 + DD-C (October 12, 2026); lower-only ──
+# ── the caps: the reading after CODE-3's conversion (October 12, 2026); lower-only ──
 LEVERS_CAP = 358
 FUNCTIONS_OVER_500_CAP = 34
-SILENT_HANDLERS_CAP = 345
+SILENT_HANDLERS_CAP = 6
 CLAUDE_MD_BYTES_CAP = 62_000
 STATUS_MD_BYTES_CAP = 200_000
 
@@ -119,3 +121,42 @@ class TestTheInstrumentSeesWhatItCaps:
         assert not census_tool.is_site_string(census_tool.site_of(call))
         call = ast.parse("report(exc, f'{a}.b: c')").body[0].value
         assert census_tool.is_site_string(census_tool.site_of(call))
+
+
+class TestEveryBroadExceptSpeaks:
+    """CODE-3 (Pre-Deploy S7b, October 12, 2026): `except Exception` is
+    allowed only through `backend/errors.py`. The residue below is the whole
+    of what may stay silent, by file, each with its reason; a new silent
+    handler anywhere else fails here by name."""
+
+    RESIDUE = {
+        # the console tee: logging writes to stderr, which IS the tee
+        "backend/runtime_log.py": 5,
+        # the reporter's own guard: the one handler that cannot report
+        "backend/errors.py": 1,
+    }
+
+    def test_no_silent_handler_outside_the_residue(self, reading):
+        outside = [s for s in reading["silent_sites"]
+                   if s[0].replace("\\", "/") not in self.RESIDUE]
+        assert outside == [], outside[:20]
+
+    def test_the_residue_is_what_it_says(self, reading):
+        by_file = {}
+        for f, _line, _fn in reading["silent_sites"]:
+            by_file[f.replace("\\", "/")] = by_file.get(f.replace("\\", "/"), 0) + 1
+        for path, n in self.RESIDUE.items():
+            assert by_file.get(path, 0) <= n, (path, by_file.get(path, 0))
+
+    def test_every_report_names_its_site(self, reading):
+        """A site is the words a log line and the tally are keyed on: a
+        string literal, an f-string, or a `SaveError`'s own `.site`."""
+        bad = [c for c in reading["report_calls"]
+               if c[3] not in ("Constant", "JoinedStr", "Attribute")
+               or (c[3] == "Constant" and not (c[2] or "").strip())]
+        assert bad == [], bad[:10]
+
+    def test_no_two_handlers_share_a_site(self, reading):
+        from collections import Counter
+        literal = Counter(c[2] for c in reading["report_calls"] if c[2])
+        assert [s for s, n in literal.items() if n > 1] == []

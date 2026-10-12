@@ -50,6 +50,7 @@ from typing import Dict, List, Optional, Tuple
 from backend.ai.attack_vocabulary import levered_arrival_pattern
 from backend.ai.clause_guards import HONORIFIC, condition_marker_spans
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+from backend.errors import report
 
 WORD_NUMBERS: Dict[str, int] = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
@@ -132,15 +133,16 @@ def _resolve_marshal(name: str, world):
     wanted = name.strip().lower()
     try:
         from backend.ai.llm_client import name_match_patterns
-    except Exception:  # pragma: no cover — import guard for cold unit calls
+    except Exception as exc:  # pragma: no cover — import guard for cold unit calls
+        report(exc, "condition_grammar._resolve_marshal: import backend.ai.llm_client")
         name_match_patterns = None
     for m in (getattr(world, "marshals", {}) or {}).values():
         forms = {m.name.lower()}
         if name_match_patterns is not None:
             try:
                 forms.update(f.lower() for f in name_match_patterns(m.name))
-            except Exception:
-                pass
+            except Exception as exc:
+                report(exc, "condition_grammar._resolve_marshal: forms.update / f.lower")
         if wanted in forms:
             return m
     return None
@@ -648,7 +650,8 @@ def premise_refusal(world, premise: Optional[Dict]) -> Optional[str]:
                 f"prisoner — nothing has been relayed.")
     try:
         seen = world.get_region_intel(enemy.location).visibility_at_least(PARTIAL)
-    except Exception:
+    except Exception as exc:
+        report(exc, "condition_grammar.premise_refusal: world.get_region_intel")
         seen = False
     if not seen:
         return (f"The order rested on {rested}, Sire, and we have no "

@@ -44,6 +44,7 @@ from backend.models.dialogue_manager import DialogueManager
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
+from backend.errors import report
 
 # Slice-9 review round, R1-2 (September 5, 2026): the redemption answer
 # `administrative_role` zeroes the man's strength and location by design
@@ -193,7 +194,8 @@ def _drill_refusal_short(world, marshal) -> str:
     try:
         from backend.commands.tactical_executor import drill_refusal
         return drill_refusal(world, marshal)[1]
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._drill_refusal_short: import backend.commands.tactical_executor")
         return ""
 
 
@@ -203,7 +205,8 @@ def _fortify_refusal_short(world, marshal) -> str:
     try:
         from backend.commands.tactical_executor import fortify_refusal
         return fortify_refusal(world, marshal)[1]
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._fortify_refusal_short: import backend.commands.tactical_executor")
         return ""
 
 
@@ -224,7 +227,8 @@ def _order_gate_short(world, marshal, verb: str) -> str:
         if verb == "garrison":
             from backend.commands.economy_executor import EconomyExecutor
             return EconomyExecutor.garrison_refusal(world, marshal)[1]
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._order_gate_short: unfortify_refusal")
         return ""
     return ""
 
@@ -247,7 +251,8 @@ def _passable_nations(world) -> list:
             n for n in nations
             if n and can_enter_territory(world, player, n,
                                          ignore_evacuation=True))
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._passable_nations: import backend.game_logic.diplomacy")
         return []
 
 
@@ -256,7 +261,8 @@ def _order_refusals(world, marshal) -> Dict:
     try:
         from backend.commands.state_probe import order_refusals
         return order_refusals(world, marshal)
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._order_refusals: import backend.commands.state_probe")
         return {}
 
 
@@ -272,7 +278,8 @@ def _scout_range_of(marshal) -> int:
     try:
         from backend.commands.movement_executor import scout_range
         return int(scout_range(marshal))
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._scout_range_of: import backend.commands.movement_executor")
         return 0
 
 
@@ -282,7 +289,8 @@ def _move_open_of(world, marshal) -> list:
     try:
         from backend.commands.movement_executor import move_open
         return list(move_open(world, marshal))
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._move_open_of: import backend.commands.movement_executor")
         return []
 
 
@@ -664,7 +672,8 @@ def _faltering_trust_riders(world, marshal) -> str:
     if tracker is not None and hasattr(tracker, "get_trust_gain_modifier"):
         try:
             modifier = float(tracker.get_trust_gain_modifier())
-        except Exception:
+        except Exception as exc:
+            report(exc, "world_state._faltering_trust_riders: float / tracker.get_trust_gain_modifier")
             modifier = 1.0
     if modifier < 1.0:
         riders.append(
@@ -677,8 +686,8 @@ def _faltering_trust_riders(world, marshal) -> str:
                 world, marshal.nation, marshal)
             if remedy:
                 riders.append(remedy.rstrip(". "))
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "world_state._faltering_trust_riders: import backend.game_logic")
     if not riders:
         return ""
     return " (" + "; ".join(riders) + ")"
@@ -1042,7 +1051,8 @@ def _reconcile_saved_adjacency(regions: Dict[str, "Region"]) -> int:
         return 0
     try:
         live = create_europe_regions()
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._reconcile_saved_adjacency: create_europe_regions")
         return 0
     if any(name not in live for name in regions):
         return 0  # not the registry's world — the SAVE is the source
@@ -1159,7 +1169,8 @@ def _registry_world(regions: Dict[str, "Region"]) -> bool:
         return False
     try:
         live = create_europe_regions()
-    except Exception:
+    except Exception as exc:
+        report(exc, "world_state._registry_world: create_europe_regions")
         return False
     return all(name in live for name in regions)
 
@@ -2715,6 +2726,7 @@ class WorldState:
                 self.hegemony_signal_high_water = _hegemony_signal_band(share)
                 self.hegemony_signal_hegemon = hegemon
         except Exception as exc:
+            report(exc, "world_state.WorldState._bootstrap_hegemony_signal_state: import backend.game_logic.coalition")
             from backend.utils.debug import debug_print
             debug_print(
                 f"[HEGEMONY] bootstrap seed failed on turn "
@@ -8291,7 +8303,8 @@ class WorldState:
 
         try:
             max_bonus = get_max_fortify_bonus(personality)
-        except Exception:
+        except Exception as exc:
+            report(exc, "world_state.WorldState._get_fortify_state: get_max_fortify_bonus")
             max_bonus = 0.15  # Default
 
         decay_settings = FORTIFY_DECAY_CONFIG.get(personality, FORTIFY_DECAY_DEFAULT)
@@ -10734,7 +10747,8 @@ class WorldState:
                 if nearest.get("ok"):
                     price_here = int(nearest.get("price", 0))
             return {"arms": arms, "price_here": price_here}
-        except Exception:
+        except Exception as exc:
+            report(exc, "world_state.WorldState._region_recruit_block: import backend.commands.economy_executor")
             return {}
 
     def _region_substitute_block(self, region) -> Dict:
@@ -10750,7 +10764,8 @@ class WorldState:
                     and not region_feeds_nation(self, nation, region)):
                 return {}
             return substitute_quote(self, region.name, nation=nation)
-        except Exception:
+        except Exception as exc:
+            report(exc, "world_state.WorldState._region_substitute_block: import backend.commands.economy_executor")
             return {}
 
     def _region_substitute_price(self, region) -> int:
@@ -10779,7 +10794,8 @@ class WorldState:
                 base_cost=levy_substitute_price(self, nation),
                 nation=nation, marshal=marshal,
                 foreign_soil=(region.controller != nation), draft=False))
-        except Exception:
+        except Exception as exc:
+            report(exc, "world_state.WorldState._region_substitute_price: import backend.commands.economy_executor")
             return 0
 
     def _doctrine_supply_mark(self, region) -> Optional[dict]:
@@ -13012,8 +13028,8 @@ class WorldState:
             from backend.game_logic.withdrawal import open_evacuation_corridor
             if final_state not in ("WAR",):
                 open_evacuation_corridor(self, proposer, target_nation)
-        except Exception:
-            pass
+        except Exception as exc:
+            report(exc, "world_state.WorldState._ratify_treaty: import backend.game_logic.withdrawal")
 
         # AI-5b(ii) beat 5 — THE VOLTE-FACE: an ALLIANCE just landed on
         # this pair; if either party was a beaten-then-courted great power

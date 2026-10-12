@@ -24,6 +24,7 @@ from backend.game_logic.intent import (
     build_france_mirror_payload,
     build_intent_payload,
 )
+from backend.errors import report
 
 
 def _build_instruments_line(nation: str, world):
@@ -349,7 +350,8 @@ def _build_bloc_stamp_context(world) -> Dict[str, Any]:
         context["share"] = float(share)
         context["bloc_info"] = describe_hegemon_bloc(world, hegemon, float(share))
         context["bloc_members"] = set(world.get_bloc_members(hegemon))
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomatic_ledger._build_bloc_stamp_context: import backend.game_logic.coalition")
         return context
     return context
 
@@ -1114,7 +1116,8 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         active_nations = world.get_active_nations()
         total_power = int(sum(power_score(n, world) for n in active_nations))
         hegemon_power = int(bloc_power(hegemon, world)) if hegemon else 0
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomatic_ledger._build_balance_of_europe: _identify_max_bloc_share")
         hegemon, share = None, 0.0
     band = _hegemony_signal_band(float(share)) if hegemon else 0
     bloc_info = describe_hegemon_bloc(world, hegemon, float(share)) if hegemon else {
@@ -1127,7 +1130,8 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     if hegemon:
         try:
             bloc_members = list(world.get_bloc_members(hegemon))
-        except Exception:
+        except Exception as exc:
+            report(exc, "diplomatic_ledger._build_balance_of_europe: list / world.get_bloc_members")
             bloc_members = [hegemon]
 
     coalition = getattr(world, 'active_coalition', None)

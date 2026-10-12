@@ -36,6 +36,7 @@ from backend.game_logic.diplomacy import (
 )
 from backend.game_logic.diplomatic_dialogue import get_game_bucket
 from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
+from backend.errors import report
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1678,8 +1679,8 @@ def _covered_members_envoy_pending(world, war: Dict, *, player: str) -> bool:
         queued.append(head)
     try:
         queued.extend(dm.iter_queue())
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "ai_diplomacy._covered_members_envoy_pending: queued.extend / dm.iter_queue")
     for dlg in queued:
         if not isinstance(dlg, dict) or dlg.get("type") != "incoming_proposal":
             continue
@@ -2196,6 +2197,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                                 OFFER_VASSALAGE_COOLDOWN_TURNS)
                             _set_cooldowns(world, cooldowns)
         except Exception as exc:
+            report(exc, "ai_diplomacy.process_diplomatic_phase: import backend.game_logic.coalition")
             from backend.utils.debug import debug_print
             debug_print(
                 f"[HEGEMONY] bandwagon evaluation failed for {nation} on "
@@ -3057,7 +3059,8 @@ def _payer_gold(world, payer_nation: str) -> int:
     """
     try:
         return int(getattr(world, 'nation_gold', {}).get(payer_nation, 0))
-    except Exception:
+    except Exception as exc:
+        report(exc, "ai_diplomacy._payer_gold: int / getattr")
         return 0
 
 
@@ -4561,7 +4564,8 @@ def _letter_would_carry(world, war_id: str, war: Dict, *, player: str,
             settlement_terms=list(terms),
             consenting_courts=list(covered),
         )
-    except Exception:
+    except Exception as exc:
+        report(exc, "ai_diplomacy._letter_would_carry: import backend.game_logic.settlement_baseline")
         return True
     return bool((view.get("overall_acceptance") or {}).get("carries"))
 
@@ -4628,7 +4632,8 @@ def _emit_settlement_offer_for_war(
         elif proposer_nation:
             player_war_score = int(get_war_score_for(
                 world, player, proposer_nation))
-    except Exception:
+    except Exception as exc:
+        report(exc, "ai_diplomacy._emit_settlement_offer_for_war: len / int")
         player_war_score = 0
 
     terms = _settlement_offer_build_terms(

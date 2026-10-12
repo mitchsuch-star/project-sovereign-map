@@ -30,6 +30,7 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.commands.objection_v2 import REGION_FORTIFICATION_DEFENSE_BONUS
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
+from backend import errors as _errors
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -3662,7 +3663,8 @@ class CombatExecutor:
             fate = fortunes_of_war.roll(
                 world, battle_result, attacker, defender,
                 field=str(getattr(defender, "location", "") or ""))
-        except Exception:
+        except Exception as exc:
+            _errors.report(exc, "combat_executor.CombatExecutor._handle_forced_retreat: import backend.game_logic")
             fate = None
         if fate and fate.get("message"):
             battle_result["fortunes_of_war"] = dict(fate)
@@ -4998,8 +5000,8 @@ class CombatExecutor:
                         turn_created=int(getattr(world, "current_turn", 0)),
                         details={"marshal": marshal.name},
                     ))
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _errors.report(exc, "combat_executor.CombatExecutor._check_marshal_fate: import backend.notifications")
                 if _guard_spent:
                     return (f"[!] {marshal.name}'s Guard is SPENT at "
                             f"{marshal.location} — awaiting your word: fight "
@@ -5064,8 +5066,8 @@ class CombatExecutor:
                     turn_created=int(getattr(world, "current_turn", 0)),
                     details={"marshal": marshal.name},
                 ))
-            except Exception:
-                pass
+            except Exception as exc:
+                _errors.report(exc, "combat_executor.CombatExecutor._check_marshal_fate: import backend.notifications #2")
             return (f"[!] {marshal.name} is CORNERED at {marshal.location} "
                     f"— awaiting your word: fight to the last, or attempt "
                     f"a breakout.")

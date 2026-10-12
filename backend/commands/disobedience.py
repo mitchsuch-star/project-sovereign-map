@@ -18,6 +18,7 @@ from typing import Dict, Optional, List, Tuple
 import random
 from backend.commands.severity import calculate_objection_severity
 from backend.models.personality import Personality, get_personality
+from backend.errors import report
 
 
 # Maximum objection popups per turn (cascade breaker — do NOT remove).
@@ -696,7 +697,8 @@ def _war_is_over(world) -> bool:
     try:
         from backend.game_logic.game_end import terminal_ending
         return world is not None and terminal_ending(world) is not None
-    except Exception:
+    except Exception as exc:
+        report(exc, "disobedience._war_is_over: import backend.game_logic.game_end")
         return False
 
 

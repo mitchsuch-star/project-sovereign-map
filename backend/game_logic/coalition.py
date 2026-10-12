@@ -29,6 +29,7 @@ from backend.game_logic.commitments_routing import (
     commitments_notice_details,
     format_commitments_notice,
 )
+from backend.errors import report
 
 # ════════════════════════════════════════════════════════════════
 # CONSTANTS
@@ -602,6 +603,7 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
     try:
         hegemon, share = _identify_max_bloc_share(world)
     except Exception as exc:
+        report(exc, "coalition._check_hegemony_band_crossing: _identify_max_bloc_share")
         from backend.utils.debug import debug_print
         debug_print(
             f"[HEGEMONY] band-crossing identify failed ({caller}): {exc}"
@@ -737,6 +739,7 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
         world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
         world.notifications.dismiss_by_type(COALITION_MURMURS)
     except Exception as exc:
+        report(exc, "coalition._check_hegemony_band_crossing: world.notifications.add / create_notification")
         from backend.utils.debug import debug_print
         debug_print(
             f"[HEGEMONY] failed to emit balance_of_europe_shifted "
@@ -780,6 +783,7 @@ def _emit_relaxation_aside(world) -> bool:
     try:
         hegemon, share = _identify_max_bloc_share(world)
     except Exception as exc:
+        report(exc, "coalition._emit_relaxation_aside: _identify_max_bloc_share")
         from backend.utils.debug import debug_print
         debug_print(
             f"[HEGEMONY] relaxation identify failed on turn "
@@ -824,6 +828,7 @@ def _emit_relaxation_aside(world) -> bool:
             "always",
         )
     except Exception as exc:
+        report(exc, "coalition._emit_relaxation_aside: import backend.game_logic.dispatch")
         from backend.utils.debug import debug_print
         debug_print(
             f"[HEGEMONY] failed to queue relaxation aside for "
@@ -1443,7 +1448,8 @@ def armed_peace_watch_label(world, reading: Dict[str, Any]) -> str:
     hegemon = str(reading.get("hegemon") or "")
     try:
         adjective = nation_adjective(hegemon) if hegemon else "the hegemon's"
-    except Exception:
+    except Exception as exc:
+        report(exc, "coalition.armed_peace_watch_label: nation_adjective")
         adjective = hegemon
     pct = int(round(float(reading.get("share", 0.0)) * 100))
     return (f"Europe watches — the {adjective} bloc leads {pct}% of Europe's "
@@ -3505,6 +3511,7 @@ def process_coalition_turn(world) -> List[Dict]:
     try:
         _check_hegemony_band_crossing(world, caller="process_coalition_turn:end")
     except Exception as exc:
+        report(exc, "coalition.process_coalition_turn: _check_hegemony_band_crossing")
         from backend.utils.debug import debug_print
         debug_print(
             f"[HEGEMONY] end-of-turn band-crossing check failed on "
@@ -3514,6 +3521,7 @@ def process_coalition_turn(world) -> List[Dict]:
     try:
         _emit_relaxation_aside(world)
     except Exception as exc:
+        report(exc, "coalition.process_coalition_turn: _emit_relaxation_aside")
         from backend.utils.debug import debug_print
         debug_print(
             f"[HEGEMONY] end-of-turn relaxation check failed on "
@@ -3527,6 +3535,7 @@ def process_coalition_turn(world) -> List[Dict]:
             world.hegemony_signal_hegemon = None
             world.hegemony_relaxation_bands_fired = set()
     except Exception as exc:
+        report(exc, "coalition.process_coalition_turn: _identify_max_bloc_share")
         from backend.utils.debug import debug_print
         debug_print(
             f"[HEGEMONY] end-of-turn reset-below-33 check failed on "

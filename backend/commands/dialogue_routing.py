@@ -34,6 +34,7 @@ from backend.ai.clause_guards import (
     negation_marker_spans,
     strip_negated_clauses,
 )
+from backend.errors import report
 
 # ── The verb→action table, lifted verbatim out of
 # `handle_diplomatic_dialogue_response` so the gate in main.py and the
@@ -748,7 +749,8 @@ def _closed_known_court_forms() -> List[str]:
         for tag in tags:
             try:
                 forms |= {_closed_normalised(f) for f in _addressee_forms(tag)}
-            except Exception:
+            except Exception as exc:
+                report(exc, "dialogue_routing._closed_known_court_forms: _closed_normalised / _addressee_forms")
                 continue
         _KNOWN_COURT_FORMS = sorted((f for f in forms if f), key=len, reverse=True)
     return _KNOWN_COURT_FORMS
@@ -1801,7 +1803,8 @@ def courts_addressed_in(text: str, world) -> List[str]:
         return []
     try:
         nations = list(get_nations() or [])
-    except Exception:
+    except Exception as exc:
+        report(exc, "dialogue_routing.courts_addressed_in: list / get_nations")
         return []
     player = str(getattr(world, "player_nation", "") or "")
     prepositions = "|".join(_ADDRESSEE_PREPOSITIONS)
@@ -1944,7 +1947,8 @@ def _queued_matter_dialogues(world, predicate) -> List[dict]:
         return []
     try:
         queued = list(manager.iter_queue() or [])
-    except Exception:
+    except Exception as exc:
+        report(exc, "dialogue_routing._queued_matter_dialogues: list / manager.iter_queue")
         return []
     return [d for d in queued if isinstance(d, dict) and predicate(d)]
 
@@ -1983,7 +1987,8 @@ def _line_is_answer_shaped(typed: str, world) -> bool:
     if callable(get_nations):
         try:
             nations = list(get_nations() or [])
-        except Exception:
+        except Exception as exc:
+            report(exc, "dialogue_routing._line_is_answer_shaped: list / get_nations")
             nations = []
     # Pass 3, behind A_PETITION_IS_ANSWERED_PLAINLY — the shape gate knows
     # the plain grammar's own vocabulary, so the SAME line is not a priced
@@ -2232,7 +2237,8 @@ def _queued_court_summary(world, courts: List[str]) -> tuple:
         return ("", "", "it")
     try:
         items = manager.get_mailbox_items() or []
-    except Exception:
+    except Exception as exc:
+        report(exc, "dialogue_routing._queued_court_summary: manager.get_mailbox_items")
         return ("", "", "it")
     hits = [
         item for item in items

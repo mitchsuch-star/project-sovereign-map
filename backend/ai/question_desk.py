@@ -51,6 +51,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 from backend.ai.clause_guards import HONORIFIC
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.errors import report
 
 # Flip lever: False makes classify_question() return None for everything, so
 # every question falls back to the pre-slice `help` route byte-for-byte.
@@ -243,7 +244,8 @@ def _court(world, nation: str) -> str:
     try:
         from backend.game_logic.formations import formed_display_name
         return formed_display_name(world, nation)
-    except Exception:
+    except Exception as exc:
+        report(exc, "question_desk._court: import backend.game_logic.formations")
         return str(nation)
 
 
@@ -1147,7 +1149,8 @@ def _banner_rows(world):
     try:
         from backend.game_logic.war_status import build_active_wars
         data = build_active_wars(world) or {}
-    except Exception:
+    except Exception as exc:
+        report(exc, "question_desk._banner_rows: import backend.game_logic.war_status")
         return [], None
     return list(data.get("wars") or []), data.get("coalition")
 
@@ -1206,7 +1209,8 @@ def _answer_winning(world, player: str) -> Optional[str]:
     try:
         foes = sorted({m.nation for m in world.marshals.values()
                        if m.nation != player and world.is_at_war(player, m.nation)})
-    except Exception:
+    except Exception as exc:
+        report(exc, "question_desk._answer_winning: sorted / world.marshals.values")
         foes = []
     if not foes:
         return (f"We are at war with no one, Sire. "
@@ -1454,7 +1458,8 @@ def _answer_alarm(world, player: str) -> str:
             label = _threat_source_label(world, str(s.get("source") or ""))
             if label and amount:
                 sources.append(f"{label} ({'+' if amount > 0 else ''}{amount})")
-    except Exception:
+    except Exception as exc:
+        report(exc, "question_desk._answer_alarm: import backend.game_logic.diplomatic_ledger")
         sources = []
     if sources:
         head += f" This turn it is fed by {', '.join(sources[:4])}."
@@ -1463,8 +1468,8 @@ def _answer_alarm(world, player: str) -> str:
         nxt = int(forecast.get("next", level))
         if nxt != level:
             head += f" The next tick reads {nxt}."
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "question_desk._answer_alarm: C.forecast_alarm_tick")
     if formed:
         head += " A coalition stands against us already."
     elif _league_is_read():
@@ -1536,7 +1541,8 @@ def _answer_reach_by_the_march(world, player: str, marshal, shown: str,
     for region in road:
         try:
             seen = world.get_region_intel(region).visibility in (FULL, PARTIAL)
-        except Exception:
+        except Exception as exc:
+            report(exc, "question_desk._answer_reach_by_the_march: world.get_region_intel")
             seen = False
         if not seen:
             continue
@@ -1968,7 +1974,8 @@ def _answer_wars(world, player: str) -> Optional[str]:
                 continue
             try:
                 view = get_active_agenda(str(opponent), world)
-            except Exception:
+            except Exception as exc:
+                report(exc, "question_desk._answer_wars: get_active_agenda / str")
                 view = None
             if view is not None and getattr(view, "title", None):
                 designs.append(f"{_court(world, str(opponent))} pursues {view.title}")
@@ -2007,7 +2014,8 @@ def _answer_allies(world, player: str) -> Optional[str]:
                 state = world.get_diplomatic_state(player, nation)
                 shown = STATE_DISPLAY.get(state, str(state).replace("_", " ").title())
                 allies.append(f"{_court(world, nation)} ({str(shown).lower()})")
-    except Exception:
+    except Exception as exc:
+        report(exc, "question_desk._answer_allies: world.get_active_nations / world.are_allies")
         allies = []
     clients = []
     for tag, row in (getattr(world, "vassals", None) or {}).items():
@@ -2280,7 +2288,8 @@ def _answer_war_effort(world, player: str) -> Optional[str]:
     foes = []
     try:
         foes = sorted(world.get_nations_at_war_with(player))
-    except Exception:
+    except Exception as exc:
+        report(exc, "question_desk._answer_war_effort: sorted / world.get_nations_at_war_with")
         foes = []
     read, unread = [], []
     for foe in foes:

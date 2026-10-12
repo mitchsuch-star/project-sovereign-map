@@ -19,6 +19,7 @@ from backend.display_names import (  # AAR-22 (SR Chunk 2 reserve)
     display_nation as _display_nation,
     nation_adjective as _nation_adjective,
 )
+from backend.errors import report
 
 
 # Re-front Slice 2: settlement PROPOSE Tier-2 verbs that ride on per-court rows
@@ -78,7 +79,8 @@ def _court_is_gone(world, nation: str) -> bool:
         # record of whose home a province is.
         return any(getattr(r, "starting_controller", None) == nation
                    for r in world.regions.values())
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomatic_executor._court_is_gone: world.get_nation_regions")
         return False
 
 
@@ -100,7 +102,8 @@ def _specify_courts(world) -> str:
     try:
         courts = [n for n in world.get_active_nations()
                   if n != player and n not in _vassals]
-    except Exception:  # a bare test world without the cache seam
+    except Exception as exc:  # a bare test world without the cache seam
+        report(exc, "diplomatic_executor._specify_courts: world.get_active_nations")
         courts = [n for n in world.get_known_nations()
                   if n != player and n not in _vassals]
     names = sorted(display_nation(n) for n in courts)
@@ -3362,7 +3365,8 @@ class DiplomaticExecutor:
                 selected_target_nation=target_nation,
                 covered_enemy_participants=[],
             )
-        except Exception:
+        except Exception as exc:
+            report(exc, "diplomatic_executor.DiplomaticExecutor._execute_propose_common_peace: load_scoped_settlement_draft")
             restored = None
         if restored:
             settlement_terms = [dict(t) for t in restored if isinstance(t, dict)]
@@ -4997,7 +5001,8 @@ class DiplomaticExecutor:
             try:
                 acceptance_result = calculate_acceptance(proposal, world)
                 score = int(acceptance_result.get("score", 0))
-            except Exception:
+            except Exception as exc:
+                report(exc, "diplomatic_executor.DiplomaticExecutor._process_dialogue_choice: calculate_acceptance")
                 score = 20
             # AI-2c (§3.4): the statecraft coercion answer — Austria
             # HARDENS under an ultimatum, Prussia FOLDS then resents,

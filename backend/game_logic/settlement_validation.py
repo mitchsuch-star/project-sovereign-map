@@ -33,6 +33,7 @@ from backend.game_logic.settlement_routes import (
     _settlement_dialogue_active,
     is_war_archived,
 )
+from backend.errors import report
 
 
 VALID_SIDES = {"attackers", "defenders"}
@@ -81,7 +82,8 @@ def _estimate_payer_net_income_per_turn(world: Any, payer: str) -> int:
             continue
         try:
             income += int(region.get_effective_income())
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_validation._estimate_payer_net_income_per_turn: int / region.get_effective_income")
             continue
     return max(0, int(income))
 
@@ -479,7 +481,8 @@ def evaluate_pair_peace_substitute_eligibility(
     # actually send.
     try:
         from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
-    except Exception:  # pragma: no cover - defensive import guard
+    except Exception as exc:  # pragma: no cover - defensive import guard
+        report(exc, "settlement_validation.evaluate_pair_peace_substitute_eligibility: import backend.game_logic.diplomacy")
         get_dp_cost = None
         get_transition_dp_cost = None
     if get_dp_cost is not None and get_transition_dp_cost is not None:
@@ -489,7 +492,8 @@ def evaluate_pair_peace_substitute_eligibility(
         }
         try:
             current_diplo = world.get_diplomatic_state(actor, target)
-        except Exception:  # pragma: no cover - defensive
+        except Exception as exc:  # pragma: no cover - defensive
+            report(exc, "settlement_validation.evaluate_pair_peace_substitute_eligibility: world.get_diplomatic_state")
             current_diplo = pair_state or "WAR"
         target_diplo = _state_map.get(proposal_type, "PEACE")
         jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
@@ -497,7 +501,8 @@ def evaluate_pair_peace_substitute_eligibility(
             from backend.nation_config import get_player_diplomat
             talleyrand = get_player_diplomat(world)
             skill = int(getattr(talleyrand, "skill", 5)) if talleyrand else 5
-        except Exception:  # pragma: no cover - defensive
+        except Exception as exc:  # pragma: no cover - defensive
+            report(exc, "settlement_validation.evaluate_pair_peace_substitute_eligibility: import backend.nation_config")
             skill = 5
         cost = get_dp_cost(f"propose_{proposal_type}", skill, transition_base=jump_cost)
         if float(getattr(world, "diplomatic_points", 0) or 0) < float(cost):

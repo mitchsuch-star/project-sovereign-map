@@ -6,6 +6,7 @@ their own payload instead of relying on a single global popup cache.
 import copy
 
 from typing import Dict, Optional, Tuple
+from backend.errors import report
 
 
 _PEACE_PROPOSAL_TYPES = {"peace", "armistice", "armistice_losing", "armistice_winning"}
@@ -526,7 +527,8 @@ def build_pending_envoy_popup_from_terms(
             snapshot["harshness_label"] = get_harshness_label(_our_burden)
             payload["harshness"] = snapshot["harshness"]
             payload["harshness_label"] = snapshot["harshness_label"]
-        except Exception:
+        except Exception as exc:
+            report(exc, "mailbox_payloads.build_pending_envoy_popup_from_terms: import backend.game_logic.diplomacy")
             payload["annotated_terms"] = []
 
     return payload

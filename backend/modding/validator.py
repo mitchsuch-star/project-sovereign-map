@@ -27,6 +27,7 @@ from backend.game_logic.agendas import AGENDA_TYPES
 from backend.models.personality import IMPLEMENTED_PERSONALITIES
 from backend.models.region import NATION_CAPITALS
 from backend.nation_config import EUROPE_NATION_CAPITALS, validate_scenario_runtime_support
+from backend.errors import report
 
 
 
@@ -1024,7 +1025,8 @@ def _known_region_names(data: dict) -> Set[str]:
         from backend.models.region import create_europe_regions, create_regions
         europe = str(data.get("sovereign_map") or "legacy").strip().lower() == "europe"
         return set((create_europe_regions() if europe else create_regions()).keys())
-    except Exception:                                    # pragma: no cover
+    except Exception as exc:                                    # pragma: no cover
+        report(exc, "validator._known_region_names: import backend.models.region")
         return set()
 
 
@@ -1188,6 +1190,7 @@ def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
                 region_names.add(rname)
                 coastal[rname] = bool(getattr(region, "is_coastal", False))
         except Exception as exc:                          # pragma: no cover
+            report(exc, "validator._validate_navies: import backend.models.region")
             result.add_warning(
                 "navies", f"NUI-2 dockyard coast check SKIPPED: {exc}")
     # NUI-2: on the Europe registry a yard must also have open WATER to moor
@@ -1206,6 +1209,7 @@ def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
                         if "port_anchor" in entry}
             check_moorings = True
         except Exception as exc:                          # pragma: no cover
+            report(exc, "validator._validate_navies: import backend.models.region #2")
             result.add_warning(
                 "navies", f"NUI-2 dockyard mooring check SKIPPED: {exc}")
     for nation, row in navies.items():
@@ -1490,6 +1494,7 @@ def validate_scenario(
                     (create_europe_regions() if europe
                      else create_regions()).keys())
             except Exception as exc:                     # pragma: no cover
+                report(exc, "validator.validate_scenario: import backend.models.region")
                 skipped = exc
         if skipped is not None:                          # pragma: no cover
             # Never silently disable: a rule that reports "clean" when it did

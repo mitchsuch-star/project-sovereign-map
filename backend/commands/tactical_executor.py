@@ -15,6 +15,7 @@ from backend.display_names import (STRATEGIC_ORDER_DISPLAY,
 
 
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+from backend.errors import report
 
 
 # CQ-22 (Score Finish Step 3 / SR-7a, October 2, 2026 — §6 row 5 ruled the
@@ -168,7 +169,8 @@ def insist_terms(world, marshal, action: str):
     exactly the executor's auto-shift and its message."""
     try:
         base = int(world.get_action_cost(action)) if world is not None else 1
-    except Exception:
+    except Exception as exc:
+        report(exc, "tactical_executor.insist_terms: int / world.get_action_cost")
         base = 1
     if action == "fortify" and getattr(marshal, "stance", Stance.NEUTRAL) == Stance.NEUTRAL:
         return (base + 1, "he must first go defensive")

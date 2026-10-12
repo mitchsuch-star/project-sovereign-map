@@ -45,6 +45,7 @@ from __future__ import annotations
 import math
 import re as _re
 from typing import Any, Dict, Iterable, List, Optional
+from backend.errors import report
 
 # ════════════════════════════════════════════════════════════════════════
 # Levers — module-level booleans, read at CALL time (the series-arm idiom:
@@ -276,7 +277,8 @@ def court_gone(world, court: str) -> str:
     try:
         if not world.get_nation_regions(court):
             return "eliminated"
-    except Exception:
+    except Exception as exc:
+        report(exc, "congress.court_gone: world.get_nation_regions")
         return ""
     player = _player(world)
     if court != player and world._top_overlord(court) == player:
@@ -652,13 +654,13 @@ def _restate_the_bills(world) -> None:
         for marshal in (getattr(world, "marshals", {}) or {}).values():
             if getattr(marshal, "nation", None) == player:
                 dotation.restate_reward_notice(world, marshal)
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "congress._restate_the_bills: import backend.game_logic")
     try:
         from backend.game_logic import vassal as _vassal
         _vassal.restate_petition_notices(world, player)
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "congress._restate_the_bills: import backend.game_logic #2")
 
 
 def _eroding_marshals(world) -> List[Any]:
@@ -707,7 +709,8 @@ def _war_score(world, court: str, overrides: Optional[Dict] = None) -> int:
     from backend.game_logic.diplomacy import get_war_score_for
     try:
         return int(get_war_score_for(world, court, _player(world)))
-    except Exception:
+    except Exception as exc:
+        report(exc, "congress._war_score: int / get_war_score_for")
         return 0
 
 
@@ -730,7 +733,8 @@ def _our_score_text(world, court: str, court_score: int,
     try:
         from backend.game_logic.diplomacy import calculate_war_score
         live = int(calculate_war_score(_player(world), court, world))
-    except Exception:
+    except Exception as exc:
+        report(exc, "congress._our_score_text: import backend.game_logic.diplomacy")
         return text
     if live != ours:
         text += f"; {_signed(live)} by today's field, counted at the end turn"
@@ -865,8 +869,8 @@ def mainland(world) -> frozenset:
     result = frozenset(seen)
     try:
         world._congress_mainland_cache = (capital, result)
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "congress.mainland: world._congress_mainland_cache")
     return result
 
 
@@ -911,7 +915,8 @@ def _holder_in_view(world, location: str, viewer: Optional[str]) -> bool:
     try:
         from backend.models.intel import PARTIAL
         return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
-    except Exception:
+    except Exception as exc:
+        report(exc, "congress._holder_in_view: import backend.models.intel")
         return False
 
 
@@ -1348,7 +1353,8 @@ def courting_rate(world) -> int:
     try:
         from backend.game_logic.diplomatic_dialogue import mission_effect_magnitude
         per = int(mission_effect_magnitude(world, "IMPROVE_RELATIONS", "relation_change"))
-    except Exception:
+    except Exception as exc:
+        report(exc, "congress.courting_rate: import backend.game_logic.diplomatic_dialogue")
         per = 0
     return per if per > 0 else 5
 
@@ -2052,7 +2058,8 @@ def _london_pays(world, table: Dict[str, Dict[str, Any]]) -> None:
     try:
         from backend.game_logic.coalition import get_british_subsidy_recipient
         war_recipient = get_british_subsidy_recipient(world)
-    except Exception:
+    except Exception as exc:
+        report(exc, "congress._london_pays: import backend.game_logic.coalition")
         war_recipient = None
     from backend.game_logic.instruments import standing_sponsorship_amount
     from backend.game_logic.agendas import survival_override_active
@@ -2370,7 +2377,8 @@ def recognition_by_capital_preview(world, courts: Iterable[str],
         return []
     try:
         from backend.game_logic.settlement_validation import _territory_term_regions
-    except Exception:
+    except Exception as exc:
+        report(exc, "congress.recognition_by_capital_preview: import backend.game_logic.settlement_validation")
         return []
     returned = set()
     for term in terms or []:
@@ -2689,8 +2697,8 @@ def _invalidate_intent(world) -> None:
     refusal count inside the turn (the formations `_agenda_cache` idiom)."""
     try:
         world._intent_cache = None
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "congress._invalidate_intent: world._intent_cache")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -2819,8 +2827,8 @@ def pay_sweetener(world, court: str, amount: int) -> Dict[str, Any]:
     world.nation_gold[court] = int(world.nation_gold.get(court, 0) or 0) + charge
     try:
         world.record_gold_spent(player, charge)
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "congress.pay_sweetener: world.record_gold_spent")
     c = _store(world)
     c.setdefault("sweeteners", {})[court] = int(
         (c.get("sweeteners") or {}).get(court, 0) or 0) + charge

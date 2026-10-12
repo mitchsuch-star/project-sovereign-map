@@ -35,6 +35,7 @@ from backend.game_logic.settlement_helpers import (
     resolve_pair_to_resolved,
     validate_war_declaration,
 )
+from backend.errors import report
 
 # ═══════ DIPLOMATIC STATE HIERARCHY ═══════
 # Upgrade path (adjacency enforced):
@@ -2077,7 +2078,8 @@ def _emit_commitments_notification(world, event_type: str, payload: Dict) -> Non
             int(getattr(world, "current_turn", 0)),
             details=commitments_notice_details(event_type, payload),
         ))
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomacy._emit_commitments_notification: import backend.game_logic.commitments_routing")
         return
 
 
@@ -3008,6 +3010,7 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
                 from backend.game_logic.coalition import _check_hegemony_band_crossing
                 _check_hegemony_band_crossing(world, caller=f"set_diplomatic_state:{reason or 'unknown'}")
             except Exception as exc:
+                report(exc, "diplomacy.set_diplomatic_state: import backend.game_logic.coalition")
                 debug_print(
                     f"[HEGEMONY] band-crossing check failed after "
                     f"{nation_a}-{nation_b} {old_state}->{new_state} "
@@ -3034,6 +3037,7 @@ def _flush_hegemony_signal_defer(world, caller: str) -> None:
         from backend.game_logic.coalition import _check_hegemony_band_crossing
         _check_hegemony_band_crossing(world, caller=caller)
     except Exception as exc:
+        report(exc, "diplomacy._flush_hegemony_signal_defer: import backend.game_logic.coalition")
         debug_print(f"[HEGEMONY] deferred band-crossing check failed after {caller}: {exc}")
 
 
@@ -4778,7 +4782,8 @@ def build_war_context_snapshot(
                 if _counter_ok
                 else "REJECT likely — no workable counter"
             )
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomacy.build_war_context_snapshot: calculate_acceptance")
         acceptance_score = 0
         acceptance_outcome = "REJECT"
         acceptance_outcome_display = ""
@@ -5834,12 +5839,13 @@ def _has_bargain_strategic_interest(world, promiser: str, claim_region: str) -> 
         for nation in world.get_active_nations():
             if claim_region in get_agenda_covets(nation, world):
                 return True
-    except Exception:
-        pass
+    except Exception as exc:
+        report(exc, "diplomacy._has_bargain_strategic_interest: import backend.game_logic.agendas")
 
     try:
         from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomacy._has_bargain_strategic_interest: import backend.game_logic.diplomatic_templates")
         NATION_DESIRE_PROFILES = {}
     for profile in NATION_DESIRE_PROFILES.values():
         if claim_region in profile.get("covets_regions", []):
@@ -8085,7 +8091,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         settlement_gratitude_value = int(
             _settlement_gratitude_mod(world, proposer, target, proposal_type)
         )
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomacy.calculate_acceptance: import backend.game_logic.settlement_reactions")
         settlement_gratitude_value = 0
 
     # ── Respected estates (W6-8 The Spoils of War) ──
@@ -8100,7 +8107,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         respected_estate_value = int(
             _respected_estate_mod(world, proposer, target)
         )
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomacy.calculate_acceptance: import backend.game_logic.dotation")
         respected_estate_value = 0
 
     # ── National design (NA-2 §5.2 — the agenda acceptance term) ──
@@ -8116,7 +8124,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             agenda_acceptance_mod as _agenda_acceptance_mod,
         )
         agenda_mod_value = int(_agenda_acceptance_mod(proposal, world))
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomacy.calculate_acceptance: import backend.game_logic.agendas")
         agenda_mod_value = 0
 
     # ── The Court's Favour (IQ-4 PR-D3, ⚠ FOR USER CONFIRMATION) ──
@@ -8686,7 +8695,8 @@ def _defensive_call_context(world, *, aggressor: str, victim: str, callee: str) 
         region = getattr(world, "regions", {}).get(capital) if capital else None
         if region and getattr(region, "controller", callee) not in (callee, ""):
             capital_threat = True
-    except Exception:
+    except Exception as exc:
+        report(exc, "diplomacy._defensive_call_context: world.get_nation_capital")
         capital_threat = False
 
     losing_other_war = False
@@ -10831,7 +10841,8 @@ def calculate_trade_breakdown(world) -> Dict[str, List[Tuple[str, int, str]]]:
     if THE_DEAD_DO_NOT_TRADE and hasattr(world, "get_active_nations"):
         try:
             nations = world.get_active_nations()
-        except Exception:
+        except Exception as exc:
+            report(exc, "diplomacy.calculate_trade_breakdown: world.get_active_nations")
             nations = None
         if isinstance(nations, (list, tuple, set, frozenset)) and nations:
             active = set(nations)
@@ -12255,7 +12266,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             try:
                 if world_.are_allies(court, other):
                     return True
-            except Exception:
+            except Exception as exc:
+                report(exc, "diplomacy.get_available_diplomatic_actions._has_any_ally: world_.are_allies")
                 continue
         return False
 
@@ -12563,7 +12575,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 result = calculate_acceptance(proposal, world)
                 likelihood_score = int(result.get("score", 0))
                 likelihood = get_likelihood_descriptor(likelihood_score)
-            except Exception:
+            except Exception as exc:
+                report(exc, "diplomacy.get_available_diplomatic_actions._proposal_action: the guarded block")
                 likelihood_score = 0
                 likelihood = "Hopeless"
 
@@ -12651,7 +12664,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             elif len(common_wars) > 1:
                 multi_war_ambiguity = True
                 available_wars = list(common_wars)
-        except Exception:
+        except Exception as exc:
+            report(exc, "diplomacy.get_available_diplomatic_actions: set / world.get_war_instances_by_participant")
             settlement_war_id = None
         if multi_war_ambiguity:
             from backend.display_names import settlement_disabled_reason_display
@@ -12670,7 +12684,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 settlement_eligibility = evaluate_open_settlement_eligibility(
                     world, war_id=settlement_war_id, actor_nation=player,
                 )
-            except Exception:
+            except Exception as exc:
+                report(exc, "diplomacy.get_available_diplomatic_actions: import backend.game_logic.settlement_validation")
                 settlement_eligibility = {
                     "available": False,
                     "error": "inactive_war_instance",
@@ -13340,7 +13355,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 "positive": positives[:3],
                 "negative": negatives[:3],
             }
-        except Exception:
+        except Exception as exc:
+            report(exc, "diplomacy.get_diplomatic_preview: armistice_variant_for")
             acceptance_preview = None
     response["acceptance_preview"] = acceptance_preview
 
@@ -13364,8 +13380,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                         world, player, target_nation, ptype, terms=terms,
                     )
                     peace_snapshots[action_id] = snapshot
-                except Exception:
-                    pass
+                except Exception as exc:
+                    report(exc, "diplomacy.get_diplomatic_preview: _suggested_terms_for")
         if peace_snapshots:
             response["war_context_snapshots"] = peace_snapshots
 

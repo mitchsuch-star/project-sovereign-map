@@ -22,6 +22,7 @@ empty — the legacy fixture world) → no gazette, byte-identically.
 from typing import Dict, List, Optional
 
 from backend.campaign_log import filter_campaign_log, format_event_oneliner
+from backend.errors import report
 
 ISSUE_INTERVAL = 5      # blessed, in-band — an issue every 5 turns
 MAX_ISSUES = 20         # blessed, in-band — the archive's depth
@@ -119,7 +120,8 @@ def _is_great_power(world, nation: str) -> bool:
     if callable(get_tier):
         try:
             tier = str(get_tier(nation) or "")
-        except Exception:
+        except Exception as exc:
+            report(exc, "gazette._is_great_power: str / get_tier")
             tier = ""
     if tier:
         return tier == "major"
@@ -699,7 +701,8 @@ def _bourse_line(world) -> str:
     try:
         from backend.game_logic.naval import is_blockaded
         blockaded = is_blockaded(world, player)
-    except Exception:
+    except Exception as exc:
+        report(exc, "gazette._bourse_line: import backend.game_logic.naval")
         blockaded = False
     # IQ-2 D3(b): a deficit is printed as one — never "steady".
     in_deficit = False
@@ -881,6 +884,6 @@ def process_gazette(world) -> Optional[Dict]:
                         if issue["special"] else "")),
             turn_created=turn,
         ))
-    except Exception:
-        pass  # the paper still publishes if the rail is absent (tests)
+    except Exception as exc:
+        report(exc, "gazette.process_gazette: import backend.notifications")  # the paper still publishes if the rail is absent (tests)
     return issue

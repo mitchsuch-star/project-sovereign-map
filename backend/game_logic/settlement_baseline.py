@@ -57,6 +57,7 @@ from backend.game_logic.settlement_validation import (
     evaluate_vassalage_eligibility,
     validate_settlement_terms,
 )
+from backend.errors import report
 
 
 def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
@@ -313,7 +314,8 @@ def _payer_net_income_estimate(world: Any, payer: str) -> int:
     if hasattr(world, "get_nation_regions"):
         try:
             names = list(world.get_nation_regions(payer))
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_baseline._payer_net_income_estimate: list / world.get_nation_regions")
             names = None
     if names is None:
         return _estimate_payer_net_income_per_turn(world, payer)
@@ -324,7 +326,8 @@ def _payer_net_income_estimate(world: Any, payer: str) -> int:
             continue
         try:
             income += int(region.get_effective_income())
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_baseline._payer_net_income_estimate: int / region.get_effective_income")
             continue
     return max(0, int(income))
 
@@ -506,7 +509,8 @@ def _concession_baseline_transferable_candidates(
         for participant in proposer_set:
             try:
                 candidate_names.update(world.get_nation_regions(participant))
-            except Exception:
+            except Exception as exc:
+                report(exc, "settlement_baseline._concession_baseline_transferable_candidates: candidate_names.update / world.get_nation_regions")
                 continue
     else:
         # Defensive fallback for tests that build a thin world stub
@@ -1054,7 +1058,8 @@ def _demand_baseline_region_candidates(
     court_capital = _capitals.get(court)
     try:
         court_regions = list(world.get_nation_regions(court))
-    except Exception:
+    except Exception as exc:
+        report(exc, "settlement_baseline._demand_baseline_region_candidates: list / world.get_nation_regions")
         court_regions = []
     if not court_regions:
         return []
@@ -1064,7 +1069,8 @@ def _demand_baseline_region_candidates(
             continue
         try:
             proposer_holdings.update(world.get_nation_regions(participant))
-        except Exception:
+        except Exception as exc:
+            report(exc, "settlement_baseline._demand_baseline_region_candidates: proposer_holdings.update / world.get_nation_regions")
             continue
     border: List[Tuple[int, str]] = []
     fallback: List[Tuple[int, str]] = []

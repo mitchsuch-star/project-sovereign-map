@@ -17,6 +17,7 @@ from backend.game_logic import fortunes_of_war as _fortunes
 from backend.display_names import with_definite_article
 from backend.models.world_state import (_drill_refusal_short,
                                         _fortify_refusal_short)
+from backend.errors import report
 
 # IQ-2 (Sept 14, 2026): the captured sovereign's card kept the apex note "The
 # Empire is his estate." while he sat at strength 0 in the captor's capital —
@@ -552,7 +553,8 @@ def _order_refusals_of(world, marshal) -> Dict:
     try:
         from backend.commands.state_probe import order_refusals
         return order_refusals(world, marshal)
-    except Exception:
+    except Exception as exc:
+        report(exc, "marshal_overview._order_refusals_of: import backend.commands.state_probe")
         return {}
 
 

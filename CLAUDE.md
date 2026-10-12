@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 12, 2026).** The three most recent landed rows:
-- **S8 (October 12, 2026) — DD-1 STEP 3 "THE VERBS" + CODE-1 batch 4 — LANDED.** `ask <ally> to return <province>` (SFR-D42: ONE gate `treaty.can_ask_return`, ONE answer `ask_return_score`), `bid for <court>` (SFR-D40: `place_allegiance_bid`), the truce's followers announced (SFR-D28). **All three FIXED; levers 496 → 429** (§109; pins `tests/test_dd1_s8_the_verbs.py`). **NEXT = S7b, CODE-3 + DD-C** (`CODE_HEALTH_PLAN.md` §CODE-3; `PRE_DEPLOY_PLAN.md` §3 DD-C), batch 5 at its head.
-- **S7 Slice B (October 11, 2026) — DD-1 STEP 2a "`can_sign`" — LANDED.** ONE verdict for every surface and the ratifier. **DD1-1 … 4 + DD1-12, SFR-B1 / B2 / B5 / D34 FIXED; the sweep 11 / 2 → 0 / 0; diplomacy 8.5** (§108; pins `tests/test_dd1_s7_can_sign.py`).
-- **S7 Slice A + S6 (October 11, 2026) — DD-1 STEP 2b "ONE EXIT FOR A PAIR" + THE INSTRUMENT — LANDED.** `cleanup_war_end` the one exit, the client rule on ENTRY; **DD1-5 … 11 FIXED; fuzzer 81 → 0, shuffle 4 → 0** (§106–§107; pins `tests/test_dd1_s7_one_exit.py`). S5 head: batch 3 + DD0-20 (§105).
+- **S7b (October 12, 2026) — CODE-3 + DD-C + CODE-1 batch 5 — LANDED.** `errors.report(exc, site)`; the save path's typed `SaveError`, every fault a sentence + a WARNING. **Silent handlers 367 → 6; levers 429 → 358; 40 / 40 injected faults reached the player** (§110; pins `tests/test_dd_c_nothing_fails_silently.py`). **NEXT = S8b, CODE-2a** (`CODE_HEALTH_PLAN.md` §CODE-2: `_execute_attack` staged).
+- **S8 (October 12, 2026) — DD-1 STEP 3 "THE VERBS" + CODE-1 batch 4 — LANDED.** `ask <ally> to return <province>` (SFR-D42: ONE gate `treaty.can_ask_return`, ONE answer `ask_return_score`), `bid for <court>` (SFR-D40: `place_allegiance_bid`), the truce's followers announced (SFR-D28). **All three FIXED; levers 496 → 429** (§109; pins `tests/test_dd1_s8_the_verbs.py`).
+- **S7 Slice B (October 11, 2026) — DD-1 STEP 2a "`can_sign`" — LANDED.** ONE verdict for every surface and the ratifier. **DD1-1 … 4 + DD1-12, SFR-B1 / B2 / B5 / D34 FIXED; the sweep 11 / 2 → 0 / 0; diplomacy 8.5** (§108; pins `tests/test_dd1_s7_can_sign.py`). S7 Slice A + S6 + S5: §105–§107.
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 
