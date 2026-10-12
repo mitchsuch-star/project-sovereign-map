@@ -3339,6 +3339,34 @@ class DiplomaticExecutor:
         from backend.game_logic.settlement_helpers import (
             resolve_or_backfill_war_instance_for_settlement,
         )
+        # DD1-4 (DD-1 Slice B): a white peace on a LIVE war the player
+        # names reads the settlement road's own eligibility gate FIRST —
+        # a war gone one-on-one refuses as `one_to_one_war` (the preview's
+        # own clause), not as "changed while the review was open", which
+        # the backfill resolver answered for a pair whose sides no longer
+        # hold both courts.
+        _requested = str(requested_war_id or "").strip()
+        _live = (getattr(world, "war_instances", {}) or {}).get(_requested) if _requested else None
+        if isinstance(_live, dict) and _live.get("ended_turn") is None:
+            from backend.game_logic.settlement_validation import (
+                evaluate_open_settlement_eligibility,
+            )
+            _elig = evaluate_open_settlement_eligibility(
+                world, war_id=_requested, actor_nation=player,
+                ignore_active_dialogue=True)
+            if (not _elig.get("available")
+                    and str(_elig.get("error") or "") == "one_to_one_war"):
+                from backend.display_names import settlement_disabled_reason_display
+                _display = settlement_disabled_reason_display("one_to_one_war")
+                return {
+                    "success": False,
+                    "error": "one_to_one_war",
+                    "error_display": _display,
+                    "message": (
+                        f"Sire, the chancery cannot offer a white peace to "
+                        f"{target_nation}: {_display}"
+                    ),
+                }
         resolution = resolve_or_backfill_war_instance_for_settlement(
             world, player, target_nation, requested_war_id=str(requested_war_id or ""),
         )
@@ -4216,12 +4244,27 @@ class DiplomaticExecutor:
         # Scoped to the row's seam: the petition families process a closed
         # arm on purpose (IQ7-RV2's "a DP-short Grant STANDS", the ally
         # petition's own refusal road) and keep their own words.
+        # DD-1 Slice B: an option the ONE verdict CLOSED (`treaty.
+        # stamp_option`'s `closed_clause` marker — a letter's accept the
+        # ratifier would refuse, an ally's grant with no table) is refused
+        # here with the verdict's own words, the letter left standing; by
+        # MARKER, never widened by dialogue type: the client petition's
+        # DP-short Grant stands through its handler (IQ7-RV2), the marshal
+        # petition's AP read is stale by design, the minister arms carry
+        # their own words, a `settlement_confirm` row speaks `available`.
+        # SFR-B2 / SFR-B5 close here: the refusal names the floor, is not
+        # logged as our rejection and costs no cooldown.
+        from backend.game_logic.treaty import CLOSED_CLAUSE_KEY
         _dtype = str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
+        _closed = bool(selected.get(CLOSED_CLAUSE_KEY))
         if (A_DISABLED_OPTION_REFUSES_WITH_ITS_REASON
-                and _dtype == "proposal_confirm"
-                and (selected.get("enabled") is False
-                     or selected.get("available") is False)):
-            _why = str(selected.get("unavailable_reason")
+                and (_closed or (
+                    _dtype == "proposal_confirm"
+                    and (selected.get("enabled") is False
+                         or selected.get("available") is False)))):
+            _why = str(selected.get("disabled_reason_display")
+                       or selected.get("reason")
+                       or selected.get("unavailable_reason")
                        or selected.get("description") or "that arm is closed").strip()
             return _unresolved_choice_failure(
                 f"'{selected.get('label', '?')}' is not open, Sire — {_why}")
@@ -4499,24 +4542,24 @@ class DiplomaticExecutor:
             # ally-entangled courts bilaterally unreachable. The armistice's
             # auto-peace expiry still meets the peace gates naturally; the
             # reliability substrate prices the act rather than forbidding it.
-            if proposal_type == "peace":
-                from backend.game_logic.diplomacy import get_peace_commitment_conflicts
-                conflicts = get_peace_commitment_conflicts(
-                    world,
-                    get_player_nation(world),
-                    target_nation,
-                    terms.get("clauses", []),
-                )
-                hard_stops = [c for c in conflicts if c.get("severity") == "HARD_STOP"]
-                if hard_stops:
-                    return {
-                        "success": False,
-                        "message": hard_stops[0].get(
-                            "display",
-                            "This peace would create a commitment paradox.",
-                        ),
-                        "diplomatic_dialogue": dialogue,
-                    }
+            # DD-1 Slice B: the send road reads the ONE verdict at send —
+            # the ratifier's whole guard sequence (the ladder, the floors,
+            # the state machine, the bargains, the vassal gates) plus the
+            # road's own paradox HARD_STOP on an outgoing PEACE (SFR-D34:
+            # the counsel's "propose peace" was executed and then refused
+            # for a paradox it never named — the clause now speaks the
+            # same words on the chip, the counsel and here). A proposal the
+            # table would refuse never departs; nothing goes stale in
+            # transit for a reason known today (SFR-B5).
+            from backend.game_logic.treaty import can_sign
+            _verdict = can_sign(world, proposal, at_send=True)
+            if not _verdict.ok:
+                return {
+                    "success": False,
+                    "message": _verdict.message or "This proposal cannot be sent as it stands.",
+                    "clause": _verdict.clause,
+                    "diplomatic_dialogue": dialogue,
+                }
 
             # Deduct DP (with jump cost for multi-step transitions)
             talleyrand = get_player_diplomat(world)
@@ -7233,12 +7276,13 @@ class DiplomaticExecutor:
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
             world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
-            world.log_event({
-                "type": "ai_proposal_rejected",
-                "source": source_nation,
-                "proposal_type": proposal_type,
-                "decision_reason": "counterparty_reversal",
-            })
+            # SFR-B2 (DD-1 Slice B): a refusal at ratification is NOT our
+            # rejection — the campaign log read "We rejected Prussia's
+            # alliance proposal" after the player pressed Accept. The letter
+            # is stamped from the one verdict before it is shown, so this
+            # road is reached only when the board moved after the last
+            # read; the refusal rides the reply, and nothing is logged as
+            # an answer of ours.
             reason = str(treaty_event.get("message", "")).strip()
             from backend.game_logic.formations import formed_display_name
             from backend.display_names import with_definite_article

@@ -363,7 +363,7 @@
    "preview_verdict": "",
    "preview_error": "one_to_one_war",
    "verdict": "refused",
-   "message": "Use bilateral peace or armistice for a one-on-one war.",
+   "message": "Sire, the chancery cannot offer a white peace to Britain: Use bilateral peace or armistice for a one-on-one war.",
    "stage": "propose",
    "arm": "CONG",
    "clause": "one_to_one_war"
@@ -694,7 +694,7 @@
    "preview_verdict": "",
    "preview_error": "one_to_one_war",
    "verdict": "refused",
-   "message": "Use bilateral peace or armistice for a one-on-one war.",
+   "message": "Sire, the chancery cannot offer a white peace to Britain: Use bilateral peace or armistice for a one-on-one war.",
    "stage": "propose",
    "arm": "CONG",
    "clause": "one_to_one_war"
@@ -1009,7 +1009,7 @@
    "preview_verdict": "",
    "preview_error": "one_to_one_war",
    "verdict": "refused",
-   "message": "Use bilateral peace or armistice for a one-on-one war.",
+   "message": "Sire, the chancery cannot offer a white peace to Britain: Use bilateral peace or armistice for a one-on-one war.",
    "stage": "propose",
    "arm": "CONG",
    "clause": "one_to_one_war"
@@ -1324,7 +1324,7 @@
    "preview_verdict": "",
    "preview_error": "one_to_one_war",
    "verdict": "refused",
-   "message": "Use bilateral peace or armistice for a one-on-one war.",
+   "message": "Sire, the chancery cannot offer a white peace to Britain: Use bilateral peace or armistice for a one-on-one war.",
    "stage": "propose",
    "arm": "CONG",
    "clause": "one_to_one_war"
@@ -1741,7 +1741,10 @@
    "message": "Leader's own losses",
    "button_shown": false,
    "options": [
-    "back_out_settlement"
+    "back_out_settlement",
+    "open_war_detail",
+    "seek_armistice_instead",
+    "seek_bilateral_peace"
    ],
    "arm": "CONG",
    "clause": ""
@@ -3155,9 +3158,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 13.36,
+ "clone_ms_mean": 15.46,
  "clones": 85,
- "seconds": 8.2,
+ "seconds": 9.6,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

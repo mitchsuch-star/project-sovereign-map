@@ -494,6 +494,13 @@ class TestDigestHeadline:
         scenario = (root / "godot-client" / "project-sovereign" / "assets"
                     / "maps" / "europe_1805.json")
         world = WorldState.from_scenario(str(scenario))
+        # DD-1 Slice B (Oct 11, 2026): the Kingdom of Italy boots as France's
+        # client, and a client's treaty letter to its lord is withheld by the
+        # one verdict (no treaty is signed inside a vassalage — DD1-12's
+        # class). The headline is read on a released Italy.
+        from backend.game_logic.vassal import release_vassal
+        release_vassal(world, "KingdomOfItaly")
+        world.vassal_release_cooldowns.pop("KingdomOfItaly", None)
         _deliver(world, "KingdomOfItaly", "open_borders")
         assert build_envoy_digest(world)["headline"] == "Kingdom of Italy writes."
 

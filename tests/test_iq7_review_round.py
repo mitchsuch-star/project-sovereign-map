@@ -1944,12 +1944,17 @@ class TestClientSourcePins:
         gd = (GODOT_SCRIPTS / "incoming_proposal_popup.gd").read_text(encoding="utf-8")
         assert 'data.get("grant_enabled", true)' in gd
         assert 'opt.get("enabled", grant_enabled)' in gd
-        assert "accept_btn.disabled = is_petition and not grant_enabled" in gd
+        # DD-1 Slice B (Oct 11, 2026): `enabled` is read for ANY letter's
+        # accept-shaped option — the one verdict stamps a treaty letter's
+        # Accept as it stamps a petition's Grant.
+        assert "accept_btn.disabled = not grant_enabled" in gd
+        assert "accept_btn.disabled = is_petition and not grant_enabled" not in gd
         # IQ-10 (Sept 19, 2026): the interpolation became a concatenation so a
         # reason that already ends in a full stop does not get a second one
         # (every reason the backend ships is a whole sentence). The pin
         # follows the line, and the punctuation rule is pinned beside it.
-        assert '"]Grant unavailable: " + grant_reason' in gd
+        assert '_verb + " unavailable: " + grant_reason' in gd
+        assert 'var _verb := "Grant" if is_petition else "Accept"' in gd
         assert 'grant_reason.ends_with(".")' in gd
         assert "counter_btn.visible = not is_counter and not is_ultimatum and not is_petition" in gd
         assert "accept_btn.disabled = false" not in gd.split("var grant_enabled := true")[1].split("func ")[0]

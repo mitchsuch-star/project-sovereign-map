@@ -317,7 +317,10 @@ class TestThePopupSaysItOnce:
 
     def test_the_line_does_not_add_a_second_full_stop(self):
         gd = _gd("incoming_proposal_popup")
-        assert '"]Grant unavailable: " + grant_reason' in gd
+        # DD-1 Slice B (Oct 11, 2026): the verb is "Grant" for a petition and
+        # "Accept" for any other letter — the concatenation and the
+        # punctuation rule are the same line.
+        assert '_verb + " unavailable: " + grant_reason' in gd
         assert 'grant_reason.ends_with(".")' in gd
         assert '"]Grant unavailable: %s.[/color]"' not in gd
 

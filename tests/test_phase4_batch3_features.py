@@ -505,6 +505,11 @@ class TestR29DiplomaticHistory:
     def test_proposal_sent_logged(self, executor, world, game_state):
         """Sending a proposal creates a history entry."""
         world.diplomatic_points = 10
+        # DD-1 Slice B (Oct 11, 2026): the send road reads the one verdict —
+        # a peace with a court already at peace is the ladder's refusal and
+        # never departs; the fixture sends the next rung instead, at the
+        # relation its floor needs (the legacy world boots Austria at -30).
+        world.nation_relations[world._make_diplo_key("France", "Austria")] = 0
         world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Austria",
@@ -513,7 +518,7 @@ class TestR29DiplomaticHistory:
                     "label": "Send",
                     "action": "execute_proposal",
                     "terms": {
-                        "proposal_type": "peace",
+                        "proposal_type": "open_borders",
                         "target_nation": "Austria",
                         "sweeteners": [],
                         "demands": [],

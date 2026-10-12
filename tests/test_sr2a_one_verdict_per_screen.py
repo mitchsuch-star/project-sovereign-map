@@ -671,9 +671,25 @@ class TestThePetitionsArmIsHonest:
         assert _grant_option(p["popup_payload"])["available"] is False
 
     def test_an_open_table_flips_the_arm(self):
+        """DD-1 Slice B (October 11, 2026): a MOUNTED editor is the current
+        hard stop — the petition behind it cannot be made current until the
+        editor is suspended (the draft kept), the player's one road to it;
+        the arm says so. The SUSPENDED draft is the open table."""
+        from backend.game_logic.settlement_actions import (
+            handle_settlement_dialogue_action,
+        )
         w = _restoration_world()
         p = _queue_petition(w)
-        _stage(w, ["Austria"])
+        d = _stage(w, ["Austria"])
+        SO.refresh_ally_petition_availability(w, p)
+        assert _grant_option(p)["available"] is False
+        assert _grant_option(p)["disabled_reason_display"].startswith(
+            "Back out of the settlement editor for ")
+        assert "closed_clause" not in _grant_option(p)
+        with _quiet():
+            r = handle_settlement_dialogue_action(
+                w, action="suspend_settlement_editor", dialogue=d)
+        assert r["success"] is True
         SO.refresh_ally_petition_availability(w, p)
         assert _grant_option(p)["available"] is True
         assert "disabled_reason_display" not in _grant_option(p)

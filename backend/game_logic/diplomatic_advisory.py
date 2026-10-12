@@ -1530,6 +1530,36 @@ def _compare_threats(world) -> Dict:
 # ACTION RECOMMENDATION
 # ═══════════════════════════════════════════════════════
 
+_HINT_TYPES = {
+    "peace": "peace", "armistice": "armistice_winning", "alliance": "alliance",
+    "defensive alliance": "defensive_alliance",
+    "non-aggression pact": "non_aggression", "open borders": "open_borders",
+}
+
+
+def _treaty_hint(world, target_nation: str, *wanted: str) -> str:
+    """DD-1 Slice B: the FIRST treaty of `wanted` (the counsel's own names)
+    the ONE verdict says the ratifier would sign and the send road would
+    let go today — '' when none would. The counsel offers an order the game
+    takes (CN-4's rule; SFR-D34: "propose peace" executed and refused for a
+    paradox the advisor never named; an alliance hinted at relation 31
+    against a floor of 40)."""
+    from backend.game_logic.treaty import can_sign
+    player_nation = get_player_nation(world)
+    for name in wanted:
+        ptype = _HINT_TYPES.get(name, name)
+        if ptype == "armistice_winning":
+            from backend.game_logic.diplomacy import armistice_variant_for
+            ptype = armistice_variant_for(world, player_nation, target_nation)
+        verdict = can_sign(world, {
+            "type": ptype, "proposer_nation": player_nation,
+            "target_nation": target_nation, "sweeteners": [], "demands": [], "clauses": [],
+        }, at_send=True)
+        if verdict.ok:
+            return f"Propose {name} with {target_nation}"
+    return ""
+
+
 def _recommend_action(target_nation: str, world) -> Dict:
     """Recommend a diplomatic action for a specific nation."""
     player_nation = get_player_nation(world)
@@ -1554,7 +1584,8 @@ def _recommend_action(target_nation: str, world) -> Dict:
                 f"as often as to defeat."
             )
             recommendation = "Propose peace with strong terms."
-            hints = [f"Propose peace with {target_nation}", "Continue fighting for better terms"]
+            hints = [_treaty_hint(world, target_nation, "peace", "armistice"),
+                     "Continue fighting for better terms"]
             confidence = "high"
         elif player_war_score < -20:
             text = (
@@ -1565,7 +1596,8 @@ def _recommend_action(target_nation: str, world) -> Dict:
                 f"Pride is a luxury we cannot afford when armies bleed."
             )
             recommendation = "Seek armistice immediately."
-            hints = [f"Propose armistice with {target_nation}", "Reinforce the front lines"]
+            hints = [_treaty_hint(world, target_nation, "armistice", "peace"),
+                     "Reinforce the front lines"]
             confidence = "high"
         elif collapse is not None or _no_field_army(world, player_nation):
             # IQ-2: the Tilsit model needs the engagement it names. A France
@@ -1601,8 +1633,8 @@ def _recommend_action(target_nation: str, world) -> Dict:
                 recommendation = "Seek terms while the score stands level."
             text = opening + closing
             hints = [
-                f"Propose peace with {target_nation}",
-                f"Propose armistice with {target_nation}",
+                _treaty_hint(world, target_nation, "peace"),
+                _treaty_hint(world, target_nation, "armistice"),
             ]
             confidence = "medium"
         else:
@@ -1617,7 +1649,7 @@ def _recommend_action(target_nation: str, world) -> Dict:
             recommendation = "Win a battle, then propose peace."
             hints = [
                 f"Attack {target_nation}'s forces",
-                f"Propose peace with {target_nation}",
+                _treaty_hint(world, target_nation, "peace", "armistice"),
             ]
             confidence = "medium"
     else:
@@ -1642,7 +1674,11 @@ def _recommend_action(target_nation: str, world) -> Dict:
                     f"what we can still bring to the bargain."
                 )
             recommendation = f"Pursue alliance with {target_nation}."
-            hints = [f"Propose alliance with {target_nation}", "Improve relations further"]
+            # DD-1 Slice B: an alliance needs relations of 40; at 31–39 the
+            # hint names the treaty the table would sign today instead.
+            hints = [_treaty_hint(world, target_nation, "alliance", "defensive alliance",
+                                  "non-aggression pact"),
+                     "Improve relations further"]
             confidence = "high"
         elif relation > 0:
             text = (
@@ -1652,7 +1688,9 @@ def _recommend_action(target_nation: str, world) -> Dict:
                 f"A non-aggression pact would formalize our understanding."
             )
             recommendation = "Continue improving relations."
-            hints = [f"Improve relations with {target_nation}", "Propose non-aggression pact"]
+            hints = [f"Improve relations with {target_nation}",
+                     _treaty_hint(world, target_nation, "non-aggression pact", "open borders")
+                     or "Improve relations further"]
             confidence = "medium"
         elif relation > -40:
             text = (

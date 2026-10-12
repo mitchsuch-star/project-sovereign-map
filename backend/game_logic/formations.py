@@ -943,7 +943,13 @@ def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
         "carved_from": None,     # set by the caller, which knows the court
         "regions": list(provinces),
     }
-    world.diplomatic_states[world._make_diplo_key(tag, carver)] = "VASSAL"
+    # DD-1 Slice B (the fuzzer's I3, reached on a live seed): the pair's
+    # stamp goes through the ONE setter like every other diplomatic state
+    # change — a brand-new pair reads PEACE before it, so no exit road
+    # fires; the bookkeeping the setter does (the titles, the log) is the
+    # same every vassalization gets.
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    set_diplomatic_state(world, tag, carver, "VASSAL", "carve")
     # The patron bond (IGR-D). Written directly for the same reason the
     # vassal row above is: `modify_nation_relation` clamps and logs against
     # a prior value, and there is no prior — this pair did not exist a

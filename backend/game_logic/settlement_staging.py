@@ -3515,15 +3515,24 @@ def build_settlement_confirm_dialogue(
     elif not can_ratify:
         if hard_stops:
             first_stop = hard_stops[0]
+            # DD-1 Slice B (DD1-1's B rows): a hard stop is a dict of
+            # `{"reason": <code>, "enemy": <court>}` — the old read looked
+            # for keys it never carried and left the reason EMPTY, so the
+            # popup printed the raw code it fell back to. The code goes
+            # through the settlement display map, the court named beside.
+            from backend.display_names import settlement_disabled_reason_display
             if isinstance(first_stop, Mapping):
-                ratify_blocked_reason = str(
-                    first_stop.get("display")
-                    or first_stop.get("detail")
-                    or first_stop.get("code")
-                    or ""
-                )
+                code = str(first_stop.get("reason") or first_stop.get("code") or "")
+                words = str(first_stop.get("display") or first_stop.get("detail") or "")
+                if not words and code:
+                    words = settlement_disabled_reason_display(code)
+                    court = str(first_stop.get("enemy") or "")
+                    if court:
+                        from backend.display_names import display_nation
+                        words = f"{display_nation(court)}: {words}"
+                ratify_blocked_reason = words
             else:
-                ratify_blocked_reason = str(first_stop or "")
+                ratify_blocked_reason = settlement_disabled_reason_display(str(first_stop or ""))
         elif THE_TABLE_TELLS_ONE_TRUTH and not white_peace and not per_court_carries:
             # SR-2a (AAR-2): the blocker is the table's own verdict — the
             # sentence the header prints ("Will NOT carry as drafted … Holding

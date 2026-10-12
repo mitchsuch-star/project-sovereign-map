@@ -2578,6 +2578,18 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     _fresh = refresh_client_petition_dialogue(world, _current)
                     if isinstance(_fresh, dict) and _fresh:
                         popup.update(_fresh)
+            else:
+                # DD-1 Slice B: a treaty letter's Accept is re-stamped from
+                # the ONE verdict at this read too (the board may have moved
+                # since the letter was built), bound to the CURRENT dialogue.
+                _current = getattr(world, "pending_diplomatic_dialogue", None)
+                if (isinstance(_current, dict)
+                        and _current.get("dialogue_id") is not None
+                        and popup.get("dialogue_id") == _current.get("dialogue_id")):
+                    from backend.game_logic.treaty import refresh_letter_verdict
+                    _fresh = refresh_letter_verdict(world, _current)
+                    if isinstance(_fresh, dict) and "options" in _fresh:
+                        popup["options"] = _fresh["options"]
             if "proposal_type" in popup and "proposal_type_display" not in popup:
                 popup["proposal_type_display"] = proposal_display_name(popup.get("proposal_type"))
             if popup.get("decision_reason") and "decision_reason_display" not in popup:
@@ -6351,6 +6363,11 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
             if proposal_type is not None:
                 refreshed["proposal_type_display"] = proposal_display_name(proposal_type)
         return _stamp_dialogue_id(refreshed)
+    # DD-1 Slice B: a treaty letter (an incoming proposal, a counter) is
+    # re-stamped from the ONE verdict on every read — the popup's `options`
+    # mirror carries `enabled` / `reason` for its Accept.
+    from backend.game_logic.treaty import refresh_letter_verdict
+    refresh_letter_verdict(world, dialogue)
     popup_payload = dialogue.get("popup_payload") or context.get("popup_payload")
     if isinstance(popup_payload, dict) and popup_payload:
         popup = popup_payload.copy()
@@ -6440,6 +6457,11 @@ def get_pending_envoy():
             # Spain had retaken both).
             popup = build_incoming_settlement_offer_popup(world, current)
             current["popup_payload"] = popup
+            # DD-1 Slice B: the offer's Review arm re-stamped from the ONE
+            # verdict (the war France does not lead, the war gone one-on-one,
+            # the package the courts would not sign) on every read.
+            from backend.game_logic.treaty import refresh_letter_verdict
+            refresh_letter_verdict(world, current)
             result["incoming_settlement_offer"] = popup
         elif dtype == "ally_settlement_petition":
             result["has_pending"] = True
@@ -6592,6 +6614,9 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         # peace is accepted or refused.
         popup = build_incoming_settlement_offer_popup(world, dialogue)
         dialogue["popup_payload"] = popup
+        # DD-1 Slice B: re-stamped from the ONE verdict on activation too.
+        from backend.game_logic.treaty import refresh_letter_verdict
+        refresh_letter_verdict(world, dialogue)
         result["incoming_settlement_offer"] = popup
     elif dtype == "ally_settlement_petition":
         # SR-2a (AAR-26): re-derived on activation as on the poll.

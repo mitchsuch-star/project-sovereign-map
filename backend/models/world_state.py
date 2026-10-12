@@ -12051,11 +12051,20 @@ class WorldState:
                 # NEXT proposal of any kind stamped it with ITS verdict.
                 from backend.commands.diplomatic_defiance import resolve_pending_override
                 resolve_pending_override(self, "bad")
+                # SFR-B5 (DD-1 Slice B): the return names WHAT changed —
+                # the one verdict's own clause on the live board ("We
+                # already have an Alliance with Prussia…"), never only
+                # "no longer viable".
+                from backend.game_logic.treaty import can_sign as _can_sign
+                _v = _can_sign(self, dict(proposal, proposer_nation=proposer,
+                                          target_nation=target))
+                _stale_why = f" {_v.message}" if (not _v.ok and _v.message) else ""
                 events.append({
                     "type": "diplomatic_proposal_returned",
                     "target": target,
                     "outcome": "REJECT",
-                    "message": f"Talleyrand returns from {target}: the diplomatic situation has changed — our proposal is no longer viable.",
+                    "message": (f"Talleyrand returns from {target}: the diplomatic situation "
+                                f"has changed — our proposal is no longer viable.{_stale_why}"),
                 })
                 # PL-5B: Set cooldowns on stale rejection (+1 for decrement timing)
                 self.player_proposal_cooldowns[target] = 4
@@ -12413,182 +12422,29 @@ class WorldState:
         if is_player_treaty:
             player_counterpart = target_nation if proposer == self.player_nation else proposer
 
-        # No-downgrade guard: can't propose a treaty at or below current level
-        if (current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER
-                and _UPGRADE_ORDER.index(target_state) <= _UPGRADE_ORDER.index(current_state)):
-            if is_player_treaty:
-                # LV-3 (row EP F2): the same enums, the same tag.
-                from backend.display_names import (
-                    STATE_DISPLAY, with_definite_article, with_indefinite_article,
-                )
-                from backend.game_logic.formations import formed_display_name
-
-                def _capitalised(text: str) -> str:
-                    # SR-1d (PR-D1b's rider): "A Armistice treaty" — the
-                    # article helper returns lowercase; the sentence starts here.
-                    return (text[:1].upper() + text[1:]) if text else text
-                # The OTHER court, whichever side proposed (an AI offer's
-                # `target_nation` is France herself).
-                _other = player_counterpart or target_nation
-                return {
-                    "type": "diplomatic_treaty_failed",
-                    "target": target_nation,
-                    "message": (
-                        f"We already have {STATE_DISPLAY.get(current_state, current_state)} with "
-                        f"{with_definite_article(formed_display_name(self, _other))}. "
-                        f"{_capitalised(with_indefinite_article(STATE_DISPLAY.get(target_state, target_state)))} treaty would be a downgrade."
-                    ),
-                }
+        # DD-1 Slice B (October 11, 2026): THE ONE VERDICT. The guard
+        # sequence that lived here — the no-downgrade ladder, the relation
+        # floors, the AP clause, the AI-AI alliance rule, the war bargains,
+        # the vassal gates — is `treaty.can_sign`, read by every surface
+        # that shows a letter, a chip, a price or a counsel line AND here.
+        # The ratifier keeps no guard of its own; a refusal is the same dict
+        # it always returned (prose only), plus the clause for the log.
+        from backend.game_logic.treaty import (
+            can_sign, refusal_dict, treaty_clauses_of,
+        )
+        verdict = can_sign(self, proposal)
+        if not verdict.ok:
+            if is_player_treaty and not verdict.silent:
+                return refusal_dict(verdict, fallback_target=target_nation)
             return None  # AI-AI: silent skip
-
-        # Player-only: relation requirement check
-        if is_player_treaty:
-            from backend.game_logic.diplomacy import check_relation_requirement
-            relation = self.nation_relations.get(diplo_key, 0)
-            if not check_relation_requirement(current_state, target_state, relation):
-                # SF-V1: the treaty and the court by their names, and the
-                # floor by its number — never the raw state key ("Relations
-                # with France are insufficient for DEFENSIVE_ALLIANCE").
-                from backend.display_names import (
-                    STATE_DISPLAY, with_definite_article, with_indefinite_article,
-                )
-                from backend.game_logic.diplomacy import STATE_RELATION_REQUIREMENTS
-                from backend.game_logic.formations import formed_display_name
-                _other = player_counterpart or target_nation
-                _need = STATE_RELATION_REQUIREMENTS.get(target_state)
-                _treaty = with_indefinite_article(STATE_DISPLAY.get(target_state, target_state))
-                return {
-                    "type": "diplomatic_treaty_failed",
-                    "target": target_nation,
-                    "message": (
-                        f"Relations with {with_definite_article(formed_display_name(self, _other))} "
-                        f"stand at {int(relation)}; {_treaty} needs {_need}."
-                    ),
-                }
-
-            # R98: Validate AP clause demands require war_score > 80
-            from backend.game_logic.diplomacy import validate_ap_clause
-            for d in proposal.get("demands", []):
-                if d.get("type") == "ap_per_turn" and not validate_ap_clause(self, target_nation):
-                    return {
-                        "type": "diplomatic_treaty_failed",
-                        "target": target_nation,
-                        "message": "AP demands require overwhelming military dominance (war score > 80).",
-                    }
-
-        # AI-AI only: alliance conflict check
-        if not is_player_treaty and target_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-            all_nations = self.get_active_nations()  # DLF-11
-            for other in all_nations:
-                if other == proposer or other == target_nation:
-                    continue
-                if self.is_at_war(proposer, other):
-                    s = self.get_diplomatic_state(target_nation, other)
-                    if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-                        return None
-                if self.is_at_war(target_nation, other):
-                    s = self.get_diplomatic_state(proposer, other)
-                    if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-                        return None
 
         # Build treaty clauses before vassalage validation so WPS-B can project
         # same-package territory cessions before applying the VASSAL state.
-        treaty_clauses = []
-        sweetener_from = proposer
-        sweetener_to = target_nation
-        for s in proposal.get("sweeteners", []):
-            clause_entry = {
-                "type": s["type"],
-                "from": sweetener_from,
-                "to": sweetener_to,
-                "amount": int(s.get("value", 0) or 0),
-            }
-            if s.get("type") == "territory_cede" and "regions" in s:
-                clause_entry["regions"] = s["regions"]
-            # W6-7: `marshal` rides prisoner_return clauses.
-            for extra_key in ("named_enemy", "claim_region", "claim_holder",
-                              "marshal"):
-                if extra_key in s:
-                    clause_entry[extra_key] = s[extra_key]
-            treaty_clauses.append(clause_entry)
-        for d in proposal.get("demands", []):
-            clause_entry = {
-                "type": d["type"],
-                "from": sweetener_to,
-                "to": sweetener_from,
-                "amount": int(d.get("value", 0) or 0),
-            }
-            if d.get("type") == "territory_cede" and "regions" in d:
-                clause_entry["regions"] = d["regions"]
-            # WPS-C: Carry over extra fields for forced_alliance/liberation
-            if "from_nation" in d:
-                clause_entry["from"] = d["from_nation"]
-            if "to_nation" in d:
-                clause_entry["to"] = d["to_nation"]
-            for extra_key in (
-                "vassal_nation", "lord_nation", "liberator",
-                "includes_continental_system",
-                "named_enemy", "claim_region", "claim_holder",
-                "marshal",  # W6-7: prisoner_return names its prisoner
-                # NA-6c / IGR-D: a `create_client` demand's SUBJECT. `tag`
-                # is the authority (the apply arm re-resolves the template);
-                # `provinces` feeds harshness pricing and the estate
-                # warning; `client_display_name` keeps the confirm popup
-                # from printing the raw template id at the player.
-                "tag", "provinces", "client_display_name",
-            ):
-                if extra_key in d:
-                    clause_entry[extra_key] = d[extra_key]
-            treaty_clauses.append(clause_entry)
-
+        treaty_clauses = treaty_clauses_of(proposal, proposer, target_nation)
         war_bargain_clauses = [
             clause for clause in treaty_clauses
             if clause.get("type") == "war_bargain"
         ]
-        if len(war_bargain_clauses) > 1:
-            if is_player_treaty:
-                return {
-                    "type": "diplomatic_treaty_failed",
-                    "target": player_counterpart or target_nation,
-                    "message": "A treaty may contain only one war bargain.",
-                }
-            return None
-        if war_bargain_clauses:
-            ceded_regions = {
-                region_name
-                for clause in treaty_clauses
-                if clause.get("type") == "territory_cede"
-                for region_name in clause.get("regions", [])
-            }
-            from backend.game_logic.diplomacy import validate_war_bargain
-            for wb_clause in war_bargain_clauses:
-                wb_named = wb_clause.get("named_enemy", "")
-                wb_region = wb_clause.get("claim_region", "")
-                if not wb_named or not wb_region:
-                    reason = "War bargain requires named_enemy and claim_region"
-                    ok = False
-                elif wb_region in ceded_regions:
-                    reason = (
-                        f"Cannot bargain over {wb_region}; the same treaty cedes it."
-                    )
-                    ok = False
-                else:
-                    ok, reason = validate_war_bargain(
-                        self,
-                        proposer,
-                        target_nation,
-                        wb_named,
-                        wb_region,
-                        source_state=target_state,
-                    )
-                if not ok:
-                    if is_player_treaty:
-                        return {
-                            "type": "diplomatic_treaty_failed",
-                            "target": player_counterpart or target_nation,
-                            "message": f"Invalid war bargain: {reason}.",
-                        }
-                    return None
 
         # BPH-D: capture war data before set_diplomatic_state() or cleanup_war_end()
         # clear war_start_turns, battle records, and war scores.
@@ -12614,18 +12470,9 @@ class WorldState:
         # Vassal creation: when treaty ratifies VASSAL state, create vassal entry + assimilate
         # Must run BEFORE state transition so create_vassal_treaty sees the pre-VASSAL state
         if target_state == "VASSAL":
-            from backend.game_logic.diplomacy import check_vassalage_power_cap
-            cap = check_vassalage_power_cap(
-                self, proposer, target_nation, terms=treaty_clauses
-            )
-            if not cap["allowed"]:
-                if is_player_treaty:
-                    return {
-                        "type": "diplomatic_treaty_failed",
-                        "target": player_counterpart or target_nation,
-                        "message": f"Cannot vassalize {player_counterpart or target_nation}: {cap['reason']}.",
-                    }
-                return None
+            # The cap and the creator's pre-checks were read by the verdict
+            # above (`vassal.vassal_treaty_refusal` — the creator's own
+            # predicate); the creator re-reads them on its way in.
             from backend.game_logic.vassal import create_vassal_treaty, assimilate_vassal_marshals
             vassal_result = create_vassal_treaty(
                 self, proposer, target_nation, terms=treaty_clauses

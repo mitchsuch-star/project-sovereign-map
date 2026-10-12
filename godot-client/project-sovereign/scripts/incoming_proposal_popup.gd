@@ -130,30 +130,36 @@ func show_proposal(data: Dictionary):
 	if is_petition:
 		grant_enabled = bool(data.get("grant_enabled", true))
 		grant_reason = str(data.get("grant_reason", ""))
-		var opts = data.get("options", [])
-		if opts is Array:
-			for opt in opts:
-				if opt is Dictionary and str(opt.get("action", "")) == "accept_ai_proposal":
-					grant_enabled = bool(opt.get("enabled", grant_enabled))
-					if str(opt.get("reason", "")) != "":
-						grant_reason = str(opt.get("reason", ""))
-		if not grant_enabled and grant_reason != "":
-			# IQ-10 (Sept 19, 2026): the backend's reasons are whole sentences and
-			# already end in a full stop, so the template's own added one read
-			# "...or refuse it..". The line keeps its stop when a reason lacks one.
-			var _tail := "" if grant_reason.ends_with(".") or grant_reason.ends_with("!") \
-				or grant_reason.ends_with("?") else "."
-			# IQ10-X2 (Sept 23, 2026): this line explains a DEAD button, and it
-			# sat LAST in a scrollable body — cut mid-sentence at 1600x900, the
-			# one line the player had to scroll for. It goes under the header
-			# now, above the fold; the button's tooltip still carries it too.
-			var _reason_line := "[color=#" + Utils.COLOR_ERROR + "]Grant unavailable: " + grant_reason + _tail + "[/color]"
-			var _head_end := bbcode.find("\n")
-			if _head_end >= 0:
-				bbcode = bbcode.substr(0, _head_end + 1) + _reason_line + "\n" \
-					+ bbcode.substr(_head_end + 1)
-			else:
-				bbcode = _reason_line + "\n" + bbcode
+	# DD-1 Slice B (Oct 11, 2026): EVERY letter's accept-shaped option carries
+	# the backend's one verdict (`enabled` / `reason` — the ratifier's own
+	# refusal), not only a petition's Grant: a treaty the ratifier would
+	# refuse (the floor, the ladder, a vassal pair) is shown as mail with its
+	# reason and a dead button, never a button that bounces.
+	var opts = data.get("options", [])
+	if opts is Array:
+		for opt in opts:
+			if opt is Dictionary and str(opt.get("action", "")) in ["accept_ai_proposal", "accept_counter_offer", "accept_ai_ultimatum"]:
+				grant_enabled = bool(opt.get("enabled", grant_enabled))
+				if str(opt.get("reason", "")) != "":
+					grant_reason = str(opt.get("reason", ""))
+	if not grant_enabled and grant_reason != "":
+		# IQ-10 (Sept 19, 2026): the backend's reasons are whole sentences and
+		# already end in a full stop, so the template's own added one read
+		# "...or refuse it..". The line keeps its stop when a reason lacks one.
+		var _tail := "" if grant_reason.ends_with(".") or grant_reason.ends_with("!") \
+			or grant_reason.ends_with("?") else "."
+		# IQ10-X2 (Sept 23, 2026): this line explains a DEAD button, and it
+		# sat LAST in a scrollable body — cut mid-sentence at 1600x900, the
+		# one line the player had to scroll for. It goes under the header
+		# now, above the fold; the button's tooltip still carries it too.
+		var _verb := "Grant" if is_petition else "Accept"
+		var _reason_line := "[color=#" + Utils.COLOR_ERROR + "]" + _verb + " unavailable: " + grant_reason + _tail + "[/color]"
+		var _head_end := bbcode.find("\n")
+		if _head_end >= 0:
+			bbcode = bbcode.substr(0, _head_end + 1) + _reason_line + "\n" \
+				+ bbcode.substr(_head_end + 1)
+		else:
+			bbcode = _reason_line + "\n" + bbcode
 
 	# Lapse warning
 	if is_ultimatum:
@@ -177,8 +183,9 @@ func show_proposal(data: Dictionary):
 	# client's petition (granted or refused, never bargained — IQ-7)
 	# IQ-7 review R2: a petition's Grant follows the backend's `enabled`
 	# (see above); every other register keeps Accept live as before.
-	accept_btn.disabled = is_petition and not grant_enabled
-	accept_btn.tooltip_text = grant_reason if (is_petition and not grant_enabled) else ""
+	# DD-1 Slice B: `enabled` is read for ANY letter, not only a petition.
+	accept_btn.disabled = not grant_enabled
+	accept_btn.tooltip_text = grant_reason if not grant_enabled else ""
 	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition
 	counter_btn.disabled = is_counter or is_ultimatum or is_petition
 	reject_btn.disabled = false

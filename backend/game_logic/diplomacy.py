@@ -12034,6 +12034,18 @@ def get_assessment_text(world, target_nation: str) -> str:
     return _ASSESSMENT_FALLBACK.format(nation=target_nation)
 
 
+# The wizard's chip → the proposal type the ratifier reads (DD-1 Slice B).
+_CHIP_PROPOSAL_TYPES = {
+    "ARMISTICE": "armistice_winning",
+    "PEACE": "peace",
+    "OPEN_BORDERS": "open_borders",
+    "NON_AGGRESSION": "non_aggression",
+    "DEFENSIVE_ALLIANCE": "defensive_alliance",
+    "ALLIANCE": "alliance",
+    "VASSAL": "vassalage",
+}
+
+
 def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     """Build available action list for the diplomacy wizard (§2b/2c/2d).
 
@@ -12282,6 +12294,28 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         cost = get_dp_cost(action_key, tal_skill, transition_base=base_cost)
         available = True
         reason = ""
+        # DD-1 Slice B: the chip asks the ONE verdict FIRST — would the
+        # ratifier sign this treaty, and would the send road let it go
+        # (`at_send`: the paradox on an outgoing peace)? Its sentence rides
+        # `disabled_reason_display`; the legacy short reasons below keep
+        # their words (the paradox keeps FA-D17's).
+        _verdict_proposal = {
+            "type": _CHIP_PROPOSAL_TYPES.get(target_state, "peace"),
+            "proposer_nation": player, "target_nation": target_nation,
+            "sweeteners": [], "demands": [], "clauses": [],
+        }
+        if target_state == "ARMISTICE":
+            _verdict_proposal["type"] = armistice_variant_for(world, player, target_nation)
+        from backend.game_logic.treaty import can_sign
+        verdict = can_sign(world, _verdict_proposal, at_send=True)
+        verdict_display = ""
+        if not verdict.ok:
+            available = False
+            if verdict.clause == "paradox":
+                reason = "Would break an ally's war — propose an armistice, or settle jointly"
+                verdict_display = reason
+            else:
+                verdict_display = str(verdict.message or "")
 
         # Cooldown check
         if target_nation in cooldowns and cooldowns[target_nation] > 0:
@@ -12378,7 +12412,9 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 likelihood_score = 0
                 likelihood = "Hopeless"
 
-        return {
+        if verdict_display and not reason:
+            reason = verdict_display
+        row = {
             "action": action_key,
             "display_name": display,
             "dp_cost": int(cost),
@@ -12387,6 +12423,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "likelihood": likelihood,
             "likelihood_score": int(likelihood_score),
         }
+        if verdict_display:
+            row["disabled_reason_display"] = verdict_display
+            row["closed_clause"] = verdict.clause
+        return row
 
     # ── MISSION HELPERS ──
     from backend.game_logic.diplomatic_dialogue import (

@@ -409,6 +409,10 @@ class TestTheNegatedAnswerSignsNothing:
         """The second dialogue family the row measured: `I would not send it`
         dispatched Talleyrand and spent the DP."""
         client, world = shipped
+        # DD-1 Slice B (Oct 11, 2026): a proposal the table would refuse
+        # never departs — the pact needs relations of 0 and the boot board
+        # stands at -10; the fixture lifts them so "send it" has a letter.
+        world.nation_relations[world._make_diplo_key("France", "Prussia")] = 10
         post(client, "Talleyrand, propose a non-aggression pact to Prussia")
         assert (world.pending_diplomatic_dialogue or {}).get("type") == "proposal_confirm"
         before = snapshot(world)

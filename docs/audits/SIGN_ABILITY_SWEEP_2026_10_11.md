@@ -110,3 +110,50 @@ counts are lower-only per arm.
 .venv/Scripts/python.exe tools/sign_ability_sweep.py --summarize     # the table from the records
 .venv/Scripts/python.exe tools/sign_ability_sweep.py --quick         # the pin's live set
 ```
+
+## The re-read — DD-1 S7 Slice B, `can_sign` (October 11, 2026)
+
+*The ONE verdict (`treaty.can_sign`, `SYSTEMS_REFERENCE.md` §108) read by
+every surface and the ratifier; the instrument re-run as it stands — not a
+regex, not a surface read, not a moment changed. Landing record
+`PRE_DEPLOY_PLAN.md` §3.1 "DD-1 S7 landing record, Slice B".*
+
+```
+arm              shown letters  real    A  A-dry  A-real    B  asked  err  A by surface
+CONG                79      10     3    0      0       0    0      2    0  {}
+FC                  39       9     2    0      0       0    0      0    0  {}
+OP                 215      45    18    0      0       0    0      2    0  {}
+PRESS               67      22     8    0      0       0    0      2    0  {}
+REACH-AAR          497      65    21    0      0       0    0     16    0  {}
+SEED-dd1-one       450      32    15    0      0       0    0      2    0  {}
+SEED-dd1-three     520      30    11    0      0       0    0      2    0  {}
+SEED-dd1-two       447      32    14    0      0       0    0      2    0  {}
+SEED-quick          65      12     8    0      0       0    0      0    0  {}
+VOLTE              443      28    14    0      0       0    0      2    0  {}
+TOTAL                                   0                   0
+```
+
+- **A 11 → 0, B 2 → 0; 2,822 promises** (2,830 at the first reading — the
+  eight fewer are the promises the surfaces no longer make: the ally
+  petition's Grant at arrival behind a mounted editor, the client petition
+  that is no longer issued for a province a sibling already named).
+- **How each of the four shapes went.** (1) The ally petition (OP / REACH-AAR
+  t7): at ARRIVAL the editor is the current hard stop and the instrument's
+  dry run displaces it into the queue — a state the player cannot reach (the
+  identity binding and the letter-book both refuse a queued petition while
+  a hard stop is mounted); the verdict reads a MOUNTED editor as "back out
+  first — the draft is kept" and the Grant arrives disabled with that reason,
+  re-stamped at every read seam once the draft is suspended. At the second
+  showing the grant's editor withheld Ratify with a hard stop whose `reason`
+  key the confirm builder never read — it reads it through the display map
+  now (B 2 → 0), and the arrival stamp means the instrument no longer
+  dry-signs that letter at its showing. (2) The client petition (PRESS t28):
+  TWO petitions for Brunswick — Hesse's by the Congress's summons, Holland's
+  by the end turn; `petition_subject` skips a province a sibling's standing
+  petition names. (3) SFR-B1 and (4) DD1-3 (SEED-dd1-two t28 / t33): the
+  emitter reads the settlement road's eligibility gate before the carry; the
+  letters are no longer sent, no cooldown spent.
+- **The done-when of §3.1 — MET.** `tests/test_dd1_sign_ability_sweep.py`
+  re-seated: the caps zero per arm, `(0, 0)` asserted, the four S6 clauses
+  asserted gone from the refused letters, the live quick set matched to its
+  re-recorded record.

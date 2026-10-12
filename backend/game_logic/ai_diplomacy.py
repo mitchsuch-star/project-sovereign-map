@@ -2375,6 +2375,16 @@ def _build_ai_ultimatum_dialogue(proposal: Dict, world) -> Dict:
     }
 
 
+def _stamp_client_grant(option: Dict, enabled: bool, reason: str) -> Dict:
+    """DD-1 Slice B: a client petition's Grant stamped through the ONE
+    `stamp_option` from `petition_grant_availability`'s (enabled, reason) —
+    `enabled` + `reason`, `available` + `disabled_reason_display`; the
+    closed marker never written (`closes=False`)."""
+    from backend.game_logic.treaty import Verdict, stamp_option
+    return stamp_option(option, Verdict(bool(enabled), clause="" if enabled else "stands",
+                                        message=str(reason or ""), closes=False))
+
+
 def _build_client_petition_dialogue(proposal: Dict, world) -> Dict:
     """IQ-7 "The Client's Petition": a loyal satellite's ask, on the
     incoming-proposal transport (dtype `incoming_proposal`, so every mailbox,
@@ -2447,14 +2457,16 @@ def _build_client_petition_dialogue(proposal: Dict, world) -> Dict:
             f"\n\n{assessment}"
         ),
         "options": [
-            {
+            # DD-1 Slice B: the Grant carries every availability key the
+            # readers use (`stamp_option`), from the same verdict the grant
+            # applies; never closed by marker — a standing Grant must stay
+            # pressable so the handler's own `stands` road runs (IQ7-RV2).
+            _stamp_client_grant({
                 "label": "Grant the petition",
                 "description": (str(petition.get("grant_line") or "")
                                 or f"Grant what {court} asks."),
                 "action": "accept_ai_proposal",
-                "enabled": grant_enabled,
-                "reason": grant_reason,
-            },
+            }, grant_enabled, grant_reason),
             {
                 "label": "Refuse the petition",
                 "description": (str(petition.get("refuse_line") or "")
@@ -2529,7 +2541,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             f"frees the Emperor"]
         popup_payload["captor_terms"] = True
 
-    return {
+    dialogue = {
         "type": "incoming_proposal",
         "target_nation": nation,
         "talleyrand_text": (
@@ -2573,6 +2585,12 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
         "blocking": False,
         "popup_payload": popup_payload,
     }
+    # DD-1 Slice B: the Accept is stamped from the ONE verdict at build
+    # (and re-stamped at every read seam) — the letter never shows a button
+    # the ratifier would refuse.
+    from backend.game_logic.treaty import refresh_letter_verdict
+    refresh_letter_verdict(world, dialogue)
+    return dialogue
 
 
 # SF-V1 (Score Finish Step 1, September 29, 2026): an AI court never offers
@@ -2608,22 +2626,28 @@ def treaty_offer_refusal(world, nation: str, proposal_type: str,
     state = _TREATY_TYPE_TO_STATE.get(str(proposal_type or ""))
     if not state:
         return ""
-    from backend.game_logic.diplomacy import (
-        STATE_RELATION_REQUIREMENTS,
-        _UPGRADE_ORDER,
-        check_relation_requirement,
-    )
+    from backend.game_logic.diplomacy import STATE_RELATION_REQUIREMENTS
     recipient = recipient or getattr(world, "player_nation", "France")
+    # DD-1 Slice B: the ONE verdict (`treaty.can_sign`) — the ratifier's
+    # whole guard sequence, not a hand copy of its first two. The ladder
+    # and floor clauses keep their legacy debug strings (the log reads
+    # them); every other clause speaks the verdict's own words.
+    from backend.game_logic.treaty import can_sign
+    verdict = can_sign(world, {
+        "type": str(proposal_type), "proposer_nation": nation,
+        "target_nation": recipient, "sweeteners": [], "demands": [], "clauses": [],
+    })
+    if verdict.ok:
+        return ""
     current = str(world.get_diplomatic_state(nation, recipient) or "PEACE")
-    if (current in _UPGRADE_ORDER and state in _UPGRADE_ORDER
-            and _UPGRADE_ORDER.index(state) <= _UPGRADE_ORDER.index(current)):
+    if verdict.clause == "no_downgrade":
         return f"already at {current} — {state} would be no upgrade"
-    relation = int(world.nation_relations.get(
-        world._make_diplo_key(nation, recipient), 0) or 0)
-    if not check_relation_requirement(current, state, relation):
+    if verdict.clause == "relation_floor":
+        relation = int(world.nation_relations.get(
+            world._make_diplo_key(nation, recipient), 0) or 0)
         need = STATE_RELATION_REQUIREMENTS.get(state)
         return f"relations {relation} are below the {need} a {state} needs"
-    return ""
+    return verdict.message or verdict.clause or "the table refuses it"
 
 
 def best_ratifiable_treaty(world, nation: str, wanted: str,
@@ -4511,15 +4535,31 @@ def _emit_settlement_offer_for_war(
         accepter_war_score=player_war_score,
         world=world,
     )
-    if THE_LETTER_IS_RATIFIABLE_WHEN_SENT and not _letter_would_carry(
-            world, str(war_id), war, player=player,
-            covered=covered_enemies, terms=terms):
-        # SF-V5: a letter the table would refuse is never sent (no cooldown
-        # is spent — the war is read again next turn).
-        from backend.utils.debug import debug_print
-        debug_print(f"[SETTLEMENT OFFER] {proposer_nation}'s letter on {war_id} "
-                    f"withheld — its own table would not carry it")
-        return None
+    if THE_LETTER_IS_RATIFIABLE_WHEN_SENT:
+        # SF-V5 / DD-1 Slice B: the letter is read by the ONE verdict before
+        # it is sent — the settlement road's own eligibility gate for the
+        # player's side FIRST (DD1-3 the one-on-one war, SFR-B1 the war
+        # France does not lead: a letter France can neither accept nor
+        # revise), then the per-court carry (`_letter_would_carry`). A
+        # letter the table would refuse is never sent (no cooldown is
+        # spent — the war is read again next turn); the refusal is named
+        # in the telemetry line.
+        from backend.game_logic.treaty import can_sign
+        verdict = can_sign(world, {
+            "type": "incoming_settlement_offer",
+            "war_id": str(war_id),
+            "proposer_nation": proposer_nation,
+            "proposer_side": opposing_side,
+            "accepting_side": player_side,
+            "accepting_leader": player,
+            "covered_enemy_participants": list(covered_enemies),
+            "settlement_terms": terms,
+        })
+        if not verdict.ok:
+            from backend.utils.debug import debug_print
+            debug_print(f"[SETTLEMENT OFFER] {proposer_nation}'s letter on {war_id} "
+                        f"withheld — {verdict.clause}: {verdict.message}")
+            return None
     seq = _settlement_offer_next_seq(
         pending, war_id=str(war_id), current_turn=current_turn,
     )

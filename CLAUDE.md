@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 11, 2026).** The three most recent landed rows:
-- **S7 Slice A (October 11, 2026) — DD-1 STEP 2 "ONE EXIT FOR A PAIR" — LANDED.** `cleanup_war_end` restamps the instance from the state the setter wrote (ARMISTICE pauses, a peace resolves) on every exit road; the client rule read on ENTRY; the re-entry's stamps; the purpose on re-war; DD1-7's three producers; the declaration's words (`treaty.py`); the display map's nouns. **DD1-5 … DD1-11 FIXED; the fuzzer 81 → 0, the shuffle 4 → 0** (`SYSTEMS_REFERENCE.md` §107; pins `tests/test_dd1_s7_one_exit.py`). **NEXT = Slice B `treaty.can_sign`** — the review pause is before it (`PRE_DEPLOY_PLAN.md` §3.1).
-- **S6 (October 11, 2026) — DD-1 THE INSTRUMENT BEFORE THE FIX — LANDED, nothing fixed.** The sweep A = 11 / B = 2, the fuzzer 81 in 7 classes, the shuffle 4; DD1-1 … DD1-12 filed (§106).
-- **S5 head (October 11, 2026) — CODE-1 batch 3 + DD0-20 LANDED.** 66 of 78 levers retired (562 → 496); the seventh set 294 of 300 by hand, 0 executions (§105). **S4 DD-0 STRUCK** (§100–§104; the ruling in `PRE_DEPLOY_PLAN.md` §3.0).
+- **S7 Slice B (October 11, 2026) — DD-1 STEP 2a "`can_sign`" — LANDED.** `treaty.can_sign(world, letter) → Verdict` is the ONE verdict read by every surface (letters, chips, the Congress, the counsel, SF-V1 / SF-V5, the send road, the answer seam) AND by the ratifier, which keeps no guard of its own. **DD1-1 … DD1-4 + DD1-12 FIXED (all twelve closed), SFR-B1 / B2 / B5 / D34 FIXED; the sweep 11 / 2 → 0 / 0; diplomacy re-read 8.5** (§108; pins `tests/test_dd1_s7_can_sign.py`). **NEXT = S8, Step 3 THE VERBS** (`PRE_DEPLOY_PLAN.md` §3.1: SFR-D42 / D40 / D28's announce half).
+- **S7 Slice A (October 11, 2026) — DD-1 STEP 2b "ONE EXIT FOR A PAIR" — LANDED.** `cleanup_war_end` restamps the instance on every exit road; the client rule on ENTRY. **DD1-5 … DD1-11 FIXED; the fuzzer 81 → 0, the shuffle 4 → 0** (§107; pins `tests/test_dd1_s7_one_exit.py`).
+- **S6 (October 11, 2026) — DD-1 THE INSTRUMENT BEFORE THE FIX — LANDED, nothing fixed** (sweep 11 / 2, fuzzer 81, shuffle 4; DD1-1 … DD1-12 filed; §106). **S5 head: CODE-1 batch 3 + DD0-20** (§105).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 

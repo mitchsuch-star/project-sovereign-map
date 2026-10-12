@@ -426,6 +426,34 @@ ASSIMILATION_TRUST = 40  # Starting trust for assimilated marshals
 # VASSAL CREATION
 # ═══════════════════════════════════════════════════════
 
+def vassal_treaty_refusal(world, lord: str, vassal: str, terms: list = None) -> str:
+    """DD-1 Slice B: why `create_vassal_treaty` would refuse to make `vassal`
+    a client of `lord` by treaty — '' when it would not. The creator's own
+    pre-checks, in its own order and its own words (the diplomatic state,
+    already a vassal, the R14 release cooldown, the WPS-B power cap
+    projected on `terms`), lifted out so the ratifier's verdict
+    (`treaty.can_sign`) and the creator read ONE predicate."""
+    vd = _court_name(world, vassal, article=True)
+    vd_cap = _court_name(world, vassal, article=True, capitalize=True)
+    current_state = world.get_diplomatic_state(lord, vassal)
+    from backend.game_logic.diplomacy import VASSAL_MIN_STATES
+    if current_state not in VASSAL_MIN_STATES:
+        return (f"Cannot create vassal via treaty: requires WAR or OPEN_BORDERS+ "
+                f"(current: {current_state}).")
+    if vassal in world.vassals:
+        return (f"{vd_cap} is already a vassal of "
+                f"{_court_name(world, world.vassals[vassal]['lord'], article=True)}.")
+    cooldowns = getattr(world, 'vassal_release_cooldowns', {})
+    if cooldowns.get(vassal, 0) > 0:
+        return (f"Cannot vassalize {vd}: recently released "
+                f"({cooldowns[vassal]} turns remaining).")
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    cap = check_vassalage_power_cap(world, lord, vassal, terms=terms)
+    if not cap["allowed"]:
+        return f"Cannot vassalize {vd}: {cap['reason']}."
+    return ""
+
+
 def create_vassal_treaty(
     world, lord: str, vassal: str, generosity_bonus: int = 0,
     terms: list = None, *, skip_pairs=None,
@@ -442,42 +470,14 @@ def create_vassal_treaty(
     # IQ-7 review pass 4 (R4-5, R7, September 18, 2026): every sentence
     # RETURNED to the typed road names the courts by display name, with
     # their articles — never the raw tag.
-    vd = _court_name(world, vassal, article=True)
     vd_cap = _court_name(world, vassal, article=True, capitalize=True)
     ld = _court_name(world, lord, article=True)
-    # Validate diplomatic state
-    current_state = world.get_diplomatic_state(lord, vassal)
-    from backend.game_logic.diplomacy import VASSAL_MIN_STATES
-    if current_state not in VASSAL_MIN_STATES:
-        return {
-            "success": False,
-            "message": f"Cannot create vassal via treaty: requires WAR or OPEN_BORDERS+ (current: {current_state})."
-        }
-
-    # Check not already a vassal
-    if vassal in world.vassals:
-        return {
-            "success": False,
-            "message": (f"{vd_cap} is already a vassal of "
-                        f"{_court_name(world, world.vassals[vassal]['lord'], article=True)}.")
-        }
-
-    # R14: Check release cooldown (blocks treaty-cycle exploit)
-    cooldowns = getattr(world, 'vassal_release_cooldowns', {})
-    if cooldowns.get(vassal, 0) > 0:
-        return {
-            "success": False,
-            "message": f"Cannot vassalize {vd}: recently released ({cooldowns[vassal]} turns remaining)."
-        }
-
-    # WPS-B: Power cap gate
-    from backend.game_logic.diplomacy import check_vassalage_power_cap
-    cap = check_vassalage_power_cap(world, lord, vassal, terms=terms)
-    if not cap["allowed"]:
-        return {
-            "success": False,
-            "message": f"Cannot vassalize {vd}: {cap['reason']}.",
-        }
+    # DD-1 Slice B: the creator's pre-checks are ONE predicate, read here
+    # and by `treaty.can_sign` (the ratifier's verdict) — the table and the
+    # treaty agree by construction.
+    refusal = vassal_treaty_refusal(world, lord, vassal, terms=terms)
+    if refusal:
+        return {"success": False, "message": refusal}
 
     # Calculate loyalty
     loyalty = min(LOYALTY_MAX, 60 + (generosity_bonus * 10))
@@ -2569,6 +2569,15 @@ def petition_subject(world, vassal_name: str) -> Optional[dict]:
 
     if int(row.get("grant_cooldown", 0) or 0) <= 0:
         grantable = list_grantable_regions(world, vassal_name, actor=lord)
+        # DD1-2 (DD-1 Slice B): a province ANOTHER client's standing
+        # petition already names is not asked for twice — the two producers
+        # (the end turn's one-per-lord and the Congress's summons, which
+        # waives it) each read the lord's own list, so Hesse and Holland
+        # both asked for Brunswick and granting one voided the other's
+        # Grant while its letter still read enabled.
+        spoken_for = regions_under_petition(world, lord, except_vassal=vassal_name)
+        if spoken_for:
+            grantable = [e for e in grantable if e["region"] not in spoken_for]
         if grantable:
             design_regions = set()
             for entry in _deck_acquire_entries(world, vassal_name):
@@ -3421,6 +3430,30 @@ def petition_on_the_desk(world, vassal_name: str, lord: Optional[str] = None) ->
         if vassal == vassal_name and (lord is None or petition_lord == lord):
             return True
     return False
+
+
+def regions_under_petition(world, lord: str, *, except_vassal: str = "") -> set:
+    """DD1-2: the provinces named by the client petitions standing on the
+    desk (current or queued) that ask `lord` — the ladder skips them for the
+    next client, so one province is never promised to two. Pure."""
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None:
+        return set()
+    out = set()
+    for dialogue in [dm.peek(), *dm.iter_queue()]:
+        if not (isinstance(dialogue, dict) and is_client_petition(dialogue)):
+            continue
+        vassal, petition_lord = _petition_dialogue_parties(world, dialogue)
+        if petition_lord != lord or vassal == except_vassal:
+            continue
+        terms = ((dialogue.get("context") or {}).get("proposal") or {})
+        petition = terms.get("petition") if isinstance(terms, dict) else None
+        if not isinstance(petition, dict) or str(petition.get("subject") or "") != "province":
+            continue
+        region = str(petition.get("region") or "")
+        if region:
+            out.add(region)
+    return out
 
 
 def petition_standing_keys(world, vassal_name: str) -> dict:

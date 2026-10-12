@@ -613,6 +613,21 @@ class TurnManager:
         else:
             debug_print(f"[WARNING] Double advance_turn prevented in end_turn! current_turn={self.world.current_turn}")
 
+        # DD-1 S7 Slice B (the fuzzer's I6 on a live seed, DD1-7's class):
+        # the standing marshal petition is read AGAIN after `advance_turn` —
+        # the jealousy pass above asked `petition_retirement_reason` before
+        # the standing orders moved anyone, so a shadow-command card whose
+        # marshal (or Emperor) marched in `advance_turn` stood stale on the
+        # live world while the load pass retired it at once. One more read of
+        # the same predicate, with its receipt (`retire_petition`), so the
+        # live world and a reload agree.
+        if not _fallen:
+            _standing = getattr(self.world, "pending_marshal_petition", None)
+            if isinstance(_standing, dict):
+                _why = _jealousy_pass.petition_retirement_reason(_standing, self.world)
+                if _why:
+                    _jealousy_pass.retire_petition(self.world, _standing, _why)
+
         # ════════════════════════════════════════════════════════════
         # V2-89 → R12C: Promote from queue if current slot is empty
         # Priority: commitment_paradox > vassal_rebellion > sabotage > ai_proposal

@@ -1687,6 +1687,10 @@ def _queue_ally_settlement_petition(
     dm = getattr(world, "dialogue_manager", None)
     if dm is None or not hasattr(dm, "push"):
         return None
+    # DD-1 Slice B: stamped at BIRTH from the one verdict (the read seams
+    # re-stamp) — a petition whose table is not open arrives as mail with
+    # its reason, never with a Grant the handler would refuse.
+    refresh_ally_petition_availability(world, dialogue)
     dm.push(dialogue)
     if petition_type in ALLY_SETTLEMENT_PETITION_FULL_AGENCY_TYPES:
         # §5: stamp the ask turn (the cooldown stamps at RESOLUTION).
@@ -1912,26 +1916,22 @@ def refresh_ally_petition_availability(
     the refreshed popup payload."""
     if not isinstance(dialogue, dict):
         return build_ally_settlement_petition_popup(dialogue)
-    war_id = str(dialogue.get("war_id") or "")
-    war = (getattr(world, "war_instances", {}) or {}).get(war_id)
-    war_live = isinstance(war, Mapping) and war.get("ended_turn") is None
-    open_table = bool(war_live and _petition_table_is_open(world, war_id))
-    if not war_live:
-        reason = "The war this petition was filed against has ended."
-    else:
-        reason = _petition_table_closed_display(world, war_id)
+    # DD-1 Slice B (DD1-1): the Grant / Honor arm reads the ONE verdict
+    # (`treaty.can_sign` — the war live, the table open, and for the Grant
+    # the clause still prevalidating against the draft it would join) and is
+    # stamped under EVERY key its readers use (`available` +
+    # `disabled_reason_display` for this popup, `enabled` + `reason` for
+    # the driver and the sweep, the closed marker for the answer seam).
+    from backend.game_logic.treaty import can_sign, stamp_option
     for opt in dialogue.get("options") or []:
         if not isinstance(opt, dict):
             continue
-        if opt.get("action") in (
+        action = str(opt.get("action") or "")
+        if action in (
             ALLY_SETTLEMENT_PETITION_GRANT_ACTION,
             ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
         ):
-            opt["available"] = open_table
-            if open_table:
-                opt.pop("disabled_reason_display", None)
-            else:
-                opt["disabled_reason_display"] = reason
+            stamp_option(opt, can_sign(world, dialogue, action=action))
     popup = build_ally_settlement_petition_popup(dialogue)
     dialogue["popup_payload"] = popup
     return popup

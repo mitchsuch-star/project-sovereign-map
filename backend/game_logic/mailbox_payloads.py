@@ -109,12 +109,18 @@ def petition_availability_keys(world, terms: Dict) -> Dict:
                or getattr(world, "player_nation", "France"))
     vassal = str(terms.get("proposer_nation") or petition.get("vassal") or "")
     enabled, reason = petition_grant_availability(world, lord, vassal, petition)
+    # DD-1 Slice B: the Grant's keys through the ONE `stamp_option` (never
+    # closed by marker — the handler's own `stands` road must run).
+    from backend.game_logic.treaty import Verdict, stamp_option
+    grant = stamp_option(
+        {"label": "Grant the petition", "action": "accept_ai_proposal"},
+        Verdict(bool(enabled), clause="" if enabled else "stands",
+                message=str(reason or ""), closes=False))
     return {
         "grant_enabled": bool(enabled),
         "grant_reason": str(reason or ""),
         "options": [
-            {"label": "Grant the petition", "action": "accept_ai_proposal",
-             "enabled": bool(enabled), "reason": str(reason or "")},
+            grant,
             {"label": "Refuse the petition", "action": "reject_ai_proposal",
              "enabled": True, "reason": ""},
         ],
@@ -264,8 +270,11 @@ def refresh_client_petition_dialogue(world, dialogue: Dict) -> Optional[Dict]:
         if action == "accept_ai_proposal":
             if grant_line:
                 option["description"] = grant_line
-            option["enabled"] = availability["grant_enabled"]
-            option["reason"] = availability["grant_reason"]
+            from backend.game_logic.treaty import Verdict, stamp_option
+            stamp_option(option, Verdict(
+                bool(availability["grant_enabled"]),
+                clause="" if availability["grant_enabled"] else "stands",
+                message=str(availability["grant_reason"] or ""), closes=False))
         elif action == "reject_ai_proposal":
             if refuse_line:
                 option["description"] = refuse_line
