@@ -57,7 +57,7 @@ theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
+theme_type_variation = &"DisplayTitleLarge"
 text = "THE VERDICT OF HISTORY"
 horizontal_alignment = 1
 
@@ -70,7 +70,7 @@ horizontal_alignment = 1
 
 [node name="CauseLabel" type="Label" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"Lead"
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -107,11 +107,9 @@ alignment = 1
 [node name="PrimaryButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(250, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 text = "Continue"
 
 [node name="SecondaryButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(250, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 text = "Main Menu"

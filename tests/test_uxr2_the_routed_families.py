@@ -25,6 +25,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import _godot_scenes as G
+
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 ROUTED_RECORD = REPO / "docs" / "audits" / "uxr0" / "readability_routed_2026_10_12.json"
@@ -49,37 +51,6 @@ def _body(name: str, func: str) -> str:
     rest = src[m.end():]
     nxt = re.search(r"(?m)^(static )?func ", rest)
     return src[m.start():m.end() + (nxt.start() if nxt else len(rest))]
-
-
-def _call_args(src: str, func: str) -> list:
-    """Every call of `func(` in `src` (not its definition), split into its
-    top-level arguments — bracket- and string-aware, since an argument like
-    `c.get("name", "")` carries its own commas."""
-    calls = []
-    for m in re.finditer(r"(?<!\w)%s\(" % re.escape(func), src):
-        if src[max(0, m.start() - 5):m.start()] == "func ":
-            continue
-        depth, i, start, args, quote = 1, m.end(), m.end(), [], None
-        while depth:
-            ch = src[i]
-            if quote:
-                if ch == "\\":
-                    i += 1
-                elif ch == quote:
-                    quote = None
-            elif ch in "\"'":
-                quote = ch
-            elif ch in "([{":
-                depth += 1
-            elif ch in ")]}":
-                depth -= 1
-            elif ch == "," and depth == 1:
-                args.append(src[start:i].strip())
-                start = i + 1
-            i += 1
-        args.append(src[start:i - 1].strip())
-        calls.append(args)
-    return calls
 
 
 def _const(name: str, const: str) -> float:
@@ -147,18 +118,20 @@ class TestTheTextLeavesTheDepthScale:
         body = _body("battle_diorama.gd", "_mk_label")
         assert "variation: StringName" in body
         assert "add_theme_font_size_override" not in body
-        calls = _call_args(_src("battle_diorama.gd"), "_mk_label")
+        calls = G.call_args(_src("battle_diorama.gd"), "_mk_label")
         assert len(calls) >= 12, calls
         for args in calls:
             assert args[2] in ('&"Caption"', '&""'), f"a size reached _mk_label: {args}"
 
     def test_the_only_literal_sizes_are_the_engraved_display(self):
         """The tableau keeps five display sizes (clash 26, the odometer
-        figures 24, the banner 30, the plate 19) and the verdict's 17 —
-        every one a literal at or above the body floor; nothing computed."""
-        calls = _call_args(_src("battle_diorama.gd"), "add_theme_font_size_override")
+        figures 24, the banner 30, the plate 19) — every one a literal at or
+        above the body floor; nothing computed. The verdict's 17 became the
+        theme's `BodyLargeRich` in Slice B (the override diet)."""
+        calls = G.call_args(_src("battle_diorama.gd"), "add_theme_font_size_override")
         assert all(re.fullmatch(r"\d+", a[1]) for a in calls), calls
-        assert sorted(int(a[1]) for a in calls) == [17, 17, 19, 24, 24, 26, 30]
+        assert sorted(int(a[1]) for a in calls) == [19, 24, 24, 26, 30]
+        assert '_verdict.theme_type_variation = &"BodyLargeRich"' in _src("battle_diorama.gd")
 
     def test_the_status_is_a_fate_line_under_the_feet(self):
         body = _body("battle_diorama.gd", "_make_block")

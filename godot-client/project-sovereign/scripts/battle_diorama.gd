@@ -399,8 +399,7 @@ func _build_verdict_and_plate() -> void:
 	if _font_voice != null:
 		_verdict.add_theme_font_override("normal_font", _font_voice)
 		_verdict.add_theme_font_override("italics_font", _font_voice)
-	_verdict.add_theme_font_size_override("normal_font_size", 17)
-	_verdict.add_theme_font_size_override("italics_font_size", 17)
+	_verdict.theme_type_variation = &"BodyLargeRich"
 	_tray_inner.add_child(_verdict)
 
 	# The engraved brass nameplate, wax-sealed — the diorama is an OBJECT.

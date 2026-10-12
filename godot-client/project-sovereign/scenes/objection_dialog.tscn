@@ -49,7 +49,7 @@ layout_mode = 2
 [node name="MarshalNameLabel" type="Label" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.851, 0.753, 0.549, 1)
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"DialogTitleLarge"
 text = "MARSHAL OBJECTS"
 horizontal_alignment = 1
 
@@ -60,7 +60,6 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.933, 0.933, 0.933, 1)
-theme_override_font_sizes/font_size = 16
 text = "Marshal's objection message will appear here..."
 autowrap_mode = 3
 vertical_alignment = 1

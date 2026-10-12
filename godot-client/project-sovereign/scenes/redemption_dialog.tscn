@@ -49,7 +49,7 @@ layout_mode = 2
 [node name="MarshalNameLabel" type="Label" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.42, 0.42, 1)
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"DialogTitle"
 text = "MARSHAL REQUESTS AUDIENCE"
 horizontal_alignment = 1
 

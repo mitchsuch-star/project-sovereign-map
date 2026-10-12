@@ -776,6 +776,27 @@ static func clamp_centered_panel(panel: Control) -> void:
 
 
 
+static func bound_rich_body(body: RichTextLabel, room: float, min_height: float) -> void:
+	"""UXR-2 part 5 (October 12, 2026) — the rule the docstring above states:
+	a `fit_content` RichTextLabel outside any ScrollContainer imposes its
+	height through its text, so no clamp can bound it. This bounds it: content
+	that fits `room` keeps `fit_content` (no scrollbar, no reserved space);
+	content past it becomes a scrolling body `room` tall, never under
+	`min_height`. The tutor card's toggle (UXR-X3) as one helper — call it
+	deferred, once the body's width has settled, and again on a resize."""
+	if body == null or not is_instance_valid(body):
+		return
+	var budget := maxf(room, min_height)
+	if float(body.get_content_height()) <= budget:
+		body.fit_content = true
+		body.scroll_active = false
+		body.custom_minimum_size.y = 0.0
+	else:
+		body.fit_content = false
+		body.scroll_active = true
+		body.custom_minimum_size.y = budget
+
+
 const _RELAX_FLOOR := 48.0
 const _RELAX_ROUNDS := 4
 

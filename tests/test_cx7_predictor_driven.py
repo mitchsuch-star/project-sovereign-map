@@ -191,7 +191,9 @@ class TestTheRowMatchesTheLineItCompletes:
         the command line from its 12-px override to the theme's 16, so the
         row — which had been a constant 12 — now reads the line's size at
         install time; the invariant is agreement with the line, and the
-        line is never under the floor."""
+        line is never under the floor. Re-seated by UXR-2 (October 12,
+        2026): the row takes NO override at all — the theme's RichTextLabel
+        16 is the LineEdit's 16 — so this driven agreement is the guard."""
         assert driven["row_font_size"] == driven["input_font_size"], driven
         assert driven["input_font_size"] >= 14, driven["input_font_size"]
 

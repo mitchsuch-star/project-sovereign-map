@@ -615,13 +615,12 @@ def _script(name: str) -> str:
     return _read(path)
 
 
-def _node_block(src: str, node_name: str) -> str:
-    """The property block of a single [node name="X" ...] declaration."""
-    match = re.search(
-        r'^\[node name="%s"[^\]]*\]\n(.*?)(?=^\[node |\Z)' % re.escape(node_name),
-        src, re.M | re.S)
-    assert match, f"node {node_name!r} not found"
-    return match.group(1)
+# UXR-2 (Pre-Deploy S9, October 12, 2026): the scene helpers moved verbatim to
+# `tests/_godot_scenes.py`, the ONE parser the layout censuses share; this file
+# keeps its own names so every pin below reads unchanged.
+from tests._godot_scenes import centre_anchored_surfaces as _centre_anchored_surfaces  # noqa: E402
+from tests._godot_scenes import node_block as _node_block  # noqa: E402
+from tests._godot_scenes import panel_anchor as _panel_anchor  # noqa: E402
 
 
 def test_settlement_footer_is_bounded():
@@ -673,32 +672,6 @@ def test_settlement_popup_has_an_escape_hatch():
     assert "_find_safe_exit_action" in gd
     body = gd.split("func _unhandled_input")[1].split("func _find_safe_exit_action")[0]
     assert '"dismiss"' not in body, "the escape action must be derived, not literal"
-
-
-def _panel_anchor(scene_src: str):
-    """(anchor_left, anchor_right) of the root PanelContainer, or None."""
-    try:
-        block = _node_block(scene_src, "PanelContainer")
-    except AssertionError:
-        return None
-    left = re.search(r"^anchor_left = ([\d.]+)", block, re.M)
-    right = re.search(r"^anchor_right = ([\d.]+)", block, re.M)
-    if not left or not right:
-        return None
-    return float(left.group(1)), float(right.group(1))
-
-
-def _centre_anchored_surfaces():
-    """Derived, not hand-maintained. A hand-written list silently under-covers:
-    the first version named 12 of the 22 scripts the sweep actually touched, so
-    a refactor could drop the clamp from any of the other 10 unnoticed."""
-    out = []
-    for scene in sorted(SCENES_DIR.glob("*.tscn")):
-        anchors = _panel_anchor(_read(scene))
-        if anchors == (0.5, 0.5) and (
-                GODOT_PROJ / "scripts" / f"{scene.stem}.gd").exists():
-            out.append(scene.stem)
-    return out
 
 
 def test_the_derived_clamp_set_is_not_silently_empty():

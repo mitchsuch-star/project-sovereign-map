@@ -8157,9 +8157,6 @@ const _BARE_COMMANDS := [
 var _suggestion_row: RichTextLabel = null
 var _suggestions: Array = []
 var _suggestion_index := 0
-# CX3-R8: the size of the line the row completes (CommandInput), not
-# the theme's RichTextLabel default.
-const _COMPLETION_FONT_SIZE := 12
 var _last_game_state: Dictionary = {}
 
 
@@ -8193,13 +8190,10 @@ func _install_suggestion_row() -> void:
 	# completes is 12 — measured off the live nodes, capitals 21px against
 	# 14px and 16px, half again as tall as the game's prose. A suggestion is
 	# an aside, and it now matches the line it is completing.
-	# UXR-1 (October 9, 2026): read off the line itself — the floor lifted the
-	# command line to the theme's 16 and a constant would have left the row
-	# behind it; the constant stays as the fallback with no line to read.
-	var line_size := _COMPLETION_FONT_SIZE
-	if command_input != null:
-		line_size = command_input.get_theme_font_size("font_size")
-	_suggestion_row.add_theme_font_size_override("normal_font_size", line_size)
+	# UXR-1 (October 9, 2026): the floor lifted the command line to the
+	# theme's 16. UXR-2 (October 12, 2026): so the row takes NO override —
+	# the theme's RichTextLabel 16 is the LineEdit's 16, one source for both
+	# (the driven pin `test_cx7_predictor_driven` holds the two equal).
 	_suggestion_row.visible = false
 	layout.add_child(_suggestion_row)
 	layout.move_child(_suggestion_row, input_row.get_index())

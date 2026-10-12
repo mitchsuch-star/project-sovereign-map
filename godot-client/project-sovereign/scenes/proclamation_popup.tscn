@@ -94,5 +94,4 @@ alignment = 1
 [node name="AcknowledgeButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(220, 45)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 text = "Acknowledge"

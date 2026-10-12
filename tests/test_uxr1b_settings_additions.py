@@ -264,16 +264,27 @@ class TestTheFloorsResidue:
                 offenders.append((scene.name, m.group(0)))
         assert offenders == [], offenders
 
+    # UXR-2 (October 12, 2026) re-seated the next two consciously: the sizes
+    # left the scripts for the theme's named steps (the override diet), so the
+    # hierarchy is read off the THEME — the same numbers, one source.
     def test_the_log_tiers_stand_at_and_above_the_floor(self):
         src = _read(SCRIPTS / "campaign_log.gd")
-        assert 'const TIER_FONT_SIZES := {"lead": 18, "notable": 16, "routine": 14}' in src
-        assert 'const DEFAULT_ROW_FONT_SIZE := 16' in src
+        assert "TIER_FONT_SIZES" not in src and "add_theme_font_size_override" not in src
         assert 'label.theme_type_variation = &"CaptionRich"' in src
+        assert 'label.theme_type_variation = &"LeadRich"' in src
+        theme = _read(PROJECT / "ui" / "main_theme.tres")
+        for size in ("normal_font_size", "bold_font_size"):
+            assert f"LeadRich/font_sizes/{size} = 18" in theme, size
+            assert f"CaptionRich/font_sizes/{size} = 14" in theme, size
+        assert "RichTextLabel/font_sizes/normal_font_size = 16" in theme
 
     def test_the_end_screens_bold_matches_its_body(self):
         src = _read(SCRIPTS / "campaign_end.gd")
-        assert 'add_theme_font_size_override("normal_font_size", 17)' in src
-        assert 'add_theme_font_size_override("bold_font_size", 17)' in src
+        assert 'content_label.theme_type_variation = &"BodyLargeRich"' in src
+        assert "add_theme_font_size_override" not in src
+        theme = _read(PROJECT / "ui" / "main_theme.tres")
+        for size in ("normal_font_size", "bold_font_size", "italics_font_size"):
+            assert f"BodyLargeRich/font_sizes/{size} = 17" in theme, size
 
     def test_the_sweep_records_the_fifteens_and_stays_idempotent(self):
         sweep = _read(TOOLS / "uxr1_font_floor_sweep.py")

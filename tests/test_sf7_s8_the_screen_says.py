@@ -434,11 +434,17 @@ class TestTheClientHalf:
         """EAS-2's client half. Re-seated by UXR-1b (October 9, 2026): the
         three sizes were 14 / 12 / 11 and the routine tier read P1 on every
         monitor in the whole-client census; the hierarchy stands at 18 / 16 /
-        14, with the routine row in the Caption class."""
+        14, with the routine row in the Caption class. Re-seated again by
+        UXR-2 (October 12, 2026): the sizes are the theme's named steps —
+        `LeadRich` 18, the theme's RichTextLabel 16, `CaptionRich` 14."""
         src = _gd("campaign_log.gd")
-        assert 'const TIER_FONT_SIZES := {"lead": 18, "notable": 16, "routine": 14}' in src
-        assert 'TIER_FONT_SIZES.get(tier, DEFAULT_ROW_FONT_SIZE)' in src
-        assert 'label.theme_type_variation = &"CaptionRich"' in src
+        assert "TIER_FONT_SIZES" not in src
+        assert ('if tier == "routine":\n'
+                '\t\t\t\t# The Caption class carries the 14 (all four sizes) and tells\n'
+                '\t\t\t\t# the readability census what this row is.\n'
+                '\t\t\t\tlabel.theme_type_variation = &"CaptionRich"\n'
+                '\t\t\telif tier == "lead":\n'
+                '\t\t\t\tlabel.theme_type_variation = &"LeadRich"') in src
         assert 'if tier == "lead":' in src
 
     def test_our_own_soil_carries_no_fog_hedge(self):

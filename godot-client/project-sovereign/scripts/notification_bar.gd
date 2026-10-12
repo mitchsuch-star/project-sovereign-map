@@ -20,6 +20,10 @@ const MAX_VISIBLE_COMMITMENTS_PER_TURN := 2
 const DETAIL_PANEL_MIN_WIDTH := 280.0
 const DETAIL_PANEL_MAX_WIDTH := 340.0
 const DETAIL_PANEL_GAP := 6.0
+# UXR-2 part 5: the detail body is bounded by the room below the panel's top
+# (this margin kept under it) and scrolls past it; never shorter than this.
+const DETAIL_PANEL_BOTTOM_MARGIN := 12.0
+const DETAIL_BODY_MIN_HEIGHT := 60.0
 
 const PRIORITY_COLORS = {
 	2: Color(0.85, 0.25, 0.25, 1.0),
@@ -323,6 +327,8 @@ const COMMITMENTS_EVENT_TYPES = {
 @onready var overflow_label: Label = $RailPanel/RailLayout/OverflowLabel
 
 var expanded_panel: PanelContainer = null
+# UXR-2 part 5: the open panel's body, bounded by `_fit_expanded_body`.
+var _expanded_body: RichTextLabel = null
 var current_notifications: Array = []
 # Music & Sound Core: notification ids the bell has already rung for.
 var _audio_seen_ids: Dictionary = {}
@@ -336,6 +342,14 @@ func _ready():
 	icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overflow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_refresh_visibility()
+	# UXR-2 part 5: an open detail panel re-bounds its body when the window
+	# or the Interface Scale changes the logical viewport under it.
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
+
+
+func _on_viewport_size_changed() -> void:
+	if expanded_panel != null:
+		_position_expanded_panel()
 
 
 func set_api_client(client):
@@ -556,7 +570,7 @@ func _show_expanded_panel(notif: Dictionary):
 	title_label.text = Utils.humanize_nation_keys_in_text(str(notif.get("title", "Notification")))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.add_theme_color_override("font_color", accent)
-	title_label.add_theme_font_size_override("font_size", 17)
+	title_label.theme_type_variation = &"BodyLarge"
 	header.add_child(title_label)
 
 	var turn_created = int(notif.get("turn_created", 0))
@@ -574,6 +588,7 @@ func _show_expanded_panel(notif: Dictionary):
 	body.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH - 20.0, 0)
 	body.text = _build_detail_text(notif)
 	vbox.add_child(body)
+	_expanded_body = body
 
 	var details = notif.get("details", {})
 
@@ -698,6 +713,29 @@ func _position_expanded_panel():
 	panel_width = clamp(panel_width, DETAIL_PANEL_MIN_WIDTH, DETAIL_PANEL_MAX_WIDTH)
 	var local_x = max(0.0, rail_panel.size.x - panel_width)
 	expanded_panel.position = Vector2(local_x, rail_panel.size.y + DETAIL_PANEL_GAP)
+	_fit_expanded_body.call_deferred()
+
+
+func _fit_expanded_body() -> void:
+	"""UXR-2 part 5: the body is unbounded payload text (a coalition's member
+	list, Talleyrand's feedback) in a `fit_content` label outside any
+	ScrollContainer, under a panel with no maximum height — at a high
+	Interface Scale the logical viewport is ~450 px tall and the Acknowledge
+	row could leave the screen. The body fits the room below the panel's top
+	and scrolls past it (`Utils.bound_rich_body`)."""
+	if expanded_panel == null or _expanded_body == null or not is_instance_valid(_expanded_body):
+		return
+	await get_tree().process_frame
+	if expanded_panel == null or not is_instance_valid(_expanded_body):
+		return
+	var view := get_viewport().get_visible_rect().size
+	var top := expanded_panel.get_global_rect().position.y
+	var chrome := maxf(expanded_panel.size.y - _expanded_body.size.y, 0.0)
+	var room := view.y - top - DETAIL_PANEL_BOTTOM_MARGIN - chrome
+	Utils.bound_rich_body(_expanded_body, room, DETAIL_BODY_MIN_HEIGHT)
+	# The panel is free-positioned (a child of the rail, not a container):
+	# re-shrink it to its new minimum.
+	expanded_panel.size = Vector2.ZERO
 
 
 func _unhandled_input(event):
@@ -716,6 +754,7 @@ func _close_expanded_panel():
 		remove_child(expanded_panel)
 		expanded_panel.queue_free()
 		expanded_panel = null
+		_expanded_body = null
 
 
 func _on_dismiss_pressed(notification_id: String):

@@ -135,13 +135,13 @@ func _load_fonts() -> void:
 	if _font_voice != null:
 		cause_label.add_theme_font_override("font", _font_voice)
 		content_label.add_theme_font_override("normal_font", _font_voice)
-		content_label.add_theme_font_size_override("normal_font_size", 17)
 		# UXR-1b: bold matches the body (it was 15 against a 17 body — a
 		# smaller bold, and a RED row by the readability floor).
-		content_label.add_theme_font_size_override("bold_font_size", 17)
+		# UXR-2 (October 12, 2026): the 17 — body, bold and italics alike —
+		# is the theme's `BodyLargeRich` step, not three raw overrides.
+		content_label.theme_type_variation = &"BodyLargeRich"
 	if _font_voice_italic != null:
 		content_label.add_theme_font_override("italics_font", _font_voice_italic)
-		content_label.add_theme_font_size_override("italics_font_size", 17)
 
 
 # ── the entry ────────────────────────────────────────────────────────────────

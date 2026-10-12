@@ -285,6 +285,63 @@ at every resolution.
   - The whole-client ratchet (32 / 92) stays until Slice E's full re-shoot.
 - **Conscious pin flips:** `test_iq5_both_sides_of_the_butchers_bill.py` (the faith caption's anchor follows the depth, on the fate line) and `test_sf7_s9_the_frames.py` (the tail no longer follows the steps).
 
+**Slice B — the named sizes (part 4) and scroll where unbounded (part 5).**
+
+*Part 4, the diet.* The theme gained a size-only ladder, one named step per size in use (the user's ruling: pixel-identical):
+
+| Step | Size |
+|---|---|
+| `BodyLarge` / `BodyLargeRich` | 17 |
+| `Lead` / `LeadRich` | 18 |
+| `ScreenTitle` | 20 |
+| `DialogTitle` | 22 |
+| `DialogTitleLarge` | 24 |
+| `DisplayTitle` | 28 |
+| `DisplayTitleLarge` | 30 |
+
+These sit beside the Caption family (14), the theme's own 16, and `HeadingLabel` (22, styled). Each rich step defines exactly the sizes the overrides it replaced had set, so no `[b]` or `[i]` span moves.
+
+The conversions:
+- **The 44 scene overrides.** The 22 that were the theme's own 16 were deleted (17 of them on Buttons). The other 22 became `theme_type_variation`. Every one was a Label, and none already carried a variation.
+- **The script overrides.** The campaign end's body becomes `BodyLargeRich`. The log's tiers are `LeadRich` / `CaptionRich`, and `TIER_FONT_SIZES` is retired. The terminal's suggestion row now takes no override: the theme's RichTextLabel 16 is the LineEdit's 16, and the CX-7 driven pin keeps the two equal. The notice title is `BodyLarge` and the diorama verdict is `BodyLargeRich`.
+- **The ratchet.** Raw overrides fell from **72 to 18**, every one a named exemption with an exact count: the map's world-space furniture 7 (UXR-X4, now S9b); the dev smoke scene 1; the title screen's display type 5; the tableau's engraved display 5.
+
+`tests/test_uxr2_override_diet.py` checks seven things:
+- It counts every override, literal or computed, plus the `set(...)` and string-call dodges. This closes the loophole UXR-X5 and X6 escaped through.
+- It pins a ledger of non-literal sizes.
+- It pins the ladder exactly.
+- Every step except `HeadingLabel` must be size-only.
+- Every caption-sized step must be in the instrument's own `_CAPTION_VARIATIONS`.
+- Every variation reference must exist and fit its node's class: 100+ in scenes, 60+ in scripts, 30+ resolved to a class.
+- A ratchet of 2 on BBCode `[font_size=` sizes.
+
+**Proof:** the full IQ-10 set at 1600×900 and scale 1.0, shot before and after.
+- **140 of 142 frames are pixel-identical,** with **0 text-record differences** (path, class, text, size, em).
+- **The other two are the main menu,** whose files were not touched. Its painting's Ken Burns drift is timing.
+- **Two flips:** `test_uxr1b_settings_additions.py` and `test_sf7_s8_the_screen_says.py` now read the 18 / 16 / 14 and the 17s off the theme; the CX-7 docstring is re-seated.
+
+*Part 5, scroll where unbounded.* `tests/test_uxr2_scroll_where_unbounded.py` has three arms:
+- **Scene arm.** Every `fit_content` RichTextLabel must have a ScrollContainer somewhere in its whole ancestor chain. 13 such labels; 12 resolve, and the tutor body is allowlisted.
+- **Script arm.** Every code-built one must resolve through its parents to a scroll. 12 labels, 9 resolved: the wizard's 8 and the log's rows.
+- **Toggle arm.** A label switched to `fit_content` must switch back to a bounded scroll.
+
+Four entries stand outside, each with a proof the test checks:
+
+| Entry | Why it may stand outside a scroll |
+|---|---|
+| The tutor body | It bounds itself |
+| The rail's detail body | It bounds itself |
+| The terminal's suggestion row | It is count-capped |
+| The diorama verdict | It is free-positioned (UXR-X9) |
+
+Floorless ScrollContainers are a ratchet at 8. The census was shown to fail on a synthetic case for each arm.
+
+**The one real fix.** The rail's detail body, unbounded payload text in a panel with no maximum height, now fits the room below the panel and scrolls past it. It uses `Utils.bound_rich_body`, the tutor card's toggle as one helper, and refits when the viewport changes.
+
+**The two plan incidents, corrected.** IGR-F was a floorless scroll. SF7-X17 was an engine-API trim.
+
+`tests/_godot_scenes.py` is now the one scene parser: the clamp pins' helpers moved there verbatim, `test_ui_visual_foundation.py` re-imports them under its old names, and the full-tree parser was added.
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed
