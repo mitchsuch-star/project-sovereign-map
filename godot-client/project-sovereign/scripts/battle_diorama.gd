@@ -44,6 +44,21 @@ const FIGURE_PX := 58.0
 const FAITH_CAPTION_W := 150.0
 const FAITH_CAPTION_Y := 30.0
 const FAITH_CAPTION_INBOARD := 20.0
+# UXR-X5 (UXR-2, October 12, 2026): the TEXT leaves the depth scale. A block's
+# art (figures, standard, locket) recedes by 1 − 0.12·depth; its words are
+# read at the theme's sizes at every depth (name 16, the rest Caption 14 —
+# 10–14 design px × 0.88 had read 8.8 px on a 1080 panel). Only the text's
+# ANCHORS follow the depth. Two lines fit above the feet between ranks
+# (name, strength — who); the status joins the faith caption UNDER the feet
+# (what became of them), one 14-px line apart.
+const TEXT_PITCH := 18.0
+const FATE_PITCH := 18.0
+# A fate caption is cut back to stay on the baize, never narrower than this.
+const BAIZE_PAD := 14.0
+const FATE_MIN_W := 96.0
+# Every rank's words draw above every rank's standard (a standard rides its
+# block +3): at four ranks the next rank's colours stood over a name.
+const TEXT_Z := 10
 const SHELF_FIGURE_PX := 44.0
 
 # PT-D2: the backend's absence family (battle_diorama.py ABSENT_STATUSES)
@@ -323,19 +338,22 @@ func _build_stage() -> void:
 	_stage.add_child(_clash_label)
 
 	# Odometers — the ONLY red on the table.
-	_odo_left_cap = _mk_label(_stage, "", 12, Color(BONE_HEX))
-	_odo_left = _mk_label(_stage, "0", 24, CRIMSON, _font_engraved)
-	_odo_right_cap = _mk_label(_stage, "", 12, Color(BONE_HEX))
+	_odo_left_cap = _mk_label(_stage, "", &"Caption", Color(BONE_HEX))
+	_odo_left = _mk_label(_stage, "0", &"", CRIMSON, _font_engraved)
+	_odo_left.add_theme_font_size_override("font_size", 24)
+	_odo_right_cap = _mk_label(_stage, "", &"Caption", Color(BONE_HEX))
 	_odo_right_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_odo_right = _mk_label(_stage, "0", 24, CRIMSON, _font_engraved)
+	_odo_right = _mk_label(_stage, "0", &"", CRIMSON, _font_engraved)
+	_odo_right.add_theme_font_size_override("font_size", 24)
 	_odo_right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 	# The outcome banner — engraved capitals, register-toned, arrives LAST.
-	_banner = _mk_label(_stage, "", 30, Utils.UI_GOLD, _font_engraved)
+	_banner = _mk_label(_stage, "", &"", Utils.UI_GOLD, _font_engraved)
+	_banner.add_theme_font_size_override("font_size", 30)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_banner.add_theme_constant_override("outline_size", 6)
-	_sub_banner = _mk_label(_stage, "", 14, Color(BONE_HEX))
+	_sub_banner = _mk_label(_stage, "", &"", Color(BONE_HEX))
 	_sub_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
@@ -460,7 +478,7 @@ func _build_buttons() -> void:
 	_tray_inner.add_child(_btn_replay)
 	_btn_replay.position = Vector2(TRAY_W - 256.0, TRAY_H - 46.0)
 
-	_skip_hint = _mk_label(_tray_inner, "click anywhere to skip ▸", 12,
+	_skip_hint = _mk_label(_tray_inner, "click anywhere to skip ▸", &"Caption",
 			Color(Utils.COLOR_DIMMED))
 	_skip_hint.position = Vector2(22.0, TRAY_H - 40.0)
 
@@ -487,11 +505,18 @@ func _build_filigree() -> void:
 		_tray_inner.add_child(fil)
 
 
-func _mk_label(parent: Node, text: String, fsize: int, color: Color,
+func _mk_label(parent: Node, text: String, variation: StringName, color: Color,
 		font: Font = null) -> Label:
+	"""UXR-X5 (UXR-2, October 12, 2026): a tableau label takes a THEME size —
+	`&"Caption"` (14) for the small lines, `&""` for the body (16) — never a
+	design-px number. The tray is a scaled surface; its type is not, and a
+	number passed here was how the 10/11/12-px lines escaped the floor's
+	census (it read only literal overrides). The four engraved display
+	sizes (odometer 24, banner 30) are set by their callers."""
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", fsize)
+	if variation != &"":
+		l.theme_type_variation = variation
 	l.add_theme_color_override("font_color", color)
 	if font != null:
 		l.add_theme_font_override("font", font)
@@ -685,16 +710,21 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 		var reserve_dead := int(side.get("reserve_casualties", 0))
 		if reserve_dead > 0:
 			tail_text += " — %s lost" % Utils.format_number(reserve_dead)
-		var tail := _mk_label(_stage, tail_text, 11,
+		var tail := _mk_label(_stage, tail_text, &"Caption",
 				Color(Utils.COLOR_DIMMED))
 		# The right-hand tail is right-aligned to the stage by its own width
 		# (the longer SF7-X29 line would run off a fixed `sw - 150`).
 		var right_x := sw - 150.0
 		if THE_RESERVE_NAMES_ITS_DEAD:
 			right_x = minf(right_x, sw - tail.get_minimum_size().x - 14.0)
+		# UXR-X5: the tail sits in the baize's OUTBOARD BOTTOM corner, over
+		# the reserve shelf. It used to follow the steps one rank beyond
+		# the last (`base_y - step_y * n - 8`), which at four ranks is the
+		# depth-2 rank's name row — at the floor's 14 px the line ran
+		# across that name. The corner holds nothing at any count.
 		tail.position = Vector2(
 			14.0 if is_left else right_x,
-			base_y - step_y * fought.size() - 8.0)
+			_stage.size.y - BAIZE_PAD - tail.get_minimum_size().y)
 		_transients.append(tail)
 	return blocks
 
@@ -709,9 +739,16 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	Returns the block record the sequence animates."""
 	var block := Node2D.new()
 	block.position = pos
-	block.scale = Vector2(block_scale, block_scale)
 	block.z_index = 20 - depth
 	holder.add_child(block)
+	# UXR-X5: the block itself is unscaled; its ART recedes with depth. The
+	# labels are the block's own children, so they read at the theme's size
+	# at every depth — and never through a 1/scale counter-scale, whose float
+	# product lands a hair under 1.0 and reads a 14-px caption as 13.99999.
+	var art := Node2D.new()
+	art.name = "Art"
+	art.scale = Vector2(block_scale, block_scale)
+	block.add_child(art)
 
 	var facing := "r" if is_left else "l"
 	var arm := str(c.get("arm", "infantry"))
@@ -745,13 +782,13 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 		var f := DioramaFigure.new()
 		f.setup(arm, facing, nation_color, fig_px * 0.94)
 		f.position = Vector2((j - (rear - 1) / 2.0) * spread + 6.0, -22.0)
-		block.add_child(f)
+		art.add_child(f)
 		figures.append(f)
 	for j in range(mini(count, 3)):
 		var f := DioramaFigure.new()
 		f.setup(arm, facing, nation_color, fig_px)
 		f.position = Vector2((j - (mini(count, 3) - 1) / 2.0) * spread, 0.0)
-		block.add_child(f)
+		art.add_child(f)
 		figures.append(f)
 
 	# Which figures fall: the CLASH-side flank first — the line breaks from
@@ -773,7 +810,7 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	if not _is_naval():
 		standard = _make_standard(nation_color, color_key, is_left)
 		standard.position = Vector2(38.0 if is_left else -38.0, 0.0)
-		block.add_child(standard)
+		art.add_child(standard)
 
 	# Locket + labels above the block (Control children of the Node2D).
 	# Left side: locket outboard-left, text flows right toward the line.
@@ -782,21 +819,27 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	locket.setup(str(c.get("name", "")), 38.0, bool(c.get("crowned", false)),
 			bool(c.get("sovereign", false)))
 	locket.position = Vector2(-86.0 if is_left else 48.0, -158.0)
-	block.add_child(locket)
+	art.add_child(locket)
 
 	var text_align := HORIZONTAL_ALIGNMENT_LEFT if is_left \
 		else HORIZONTAL_ALIGNMENT_RIGHT
-	var text_x := -42.0 if is_left else -186.0
+	# UXR-X5: the text's ALIGNED edge follows the art (the left column's text
+	# starts at −42·b, the right column's ends at 40·b — where the depth-0
+	# layout put them, receding with the block); its size does not.
 	var text_w := 150.0 if is_left else 226.0
+	var text_x := -42.0 * block_scale if is_left else 40.0 * block_scale - text_w
+	var text_y := -156.0 * block_scale
 
 	var lead_mark := " ◆" if bool(c.get("lead", false)) else ""
 	# LV-2 (row EP F2): the printed name; the locket keeps the raw key
 	# (its portrait is looked up by it).
-	var name_l := _mk_label(block, Utils.display_marshal_name(str(c.get("name", ""))) + lead_mark, 14,
+	var name_l := _mk_label(block, Utils.display_marshal_name(str(c.get("name", ""))) + lead_mark, &"",
 			Color(GOLD_HEX))
-	name_l.position = Vector2(text_x, -156.0)
-	name_l.size = Vector2(text_w, 18.0)
+	name_l.position = Vector2(text_x, text_y)
+	name_l.size = Vector2(text_w, 22.0)
 	name_l.horizontal_alignment = text_align
+	name_l.z_index = TEXT_Z
+	_outline_over_colours(name_l)
 
 	var remaining := int(c.get("remaining", 0))
 	# NV-7: a squadron is counted in sail, and 45 → 38 needs the unit said
@@ -810,11 +853,17 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 		after_advance = " → %s after the advance" % Utils.format_number(int(c.get("after_advance", 0)))
 	var strength_l := _mk_label(
 		block, "%s → %s%s%s" % [Utils.format_number(committed),
-		Utils.format_number(remaining), unit, after_advance], 11, Color(BONE_HEX))
-	strength_l.position = Vector2(text_x, -138.0)
-	strength_l.size = Vector2(text_w, 14.0)
+		Utils.format_number(remaining), unit, after_advance], &"Caption", Color(BONE_HEX))
+	strength_l.position = Vector2(text_x, text_y + TEXT_PITCH)
+	strength_l.size = Vector2(text_w, 19.0)
 	strength_l.horizontal_alignment = text_align
+	strength_l.z_index = TEXT_Z
+	_outline_over_colours(strength_l)
 
+	# UXR-X5: the FATE line — under the feet, outboard, where the faith
+	# caption already sat (IQ-5 review B): a third row above the feet at
+	# the floor's size lands on the next rank's locket, two do not.
+	var fate_y := FAITH_CAPTION_Y * block_scale
 	var status_l: Label = null
 	if status in ["routed", "destroyed"]:
 		# NV-8b: the sea has its own words — a squadron STRIKES her
@@ -822,15 +871,23 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 		var status_word := status.to_upper()
 		if _is_naval():
 			status_word = "STRUCK" if status == "routed" else "SUNK"
-		status_l = _mk_label(block, status_word, 11, CRIMSON)
+		status_l = _mk_label(block, status_word, &"Caption", CRIMSON)
 		status_l.visible = false
 	elif status == "reinforced":
-		status_l = _mk_label(block, "marched to the guns", 10,
+		status_l = _mk_label(block, "marched to the guns", &"Caption",
 				Color(0.55, 0.65, 0.5))
 	if status_l != null:
-		status_l.position = Vector2(text_x, -124.0)
-		status_l.size = Vector2(text_w, 14.0)
-		status_l.horizontal_alignment = text_align
+		status_l.size = Vector2(FAITH_CAPTION_W, 19.0)
+		if is_left:
+			status_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			status_l.position = Vector2(FAITH_CAPTION_INBOARD * block_scale - FAITH_CAPTION_W,
+					fate_y)
+		else:
+			status_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			status_l.position = Vector2(-FAITH_CAPTION_INBOARD * block_scale, fate_y)
+		_keep_fate_on_baize(status_l, pos, is_left)
+		status_l.z_index = TEXT_Z
+		fate_y += FATE_PITCH
 
 	# IQ-5 / PR-X3 (R11): a man whose faith in you is spent brought less
 	# than his whole weight to this field. The optional `faith` caption says
@@ -851,18 +908,20 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	var faith_v = c.get("faith", null)
 	var faith := str(faith_v) if faith_v is String else ""
 	if faith != "":
-		var faith_l := _mk_label(block, faith, 10,
+		var faith_l := _mk_label(block, faith, &"Caption",
 				Color(0.66, 0.42, 0.40, 1.0), _font_voice)
 		faith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		faith_l.custom_minimum_size = Vector2(FAITH_CAPTION_W, 0.0)
 		faith_l.size = Vector2(FAITH_CAPTION_W, 14.0)
 		if is_left:
 			faith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			faith_l.position = Vector2(FAITH_CAPTION_INBOARD - FAITH_CAPTION_W,
-					FAITH_CAPTION_Y)
+			faith_l.position = Vector2(FAITH_CAPTION_INBOARD * block_scale - FAITH_CAPTION_W,
+					fate_y)
 		else:
 			faith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-			faith_l.position = Vector2(-FAITH_CAPTION_INBOARD, FAITH_CAPTION_Y)
+			faith_l.position = Vector2(-FAITH_CAPTION_INBOARD * block_scale, fate_y)
+		_keep_fate_on_baize(faith_l, pos, is_left)
+		faith_l.z_index = TEXT_Z
 
 	return {
 		"node": block, "data": c, "figures": figures,
@@ -870,6 +929,38 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 		"standard": standard, "locket": locket, "status_label": status_l,
 		"is_left": is_left, "status": status, "depth": depth,
 	}
+
+
+func _outline_over_colours(l: Label) -> void:
+	"""UXR-X7: at four ranks the steps narrow and the next rank's colours
+	stand behind a name or a strength line; the text draws above them
+	(TEXT_Z) and a thin dark rim keeps bone-on-white legible. On the bare
+	baize the rim is all but invisible."""
+	l.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.85))
+	l.add_theme_constant_override("outline_size", 3)
+
+
+func _keep_fate_on_baize(l: Label, block_pos: Vector2, is_left: bool) -> void:
+	"""UXR-X5: an outer contingent's fate caption (status, faith) must not
+	hang off the baize — at four contingents the outermost block stands
+	~80 px from the stage edge and a 150-px caption box reached past it.
+	The caption's INBOARD edge (where its aligned text sits) stays; its
+	outboard edge is cut back to the baize margin, so the text wraps
+	narrower instead of sliding inboard onto the next rank's figures."""
+	var w := l.size.x
+	if is_left:
+		var inboard := l.position.x + w
+		var outboard := maxf(l.position.x, BAIZE_PAD - block_pos.x)
+		w = maxf(inboard - outboard, FATE_MIN_W)
+		l.custom_minimum_size.x = minf(l.custom_minimum_size.x, w)
+		l.size.x = w
+		l.position.x = inboard - w
+	else:
+		var outboard_r := minf(l.position.x + w,
+				_stage.size.x - BAIZE_PAD - block_pos.x)
+		w = maxf(outboard_r - l.position.x, FATE_MIN_W)
+		l.custom_minimum_size.x = minf(l.custom_minimum_size.x, w)
+		l.size.x = w
 
 
 func _make_standard(nation_color: Color, flag_key: String,

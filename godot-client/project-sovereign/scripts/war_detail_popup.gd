@@ -44,6 +44,17 @@ const COLOR_BAR_CENTER = Color(0.4, 0.4, 0.45, 0.6)
 # War-score bar frame (CC0 Kenney RPG track): 9px 3-slice caps + cool-navy tint.
 const BAR_FRAME_CAP = 9
 const COLOR_BAR_FRAME_TINT = Color(0.72, 0.78, 1.0)
+# UXR-X6 (UXR-2, October 12, 2026): the bar's own text — the score and the two
+# side tags — is the theme's Caption (14), never a computed size: the tags were
+# `max(7, font_size - 3)` = 8 / 7 px and the score 11 / 9, under the readability
+# floor on every monitor. A 14-px EB Garamond line is ~19 px tall, so both bars
+# (the war's and each coalition member's) are 22 px — the track is a horizontal
+# 3-slice and stretches — and a tag slot is wide enough for "WU" at 14.
+const WAR_BAR_HEIGHT := 22
+const WAR_BAR_TAG_W := 28.0
+# UXR-X8: the track is a 3-slice whose rounded gold cap is 14 px wide; a tag
+# 3 px in sat under the rim (invisible at 8 px, clipped at 14). Past the cap.
+const WAR_BAR_TAG_INSET := 14.0
 
 
 func _ready():
@@ -100,7 +111,7 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	_clear_score_bars()
 	_add_tug_of_war_bar(
 		int(float(war_data.get("war_score", 0))),
-		_current_nation, 280, 16
+		_current_nation, 280, WAR_BAR_HEIGHT
 	)
 	_render_war_detail(war_data)
 	_clear_buttons()
@@ -134,7 +145,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 		if w.get("in_coalition", false):
 			var opp = str(w.get("opponent", "?"))
 			var score = int(float(w.get("war_score", 0)))
-			_add_labeled_tug_of_war_bar(opp, score, 280, 12)
+			_add_labeled_tug_of_war_bar(opp, score, 280, WAR_BAR_HEIGHT)
 	_render_coalition_detail(coalition_data, wars)
 	_clear_buttons()
 	var shared_war_id = _shared_coalition_war_id(wars)
@@ -222,7 +233,7 @@ func _clear_score_bars():
 
 func _add_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int):
 	"""Add a large tug-of-war bar to the score bar container."""
-	var bar = _create_tug_of_war_bar(score, opponent, bar_width, bar_height, 11)
+	var bar = _create_tug_of_war_bar(score, opponent, bar_width, bar_height)
 	score_bar_container.add_child(bar)
 
 
@@ -239,14 +250,14 @@ func _add_labeled_tug_of_war_bar(opponent: String, score: int, bar_width: int, b
 	lbl.add_theme_color_override("font_color", score_color_val)
 	row.add_child(lbl)
 
-	var bar = _create_tug_of_war_bar(score, opponent, bar_width, bar_height, 9)
+	var bar = _create_tug_of_war_bar(score, opponent, bar_width, bar_height)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(bar)
 
 	score_bar_container.add_child(row)
 
 
-func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int, font_size: int) -> Control:
+func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int) -> Control:
 	"""Create a two-tone tug-of-war bar. Blue=France (right), Red=enemy (left).
 	Center = 0. Score > 0 means France winning (blue fills right of center).
 	Score < 0 means enemy winning (red fills left of center)."""
@@ -305,11 +316,12 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var score_label = Label.new()
 	var score_sign = "+" if score > 0 else ""
 	score_label.text = score_sign + str(score)
-	score_label.add_theme_font_size_override("font_size", font_size)
+	score_label.theme_type_variation = &"Caption"
 	score_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	score_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	score_label.add_theme_constant_override("outline_size", 3)
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	score_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(score_label)
 
@@ -317,19 +329,19 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var enemy_lbl = Label.new()
 	var abbr = opponent.left(2).to_upper() if opponent.length() >= 2 else opponent.to_upper()
 	enemy_lbl.text = abbr
-	enemy_lbl.add_theme_font_size_override("font_size", max(7, font_size - 3))
+	enemy_lbl.theme_type_variation = &"Caption"
 	enemy_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5, 0.6))
 	# Pinned to the LEFT edge (enemy side) so it tracks the stretched width.
-	_anchor_bar_child(enemy_lbl, 0.0, 0.0, 3.0, 23.0)
+	_anchor_bar_child(enemy_lbl, 0.0, 0.0, WAR_BAR_TAG_INSET, WAR_BAR_TAG_INSET + WAR_BAR_TAG_W)
 	enemy_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	container.add_child(enemy_lbl)
 
 	var france_lbl = Label.new()
 	france_lbl.text = "FR"
-	france_lbl.add_theme_font_size_override("font_size", max(7, font_size - 3))
+	france_lbl.theme_type_variation = &"Caption"
 	france_lbl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8, 0.6))
 	# Pinned to the RIGHT edge (France side), right-aligned.
-	_anchor_bar_child(france_lbl, 1.0, 1.0, -23.0, -3.0)
+	_anchor_bar_child(france_lbl, 1.0, 1.0, -WAR_BAR_TAG_INSET - WAR_BAR_TAG_W, -WAR_BAR_TAG_INSET)
 	france_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	france_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	container.add_child(france_lbl)

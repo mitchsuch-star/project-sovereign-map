@@ -207,8 +207,12 @@ class TestTheFirstRunCard:
 # ═══════════════════════════ the theme floor ════════════════════════════════
 
 FLOOR = 14
-# Recorded exemptions (the sweep's docstring): world-space map furniture
-# (UXR-X4) and the war-detail popup's two computed sizes (UXR-2's).
+# The recorded exemption (the sweep's docstring): world-space map furniture
+# (UXR-X4). The war-detail popup's computed sizes were once named here as a
+# second exemption; they were never one — the literal-only regex below simply
+# could not see them (nor the diorama's `_mk_label` sizes). UXR-2 Slice A
+# (October 12, 2026) gave both the theme's Caption; the computed-size loophole
+# is closed by UXR-2's override census.
 GD_EXEMPT = {"map_renderer_base.gd"}
 
 

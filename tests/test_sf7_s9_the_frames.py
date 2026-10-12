@@ -421,7 +421,13 @@ class TestTheLineFitsTheBaize:
         assert "const THE_LINE_FITS_THE_BAIZE := true" in src
         assert "(sw / 2.0 - 128.0 - 100.0 * last_scale - 16.0) / float(n - 1)" in src
         assert "(base_y - 60.0 - 158.0 * last_scale) / float(n - 1)" in src
-        assert "base_y - step_y * fought.size() - 8.0" in src, "the tail follows the steps"
+        # UXR-X5 (UXR-2, Oct 12 2026) moved the tail consciously: following
+        # the steps put it on the depth-2 rank's name row at four ranks, and
+        # at the floor's 14 px it ran across that name. It now sits in the
+        # baize's outboard bottom corner, over the reserve shelf.
+        assert "base_y - step_y * fought.size() - 8.0" not in src
+        assert "_stage.size.y - BAIZE_PAD - tail.get_minimum_size().y" in src, (
+            "the tail sits in the baize's outboard bottom corner")
 
     def test_four_contingents_stay_on_the_baize(self):
         sw, base_y = self._stage()

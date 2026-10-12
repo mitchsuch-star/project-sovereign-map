@@ -1,0 +1,998 @@
+{
+ "date": "2026_10_12",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\9358f2fc-a296-4135-bc2d-974b3bda5602\\scratchpad\\uxr2\\routed_a3\\index.json",
+ "surfaces": {
+  "war_detail_boot": {
+   "surface": "War Detail popup (boot)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_detail_collapse_one": {
+   "surface": "War Detail popup (one province left)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_detail_collapse_none": {
+   "surface": "War Detail popup (no province left)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 8,
+      "red": 0,
+      "p1": 0,
+      "ok": 8,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_aadj": {
+   "surface": "Battle Diorama (attacker adjusted)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_dadj": {
+   "surface": "Battle Diorama (defender adjusted)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_rout_conquest": {
+   "surface": "Battle Diorama (a rout and a conquest)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_four_contingents": {
+   "surface": "Battle Diorama (four contingents a side)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_naval": {
+   "surface": "Battle Diorama (a fleet action)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_detail_t20": {
+   "surface": "War Detail popup (t20 fixture)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_detail_coalition_boot": {
+   "surface": "War Detail popup (the coalition, boot)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_detail_coalition_t20": {
+   "surface": "War Detail popup (the coalition, t20 fixture)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 17,
+      "red": 0,
+      "p1": 0,
+      "ok": 17,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "95ea0459",
+ "physical_scale": "auto"
+}

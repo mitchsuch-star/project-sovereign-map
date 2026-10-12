@@ -1996,13 +1996,20 @@ class TestTheCaptionSitsUnderTheCorps:
         assert a < m < s
 
     def test_it_sits_under_the_feet_outboard(self):
+        # UXR-X5 (UXR-2, Oct 12 2026) flipped these two strings consciously:
+        # the block is unscaled now (its ART recedes, its text does not), so
+        # the caption's ANCHOR follows the depth (`* block_scale`) and its
+        # line is the FATE line's `fate_y` — the status, when there is one,
+        # takes the first fate row (FAITH_CAPTION_Y·b) and faith the next.
         code = _body("battle_diorama.gd", "_make_block")
         assert ("\t\t\tfaith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT\n"
-                "\t\t\tfaith_l.position = Vector2(FAITH_CAPTION_INBOARD - FAITH_CAPTION_W,\n"
-                "\t\t\t\t\tFAITH_CAPTION_Y)") in code
+                "\t\t\tfaith_l.position = Vector2(FAITH_CAPTION_INBOARD * block_scale - FAITH_CAPTION_W,\n"
+                "\t\t\t\t\tfate_y)") in code
         assert ("\t\t\tfaith_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT\n"
-                "\t\t\tfaith_l.position = Vector2(-FAITH_CAPTION_INBOARD, FAITH_CAPTION_Y)") in code
+                "\t\t\tfaith_l.position = Vector2(-FAITH_CAPTION_INBOARD * block_scale, fate_y)") in code
+        assert "var fate_y := FAITH_CAPTION_Y * block_scale" in code
         assert "faith_l.position = Vector2(text_x" not in code
+        assert "status_l.position = Vector2(text_x" not in code
 
     def test_the_measured_constants(self):
         src = _GD_TEXT("battle_diorama.gd")

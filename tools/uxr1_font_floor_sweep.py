@@ -10,8 +10,11 @@ The rule: no raw font-size override under 14 logical px survives in the client.
       CaptionRich = 14) — badges, hints, tab buttons, counters, version lines.
     * EXEMPT, with a reason: the map's world-space furniture in
       `scenes/map_renderer_base.gd` (name stacks, garrison chips, sail counts —
-      scaled by the camera, not the interface; UXR-X4 owns them) and the
-      war-detail popup's two COMPUTED sizes (`max(7, font_size - 3)`, UXR-2's).
+      scaled by the camera, not the interface; UXR-X4 owns them). (The
+      war-detail popup's two COMPUTED sizes were listed here too, but they
+      were never exempt — this sweep's regex matches literals only, so they,
+      and the diorama's `_mk_label(…, fsize)` sizes, simply escaped it. UXR-2
+      Slice A, October 12, 2026, gave both the theme's Caption: UXR-X5/X6.)
     * a site authored at EXACTLY 14 is caption-SIZED, and the first AFTER census
       read every body-class one RED at 1080p (14 < 16): each is decided by the
       table below — a dialog's ACTION button and a body description DROP the

@@ -408,6 +408,30 @@ SHOTS: list[dict] = [
         }
         for tag, label in [("aadj", "attacker adjusted"), ("dadj", "defender adjusted")]
     ],
+    # ═══ UXR-2 (Pre-Deploy S9) — the tableau's states no board had shot ═════
+    # UXR-X5's readings rested on the two boards above; the rout, the conquest
+    # sub-banner, ranks at depth 2-3, the reserve tail and the sea had never
+    # been measured, so "0 RED on every surface" was proven on two states.
+    *[
+        {
+            "id": f"diorama_{tag}",
+            "surface": f"Battle Diorama ({label})",
+            "payload": f"diorama_uxr2_{payload}",
+            "scene": "res://scenes/battle_diorama.tscn",
+            "mode": "call", "method": "show_diorama",
+            "args": ["$payload", False],
+            "must_show": must,
+        }
+        for tag, payload, label, must in [
+            ("rout_conquest", "rout_conquest", "a rout and a conquest",
+             "the beaten line's ROUTED under its feet; the conquest sub-banner under the banner"),
+            ("four_contingents", "four", "four contingents a side",
+             "four ranks a side receding, every name and strength line at the theme's size; "
+             "the reserve tails; the depth-2 faith caption on the baize"),
+            ("naval", "naval", "a fleet action",
+             "the line of battle at sea; STRUCK / SUNK under the hulls; the sail counts"),
+        ]
+    ],
     {
         "id": "enemy_phase_iq5",
         "surface": "Enemy-phase dialog (IQ-5 scope board)",
@@ -525,6 +549,24 @@ SHOTS: list[dict] = [
         "args": ["$payload.war", "$payload.coalition"],
         "must_show": "the breakdown on a played war; the exposure and weariness rows",
     },
+    # UXR-2 (Pre-Deploy S9): the coalition view — one labelled bar per member,
+    # the bar text the theme's Caption (UXR-X6). Never shot before.
+    *[
+        {
+            "id": f"war_detail_coalition_{name}",
+            "surface": f"War Detail popup (the coalition, {label})",
+            "payload": f"active_wars_{name}",
+            "scene": "res://scenes/war_detail_popup.tscn",
+            "mode": "call", "method": "show_coalition",
+            "args": ["$payload.coalition", "$payload.wars"],
+            "must_show": must,
+        }
+        for name, label, must in [
+            ("boot", "boot", "one bar per member at war, each named; the score and the "
+                             "side tags readable inside the bar"),
+            ("t20", "t20 fixture", "the members' bars on a played war, a fill drawn"),
+        ]
+    ],
     {
         "id": "gazette_t20",
         "surface": "Le Moniteur (t20 fixture)",

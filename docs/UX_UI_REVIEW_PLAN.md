@@ -252,6 +252,39 @@ harness EXIT=0.
 the five screens resize and remember; UXR-0 reads 0 RED rows on every surface
 at every resolution.
 
+### Landing record — UXR-2 (Pre-Deploy S9, October 12, 2026)
+
+> Built in slices on master (A the routed families → B the named sizes and
+> scroll → C the grips and the refit → D the anchors → E the landing re-shoot).
+> Rows `BUG_FIXES.md` §UXR-2; pins `tests/test_uxr2_*.py`.
+
+**The rulings of the session (the user, before the build):**
+1. **Scope.** S9 builds the five parts, plus UXR-X5 / X6 (the done-when's readability half) and UXR-D5 (the grips). UXR-D1 (a Text-size slider), D2 (High contrast), D3 (HUD Centred + Fit Europe) and UXR-X4 (map labels follow the scale) move to a new **S9b** row in `PRE_DEPLOY_PLAN.md` §2, before UXR-3, each keeping its done-when and its test. UXR-D4 (the Side Desk) keeps its own gate.
+2. **Six screens get grips, not five.** The Diplomatic Ledger is included. The list above was written beside §0's miscounted "four grips" grep and was never corrected with it.
+3. **The font ladder is pixel-identical.** There is one named step per size in use. Folding 24 → 22 and 30 → 28 is UXR-3's R4 call, made with frames.
+
+**The plan's numbers, corrected by the reconnaissance:**
+- There were **72** raw font-size overrides at S9's start (44 `.tscn` + 28 `.gd`), not 268. UXR-1's sweep had already removed 196.
+- UXR-X5 was **not** the tray's cap (see Slice A).
+- Part 5's two cited incidents are not the `fit_content` class. IGR-F was a floorless ScrollContainer squeezed by its chrome. SF7-X17 was an engine-API trim. The class's real history is PS18-10 / 14 / R4 and UXR-X3.
+
+**Slice A — the routed families read.**
+- **UXR-X6 (the war-detail popup).** The bar's own text, the score and both side tags, takes the theme's Caption. Before, it was `max(7, font_size − 3)` = 8 / 7 px for the tags and 11 / 9 px for the score. Both bars are 22 px, and the tags sit past the track's 14-px rim cap (UXR-X8, which the first readable frame showed).
+- **UXR-X5 (the battle diorama).** The cause was measured, not assumed. The tray scale is exactly 1.0 at all five resolutions. The 8.8 px came from design sizes 10–14 multiplied by each rank's `1 − 0.12·depth`. The fix splits a block in two: its **art** (figures, standard, locket) recedes with depth, and its **text** reads at the theme's sizes at every depth (name 16; strength, status, faith, odometer captions, skip hint, reserve tail at Caption 14). Only the text's anchors follow the depth.
+  - The status line joins the faith caption **under the feet**: two lines at the floor's sizes fit between ranks, three do not. This is the one visible design change, shown at the review pause.
+  - `_mk_label` takes a theme variation, never a size.
+  - The engraved display type keeps five literal sizes: the clash 26, the odometer figures 24, the banner 30 and the plate 19.
+- **New IQ-10 boards** (the states no board had shot): a rout with a conquest, four contingents a side (reserve tails, a reinforcer, depth-2 faith), a fleet action, and the war-detail coalition view (boot and t20). 142 shots.
+- **Found by the four-contingent board, and present at HEAD before any change (UXR-X7):**
+  - The next rank's standard stood over a name or strength line. Fix: every rank's words draw above every standard (`TEXT_Z`), with a thin dark rim on the name and strength.
+  - The reserve tail, one step beyond the last rank, ran across the depth-2 name. Fix: it sits in the baize's outboard bottom corner, over the reserve shelf.
+- **Filed, not fixed: UXR-X9** (UXR-3 S12). The verdict's worst-case four lines can touch the nameplate. The scroll census allowlists `_verdict` as free-positioned.
+- **The reading:**
+  - The five diorama boards went from **RED 84 / P1 151** at HEAD `95ea0459` (shot from a pristine worktree) to **0 / 0**.
+  - The routed families and the new boards total **55 readings, RED 0 / P1 0**: `docs/audits/uxr0/readability_routed_2026_10_12.json`, pinned by `tests/test_uxr2_the_routed_families.py`.
+  - The whole-client ratchet (32 / 92) stays until Slice E's full re-shoot.
+- **Conscious pin flips:** `test_iq5_both_sides_of_the_butchers_bill.py` (the faith caption's anchor follows the depth, on the fate line) and `test_sf7_s9_the_frames.py` (the tail no longer follows the steps).
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed

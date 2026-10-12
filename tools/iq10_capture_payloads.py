@@ -683,6 +683,99 @@ def cap_battles():
                staging=staging2, facts={"register": diorama2.get("register")})
 
 
+def cap_diorama_states():
+    """UXR-2 (Pre-Deploy S9, October 12, 2026) — the tableau's states no board
+    had shot. UXR-X5's readings rested on two boards (one lead and one
+    depth-1 reinforcer a side), so the rout, the conquest sub-banner, the
+    depth-2/3 ranks, the reserve tail and the sea had never been measured.
+    Each board is the PRODUCTION builder (`build_battle_diorama`, and the
+    naval resolver's own `naval_diorama`) fed by `tests/test_battle_diorama.py`'s
+    staging helpers — no payload is hand-written."""
+    bd = test_module("test_battle_diorama")
+    from backend.game_logic.battle_diorama import (
+        build_battle_diorama, snapshot_pre_battle_strengths)
+
+    def _board(world, attacker, defender, result, atk, dfn, *, atk_dist=None,
+               def_dist=None, atk_reinf=None, conquered=False, faith=None):
+        return build_battle_diorama(
+            world=world, attacker=attacker, defender=defender,
+            battle_result=result, battle_region="Swabia",
+            atk_participants=atk, def_participants=dfn,
+            pre_strengths=snapshot_pre_battle_strengths(atk, dfn),
+            atk_distribution=atk_dist or {}, def_distribution=def_dist or {},
+            attacker_reinforcements=atk_reinf or [], defender_reinforcements=[],
+            region_conquered=conquered, total_engaged=0, faith=faith)
+
+    # The rout and the conquest: Mack's line breaks and Swabia changes hands —
+    # the ROUTED status under the feet and the conquest sub-banner.
+    ney = bd._mk("Ney", "Swabia", 40000)
+    mack = bd._mk("Mack", "Swabia", 12000, nation="Austria")
+    world = bd._world(ney, mack)
+    with _quiet():
+        rout = _board(world, ney, mack,
+                      bd._battle_result(def_retreat=True, def_cas=6000, def_rem=6000,
+                                        name="Battle of Ulm",
+                                        observation="Mack's line broke at the second volley."),
+                      [ney], [mack], conquered=True)
+    record("diorama_uxr2_rout_conquest", rout,
+           source="backend.game_logic.battle_diorama.build_battle_diorama",
+           staging="tests/test_battle_diorama.py helpers: Ney 40,000 against Mack 12,000, "
+                   "the defender's forced retreat, the region conquered",
+           facts={"status": [c.get("status") for c in rout["defender"]["contingents"]],
+                  "region_conquered": True})
+
+    # Four contingents a side, the cap's reserve tail on both, a reinforcer,
+    # and a spent marshal at DEPTH 2 — the deepest text the line can carry.
+    lead = bd._mk("Ney", "Swabia", 30000)
+    extras = [bd._mk(n, "Swabia", s) for n, s in (
+        ("Davout", 25000), ("Lannes", 22000), ("Soult", 20000),
+        ("Murat", 12000), ("Bernadotte", 15000))]
+    mack = bd._mk("Mack", "Swabia", 30000, nation="Austria")
+    allies = [bd._mk("ArchdukeCharles", "Swabia", 28000, nation="Austria"),
+              bd._mk("ArchdukeJohn", "Swabia", 18000, nation="Austria"),
+              bd._mk("Kutuzov", "Swabia", 26000, nation="Russia"),
+              bd._mk("Buxhowden", "Swabia", 16000, nation="Russia")]
+    world = bd._world(lead, mack, *extras, *allies)
+    atk = [lead] + extras
+    dfn = [mack] + allies
+    with _quiet():
+        four = _board(
+            world, lead, mack,
+            bd._battle_result(atk_cas=9200, atk_rem=26900, def_cas=21400,
+                              def_rem=22700, name="Battle of Austerlitz",
+                              observation="The centre gave way on the Pratzen."),
+            atk, dfn,
+            atk_dist={"Ney": 3100, "Davout": 2200, "Lannes": 1700, "Soult": 1100,
+                      "Murat": 600, "Bernadotte": 500},
+            def_dist={"Mack": 7300, "ArchdukeCharles": 5100, "ArchdukeJohn": 3200,
+                      "Kutuzov": 3900, "Buxhowden": 1900},
+            atk_reinf=[{"marshal": "Davout", "arrived": True}],
+            faith={"Lannes": "Faith spent (trust 0): he brought half what he otherwise would."})
+    record("diorama_uxr2_four", four,
+           source="backend.game_logic.battle_diorama.build_battle_diorama",
+           staging="tests/test_battle_diorama.py helpers: six French corps against five "
+                   "allied ones — the cap seats four a side, the rest ride the reserve tail; "
+                   "Davout marched to the guns; Lannes' faith is spent",
+           facts={"attacker": [(c.get("name"), c.get("status")) for c in
+                               four["attacker"]["contingents"]],
+                  "attacker_reserve": four["attacker"].get("reserve_count"),
+                  "defender_reserve": four["defender"].get("reserve_count")})
+
+    # The sea: the shipped board's Combined Fleet brought to action — the
+    # resolver builds its own tableau (STRUCK / SUNK, the sail count).
+    from backend.game_logic import naval
+    world, _client = fresh()
+    with _quiet():
+        action = naval.resolve_fleet_action(world, "France", "Britain", context="diversion")
+    sea = action.get("naval_diorama")
+    if isinstance(sea, dict):
+        record("diorama_uxr2_naval", sea,
+               source="backend.game_logic.naval.resolve_fleet_action → naval_diorama",
+               staging="the shipped 1805 boot, France's fleet brought to action by "
+                       "Britain's (context=diversion)",
+               facts={"register": sea.get("register")})
+
+
 def cap_petition():
     """IQ-7 — the client's petition popup, the vassal card, the remitted row."""
     iq7 = test_module("test_iq7_satellites_have_a_position")
@@ -1771,6 +1864,7 @@ CAPTURES = {
     "peace": cap_peace_popups,
     "missions": cap_missions,
     "battles": cap_battles,
+    "diorama_states": cap_diorama_states,
     "petition": cap_petition,
     "prisoner": cap_prisoner,
     "regions": cap_regions,
