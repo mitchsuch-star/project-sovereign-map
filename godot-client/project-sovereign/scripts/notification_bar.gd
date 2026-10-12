@@ -342,6 +342,10 @@ func _ready():
 	icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overflow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_refresh_visibility()
+	# UXR-2 (the anchors): the rail fills the top bar's slot, whose width is a
+	# viewport fraction (`top_bar._fit_rail`); its 360 minimum is the floor.
+	if get_parent() != null and get_parent().name == "NotificationArea":
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# UXR-2 part 5: an open detail panel re-bounds its body when the window
 	# or the Interface Scale changes the logical viewport under it.
 	get_viewport().size_changed.connect(_on_viewport_size_changed)

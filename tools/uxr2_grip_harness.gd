@@ -303,8 +303,108 @@ func _next_screen():
 		_wait = 4
 	else:
 		_i = 0
-		_phase = "scale_open"
+		_phase = "ws_show"
 		_wait = 4
+
+
+# ── the war HUD (Slice D): an EDGE grip on its top-left corner ────────────
+
+func _ws() -> Node:
+	return _main.get("war_status_panel")
+
+
+func _ws_panel() -> Control:
+	var ws := _ws()
+	return ws.get_node_or_null("PanelContainer") if ws != null else null
+
+
+func _ws_grip() -> Control:
+	var ws := _ws()
+	return ws.get_node_or_null("ResizeGrip") if ws != null else null
+
+
+func _ws_grip_center() -> Vector2:
+	var g := _ws_grip()
+	return g.position + g.size * 0.5
+
+
+func _ws_show():
+	var ws := _ws()
+	if ws == null:
+		_out["ws_error"] = "no war_status_panel"
+		_phase = "scale_open"
+		return
+	ws.show()
+	ws.call("_fit_panel_to_content")
+	_phase = "ws_press"
+	_wait = 8
+
+
+func _ws_press():
+	var panel := _ws_panel()
+	var grip := _ws_grip()
+	_out["ws_grip"] = grip != null
+	if panel == null or grip == null:
+		_phase = "scale_open"
+		return
+	_out["ws_before"] = [panel.size.x, panel.size.y]
+	_out["ws_grip_gap"] = (_ws_grip_center() - panel.get_global_rect().position).length()
+	_mouse(_ws_grip_center(), true)
+	_phase = "ws_drag"
+	_wait = 2
+
+
+func _ws_drag():
+	var start := _ws_grip_center()
+	_motion(start + Vector2(-40.0, -10.0), Vector2(-40.0, -10.0))
+	_motion(start + Vector2(-80.0, -20.0), Vector2(-40.0, -10.0))
+	_phase = "ws_release"
+	_wait = 3
+
+
+func _ws_release():
+	_mouse(_ws_grip_center(), false)
+	_phase = "ws_measure"
+	_wait = 6
+
+
+func _ws_measure():
+	var panel := _ws_panel()
+	_out["ws_after_drag"] = [panel.size.x, panel.size.y]
+	_out["ws_stored"] = UiSettings.has_panel_size("war_status")
+	_ws().hide()
+	_phase = "ws_reshow"
+	_wait = 3
+
+
+func _ws_reshow():
+	_ws().show()
+	_ws().call("_fit_panel_to_content")
+	_phase = "ws_measure_reshow"
+	_wait = 6
+
+
+func _ws_measure_reshow():
+	var panel := _ws_panel()
+	_out["ws_after_reshow"] = [panel.size.x, panel.size.y]
+	_mouse(_ws_grip_center(), true, true)
+	_phase = "ws_dbl_release"
+	_wait = 2
+
+
+func _ws_dbl_release():
+	_mouse(_ws_grip_center(), false)
+	_phase = "ws_measure_dbl"
+	_wait = 6
+
+
+func _ws_measure_dbl():
+	var panel := _ws_panel()
+	_out["ws_after_dbl"] = [panel.size.x, panel.size.y]
+	_out["ws_stored_after_dbl"] = UiSettings.has_panel_size("war_status")
+	_ws().hide()
+	_phase = "scale_open"
+	_wait = 4
 
 
 # ── the refit road and Reset layout ───────────────────────────────────────

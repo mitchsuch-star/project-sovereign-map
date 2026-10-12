@@ -113,6 +113,25 @@ class TestEachScreenResizesAndRemembers:
         assert driven["screens"][screen]["stored_after_click"] is False
 
 
+class TestTheWarHudGrip:
+    """Slice D: the war-status panel's hidden 6-px edge band became a visible
+    grip on its top-left corner; its width is remembered."""
+
+    def test_the_grip_sits_on_the_top_left_corner(self, driven):
+        assert driven.get("ws_grip") is True, driven.get("ws_error")
+        assert driven["ws_grip_gap"] < 2.0
+
+    def test_a_drag_left_widens_it_and_the_width_is_remembered(self, driven):
+        before, after = driven["ws_before"], driven["ws_after_drag"]
+        assert abs(after[0] - (before[0] + 80.0)) <= 2.0, (before, after)
+        assert driven["ws_stored"] is True
+        assert abs(driven["ws_after_reshow"][0] - after[0]) <= 2.0
+
+    def test_a_double_click_returns_the_fraction(self, driven):
+        assert abs(driven["ws_after_dbl"][0] - driven["ws_before"][0]) <= 2.0
+        assert driven["ws_stored_after_dbl"] is False
+
+
 class TestTheRefitRoadAndTheReset:
     def test_a_wide_screen_is_refit_when_the_scale_rises_under_it(self, driven):
         assert driven["refit_before"][0] > driven["refit_view"][0], (

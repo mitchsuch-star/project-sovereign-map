@@ -716,6 +716,14 @@ func _ready():
 		# Generals refresh all come with it.
 		if notification_bar.has_signal("notification_action_requested"):
 			notification_bar.notification_action_requested.connect(_on_notification_action_requested)
+		# UXR-2 (the anchors): the tutor card keeps clear of the notice rail
+		# its lessons point at (beside it, or below it on a narrow screen).
+		if tutorial_overlay != null and "avoid_rail" in tutorial_overlay:
+			tutorial_overlay.avoid_rail = notification_bar.rail_panel
+	# UXR-2 (the anchors): the war-detail popup docks beside the war HUD's
+	# LIVE left edge (the HUD's width is a viewport fraction, or the player's).
+	if war_detail_popup != null and war_status_panel != null and "dock_beside" in war_detail_popup:
+		war_detail_popup.dock_beside = war_status_panel.panel_container
 
 	# UI-6: map province click → Region Action Panel (the region_clicked
 	# signal existed since the cutover but nothing listened in the game path)

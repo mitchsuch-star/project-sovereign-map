@@ -5,7 +5,8 @@ extends CanvasLayer
 # =============================================================================
 # Compact always-visible panel anchored bottom-right. Shows active wars,
 # coalition grouping, and armistice cards with tug-of-war score meters.
-# CanvasLayer 25. User-resizable via drag handles.
+# CanvasLayer 25. Its width is a viewport fraction; a grip on its top-left
+# corner resizes it and the size is remembered (UXR-2, the layout law).
 # Clicks emit card_clicked for main.gd to open the detail popup.
 # =============================================================================
 
@@ -38,15 +39,17 @@ const BAR_RIM_INSET = 5.0
 
 # Resize constraints
 const MIN_WIDTH = 150
-const MAX_WIDTH = 500
 const MIN_HEIGHT = 60
 const MAX_HEIGHT_RATIO = 0.45  # Max 45% of screen height
-
-# Drag state
-var _dragging_edge: String = ""  # "left", "top", "topleft", ""
-var _drag_start_mouse: Vector2 = Vector2.ZERO
-var _drag_start_rect: Rect2 = Rect2()
-const DRAG_MARGIN = 6  # Pixels from edge to trigger resize cursor
+# UXR-2 (the layout law): ANCHORED bottom-right — its width a fraction of the
+# logical viewport between the authored 192 and a ceiling, until the player
+# drags its grip (the size remembered as "war_status"). The hidden 6-px edge
+# band it replaces had no cursor, ate clicks on the cards' edges, could stick
+# mid-drag, and was forgotten on every restart.
+const EDGE_MARGIN := 8.0
+const WIDTH_FRACTION := 0.12
+const DEFAULT_MIN_WIDTH := 192.0
+const DEFAULT_MAX_WIDTH := 440.0
 
 
 func _ready():
@@ -56,6 +59,10 @@ func _ready():
 	# Interface Scale changes the logical viewport under it — it fit only on
 	# `update_wars`, so a scale step left its height cap stale.
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	var grip = ResizeGrip.attach_edge(panel_container, "war_status", ResizeGrip.Corner.TOP_LEFT)
+	grip.resize_requested.connect(_apply_geometry)
+	grip.resize_committed.connect(func(_s): _fit_panel_to_content())
+	grip.reset_requested.connect(_fit_panel_to_content)
 
 
 func _on_viewport_size_changed() -> void:
@@ -83,73 +90,6 @@ func _add_panel_grain() -> void:
 	grain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel_container.add_child(grain)
 	panel_container.move_child(grain, 0)
-
-
-func _input(event):
-	if not visible:
-		return
-	if event is InputEventMouseButton:
-		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			var edge = _get_resize_edge(event.position)
-			if edge != "":
-				_dragging_edge = edge
-				_drag_start_mouse = event.position
-				_drag_start_rect = Rect2(
-					Vector2(panel_container.offset_left, panel_container.offset_top),
-					Vector2(panel_container.offset_right - panel_container.offset_left,
-							panel_container.offset_bottom - panel_container.offset_top)
-				)
-				get_viewport().set_input_as_handled()
-		elif not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			if _dragging_edge != "":
-				_dragging_edge = ""
-				get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion:
-		if _dragging_edge != "":
-			_apply_resize(event.position)
-			get_viewport().set_input_as_handled()
-
-
-func _get_resize_edge(mouse_pos: Vector2) -> String:
-	"""Check if mouse is near a resizable edge of the panel."""
-	var screen_size = get_viewport().get_visible_rect().size
-	# Panel anchored bottom-right: offsets are negative from bottom-right corner
-	var panel_left = screen_size.x + panel_container.offset_left
-	var panel_top = screen_size.y + panel_container.offset_top
-	var panel_right = screen_size.x + panel_container.offset_right
-	var panel_bottom = screen_size.y + panel_container.offset_bottom
-
-	var near_left = abs(mouse_pos.x - panel_left) < DRAG_MARGIN
-	var near_top = abs(mouse_pos.y - panel_top) < DRAG_MARGIN
-	var in_x = mouse_pos.x >= panel_left - DRAG_MARGIN and mouse_pos.x <= panel_right
-	var in_y = mouse_pos.y >= panel_top - DRAG_MARGIN and mouse_pos.y <= panel_bottom
-
-	if near_left and near_top:
-		return "topleft"
-	if near_left and in_y:
-		return "left"
-	if near_top and in_x:
-		return "top"
-	return ""
-
-
-func _apply_resize(mouse_pos: Vector2):
-	"""Apply resize drag delta to panel offsets."""
-	var delta = mouse_pos - _drag_start_mouse
-	var screen_size = get_viewport().get_visible_rect().size
-	var max_h = int(screen_size.y * MAX_HEIGHT_RATIO)
-
-	if _dragging_edge == "left" or _dragging_edge == "topleft":
-		var new_left = _drag_start_rect.position.x + delta.x
-		var width = panel_container.offset_right - new_left
-		width = clamp(width, MIN_WIDTH, MAX_WIDTH)
-		panel_container.offset_left = panel_container.offset_right - width
-
-	if _dragging_edge == "top" or _dragging_edge == "topleft":
-		var new_top = _drag_start_rect.position.y + delta.y
-		var height = panel_container.offset_bottom - new_top
-		height = clamp(height, MIN_HEIGHT, max_h)
-		panel_container.offset_top = panel_container.offset_bottom - height
 
 
 func update_wars(data: Dictionary) -> void:
@@ -208,17 +148,45 @@ func update_wars(data: Dictionary) -> void:
 func _fit_panel_to_content() -> void:
 	# Shrink-wrap the panel height to its content (up to MAX_HEIGHT_RATIO of the
 	# screen, then the ScrollContainer scrolls). A fixed .tscn height left a big
-	# dead gap below a single war entry. Anchored bottom-right, so we move the TOP
-	# edge; width stays user-draggable. One frame lets the containers lay out.
+	# dead gap below a single war entry. Anchored bottom-right, so the TOP and
+	# LEFT edges move. One frame lets the containers lay out.
 	await get_tree().process_frame
 	if not visible or not is_instance_valid(panel_container):
 		return
-	var content_h: float = vbox.get_combined_minimum_size().y
-	var screen_size: Vector2 = get_viewport().get_visible_rect().size
-	var max_h := float(int(screen_size.y * MAX_HEIGHT_RATIO))
-	# +8 covers the panel stylebox content margins (2 top + 4 bottom) + slack.
-	var target_h: float = clampf(content_h + 8.0, MIN_HEIGHT, max_h)
-	panel_container.offset_top = panel_container.offset_bottom - target_h
+	_apply_geometry()
+
+
+func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
+	"""UXR-2: the panel's rect. Width: the grip's live drag, else the stored
+	size, else a viewport fraction. Height: shrink-wrapped to the cards under
+	MAX_HEIGHT_RATIO of the screen — a stored height is a CAP on that, so a
+	short war list never leaves a tall empty panel."""
+	if not is_instance_valid(panel_container):
+		return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var max_h := float(int(view.y * MAX_HEIGHT_RATIO))
+	var stored := UiSettings.get_panel_size("war_status", Vector2.ZERO)
+	var w: float
+	if drag != Vector2.ZERO:
+		w = drag.x
+	elif stored != Vector2.ZERO:
+		w = stored.x
+	else:
+		w = Utils.fraction_px(view.x, WIDTH_FRACTION, DEFAULT_MIN_WIDTH, DEFAULT_MAX_WIDTH)
+	w = clampf(w, MIN_WIDTH, maxf(view.x - 2.0 * EDGE_MARGIN, MIN_WIDTH))
+	var h: float
+	if drag != Vector2.ZERO:
+		h = clampf(drag.y, MIN_HEIGHT, maxf(max_h, MIN_HEIGHT))
+	else:
+		var cap := max_h
+		if stored != Vector2.ZERO:
+			cap = minf(cap, stored.y)
+		# +8 covers the panel stylebox content margins (2 top + 4 bottom) + slack.
+		h = clampf(vbox.get_combined_minimum_size().y + 8.0, MIN_HEIGHT, maxf(cap, MIN_HEIGHT))
+	panel_container.offset_right = -EDGE_MARGIN
+	panel_container.offset_bottom = -EDGE_MARGIN
+	panel_container.offset_left = -EDGE_MARGIN - w
+	panel_container.offset_top = -EDGE_MARGIN - h
 
 
 func _add_coalition_header(coalition_name: String):

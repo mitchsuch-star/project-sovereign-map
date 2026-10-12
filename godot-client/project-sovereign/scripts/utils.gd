@@ -783,6 +783,90 @@ static func clamp_centered_panel(panel: Control) -> void:
 
 
 
+# ── the ANCHORED half of the layout law (UXR-2 Slice D, October 12, 2026) ──
+# The top bar's height — the one number every HUD surface keeps clear of:
+# the command window's reserve (main.gd TOP_BAR_RESERVED_PX 36), the region
+# panel's dock (48 = 36 + 12), the tutor card's top (44 = 36 + 8), the rail
+# slot's top (42 = 36 + 6) and the centre clamp's vertical reserve (88 =
+# 2 x (36 + 8)). The layout-law census pins each authored number to it.
+const TOP_BAR_HEIGHT := 36.0
+const HUD_MARGIN := 8.0
+
+
+static func fraction_px(view_len: float, frac: float, min_px: float, max_px: float,
+		reserve: float = 16.0) -> float:
+	"""An ANCHORED surface's extent: a fraction of the logical viewport
+	between a floor and a ceiling (logical px) — and never more than the room
+	the viewport leaves (`view_len - reserve`), so a floor cannot push a HUD
+	panel off a narrow screen."""
+	return minf(clampf(view_len * frac, min_px, max_px), maxf(view_len - reserve, 0.0))
+
+
+static func clamp_anchored_panel(panel: Control) -> void:
+	"""The edge-anchored twin of `clamp_centered_panel` (whose centre-only
+	anchor guard is pinned and stays). On each axis whose anchors meet at a
+	point, the extent is capped to the band the viewport leaves — x in
+	[HUD_MARGIN, view.x - HUD_MARGIN], y in [TOP_BAR_HEIGHT + HUD_MARGIN,
+	view.y - HUD_MARGIN] — keeping the edge its grow direction holds; the
+	descendant height minimums relax to that height (the centre clamp's own
+	second pass, so a Container cannot override it); and the rect is slid
+	back inside the band, so its header never sits under the top bar."""
+	if panel == null or not is_instance_valid(panel):
+		return
+	var viewport := panel.get_viewport()
+	if viewport == null:
+		return
+	var view: Vector2 = viewport.get_visible_rect().size
+	var band_top := TOP_BAR_HEIGHT + HUD_MARGIN
+	var max_h := maxf(view.y - band_top - HUD_MARGIN, 0.0)
+	var max_w := maxf(view.x - 2.0 * HUD_MARGIN, 0.0)
+	var w := minf(panel.offset_right - panel.offset_left, max_w)
+	var h := minf(panel.offset_bottom - panel.offset_top, max_h)
+	_relax_child_minimums(panel, h)
+	# A Container grows to its combined minimum whatever its offsets say:
+	# place (and slide) by the size it will really draw at, within the band.
+	var drawn := panel.get_combined_minimum_size()
+	w = maxf(w, minf(drawn.x, max_w))
+	h = maxf(h, minf(drawn.y, max_h))
+	if is_equal_approx(panel.anchor_left, panel.anchor_right):
+		match panel.grow_horizontal:
+			Control.GROW_DIRECTION_BEGIN:
+				panel.offset_left = panel.offset_right - w
+			Control.GROW_DIRECTION_END:
+				panel.offset_right = panel.offset_left + w
+			_:
+				var cx := (panel.offset_left + panel.offset_right) / 2.0
+				panel.offset_left = cx - w / 2.0
+				panel.offset_right = cx + w / 2.0
+	if is_equal_approx(panel.anchor_top, panel.anchor_bottom):
+		match panel.grow_vertical:
+			Control.GROW_DIRECTION_BEGIN:
+				panel.offset_top = panel.offset_bottom - h
+			Control.GROW_DIRECTION_END:
+				panel.offset_bottom = panel.offset_top + h
+			_:
+				var cy := (panel.offset_top + panel.offset_bottom) / 2.0
+				panel.offset_top = cy - h / 2.0
+				panel.offset_bottom = cy + h / 2.0
+	# Slide inside the band (a point anchor adds its own position to the offsets).
+	var left := panel.anchor_left * view.x + panel.offset_left
+	var top := panel.anchor_top * view.y + panel.offset_top
+	var dx := 0.0
+	var dy := 0.0
+	if left + w > view.x - HUD_MARGIN:
+		dx = (view.x - HUD_MARGIN) - (left + w)
+	if left + dx < HUD_MARGIN:
+		dx = HUD_MARGIN - left
+	if top + h > view.y - HUD_MARGIN:
+		dy = (view.y - HUD_MARGIN) - (top + h)
+	if top + dy < band_top:
+		dy = band_top - top
+	panel.offset_left += dx
+	panel.offset_right += dx
+	panel.offset_top += dy
+	panel.offset_bottom += dy
+
+
 static func refit_surface(host: Node) -> void:
 	"""UXR-2: the one live-refit road's per-surface step. Every clamped
 	surface used to fit the viewport ON OPEN only, so raising the Interface

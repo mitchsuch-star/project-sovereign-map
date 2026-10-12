@@ -348,7 +348,7 @@ def test_def13_ui_scale_mechanism_landed():
     assert '[node name="ScaleUpButton"' in main_tscn
     assert '[node name="TextSizeLabel"' in main_tscn
 
-    # War-status panel geometry is NOT resizable — still pinned.
+    # War-status panel: the AUTHORED default rect (UXR-2 made it anchored and gripped at run time) — still pinned.
     war_tscn = (root / "scenes" / "war_status_panel.tscn").read_text(encoding="utf-8")
     assert "offset_left = -200.0" in war_tscn
     assert "offset_top = -200.0" in war_tscn

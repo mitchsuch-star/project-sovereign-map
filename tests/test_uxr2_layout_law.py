@@ -50,18 +50,17 @@ CHROME_MAX = (296.0, 152.0)
 # script connects the viewport's size_changed to a handler that is or calls
 # the fitter) or "refit" (a `func refit()` that calls it — the road's hook).
 FITTERS = {
-    ("region_panel", "PanelContainer"): ("_fit_height", "size_changed", "avoid_control"),
-    ("war_status_panel", "PanelContainer"): ("_fit_panel_to_content", "size_changed", "MAX_HEIGHT_RATIO"),
+    ("region_panel", "PanelContainer"): ("_fit_width", "size_changed", "Utils.fraction_px("),
+    ("war_status_panel", "PanelContainer"): ("_fit_panel_to_content", "size_changed", "Utils.fraction_px("),
     ("top_bar", "BarContainer"): ("_fit_bar", "size_changed", "COMPACT_BELOW_PX"),
+    ("top_bar", "NotificationArea"): ("_fit_rail", "size_changed", "Utils.fraction_px("),
     ("tutorial_overlay", "Card"): ("_fit_card_width", "size_changed", "CARD_WIDTH_FRACTION"),
+    ("war_detail_popup", "PanelContainer"): ("refit", "refit", "Utils.clamp_anchored_panel("),
 }
 # Fixed rects still owed a fit, each with the slice that removes it. RATCHET:
 # its length may only fall, and it is empty when UXR-2 lands.
-ALLOWLIST = {
-    ("war_detail_popup", "PanelContainer"): "UXR-2 Slice D (the anchors): refit() + clamp_anchored_panel",
-    ("top_bar", "NotificationArea"): "UXR-2 Slice D (the anchors): _fit_rail on size_changed",
-}
-ALLOWLIST_RATCHET = 2
+ALLOWLIST: dict = {}   # emptied by UXR-2 Slice D (the anchors)
+ALLOWLIST_RATCHET = 0
 # CanvasLayers / centred panels built in code, each with its proof.
 CODE_BUILT = {
     ("main.gd", "CanvasLayer.new()"): "Utils.clamp_centered_panel(_scale_card)",
@@ -326,6 +325,53 @@ class TestTheGripMechanics:
         _s, scripts, _m, _k = tree
         assert 'call_group(ResizeGrip.GROUP, "reset_to_authored")' in G.func_body(
             scripts["main"], "_on_layout_reset")
+
+
+class TestTheAnchors:
+    """Slice D: the HUD family is ANCHORED, and the top bar's 36 px is one
+    number every HUD surface derives from."""
+
+    def test_the_top_bar_height_is_one_number(self, tree):
+        scenes, scripts, _m, _k = tree
+        def const(stem, name):
+            m = re.search(r"(?m)^const %s := ([\d.]+)" % name, scripts[stem])
+            assert m, (stem, name)
+            return float(m.group(1))
+        bar = G.node_block(scenes["top_bar"], "BarContainer")
+        height = float(re.search(r"offset_bottom = ([\d.]+)", bar).group(1))
+        assert const("utils", "TOP_BAR_HEIGHT") == height == const("main", "TOP_BAR_RESERVED_PX")
+        hud = const("utils", "HUD_MARGIN")
+        assert const("region_panel", "_PANEL_TOP") == height + 12.0
+        assert "offset_top = 48.0" in G.node_block(scenes["region_panel"], "PanelContainer")
+        assert const("tutorial_overlay", "CARD_TOP") == height + hud
+        slot = G.node_block(scenes["top_bar"], "NotificationArea")
+        assert f"offset_top = {height + const('top_bar', 'RAIL_GAP'):.1f}" in slot
+        assert "view.y - 88.0" in G.func_body(scripts["utils"], "clamp_centered_panel")
+        assert 88.0 == 2.0 * (height + hud)
+
+    def test_the_war_hud_is_gripped_and_the_hidden_band_is_gone(self, tree):
+        _s, scripts, _m, _k = tree
+        ws = G.code_lines(scripts["war_status_panel"])
+        assert "func _input(" not in ws and "DRAG_MARGIN" not in ws
+        assert ('ResizeGrip.attach_edge(panel_container, "war_status", '
+                "ResizeGrip.Corner.TOP_LEFT)") in G.func_body(ws, "_ready")
+        assert "UiSettings.get_panel_size(\"war_status\"" in G.func_body(ws, "_apply_geometry")
+
+    def test_the_war_detail_popup_refits_on_every_show(self, tree):
+        _s, scripts, _m, _k = tree
+        wd = G.code_lines(scripts["war_detail_popup"])
+        for show in ("show_war", "show_coalition", "show_armistice"):
+            body = G.func_body(wd, show)
+            assert body.index("\tshow()") < body.index("\trefit()"), show
+        assert "Utils.clamp_anchored_panel(panel)" in G.func_body(wd, "refit")
+
+    def test_the_hud_is_wired_to_what_it_avoids(self, tree):
+        _s, scripts, _m, _k = tree
+        main = G.code_lines(scripts["main"])
+        assert "war_detail_popup.dock_beside = war_status_panel.panel_container" in main
+        assert "tutorial_overlay.avoid_rail = notification_bar.rail_panel" in main
+        tutor = G.func_body(scripts["tutorial_overlay"], "_card_placement")
+        assert "avoid_rail.get_global_rect()" in tutor
 
 
 class TestTheCensusCanFail:

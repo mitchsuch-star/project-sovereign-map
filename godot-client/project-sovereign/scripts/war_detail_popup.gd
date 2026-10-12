@@ -55,6 +55,55 @@ const WAR_BAR_TAG_W := 28.0
 # UXR-X8: the track is a 3-slice whose rounded gold cap is 14 px wide; a tag
 # 3 px in sat under the rim (invisible at 8 px, clipped at 14). Past the cap.
 const WAR_BAR_TAG_INSET := 14.0
+# UXR-2 (the layout law): ANCHORED beside the war-status panel — its width and
+# height fractions of the logical viewport between the authored 330 x 440 and
+# a ceiling, docked a gap left of the war HUD's LIVE left edge, centred in the
+# band under the top bar, then fitted by `Utils.clamp_anchored_panel` (the
+# centre clamp skips an edge-anchored panel, so this was a bare fixed rect
+# whose header went under the top bar on a short logical viewport).
+const WIDTH_FRACTION := 0.20
+const HEIGHT_FRACTION := 0.55
+const FIT_MIN_WIDTH := 330.0
+const FIT_MAX_WIDTH := 600.0
+const FIT_MIN_HEIGHT := 440.0
+const FIT_MAX_HEIGHT := 720.0
+const DOCK_GAP := 40.0
+const AUTHORED_RIGHT := 240.0  # the .tscn's offset_right: beside the authored 192-px HUD
+var dock_beside: Control = null
+
+
+func refit() -> void:
+	"""UXR-2: the popup's rect from the viewport — on every show and on the
+	live-refit road (`DialogManager.refit_visible`)."""
+	var panel: Control = $PanelContainer
+	var view := get_viewport().get_visible_rect().size
+	var right := AUTHORED_RIGHT
+	if dock_beside != null and is_instance_valid(dock_beside) and dock_beside.is_visible_in_tree():
+		right = view.x - dock_beside.get_global_rect().position.x + DOCK_GAP
+	var w := Utils.fraction_px(view.x, WIDTH_FRACTION, FIT_MIN_WIDTH, FIT_MAX_WIDTH,
+			right + Utils.HUD_MARGIN)
+	var band_top := Utils.TOP_BAR_HEIGHT + Utils.HUD_MARGIN
+	var h := Utils.fraction_px(view.y, HEIGHT_FRACTION, FIT_MIN_HEIGHT, FIT_MAX_HEIGHT,
+			band_top + Utils.HUD_MARGIN)
+	# The band [band_top, view.y - margin]'s centre, relative to the panel's
+	# vertical anchor (0.5).
+	var mid := (band_top - Utils.HUD_MARGIN) / 2.0
+	panel.offset_right = -right
+	panel.offset_left = -right - w
+	panel.offset_top = mid - h / 2.0
+	panel.offset_bottom = mid + h / 2.0
+	Utils.clamp_anchored_panel(panel)
+	# The button row is an HFlowContainer: its wrapped height is known only
+	# after the containers sort at the new width, so the first pass can
+	# under-measure the minimum and the panel grows past the band (measured at
+	# 800x450: its header under the top bar). Fit once more after layout.
+	_settle_fit.call_deferred()
+
+
+func _settle_fit() -> void:
+	await get_tree().process_frame
+	if visible and is_instance_valid($PanelContainer):
+		Utils.clamp_anchored_panel($PanelContainer)
 
 
 func _ready():
@@ -130,6 +179,7 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	if rt_state is Dictionary and str(rt_state.get("state", "absent")) != "absent":
 		_add_request_terms_button(_current_war_id, _current_nation, rt_state)
 	show()
+	refit()
 
 
 func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
@@ -158,6 +208,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 		if w.get("in_coalition", false) and not w.get("is_coalition_leader", false):
 			_add_target_button(str(w.get("opponent", "")))
 	show()
+	refit()
 
 
 func show_armistice(war_data: Dictionary) -> void:
@@ -172,6 +223,7 @@ func show_armistice(war_data: Dictionary) -> void:
 	_clear_buttons()
 	_add_diplomatic_options_button(_current_nation)
 	show()
+	refit()
 
 
 func refresh_if_open(active_wars_data: Dictionary) -> void:

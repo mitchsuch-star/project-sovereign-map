@@ -47,6 +47,12 @@ const _CLAMP_MARGIN := 10.0
 # near-full-height footprint the panel keeps a usable window and (drawing on
 # layer 26) overlaps rather than collapsing to nothing.
 const _MIN_CONTENT_H := 120.0
+# UXR-2 (the layout law): the panel's WIDTH is a fraction of the logical
+# viewport between the authored 344 (Scroll 320 + the leather's 24) and a
+# ceiling — it was a bare fixed 344 at every size (9% of the user's panel).
+const _WIDTH_FRACTION := 0.15
+const _MIN_WIDTH := 344.0
+const _MAX_WIDTH := 560.0
 
 # The Control whose top edge the panel must stay above (main.gd wires the
 # terminal's BottomLeftUI here). Null = clamp to the viewport bottom only.
@@ -94,7 +100,19 @@ func _ready():
 
 func _on_viewport_resized():
 	if visible:
+		_fit_width()
 		_fit_height()
+
+
+func _fit_width() -> void:
+	"""UXR-2: the panel's width from the logical viewport (the Scroll and its
+	content follow; the PanelContainer shrink-wraps them)."""
+	if scroll == null or content_area == null or panel_container == null:
+		return
+	var view := get_viewport().get_visible_rect().size
+	var w := Utils.fraction_px(view.x, _WIDTH_FRACTION, _MIN_WIDTH, _MAX_WIDTH, 24.0)
+	scroll.custom_minimum_size.x = w - 24.0
+	content_area.custom_minimum_size.x = w - 44.0
 
 
 func show_region(region_name: String, map_node) -> void:
@@ -105,6 +123,7 @@ func show_region(region_name: String, map_node) -> void:
 	var retargeted = region_name != _region
 	_region = region_name
 	_map_node = map_node
+	_fit_width()
 	_render()
 	show()
 	if retargeted and scroll != null:

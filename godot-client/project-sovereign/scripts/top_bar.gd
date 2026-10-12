@@ -211,6 +211,9 @@ func _ready():
 		_nav_full_text[sname] = button_map[sname].text
 	get_viewport().size_changed.connect(_fit_bar)
 	call_deferred("_fit_bar")
+	# UXR-2: the notice rail's slot is ANCHORED too (a viewport fraction).
+	get_viewport().size_changed.connect(_fit_rail)
+	call_deferred("_fit_rail")
 
 	# Threat pulse timer
 	_threat_pulse_timer = Timer.new()
@@ -615,6 +618,30 @@ func open_ledger_to_tab(tab_index: int):
 
 func is_compact() -> bool:
 	return _compact
+
+
+# UXR-2 (the layout law): the notice rail's slot — a fraction of the logical
+# viewport between the authored 360 and a ceiling, under the bar, inset from
+# the right edge. The authored .tscn offsets (-374 / 42 / -14 / 118) are the
+# floor's own numbers; this writes them at run time.
+const RAIL_WIDTH_FRACTION := 0.12
+const RAIL_MIN_WIDTH := 360.0
+const RAIL_MAX_WIDTH := 520.0
+const RAIL_RIGHT_INSET := 14.0
+const RAIL_GAP := 6.0
+const RAIL_SLOT_HEIGHT := 76.0
+
+
+func _fit_rail() -> void:
+	if notification_area == null or not is_instance_valid(notification_area):
+		return
+	var view := get_viewport().get_visible_rect().size
+	var w := Utils.fraction_px(view.x, RAIL_WIDTH_FRACTION, RAIL_MIN_WIDTH, RAIL_MAX_WIDTH,
+			2.0 * RAIL_RIGHT_INSET)
+	notification_area.offset_right = -RAIL_RIGHT_INSET
+	notification_area.offset_left = -RAIL_RIGHT_INSET - w
+	notification_area.offset_top = Utils.TOP_BAR_HEIGHT + RAIL_GAP
+	notification_area.offset_bottom = notification_area.offset_top + RAIL_SLOT_HEIGHT
 
 
 func _fit_bar():

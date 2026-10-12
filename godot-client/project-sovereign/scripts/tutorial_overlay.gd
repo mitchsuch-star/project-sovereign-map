@@ -65,6 +65,29 @@ const CARD_MIN_WIDTH := 396.0
 const CARD_MAX_WIDTH := 560.0
 const CARD_MARGIN := 8.0
 const CARD_TOP := 44.0
+# UXR-2: the authored minimized-card button (212 x 30), placed with the card.
+const RESTORE_BUTTON_SIZE := Vector2(212.0, 30.0)
+
+# UXR-2: the notice rail (main.gd wires the top bar's RailPanel here). The card
+# keeps clear of it; a setter, because the rail moves and shows/hides without
+# a viewport resize (the region panel's avoid_control pattern).
+var avoid_rail: Control = null:
+	set(value):
+		if avoid_rail != null and is_instance_valid(avoid_rail):
+			if avoid_rail.item_rect_changed.is_connected(_on_rail_changed):
+				avoid_rail.item_rect_changed.disconnect(_on_rail_changed)
+			if avoid_rail.visibility_changed.is_connected(_on_rail_changed):
+				avoid_rail.visibility_changed.disconnect(_on_rail_changed)
+		avoid_rail = value
+		if avoid_rail != null:
+			avoid_rail.item_rect_changed.connect(_on_rail_changed)
+			avoid_rail.visibility_changed.connect(_on_rail_changed)
+
+
+func _on_rail_changed() -> void:
+	if is_instance_valid(_card):
+		_fit_card_width()
+		_fit_card_height.call_deferred()
 const BODY_MIN_HEIGHT := 96.0
 
 # ── the Danube Lesson step table ────────────────────────────────────────────
@@ -401,12 +424,35 @@ func _logical_viewport() -> Vector2:
 
 
 func _fit_card_width() -> void:
-	"""Width = 22% of the logical viewport inside [396, 560], anchored to the
-	top-right corner as authored."""
+	"""Width = 22% of the logical viewport inside [396, 560], never wider than
+	the screen, anchored to the top-right corner as authored — beside the
+	notice rail (UXR-2: the card covered the very rail its lessons point at),
+	or below it when there is no room beside it in the right half."""
 	var view := _logical_viewport()
 	var width := clampf(view.x * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH, CARD_MAX_WIDTH)
-	_card.offset_left = -(width + CARD_MARGIN)
-	_card.offset_right = -CARD_MARGIN
+	width = minf(width, maxf(view.x - 2.0 * CARD_MARGIN, 0.0))
+	var place := _card_placement(view, width)
+	_card.offset_left = -(width + CARD_MARGIN + place.x)
+	_card.offset_right = -(CARD_MARGIN + place.x)
+	_card.offset_top = place.y
+	# The minimized card's restore button sits where the card's header was.
+	_restore_button.offset_right = _card.offset_right
+	_restore_button.offset_left = _card.offset_right - RESTORE_BUTTON_SIZE.x
+	_restore_button.offset_top = place.y
+	_restore_button.offset_bottom = place.y + RESTORE_BUTTON_SIZE.y
+
+
+func _card_placement(view: Vector2, width: float) -> Vector2:
+	"""(right inset, top) for the card: the corner when the rail is not on
+	screen; beside the rail when the card still sits in the right half; else
+	below the rail's slot."""
+	if avoid_rail == null or not is_instance_valid(avoid_rail) or not avoid_rail.is_visible_in_tree():
+		return Vector2(0.0, CARD_TOP)
+	var rail := avoid_rail.get_global_rect()
+	var inset := maxf(view.x - rail.position.x, 0.0)
+	if view.x - (inset + CARD_MARGIN + width) >= view.x * 0.5:
+		return Vector2(inset, CARD_TOP)
+	return Vector2(0.0, rail.end.y + CARD_MARGIN)
 
 
 func _fit_card_height() -> void:
@@ -417,7 +463,7 @@ func _fit_card_height() -> void:
 	if _body == null or not is_instance_valid(_card):
 		return
 	var view := _logical_viewport()
-	var budget := view.y - CARD_TOP - CARD_MARGIN
+	var budget := view.y - _card.offset_top - CARD_MARGIN
 	# The chrome is everything but the body: measure it from the current
 	# layout so a confirm row or a longer header is counted when shown.
 	var chrome := maxf(_card.size.y - _body.size.y, 0.0)

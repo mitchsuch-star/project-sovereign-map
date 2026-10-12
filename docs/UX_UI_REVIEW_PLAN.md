@@ -390,6 +390,23 @@ Then a ledger grown to 1080 px is refit inside the 1066-px viewport of scale 1.5
 
 Three findings were refuted with reasons.
 
+**Slice D — the anchors (part 2).** `utils.gd` gained the ANCHORED half's helpers:
+- **`TOP_BAR_HEIGHT` (36) and `HUD_MARGIN` (8).** These are the one source for the five numbers that had each re-typed the bar's height: the command window's reserve 36, the region panel's dock 48, the tutor card's top 44, the rail slot's top 42 and the centre clamp's 88. The census pins every authored number to its derivation.
+- **`fraction_px(view, frac, min, max, reserve)`.** A viewport fraction, never wider than the room the viewport leaves.
+- **`clamp_anchored_panel(panel)`.** The edge-anchored twin of the centre clamp, whose pinned guard stays. It caps a point axis to the band under the top bar, keeping its grow edge, relaxes the descendant minimums, and slides the rect back inside the band.
+
+The HUD family is anchored:
+
+| Surface | Before | Now |
+|---|---|---|
+| Rail slot | A bare 360 | `fraction_px(vw, .12, 360, 520)`, on `size_changed`; the rail fills it |
+| War HUD (UXR-X18) | A hidden edge band | A grip and a fraction (above) |
+| Region panel | A fixed 344 | `fraction_px(vw, .15, 344, 560)` |
+| Tutor card (UXR-X19) | Over the rail | Its pinned width rule, capped to the screen, beside or below the rail |
+| War-detail popup (UXR-X20) | A fixed 330×440 rect | A fraction docked beside the war HUD's live edge, under `clamp_anchored_panel` |
+
+The census's allowlist is **empty** (ratchet 0), and every HUD surface is FITTED by a named function its `size_changed` or `refit()` reaches. The driven harness gained the war HUD's grip: **36 pins**.
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed
