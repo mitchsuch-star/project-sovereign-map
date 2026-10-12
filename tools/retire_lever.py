@@ -24,7 +24,10 @@ everything else listed for the hand.
         keep the assertions and drop the setattr) is the author's call, one
         arm at a time; the dry run is the worklist.
 
-The rewrites, per reference, climbing from the name (value starts True):
+The rewrites, per reference, climbing from the name (the value starts at
+the lever's OWN definition, `True` or `False` — CODE-1 batch 5, October 12,
+2026: batches 1–4 retired only `True` levers, and the first `False` ones
+found the seed hard-coded to `True`, which inlined their dead branches):
   `not X`                      → the value flips
   `A and X` / `X and B`        → the operand is removed (value True); a
                                  False value folds the whole `and` only
@@ -36,7 +39,7 @@ The rewrites, per reference, climbing from the name (value starts True):
                                  (False), dedented; an `elif` becomes the
                                  chain's `else` / is cut out of the chain
   `a if X else b`              → `a` (True) / `b` (False)
-  `getattr(mod, "X", d)`       → `True`
+  `getattr(mod, "X", d)`       → the lever's value
   `from m import X`            → the name leaves the import
 A BoolOp that is not in a test position (an `if`, `elif`, `while`, a
 ternary's test, `not`, `bool()`, an `assert`, a comprehension's `if`) is
@@ -220,21 +223,23 @@ class Module:
         return line[node.col_offset:].startswith("elif")
 
     # -- the climb ------------------------------------------------------------
-    def retire_reference(self, ref: ast.AST, name: str) -> Site:
+    def retire_reference(self, ref: ast.AST, name: str, value: bool = True) -> Site:
+        """`value` is the lever's own definition (`definition_value`); the
+        default keeps the batch-1 callers that only ever retired `True`."""
         lineno = ref.lineno
         text = self.lines[lineno - 1].strip()
-        node, value = ref, True
+        node = ref
         while True:
             parent = self.parents.get(node)
             if parent is None:
                 return Site(self.path, lineno, text, "HAND", "no enclosing statement")
-            # getattr(mod, "NAME", default) → True
+            # getattr(mod, "NAME", default) → the lever's value
             if (isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name)
                     and parent.func.id == "getattr" and len(parent.args) >= 2
                     and isinstance(parent.args[1], ast.Constant)
                     and parent.args[1].value == name):
                 a, b = span(self.offs, parent)
-                return self._site(lineno, text, Edit(a, b, "True", "getattr → True"))
+                return self._site(lineno, text, Edit(a, b, str(value), f"getattr → {value}"))
             if isinstance(parent, ast.UnaryOp) and isinstance(parent.op, ast.Not):
                 value, node = not value, parent
                 continue
@@ -448,6 +453,15 @@ def find_definition(name: str) -> tuple[Path, ast.stmt] | None:
     return None
 
 
+def definition_value(node: ast.stmt) -> bool | None:
+    """The lever's own value — `X = True` / `X: bool = False` — or None when
+    the definition is not a bare boolean constant (then it is not a lever)."""
+    value = getattr(node, "value", None)
+    if isinstance(value, ast.Constant) and isinstance(value.value, bool):
+        return value.value
+    return None
+
+
 def production_references(name: str, modules: dict[Path, "Module"]) -> dict[Path, list[ast.AST]]:
     """References by file, read off each file's ONE Module tree (the same
     tree the parent map was built from — a node from a second parse has no
@@ -560,6 +574,10 @@ def build_report(name: str, modules: dict[Path, Module]) -> Report | None:
         print(f"!! {name}: no module-level definition under backend/")
         return None
     def_path, def_node = found
+    value = definition_value(def_node)
+    if value is None:
+        print(f"!! {name}: its definition is not a bare True/False — not a lever")
+        return None
     rep = Report(name)
     mod = modules.setdefault(def_path, Module(def_path))
     rep.sites.append(mod.retire_definition(def_node, name))
@@ -569,12 +587,13 @@ def build_report(name: str, modules: dict[Path, Module]) -> Report | None:
             # an import alias is not a Load; the ImportFrom is handled below
             parent = m.parents.get(ref)
             if isinstance(parent, ast.Call) and isinstance(parent.func, ast.Name) and parent.func.id == "getattr":
-                rep.sites.append(m.retire_reference(ref, name))
+                rep.sites.append(m.retire_reference(ref, name, value))
                 continue
-            if (isinstance(ref, ast.Name) and p == def_path and isinstance(parent, ast.Assign)
-                    and ref in getattr(parent, "targets", [])):
+            if (isinstance(ref, ast.Name) and p == def_path
+                    and ((isinstance(parent, ast.Assign) and ref in getattr(parent, "targets", []))
+                         or (isinstance(parent, ast.AnnAssign) and ref is parent.target))):
                 continue
-            rep.sites.append(m.retire_reference(ref, name))
+            rep.sites.append(m.retire_reference(ref, name, value))
         for node in ast.walk(m.tree):
             if isinstance(node, ast.ImportFrom):
                 for alias in node.names:

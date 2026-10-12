@@ -1,7 +1,7 @@
 """FA slice 17, Phase 2 batch 2a — "The Rulings Read the Board" (September 11, 2026).
 
 Fifteen legibility rulings built behind flip levers, each pinned on the
-surface it changes AND with its lever down (the prior behaviour reproduces):
+surface it changes (the lever-down arms retired with their levers, CODE-1):
 
   FA-D1  the restless-interior term names the provinces that trip it
   FA-D2  the coalition row reads its objective across every pair the score sums
@@ -43,11 +43,6 @@ def _boot():
 
 def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
-
-
-def _flip(monkeypatch, module, name, value):
-    assert hasattr(module, name), f"{module.__name__} has no lever {name}"
-    monkeypatch.setattr(module, name, value)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -176,16 +171,6 @@ class TestD3EveryPrisonerIsOnTheTable:
         rows = [s["marshal"] for s in terms["sweeteners"] if s.get("type") == "prisoner_return"]
         assert rows.count("Mack") == 1
 
-    def test_lever_down_keeps_the_sovereign_gate(self, monkeypatch):
-        from backend.game_logic import diplomatic_templates as DT
-        _flip(monkeypatch, DT, "EVERY_PRISONER_IS_ON_THE_TABLE", False)
-        w = _boot()
-        self._capture(w, "Mack", "France")
-        self._capture(w, "Napoleon", "Austria")
-        terms = DT.generate_suggested_terms("Austria", "peace", w)
-        assert not any(s.get("marshal") == "Mack" for s in terms["sweeteners"])
-        assert [d["marshal"] for d in terms["demands"] if d.get("type") == "prisoner_return"] == ["Napoleon"]
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-D8 — the fallen province names the counter
@@ -229,13 +214,6 @@ class TestD8FallenProvinceNamesTheCounter:
         assert "Moore" not in text and "stands there" not in text
         assert "A garrison you detach" in text  # the counters are still taught
 
-    def test_lever_down_is_the_bare_sentence(self, monkeypatch):
-        from backend.game_logic import dispatch as D
-        _flip(monkeypatch, D, "THE_FALLEN_PROVINCE_NAMES_THE_COUNTER", False)
-        w = _boot()
-        assert D._home_captured_lever(w, "Normandy", "France", dict(self.EVT)) == ""
-        assert D._HEADLINE_TEMPLATES["home_captured"].endswith("{lever}")
-
     def test_the_march_floor_has_one_home(self):
         """The law's `5000` at six sites now reads MARCH_HALTS_AT_GARRISON."""
         for rel in ("backend/commands/movement_executor.py", "backend/ai/enemy_ai.py"):
@@ -271,14 +249,6 @@ class TestD9WaveringLineNamesTheDrill:
         ney.morale = 25
         ney.drilling = True
         assert D._derive_danger(ney, w, "France", {}).endswith("Drilling now.")
-
-    def test_lever_down_is_the_bare_line(self, monkeypatch):
-        from backend.game_logic import dispatch as D
-        _flip(monkeypatch, D, "THE_WAVERING_LINE_NAMES_THE_DRILL", False)
-        w = _boot()
-        ney = w.marshals["Ney"]
-        ney.morale = 25
-        assert D._derive_danger(ney, w, "France", {}) == "Morale failing (25) — the men waver."
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -357,15 +327,6 @@ class TestD12PeaceLeadsTheBriefing:
         # not weight: the peace class is not added when a road_home stands.
         src = _read("backend/game_logic/dispatch.py")
         assert 'c["identity"].startswith("road_home:") and _other in c["identity"]' in src
-
-    def test_lever_down_has_no_peace_headline(self, monkeypatch):
-        from backend.game_logic import dispatch as D
-        _flip(monkeypatch, D, "THE_PEACE_LEADS_THE_BRIEFING", False)
-        w = _boot()
-        w.event_log.clear()
-        w.log_event(dict(self.PEACE, turn=w.current_turn))
-        head = D._build_headline(w, "France")
-        assert head is None or head["class"] != "peace_signed"
 
 
 # ═══════════════════════════════════════════════════════════════════════

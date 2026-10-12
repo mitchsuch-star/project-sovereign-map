@@ -13,7 +13,9 @@ vassalization alarm kept whole). The next coalition must be earned by a new
 act of the target's. Derived — it reads and writes only `threat_by_target`
 through `reduce_threat`; no timer, no serialized field.
 
-Every behaviour pin drives production code, and each lever has a DOWN arm.
+Every behaviour pin drives production code. The two levers
+(`THE_LEAGUE_SPENDS_ITS_ALARM`, `TALLEYRAND_READS_THE_PROJECTION`) were
+retired in CODE-1 batch 5 (October 12, 2026); both rules are unconditional.
 """
 
 import argparse
@@ -39,16 +41,6 @@ SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
 FIXTURE = ROOT / "tests" / "fixtures" / "playtest_saves" / "fixture_t20_ambient.json"
 
 MINORS = ("Hanover", "Naples", "Ottoman", "Sardinia", "Sweden")
-LEVERS = ("THE_LEAGUE_SPENDS_ITS_ALARM", "TALLEYRAND_READS_THE_PROJECTION",
-          "LEAGUE_SPENT_DIVISOR")
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = {name: getattr(C, name) for name in LEVERS}
-    yield
-    for name, value in saved.items():
-        setattr(C, name, value)
 
 
 @contextlib.contextmanager
@@ -179,22 +171,6 @@ class TestTheRealPathSpendsOnce:
         # genuinely still at war (war_2's Switzerland here) may be.
         for court in ("Austria", "Britain", "Russia"):
             assert court not in log.get("courts_at_war", [])
-
-    def test_lever_down_spends_nothing(self, fixture_board):
-        C.THE_LEAGUE_SPENDS_ITS_ALARM = False
-        world = fixture_board
-        before = int(world.threat_by_target["France"])
-        world.threat_sources_this_turn = []
-        _ratify_the_coalition_peace(world)
-        assert world.active_coalition is None
-        assert _spend_rows(world) == []
-        assert "alarm_spent" not in _dissolved_logs(world)[-1]
-        # The ratification itself moves no French alarm on this board, so
-        # the slot is exactly where it was — nothing forgave anything.
-        assert int(world.threat_by_target["France"]) >= before - 0
-        note = _pending(world, "Coalition Dissolved")[-1]["message"]
-        assert note == ("Third Coalition has dissolved. Too few of its "
-                        "members remain at war.")
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -447,7 +423,7 @@ class TestGR5:
 
 
 # ════════════════════════════════════════════════════════════════════
-# 7-8. Legibility: shown equals applied, and the levers are clean
+# 7-8. Legibility: shown equals applied
 # ════════════════════════════════════════════════════════════════════
 
 class TestLegibility:
@@ -475,11 +451,6 @@ class TestLegibility:
         assert "may form" not in message
         assert "gathers only at 60" in message
 
-    def test_the_cooldown_copy_lever_down(self):
-        C.THE_LEAGUE_SPENDS_ITS_ALARM = False
-        assert self._cooldown_board(40) == \
-            "A new coalition may form if threat remains high."
-
     def _quiet_board(self, alarm, cooldown=0):
         world = _europe()
         world.active_coalition = None
@@ -494,9 +465,6 @@ class TestLegibility:
         text = _assess_situation(self._quiet_board(40))["talleyrand_text"]
         assert "No league gathers below 60" in text
         assert "would carry the alarm to 60" in text
-        C.THE_LEAGUE_SPENDS_ITS_ALARM = False
-        text = _assess_situation(self._quiet_board(40))["talleyrand_text"]
-        assert "No league gathers below 60" not in text
 
     def test_the_ledger_cooldown_names_the_gate(self):
         from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
@@ -504,9 +472,6 @@ class TestLegibility:
         assert boe["headline_case"] == "COOLDOWN"
         assert boe["headline_note"] == (
             "Europe's alarm stands at 40; no new coalition gathers below 60.")
-        C.THE_LEAGUE_SPENDS_ITS_ALARM = False
-        boe = _build_balance_of_europe(self._quiet_board(40, cooldown=3))
-        assert "headline_note" not in boe
 
 
 class TestTalleyrandReadsTheProjection:
@@ -558,15 +523,6 @@ class TestTalleyrandReadsTheProjection:
         assert "3 turns yet" in text
         assert "if the alarm still stands at 60 when they have" in text
         assert "gathers, and" not in text.split("yet")[0]
-
-    def test_lever_down_talleyrand_is_silent_below_fifty(self):
-        """Down, the >50 arm alone: no objection is staged, and the flow
-        moves on to its next stage (the war-weary / ally-entry reviews)."""
-        C.TALLEYRAND_READS_THE_PROJECTION = False
-        world = self._board(45)
-        result = self._declare(world)
-        assert not result.get("diplomatic_objection_popup")
-        assert world.diplomatic_objection_popup is None
 
     def test_the_high_alarm_arm_is_byte_identical(self):
         world = self._board(55)

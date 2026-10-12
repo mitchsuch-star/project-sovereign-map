@@ -226,7 +226,7 @@ class TestTheCoverageDropRoute:
         assert all(p.get("covered_enemy") == "Austria" for p in r["resolved_pairs"])
 
     def test_the_table_outranks_the_summary_when_they_disagree(self, monkeypatch):
-        """The residual the lever exists for: the leader-level SUMMARY scorer
+        """The residual the rule exists for: the leader-level SUMMARY scorer
         (no precomputed side pressure) and the per-court TABLE scorer (the
         aggregator's shared pass) can disagree on the same court. The table
         the player reads is the gate; the summary cannot veto it."""
@@ -410,17 +410,6 @@ class TestTheRevisionCarriesConsent:
         with _quiet():
             done = ratify_settlement_confirm(w, review)
         assert done["success"] is True, done
-        assert not _promoted(w)
-
-    def test_the_lever_down_is_the_old_consume_at_staging(self, monkeypatch):
-        monkeypatch.setattr(SO, "THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES", False)
-        w, offer = _offer_world()
-        with _quiet():
-            r = handle_incoming_settlement_offer_action(
-                w, action="request_settlement_revision", dialogue=offer)
-        assert r["success"] is True
-        d = w.dialogue_manager.peek()
-        assert not d.get("consenting_courts")
         assert not _promoted(w)
 
     def test_an_unchanged_restage_keeps_consent_and_the_letter(self):
@@ -751,14 +740,6 @@ class TestThePetitionExpiresWithItsTable:
         assert _petitions(w) == []
         notices = [n for n in w.pending_settlement_draft_notices if n.get("petition_lapsed")]
         assert notices and "the war it was filed against" in notices[0]["message_display"]
-
-    def test_the_lever_down_keeps_the_old_persistence(self, monkeypatch):
-        monkeypatch.setattr(SO, "A_PETITION_LAPSES_WITH_ITS_TABLE", False)
-        w = _restoration_world()
-        _queue_petition(w)
-        with _quiet():
-            w.advance_turn()
-        assert len(_petitions(w)) == 1
 
     def test_the_rail_row_goes_with_the_petition(self):
         w = _restoration_world()

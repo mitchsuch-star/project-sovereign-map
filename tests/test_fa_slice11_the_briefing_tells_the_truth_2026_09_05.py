@@ -75,21 +75,6 @@ ROOT = Path(__file__).resolve().parents[1]
 SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 
-LEVERS = [
-    (DISPATCH, "SOIL_ALARM_IS_ONE_RUN"),
-    (DISPATCH, "SOIL_ALARM_IS_HOME_SOIL_ONLY"),
-    (DISPATCH, "THE_SHELLING_IS_BRIEFED"),
-    (DISPATCH, "A_LOST_SATELLITE_CAN_LEAD"),
-]
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = [(mod, name, getattr(mod, name)) for mod, name in LEVERS]
-    yield
-    for mod, name, value in saved:
-        setattr(mod, name, value)
-
 
 @contextlib.contextmanager
 def _quiet():
@@ -304,14 +289,6 @@ class TestALostSatelliteCanLeadTheBriefing:
         headline = _rail(world).get("headline") or {}
         assert headline.get("class") == "enemy_eliminated"
 
-    def test_the_lever_down_restores_the_silence(self, world):
-        DISPATCH.A_LOST_SATELLITE_CAN_LEAD = False
-        world.vassals["Switzerland"]["loyalty"] = 0
-        with _quiet():
-            check_vassal_rebellion(world)
-        headline = _rail(world).get("headline") or {}
-        assert headline.get("class") != "vassal_lost"
-
     def test_the_class_has_a_weight_a_template_and_a_note(self):
         assert DISPATCH.HEADLINE_WEIGHTS["vassal_lost"] == 84
         assert "vassal_lost" in DISPATCH._HEADLINE_TEMPLATES
@@ -349,22 +326,6 @@ class TestTheSoilAlarm:
         assert "4 turns" in seen[3], seen[3]
         assert "5 turns" in seen[4], seen[4]
 
-    def test_the_lever_down_restarts_the_count(self, world):
-        DISPATCH.SOIL_ALARM_IS_ONE_RUN = False
-        home = [r for r in world.nation_starting_regions["France"]
-                if r in world.regions][:2]
-        seen = []
-        for turn, region in ((1, home[0]), (2, home[0]), (3, home[0]),
-                             (4, home[1])):
-            world.current_turn = turn
-            for r in home:
-                if r in world.intel:
-                    world.intel[r].known_marshals = []
-            _stand_enemy_on(world, region, "Moore", "Britain", turn)
-            seen.append((_rail(world).get("headline") or {}).get("text", ""))
-        assert "3 turns now" in seen[2]
-        assert "4 turns" not in seen[3]
-
     def test_a_conquered_province_is_not_french_soil(self, world):
         """FA-N14. France holding Swabia with Mack standing on it fired the
         class, and by T3 the ladder said the enemy had stood on French soil
@@ -375,14 +336,6 @@ class TestTheSoilAlarm:
             _stand_enemy_on(world, "Swabia", "Mack", "Austria", turn)
             headline = _rail(world).get("headline") or {}
             assert headline.get("class") != "enemy_on_our_soil", headline
-
-    def test_the_lever_down_calls_a_conquest_french_soil(self, world):
-        DISPATCH.SOIL_ALARM_IS_HOME_SOIL_ONLY = False
-        world.regions["Swabia"].controller = "France"
-        world.current_turn = 1
-        _stand_enemy_on(world, "Swabia", "Mack", "Austria", 1)
-        headline = _rail(world).get("headline") or {}
-        assert headline.get("class") == "enemy_on_our_soil"
 
     def test_real_home_soil_still_raises_the_alarm(self, world):
         """The gate must not silence the class it exists for. Boot-dormant by
@@ -429,12 +382,6 @@ class TestTheShellingIsBriefed:
         headline = _rail(world).get("headline") or {}
         assert "Rhineland" in headline.get("text", "")
         assert "the field" not in headline.get("text", "")
-
-    def test_the_lever_down_restores_the_silence(self, world):
-        DISPATCH.THE_SHELLING_IS_BRIEFED = False
-        self._shell(world, 9600)
-        headline = _rail(world).get("headline") or {}
-        assert headline.get("class") != "own_mauled"
 
     def test_a_light_shelling_is_still_below_the_floor(self, world):
         """The 25% fraction and the WO-16 absolute floor are untouched."""

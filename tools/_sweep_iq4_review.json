@@ -42,12 +42,6 @@
   "tests": "tests/test_iq4_cabinet_visible.py"
  },
  {
-  "file": "backend/game_logic/dispatch.py",
-  "old": "        if IDLE_NUDGE_READS_THE_LIVE_MISSION:",
-  "new": "        if False:",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
   "file": "backend/game_logic/diplomatic_dialogue.py",
   "old": "        start = int(base) if base is not None else pair_now",
   "new": "        start = int(base) if base is not None else int(mission.get(\"initial_relation\") or 0)",

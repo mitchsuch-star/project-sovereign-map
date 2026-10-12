@@ -2,8 +2,9 @@
 
 Four of the seven open items are BUILT here; three are declined on the
 record (D1 with its measurement, D2 to EC-2 pass 2, D7 to the FA-D27
-balance owner). Each build sits behind a lever whose False arm reproduces
-the prior behaviour.
+balance owner). Each build landed behind a lever whose False arm reproduced
+the prior behaviour; the dispatch and vassal levers are retired (CODE-1
+batches 5 and 3), so only the live arms are pinned here.
 
   FA-S17-D3 (narration half) a war declared ON US names its cause
   FA-S17-D6 (half 2) the driver stops breaking a peace nobody scripted
@@ -157,12 +158,6 @@ class TestTheDeclarationNamesItsCause:
         text = str(head.get("text", ""))
         assert "Britain and France are at war." in text, text
         assert "defied an ultimatum" in text, text
-
-    def test_lever_down_reproduces_the_bare_sentence(self, monkeypatch):
-        monkeypatch.setattr(DSP, "THE_DECLARATION_NAMES_ITS_CAUSE", False)
-        world = self._world()
-        assert DSP.war_declaration_cause(
-            world, "Britain", {"breached_treaty": "Treaty of Amiens"}) == ""
 
 
 # ═══════════════════════════════════════════════════════════════════════

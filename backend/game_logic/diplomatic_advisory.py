@@ -826,8 +826,7 @@ def _assess_situation(world) -> Dict:
                      f"not after a victory.")
     else:
         from backend.game_logic import coalition as _c_e2
-        if (_c_e2.NOBODY_LEFT_TO_ALARM_IS_SILENT
-                and _c_e2.no_court_left_to_alarm(world, player)):
+        if (_c_e2.no_court_left_to_alarm(world, player)):
             # GE-1 E2: the quiet of an empty continent is not a peace.
             lines.append(f"  {_realm_name(world, player)} wages no war — "
                          f"there is no court left to fight.")
@@ -894,8 +893,7 @@ def _assess_situation(world) -> Dict:
         posture = str(get_coalition_posture(world))
         lines.append("")
         from backend.game_logic import coalition as _c_e2
-        if (_c_e2.NOBODY_LEFT_TO_ALARM_IS_SILENT
-                and _c_e2.no_court_left_to_alarm(world, player)):
+        if (_c_e2.no_court_left_to_alarm(world, player)):
             # GE-1 E2: "Brewing" with nobody left to brew it was a lie.
             lines.append("  There is no Europe left to alarm — every court "
                          "that could have stood against us is gone, or ours.")
@@ -910,9 +908,7 @@ def _assess_situation(world) -> Dict:
         # GE-3 review #22: the gate the MECHANIC reads (lowered to 40 while
         # the Congress sits and two courts refuse), never the literal 60.
         _gate = _coal.brewing_gate(world)
-        if (_coal.THE_LEAGUE_SPENDS_ITS_ALARM
-                and threat < _gate
-                and not getattr(world, "coalition_brewing", None)):
+        if (threat < _gate and not getattr(world, "coalition_brewing", None)):
             from backend.game_logic.diplomacy import (
                 declaration_alarm, declaration_relation_penalties,
             )

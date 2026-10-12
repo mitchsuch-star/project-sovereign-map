@@ -65,8 +65,6 @@ _LEVERS = (
     (DE, "MISSION_CANCEL_READS_THE_NAME"),
     (ME, "MISSION_HELP_BLOCK"),
     (CL, "THE_LOG_NAMES_THE_MISSION"),
-    # the review round's levers
-    (DI, "IDLE_NUDGE_READS_THE_LIVE_MISSION"),
 )
 
 _MISSION_ROW = {
@@ -1914,7 +1912,7 @@ class TestIntegrationPins:
 
 
 # ════════════════════════════════════════════════════════════════════
-# The IQ-4 review round — each fix pinned, with its lever's DOWN arm
+# The IQ-4 review round — each fix pinned
 # ════════════════════════════════════════════════════════════════════
 
 _WAR_NOTE = ("no favour while we are at war — his courting still warms relations, "
@@ -2255,10 +2253,6 @@ class TestReviewTheIdleNudgeReadsTheLiveMission:
         assert _nudges(_europe()), "vacuous: the nudge never fires on the shipped board"
         fired = _nudges(self._gathered())
         assert fired, "a completed record silenced the idle nudge"
-
-    def test_lever_down_the_record_silences_him(self):
-        DI.IDLE_NUDGE_READS_THE_LIVE_MISSION = False
-        assert _nudges(self._gathered()) == []
 
 
 class TestReviewTheUndermineRecord:

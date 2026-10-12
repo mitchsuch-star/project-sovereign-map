@@ -28,8 +28,9 @@ legibility residues on the LETTER and its rows, not on the table:
   `mediator: null`. ONE clause (`good_offices_clause`) now rides the rail row,
   the dispatch event, the mailbox row and the review header.
 
-Every rule has a lever whose down arm reproduces the exit's reading, so the
-old behaviour is reproduced, not remembered.
+Each rule landed behind a lever whose down arm reproduced the exit's
+reading; the levers are retired (CODE-1 batch 5), so the pins assert the
+live rule.
 """
 
 from pathlib import Path
@@ -37,7 +38,6 @@ from pathlib import Path
 import pytest
 
 import backend.main as M
-from backend.game_logic import settlement_offers as SO
 from backend.game_logic import turn_manager as TM
 from backend.game_logic.ai_diplomacy import (
     MEDIATION_WE_FLOOR,
@@ -248,15 +248,6 @@ class TestTheLetterSubtractsWhatItCarves:
         assert carve_lines and any(prov in s for s in carve_lines), summary
         assert all(prov not in s for s in status), summary
 
-    def test_the_lever_down_reproduces_the_exits_letter(self, world, monkeypatch):
-        prov = _occupy_an_austrian_home_province(world)
-        _, inst, _ = _boot_war(world)
-        carve = {"type": "create_client", "from": "France", "to": "Austria",
-                 "tag": "Carved", "provinces": [prov]}
-        monkeypatch.setattr(SO, "THE_LETTER_SUBTRACTS_WHAT_IT_CARVES", False)
-        lines = _derive_status_quo_lines(world, inst, [carve])
-        assert any(prov in line for line in lines), lines
-
     def test_a_letter_that_moves_no_soil_is_byte_identical(self, world):
         prov = _occupy_an_austrian_home_province(world)
         _, inst, _ = _boot_war(world)
@@ -434,15 +425,6 @@ class TestTheLettersRailRowLeavesWithIt:
         assert self._rows_for(world, offer["offer_id"]) == []
         assert self._rows_for(world, "settlement_offer:other:9:1")
 
-    def test_the_lever_down_leaves_the_row_standing(self, world, monkeypatch):
-        offer = _stage_offer(world, _GOLD_PEACE)
-        promoted = _promote_with_the_rail_row(world, offer)
-        monkeypatch.setattr(SO, "THE_LETTERS_RAIL_ROW_LEAVES_WITH_IT", False)
-        handle_incoming_settlement_offer_action(
-            world, action="accept_settlement_offer", dialogue=promoted)
-        assert self._rows_for(world, offer["offer_id"]), (
-            "the exit's reading: the row outlives the letter")
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SR-2-X4 — the review carries the letter's figure (not reproduced; pinned)
@@ -509,10 +491,6 @@ class TestTheGoodOfficesClause:
         assert good_offices_clause("PapalStates") == "under the Papal States' good offices"
         assert good_offices_clause("") == ""
         assert good_offices_clause(None) == ""
-
-    def test_the_lever_down_is_silent(self, monkeypatch):
-        monkeypatch.setattr(SO, "THE_MEDIATOR_IS_NAMED_ON_EVERY_SURFACE", False)
-        assert good_offices_clause("Russia") == ""
 
 
 def _the_arbiters_offer(world):
@@ -595,17 +573,4 @@ class TestTheMediatorIsNamedOnEverySurface:
         assert item["summary_text"].startswith("Settlement offer:")
         result = handle_incoming_settlement_offer_action(
             world, action="accept_settlement_offer", dialogue=promoted)
-        assert "mediator" not in (result.get("diplomatic_dialogue") or {})
-
-    def test_the_lever_down_reproduces_the_exits_blindness(self, world, monkeypatch):
-        monkeypatch.setattr(SO, "THE_MEDIATOR_IS_NAMED_ON_EVERY_SURFACE", False)
-        offer = _the_arbiters_offer(world)
-        row = [r for r in _rail(world, INCOMING_SETTLEMENT_OFFER)
-               if (r.get("details") or {}).get("offer_id") == offer["offer_id"]][0]
-        assert row["title"] == f"Settlement offer from {offer['proposer_nation']}"
-        item = next(i for i in world.dialogue_manager.get_mailbox_items()
-                    if i["item_type"] == "incoming_settlement_offer")
-        assert "good offices" not in item["summary"]
-        result = handle_incoming_settlement_offer_action(
-            world, action="accept_settlement_offer", dialogue=offer)
         assert "mediator" not in (result.get("diplomatic_dialogue") or {})

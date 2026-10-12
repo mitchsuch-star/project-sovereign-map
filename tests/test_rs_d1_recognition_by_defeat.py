@@ -219,14 +219,6 @@ class TestTheCapitalLatch:
             game_end.count_peace(w, "Austria", "France")
         assert _signed(w, "Austria") is None
 
-    def test_the_lever_down_restores_ruling_two(self, vienna_road, monkeypatch):
-        """SR-1a's ruling (2): a retention is not a cession the court
-        signed, and no latch is written."""
-        monkeypatch.setattr(congress, "A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES", False)
-        w = vienna_road
-        _ratify(w, "Austria", "France")
-        assert not (congress.record(w) or {}).get("signed")
-
     def test_the_latch_round_trips(self, vienna_road):
         w = vienna_road
         _ratify(w, "Austria", "France")
@@ -365,15 +357,6 @@ class TestTheLeversQuoteTheirTurns:
         assert congress.courtship_clause(w, 8) == (
             f" — about 1 turn at +{per} a turn ({left} turns remain of this sitting)")
 
-    def test_the_clause_is_silent_with_the_lever_down(self, monkeypatch):
-        monkeypatch.setattr(congress, "THE_LEVERS_QUOTE_THEIR_TURNS", False)
-        w = _boot()
-        assert congress.courtship_clause(w, 40) == ""
-        price = congress.price(w, "Prussia")
-        rel = next(l for l in price["levers"] if l["key"] == "relation")
-        assert rel["text"] == "better relations (court them)"
-        assert all("a turn" not in b["text"] for b in price["bundle"])
-
     def test_every_courtship_lever_on_the_table_carries_it(self):
         """Prussia at peace, refusing: the relation lever, the bundle's
         relation row and the bundle sentence all quote the turns."""
@@ -419,13 +402,6 @@ class TestTheLeversQuoteTheirTurns:
             _hold(w, region, "France", "Austria")
         assert "recognizes the order" not in congress.answer(w, "Austria")["reason"]
 
-    def test_the_lever_down_leaves_the_projection_alone(self, vienna_road, monkeypatch):
-        monkeypatch.setattr(congress, "A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES", False)
-        w = vienna_road
-        row = congress.answer(w, "Austria")
-        assert row["stance"] == congress.SUES
-        assert "recognizes the order" not in row["reason"]
-
 
 # ════════════════════════════════════════════════════════════════════════
 # 5. The wording (item 4)
@@ -457,10 +433,6 @@ class TestTheWording:
         assert congress.recognition_by_capital_preview(
             w, ["Austria"], [{"type": "territory_return", "regions": ["Vienna"]}]) == []
         assert congress.recognition_by_capital_preview(w, ["Bavaria"], []) == []
-
-    def test_the_preview_is_silent_with_the_lever_down(self, vienna_road, monkeypatch):
-        monkeypatch.setattr(congress, "A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES", False)
-        assert congress.recognition_by_capital_preview(vienna_road, ["Austria"], []) == []
 
 
 # ════════════════════════════════════════════════════════════════════════

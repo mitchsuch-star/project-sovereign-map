@@ -329,13 +329,6 @@ class TestTheLegitimacySentence:
         world, _client, dialogue = table
         assert SS.legitimacy_sentence(world, dialogue["per_court_acceptance"], [], 50) == ""
 
-    def test_the_lever_down_is_the_old_heading(self, table, monkeypatch):
-        world, _client, dialogue = table
-        monkeypatch.setattr(SS, "THE_BLOCKER_NAMES_THE_COURTS", False)
-        rows = dialogue["per_court_acceptance"]
-        holdouts = dialogue["overall_acceptance"]["holdout_courts"]
-        assert SS.legitimacy_sentence(world, rows, holdouts, 50) == ""
-
 
 class TestTheSeparatePeaceChip:
 

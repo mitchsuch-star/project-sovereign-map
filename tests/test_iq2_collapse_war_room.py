@@ -9,10 +9,6 @@ the field, and saw its Balance of Europe tab project its "Next war of
 conquest". Every surface here now reads `collapse.get_collapse_state` — and
 the collapse stays legible, never terminal: nothing here ends, blocks or
 shortens the campaign.
-
-Every pin is falsifiable: each has a lever-down arm (the collapse lever for
-collapse-keyed arms, the row's own lever for the general fixes) that must
-reproduce the pre-IQ-2 copy.
 """
 
 import contextlib
@@ -403,17 +399,6 @@ class TestDissolutionCopy:
         # Mechanics untouched: the league is gone, the wars are not.
         assert w.active_coalition is None
         assert w.is_at_war("France", "Austria")
-
-    def test_lever_down_is_the_old_relief(self, monkeypatch):
-        monkeypatch.setattr(CO, "THE_DISSOLUTION_NAMES_THE_WARS_THAT_REMAIN", False)
-        w = _boot()
-        name = w.active_coalition["name"]
-        events = CO.dissolve_coalition(w, "low_threat")
-        assert self._notice(w) == f"{name} has dissolved. Low Threat."
-        assert events[0]["message"] == f"{name} has dissolved."
-        assert "courts_at_war" not in events[0]
-        logged = [e for e in w.event_log if e.get("type") == "coalition_dissolved"][-1]
-        assert "courts_at_war" not in logged
 
     def test_every_reason_reads_as_words(self):
         w = _boot()

@@ -14,25 +14,11 @@
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair::test_a_purpose_set_against_a_member_renders_on_the_coalition_row"
   },
   {
-    "id": "D3/a lever",
-    "file": "backend/game_logic/diplomatic_templates.py",
-    "old": "        if (not getattr(_held, \"is_sovereign\", False)\n                and not EVERY_PRISONER_IS_ON_THE_TABLE):\n",
-    "new": "        if (not getattr(_held, \"is_sovereign\", False)\n                and True):\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD3EveryPrisonerIsOnTheTable"
-  },
-  {
     "id": "D3/b sovereign first",
     "file": "backend/game_logic/diplomatic_templates.py",
     "old": "        key=lambda m: (0 if getattr(m, \"is_sovereign\", False) else 1,\n",
     "new": "        key=lambda m: (1 if getattr(m, \"is_sovereign\", False) else 0,\n",
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD3EveryPrisonerIsOnTheTable::test_our_captured_men_ride_the_demands_sovereign_first"
-  },
-  {
-    "id": "D8/a lever",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "    if not THE_FALLEN_PROVINCE_NAMES_THE_COUNTER:\n        return \"\"\n",
-    "new": "    if True:\n        return \"\"\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD8FallenProvinceNamesTheCounter"
   },
   {
     "id": "D8/b quotes the floor",
@@ -49,25 +35,11 @@
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD8FallenProvinceNamesTheCounter::test_the_corps_standing_there_is_named_when_our_intel_sees_it"
   },
   {
-    "id": "D9/a lever",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "        if THE_WAVERING_LINE_NAMES_THE_DRILL:\n",
-    "new": "        if False:\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD9WaveringLineNamesTheDrill"
-  },
-  {
     "id": "D9/b quotes the constant",
     "file": "backend/game_logic/dispatch.py",
     "old": "                gain = int(getattr(type(world), \"DRILL_MORALE_GAIN\", 10))\n",
     "new": "                gain = int(getattr(type(world), \"DRILL_MORALE_GAIN\", 10)) + 1\n",
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD9WaveringLineNamesTheDrill::test_the_line_quotes_the_drill_constants"
-  },
-  {
-    "id": "D12/a lever",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "        elif (etype == \"peace_ratified\" and THE_PEACE_LEADS_THE_BRIEFING\n",
-    "new": "        elif (etype == \"peace_ratified\" and False\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD12PeaceLeadsTheBriefing"
   },
   {
     "id": "D12/b ours only",

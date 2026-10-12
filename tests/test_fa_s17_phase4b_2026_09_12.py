@@ -292,11 +292,11 @@ class TestTheCourtSendsOneEnvoyPerWar:
     def test_the_guard_is_wired_into_the_p1_arm(self):
         """A source census on the ONE call site, because the arm itself needs
         a losing coalition war to reach and the predicates above carry the
-        behaviour. Paired with the sensitivity arm below."""
+        behaviour."""
         src = (ROOT / "backend" / "game_logic" / "ai_diplomacy.py").read_text(
             encoding="utf-8")
         m = re.search(
-            r"if not coalition_blocked and THE_COURT_SENDS_ONE_ENVOY_PER_WAR:"
+            r"if not coalition_blocked:"
             r"(.{0,900}?)\n        if not coalition_blocked:", src, re.S)
         assert m, "the FA-S17-15 guard is no longer above the P1 decision"
         body = m.group(1)
@@ -304,13 +304,6 @@ class TestTheCourtSendsOneEnvoyPerWar:
         assert "_settlement_offer_already_pending" in body
         assert "_settlement_offer_already_promoted" in body
         assert "coalition_blocked = True" in body
-
-    def test_the_lever_exists_and_gates_the_guard(self):
-        assert AID.THE_COURT_SENDS_ONE_ENVOY_PER_WAR is True
-        src = (ROOT / "backend" / "game_logic" / "ai_diplomacy.py").read_text(
-            encoding="utf-8")
-        # The lever must be READ at the guard, not merely defined.
-        assert src.count("THE_COURT_SENDS_ONE_ENVOY_PER_WAR") >= 2
 
 
 # ═══════════════════════════════════════════════════════════════════════

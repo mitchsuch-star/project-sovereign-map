@@ -259,13 +259,6 @@
     "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheRawKeysAreNamed"
   },
   {
-    "id": "SF7-X38: the relation shift prints the raw key",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "                      if DISPATCH_TEMPLATES_NAME_THE_NATION else nation)",
-    "new": "                      if False else nation)",
-    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheRawKeysAreNamed::test_the_relation_shift_names_the_court"
-  },
-  {
     "id": "SF-LB-3: the Balance of Europe tab without the table",
     "file": "backend/game_logic/diplomatic_ledger.py",
     "old": "    if _league.THE_LEAGUE_IS_SEEN and not world.active_coalition:",

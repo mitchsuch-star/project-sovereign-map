@@ -117,10 +117,7 @@ ALLY_PETITION_GOLD_REWARD_AMOUNT = 200
 # settlement_offer_action`. The handler is no longer short-circuited.
 # Produced offers live in `world.pending_settlement_dialogues` only;
 # the dialogue-manager taxonomy / mailbox / Godot UI wiring lands in
-# the immediately following commit, so the flag below stays as a
-# named constant for stale-save defensive paths and audit-trail
-# clarity but defaults to False.
-INCOMING_OFFERS_DEFERRED: bool = False
+# the immediately following commit.
 
 
 def _remove_pending_settlement_offer(
@@ -191,8 +188,7 @@ def _is_offer_active_dialogue(world: Any, dialogue: Mapping[str, Any]) -> bool:
 # draft ratifies — Accept / Decline stay answerable and a Back Out loses
 # nothing. Measured (the AAR): Britain's own turn-4 offer scored -32/50 on
 # the revision table against 13/50 "consents" on the accept route, and after
-# Back Out the letter was gone. False restores consume-at-staging.
-THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES = True
+# Back Out the letter was gone.
 
 
 def consume_offer_by_id(world: Any, *, offer_id: str, war_id: str) -> bool:
@@ -263,8 +259,7 @@ def _consume_offer_dialogue(world: Any, dialogue: Mapping[str, Any]) -> None:
 # loser arm: the row stood on the rail AFTER the settlement it announced had
 # been ratified and the war was over. A letter's row leaves with the letter,
 # on every road that consumes it (accept, reject, the revision route's
-# deferred consumption). Flip lever: False leaves the row standing.
-THE_LETTERS_RAIL_ROW_LEAVES_WITH_IT = True
+# deferred consumption).
 
 
 def _dismiss_offer_rail_row(world: Any, offer_id: str) -> int:
@@ -273,7 +268,7 @@ def _dismiss_offer_rail_row(world: Any, offer_id: str) -> int:
     refreshes a repeated row's details to the newest letter's, so the row
     that stands names the letter that was answered. Returns the count."""
     offer_id = str(offer_id or "")
-    if not THE_LETTERS_RAIL_ROW_LEAVES_WITH_IT or not offer_id:
+    if not offer_id:
         return 0
     notifications = getattr(world, "notifications", None)
     if notifications is None or not hasattr(notifications, "dismiss_by_type"):
@@ -320,21 +315,20 @@ def _live_covered_for_offer(
     # letter arrived, hard-stopped the review with
     # `no_direct_war_score_for_covered_enemy`). Read through the ONE reader
     # the emitter uses; a truce court is reported as such, never as settled.
-    from backend.game_logic.ai_diplomacy import THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR
-    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR:
-        from backend.game_logic.settlement_staging import covered_courts_at_war
-        player = str(getattr(world, "player_nation", "France") or "France")
-        at_war = set(covered_courts_at_war(world, war, player=player))
-        coverable = {n for n in coverable if n in at_war}
+    from backend.game_logic.settlement_staging import covered_courts_at_war
+    player = str(getattr(world, "player_nation", "France") or "France")
+    at_war = set(covered_courts_at_war(world, war, player=player))
+    coverable = {n for n in coverable if n in at_war}
     live = [nation for nation in covered if nation in coverable]
     departed = [nation for nation in covered if nation not in coverable]
     return live, departed
 
 
-# Slice-10 review round: False restores the round's three pre-review
-# behaviours (the gold-only arrival register; a departed court's clauses
-# forwarded whole; the note produced and never delivered).
-REGISTER_READS_THE_PACKAGE = True
+# The rules, since the Slice-10 review round: the arrival register reads the
+# whole package, not its gold alone; a clause naming a departed court is
+# never forwarded whole (the revision drops it, the accept refuses it); the
+# departed-court note is delivered, not only produced.
+#
 # SF7-X25 (Score Finish Step 7, the frames): an ally's contribution petition
 # says it fought beside France — "this coalition" named the enemy. False =
 # the old sentence.
@@ -345,8 +339,6 @@ THE_PETITION_NAMES_ITS_SIDE = True
 # named its table by COVERAGE since G4F-7; the petition reads the same
 # coverage. False = the leader-pair label.
 THE_PETITION_NAMES_THE_TABLE = True
-DEPARTED_COURT_TAKES_ITS_CLAUSES = True
-DEPARTED_COURT_NOTE_IS_DELIVERED = True
 
 # The clause families an offer can carry that move something other than a
 # lump of gold. Mirrors `settlement_reactions._MATERIAL_LOSS_TYPES` plus the
@@ -462,7 +454,7 @@ def _terms_naming_departed_courts(
     from backend.game_logic.settlement_validation import _clause_role_nations
 
     gone = {str(n) for n in (departed or []) if n}
-    if not DEPARTED_COURT_TAKES_ITS_CLAUSES or not gone:
+    if not gone:
         return []
     named: List[str] = []
     for clause in terms or []:
@@ -506,8 +498,6 @@ def _deliver_departed_note(result: Dict[str, Any], world: Any) -> None:
     The two surfaces that carry a staged review are the terminal `message` and
     the popup's `talleyrand_text`, so the sentence joins both.
     """
-    if not DEPARTED_COURT_NOTE_IS_DELIVERED:
-        return
     note = str(result.get("departed_courts_note") or "")
     if not note:
         return
@@ -1874,8 +1864,7 @@ def _mounted_propose_settlement_dialogue(
 # settlement (`must_reopen` + `reopen_target`, the client's existing road);
 # (2) a petition expires with the table it was filed against — at turn's end
 # the drafts are set aside, and a petition whose settlement is not MOUNTED
-# lapses with them, as does one over a war that ended. Lever below.
-A_PETITION_LAPSES_WITH_ITS_TABLE = True
+# lapses with them, as does one over a war that ended.
 
 
 def _petition_table_is_open(world: Any, war_id: str) -> bool:
@@ -1943,8 +1932,6 @@ def lapse_ally_petitions_without_a_table(world: Any) -> List[Dict[str, Any]]:
     scoped drafts are set aside on the same tick, so an unmounted table is
     gone with them). Returns one notice per lapsed petition, in the shape
     of the draft-discard notices it rides beside."""
-    if not A_PETITION_LAPSES_WITH_ITS_TABLE:
-        return []
     dm = getattr(world, "dialogue_manager", None)
     if dm is None or not hasattr(dm, "remove_matching"):
         return []
@@ -2580,9 +2567,7 @@ def _incoming_offer_summary_text(offer: Mapping[str, Any]) -> str:
 # France" in the same letter. The ratifier never lied: its retention pass reads
 # the map AFTER the appliers have run, when the carve has already moved the
 # province. The letter now does what the ratifier does — a province the same
-# letter carves or cedes is not "retained" by anybody. Flip lever: False
-# restores the map-only read.
-THE_LETTER_SUBTRACTS_WHAT_IT_CARVES = True
+# letter carves or cedes is not "retained" by anybody.
 
 
 def _provinces_the_terms_move(
@@ -2590,7 +2575,7 @@ def _provinces_the_terms_move(
 ) -> set:
     """Every province a clause of THIS package takes out of a court's control
     (`cession_shaped_regions` — cessions and carves, all three dialects)."""
-    if not THE_LETTER_SUBTRACTS_WHAT_IT_CARVES or not settlement_terms:
+    if not settlement_terms:
         return set()
     from backend.game_logic.settlement_scoring import cession_shaped_regions
     moved: set = set()
@@ -2641,16 +2626,15 @@ def _derive_status_quo_lines(
 # Offer", and the review it opened carried `mediator: null`. Measured on the
 # Tilsit arm: the offer fired on turn 21 and the driver's digest could not
 # tell whose offices it rode. ONE clause for every surface that names the
-# good offices. Flip lever: False restores the mediator-blind rows.
-THE_MEDIATOR_IS_NAMED_ON_EVERY_SURFACE = True
+# good offices.
 
 
 def good_offices_clause(mediator: Any) -> str:
     """"under Russia's good offices" — the ONE phrase the rail row, the
     mailbox row, the dispatch line and the review header share for a
-    mediated offer. Empty for an unmediated one (or with the lever down)."""
+    mediated offer. Empty for an unmediated one."""
     name = str(mediator or "")
-    if not name or not THE_MEDIATOR_IS_NAMED_ON_EVERY_SURFACE:
+    if not name:
         return ""
     # R7: the printed court, with its article where it takes one ("the
     # Papal States' good offices", "Russia's good offices").
@@ -2727,7 +2711,7 @@ def build_incoming_settlement_offer_popup(
     # the no-gold voice: "nothing changes hands but the quiet." The clause
     # list beside it said otherwise. A register may never assert what the
     # package does not do.
-    _has_substance = REGISTER_READS_THE_PACKAGE and any(
+    _has_substance = any(
         isinstance(term, Mapping)
         and str(term.get("type") or "") in SUBSTANTIVE_NON_INDEMNITY_TYPES
         for term in settlement_terms
@@ -3049,26 +3033,13 @@ def handle_incoming_settlement_offer_action(
       hint that points back into the same war's editor route. The real
       counter / edit wiring lands with the UI layer (commit 2); for now
       we explicitly do NOT mutate state.
-    - The stale-save defensive flag `INCOMING_OFFERS_DEFERRED` stays as a
-      named constant and is checked here as a safety belt: if a future
-      session ever flips it back to True (e.g. emergency disable), the
-      handler returns the legacy short-circuit without touching state.
+    - The stale-save defensive flag `INCOMING_OFFERS_DEFERRED` (False since
+      the SC-5 reversal, May 2026) and its short-circuit were retired with
+      CODE-1 batch 5 (October 12, 2026); the `incoming_offer_deferred`
+      display string stays for a save that still carries the old refusal.
     """
     war_id = str(dialogue.get("war_id") or "")
     offer_id = str(dialogue.get("offer_id") or "")
-    if INCOMING_OFFERS_DEFERRED:
-        return {
-            "success": False,
-            "dialogue_type": "incoming_settlement_offer",
-            "action": action,
-            "war_id": war_id,
-            "offer_id": offer_id,
-            "error": "incoming_offer_deferred",
-            "error_display": _error_display("incoming_offer_deferred"),
-            "must_reopen": False,
-            "mutated": False,
-            "suppress_proposal_result_popup": True,
-        }
 
     actor = getattr(world, "player_nation", "France")
 
@@ -3251,7 +3222,7 @@ def handle_incoming_settlement_offer_action(
             "caller_kind": "player_editor",
             "dialogue_mode": "PROPOSE",
         }
-        if THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES and covered_enemies:
+        if covered_enemies:
             # SR-2a (AAR-3): the covered courts WROTE this package. Laid back
             # verbatim on the player's table it carries their consent — the
             # accept route's FA-3 trio — so the offering leader is never
@@ -3340,13 +3311,8 @@ def handle_incoming_settlement_offer_action(
             # still the offered package (queued behind the draft by the
             # staging tail's preempt; promoted the moment the player backs
             # out). `consume_offer_by_id` retires it on the first changed
-            # term or at ratification. Lever down = the old consume-here.
-            if not THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES:
-                _consume_offer_dialogue(world, dialogue)
-                _remove_pending_settlement_offer(
-                    world, offer_id=offer_id, war_id=war_id)
-            else:
-                result["letter_stands"] = True
+            # term or at ratification.
+            result["letter_stands"] = True
             if departed_courts:
                 result["departed_courts"] = list(departed_courts)
                 result["departed_courts_note"] = _departed_courts_note(

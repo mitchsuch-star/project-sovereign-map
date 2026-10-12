@@ -423,6 +423,84 @@ DD-1 Step 3's session).**
   batch after October 2026 closes. The plan's "done under 40" needs batch 5
   and that November batch.
 
+**✅ BATCH 5 LANDING RECORD — October 12, 2026 (the head of Pre-Deploy S7b,
+CODE-3 + DD-C's session).**
+
+- **The batch, as defined and as measured.** The `game_logic/` modules over
+  3,000 lines hold **116** levers by the census regex (`dispatch.py` 50,
+  `coalition.py` 18, `ai_diplomacy.py` 15, `congress.py` 13,
+  `settlement_offers.py` 11, `diplomatic_templates.py` 4,
+  `settlement_staging.py` 3, `settlement_actions.py` 2); **44 landed in
+  October 2026** and keep their session (PRE_DEPLOY §5-4); of the **72**
+  dated before October, **71 retired** and **one kept**:
+  `THE_LEAGUE_TREATS_WHEN_SPENT` (SR-1d, September 26) is a STAGING device,
+  bundled with four October levers in IQ-6's `_PRE_SR1D_LEAGUE` /
+  `_PRE_SR1D_LEAGUE_CLI` (the drives that re-time the Austrian courtship) and
+  in IQ-7's `turn6_snapshot` and `_pre_sr1d_league` fixtures — retired alone it
+  would re-stage three files' boards twice. **It retires with that bundle in
+  the first batch after October** (owner: CODE-1's November batch, named
+  here and in STATUS ▶ NEXT UP; done when the bundle's five names are
+  retired and the three files re-staged once, the IQ-6 / IQ-7 pins green).
+  **Three of the 71 were `False`:** `THE_LEAGUE_GATE_COVERS_EVERY_WAR` and
+  `THE_WAR_AGE_IS_THE_PAIRS` (PR-D1d's options (a) and (b), "measured and
+  down" in SR-2c's record — no ruling and no re-open condition, unlike
+  AIDR-D1's `LITERALS_DRILL_TO_HEAL`, which stays) and
+  `INCOMING_OFFERS_DEFERRED` (dead since the SC-5 reversal, May 2026; its
+  re-export from `settlement_preview` dropped).
+- **The tool's own defect, found by this batch.** `retire_reference` seeded
+  every climb with `value = True`: batches 1–4 retired only `True` levers, so
+  it never showed. The first apply inlined all three `False` levers' dead
+  branches — measured, `handle_incoming_settlement_offer_action` returned its
+  deferred short-circuit for every offer. Reverted, fixed
+  (`definition_value` reads `X = True` and `X: bool = False`; a `getattr`
+  folds to the lever's own value; a definition that is not a bare boolean is
+  refused), pinned (`tests/test_retire_lever_tool.py`
+  `TestAFalseLeverKeepsItsOwnSide`, eight shapes, and two batch-5 names in the
+  driver's refusal list), re-applied.
+- **The sites.** The tool rewrote the production sites across ten modules
+  (the eight, plus the cross-module reads in `diplomatic_advisory.py`,
+  `diplomatic_ledger.py` and `main.py`) and dropped 58 sweep rows from 22
+  `tools/_sweep_*.json`; **eight by hand**: the keyword read
+  (`skip_nation_cooldown=True`), four boolean operands outside a test
+  position (`no_court_left_to_alarm(...)` ×2, `lists_only_what_is_held`,
+  `_has_substance = any(...)`), the side-effect fold (the prisoner loop's
+  `continue` could never fire — `getattr` is pure — and went), the congress
+  overlap (`if not (A and B): return ""` with both retired — the guard went)
+  and `settlement_preview`'s re-export. **Dead code the tool leaves behind**,
+  found by an AST scan for a statement after a terminator and removed by
+  hand: three `return`s after an inlined `return` in `dispatch.py`,
+  `settlement_war_age_start`'s unreachable option-(b) tail (it returns
+  `int(war.get("created_turn") or 0)` now; its `_player_pair_meta` helper
+  went with it), and a `getattr` read folded to a bare `if True:` in
+  `congress.alarm_road`. The orphaned lever headers: an agent, comments and
+  docstrings only, verified by AST equality against a pre-agent snapshot —
+  50 blocks re-titled to the rule they document across seven modules (`dispatch.py` 17, `settlement_offers.py` 9, `ai_diplomacy.py` 8, `coalition.py` 7, `congress.py` 6, `settlement_staging.py` 2, `diplomatic_templates.py` 1), one comment the tool's re-flowed condition had dropped restored (`congress.process_end_of_turn`'s Review #17), and an unreachable lever-down branch in `congress._shut_out_lapse_reason` removed by hand. Prior-batch orphans found and left for their own batch: `diplomatic_advisory.py` (four), `diplomatic_ledger.py` (two), `ai_diplomacy.py` and `dispatch.py` (one each).
+- **The test arms, decided one by one** (three agents by disjoint file
+  group, the recipe and the traps as the brief; 30 files; every file re-run
+  green): **65 whole deletions** (every `test_lever_down_*`, every control
+  arm, every `is True` pin left empty), ≈ 12 tails trimmed, five `LEVERS`
+  tuples / autouse fixtures and three helpers removed, **one re-staged**
+  (`test_congress_of_paris::test_the_refusal_term_reaches_the_intent_weight`
+  — its "without" baseline stubs `refusal_weight` and `revanche_weight` to 0
+  under `monkeypatch.context()`, which is all the lever did; checked
+  non-vacuous, 100 with the term against 85 without). One trim loses its
+  sensitivity arm by construction
+  (`test_iq2_collapse_dispatch::test_an_ally_is_never_offered_a_downgrade`:
+  the old board's downgrade offer is no longer reachable to prove); the
+  rule's attribution stays on IQ-2's record. Nothing unresolved; no live
+  assertion failed.
+- **The reading:** levers **429 → 358** (357 on, 329 named by a test);
+  functions over 500 lines 34 → 34; silent handlers 367 → 367 (the session's
+  next slice). **The ratchet** lowered to `LEVERS_CAP 358`.
+- **Gate:** `BASELINE_SERIES` + M1–M7 byte-identical with no re-record
+  (`test_ai_intent_threat_migration` / `_variance` / `_assurance`,
+  `test_combat_sweep_metrics`), the CR-1 corpus harness and the tool's pins
+  (1,140 together); every touched test file green; `ruff` clean; the full
+  suite green on the hook.
+- **Next batch:** the October 2026 levers of batches 1–5 (26 + 56 + 12 + 32 +
+  44) and `THE_LEAGUE_TREATS_WHEN_SPENT` with its staging bundle — the first
+  batch after October 2026 closes. The plan's "done under 40" needs it.
+
 ## CODE-2 — Split the monster functions into named stages (1 session each)
 
 **Order:** `_execute_attack` → `_process_dialogue_choice` → `_execute_one` →

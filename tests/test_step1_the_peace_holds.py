@@ -586,18 +586,14 @@ class TestTheSummonsNamesTheLoweredGate:
         assert congress.league_warning(w).endswith(
             " — a league already brews; it declares in 2 turns")
 
-    def test_the_lever_down_and_the_lone_refuser_are_silent(self, monkeypatch):
+    def test_the_lone_refuser_is_silent(self):
         w = self._summonable()
         assert congress.league_warning(w)
-        monkeypatch.setattr(congress, "THE_SUMMONS_NAMES_THE_LOWERED_GATE", False)
-        assert congress.league_warning(w) == ""
-        assert " · the summons" not in congress.state_line(w)
-        monkeypatch.setattr(congress, "THE_SUMMONS_NAMES_THE_LOWERED_GATE", True)
         for court in ("Austria", "Russia", "Britain"):
             congress.note_ratification(w, [court], True, beaten=[court])
         assert congress.league_warning(w) == ""
 
-    def test_the_march_blocker_reads_the_brewing_league(self, monkeypatch):
+    def test_the_march_blocker_reads_the_brewing_league(self):
         w = self._summonable()
         _sit(w)
         w.active_coalition = None
@@ -610,8 +606,6 @@ class TestTheSummonsNamesTheLoweredGate:
         assert line == (f"no coalition stands against us yet — a league brews and "
                         f"declares in 3 turns (alarm {int(w.threat_by_target.get('France', 0) or 0)} "
                         f"against a gate of {coalition.brewing_gate(w)})")
-        monkeypatch.setattr(congress, "THE_SUMMONS_NAMES_THE_LOWERED_GATE", False)
-        assert congress.march_blocker(w, "Prussia") == stock
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -659,12 +653,6 @@ class TestTheAlarmLineIsAForecast:
         fc = coalition.forecast_alarm_tick(w)
         assert fc["capped"] and fc["next"] == 100 - fc["decay"]
         assert "the alarm cannot rise past 100" in congress.alarm_road(w)
-
-    def test_the_lever_down_is_the_old_gross_decay_line(self, monkeypatch):
-        monkeypatch.setattr(congress, "THE_ALARM_LINE_IS_A_FORECAST", False)
-        w = _boot()
-        decay = coalition._calculate_threat_decay(w)
-        assert congress.alarm_road(w).startswith(f"it falls {decay} a turn (one, plus one")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -716,17 +704,6 @@ class TestNoOfferTheTableRefuses:
         with _quiet():
             delivered = ai_diplomacy.deliver_ai_proposal(proposal, w)
         assert delivered and w.pending_diplomatic_dialogue is not None
-
-    def test_the_lever_down_sends_the_letter_the_ratifier_then_refuses(self, monkeypatch):
-        monkeypatch.setattr(ai_diplomacy, "NO_OFFER_THE_TABLE_REFUSES", False)
-        w = self._sweden(-60)
-        terms = ai_diplomacy._build_proposal_terms("Sweden", "defensive_alliance", 0, w)
-        proposal = ai_diplomacy._make_proposal("Sweden", "defensive_alliance", 9, terms, w)
-        with _quiet():
-            assert ai_diplomacy.deliver_ai_proposal(proposal, w)
-        assert w.pending_diplomatic_dialogue is not None
-        result = _ratify(w, "Sweden", "France", ptype="defensive_alliance")
-        assert result["type"] == "diplomatic_treaty_failed"
 
     def test_the_auction_offers_the_best_pact_the_relation_permits(self, monkeypatch):
         from backend.game_logic import intent as I
@@ -831,18 +808,6 @@ class TestTheLetterCoversOnlyThePairsAtWar:
                 pending=[], cooldowns=cooldowns) is None
         assert cooldowns == {}
 
-    def test_the_lever_down_covers_the_truce_court_again(self, monkeypatch):
-        monkeypatch.setattr(ai_diplomacy, "THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR", False)
-        monkeypatch.setattr(ai_diplomacy, "_letter_would_carry", lambda *a, **k: True)
-        w = _boot()
-        war = w.war_instances["war_1"]
-        self._truce(w, "Russia")
-        with _quiet():
-            offer = ai_diplomacy._emit_settlement_offer_for_war(
-                w, "war_1", war, player="France", current_turn=w.current_turn,
-                pending=[], cooldowns={})
-        assert sorted(offer["covered_enemy_participants"]) == ["Austria", "Britain", "Russia"]
-
 
 class TestTheLetterIsReadAtTheAnswer:
     """SF-V5's second seam: the board moves under a letter inside the same
@@ -887,20 +852,6 @@ class TestTheLetterIsReadAtTheAnswer:
         assert sorted(staged["covered_enemy_participants"]) == ["Austria", "Britain"]
         assert not any("no_direct_war_score" in str(h) for h in (staged.get("hard_stops") or []))
 
-    def test_the_lever_down_keeps_the_truce_court_and_hard_stops(self, monkeypatch):
-        from backend.game_logic.settlement_offers import handle_incoming_settlement_offer_action
-        monkeypatch.setattr(ai_diplomacy, "_letter_would_carry", lambda *a, **k: True)
-        monkeypatch.setattr(ai_diplomacy, "THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR", False)
-        w = _boot()
-        letter = self._letter(w)
-        self._truce(w, "Russia")
-        with _quiet():
-            result = handle_incoming_settlement_offer_action(
-                w, action="accept_settlement_offer", dialogue=letter)
-        staged = result.get("diplomatic_dialogue") or {}
-        assert "Russia" in (staged.get("covered_enemy_participants") or [])
-        assert not result.get("departed_courts")
-
 
 class TestTheLetterIsRatifiableWhenSent:
 
@@ -936,18 +887,6 @@ class TestTheLetterIsRatifiableWhenSent:
                 w, "war_1", war, player="France", current_turn=w.current_turn,
                 pending=pending, cooldowns=cooldowns) is None
         assert pending == [] and cooldowns == {}
-
-    def test_the_lever_down_sends_it_anyway(self, monkeypatch):
-        monkeypatch.setattr(ai_diplomacy, "THE_LETTER_IS_RATIFIABLE_WHEN_SENT", False)
-        monkeypatch.setattr(ai_diplomacy, "_letter_would_carry", lambda *a, **k: False)
-        w = _boot()
-        war = w.war_instances["war_1"]
-        pending, cooldowns = [], {}
-        with _quiet():
-            offer = ai_diplomacy._emit_settlement_offer_for_war(
-                w, "war_1", war, player="France", current_turn=w.current_turn,
-                pending=pending, cooldowns=cooldowns)
-        assert offer is not None and pending == [offer]
 
     def test_the_periodic_producer_survives_a_withheld_letter(self, monkeypatch):
         monkeypatch.setattr(ai_diplomacy, "_emit_settlement_offer_for_war", lambda *a, **k: None)

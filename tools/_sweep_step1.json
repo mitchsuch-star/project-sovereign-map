@@ -161,25 +161,11 @@
   "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
  },
  {
-  "id": "RS-D1 latch: capital_kept ignored",
-  "file": "backend/game_logic/congress.py",
-  "old": "    kept_set = (set(capital_kept or ())\n                if A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES else set())\n",
-  "new": "    kept_set = set()\n",
-  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
- },
- {
   "id": "RS-D1 latch: the capital outranks a cession",
   "file": "backend/game_logic/congress.py",
   "old": "        kind = (\"table\" if now_sitting else\n                \"beaten\" if court in beaten_set else \"capital\")\n",
   "new": "        kind = (\"table\" if now_sitting else\n                \"capital\" if court in kept_set else \"beaten\")\n",
   "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
- },
- {
-  "id": "RS-D1 latch: never breaks when the capital leaves",
-  "file": "backend/game_logic/congress.py",
-  "old": "    if (A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES and rec.get(\"kind\") == \"capital\"\n            and not capital_in_our_hands(world, court)):\n        return None\n",
-  "new": "    if (A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES and rec.get(\"kind\") == \"capital\"\n            and False):\n        return None\n",
-  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheThreeBreakers"
  },
  {
   "id": "RS-D1 tick: the break is stamped with no reason",
@@ -201,13 +187,6 @@
   "old": "        if signed.get(\"kind\") == \"capital\":\n            # RS-D1: \"it signed the peace that left Vienna in our hands (turn 16)\".\n",
   "new": "        if signed.get(\"kind\") == \"capital_x\":\n            # RS-D1: \"it signed the peace that left Vienna in our hands (turn 16)\".\n",
   "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
- },
- {
-  "id": "RS-D1 projection: the road is not named",
-  "file": "backend/game_logic/congress.py",
-  "old": "            if taken and A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES:\n",
-  "new": "            if False:\n",
-  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheLeversQuoteTheirTurns"
  },
  {
   "id": "RS-D1 rider: an ally's hand counts as ours",
@@ -322,13 +301,6 @@
   "tests": "tests/test_step1_the_peace_holds.py::TestTheSummonsNamesTheLoweredGate"
  },
  {
-  "id": "RS-10 blocker: the brewing arm is gone",
-  "file": "backend/game_logic/congress.py",
-  "old": "        if (THE_SUMMONS_NAMES_THE_LOWERED_GATE and brewing\n",
-  "new": "        if (False and brewing\n",
-  "tests": "tests/test_step1_the_peace_holds.py::TestTheSummonsNamesTheLoweredGate"
- },
- {
   "id": "RS-10 warning: a brewing league is not named",
   "file": "backend/game_logic/congress.py",
   "old": "    if brewing and (brewing.get(\"target_nation\") or player) == player:\n        from backend.display_names import plural\n",
@@ -392,13 +364,6 @@
   "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
  },
  {
-  "id": "SF-V1 auction: the defensive alliance regardless",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "            ptype = (best_ratifiable_treaty(world, nation, \"defensive_alliance\", player)\n                     if NO_OFFER_THE_TABLE_REFUSES else \"defensive_alliance\")\n",
-  "new": "            ptype = \"defensive_alliance\"\n",
-  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
- },
- {
   "id": "SF-V1 auction: no-pact reads as an offer",
   "file": "backend/game_logic/ai_diplomacy.py",
   "old": "            else:\n                outcome = \"player_won_no_pact\"\n",
@@ -441,13 +406,6 @@
   "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
  },
  {
-  "id": "SF-V5 eligibility: no refusal",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR and not _covered_at_war(\n            world, war, player=player):\n        return \"no_covered_enemy_at_war\"\n",
-  "new": "    if False:\n        return \"no_covered_enemy_at_war\"\n",
-  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterCoversOnlyThePairsAtWar"
- },
- {
   "id": "SF-V5 emitter: coverage not filtered",
   "file": "backend/game_logic/ai_diplomacy.py",
   "old": "        covered_enemies = [n for n in covered_enemies if n in at_war]\n",
@@ -460,13 +418,6 @@
   "old": "        if proposer_nation not in covered_enemies:\n            from backend.game_logic.settlement_staging import (\n",
   "new": "        if False:\n            from backend.game_logic.settlement_staging import (\n",
   "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterCoversOnlyThePairsAtWar"
- },
- {
-  "id": "SF-V5 dry run: not asked",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "    if THE_LETTER_IS_RATIFIABLE_WHEN_SENT and not _letter_would_carry(\n",
-  "new": "    if False and not _letter_would_carry(\n",
-  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterIsRatifiableWhenSent"
  },
  {
   "id": "SF-V5 dry run: no consent",

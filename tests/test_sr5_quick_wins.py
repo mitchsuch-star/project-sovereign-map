@@ -8,8 +8,8 @@
   * FA-66 — a fleet action can lead the morning dispatch: a decisive loss
     ("fleet_shattered", between a broken corps and a destroyed marshal), a
     beaten fleet, a decisive victory — the loser's OWN sail named through
-    the naval layer's `losses_sentence` (lever
-    `dispatch.FLEET_ACTIONS_LEAD_THE_DISPATCH`).
+    the naval layer's `losses_sentence` (its lever retired by CODE-1 batch 5,
+    October 12, 2026; the rule is unconditional).
 """
 import contextlib
 import io
@@ -228,14 +228,6 @@ class TestTheFleetActionLeads:
                      {"France": {"France": 23}, "Britain": {"Britain": 1}})
         head = D._build_headline(w, "France")
         assert head["class"] == "fleet_shattered"
-
-    def test_the_lever_down_is_the_old_page(self, monkeypatch):
-        monkeypatch.setattr(D, "FLEET_ACTIONS_LEAD_THE_DISPATCH", False)
-        w = _boot()
-        _fleet_event(w, "Britain", "France", True,
-                     {"France": {"France": 23}, "Britain": {"Britain": 1}})
-        head = D._build_headline(w, "France")
-        assert head is None or not head["class"].startswith("fleet_")
 
 
 class TestTheRecords:

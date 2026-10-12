@@ -7,38 +7,10 @@
   "tests": "tests/test_sr2a_one_verdict_per_screen.py"
  },
  {
-  "id": "SR-2a/AAR-2 the per-court gate stops being THE gate",
-  "file": "backend/game_logic/settlement_staging.py",
-  "old": "    if THE_TABLE_TELLS_ONE_TRUTH and not white_peace:\n        # SR-2a (AAR-2): ONE verdict per screen",
-  "new": "    if False and not white_peace:\n        # SR-2a (AAR-2): ONE verdict per screen",
-  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
- },
- {
-  "id": "SR-2a/AAR-2 the blocker stops being the table's own verdict",
-  "file": "backend/game_logic/settlement_staging.py",
-  "old": "        elif THE_TABLE_TELLS_ONE_TRUTH and not white_peace and not per_court_carries:",
-  "new": "        elif False:",
-  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
- },
- {
   "id": "SR-2a/AAR-2 ratification re-seats the side leader",
   "file": "backend/game_logic/settlement_ratify.py",
   "old": "        accepting_leader=accepting_leader_for_coverage(\n            war_instance, accepting_side, covered,\n        ),\n        proposer_side_leader=_side_leader(war_instance, proposer_side),",
   "new": "        accepting_leader=_side_leader(war_instance, accepting_side),\n        proposer_side_leader=_side_leader(war_instance, proposer_side),",
-  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
- },
- {
-  "id": "SR-2a/AAR-3 the revision route drops the consent trio",
-  "file": "backend/game_logic/settlement_offers.py",
-  "old": "        if THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES and covered_enemies:\n            # SR-2a (AAR-3): the covered courts WROTE this package.",
-  "new": "        if False:\n            # SR-2a (AAR-3): the covered courts WROTE this package.",
-  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
- },
- {
-  "id": "SR-2a/AAR-3 the letter is consumed at staging again",
-  "file": "backend/game_logic/settlement_offers.py",
-  "old": "            if not THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES:\n                _consume_offer_dialogue(world, dialogue)",
-  "new": "            if True:\n                _consume_offer_dialogue(world, dialogue)",
   "tests": "tests/test_sr2a_one_verdict_per_screen.py"
  },
  {
@@ -116,13 +88,6 @@
   "file": "backend/game_logic/settlement_offers.py",
   "old": "        court = _petition_reopen_court(world, str(war_id or \"\"), dialogue)\n        if court:",
   "new": "        court = _petition_reopen_court(world, str(war_id or \"\"), dialogue)\n        if False:",
-  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
- },
- {
-  "id": "SR-2a/AAR-26 petitions stop lapsing with their table",
-  "file": "backend/game_logic/settlement_offers.py",
-  "old": "    if not A_PETITION_LAPSES_WITH_ITS_TABLE:\n        return []",
-  "new": "    if True:\n        return []",
   "tests": "tests/test_sr2a_one_verdict_per_screen.py"
  },
  {

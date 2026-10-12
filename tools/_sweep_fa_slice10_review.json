@@ -1,12 +1,5 @@
 [
  {
-  "id": "register/a the package is consulted at all",
-  "file": "backend/game_logic/settlement_offers.py",
-  "old": "    _has_substance = REGISTER_READS_THE_PACKAGE and any(",
-  "new": "    _has_substance = False and any(",
-  "tests": "tests/test_fa_slice10_review_round_2026_09_05.py::TestTheRegisterReadsThePackage::test_a_carve_is_not_announced_as_nothing_changing_hands tests/test_fa_slice10_review_round_2026_09_05.py::TestTheRegisterReadsThePackage::test_every_substantive_family_takes_the_terms_register"
- },
- {
   "id": "register/b the fourth register exists",
   "file": "backend/game_logic/settlement_offers.py",
   "old": "    elif _has_substance:\n        _arrival_suffix = \"_terms\"\n        _voice_amount = 0",
@@ -28,13 +21,6 @@
   "tests": "tests/test_fa_slice10_review_round_2026_09_05.py::TestTheRegisterReadsThePackage::test_a_true_white_peace_still_says_nothing_changes_hands"
  },
  {
-  "id": "clauses/a the predicate runs",
-  "file": "backend/game_logic/settlement_offers.py",
-  "old": "    if not DEPARTED_COURT_TAKES_ITS_CLAUSES or not gone:\n        return []",
-  "new": "    if True:\n        return []",
-  "tests": "tests/test_fa_slice10_review_round_2026_09_05.py::TestADepartedCourtTakesItsClauses::test_the_accept_refuses_a_package_naming_a_dead_court tests/test_fa_slice10_review_round_2026_09_05.py::TestADepartedCourtTakesItsClauses::test_revise_terms_drops_the_dead_clause_instead"
- },
- {
   "id": "clauses/b the accept refuses",
   "file": "backend/game_logic/settlement_offers.py",
   "old": "    _stale_named = _terms_naming_departed_courts(offered_terms, departed_courts)\n    if _stale_named:\n        return {\n            \"success\": False,",
@@ -54,13 +40,6 @@
   "old": "            role_name = str(role)\n            if role_name in gone and role_name not in named:",
   "new": "            role_name = str(role)\n            if role_name not in named:",
   "tests": "tests/test_fa_slice10_review_round_2026_09_05.py::TestADepartedCourtTakesItsClauses::test_a_package_naming_only_live_courts_is_untouched tests/test_fa_slice10_review_round_2026_09_05.py::TestADepartedCourtTakesItsClauses::test_the_predicate_reads_the_validator_own_rule"
- },
- {
-  "id": "note/a it is delivered",
-  "file": "backend/game_logic/settlement_offers.py",
-  "old": "    if not DEPARTED_COURT_NOTE_IS_DELIVERED:\n        return",
-  "new": "    if True:\n        return",
-  "tests": "tests/test_fa_slice10_review_round_2026_09_05.py::TestTheNoteIsDeliveredAndNamesTheExit::test_the_note_reaches_a_surface_the_player_reads tests/test_fa_slice10_review_round_2026_09_05.py::TestTheNoteIsDeliveredAndNamesTheExit::test_the_review_the_player_answers_carries_it_too"
  },
  {
   "id": "note/b it names the exit",

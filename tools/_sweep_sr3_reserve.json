@@ -56,13 +56,6 @@
     "tests": "tests/test_sr3_quick_wins.py::TestTheBootHelpTeachesTheDesk"
   },
   {
-    "id": "SR-3 reserve/AAR-25 lever down",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "THE_COUNTER_PUNCH_IS_ANNOUNCED = True\n",
-    "new": "THE_COUNTER_PUNCH_IS_ANNOUNCED = False\n",
-    "tests": "tests/test_sr3_quick_wins.py::TestAAR25TheMorningSaysIt"
-  },
-  {
     "id": "SR-3 reserve/AAR-25 a pending question no longer outranks it",
     "file": "backend/game_logic/dispatch.py",
     "old": "            and not getattr(marshal, \"pending_interrupt\", None)\n            and not getattr(marshal, \"drilling_locked\", False)):\n",

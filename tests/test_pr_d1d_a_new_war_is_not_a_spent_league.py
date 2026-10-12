@@ -5,14 +5,14 @@ DIPLOMACY, September 26, 2026; `docs/SCORE_MANDATE_PLAN.md` §2 Chunk 2; row
 The SR-1d gate was scoped to the active league's war, so a war France
 DECLARED after the league's peace drew the AI's offer at war-age 2. Three
 rules were built behind levers and MEASURED on the same commanded arm before
-one was chosen (the landing record). The chosen rule — lever (c): a war the
+one was chosen (the landing record). The chosen rule — (c): a war the
 player declared (any of the player's live pairs in it carrying PR-D1c's
 `declared_by` stamp) is gated on its LEADER's break-ranks clause, exactly as
 the league's war is; a war declared ON the player stays ungated.
 
-Every mechanics pin here sets the lever it reads explicitly, so the file is
-true whichever default ships; `TestTheDefault` pins the shipped default and
-the measured cadence.
+The three levers were retired in CODE-1 batch 5 (October 12, 2026): (c) is
+unconditional, and (a) and (b), measured and not chosen, are gone.
+`TestTheDefault` pins the shipped rule and the measured cadence.
 """
 from __future__ import annotations
 
@@ -107,27 +107,12 @@ class TestTheFiledDefect:
         assert "Britain" in war["side_by_nation"]
         assert meta[w._make_diplo_key("France", "Britain")].get("declared_by") is None
 
-    def test_the_lever_down_draws_the_offer_at_war_age_two(self, declared_war, monkeypatch):
-        """The row's own measurement (Austria asking at war-age 2), reproduced."""
-        monkeypatch.setattr(AD, "THE_LEAGUE_GATE_COVERS_A_DECLARED_WAR", False)
-        monkeypatch.setattr(AD, "THE_LEAGUE_GATE_COVERS_EVERY_WAR", False)
-        w, war_id, war = declared_war
-        assert AD._settlement_offer_eligible_for_war(
-            w, war, player="France", current_turn=16) is None
-        assert AD.league_offer_gate(w, war, player="France") is None
-        assert len(_produce(w)) == 1
-
 
 # ═══════════════════════════════════════════════════════════════════════
-# Lever (c) — the chosen rule's mechanics
+# Rule (c) — the chosen rule's mechanics
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestAWarWeDeclaredIsGatedOnItsLeader:
-
-    @pytest.fixture(autouse=True)
-    def _lever(self, monkeypatch):
-        monkeypatch.setattr(AD, "THE_LEAGUE_GATE_COVERS_A_DECLARED_WAR", True)
-        monkeypatch.setattr(AD, "THE_LEAGUE_GATE_COVERS_EVERY_WAR", False)
 
     def test_no_offer_from_a_leader_that_has_not_broken_ranks(self, declared_war):
         w, war_id, war = declared_war
@@ -186,7 +171,7 @@ class TestAWarWeDeclaredIsGatedOnItsLeader:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Lever (b)'s substrate — a re-attached pair remembers its reopening
+# Option (b)'s substrate — a re-attached pair remembers its reopening
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestTheReopening:
@@ -218,12 +203,9 @@ class TestTheReopening:
         war_id, war = _declare(w)
         assert "reopened_turn" not in war["diplo_key_meta"][w._make_diplo_key("France", "Austria")]
 
-    def test_the_war_age_reads_the_reopening_only_with_the_lever_up(self, monkeypatch):
+    def test_the_war_age_is_the_instances_not_the_reopening(self):
         w, war, key = self._reopen_britain()
-        monkeypatch.setattr(AD, "THE_WAR_AGE_IS_THE_PAIRS", False)
         assert AD.settlement_war_age_start(war, player="France") == int(war["created_turn"])
-        monkeypatch.setattr(AD, "THE_WAR_AGE_IS_THE_PAIRS", True)
-        assert AD.settlement_war_age_start(war, player="France") == 9
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -257,17 +239,12 @@ def _austria_offer_turns(run: str):
 
 
 class TestTheDefault:
-    """Lever (c) ships up; (a) and (b) stay measured and down."""
-
-    def test_the_chosen_lever_is_up_and_the_others_down(self):
-        assert AD.THE_LEAGUE_GATE_COVERS_A_DECLARED_WAR is True
-        assert AD.THE_LEAGUE_GATE_COVERS_EVERY_WAR is False
-        assert AD.THE_WAR_AGE_IS_THE_PAIRS is False
+    """Rule (c) ships; (a) and (b) were measured and not chosen."""
 
     def test_the_shipped_default_gates_the_war_we_declared(self, declared_war):
-        """No lever is touched here: the row's own completion test on the
-        shipped board — a war France declares draws no offer at war-age 2
-        from a court that has not broken ranks."""
+        """The row's own completion test on the shipped board — a war France
+        declares draws no offer at war-age 2 from a court that has not
+        broken ranks."""
         w, war_id, war = declared_war
         gate = AD.league_offer_gate(w, war, player="France")
         assert gate and gate["reason"] == "war_not_spent"

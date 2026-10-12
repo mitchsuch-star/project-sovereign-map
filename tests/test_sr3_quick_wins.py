@@ -5,7 +5,9 @@ turn it opens).
 
 Every pin binds to the production line it names (`tools/_sweep_sr3_reserve.json`);
 each rule with a lever has its lever-down pin, so the old behaviour is
-reproduced, not remembered. The AAR-25 note is held to the executor: each
+reproduced, not remembered (AAR-25's lever, `THE_COUNTER_PUNCH_IS_ANNOUNCED`,
+was retired in CODE-1 batch 5, October 12, 2026; that rule is unconditional).
+The AAR-25 note is held to the executor: each
 thing it says (free, this turn only, the foe it names, the price of breaking
 camp, silence for a man locked in drill) is checked against the order that
 would be refused or charged.
@@ -228,13 +230,6 @@ class TestAAR25TheMorningSaysIt:
         entry = _dispatch_entry(reply, "Davout")
         assert entry["status"] == "counter_punch"
         assert entry["status_note"].startswith(OPENING)
-
-    def test_the_lever_down_is_silent_until_it_expires(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(D, "THE_COUNTER_PUNCH_IS_ANNOUNCED", False)
-        davout, reply = _earn_counter_punch(client, world)
-        assert davout.counter_punch_available  # the resource is still there
-        assert _dispatch_entry(reply, "Davout")["status"] != "counter_punch"
 
     def test_this_turn_only_is_the_tick(self, shipped):
         """The note's "this turn only": the next end turn expires it."""

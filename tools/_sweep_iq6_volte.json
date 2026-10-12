@@ -21,13 +21,6 @@
   "tests": "tests/test_iq6_volte_face.py"
  },
  {
-  "id": "IQ6-V2 lever down (the routine cooldown holds the courier)",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = True",
-  "new": "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = False",
-  "tests": "tests/test_iq6_volte_face.py"
- },
- {
   "id": "IQ6-V2 the skip flag ignored",
   "file": "backend/game_logic/ai_diplomacy.py",
   "old": "    if not skip_nation_cooldown and cooldowns.get(nation_key, 0) > 0:",

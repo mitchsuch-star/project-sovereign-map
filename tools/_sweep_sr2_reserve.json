@@ -70,13 +70,6 @@
   "tests": "tests/test_sr2_quick_wins.py"
  },
  {
-  "id": "SR-2 reserve/AAR-14 the scan stops asking whether the ground is contested",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "            if THE_REMEDY_NAMES_ONLY_OPEN_GROUND and _ground_is_contested(",
-  "new": "            if False and _ground_is_contested(",
-  "tests": "tests/test_sr2_quick_wins.py"
- },
- {
   "id": "SR-2 reserve/AAR-14 enemy soil reads as open",
   "file": "backend/game_logic/dispatch.py",
   "old": "    return bool(holder and holder != player_nation\n                and world.is_at_war(player_nation, holder))",
@@ -88,13 +81,6 @@
   "file": "backend/game_logic/dispatch.py",
   "old": "        _raw = _raw.get(marshal.location, [])",
   "new": "        _raw = sorted({t for ts in _raw.values() for t in ts})",
-  "tests": "tests/test_sr2_quick_wins.py"
- },
- {
-  "id": "SR-2 reserve/AAR-13 the collector keys the marshal again",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "        if THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE:\n            result.setdefault(name, {}).setdefault(",
-  "new": "        if False:\n            result.setdefault(name, {}).setdefault(",
   "tests": "tests/test_sr2_quick_wins.py"
  },
  {

@@ -108,8 +108,8 @@ from backend.game_logic.formations import (
 )
 
 # SR-2a (AAR-2, September 26, 2026): the per-court table the player reads is
-# the ratify gate. False restores the leader-level scorer's veto.
-THE_TABLE_TELLS_ONE_TRUTH = True
+# the ratify gate; the leader-level scorer no longer holds a veto
+# (`build_settlement_confirm_dialogue`).
 
 
 SETTLEMENT_COOLDOWN_TURNS = 3
@@ -2332,7 +2332,6 @@ SETTLEMENT_EDITOR_CALLER_KIND = "player_editor"
 # carries the per-court arithmetic the table already holds and points at
 # the separate peace the pair-substitute tier already offers.
 # ═══════════════════════════════════════════════════════════════════════
-THE_BLOCKER_NAMES_THE_COURTS = True
 
 
 def _court_seat(world, court: str) -> str:
@@ -2397,9 +2396,7 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
                         accept_threshold: int) -> str:
     """"London and St Petersburg are unbeaten — a whole-war peace needs
     their consent (Austria 32/50, Britain 24/50, Russia 24/50). Press Austria
-    alone: the separate peace." — "" when nobody holds out (or lever down)."""
-    if not THE_BLOCKER_NAMES_THE_COURTS:
-        return ""
+    alone: the separate peace." — "" when nobody holds out."""
     from backend.game_logic.diplomacy import get_war_score_for
     from backend.game_logic.formations import formed_display_name
     rows = [r for r in (per_court_acceptance or []) if isinstance(r, Mapping)]
@@ -2792,7 +2789,7 @@ def build_settlement_confirm_dialogue(
             )
         )
     )
-    if THE_TABLE_TELLS_ONE_TRUTH and not white_peace:
+    if not white_peace:
         # SR-2a (AAR-2): ONE verdict per screen — the per-court table the
         # player reads IS the gate. Every covered court carries (the
         # covered leader among them, consent-aware — FA-3) and no hard stop
@@ -3533,7 +3530,7 @@ def build_settlement_confirm_dialogue(
                 ratify_blocked_reason = words
             else:
                 ratify_blocked_reason = settlement_disabled_reason_display(str(first_stop or ""))
-        elif THE_TABLE_TELLS_ONE_TRUTH and not white_peace and not per_court_carries:
+        elif not white_peace and not per_court_carries:
             # SR-2a (AAR-2): the blocker is the table's own verdict — the
             # sentence the header prints ("Will NOT carry as drafted … Holding
             # out: Britain 32/50"), never a component label from a scorer

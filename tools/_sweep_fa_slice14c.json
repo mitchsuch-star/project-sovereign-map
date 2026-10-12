@@ -1,19 +1,5 @@
 [
  {
-  "id": "FA-21/a lever 1 down — the build stops reading the purse",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "PURSE_SCALED_BILATERAL_INDEMNITY = True",
-  "new": "PURSE_SCALED_BILATERAL_INDEMNITY = False",
-  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_the_measured_defect_is_gone"
- },
- {
-  "id": "FA-21/b lever 2 down — the reducer stops reading the purse",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "P8_REDUCER_READS_THE_PURSE = True",
-  "new": "P8_REDUCER_READS_THE_PURSE = False",
-  "tests": "tests/test_fa_slice14b_the_purse_and_the_window_2026_09_06.py::TestThePurseIsRead::test_the_measured_defect_is_gone"
- },
- {
   "id": "FA-21/c the purse REPLACES the ladder instead of flooring it",
   "file": "backend/game_logic/ai_diplomacy.py",
   "old": "            gold_demand = max(gold_demand, purse_scaled_indemnity(",

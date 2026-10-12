@@ -73,12 +73,6 @@
  },
  {
   "file": "backend/game_logic/coalition.py",
-  "old": "    if THE_LEAGUE_SPENDS_ITS_ALARM and spent_by_treaty:",
-  "new": "    if False:",
-  "tests": "tests/test_iq3_the_league_is_spent.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
   "old": "    after = min(before, pre_treaty // LEAGUE_SPENT_DIVISOR + requested)",
   "new": "    after = before // LEAGUE_SPENT_DIVISOR",
   "tests": "tests/test_iq3_the_league_is_spent.py"
@@ -111,12 +105,6 @@
   "file": "backend/game_logic/coalition.py",
   "old": "    if to < THREAT_BREWING_MIN:\n        return (f\"The league is spent — {moved}; no new coalition gathers \"",
   "new": "    if False:\n        return (f\"The league is spent — {moved}; no new coalition gathers \"",
-  "tests": "tests/test_iq3_the_league_is_spent.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
-  "old": "            if THE_LEAGUE_SPENDS_ITS_ALARM and _alarm < THREAT_BREWING_MIN:",
-  "new": "            if False:",
   "tests": "tests/test_iq3_the_league_is_spent.py"
  },
  {

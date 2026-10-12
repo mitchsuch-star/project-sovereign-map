@@ -3533,10 +3533,9 @@ def generate_ultimatum_terms(target_nation: str, world, *, issuer: str = None,
 
 # ═══════ SUGGESTED TERMS GENERATION ═══════
 
-# FA-D3 (slice 17, Phase 2) flip lever: every held marshal of the two courts
-# rides the suggested terms (sovereign first). False = the NP-4 sovereign gate
-# alone (the prior producer).
-EVERY_PRISONER_IS_ON_THE_TABLE = True
+# FA-D3 (slice 17, Phase 2): every held marshal of the two courts rides the
+# suggested terms (sovereign first); the NP-4 sovereign gate alone was the
+# prior producer.
 
 
 def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> Dict:
@@ -3787,9 +3786,6 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         key=lambda m: (0 if getattr(m, "is_sovereign", False) else 1,
                        -int(getattr(m, "strength", 0) or 0), m.name))
     for _held in _held_rows:
-        if (not getattr(_held, "is_sovereign", False)
-                and not EVERY_PRISONER_IS_ON_THE_TABLE):
-            continue
         _captor = getattr(_held, "captured_by", "")
         if _held.nation == player_nation and _captor == target_nation:
             _demands = terms.setdefault("demands", [])

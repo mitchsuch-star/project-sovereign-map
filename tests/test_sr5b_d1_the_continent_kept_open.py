@@ -11,7 +11,9 @@ the System. No surface said which corps. Now one source,
 price, the lapse beat and THE ADMIRALTY's System line. Fog-honest: the truth
 of the reading is omniscient, its words are not — a corps out of sight is
 counted and never placed. Rules `docs/SYSTEMS_REFERENCE.md` §80; row
-`docs/DESIGN_REFINEMENT.md` SR5B-D1. Lever `congress.NAME_THE_CONTINENTS_HOLDERS`.
+`docs/DESIGN_REFINEMENT.md` SR5B-D1. Its lever
+(`congress.NAME_THE_CONTINENTS_HOLDERS`) was retired in CODE-1 batch 5
+(October 12, 2026); the rule is unconditional.
 """
 import contextlib
 import io
@@ -241,7 +243,7 @@ class TestTheAdmiraltyLine:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# One clause everywhere; the AI has no fog; the lever restores the old words.
+# One clause everywhere; the AI has no fog.
 # ════════════════════════════════════════════════════════════════════════
 
 class TestOneSource:
@@ -272,15 +274,3 @@ class TestOneSource:
         w = _boot()
         _place(w, "Moore", "London")
         assert congress.continent_kept_open_clause(w, "Britain") == ""
-
-    def test_lever_down_restores_the_pre_ruling_words(self, monkeypatch):
-        monkeypatch.setattr(congress, "NAME_THE_CONTINENTS_HOLDERS", False)
-        w = _boot()
-        _place(w, "Moore", "Flanders")
-        closed = congress._shut_out_reading(w, "Britain")["closed"]
-        assert _ports_text(w) == (f"shut 13 of 26 ports (now {closed}) and drive her "
-                                  f"corps from the Continent")
-        assert congress._shut_out_lapse_reason(w, "Britain") == \
-            "Moore stands on the Continent at Flanders"
-        cs = naval.build_admiralty_report(w).get("continental_system") or {}
-        assert "shut_out_line" not in cs

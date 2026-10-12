@@ -147,13 +147,6 @@
     "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheCourtSendsOneEnvoyPerWar"
   },
   {
-    "id": "S17-15/b the guard is sited below the P1 decision",
-    "file": "backend/game_logic/ai_diplomacy.py",
-    "old": "        if not coalition_blocked and THE_COURT_SENDS_ONE_ENVOY_PER_WAR:",
-    "new": "        if False:",
-    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheCourtSendsOneEnvoyPerWar"
-  },
-  {
     "id": "S17-15/c a pending offer for another war blocks anyway",
     "file": "backend/game_logic/ai_diplomacy.py",
     "old": "        if str(entry.get(\"war_id\") or \"\") == war_id:\n            return True\n    return False\n\n\ndef _settlement_offer_already_promoted",
@@ -236,13 +229,6 @@
     "old": "\t\t\tbbcode += \" — +\" + str(rate) + \"/turn once it begins\"",
     "new": "\t\t\tbbcode += \"\"",
     "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheRateIsNotPrintedBesideNotTicking::test_a_dormant_rate_says_what_would_start_it"
-  },
-  {
-    "id": "D3/a the cause is never derived",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "    if not THE_DECLARATION_NAMES_ITS_CAUSE:\n        return \"\"",
-    "new": "    if True:\n        return \"\"",
-    "tests": "tests/test_fa_s17_phase4c_2026_09_12.py::TestTheDeclarationNamesItsCause"
   },
   {
     "id": "D3/b a broken treaty is not named",

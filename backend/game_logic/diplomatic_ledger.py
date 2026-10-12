@@ -1089,11 +1089,9 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     # top bar reads too).
     from backend.game_logic.coalition import (
         NO_EUROPE_LEFT_LINE, displayed_threat, no_court_left_to_alarm,
-        NOBODY_LEFT_TO_ALARM_IS_SILENT,
-    )
+        )
     threat_level = int(displayed_threat(world))
-    _no_europe_left = bool(NOBODY_LEFT_TO_ALARM_IS_SILENT
-                           and no_court_left_to_alarm(world))
+    _no_europe_left = bool(no_court_left_to_alarm(world))
     if threat_level >= 80:
         threat_tier = "CRITICAL"
     elif threat_level >= 60:
@@ -1333,9 +1331,7 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     # alarm is low because nobody fears a landless realm, and the collapse
     # line already says so (the IQ-2 note stays exact).
     from backend.game_logic import coalition as _coal
-    if (_coal.THE_LEAGUE_SPENDS_ITS_ALARM and headline_case == "COOLDOWN"
-            and _collapse is None
-            and int(threat_level) < _coal.brewing_gate(world)):
+    if (headline_case == "COOLDOWN" and _collapse is None and int(threat_level) < _coal.brewing_gate(world)):
         _gate = (f"Europe's alarm stands at {int(threat_level)}; no new "
                  f"coalition gathers below {_coal.brewing_gate(world)}.")
         headline_note = f"{headline_note} {_gate}".strip()

@@ -107,17 +107,6 @@ class TestTheSpendIsTheWarsOwn:
             resolve_pair_to_resolved(w, w._make_diplo_key("France", "Prussia"))
         assert C.declared_alarm_outside_the_league(w, "France", members) == 0
 
-    def test_the_lever_down_halves_everything(self, monkeypatch):
-        monkeypatch.setattr(C, "THE_SPEND_IS_THE_WARS_OWN", False)
-        w = _europe()
-        w.diplomatic_points = 6
-        w.threat_by_target["France"] = 70
-        _declare(w, "Prussia")
-        _declare(w, "Denmark")
-        w.threat_sources_this_turn = []
-        members = list(w.active_coalition["members"])
-        assert C.league_spent_alarm(w, "France", league_members=members) == {"from": 100, "to": 50}
-
     def test_the_real_dissolution_reads_the_leagues_members(self):
         src = (REPO / "backend" / "game_logic" / "coalition.py").read_text(encoding="utf-8")
         start = src.index("def dissolve_coalition(")

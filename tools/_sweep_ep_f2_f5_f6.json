@@ -112,13 +112,6 @@
     "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_cap_hands_deroy_one"
   },
   {
-    "id": "EPF5-6 the blocker lever down",
-    "file": "backend/game_logic/settlement_staging.py",
-    "old": "THE_BLOCKER_NAMES_THE_COURTS = True",
-    "new": "THE_BLOCKER_NAMES_THE_COURTS = False",
-    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheLegitimacySentence::test_the_blocker_names_the_unbeaten_courts_and_the_one_to_press"
-  },
-  {
     "id": "EPF5-7 every holdout is called unbeaten",
     "file": "backend/game_logic/settlement_staging.py",
     "old": "    unbeaten = [n for n in holdouts if get_war_score_for(world, player, n) <= 0]",

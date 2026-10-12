@@ -12,7 +12,7 @@ owned was switched off on every sandbox world.
 Binding scope note, pinned throughout: legible is not terminal. Nothing here
 may say the campaign ends, call it a defeat, or call France eliminated.
 
-Every pin fails if its production line is reverted or its lever set False.
+Every pin fails if its production line is reverted.
 """
 
 import contextlib
@@ -36,15 +36,6 @@ SCENARIO = str(
 FORBIDDEN = ("campaign ends", "game over", "defeat", "eliminated",
              "last chance")
 
-GENERAL_LEVERS = (
-    "THE_SITUATION_NAMES_THE_EMPTY_FIELD",
-    "THE_SOIL_NOTE_COUNTS_THE_FREE_CORPS",
-    "TALLEYRAND_OFFERS_NO_DOWNGRADE",
-    "WAR_PURPOSE_COUNTS_WHAT_IS_HELD",
-    "THE_SETTLEMENT_TIER_NAMES_WHOSE_TERMS",
-    "THE_LAPSED_LEAGUE_NAMES_THE_WAR",
-)
-
 
 def _boot() -> WorldState:
     with contextlib.redirect_stdout(io.StringIO()):
@@ -58,24 +49,6 @@ def _reduce(world, keep=("Paris",), to="Austria"):
             world.regions[name].controller = to
     world.invalidate_active_nations_cache()
     return world
-
-
-@contextlib.contextmanager
-def _lever(module, name, value):
-    old = getattr(module, name)
-    setattr(module, name, value)
-    try:
-        yield
-    finally:
-        setattr(module, name, old)
-
-
-@contextlib.contextmanager
-def _all_levers(value):
-    with contextlib.ExitStack() as stack:
-        for name in GENERAL_LEVERS:
-            stack.enter_context(_lever(D, name, value))
-        yield
 
 
 def _page(head) -> str:
@@ -285,8 +258,6 @@ class TestBerthierCloses:
         truth = ("They are on our soil, Sire, and no corps of ours stands "
                  "free to meet them.")
         assert _note(world, "enemy_on_our_soil") == truth
-        with _lever(D, "THE_SOIL_NOTE_COUNTS_THE_FREE_CORPS", False):
-            assert _note(world, "enemy_on_our_soil") == old
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -343,13 +314,6 @@ class TestTalleyrand:
         assert not [o for o in report
                     if o["trigger_type"] == "acceptance_crossed"
                     and o["target_nation"] == "Bavaria"], report
-        _quiet_all_but(world, keep=("Bavaria",))
-        with _lever(D, "TALLEYRAND_OFFERS_NO_DOWNGRADE", False):
-            report = D._build_talleyrand_report(world, "France")
-        assert [o for o in report
-                if o["trigger_type"] == "acceptance_crossed"
-                and o["target_nation"] == "Bavaria"], (
-            "the measured defect no longer reproduces lever-down", report)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -374,11 +338,6 @@ class TestSituation:
         assert sit["collapse"]["tier"] == "last_province"
         json.dumps(sit["collapse"])  # Godot-safe: no objects, no floats
         assert isinstance(sit["collapse"]["standing_men"], int)
-
-    def test_lever_down_neither_key_exists(self, world):
-        with _lever(D, "THE_SITUATION_NAMES_THE_EMPTY_FIELD", False):
-            sit = D._build_situation(world, "France")
-        assert "no_field_army" not in sit and "collapse" not in sit
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -412,8 +371,6 @@ class TestWarObjectives:
     def test_a_losing_score_names_whose_terms(self, world):
         _set_score(world, "Britain", -65)
         assert "Settlement: Harsh Peace — theirs to impose (-65)" in _line_vs(world, "Britain")
-        with _lever(D, "THE_SETTLEMENT_TIER_NAMES_WHOSE_TERMS", False):
-            assert "Settlement: Harsh Peace (-65)" in _line_vs(world, "Britain")
         _set_score(world, "Britain", 65)
         assert "Settlement: Harsh Peace (+65)" in _line_vs(world, "Britain")
 
@@ -434,8 +391,6 @@ class TestTheLapsedLeague:
         assert _dissolved_line(world) == (
             "The coalition against France has dissolved — but Austria, "
             "Britain and Russia remain at war with us.")
-        with _lever(D, "THE_LAPSED_LEAGUE_NAMES_THE_WAR", False):
-            assert _dissolved_line(world) == "The coalition against France has dissolved."
 
     def test_a_france_at_peace_hears_the_plain_line(self, world):
         for key, state in list(world.diplomatic_states.items()):
@@ -555,24 +510,3 @@ class TestTheWarning:
         assert len(rows) == 1
         assert rows[0]["title"] == "The Empire Without Soil or Sword"
         assert rows[0]["details"]["fall"]["arms"][0]["arm"] == "soil_or_sword"
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# N1 — the legacy world is byte-identical, every lever up or down
-# ═══════════════════════════════════════════════════════════════════════
-def _legacy_page():
-    w = WorldState(player_nation="France")
-    for name, region in w.regions.items():
-        region.controller = "France" if name == "Paris" else "Prussia"
-    w.invalidate_active_nations_cache()
-    w.current_turn = 6
-    D.queue_dispatch_event(w, "diplomatic_coalition_dissolved", {}, "always")
-    return json.dumps(D.build_morning_dispatch(w), sort_keys=True, default=str)
-
-
-def test_the_legacy_dispatch_is_byte_identical():
-    with _all_levers(True):
-        up = _legacy_page()
-    with _all_levers(False):
-        down = _legacy_page()
-    assert up == down

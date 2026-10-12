@@ -49,13 +49,6 @@
   "tests": "tests/test_pr_d1c_the_spend_is_the_wars_own.py"
  },
  {
-  "id": "SR-2c/PR-D1c the lever reads inverted",
-  "file": "backend/game_logic/coalition.py",
-  "old": "    if not THE_SPEND_IS_THE_WARS_OWN:\n        return 0",
-  "new": "    if THE_SPEND_IS_THE_WARS_OWN:\n        return 0",
-  "tests": "tests/test_pr_d1c_the_spend_is_the_wars_own.py"
- },
- {
   "id": "SR-2c/PR-D1d lever (c) stops reading the stamp",
   "file": "backend/game_logic/ai_diplomacy.py",
   "old": "        and player_declared_this_war(war, player)\n    )",
@@ -102,13 +95,6 @@
   "file": "backend/game_logic/settlement_routes.py",
   "old": "            \"reason\": str(gate.get(\"reason\") or \"league_not_spent\"),\n            \"reason_display\": league_offer_gate_display(world, gate),",
   "new": "            \"reason\": \"league_not_spent\",\n            \"reason_display\": league_offer_gate_display(world, gate),",
-  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
- },
- {
-  "id": "SR-2c/PR-D1d the war-age lever reads inverted",
-  "file": "backend/game_logic/ai_diplomacy.py",
-  "old": "    if not THE_WAR_AGE_IS_THE_PAIRS:\n        return created",
-  "new": "    if THE_WAR_AGE_IS_THE_PAIRS:\n        return created",
   "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
  }
 ]

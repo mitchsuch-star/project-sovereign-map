@@ -41,7 +41,6 @@ from backend.display_names import (
 from backend.game_logic.ai_diplomacy import process_settlement_offer_phase
 from backend.game_logic.diplomatic_templates import resolve_settlement_voice_line
 from backend.game_logic.settlement_preview import (
-    INCOMING_OFFERS_DEFERRED,
     SETTLEMENT_FAMILY_DIALOGUE_TYPES,
     build_settlement_confirm_dialogue,
     handle_incoming_settlement_offer_action,
@@ -123,14 +122,6 @@ def _minimal_settlement_preview_response(war: dict) -> dict:
 # ---------------------------------------------------------------------------
 # Section 1 — Module-level reversal contract
 # ---------------------------------------------------------------------------
-
-
-def test_deferral_flag_is_off_after_sc5_reversal():
-    """SC-5 reversal commit 1 flipped the deferral flag and commit 2
-    keeps it off. The flag remains a named constant so a future
-    emergency disable can flip it back to True without rewriting the
-    handler short-circuit."""
-    assert INCOMING_OFFERS_DEFERRED is False
 
 
 def test_settlement_family_set_keeps_offer_for_defensive_guards():
@@ -818,8 +809,9 @@ def test_producer_does_not_reoffer_same_war_when_offer_is_promoted_and_unresolve
 
 def test_incoming_offer_deferred_has_humanized_display():
     """The deferred display string remains a humanized stale-save
-    fallback in case `INCOMING_OFFERS_DEFERRED` is ever flipped back to
-    True for an emergency disable."""
+    fallback for a save that still carries the old refusal (the
+    `INCOMING_OFFERS_DEFERRED` short-circuit that wrote it was retired in
+    CODE-1 batch 5, October 12, 2026)."""
     display = settlement_disabled_reason_display("incoming_offer_deferred")
     assert isinstance(display, str)
     assert display

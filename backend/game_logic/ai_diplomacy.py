@@ -129,8 +129,7 @@ VOLTE_FACE_OFFER_COOLDOWN_TURNS = 12  # per-nation, set at ISSUE
 # pending-proposal dedupe. (The nation key is shared by the acceptance
 # AND rejection cooldowns, so a rejected ROUTINE ask no longer holds the
 # courier either; a rejected alliance still does, through its type key.)
-# False reproduces the pre-IQ-6 gate.
-THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN = True
+# The courier's rung passes `skip_nation_cooldown=True`.
 # The Arbiter's Offer (AI-5c, §12.5): armed mediation of a French war by
 # a non-belligerent contain/arbiter court, above an exhaustion floor.
 MEDIATION_WE_FLOOR = 60           # either belligerent this weary invites offices
@@ -1005,10 +1004,9 @@ def _build_proposal_terms(
         # EC-W4's bankrupt-payer rule lives on the multilateral channel; the
         # bilateral one has always had a floor, and `_apply_demands` clamps
         # the transfer to what the payer actually holds.
-        if PURSE_SCALED_BILATERAL_INDEMNITY:
-            gold_demand = max(gold_demand, purse_scaled_indemnity(
-                world, recipient, war_score,
-                pair_war_age(world, nation, recipient), gold_mult))
+        gold_demand = max(gold_demand, purse_scaled_indemnity(
+            world, recipient, war_score,
+            pair_war_age(world, nation, recipient), gold_mult))
         terms["demands"].append({"type": "gold_lump", "value": int(gold_demand)})
         diplo_key = world._make_diplo_key(nation, recipient)
         obj = getattr(world, 'war_objectives', {}).get(diplo_key, {}).get(nation, {})
@@ -1035,8 +1033,6 @@ def _p8_purse_floor(proposal: Dict, world) -> int:
     reading the term keeps the seam nation-pair-general for free, which is the
     direction every other producer in this file has already moved.
     """
-    if not P8_REDUCER_READS_THE_PURSE:
-        return 200
     payer = ((proposal.get("terms") or {}).get("target_nation")
              or getattr(world, "player_nation", "France"))
     treasury = int(getattr(world, "nation_gold", {}).get(payer, 0) or 0)
@@ -1068,7 +1064,7 @@ def _reduce_p8_demands(proposal: Dict, nation: str, war_score: int, world) -> Di
       and `min(…, built)` at the bottom mean the floor exceeds 200 only
       above a treasury of 1,333, so every legacy fixture (`make_world()`
       gives France 800) is byte-identical. ⚠ That is also why any test of
-      this lever written on `make_world()` is VACUOUS — use a rich world.
+      this floor written on `make_world()` is VACUOUS — use a rich world.
     """
     import copy
 
@@ -1475,9 +1471,9 @@ def _count_nations_at_war_with_france(world) -> int:
 # MAIN ENTRY POINT: process_diplomatic_phase
 # ═══════════════════════════════════════════════════════════════
 
-# GE-1 R1: the captor's terms (see the rung in `process_diplomatic_phase`).
-# False = no guaranteed captor offer — the pre-GE-1 roads only.
-THE_CAPTOR_NAMES_HIS_PRICE = True
+# GE-1 R1: the captor's terms (see the rung in `process_diplomatic_phase`) —
+# a guaranteed captor offer on the captivity clock's cadence, where the
+# pre-GE-1 roads guaranteed none.
 CAPTOR_OFFER_INTERVAL = 3
 
 
@@ -1567,26 +1563,14 @@ def coalition_break_ranks_reason(world, nation: str, *, war_score: int,
 # PR-D1d (SR-2c, September 26, 2026): "a new war is not a spent league". The
 # SR-1d gate was scoped to the active league's war, so a war France RE-
 # DECLARES after the league's peace drew an offer at war-age 2 (measured on
-# the ruling's simulation: Austria asking 4,263g at turn 13). Three rules,
-# each behind a lever, MEASURED on the same commanded arm before the choice
-# (`docs/SCORE_MANDATE_PLAN.md` §2 Chunk 2, SR-2c's landing record):
-#   (a) every multi-party war against the player is gated on its leader's
-#       break-ranks clause (the ruling's option (a); ~55 producer pins);
-#   (b) the war-age floor reads the PAIR's own reopening, not the instance's
-#       old created_turn (the ruling's option (b));
-#   (c) a war the PLAYER declared (any of the player's live pairs in it
-#       carries PR-D1c's `declared_by` stamp) is gated on its LEADER's
-#       break-ranks clause — the row's own completion test.
-THE_LEAGUE_GATE_COVERS_EVERY_WAR = False
-THE_LEAGUE_GATE_COVERS_A_DECLARED_WAR = True
-THE_WAR_AGE_IS_THE_PAIRS = False
-
-
-def _player_pair_meta(war: Dict, player: str, leader: str) -> Dict:
-    meta = (war.get("diplo_key_meta") or {}) if isinstance(war, dict) else {}
-    key = "|".join(sorted((str(player), str(leader))))
-    entry = meta.get(key)
-    return entry if isinstance(entry, dict) else {}
+# the ruling's simulation: Austria asking 4,263g at turn 13). Three rules
+# were MEASURED on the same commanded arm before the choice
+# (`docs/SCORE_MANDATE_PLAN.md` §2 Chunk 2, SR-2c's landing record); the
+# rule is (c): a war the PLAYER declared (any of the player's live pairs in
+# it carries PR-D1c's `declared_by` stamp) is gated on its LEADER's
+# break-ranks clause — the row's own completion test. (a) every multi-party
+# war gated, and (b) the war-age floor read from the pair's own reopening,
+# were measured and not chosen (their levers retired with CODE-1 batch 5).
 
 
 def player_declared_this_war(war: Dict, player: str) -> bool:
@@ -1608,27 +1592,17 @@ def player_declared_this_war(war: Dict, player: str) -> bool:
 
 def settlement_war_age_start(war: Dict, *, player: str) -> int:
     """The turn the producer's war-age floor counts from: the instance's
-    `created_turn`, or — lever (b) — the later of that and the player's pair
-    with the opposing leader's own reopening."""
-    created = int(war.get("created_turn") or 0)
-    if not THE_WAR_AGE_IS_THE_PAIRS:
-        return created
-    side_by_nation = war.get("side_by_nation") or {}
-    player_side = side_by_nation.get(player)
-    if not player_side:
-        return created
-    leader = _settlement_offer_opposing_side_leader(war, player_side=player_side)
-    if not leader:
-        return created
-    reopened = _player_pair_meta(war, player, leader).get("reopened_turn")
-    return max(created, int(reopened or 0))
+    `created_turn`. (PR-D1d's option (b) — the later of that and the
+    player's pair's own reopening — was measured and not chosen; its lever
+    was retired with CODE-1 batch 5, October 12, 2026.)"""
+    return int(war.get("created_turn") or 0)
 
 
 def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
     """The offer gate for ONE war. None = ungated (the war is not the active
-    coalition's war against the player — nor, under PR-D1d's levers, a war
-    the player declared / any multi-party war — or the leader may break
-    ranks). Otherwise a dict naming the gate: `{"reason": "league_not_spent"
+    coalition's war against the player — nor, under PR-D1d's rule (c), a
+    war the player declared — or the leader may break ranks). Otherwise a
+    dict naming the gate: `{"reason": "league_not_spent"
     | "war_not_spent", "leader", "war_score", "exhaustion", "turns_at_most"}`
     — the honest clock is the exhaustion arm's: at +8 a turn at war the
     leader passes 80 in at most ⌈(81 − N) / 8⌉ turns (the other arms may
@@ -1648,10 +1622,9 @@ def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
         and leader in (coalition.get("members") or [])
     )
     declared_war = bool(
-        THE_LEAGUE_GATE_COVERS_A_DECLARED_WAR
-        and player_declared_this_war(war, player)
+        player_declared_this_war(war, player)
     )
-    if not (leagues_war or declared_war or THE_LEAGUE_GATE_COVERS_EVERY_WAR):
+    if not (leagues_war or declared_war):
         return None
     from backend.game_logic.diplomacy import get_war_score_for
     war_score = int(get_war_score_for(world, leader, player))
@@ -1802,8 +1775,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # the payer holds — measured). Armed worlds only (the clock exists
     # nowhere else); GR5 by construction — the only captive sovereign the
     # clock counts is the player's.
-    if (proposal is None and is_at_war and THE_CAPTOR_NAMES_HIS_PRICE
-            and _captor_offer_due(nation, player, world)):
+    if (proposal is None and is_at_war and _captor_offer_due(nation, player, world)):
         ptype = "harsh_peace"
         terms = _build_proposal_terms(nation, ptype, max(0, int(war_score)),
                                       world, gold_mult=gold_mult)
@@ -1824,7 +1796,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if proposal is None and is_at_war:
         from backend.game_logic import congress as _congress
         _one_envoy_blocked = False
-        if THE_COURT_SENDS_ONE_ENVOY_PER_WAR and _congress.court_must_sue(world, nation):
+        if _congress.court_must_sue(world, nation):
             # GE-3 review #21: FA-S17-15's one-envoy rule binds this rung
             # too — a settlement offer already on the desk for this war
             # carries the peace (its ratification latches through
@@ -1875,7 +1847,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         # France. A PEACE treaty would be a downgrade." FA-D7 made the
         # PLAYER's peace verb read the desk before drafting; this is the
         # AI's side of the same rule, through the same predicates.
-        if not coalition_blocked and THE_COURT_SENDS_ONE_ENVOY_PER_WAR:
+        if not coalition_blocked:
             _war = _find_war_instance_for_pair(world, nation, world.player_nation)
             _war_id = str((_war or {}).get("war_id") or "")
             if _war_id:
@@ -1943,8 +1915,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                 and volte_face_receptive(world, nation, player)
                 and not _is_on_cooldown(
                     nation, "alliance", world, war_score,
-                    skip_nation_cooldown=(
-                        THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN))):
+                    skip_nation_cooldown=True)):
             terms = _build_proposal_terms(nation, "alliance", 0, world,
                                           gold_mult=gold_mult)
             proposal = _make_proposal(nation, "alliance", 8, terms, world)
@@ -2609,8 +2580,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
 # predicate (`treaty_offer_refusal`) reads the ratifier's two guards — the
 # no-downgrade rule and `check_relation_requirement` — and the transport
 # withholds an offer they would refuse; the auction offers the best pact the
-# relation permits instead. False = the pre-SF-V1 transport byte-for-byte.
-NO_OFFER_THE_TABLE_REFUSES = True
+# relation permits instead.
 
 _TREATY_TYPE_TO_STATE = {
     "alliance": "ALLIANCE",
@@ -2692,17 +2662,16 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     if recipient != player:
         return _resolve_ai_ai_proposal(proposal, world) or {}
 
-    if NO_OFFER_THE_TABLE_REFUSES:
-        # SF-V1: the letter the table would refuse is never sent. The
-        # ratifier reads the TERMS' type (an opportunistic ask ratifies as a
-        # non-aggression pact; a design purchase as its upgrade).
-        _terms = proposal.get("terms") or {}
-        _ptype = str(_terms.get("type") or proposal.get("proposal_type") or "")
-        _why = treaty_offer_refusal(world, nation, _ptype, player)
-        if _why:
-            from backend.utils.debug import debug_print
-            debug_print(f"[DIPLOMACY] {nation}'s {_ptype} offer withheld — {_why}")
-            return None
+    # SF-V1: the letter the table would refuse is never sent. The
+    # ratifier reads the TERMS' type (an opportunistic ask ratifies as a
+    # non-aggression pact; a design purchase as its upgrade).
+    _terms = proposal.get("terms") or {}
+    _ptype = str(_terms.get("type") or proposal.get("proposal_type") or "")
+    _why = treaty_offer_refusal(world, nation, _ptype, player)
+    if _why:
+        from backend.utils.debug import debug_print
+        debug_print(f"[DIPLOMACY] {nation}'s {_ptype} offer withheld — {_why}")
+        return None
 
     dialogue = build_ai_proposal_dialogue(proposal, world)
 
@@ -3605,8 +3574,7 @@ def process_allegiance_auctions(world) -> List[Dict]:
             # pact is the best one the relation lets the table sign (the
             # defensive alliance needs 20; a minor won at 12 offers a
             # non-aggression pact instead of a letter France cannot accept).
-            ptype = (best_ratifiable_treaty(world, nation, "defensive_alliance", player)
-                     if NO_OFFER_THE_TABLE_REFUSES else "defensive_alliance")
+            ptype = (best_ratifiable_treaty(world, nation, "defensive_alliance", player))
             if ptype:
                 terms = _build_proposal_terms(nation, ptype, 0, world)
                 proposal = _make_proposal(nation, ptype, 9, terms, world)
@@ -4171,15 +4139,15 @@ SETTLEMENT_OFFER_DECISIVE_WAR_SCORE = 20
 # Britain at +54 war score demanded 405 gold of a 17,487-gold France — 2.3%
 # of the purse, against EC-W4's 6,233 on the identical state.
 #
-# TWO levers, and they MUST ship together. Lever 1 alone is a REGRESSION by
-# construction, not by luck: `_reduce_p8_demands` halves exactly once and
+# TWO rules, and they MUST ship together: the builder's purse-scaled demand
+# (`purse_scaled_indemnity`, read by `_build_proposal_terms`) and the
+# reducer's purse floor (`_p8_purse_floor`). The first alone is a REGRESSION
+# by construction, not by luck: `_reduce_p8_demands` halves exactly once and
 # then falls to a flat token, so any built figure above twice the largest
 # acceptable lump collapses to that token. Measured over the 40-turn ambient
-# board (P8 fires 5 times, t15/17/24/31/38), lever 1 alone delivers 200 on
-# 5 of 5 where HEAD delivered 220/352/266/277/243 — strictly worse than the
-# defect. Both levers together deliver exactly 15% of the payer's purse.
-PURSE_SCALED_BILATERAL_INDEMNITY = True
-P8_REDUCER_READS_THE_PURSE = True
+# board (P8 fires 5 times, t15/17/24/31/38), the builder alone delivers 200
+# on 5 of 5 where HEAD delivered 220/352/266/277/243 — strictly worse than
+# the defect. Both together deliver exactly 15% of the payer's purse.
 
 
 def purse_scaled_indemnity(world, payer: str, war_score: int,
@@ -4294,10 +4262,9 @@ def _settlement_offer_next_seq(
     return seq
 
 
-# FA-S17-15 (slice 17, Phase 4) flip lever: a court with a settlement offer
-# already on the player's desk for a war does not also send a bilateral peace
-# envoy for that same war. False = both envoys, as measured.
-THE_COURT_SENDS_ONE_ENVOY_PER_WAR = True
+# FA-S17-15 (slice 17, Phase 4): a court with a settlement offer already on
+# the player's desk for a war does not also send a bilateral peace envoy for
+# that same war (both envoys had come, as measured).
 
 # SF-V5 (Score Finish Step 1, September 29, 2026): an AI court never sends a
 # whole-war letter its own ratification refuses. Measured on the OP arm:
@@ -4309,9 +4276,7 @@ THE_COURT_SENDS_ONE_ENVOY_PER_WAR = True
 # the opposing courts with a live WAR pair against the player's side (a
 # truce is not a war to settle), and it is dry-run through the per-court
 # scorer with the offering courts' consent (SR-2a's trio) — a package that
-# would not carry is not sent. False = the pre-SF-V5 emitter.
-THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR = True
-THE_LETTER_IS_RATIFIABLE_WHEN_SENT = True
+# would not carry is not sent.
 
 
 def _settlement_offer_already_pending(
@@ -4544,11 +4509,12 @@ def _settlement_offer_eligible_for_war(
     ]
     if not covered_enemies:
         return "no_covered_enemy"
-    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR and not _covered_at_war(
+    if not _covered_at_war(
             world, war, player=player):
         return "no_covered_enemy_at_war"
     created_turn = int(war.get("created_turn") or current_turn)
-    # PR-D1d lever (b): the pair's own reopening, when later.
+    # The war-age floor's one reader (`settlement_war_age_start`; PR-D1d's
+    # option (b), the pair's own reopening, was measured and not chosen).
     created_turn = max(created_turn, settlement_war_age_start(war, player=player))
     if current_turn - created_turn < SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS:
         return "war_too_young"
@@ -4629,20 +4595,19 @@ def _emit_settlement_offer_for_war(
         for nation, side in side_by_nation.items()
         if side == opposing_side and nation != player
     ]
-    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR:
-        # SF-V5: a truce is not a war to settle — the letter covers the
-        # courts still at war with our side, and the senior covered court
-        # writes it when the leader itself stands in a truce.
-        at_war = set(_covered_at_war(world, war, player=player))
-        covered_enemies = [n for n in covered_enemies if n in at_war]
-        if not covered_enemies:
-            return None
-        if proposer_nation not in covered_enemies:
-            from backend.game_logic.settlement_staging import (
-                accepting_leader_for_coverage,
-            )
-            proposer_nation = (accepting_leader_for_coverage(
-                war, opposing_side, covered_enemies) or covered_enemies[0])
+    # SF-V5: a truce is not a war to settle — the letter covers the
+    # courts still at war with our side, and the senior covered court
+    # writes it when the leader itself stands in a truce.
+    at_war = set(_covered_at_war(world, war, player=player))
+    covered_enemies = [n for n in covered_enemies if n in at_war]
+    if not covered_enemies:
+        return None
+    if proposer_nation not in covered_enemies:
+        from backend.game_logic.settlement_staging import (
+            accepting_leader_for_coverage,
+        )
+        proposer_nation = (accepting_leader_for_coverage(
+            war, opposing_side, covered_enemies) or covered_enemies[0])
     war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
 
     # AUD-c: war score from the player's perspective decides whether the
@@ -4673,31 +4638,30 @@ def _emit_settlement_offer_for_war(
         accepter_war_score=player_war_score,
         world=world,
     )
-    if THE_LETTER_IS_RATIFIABLE_WHEN_SENT:
-        # SF-V5 / DD-1 Slice B: the letter is read by the ONE verdict before
-        # it is sent — the settlement road's own eligibility gate for the
-        # player's side FIRST (DD1-3 the one-on-one war, SFR-B1 the war
-        # France does not lead: a letter France can neither accept nor
-        # revise), then the per-court carry (`_letter_would_carry`). A
-        # letter the table would refuse is never sent (no cooldown is
-        # spent — the war is read again next turn); the refusal is named
-        # in the telemetry line.
-        from backend.game_logic.treaty import can_sign
-        verdict = can_sign(world, {
-            "type": "incoming_settlement_offer",
-            "war_id": str(war_id),
-            "proposer_nation": proposer_nation,
-            "proposer_side": opposing_side,
-            "accepting_side": player_side,
-            "accepting_leader": player,
-            "covered_enemy_participants": list(covered_enemies),
-            "settlement_terms": terms,
-        })
-        if not verdict.ok:
-            from backend.utils.debug import debug_print
-            debug_print(f"[SETTLEMENT OFFER] {proposer_nation}'s letter on {war_id} "
-                        f"withheld — {verdict.clause}: {verdict.message}")
-            return None
+    # SF-V5 / DD-1 Slice B: the letter is read by the ONE verdict before
+    # it is sent — the settlement road's own eligibility gate for the
+    # player's side FIRST (DD1-3 the one-on-one war, SFR-B1 the war
+    # France does not lead: a letter France can neither accept nor
+    # revise), then the per-court carry (`_letter_would_carry`). A
+    # letter the table would refuse is never sent (no cooldown is
+    # spent — the war is read again next turn); the refusal is named
+    # in the telemetry line.
+    from backend.game_logic.treaty import can_sign
+    verdict = can_sign(world, {
+        "type": "incoming_settlement_offer",
+        "war_id": str(war_id),
+        "proposer_nation": proposer_nation,
+        "proposer_side": opposing_side,
+        "accepting_side": player_side,
+        "accepting_leader": player,
+        "covered_enemy_participants": list(covered_enemies),
+        "settlement_terms": terms,
+    })
+    if not verdict.ok:
+        from backend.utils.debug import debug_print
+        debug_print(f"[SETTLEMENT OFFER] {proposer_nation}'s letter on {war_id} "
+                    f"withheld — {verdict.clause}: {verdict.message}")
+        return None
     seq = _settlement_offer_next_seq(
         pending, war_id=str(war_id), current_turn=current_turn,
     )

@@ -35,25 +35,11 @@
   "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSatellitesFateIsBriefedTruthfully::test_the_campaign_log_prints_a_sentence_not_a_type"
  },
  {
-  "id": "lost/a the rebellion arm",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "        elif A_LOST_SATELLITE_CAN_LEAD and etype in (\n                \"vassal_broke_free\", \"vassal_defected\", \"vassal_transferred\"):",
-  "new": "        elif False and etype in (\n                \"vassal_broke_free\", \"vassal_defected\", \"vassal_transferred\"):",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_a_rebellion_leads tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_the_graceful_break_leads_and_says_which_break_it_was"
- },
- {
   "id": "lost/b the exit is named in the line",
   "file": "backend/game_logic/dispatch.py",
   "old": "            elif str(e.get(\"exit\") or \"\") == \"vassal_rebellion_independent\":\n                _detail = \"They broke free and stand alone.\"",
   "new": "            elif False:\n                _detail = \"They broke free and stand alone.\"",
   "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_the_graceful_break_leads_and_says_which_break_it_was"
- },
- {
-  "id": "lost/c our own satellite's conquest",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "            elif (A_LOST_SATELLITE_CAN_LEAD and fallen\n                  and str(e.get(\"lord\") or \"\") == player_nation):",
-  "new": "            elif False:",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_our_own_satellite_being_conquered_leads"
  },
  {
   "id": "lost/d the lord is stamped before the row is torn down",
@@ -68,34 +54,6 @@
   "old": "            if fallen and _we_fought_them:\n                _add(\"enemy_eliminated\", f\"enemy_eliminated:{fallen}\",",
   "new": "            if False:\n                _add(\"enemy_eliminated\", f\"enemy_eliminated:{fallen}\",",
   "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestALostSatelliteCanLeadTheBriefing::test_an_enemy_court_dying_is_still_a_triumph_not_a_loss"
- },
- {
-  "id": "soil/a the run is one run",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "             identity=(\"enemy_on_our_soil\"\n                       if SOIL_ALARM_IS_ONE_RUN\n                       else f\"enemy_on_our_soil:{region_name}\"),",
-  "new": "             identity=f\"enemy_on_our_soil:{region_name}\",",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSoilAlarm::test_the_run_survives_the_enemy_moving_between_provinces"
- },
- {
-  "id": "soil/b a conquest is not French soil",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "        if (SOIL_ALARM_IS_HOME_SOIL_ONLY\n                and home_regions\n                and region_name not in home_regions):\n            continue",
-  "new": "        if False:\n            continue",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSoilAlarm::test_a_conquered_province_is_not_french_soil"
- },
- {
-  "id": "soil/c home soil still raises it",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "        if (SOIL_ALARM_IS_HOME_SOIL_ONLY\n                and home_regions\n                and region_name not in home_regions):",
-  "new": "        if SOIL_ALARM_IS_HOME_SOIL_ONLY:",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheSoilAlarm::test_real_home_soil_still_raises_the_alarm"
- },
- {
-  "id": "shell/a the arm matches a bombardment",
-  "file": "backend/game_logic/dispatch.py",
-  "old": "        elif etype == \"battle\" or (THE_SHELLING_IS_BRIEFED\n                                   and etype == \"bombardment\"):",
-  "new": "        elif etype == \"battle\":",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheShellingIsBriefed::test_a_shelling_that_mauls_a_corps_reaches_the_headline"
  },
  {
   "id": "shell/b it names the province",

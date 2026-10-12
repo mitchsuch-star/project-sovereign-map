@@ -23,8 +23,8 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 from tools import _code_health_census as census_tool  # noqa: E402
 
-# ── the caps: the reading after CODE-1 batch 4 (October 12, 2026); lower-only ──
-LEVERS_CAP = 429
+# ── the caps: the reading after CODE-1 batch 5 (October 12, 2026); lower-only ──
+LEVERS_CAP = 358
 FUNCTIONS_OVER_500_CAP = 34
 SILENT_HANDLERS_CAP = 367
 CLAUDE_MD_BYTES_CAP = 62_000

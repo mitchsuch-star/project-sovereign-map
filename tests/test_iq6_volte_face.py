@@ -15,7 +15,8 @@ this half is REAL, and these pins hold the correction:
       the Kingdom of Italy — never counted as "beaten". The pair's own
       `resolved_turn` answers first (`THE_SEPARATE_PEACE_ENDS_THE_WAR`).
 - V2  the courier skips the routine NATION ask cooldown
-      (`ai_diplomacy.THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN`).
+      (`_is_on_cooldown(..., skip_nation_cooldown=True)`; its lever retired,
+      CODE-1 batch 5).
 - V3  the exhaustion arm is RETIRED under GR9 — the defeat shows on the
       map only (`THE_DEFEAT_IS_THE_SOIL`).
 - V4  it speaks its mind: the counsel and the war room name the open door
@@ -355,13 +356,6 @@ class TestT3TheCourierSkipsTheRoutineCooldown:
         proposal = AD.process_diplomatic_phase("Russia", world)
         assert proposal is not None and proposal["decision_reason"] == "volte_face"
 
-    def test_lever_down_the_routine_cooldown_holds_it(self, world, monkeypatch):
-        monkeypatch.setattr(AD, "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN", False)
-        _stage_tilsit(world)
-        world.ai_proposal_cooldowns["Russia|nation"] = 2
-        proposal = AD.process_diplomatic_phase("Russia", world)
-        assert proposal is None or proposal.get("decision_reason") != "volte_face"
-
     def test_the_alliance_type_cooldown_still_holds_it(self, world):
         _stage_tilsit(world)
         world.ai_proposal_cooldowns["Russia|alliance"] = 3
@@ -468,8 +462,6 @@ class TestT5ItSpeaksItsMind:
         assert ED.volte_face_failing_clauses(world, "Russia", PLAYER)[0] == (
             ED.VOLTE_CLAUSE_NO_MARK)
         assert ED.volte_face_counsel_line(world, "Russia", PLAYER) == ""
-
-# ═════════════ The levers down reproduce the pre-IQ-6 predicate ═════════════
 
 # ═════════ T7 — the committed courting script, end to end (slow) ═════════
 # The assurance idiom: the real playtest driver as a subprocess, 40 turns of

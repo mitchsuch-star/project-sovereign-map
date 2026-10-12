@@ -125,12 +125,6 @@ class TestTheFlagAndTheRecord:
         assert congress.state_line(bare) is None
         assert congress.clock_payload(bare) is None
 
-    def test_the_lever_down_disarms(self, monkeypatch):
-        w = _boot()
-        monkeypatch.setattr(congress, "THE_CONGRESS_SITS", False)
-        assert not congress.armed(w)
-        assert congress.build_congress_payload(w) is None
-
     def test_none_until_a_great_power_signs_or_a_summons(self):
         w = _boot()
         assert w.congress is None
@@ -971,11 +965,6 @@ class TestTheUniversalMonarchy:
         w.invalidate_active_nations_cache()
         assert congress.no_great_power_stands(w)
 
-    def test_the_lever_down_keeps_it_quiet(self, monkeypatch):
-        w = self._empty()
-        monkeypatch.setattr(congress, "THE_UNIVERSAL_MONARCHY", False)
-        assert _tick(w) == []
-
     def test_the_declared_line_is_kept_for_a_detail_less_stamp(self):
         assert game_end._cause_line(_boot(), game_end.CAUSE_IMPERIAL_PEACE, {}) == \
             "Europe accepts the order of the French Empire."
@@ -1006,7 +995,7 @@ class TestThePressure:
         assert congress.refusal_weight(w, "Prussia", "France") == 30
         assert congress.refusal_weight(w, "Prussia", "Austria") == 0
 
-    def test_the_refusal_term_reaches_the_intent_weight(self):
+    def test_the_refusal_term_reaches_the_intent_weight(self, monkeypatch):
         from backend.game_logic import intent
         w = _boot()
         _sit(w)
@@ -1015,17 +1004,18 @@ class TestThePressure:
         if view.against != "France":
             pytest.skip("Austria's design is not aimed at France on this board")
         with_term = view.weight
-        import backend.game_logic.congress as C
-        old = C.THE_CONGRESS_HARDENS_REFUSERS
-        try:
-            C.THE_CONGRESS_HARDENS_REFUSERS = False
+        term = congress.refusal_weight(w, "Austria", "France")
+        # The weight without the Congress's two pressure terms: both readers
+        # read 0, as they did under the retired THE_CONGRESS_HARDENS_REFUSERS
+        # lever's down arm (`intent._derive_weight` imports them at call time).
+        with monkeypatch.context() as m:
+            m.setattr(congress, "refusal_weight", lambda *a, **k: 0)
+            m.setattr(congress, "revanche_weight", lambda *a, **k: 0)
             w._intent_cache = None
             without = intent.get_nation_intent("Austria", w).weight
-        finally:
-            C.THE_CONGRESS_HARDENS_REFUSERS = old
-            w._intent_cache = None
+        w._intent_cache = None
         assert with_term >= without
-        assert with_term == min(100, without + congress.refusal_weight(w, "Austria", "France"))
+        assert with_term == min(100, without + term)
 
     def test_the_gate_drops_to_forty_with_two_refusers(self):
         w = _boot()

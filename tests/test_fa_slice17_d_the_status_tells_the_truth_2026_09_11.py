@@ -77,13 +77,6 @@ def _strip_gd_comments(src: str) -> str:
 
 class TestFAN28ADecisionOutranksTheOrderItLacks:
 
-    def test_levers_default_on(self):
-        assert D.DECISION_OUTRANKS_THE_ORDER_IT_LACKS is True
-        assert D.HALTED_IS_NOT_READY is True
-        assert D.RECOVERY_COMPLETION_REACHES_THE_BRIEFING is True
-        assert D.RAW_EVENT_KEYS_NEVER_PRINT is True
-        assert D.ARREARS_AGE_IS_THE_MARSHALS is True
-
     def test_an_order_free_last_stand_is_reported_as_a_decision(self):
         w = _world()
         m = w.get_marshal("Massena")
@@ -123,15 +116,6 @@ class TestFAN28ADecisionOutranksTheOrderItLacks:
         m.pending_interrupt = None
         assert D._derive_marshal_status(m, w)[0] in ("awaiting", "idle_restless")
 
-    def test_the_lever_down_reproduces_awaiting_orders(self, monkeypatch):
-        monkeypatch.setattr(D, "DECISION_OUTRANKS_THE_ORDER_IT_LACKS", False)
-        w = _world()
-        m = w.get_marshal("Massena")
-        m.strategic_order = None
-        m.pending_interrupt = _last_stand("Massena", m.location)
-        assert D._derive_marshal_status(m, w) == ("awaiting", "Awaiting orders."), (
-            "the defect: a life-or-death question filed as 'Awaiting orders.'")
-
     def test_both_renderers_give_the_halt_its_own_glyph(self):
         for name in ("main.gd", "dispatch_view.gd"):
             src = _strip_gd_comments((GD / name).read_text(encoding="utf-8"))
@@ -167,12 +151,6 @@ class TestFAN29HaltedIsNotReady:
         ney.strategic_order = None
         d = _quiet(build_morning_dispatch, w)
         assert d.get("berthier_note") == READY_LINE, d.get("berthier_note")
-
-    def test_the_lever_down_reproduces_the_false_reassurance(self, monkeypatch):
-        monkeypatch.setattr(D, "HALTED_IS_NOT_READY", False)
-        w, ney = self._halted_ney()
-        d = _quiet(build_morning_dispatch, w)
-        assert d.get("berthier_note") == READY_LINE, "the defect"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -273,12 +251,6 @@ class TestFAN58RecoveryReachesTheBriefing:
                 [{"type": "retreat_recovery", "stage": stage, "message": "r", "nation": "France"}], "France")
             assert rows[0]["severity"] == "info"
 
-    def test_the_lever_down_drops_the_completion(self, monkeypatch):
-        monkeypatch.setattr(D, "RECOVERY_COMPLETION_REACHES_THE_BRIEFING", False)
-        rows = D._build_turn_events(
-            [{"type": "retreat_recovered", "marshal": "Ney", "nation": "France", "message": "x"}], "France")
-        assert rows == [], "the defect: the one piece of recovery news the player is owed, dropped at the whitelist"
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-N30 — no raw key reaches the briefing
@@ -288,10 +260,6 @@ class TestFAN30NoRawKeyReachesTheBriefing:
 
     def test_an_unknown_type_renders_nothing(self):
         assert D._format_dispatch_event_text("no_such_event_type", {}) == ""
-
-    def test_the_lever_down_leaks_the_key(self, monkeypatch):
-        monkeypatch.setattr(D, "RAW_EVENT_KEYS_NEVER_PRINT", False)
-        assert D._format_dispatch_event_text("no_such_event_type", {}) == "Diplomatic event: no_such_event_type"
 
     def test_the_settlement_offer_line_is_the_producers_own_sentence(self):
         w = _world()
@@ -398,17 +366,6 @@ class TestFAN27TheArrearsAgeIsTheMarshals:
         assert any("17" in t for t in lines), lines
         run = prior_runs + 1
         assert not any(f" {run} turns" in t or f"is {run} turns" in t for t in lines), lines
-
-    def test_the_lever_down_prints_the_run_counter(self, monkeypatch):
-        monkeypatch.setattr(D, "ARREARS_AGE_IS_THE_MARSHALS", False)
-        w = _world()
-        w.current_turn = 17
-        self._eroding(w, "Ney", grace_turn=0)
-        w.headline_lead_memory = {"class": "estate_eroding", "identity": "estate_eroding:Ney",
-                                  "streak": 5, "runs": {"estate_eroding:Ney": 5}}
-        d = _quiet(build_morning_dispatch, w)
-        lines = self._estate_lines(d)
-        assert lines and any("6" in t for t in lines) and not any("17" in t for t in lines), lines
 
     def test_the_longest_eroding_marshal_is_the_one_named(self):
         """The one-candidate limit is KEPT (one estate line per page) but the

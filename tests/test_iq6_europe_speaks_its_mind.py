@@ -571,20 +571,6 @@ class TestT3TheCourierSkipsTheRoutineCooldown:
         assert int(courier["cooldowns"].get(f"{COURT}|nation") or 0) > 0
         assert not courier["cooldowns"].get(f"{COURT}|alliance")
 
-    def test_lever_down_the_same_turn_is_held(self, courted, monkeypatch):
-        snapshot = courted.snap["at_courier"]
-        probe = _copy(snapshot)
-        assert AD._is_on_cooldown(COURT, "alliance", probe) is True
-        assert AD._is_on_cooldown(COURT, "alliance", probe,
-                                  skip_nation_cooldown=True) is False
-        with _quiet():
-            up = AD.process_diplomatic_phase(COURT, _copy(snapshot))
-        assert (up or {}).get("decision_reason") == "volte_face"
-        monkeypatch.setattr(AD, "THE_VOLTE_COURIER_IGNORES_ROUTINE_COOLDOWN", False)
-        with _quiet():
-            down = AD.process_diplomatic_phase(COURT, _copy(snapshot))
-        assert (down or {}).get("decision_reason") != "volte_face"
-
     def test_the_alliance_type_cooldown_still_holds_it(self, courted):
         world = _copy(courted.snap["at_courier"])
         world.ai_proposal_cooldowns[f"{COURT}|alliance"] = 3

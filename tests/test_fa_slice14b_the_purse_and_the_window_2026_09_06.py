@@ -8,10 +8,9 @@ siblings the FA-31 sweep filed inside the same machinery, **FA-N82** and
 Landing record: the boxed SLICE 14 (part 2b) block in
 `docs/BUG_FIXES.md` §Final Whole-Game Audit.
 
-Two levers, each with a False arm that reproduces HEAD:
-`ai_diplomacy.PURSE_SCALED_BILATERAL_INDEMNITY`,
-`ai_diplomacy.P8_REDUCER_READS_THE_PURSE`. The diversion window forecast
-is unconditional (its flip lever retired, CODE-1 batch 3).
+FA-21's two fixes (the purse-scaled build and the purse-reading P8
+reducer) are unconditional (their flip levers retired, CODE-1 batch 5), as
+is the diversion window forecast (its flip lever retired, CODE-1 batch 3).
 """
 
 import contextlib
@@ -43,10 +42,10 @@ def rich():
     """The t20 ambient fixture — Britain +54 against a 17,487-gold France.
 
     This is the row's own geometry and the only kind of world FA-21's
-    lever 2 is observable on: the purse floor exceeds the legacy flat 200
-    only above a treasury of 1,333, and every legacy fixture in the suite
-    gives France 800. **A lever-2 pin written on `make_world()` is
-    vacuous** — that is measured, not cautionary.
+    purse-reading reducer is observable on: the purse floor exceeds the
+    legacy flat 200 only above a treasury of 1,333, and every legacy fixture
+    in the suite gives France 800. **A purse-floor pin written on
+    `make_world()` is vacuous** — that is measured, not cautionary.
     """
     return _quiet(WorldState.from_dict,
                   json.loads(FIXTURE.read_text(encoding="utf-8"))["world_state"])
@@ -89,38 +88,6 @@ class TestThePurseIsRead:
         delivered, forced = _delivered(rich, "Britain", ws, terms)
         assert delivered == 2623
         assert delivered == int(17487 * AD.SETTLEMENT_OFFER_TREASURY_FRACTION)
-        assert forced is True
-
-    def test_the_control_arm_reproduces_the_defect(self, rich, monkeypatch):
-        """Both levers down: the row's own measured 405, delivered whole."""
-        monkeypatch.setattr(AD, "PURSE_SCALED_BILATERAL_INDEMNITY", False)
-        monkeypatch.setattr(AD, "P8_REDUCER_READS_THE_PURSE", False)
-        ws, terms = _harsh(rich, gold_mult=1.5)
-        assert _lump(terms) == 405
-        delivered, forced = _delivered(rich, "Britain", ws, terms)
-        assert delivered == 405
-        assert forced is False
-        assert delivered / rich.nation_gold["France"] < 0.03
-
-    def test_lever_one_alone_is_the_regression_the_row_prescribes(
-            self, rich, monkeypatch):
-        """⚠ THE PAIRING PIN. Do not ship lever 1 without lever 2.
-
-        `_reduce_p8_demands` halves exactly ONCE and then falls to a token,
-        so any built figure above twice the largest acceptable lump collapses
-        to that token. Pricing the BUILD alone therefore delivers LESS than
-        the defect it was meant to fix — measured on the ambient board, 200
-        on 5 of 5 firings where HEAD delivered 220/352/266/277/243.
-
-        This pin exists so that anyone who disables lever 2 — or writes a
-        purse term into the builder and stops — is told why by a red test
-        rather than by a playtest.
-        """
-        monkeypatch.setattr(AD, "P8_REDUCER_READS_THE_PURSE", False)
-        ws, terms = _harsh(rich, gold_mult=1.5)
-        assert _lump(terms) > 5000          # the build is now a real indemnity
-        delivered, forced = _delivered(rich, "Britain", ws, terms)
-        assert delivered == 200             # …and the reducer throws it away
         assert forced is True
 
     def test_a_reduction_never_raises_the_demand(self, rich):

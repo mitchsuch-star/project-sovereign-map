@@ -61,14 +61,8 @@ BAND_MIDPOINTS: Dict[str, int] = {
 # Headline weights (blessed defaults — display only, tunable freely).
 # The dispatch opens with the top-scored fog-visible event of the turn
 # rendered as one prose sentence, plus up to 2 sub-beats.
-# ── FA slice 11 flip levers ────────────────────────────────────────────
-# False restores the pre-slice briefing at each seam independently.
-SOIL_ALARM_IS_ONE_RUN = True          # FA-12
-SOIL_ALARM_IS_HOME_SOIL_ONLY = True   # FA-N14
-THE_SHELLING_IS_BRIEFED = True        # FA-25
-A_LOST_SATELLITE_CAN_LEAD = True      # FA-38
-FLEET_ACTIONS_LEAD_THE_DISPATCH = True   # FA-66 (the Chunk 5 reserve, Sept 28, 2026)
-IDLE_NUDGE_READS_THE_LIVE_MISSION = True   # IQ-4 review: a completed mission record no longer silences Talleyrand's idle nudge
+# ── FA slice 11 (FA-12, FA-N14, FA-25, FA-38), FA-66 and the IQ-4 review ──
+# Each rule is stated at the seam that reads it.
 
 HEADLINE_WEIGHTS: Dict[str, int] = {
     # ── GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.5 beats 1–4) ───────
@@ -402,13 +396,8 @@ HOMELAND_YIELDED_WEIGHT = 40
 STANDING_LEAD_MAX = 2
 
 # ── FA slice 17 part d "The Status Tells the Truth" (Sept 11, 2026) ─────────
-# One lever per row; each False arm reproduces the pre-slice behaviour
-# byte-for-byte. All five are renderer-side — no AI reads any of them.
-DECISION_OUTRANKS_THE_ORDER_IT_LACKS = True   # FA-N28: an order-FREE decision (last_stand / muster_confirm) is `awaiting_decision`, not "Awaiting orders."
-HALTED_IS_NOT_READY = True                    # FA-N29: a halted marshal silences "Your armies stand ready"
-RECOVERY_COMPLETION_REACHES_THE_BRIEFING = True  # FA-N58: `retreat_recovered` passes the turn-events whitelist, like its broken sibling
-RAW_EVENT_KEYS_NEVER_PRINT = True             # FA-N30: an unformatted event renders its producer's own sentence or nothing — never "Diplomatic event: <key>"
-ARREARS_AGE_IS_THE_MARSHALS = True            # FA-N27: the estate line's "N turns" is the marshal's arrears age, not the page's run counter
+# Five rows (FA-N27, FA-N28, FA-N29, FA-N30, FA-N58), each stated at the
+# seam that reads it. All five are renderer-side — no AI reads any of them.
 
 # Sub-beat slots under the headline. Named (it was a bare `>= 2`) because
 # WO-D6's diverse-tail rule is expressed as "the LAST slot", and a magic
@@ -652,7 +641,7 @@ _CRISIS_CAUSE_HEADLINE: Dict[str, str] = {
 }
 
 
-# FA-S17-D3 (slice 17, Phase 4) flip lever: a war declared ON US names its
+# FA-S17-D3 (slice 17, Phase 4): a war declared ON US names its
 # cause. AI-3's pin 4 — "no unexplained war" — was honoured for a war between
 # two OTHER powers (`europe_at_war` renders `stated_reason`) and not for a war
 # on France: `war_touches_us` read "Britain and France are at war." and
@@ -663,16 +652,15 @@ _CRISIS_CAUSE_HEADLINE: Dict[str, str] = {
 # ladder reads what the engine already records, in the order a court would
 # state it. The STRUCTURAL half of the row — the coalition threat floor that
 # makes the metronome inevitable — is declined to the diplomacy gate and is
-# untouched here. False = the bare sentence.
-THE_DECLARATION_NAMES_ITS_CAUSE = True
+# untouched here.
 
 # PR-4 (playtest re-score, September 12 2026). The cause clause opened with
 # a bare "He" / "His court", which reads only if the sentence before it named
 # ONE court. It does not: the headline it follows is "Britain and France are
 # at war." — two nations, then a pronoun with no antecedent. Measured, it is
 # the single most frequent dispatch headline on the shipped board (13 of the
-# distinct headlines across twelve 40-turn runs). False = the pronoun.
-THE_DECLARATION_NAMES_THE_DECLARER = True
+# distinct headlines across twelve 40-turn runs). The clause now names the
+# declarer.
 
 
 def war_declaration_cause(world, aggressor: str, event: dict) -> str:
@@ -685,16 +673,11 @@ def war_declaration_cause(world, aggressor: str, event: dict) -> str:
     ledger's threat panel already renders, resolved through the SAME label
     source so the two surfaces cannot disagree).
     """
-    if not THE_DECLARATION_NAMES_ITS_CAUSE:
-        return ""
     from backend.display_names import display_nation
-    who = (display_nation(str(aggressor or "")) or "The aggressor"
-           if THE_DECLARATION_NAMES_THE_DECLARER else "He")
+    who = (display_nation(str(aggressor or "")) or "The aggressor")
     treaty = str((event or {}).get("breached_treaty") or "").strip()
     if treaty:
-        if THE_DECLARATION_NAMES_THE_DECLARER:
-            return f"{who} tears up the {treaty} to do it."
-        return f"He tears up the {treaty} to do it."
+        return f"{who} tears up the {treaty} to do it."
     title = ""
     try:
         from backend.game_logic.agendas import get_active_agenda
@@ -703,9 +686,7 @@ def war_declaration_cause(world, aggressor: str, event: dict) -> str:
     except Exception:
         title = ""
     if title:
-        if THE_DECLARATION_NAMES_THE_DECLARER:
-            return f"The court of {who} declares it in the name of {title}."
-        return f"His court declares it in the name of {title}."
+        return f"The court of {who} declares it in the name of {title}."
     player = getattr(world, "player_nation", "France")
     best = None
     for row in (getattr(world, "threat_sources_this_turn", None) or []):
@@ -2126,8 +2107,7 @@ def _build_headline(world, player_nation: str,
                      line=(f"{formed_display_name(world, fallen)} is knocked "
                            f"out of the war. No army remains beneath their "
                            f"colours."))
-            elif (A_LOST_SATELLITE_CAN_LEAD and fallen
-                  and str(e.get("lord") or "") == player_nation):
+            elif (fallen and str(e.get("lord") or "") == player_nation):
                 # FA-38: OUR OWN satellite, annihilated. `_we_fought_them` is
                 # correctly False (we never opposed it), so before this arm
                 # the tick produced no candidate at all and the page led with
@@ -2136,7 +2116,7 @@ def _build_headline(world, player_nation: str,
                 _add("vassal_lost", f"vassal_lost:{fallen}",
                      vassal=formed_display_name(world, fallen),
                      detail="Conquered — the satellite is gone.")
-        elif A_LOST_SATELLITE_CAN_LEAD and etype in (
+        elif etype in (
                 "vassal_broke_free", "vassal_defected", "vassal_transferred"):
             # FA-38: the other three ways an empire loses a satellite.
             # `vassal_broke_free` is FA-N74's new row; without it this class
@@ -2302,8 +2282,7 @@ def _build_headline(world, player_nation: str,
                      line=(f"{_rank(world, e.get('marshal', ''), des_marshal)}{_of} is destroyed{des_at} "
                            f"— his corps annihilated, his name struck from "
                            f"their order of battle."))
-        elif (etype in ("trafalgar", "fleet_action")
-                and FLEET_ACTIONS_LEAD_THE_DISPATCH):
+        elif (etype in ("trafalgar", "fleet_action")):
             # FA-66: the fleet action as the briefing's lead. The event is
             # the naval layer's own (`naval._log_fleet_action`) and carries
             # the per-court losses, so the sentence is `losses_sentence` —
@@ -2373,8 +2352,7 @@ def _build_headline(world, player_nation: str,
                 # marshal, so an AI-vs-AI rout never reads as our triumph
                 # ([B-F2]: keyed by the man, not the region).
                 _enemy_routs[str(e.get("marshal", ""))] = marshal_disp
-        elif etype == "battle" or (THE_SHELLING_IS_BRIEFED
-                                   and etype == "bombardment"):
+        elif etype == "battle" or (etype == "bombardment"):
             # Own marshal mauled: >=25% of pre-battle strength lost.
             #
             # FA-25 (slice 11): this was the ONLY `own_mauled` producer and it
@@ -2466,8 +2444,7 @@ def _build_headline(world, player_nation: str,
                         "loser": str(e.get("attacker", "") or ""),
                         "annihilation": _outcome == "defender_victory",
                     }
-        elif (etype == "peace_ratified" and THE_PEACE_LEADS_THE_BRIEFING
-                and player_nation in (e.get("ratifying_nations") or [])):
+        elif (etype == "peace_ratified" and player_nation in (e.get("ratifying_nations") or [])):
             # FA-D12 (slice 17, Phase 2): no headline class existed for the
             # player's own peace — the war's end led the briefing only when a
             # corps happened to be stranded (`road_home`). The same log row
@@ -2750,9 +2727,7 @@ def _build_headline(world, player_nation: str,
         # France's controlled set IS her home set, so the class is armed by
         # the first conquest. Sibling `home_captured` already reads
         # `home_regions`; this arm did not.
-        if (SOIL_ALARM_IS_HOME_SOIL_ONLY
-                and home_regions
-                and region_name not in home_regions):
+        if (home_regions and region_name not in home_regions):
             continue
         enemy_entries = [km for km in intel.known_marshals
                          if _intel_marshal_is_enemy(world, player_nation, km)]
@@ -2781,9 +2756,7 @@ def _build_headline(world, player_nation: str,
         # a genuine gap (no enemy on any home province for a turn) restarts
         # the ladder, which is the intended semantics.
         _add("enemy_on_our_soil",
-             identity=("enemy_on_our_soil"
-                       if SOIL_ALARM_IS_ONE_RUN
-                       else f"enemy_on_our_soil:{region_name}"),
+             identity=("enemy_on_our_soil"),
              enemy=enemy_name, region=region_name,
              defenders_line=defenders_line)
         break  # one such headline candidate is enough
@@ -2811,16 +2784,10 @@ def _build_headline(world, player_nation: str,
                 _age = max(0, int(world.current_turn) - _grace) if _grace >= 0 else 0
                 _eroding.append((_age, m.name))
         if _eroding:
-            if ARREARS_AGE_IS_THE_MARSHALS:
-                _age, _name = max(_eroding, key=lambda t: (t[0], t[1]))
-                _add("estate_eroding",
-                     identity=f"estate_eroding:{_name}",
-                     marshal=_rank(world, _name, humanize_entity_name(_name)), age=_age)
-            else:
-                _add("estate_eroding",
-                     identity=f"estate_eroding:{_eroding[0][1]}",
-                     marshal=_rank(world, _eroding[0][1],
-                                   humanize_entity_name(_eroding[0][1])))
+            _age, _name = max(_eroding, key=lambda t: (t[0], t[1]))
+            _add("estate_eroding",
+                 identity=f"estate_eroding:{_name}",
+                 marshal=_rank(world, _name, humanize_entity_name(_name)), age=_age)
 
     # The corps is starving (econ spec review §5). `supply_attrition` was not
     # in HEADLINE_WEIGHTS at all, so an army bleeding 6% a turn — the drain
@@ -3778,14 +3745,12 @@ def _intel_marshal_is_enemy(world, player_nation: str, km: dict) -> bool:
     return bool(world.is_at_war(player_nation, km_nation))
 
 
-# FA-D8 (slice 17, Phase 2) flip lever: the fallen-province headline names
-# the counter — a 5,000-man garrison holds a province against a march, a
+# FA-D8 (slice 17, Phase 2): the fallen-province headline names the
+# counter — a 5,000-man garrison holds a province against a march, a
 # corps standing there forces a battle — and, when the player's own intel
-# can see it, the corps that took it. False = the bare sentence.
-THE_FALLEN_PROVINCE_NAMES_THE_COUNTER = True
-# FA-D9 (slice 17, Phase 2) flip lever: the wavering-morale row names the
-# drill and its figure. False = the bare line.
-THE_WAVERING_LINE_NAMES_THE_DRILL = True
+# can see it, the corps that took it (`_home_captured_lever`).
+# FA-D9 (slice 17, Phase 2): the wavering-morale row names the drill and
+# its figure (`_derive_danger`).
 
 # AAR-13 (Score Mandate Chunk 2 reserve, Sept 26 2026): the roster's
 # Starving/Crowded flag follows the PROVINCE, not the man. The run was
@@ -3793,16 +3758,12 @@ THE_WAVERING_LINE_NAMES_THE_DRILL = True
 # against wherever he now stood — "Lannes — Munich — Starving — supply
 # has failed at Munich two turns running" the morning after he left
 # starving Swabia for a fed Munich. The collector keys (marshal,
-# province) and the flag reads the run where he STANDS. False restores
-# the per-marshal run.
-THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE = True
+# province) and the flag reads the run where he STANDS.
 
 # AAR-14 (same reserve): the supply-strain remedy names only ground a
 # corps can MARCH into — never the soil of a court we are at war with
 # ("Vienna can feed 50,000 more", with 16,967 Austrians in the garrison)
-# nor a province where an enemy corps is in view. False restores the
-# headroom-only scan.
-THE_REMEDY_NAMES_ONLY_OPEN_GROUND = True
+# nor a province where an enemy corps is in view.
 
 
 def _ground_is_contested(world, player_nation: str, name: str, region) -> bool:
@@ -3813,50 +3774,40 @@ def _ground_is_contested(world, player_nation: str, name: str, region) -> bool:
     holder = str(getattr(region, "controller", "") or "")
     return bool(holder and holder != player_nation
                 and world.is_at_war(player_nation, holder))
-# FA-D12 (slice 17, Phase 2) flip lever: the player's own peace has a
-# headline class. False = the peace leads only through `road_home`.
-THE_PEACE_LEADS_THE_BRIEFING = True
+# FA-D12 (slice 17, Phase 2): the player's own peace has a headline class
+# (`peace_signed`); before it, the peace led only through `road_home`.
 
-# ── IQ-2 (Sept 14, 2026) "The Collapse Is Legible" — general-fix levers ──
-# The collapse-keyed arms need no lever of their own (they read
-# `collapse.get_collapse_state`, which its own lever gates). These five are
-# defects the collapse playtests measured that fire on ANY board, so each
-# carries its own switch; False reproduces the pre-IQ-2 output byte-for-byte.
-# All six are Europe-scoped (N1, `_sandbox_board`): the 19-region legacy
+# ── IQ-2 (Sept 14, 2026) "The Collapse Is Legible" — the general fixes ──
+# The collapse-keyed arms read `collapse.get_collapse_state` (sandbox worlds
+# only); these are defects the collapse playtests measured that fire on ANY
+# board. Each is Europe-scoped (N1, `_sandbox_board`): the 19-region legacy
 # fixture world keeps its pins byte-identical, as every EC/ES slice did.
 #
 # The situation block gains `no_field_army` + `collapse`. Measured: with no
 # unbroken French strength the ratio sentence printed the 999 divide-by-zero
 # sentinel as "999% of French forces"; the client needs a flag to say
 # "no field army" instead, and the collapse state so it can say why.
-THE_SITUATION_NAMES_THE_EMPTY_FIELD = True
 # Berthier's `enemy_on_our_soil` note — "The marshals await only your
 # word." — printed when not one French corps stood free (every marshal a
 # prisoner or at strength 0). The note gets a true variant.
-THE_SOIL_NOTE_COUNTS_THE_FREE_CORPS = True
 # Talleyrand's `acceptance_crossed` trigger mapped every state with no
 # upgrade (ALLIANCE, VASSAL, anything not in its UPGRADE_MAP) to a
 # `non_aggression` "upgrade" that is really a downgrade — measured at turn
 # 1, it offered Bavaria, an ALLY, a non-aggression pact. Such states skip.
-TALLEYRAND_OFFERS_NO_DOWNGRADE = True
 # The war-purpose line printed "[HELD]" on `bool(held_regions)`, so 1 of 28
 # defended provinces read HELD. Some-but-not-all now reads "[N of M held]".
-WAR_PURPOSE_COUNTS_WHAT_IS_HELD = True
 # `get_settlement_tier` takes abs(score), so the label is direction-blind: a
 # France LOSING at -65 read "Settlement: Harsh Peace", at -85 "Total
 # Victory". A negative score now says whose terms they are.
-THE_SETTLEMENT_TIER_NAMES_WHOSE_TERMS = True
 # "The coalition against France has dissolved." read as the war's end. The
 # league lapses on low threat and changes no diplomatic state, so the courts
 # still at war with France are named on the same line.
-THE_LAPSED_LEAGUE_NAMES_THE_WAR = True
 # IQ-2 (PR-X1, the row's own completion item): a DEFENCE purpose listed every
 # homeland province as its objective whoever held it — measured, an
 # annihilated France read twenty-eight provinces it no longer held beside
 # "[1 of 28 held]". The line now names what is HELD, or says the homeland is
 # lost; a conquest purpose's targets are objectives, not holdings, and keep
-# their list. False = the full list on every board.
-WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD = True
+# their list.
 
 # ── Row EP F1 (Sept 23, 2026) "The first ten minutes" ──────────────────────
 # LV-1: a fresh campaign opened on an EMPTY terminal and the Dispatch screen
@@ -3866,13 +3817,11 @@ WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD = True
 # block, the "what to do today" doors) and NONE of the consuming arms (the
 # sabotage roll, the cooldowns and seen-lists, the once-per-turn beats, the
 # event-queue clear). `main.py` builds it where a campaign starts and where a
-# save without a stored briefing loads. False = no boot briefing.
-THE_FIRST_MORNING_HAS_A_BRIEFING = True
+# save without a stored briefing loads.
 # LV-7: "Enemy nations hold 98 regions" counted every controller that was not
 # the player — vassals, allies, the neutral courts. On the 1805 boot the
 # courts at war hold 28. Only a controller at war with the player counts now;
 # the client says "The courts at war hold N regions". Europe-scoped (N1).
-ONLY_THE_COURTS_AT_WAR_ARE_COUNTED = True
 
 
 def _sandbox_board(world) -> bool:
@@ -3948,8 +3897,6 @@ def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
     (the `garrison` verb detaches `GARRISON_DETACHMENT_SIZE`) or at
     `MARCH_HALTS_AT_GARRISON` men of any garrison; a corps standing there
     forces a battle (the AI's P4 must fight it)."""
-    if not THE_FALLEN_PROVINCE_NAMES_THE_COUNTER:
-        return ""
     # IQ-2: a France holding NO province has none left to garrison — the
     # garrison executor refuses on soil we do not control — so the counter
     # this clause prices is not one the player can play. Silence, not advice.
@@ -4011,20 +3958,19 @@ def _derive_danger(marshal, world, player_nation: str,
         # broke at first contact. The remedy, priced from the constants the
         # drill executor applies (shown = applied).
         tail = ""
-        if THE_WAVERING_LINE_NAMES_THE_DRILL:
-            if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
-                tail = " Drilling now."
+        if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
+            tail = " Drilling now."
+        else:
+            # SR-5r RF-2: the gain the drill will APPLY, laws included.
+            _gain_of = getattr(world, "drill_morale_gain", None)
+            if callable(_gain_of):
+                gain = int(_gain_of(marshal.nation, False))
+                trained = int(_gain_of(marshal.nation, True))
             else:
-                # SR-5r RF-2: the gain the drill will APPLY, laws included.
-                _gain_of = getattr(world, "drill_morale_gain", None)
-                if callable(_gain_of):
-                    gain = int(_gain_of(marshal.nation, False))
-                    trained = int(_gain_of(marshal.nation, True))
-                else:
-                    gain = int(getattr(type(world), "DRILL_MORALE_GAIN", 10))
-                    trained = int(getattr(type(world), "DRILL_MORALE_GAIN_TRAINED", 15))
-                tail = (f" Two turns of drill would steady them (+{gain} morale; "
-                        f"+{trained} with a training ground).")
+                gain = int(getattr(type(world), "DRILL_MORALE_GAIN", 10))
+                trained = int(getattr(type(world), "DRILL_MORALE_GAIN_TRAINED", 15))
+            tail = (f" Two turns of drill would steady them (+{gain} morale; "
+                    f"+{trained} with a training ground).")
         return f"Morale failing ({int(marshal.morale)}) — the men waver.{tail}"
     # 3. Force-retreated last phase.
     if getattr(marshal, "retreating", False) or getattr(
@@ -4115,7 +4061,7 @@ def _collect_supply_attrition_turns(world) -> Dict[str, Any]:
 
     AAR-13: keyed on (marshal, PROVINCE) — `{name: {region: [turns]}}` —
     so the roster's danger flag follows the province the corps stands
-    on. The lever down returns the legacy `{name: [turns]}` shape."""
+    on."""
     result: Dict[str, Any] = {}
     window_start = world.current_turn - 5
     for e in world.event_log:
@@ -4127,11 +4073,8 @@ def _collect_supply_attrition_turns(world) -> Dict[str, Any]:
         if not name:
             continue
         turn = int(e.get("turn", 0))
-        if THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE:
-            result.setdefault(name, {}).setdefault(
-                str(e.get("region") or ""), []).append(turn)
-        else:
-            result.setdefault(name, []).append(turn)
+        result.setdefault(name, {}).setdefault(
+            str(e.get("region") or ""), []).append(turn)
     return result
 
 
@@ -4277,7 +4220,7 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
             adj_region = world.get_region(adj_name)
             if adj_region is None:
                 continue
-            if THE_REMEDY_NAMES_ONLY_OPEN_GROUND and _ground_is_contested(
+            if _ground_is_contested(
                     world, player_nation, adj_name, adj_region):
                 continue
             adj_cap = int(world.get_effective_supply_cap(
@@ -4762,7 +4705,7 @@ def _build_situation(world, player_nation: str,
     # counts the player's own provinces already exists; the at-war filter
     # rides it (once per dispatch — not a hot path, GR8).
     at_war = None
-    if ONLY_THE_COURTS_AT_WAR_ARE_COUNTED and _sandbox_board(world):
+    if _sandbox_board(world):
         at_war = set(world.get_nations_at_war_with(player_nation))
     player_regions = 0
     enemy_regions = 0
@@ -4993,10 +4936,10 @@ def _build_situation(world, player_nation: str,
         situation["aura_pct"] = int(grip_fields["aura_pct"])
     if at_war is not None:
         # LV-7: `enemy_regions` counted only the courts at war with us, and
-        # the client's sentence says so. Absent (legacy, lever down) = the
-        # old count and the old wording, byte-for-byte.
+        # the client's sentence says so. Absent (legacy) = the old count and
+        # the old wording, byte-for-byte.
         situation["enemy_regions_are_at_war"] = True
-    if THE_SITUATION_NAMES_THE_EMPTY_FIELD and _sandbox_board(world):
+    if _sandbox_board(world):
         # IQ-2: `strength_ratio_pct` keeps its 999 sentinel for compatibility;
         # this flag is what lets a renderer say "no field army" instead of
         # "999% of French forces". Same unbroken-strength sum the ratio uses.
@@ -5152,8 +5095,7 @@ def _build_marshal_status(world, player_nation: str) -> List[Dict[str, Any]]:
 
 
 # AAR-25 (Score Mandate Chunk 3 reserve): the MARSHAL STATUS note for an open
-# counter-punch. False restores the silence until the expiry line.
-THE_COUNTER_PUNCH_IS_ANNOUNCED = True
+# counter-punch (before it, silence until the expiry line).
 
 
 def counter_punch_foe_in_reach(marshal, world):
@@ -5299,24 +5241,23 @@ def _derive_marshal_status(marshal, world) -> tuple:
     # was filed as "Awaiting orders." A question the player must answer is
     # the first thing to say about him; the order-bound arm below is left
     # exactly where the TUT-F4a / slice-3 invariants put it.
-    if DECISION_OUTRANKS_THE_ORDER_IT_LACKS:
-        from backend.commands.strategic import standalone_decision
-        _decision = standalone_decision(marshal)
-        if _decision:
-            _kind = str(_decision.get("interrupt_type") or "")
-            _where = _decision.get("location", "") or marshal.location
-            if _kind == "last_stand":
-                _foe = humanize_entity_name(_decision.get("enemy", "") or "")
-                if _foe:
-                    return ("awaiting_decision",
-                            f"ENCIRCLED at {_where} by {_foe} — awaiting your word.")
-                return ("awaiting_decision", f"ENCIRCLED at {_where} — awaiting your word.")
-            _quarry = humanize_entity_name(_decision.get("target", "") or "")
-            if _quarry:
+    from backend.commands.strategic import standalone_decision
+    _decision = standalone_decision(marshal)
+    if _decision:
+        _kind = str(_decision.get("interrupt_type") or "")
+        _where = _decision.get("location", "") or marshal.location
+        if _kind == "last_stand":
+            _foe = humanize_entity_name(_decision.get("enemy", "") or "")
+            if _foe:
                 return ("awaiting_decision",
-                        f"HALTED at {_where} — the muster against {_quarry} stands; "
-                        f"awaiting your word.")
-            return ("awaiting_decision", f"HALTED at {_where} — awaiting your word.")
+                        f"ENCIRCLED at {_where} by {_foe} — awaiting your word.")
+            return ("awaiting_decision", f"ENCIRCLED at {_where} — awaiting your word.")
+        _quarry = humanize_entity_name(_decision.get("target", "") or "")
+        if _quarry:
+            return ("awaiting_decision",
+                    f"HALTED at {_where} — the muster against {_quarry} stands; "
+                    f"awaiting your word.")
+        return ("awaiting_decision", f"HALTED at {_where} — awaiting your word.")
 
     # ETA is command-aware (MC gate Q3): high-command marshals rally 2 stages/turn.
     if marshal.broken:
@@ -5339,11 +5280,7 @@ def _derive_marshal_status(marshal, world) -> tuple:
     # below stands for him; a man behind works is refused the attack until he
     # unfortifies (the FORTIFIED CHECK), so the note says so at the price the
     # executor charges (`tactical_executor.unfortify_is_free`).
-    if (THE_COUNTER_PUNCH_IS_ANNOUNCED
-            and getattr(marshal, "counter_punch_available", False)
-            and int(getattr(marshal, "counter_punch_turns", 0) or 0) > 0
-            and not getattr(marshal, "pending_interrupt", None)
-            and not getattr(marshal, "drilling_locked", False)):
+    if (getattr(marshal, "counter_punch_available", False) and int(getattr(marshal, "counter_punch_turns", 0) or 0) > 0 and not getattr(marshal, "pending_interrupt", None) and not getattr(marshal, "drilling_locked", False)):
         _reach = counter_punch_foe_in_reach(marshal, world)
         _works = ""
         if getattr(marshal, "fortified", False):
@@ -5564,7 +5501,7 @@ _DISPATCH_EVENT_TYPES = {
     "order_voided_by_battle",
     "garrison_regen", "broken_recovered",
     # FA-N58 (slice 17): the retreat family's completion, beside the broken
-    # family's. Gated at the filter by RECOVERY_COMPLETION_REACHES_THE_BRIEFING.
+    # family's.
     "retreat_recovered",
     # Info severity (no special highlight)
     "occupation_continues", "drill_locked", "drill_started",
@@ -5667,9 +5604,6 @@ def _build_turn_events(
         # Whitelist filter: only dispatch-relevant event types
         if event_type not in _DISPATCH_EVENT_TYPES:
             continue
-        if (event_type == "retreat_recovered"
-                and not RECOVERY_COMPLETION_REACHES_THE_BRIEFING):
-            continue  # FA-N58 lever down: the pre-slice drop
 
         # Filter: only show events relevant to player nation
         event_nation = event.get("nation")
@@ -5915,10 +5849,7 @@ def _pick_berthier_note(
             return "The field is ours today, Sire — hold what it bought."
         # IQ-2 general fix: "The marshals await only your word." with no
         # marshal free to take it.
-        if (headline_class == "enemy_on_our_soil"
-                and THE_SOIL_NOTE_COUNTS_THE_FREE_CORPS
-                and _sandbox_board(world)
-                and not _player_has_a_free_corps(world, player_nation)):
+        if (headline_class == "enemy_on_our_soil" and _sandbox_board(world) and not _player_has_a_free_corps(world, player_nation)):
             return ("They are on our soil, Sire, and no corps of ours stands "
                     "free to meet them.")
         # PT-J4 "The Bench Speaks": when the headline is OUR marshal taken
@@ -6067,8 +5998,7 @@ def _pick_berthier_note(
     # omission CA8-8 fixed for `idle_restless`. The roster line above said a
     # marshal was HALTED awaiting the player's word and this line closed
     # "Your armies stand ready, Sire." `arrived` stays out: arrived IS ready.
-    if HALTED_IS_NOT_READY:
-        non_ready_statuses = non_ready_statuses | {"awaiting_decision"}
+    non_ready_statuses = non_ready_statuses | {"awaiting_decision"}
     all_ready = all(m["status"] not in non_ready_statuses for m in marshals_data)
     if all_ready and marshals_data:
         return "Your armies stand ready, Sire. The initiative is ours."
@@ -6289,8 +6219,7 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
         # ── Trigger 1: Acceptance crossed 50 (diplomatic opportunity) ──
         if (not _on_cooldown(nation, "acceptance_crossed") and state != "WAR"
                 and (state in UPGRADE_MAP
-                     or not (TALLEYRAND_OFFERS_NO_DOWNGRADE
-                             and _sandbox_board(world)))):
+                     or not (_sandbox_board(world)))):
             try:
                 from backend.game_logic.diplomacy import calculate_acceptance
                 upgrade_type = UPGRADE_MAP.get(state, "non_aggression")
@@ -6431,12 +6360,11 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
         transit = getattr(world, 'proposal_in_transit', None)
         talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
 
-        if IDLE_NUDGE_READS_THE_LIVE_MISSION:
-            # IQ-4 review: a COMPLETED mission is kept as a record (MS-1), so
-            # the raw dict silenced this nudge for the rest of the campaign
-            # after the first finished mission.
-            from backend.game_logic.diplomatic_dialogue import mission_is_live
-            mission = mission_is_live(world)
+        # IQ-4 review: a COMPLETED mission is kept as a record (MS-1), so
+        # the raw dict silenced this nudge for the rest of the campaign
+        # after the first finished mission.
+        from backend.game_logic.diplomatic_dialogue import mission_is_live
+        mission = mission_is_live(world)
         if talleyrand_state == "IDLE" and not mission and not transit:
             # Check if player has taken any diplomatic action recently
             # (Simple heuristic: Talleyrand is idle = no recent action)
@@ -6613,19 +6541,17 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
 
         region_str = ", ".join(target_regions) if target_regions else "unknown"
         held_str = "HELD" if held_regions else "not held"
-        if (WAR_PURPOSE_COUNTS_WHAT_IS_HELD and _sandbox_board(world)
-                and held_regions
-                and len(held_regions) < len(target_regions)):
+        if (_sandbox_board(world) and held_regions and len(held_regions) < len(target_regions)):
             # IQ-2: one of twenty-eight is not HELD.
             held_str = f"{len(held_regions)} of {len(target_regions)} held"
         lists_only_what_is_held = (
-            WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD and _sandbox_board(world)
+            _sandbox_board(world)
             and obj_type == "defense" and target_regions
             and len(held_regions) < len(target_regions))
         if lists_only_what_is_held:
             # IQ-2 (PR-X1): no producer claims a holding France does not hold.
-            # The COUNT is `WAR_PURPOSE_COUNTS_WHAT_IS_HELD`'s; this lever
-            # owns only which provinces the line names.
+            # The COUNT is `held_str`'s (above); this rule owns only which
+            # provinces the line names.
             region_str = (f"holding {', '.join(held_regions)}" if held_regions
                           else "the homeland is lost")
         # LV-8 (row EP F1): ONE sentence for the targets, from the source the
@@ -6655,8 +6581,7 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
         tier = get_settlement_tier(score)
         tier_display = SETTLEMENT_TIER_DISPLAY.get(tier, tier)
         from backend.game_logic.war_status import _tier_side as _war_tier_side
-        if (THE_SETTLEMENT_TIER_NAMES_WHOSE_TERMS and _sandbox_board(world)
-                and _war_tier_side(score) == "theirs"):
+        if (_sandbox_board(world) and _war_tier_side(score) == "theirs"):
             # IQ-2: the tier is read off abs(score); a losing France must be
             # told the terms are the enemy's to impose, not ours.
             tier_display = f"{tier_display} — theirs to impose"
@@ -6739,8 +6664,7 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
     # lie in any tier — the section is hidden (the client already hides a
     # None section).
     from backend.game_logic import coalition as _c_e2
-    if (_c_e2.NOBODY_LEFT_TO_ALARM_IS_SILENT
-            and _c_e2.no_court_left_to_alarm(world, player_nation)):
+    if (_c_e2.no_court_left_to_alarm(world, player_nation)):
         return None
 
     _player = getattr(world, "player_nation", "France")
@@ -7538,11 +7462,8 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         # shipped boot: turn 4 printed "Diplomatic event:
         # settlement_offer_arrival" while the event carried a perfectly good
         # sentence nobody read.
-        if RAW_EVENT_KEYS_NEVER_PRINT:
-            return ""
-        return f"Diplomatic event: {event_type}"
-    if DISPATCH_TEMPLATES_NAME_THE_NATION:
-        template_vars = _with_nation_forms(template, template_vars)
+        return ""
+    template_vars = _with_nation_forms(template, template_vars)
     if event_type in ("diplomatic_carved_vassal_created",
                       "diplomatic_carved_vassal_dissolved"):
         # PC-9: "the Duchy of Warsaw" but plain "Switzerland". Both sentences
@@ -7579,8 +7500,8 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
 
 
 # ── PR-2 "The Nation Is Not An Adjective" (playtest re-score, Sept 12 2026) ──
-# False reproduces the raw-tag prose.
-DISPATCH_TEMPLATES_NAME_THE_NATION = True
+# A dispatch template asks for the nation's name or adjective by suffix, and
+# `_with_nation_forms` answers from the one source.
 
 _NATION_FORM_SUFFIXES = ("_display", "_adjective")
 
@@ -7592,15 +7513,11 @@ _NATION_FORM_SUFFIXES = ("_display", "_adjective")
 # behind it — measured, threat 100, `qualifying: []`, `active_coalition: None`,
 # five turns running. `get_threat_tier`'s own docstring is about exactly this
 # class of lie in the other direction (CA8-18: the one gauge the player steers
-# by told him the thing that had already happened was about to). False = the
-# threat-only tier.
-THE_GAUGE_ASKS_WHO_COULD_JOIN = True
+# by told him the thing that had already happened was about to).
 
 
 def _coalition_tier_is_honest(world, tier: str, qualifying: list) -> str:
     """Downgrade a forward-looking tier nobody can currently satisfy."""
-    if not THE_GAUGE_ASKS_WHO_COULD_JOIN:
-        return tier
     if qualifying:
         return tier
     if getattr(world, "active_coalition", None):
@@ -7652,8 +7569,7 @@ def _build_relation_change_events(world, player_nation: str) -> list:
             direction = "improved" if delta > 0 else "worsened"
             # SF7-X38: the court by name (the template's own `_display`).
             _named = (_with_nation_forms("{nation_display}", {"nation": nation})
-                      .get("nation_display", nation)
-                      if DISPATCH_TEMPLATES_NAME_THE_NATION else nation)
+                      .get("nation_display", nation))
             events.append({
                 "type": "diplomatic_relation_shift",
                 "text": f"Relations with {_named} have {direction} significantly ({delta:+d} this turn).",
@@ -7739,7 +7655,7 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             continue
 
         text = _format_dispatch_event_text(event_type, template_vars)
-        if not text and RAW_EVENT_KEYS_NEVER_PRINT:
+        if not text:
             # FA-N30 arm 1: a producer that composed its own sentence onto
             # the event (the settlement-offer arrival does) is quoted verbatim.
             # Arm 2: with neither template nor message the row is DROPPED —
@@ -7748,9 +7664,7 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             text = str(event.get("message") or "").strip()
             if not text:
                 continue
-        if (event_type == "diplomatic_coalition_dissolved"
-                and THE_LAPSED_LEAGUE_NAMES_THE_WAR
-                and _sandbox_board(world)):
+        if (event_type == "diplomatic_coalition_dissolved" and _sandbox_board(world)):
             # IQ-2: the league lapses on low threat and changes no
             # diplomatic state, so the wars it fought go on. The world's own
             # at-war query, read when the page is built (live courts only —

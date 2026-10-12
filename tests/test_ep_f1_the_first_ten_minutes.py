@@ -157,12 +157,6 @@ class TestTheFirstMorningHasABriefing:
         assert M.world.last_morning_dispatch.get("turn") == 1
         assert "today" in M.world.last_morning_dispatch
 
-    def test_lever_down_no_briefing(self, board, monkeypatch):
-        monkeypatch.setattr(D, "THE_FIRST_MORNING_HAS_A_BRIEFING", False)
-        response = _new_game(board)
-        assert response["morning_dispatch"] == {}
-        assert M.world.last_morning_dispatch == {}
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # LV-1 — the boot briefing consumes nothing
@@ -355,13 +349,6 @@ class TestTheCourtsAtWar:
         world.diplomatic_states[world._make_diplo_key("France", "Prussia")] = "WAR"
         after = D._build_situation(world, "France")["enemy_regions"]
         assert after == before + prussia
-
-    def test_lever_down_counts_every_other_controller(self, monkeypatch):
-        monkeypatch.setattr(D, "ONLY_THE_COURTS_AT_WAR_ARE_COUNTED", False)
-        world = _scenario_world()
-        situation = D._build_situation(world, "France")
-        assert situation["enemy_regions"] == 98
-        assert "enemy_regions_are_at_war" not in situation
 
     def test_the_legacy_fixture_keeps_its_count(self):
         """N1: the 19-region rollback world is byte-identical."""

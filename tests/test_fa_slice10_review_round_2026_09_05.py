@@ -57,20 +57,6 @@ from backend.models.world_state import WorldState
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "playtest_saves" / "fixture_t20_ambient.json"
 
-LEVERS = [
-    (SO, "REGISTER_READS_THE_PACKAGE"),
-    (SO, "DEPARTED_COURT_TAKES_ITS_CLAUSES"),
-    (SO, "DEPARTED_COURT_NOTE_IS_DELIVERED"),
-]
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = [(mod, name, getattr(mod, name)) for mod, name in LEVERS]
-    yield
-    for mod, name, value in saved:
-        setattr(mod, name, value)
-
 
 @contextlib.contextmanager
 def _quiet():
@@ -165,11 +151,6 @@ class TestTheRegisterReadsThePackage:
         payload = _popup(world, [{"type": "peace"}, dict(clause)])
         assert "nothing changes hands" not in payload["talleyrand_text"]
 
-    def test_the_lever_down_restores_the_gold_only_reading(self, world):
-        SO.REGISTER_READS_THE_PACKAGE = False
-        payload = _popup(world, [{"type": "peace"}, dict(CARVE)])
-        assert "nothing changes hands" in payload["talleyrand_text"]
-
     def test_the_gold_registers_are_untouched(self, world):
         asked = _popup(world, [
             {"type": "peace"},
@@ -236,26 +217,6 @@ class TestADepartedCourtTakesItsClauses:
         message = str(result.get("message") or "")
         assert "Britain" in message
         assert "no longer exists" in message
-
-    def test_without_the_rule_the_button_lies(self, world):
-        """The lever-off arm reproduces the defect exactly: the review stages,
-        consent makes it ratifiable, and the ratification refuses."""
-        SO.DEPARTED_COURT_TAKES_ITS_CLAUSES = False
-        from backend.game_logic.settlement_ratify import (
-            ratify_settlement_confirm,
-        )
-        offer = _clause_offer(world)
-        with _quiet():
-            world._eliminate_nation("Britain")
-        result = handle_incoming_settlement_offer_action(
-            world, action="accept_settlement_offer", dialogue=offer)
-        assert result.get("success") is True
-        staged = world.dialogue_manager.peek()
-        assert staged.get("can_ratify") is True
-        with _quiet():
-            ratified = ratify_settlement_confirm(world, staged)
-        assert ratified.get("success") is False
-        assert "revalidation" in str(ratified.get("error") or "")
 
     def test_revise_terms_drops_the_dead_clause_instead(self, world):
         """The recovery route the refusal names. This arm opens an EDITABLE
@@ -366,17 +327,6 @@ class TestTheNoteIsDeliveredAndNamesTheExit:
         note = str(result.get("departed_courts_note") or "")
         mounted = world.dialogue_manager.peek() or {}
         assert note in str(mounted.get("talleyrand_text") or "")
-
-    def test_the_lever_down_restores_the_undelivered_note(self, world):
-        SO.DEPARTED_COURT_NOTE_IS_DELIVERED = False
-        offer = _current_offer(world)
-        departing = list(offer.get("covered_enemy_participants") or [])[-1]
-        _depart(world, departing, kill=False)
-        result = handle_incoming_settlement_offer_action(
-            world, action="accept_settlement_offer", dialogue=offer)
-        note = str(result.get("departed_courts_note") or "")
-        assert note
-        assert note not in str(result.get("message") or "")
 
     def test_the_review_arm_delivers_it_as_well(self, world):
         offer = _current_offer(world)

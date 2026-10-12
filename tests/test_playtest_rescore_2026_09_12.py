@@ -78,19 +78,6 @@ class TestAFreshPeaceIsNotMarchedBackOut(unittest.TestCase):
         self.assertTrue(
             C.qualifies_for_coalition("Britain", self.world, target="France"))
 
-    def test_lever_down_reproduces_the_same_turn_annulment(self):
-        from backend.game_logic import coalition as C
-        _war_instance(self.world, "France", "Britain", ended_turn=19)
-        original = C.COALITION_HONOURS_A_FRESH_PEACE
-        try:
-            C.COALITION_HONOURS_A_FRESH_PEACE = False
-            self.assertTrue(
-                C.qualifies_for_coalition("Britain", self.world,
-                                          target="France"),
-                "lever DOWN must reproduce the pre-fix enrolment")
-        finally:
-            C.COALITION_HONOURS_A_FRESH_PEACE = original
-
     def test_a_co_belligerent_is_never_exempted(self):
         """Two courts on the SAME side were never at war with each other."""
         from backend.game_logic import coalition as C
@@ -169,18 +156,6 @@ class TestTheNationIsNotAnAdjective(unittest.TestCase):
                           "loser_ships_lost": 23, "winner": "Britain"})
         self.assertIn("the French fleet", line)
         self.assertNotIn("the France fleet", line)
-
-    def test_lever_down_reproduces_the_raw_tag(self):
-        from backend.game_logic import dispatch as D
-        original = D.DISPATCH_TEMPLATES_NAME_THE_NATION
-        try:
-            D.DISPATCH_TEMPLATES_NAME_THE_NATION = False
-            line = D._format_dispatch_event_text("diplomatic_ai_proposal",
-                                                 {"nation": "PapalStates"})
-            self.assertIn("{nation_display}", line,
-                          "lever DOWN leaves the placeholder unfilled")
-        finally:
-            D.DISPATCH_TEMPLATES_NAME_THE_NATION = original
 
     def test_the_coalition_is_named_for_a_people_not_a_tag(self):
         from backend.game_logic import coalition as C
@@ -762,28 +737,6 @@ class TestTheDeclarationNamesItsDeclarer(unittest.TestCase):
         self.assertIn("Papal States", line)
         self.assertNotIn("PapalStates", line)
 
-    def test_lever_down_reproduces_the_dangling_pronoun(self):
-        from backend.game_logic import dispatch as D
-        original = D.THE_DECLARATION_NAMES_THE_DECLARER
-        try:
-            D.THE_DECLARATION_NAMES_THE_DECLARER = False
-            line = D.war_declaration_cause(self._W(), "Britain",
-                                           {"breached_treaty": "Peace Treaty"})
-            self.assertTrue(line.startswith("He tears up"), line)
-        finally:
-            D.THE_DECLARATION_NAMES_THE_DECLARER = original
-
-    def test_the_outer_lever_still_silences_the_whole_clause(self):
-        from backend.game_logic import dispatch as D
-        original = D.THE_DECLARATION_NAMES_ITS_CAUSE
-        try:
-            D.THE_DECLARATION_NAMES_ITS_CAUSE = False
-            self.assertEqual(
-                D.war_declaration_cause(self._W(), "Britain",
-                                        {"breached_treaty": "Peace Treaty"}), "")
-        finally:
-            D.THE_DECLARATION_NAMES_ITS_CAUSE = original
-
 
 class TestTheQualityGateCanRun(unittest.TestCase):
     """PR-3, fourth member: the tracked pre-commit hook hard-coded
@@ -1089,17 +1042,6 @@ class TestTheGaugeAsksWhoCouldJoin(unittest.TestCase):
         section = _build_coalition_section(world, "France")
         self.assertEqual(section["tier"], "Watchful")
         self.assertIn("free to join", section.get("no_qualifying_reason", ""))
-
-    def test_lever_down_reproduces_the_empty_brewing(self):
-        from backend.game_logic import dispatch as D
-        world = self._quiet_board()
-        original = D.THE_GAUGE_ASKS_WHO_COULD_JOIN
-        try:
-            D.THE_GAUGE_ASKS_WHO_COULD_JOIN = False
-            self.assertEqual(
-                D._build_coalition_section(world, "France")["tier"], "Brewing")
-        finally:
-            D.THE_GAUGE_ASKS_WHO_COULD_JOIN = original
 
     def test_a_formed_coalition_is_never_downgraded(self):
         """The gauge is right when the thing has already happened."""

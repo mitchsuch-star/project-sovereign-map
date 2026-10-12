@@ -94,7 +94,8 @@ class TestTheHelper:
         body = src.split("# ── P1: Losing badly", 1)[1][:2600]
         assert "coalition_break_ranks_reason(world, nation, war_score=war_score" in body
         assert "coalition_blocked = True" in body
-        assert "if not coalition_blocked and THE_COURT_SENDS_ONE_ENVOY_PER_WAR:" in body
+        # The FA-S17-15 one-envoy guard and the P1 decision both read the flag.
+        assert body.count("if not coalition_blocked:") >= 2
 
 
 class TestTheProducerGate:

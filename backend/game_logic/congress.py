@@ -52,39 +52,32 @@ from typing import Any, Dict, Iterable, List, Optional
 # editing source).
 # ════════════════════════════════════════════════════════════════════════
 
-THE_CONGRESS_SITS = True              # the whole mechanic (summons, tick, surfaces)
-THE_CONGRESS_HARDENS_REFUSERS = True  # intent +15/turn of refusal, Revanche weight
-THE_CONGRESS_LOWERS_THE_GATE = True   # coalition gate 60 → 40, the refuser arm, the join
-LONDON_FUNDS_THE_REFUSERS = True      # the paymaster at the Congress
-THE_BILLS_COME_DUE = True             # petitions at the summons, ×1.5 rentes, ×2 stakes
-THE_UNIVERSAL_MONARCHY = True         # E1 — no great power left to answer
-# ── Score Finish Step 1 "The peace holds" (September 29, 2026) ──
+# ── Score Finish Step 1 "The peace holds" (September 29, 2026): the rules ──
 # RS-D1 "Recognition by defeat" (SCORE_FINISH_SPEC §6.1, RULED Sept 28, 2026):
 # a SIGNED peace that leaves a great power's capital held by France or her
 # vassal chain latches its recognition (`kind: "capital"`); it breaks when the
 # capital leaves the bloc. Measured: at −90 the table could not reach 50 in
 # one sitting by any lever; the retest's two Austrian peaces ceded nothing by
 # clause, so no latch was ever written while Vienna stood in French hands.
-A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES = True
 # RS-D1's second half: every courtship lever quotes its cost in TURNS beside
 # its points ("court them to 40 — about 17 turns at +8 a turn; not within
 # this sitting"), so the table never prints a price that cannot be paid in
 # time without saying so.
-THE_LEVERS_QUOTE_THEIR_TURNS = True
+#
 # SF-LB-3 (Score Finish Step 7b): a quote that names its court reads the
 # stepped road (`diplomacy.courtship_road` — the drift toward zero helps a
 # cold court and slows a warm one), the ONE helper the league's keep-out
 # prices read. False = the flat rate for every quote, byte for byte.
 THE_COURTSHIP_IS_STEPPED = True
+#
+# ── Score Finish Step 1, the rules (continued) ──
 # RS-10: before the summons, the gate line and the summons' own report say
 # that summoning lowers the league's gate to `congress_alarm_gate` while two
 # great powers refuse, and name the courts it would take to war; while it
 # sits, the refuser rows read the BREWING league, not only a standing one.
-THE_SUMMONS_NAMES_THE_LOWERED_GATE = True
 # RS-16: the alarm line is ONE forecast of the coalition tick — its gains
 # (`coalition.forecast_alarm_tick`) against its decay — never the gross decay
 # alone ("it falls 3 a turn" on a board that rose 1 a turn for nine turns).
-THE_ALARM_LINE_IS_A_FORECAST = True
 
 # ════════════════════════════════════════════════════════════════════════
 # The numbers (ENDGAME_PLAN §2.7). Every one is read through
@@ -220,7 +213,7 @@ def cooldown_turns(world) -> int:
 def armed(world) -> bool:
     """The Congress exists only where the scenario armed the endings (R7):
     the tutorial and the bare flag world never see it."""
-    if not THE_CONGRESS_SITS or world is None:
+    if world is None:
         return False
     from backend.game_logic import game_end
     return game_end.endings_armed(world)
@@ -351,29 +344,24 @@ def alarm_road(world) -> str:
         cs = ", plus one for the Continental System"
     decay_clause = (f"{decay} of decay (one, plus one for each court at peace "
                     f"with us, at most three{cs})")
-    if THE_ALARM_LINE_IS_A_FORECAST:
-        fc = _co.forecast_alarm_tick(world)
-        net = int(fc.get("net", 0))
-        gains = [f"{label} +{int(amount)}" for label, amount in fc.get("gains") or []
-                 if int(amount) > 0]
-        if net > 0:
-            head = f"rising {net} a turn"
-        elif net < 0:
-            head = f"falling {-net} a turn"
-        else:
-            head = "holding"
-        if gains:
-            body = f"{head}: {', '.join(gains)} against {decay_clause}"
-        else:
-            body = f"{head}: nothing adds to it; {decay_clause}"
-        if fc.get("capped"):
-            body += " — the alarm cannot rise past 100"
-        parts = [body]
+    fc = _co.forecast_alarm_tick(world)
+    net = int(fc.get("net", 0))
+    gains = [f"{label} +{int(amount)}" for label, amount in fc.get("gains") or []
+             if int(amount) > 0]
+    if net > 0:
+        head = f"rising {net} a turn"
+    elif net < 0:
+        head = f"falling {-net} a turn"
     else:
-        parts = [f"it falls {decay} a turn (one, plus one for each court at peace "
-                 f"with us, at most three{cs})"]
-    if getattr(_co, "THE_LEAGUE_SPENDS_ITS_ALARM", False):
-        parts.append("a treaty that dissolves a league halves it")
+        head = "holding"
+    if gains:
+        body = f"{head}: {', '.join(gains)} against {decay_clause}"
+    else:
+        body = f"{head}: nothing adds to it; {decay_clause}"
+    if fc.get("capped"):
+        body += " — the alarm cannot rise past 100"
+    parts = [body]
+    parts.append("a treaty that dissolves a league halves it")
     return "; ".join(parts)
 
 
@@ -385,8 +373,6 @@ def league_warning(world, table: Optional[Dict[str, Dict[str, Any]]] = None) -> 
     gate is not authored, the count is not met, or fewer than two great
     powers would refuse. `table` = the answers already taken (the summons);
     else the projection `answer` reads before a summons."""
-    if not (THE_SUMMONS_NAMES_THE_LOWERED_GATE and THE_CONGRESS_LOWERS_THE_GATE):
-        return ""
     if not armed(world):
         return ""
     player = _player(world)
@@ -635,8 +621,6 @@ def summon(world) -> Dict[str, Any]:
 def present_the_bills(world) -> List[str]:
     """§2.3/§2.5 — the marshals and the satellites present their bills at
     the summons. Returns the sentences for the summons' own report."""
-    if not THE_BILLS_COME_DUE:
-        return []
     out: List[str] = []
     said = _collective_petition(world)
     if said:
@@ -809,8 +793,7 @@ def _signed_record(world, court: str) -> Optional[Dict[str, Any]]:
     # stays in our hands — handed back, retaken, taken by a third party, or
     # lost to its holder's rebellion, the latch is broken (derived here; the
     # tick stamps the break with its reason).
-    if (A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES and rec.get("kind") == "capital"
-            and not capital_in_our_hands(world, court)):
+    if (rec.get("kind") == "capital" and not capital_in_our_hands(world, court)):
         return None
     return rec
 
@@ -914,8 +897,7 @@ def corps_on_the_continent(world, court: str) -> List[str]:
 # Fog-honest (R5): the reading's TRUTH is omniscient (it decides a stance),
 # its WORDS are not — a corps on a province the player sees at PARTIAL or
 # better is named with its province; one out of sight is counted and never
-# placed. The AI has no fog. Lever down = the pre-ruling words exactly.
-NAME_THE_CONTINENTS_HOLDERS = True
+# placed. The AI has no fog.
 
 
 def _holder_in_view(world, location: str, viewer: Optional[str]) -> bool:
@@ -1001,7 +983,7 @@ def admiralty_shut_out_line(world) -> str:
     trade-dominance court out of the Congress of Paris takes, and — the
     ruling — which of her corps keeps the Continent open today. "" where
     the Congress is not armed, or the court is the player's or gone."""
-    if not NAME_THE_CONTINENTS_HOLDERS or not armed(world):
+    if not armed(world):
         return ""
     from backend.display_names import nation_adjective
     from backend.game_logic import naval
@@ -1208,7 +1190,7 @@ def answer(world, court: str, overrides: Optional[Dict] = None) -> Dict[str, Any
                 # Congress's; the coalition's loyalty holds a member to −50):
                 # the table says what the summons WOULD read (review #9/#25).
                 reason += " — it would sue once the Congress sits"
-            if taken and A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES:
+            if taken:
                 # RS-D1: the SUES projection names the road the ruling opened.
                 reason += (f"; a peace that leaves {world.get_nation_capital(court)} "
                            f"in our hands recognizes the order")
@@ -1376,7 +1358,7 @@ def courtship_clause(world, points: int, court: Optional[str] = None,
     """RS-D1: a courtship's cost in TURNS beside its points — " — about 17
     turns at +8 a turn — not within this sitting (7 turns remain)" — so the
     price never prints a road that cannot be walked in time without saying
-    so. '' with the lever down or nothing to court.
+    so. '' with nothing to court.
 
     SF-LB-3 (Score Finish Step 7b, §6.1 item 4): with the `court` named, the
     turns are the ONE stepped road every courtship price reads
@@ -1384,7 +1366,7 @@ def courtship_clause(world, points: int, court: Optional[str] = None,
     clamp and the drift, in the tick's own order), from `start` (today's
     relation by default) to `start + points`; the flat rate remains for a
     quote with no court and for a road the forecast cannot walk (a war)."""
-    if not THE_LEVERS_QUOTE_THEIR_TURNS or int(points) <= 0:
+    if int(points) <= 0:
         return ""
     per = courting_rate(world)
     turns = int(math.ceil(int(points) / float(per)))
@@ -1648,8 +1630,7 @@ def _ports_lever(row: Dict[str, Any], world=None) -> Optional[Dict[str, Any]]:
     need = int(shut.get("needed", 0))
     closed = int(shut.get("closed", 0) or 0)
     total = int(shut.get("total", 0) or 0)
-    if (shut.get("corps_abroad") and world is not None and NAME_THE_CONTINENTS_HOLDERS
-            and row.get("court")):
+    if (shut.get("corps_abroad") and world is not None and row.get("court")):
         drive = _drive_phrase(continent_holders(world, row["court"]))
         if closed >= need:
             text = f"{drive} — {closed} of {total} ports are already shut against her"
@@ -1812,17 +1793,16 @@ def _take_answers(world, first: bool = False) -> Dict[str, Dict[str, Any]]:
     prior = dict(c.get("answers") or {})
     table: Dict[str, Dict[str, Any]] = {}
     turn = _turn(world)
-    if A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES:
-        # RS-D1: the capital latch's breaker, stamped with its reason once
-        # the capital has left our hands (the read is derived; the record
-        # keeps the why).
-        for court, rec in list((c.get("signed") or {}).items()):
-            if (isinstance(rec, dict) and not rec.get("broken")
-                    and rec.get("kind") == "capital"
-                    and not capital_in_our_hands(world, court)):
-                rec["broken"] = {"turn": turn,
-                                 "reason": f"{rec.get('capital') or 'its capital'} "
-                                           f"left our hands"}
+    # RS-D1: the capital latch's breaker, stamped with its reason once
+    # the capital has left our hands (the read is derived; the record
+    # keeps the why).
+    for court, rec in list((c.get("signed") or {}).items()):
+        if (isinstance(rec, dict) and not rec.get("broken")
+                and rec.get("kind") == "capital"
+                and not capital_in_our_hands(world, court)):
+            rec["broken"] = {"turn": turn,
+                             "reason": f"{rec.get('capital') or 'its capital'} "
+                                       f"left our hands"}
     # The courts standing with the peace, updated in logging order so each
     # signature's beat counts only the signatures before it (review #50b).
     standing = {court: (prior.get(court) or {}).get("stance") in SATISFIED
@@ -1912,21 +1892,10 @@ def _shut_out_lapse_reason(world, court: str) -> str:
     """Why the trade-dominance court is no longer shut out, in one clause."""
     reading = _shut_out_reading(world, court)
     abroad = list(reading.get("corps_abroad") or [])
-    if abroad and NAME_THE_CONTINENTS_HOLDERS:
-        # SR5B-D1: the one clause, fog-honest — the old words below placed
-        # every corps, seen or not ("… stand on the Continent at Lisbon").
-        return continent_kept_open_clause(world, court)
     if abroad:
-        from backend.display_names import humanize_entity_name
-        names = [humanize_entity_name(n) for n in abroad[:2]]
-        where = []
-        for name in abroad[:2]:
-            m = (getattr(world, "marshals", {}) or {}).get(name)
-            if m is not None and getattr(m, "location", ""):
-                where.append(str(m.location))
-        tail = f" at {', '.join(sorted(set(where)))}" if where else ""
-        return (f"{' and '.join(names)} stand{'s' if len(names) == 1 else ''} "
-                f"on the Continent{tail}")
+        # SR5B-D1: the one clause, fog-honest — the old words placed every
+        # corps, seen or not ("… stand on the Continent at Lisbon").
+        return continent_kept_open_clause(world, court)
     return (f"only {reading.get('closed', 0)} of {reading.get('total', 0)} ports "
             f"are shut against her ({reading.get('needed', 0)} needed)")
 
@@ -1957,11 +1926,9 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
     if not armed(world):
         return []
     stamped: List[Dict[str, Any]] = []
-    if (THE_UNIVERSAL_MONARCHY and not imperial_peace_signed(world)
-            and no_great_power_stands(world)
-            # Review #17: E1 waits while another court holds the capital or
-            # the Emperor — the order is not "uncontested" from a cell.
-            and _capital_held(world) and _emperor_free(world)):
+    # Review #17: E1 waits while another court holds the capital or the
+    # Emperor — the order is not "uncontested" from a cell.
+    if (not imperial_peace_signed(world) and no_great_power_stands(world) and _capital_held(world) and _emperor_free(world)):
         rec = _proclaim(world, turn_ended, route="universal_monarchy")
         if rec is not None:
             stamped.append(rec)
@@ -1972,11 +1939,9 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
         return stamped
     take_the_signatures(world)
     table = _take_answers(world)
-    if LONDON_FUNDS_THE_REFUSERS:
-        _london_pays(world, table)
-    if THE_CONGRESS_LOWERS_THE_GATE:
-        _the_war_of_the_congress(world, table)
-        table = {court: answer(world, court) for court in great_powers(world)}
+    _london_pays(world, table)
+    _the_war_of_the_congress(world, table)
+    table = {court: answer(world, court) for court in great_powers(world)}
     _latch_shut_out(world, table)
     day = int(turn_ended) - int(c.get("summoned_turn", turn_ended))
     conditions = hold_conditions(world)
@@ -2003,12 +1968,11 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
         return stamped
     # Review #36: an owed bill is presented only to a Congress still sitting
     # after this tick's resolution — never on the tick that ends it.
-    if (c.get("petition_owed") and THE_BILLS_COME_DUE
-            and c.get("status") == SITTING):
+    if (c.get("petition_owed") and c.get("status") == SITTING):
         _collective_petition(world)
     # The stakes double from the sitting's first day (`petition_stakes`),
     # which begins at THIS tick — every standing quote is re-stated to it.
-    if c.get("status") == SITTING and THE_BILLS_COME_DUE:
+    if c.get("status") == SITTING:
         _restate_the_bills(world)
     return stamped
 
@@ -2153,8 +2117,7 @@ def march_blocker(world, court: str) -> str:
     if coalition.get("target_nation") != player:
         from backend.game_logic.coalition import brewing_gate
         brewing = getattr(world, "coalition_brewing", None) or {}
-        if (THE_SUMMONS_NAMES_THE_LOWERED_GATE and brewing
-                and (brewing.get("target_nation") or player) == player):
+        if (brewing and (brewing.get("target_nation") or player) == player):
             # RS-10: a league already brews — the row says when it declares
             # instead of "no coalition stands" while one gathers.
             from backend.display_names import plural
@@ -2351,19 +2314,17 @@ def note_ratification(world, parties: Iterable[str], war_ending: bool,
     that RUNS OUT into peace is not a signature and never latches (the ARMISTICE
     arm's price names the signed peace, the one road that does).
 
-    RS-D1 (`A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES`): a third kind —
-    `capital_kept`, the great powers whose capital the signed peace leaves in
-    the Emperor's bloc (the caller reads the map after the clauses apply).
-    Its latch is `kind: "capital"` naming the capital, and it breaks when the
-    capital leaves the bloc (`_signed_record`). A peace at the table still
-    writes `table`; a cession peace still writes `beaten`. Returns
-    {court: kind} for the latches written here."""
+    RS-D1: a third kind — `capital_kept`, the great powers whose capital the
+    signed peace leaves in the Emperor's bloc (the caller reads the map after
+    the clauses apply). Its latch is `kind: "capital"` naming the capital,
+    and it breaks when the capital leaves the bloc (`_signed_record`). A
+    peace at the table still writes `table`; a cession peace still writes
+    `beaten`. Returns {court: kind} for the latches written here."""
     if not war_ending or not armed(world):
         return {}
     powers = set(great_powers(world))
     beaten_set = set(beaten or ())
-    kept_set = (set(capital_kept or ())
-                if A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES else set())
+    kept_set = (set(capital_kept or ()))
     now_sitting = sitting(world)
     signers = [p for p in (parties or []) if p in powers
                and (now_sitting or p in beaten_set or p in kept_set)]
@@ -2404,8 +2365,8 @@ def recognition_by_capital_preview(world, courts: Iterable[str],
     """RS-D1 on the settlement REVIEW, before the signature: the great powers
     among `courts` whose capital stands in our hands today and which no term
     of the package hands back — each would recognize the order at the
-    Congress by signing. Pure read; '' lines when the lever is down."""
-    if not A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES or not armed(world):
+    Congress by signing. Pure read; no lines where the Congress is not armed."""
+    if not armed(world):
         return []
     try:
         from backend.game_logic.settlement_validation import _territory_term_regions
@@ -2573,7 +2534,7 @@ def note_rebellion(world, vassal_name: str, lord: str,
 def refusal_weight(world, nation: str, against: Optional[str]) -> int:
     """intent._derive_weight: a refuser's want against France rises
     `refuser_weight_per_turn` for every end turn it has refused."""
-    if not THE_CONGRESS_HARDENS_REFUSERS or not against:
+    if not against:
         return 0
     if against != _player(world) or not sitting(world):
         return 0
@@ -2582,7 +2543,7 @@ def refusal_weight(world, nation: str, against: Optional[str]) -> int:
 
 def revanche_weight(world, nation: str, agenda, against: Optional[str]) -> int:
     """A refuser's Revanche (an EMERGENT design) against France hardens."""
-    if not THE_CONGRESS_HARDENS_REFUSERS or not against:
+    if not against:
         return 0
     if against != _player(world) or not sitting(world):
         return 0
@@ -2630,8 +2591,6 @@ def spared_from_coalition(world, nation: str, target: Optional[str]) -> str:
 def coalition_gate(world, target: Optional[str] = None) -> Optional[int]:
     """The coalition's brewing gate against `target` while the Congress sits
     and two great powers refuse — None when the stock gate stands."""
-    if not THE_CONGRESS_LOWERS_THE_GATE:
-        return None
     tgt = target or _player(world)
     if tgt != _player(world) or not sitting(world):
         return None
@@ -2645,8 +2604,6 @@ def refuser_qualifies(world, nation: str, target: Optional[str]) -> bool:
     peace with France qualifies whatever its relation (a court refusing
     out of fear alone would otherwise never march). Treaty partners above
     a pact are not marched out of their alliance."""
-    if not THE_CONGRESS_LOWERS_THE_GATE:
-        return False
     c = getattr(world, "congress", None)
     if not isinstance(c, dict) or c.get("status") != SITTING:
         return False
@@ -2706,7 +2663,7 @@ def _lapse_grudges(world) -> None:
 def peace_dividend(world, nation: Optional[str]) -> float:
     """×1.5 on the reward rail's rentes while the Congress sits — the
     summoner's own bill (GR5: 1.0 for every other court)."""
-    if not THE_BILLS_COME_DUE or nation != _player(world) or not sitting(world):
+    if nation != _player(world) or not sitting(world):
         return 1.0
     return PEACE_DIVIDEND
 
@@ -2720,7 +2677,7 @@ def petition_stakes(world, lord: Optional[str]) -> int:
     40, un-titled its homeland and broke the hold before the sitting began —
     a summons that dissolved itself. Quote == applied either way: a summons-
     turn petition is quoted and lapses on day 0."""
-    if not THE_BILLS_COME_DUE or lord != _player(world) or not sitting(world):
+    if lord != _player(world) or not sitting(world):
         return 1
     if day_of_sitting(world) < 1:
         return 1
@@ -3187,8 +3144,6 @@ def rente_surcharge(world) -> int:
     """What the peace dividend adds to the summoner's standing rente bill a
     turn (review #38: the summons was priced at 2 DP + 1 action while it also
     raised every rente on the books by half, from its own end turn)."""
-    if not THE_BILLS_COME_DUE:
-        return 0
     from backend.game_logic import dotation
     if not dotation.is_dotation_world(world):
         return 0

@@ -37,12 +37,6 @@
  },
  {
   "file": "backend/game_logic/dispatch.py",
-  "old": "    if DISPATCH_TEMPLATES_NAME_THE_NATION:\n        template_vars = _with_nation_forms(template, template_vars)",
-  "new": "    if False:\n        template_vars = _with_nation_forms(template, template_vars)",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/dispatch.py",
   "old": "        return with_definite_article(display_nation(tag))",
   "new": "        return display_nation(tag)",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
@@ -111,12 +105,6 @@
   "file": "backend/game_logic/dispatch.py",
   "old": "            return f\"{who} tears up the {treaty} to do it.\"",
   "new": "            return f\"He tears up the {treaty} to do it.\"",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/dispatch.py",
-  "old": "    who = (display_nation(str(aggressor or \"\")) or \"The aggressor\"\n           if THE_DECLARATION_NAMES_THE_DECLARER else \"He\")",
-  "new": "    who = \"He\"",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
  },
  {
@@ -207,12 +195,6 @@
   "file": "backend/game_logic/coalition.py",
   "old": "        return value is not None and 0 <= turn - int(value) < FRESH_PEACE_FLOOR_TURNS",
   "new": "        return False",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/game_logic/coalition.py",
-  "old": "    if not COALITION_HONOURS_A_FRESH_PEACE:\n        return False\n    turn = int(getattr(world, \"current_turn\", 0) or 0)",
-  "new": "    if COALITION_HONOURS_A_FRESH_PEACE:\n        return False\n    turn = int(getattr(world, \"current_turn\", 0) or 0)",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"
  },
  {

@@ -1,12 +1,5 @@
 [
   {
-    "id": "EPF1-1 the boot-briefing lever down",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "THE_FIRST_MORNING_HAS_A_BRIEFING = True",
-    "new": "THE_FIRST_MORNING_HAS_A_BRIEFING = False",
-    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFirstMorningHasABriefing::test_a_new_campaign_is_born_with_its_briefing"
-  },
-  {
     "id": "EPF1-2 the boot rolls the sabotage",
     "file": "backend/game_logic/dispatch.py",
     "old": "    if not boot:\n        # LV-1: the sabotage-discovery ROLL",
@@ -103,13 +96,6 @@
     "old": "    if getattr(target_world, \"last_morning_dispatch\", None):\n        return\n    _dispatch.build_morning_dispatch",
     "new": "    _dispatch.build_morning_dispatch",
     "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheLoadedTurnIsBriefed::test_a_mid_campaign_save_carries_its_own_briefing"
-  },
-  {
-    "id": "EPF1-16 the courts-at-war lever down",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "ONLY_THE_COURTS_AT_WAR_ARE_COUNTED = True",
-    "new": "ONLY_THE_COURTS_AT_WAR_ARE_COUNTED = False",
-    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheCourtsAtWar::test_the_boot_count_is_the_courts_at_war"
   },
   {
     "id": "EPF1-17 the at-war filter dropped",

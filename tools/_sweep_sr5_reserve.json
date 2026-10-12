@@ -35,13 +35,6 @@
     "tests": "tests/test_sr5_quick_wins.py::TestTheOverrideNamesWhatItSetsAside"
   },
   {
-    "id": "FA-66: the lever is ignored",
-    "file": "backend/game_logic/dispatch.py",
-    "old": "                and FLEET_ACTIONS_LEAD_THE_DISPATCH):",
-    "new": "                and False):",
-    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads"
-  },
-  {
     "id": "FA-66: our loss is never a lead",
     "file": "backend/game_logic/dispatch.py",
     "old": "            if e.get(\"loser\") == player_nation:\n                _add(\"fleet_shattered\"",

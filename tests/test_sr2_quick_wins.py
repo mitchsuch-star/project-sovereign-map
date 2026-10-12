@@ -3,7 +3,9 @@
 
 Every pin binds to the production line it names (`tools/_sweep_sr2_reserve.json`).
 The AAR-16 lever (`FOREIGN_WORKS_NAME_THEIR_OWNER`) was retired in CODE-1
-batch 4 (October 12, 2026); the rule is unconditional.
+batch 4 (October 12, 2026), and the AAR-14 and AAR-13 levers
+(`THE_REMEDY_NAMES_ONLY_OPEN_GROUND`, `THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE`)
+in CODE-1 batch 5 (October 12, 2026); those rules are unconditional.
 """
 import contextlib
 import io
@@ -369,21 +371,16 @@ class TestAAR14TheRemedyNamesOnlyOpenGround:
         _feed(world, monkeypatch, "Rhineland")
         _war(world, "France", "Austria")
         assert "Rhineland" not in _remedy(world)
-        # the pin binds: with the lever down the headroom scan names it
-        monkeypatch.setattr(D, "THE_REMEDY_NAMES_ONLY_OPEN_GROUND", False)
-        assert "Rhineland can feed" in _remedy(world)
 
     def test_an_enemy_corps_on_the_ground_is_the_probe_s_refusal(self, monkeypatch):
         """No second rule: a province with an enemy corps standing on it is
-        refused by the executor's own move probe, lever up or down."""
+        refused by the executor's own move probe."""
         mack = MarshalFactory.enemy(name="Mack", location="Paris",
                                     nation="Austria", strength=20000)
         world = _famine([mack])
         _war(world, "France", "Austria")
         world.get_region_intel("Paris").visibility = FULL
         _feed(world, monkeypatch, "Paris")
-        assert "Paris" not in _remedy(world)
-        monkeypatch.setattr(D, "THE_REMEDY_NAMES_ONLY_OPEN_GROUND", False)
         assert "Paris" not in _remedy(world)
 
     def test_open_ground_is_still_named(self, monkeypatch):
@@ -438,14 +435,6 @@ class TestAAR13TheDangerFlagFollowsTheProvince:
                                 "region": "Paris", "losses": 50,
                                 "cause": "shortage"})
         assert _danger(world, ney).startswith("Crowded — Belgium carries more corps")
-
-    def test_the_lever_down_restores_the_per_marshal_run(self, monkeypatch):
-        monkeypatch.setattr(D, "THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE", False)
-        world, ney = _starved_at_belgium()
-        ney.location = "Paris"
-        assert D._collect_supply_attrition_turns(world) == {"Ney": [5, 6]}
-        assert _danger(world, ney).startswith(
-            "Starving — supply has failed at Paris two turns running")
 
     def test_a_legacy_per_marshal_list_still_reads(self):
         """The fixtures' shape: a bare list is "wherever he was"."""
