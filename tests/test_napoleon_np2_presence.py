@@ -17,8 +17,6 @@ import random as _random
 
 import pytest
 
-import backend.ai.enemy_ai as enemy_ai_module
-import backend.commands.combat_executor as combat_executor_module
 from backend.ai.enemy_ai import EnemyAI, sovereign_fear_factor
 from backend.commands.executor import CommandExecutor
 from backend.game_logic import jealousy
@@ -200,15 +198,6 @@ class TestAuraStampAndRead:
         CE()._calculate_coordination_context(d, w)
         assert d.get_defense_modifier() <= 1.75
 
-    def test_flip_lever_reproduces_pre_slice(self, monkeypatch):
-        monkeypatch.setattr(combat_executor_module,
-                            "SOVEREIGN_PRESENCE_ACTIVE", False)
-        s = make_sovereign()
-        a = make_marshal("Ney", personality="aggressive")
-        w = make_world(s, a)
-        CE()._calculate_coordination_context(a, w)
-        assert getattr(a, "sovereign_presence", 0.0) == 0.0
-
 
 class TestAuraShownEqualsApplied:
     def test_battle_report_rows_both_sides(self):
@@ -366,13 +355,6 @@ class TestFear:
         s = make_sovereign()
         w = make_world(s)
         w.authority_tracker.modify_authority(-80)  # 100 -> 20, grip <= 30
-        assert AI()._evaluate_target_ratio(
-            1.0, s, w) == pytest.approx(1.0)
-
-    def test_flip_lever_reproduces_pre_slice(self, monkeypatch):
-        monkeypatch.setattr(enemy_ai_module, "SOVEREIGN_FEAR_ACTIVE", False)
-        s = make_sovereign()
-        w = make_world(s)
         assert AI()._evaluate_target_ratio(
             1.0, s, w) == pytest.approx(1.0)
 

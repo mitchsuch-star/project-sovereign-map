@@ -857,9 +857,13 @@ def build_instruments_line(world, nation: str) -> Optional[str]:
             f"{display_nation(record.get('protected'))}")
     auction = (getattr(world, "allegiance_auctions", {}) or {}).get(nation)
     if auction:
+        # DD-1 S8 Step 3 (SFR-D40): our standing bid beside the clock.
+        player = getattr(world, "player_nation", "France")
+        bid = int((auction.get("bids") or {}).get(player, 0) or 0)
         pieces.append(
             f"allegiance IN PLAY — resolves turn "
-            f"{int(auction.get('resolves_turn', 0))}")
+            f"{int(auction.get('resolves_turn', 0))}"
+            + (f"; our bid stands at {bid} gold" if bid else ""))
     if not pieces:
         return None
     return "; ".join(pieces)

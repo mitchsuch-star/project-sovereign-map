@@ -37,7 +37,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.main as M
-from backend.ai import enemy_ai as enemy_mod
 from backend.ai.enemy_ai import EnemyAI
 from backend.commands import strategic as strategic_mod
 from backend.commands.executor import CommandExecutor
@@ -647,15 +646,6 @@ class TestTheBrakedCorpsHolds:
         assert not world.ai_failed_action_cooldowns.get("Wellington"), \
             world.ai_failed_action_cooldowns
 
-    def test_the_lever_down_falls_through(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "P0_BRAKED_CORPS_HOLDS", False)
-        world, ai, wel, ney = _engaged_pair()
-        ai._attacked_targets_this_turn = {("Wellington", "Ney")}
-        with _quiet():
-            action, _prio = ai._evaluate_marshal(wel, "Britain", world)
-        assert action is not None, "the pre-round fall-through"
-        assert "Wellington" not in getattr(ai, "_marshals_done_this_turn", set())
-
     def test_an_unbraked_corps_is_untouched(self):
         world, ai, wel, ney = _engaged_pair()
         with _quiet():
@@ -684,23 +674,15 @@ class TestTheFieldIsPricedWhole:
         assert not (action and action.get("action") == "attack"), \
             f"charged a 28,000 field priced as 8,000: {action}"
 
-    def test_the_lever_down_charges_the_mispriced_field(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "P0_PRICES_THE_WHOLE_FIELD", False)
-        world, ai, wel = self._field()
-        with _quiet():
-            action, _prio = ai._evaluate_marshal(wel, "Britain", world)
-        assert action == {"marshal": "Wellington", "action": "attack", "target": "Massena"}
-
 
 class TestTheFutilityBrakeReachesP0:
     """FA-N72's non-stub half: three failures against the same man."""
 
     def test_a_futile_target_is_dropped(self):
         """A 5,000-man defender is one the cautious Wellington ATTACKS
-        without the brake (the lever-down pin below proves it); at 20,000
-        his own ratio check retreats him and the brake is never what
-        stops the blow — the first sweep found the pin inert on that
-        fixture."""
+        below the limit (the pin below proves it); at 20,000 his own ratio
+        check retreats him and the brake is never what stops the blow — the
+        first sweep found the pin inert on that fixture."""
         world, ai, wel, ney = _engaged_pair(defender_strength=5000)
         world.ai_attack_futility["Wellington:Ney"] = ATTACK_FUTILITY_LIMIT
         with _quiet():
@@ -715,14 +697,6 @@ class TestTheFutilityBrakeReachesP0:
             action, _prio = ai._evaluate_marshal(wel, "Britain", world)
         assert action == {"marshal": "Wellington", "action": "attack", "target": "Ney"}
 
-    def test_the_lever_down_ignores_futility(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "P0_READS_FUTILITY", False)
-        world, ai, wel, ney = _engaged_pair(defender_strength=5000)
-        world.ai_attack_futility["Wellington:Ney"] = ATTACK_FUTILITY_LIMIT + 2
-        with _quiet():
-            action, _prio = ai._evaluate_marshal(wel, "Britain", world)
-        assert action == {"marshal": "Wellington", "action": "attack", "target": "Ney"}
-
     def test_p4_reads_the_same_limit(self):
         src = (REPO / "backend/ai/enemy_ai.py").read_text(encoding="utf-8")
         assert "futility.get(key, 0) >= ATTACK_FUTILITY_LIMIT" in src
@@ -732,7 +706,4 @@ class TestTheFutilityBrakeReachesP0:
 class TestTheLeversShip:
 
     def test_all_are_up(self):
-        assert enemy_mod.P0_BRAKED_CORPS_HOLDS is True
-        assert enemy_mod.P0_PRICES_THE_WHOLE_FIELD is True
-        assert enemy_mod.P0_READS_FUTILITY is True
         assert strategic_mod.STANDALONE_DECISION_LIVENESS_ACTIVE is True

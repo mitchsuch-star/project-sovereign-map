@@ -92,15 +92,6 @@ class TestD4TheSpineWarHasAPurpose:
             for obj in objs.values():
                 assert obj["accumulated_ticking"] == 0 and obj["ticking_active"] is False
 
-    def test_lever_down_boots_without_a_purpose(self, monkeypatch):
-        from backend.models import world_state as WS
-        from backend.game_logic.war_status import build_active_wars
-        _flip(monkeypatch, WS, "THE_SPINE_WAR_HAS_A_PURPOSE", False)
-        w = _boot()
-        assert w.war_objectives == {}
-        row = next(r for r in build_active_wars(w)["wars"] if r.get("is_multi_participant_war"))
-        assert row["objective"] is None and row["objective_hint"] == ""
-
     def test_the_client_renders_the_hint(self):
         src = (GD / "war_detail_popup.gd").read_text(encoding="utf-8")
         assert 'w.get("objective_hint", "")' in src
@@ -321,11 +312,6 @@ class TestD19TheDetachmentFeedsStability:
     def test_the_same_rule_serves_austria(self):
         assert self._grow(nation="Austria", province="Bohemia", detachment=3000) == 50
 
-    def test_lever_down_reads_marshals_only(self, monkeypatch):
-        from backend.models import world_state as WS
-        _flip(monkeypatch, WS, "THE_DETACHMENT_FEEDS_STABILITY", False)
-        assert self._grow(detachment=3000) == 45
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-D23 — trust reaches the field
@@ -511,15 +497,6 @@ class TestS2D1TheEnemyWaitsOneTurn:
         ney.pending_interrupt = {"interrupt_type": "last_stand", "marshal": "Ney", "raised_by_ai": True,
                                  "raised_turn": int(world.current_turn) - 1, "location": "Belgium"}
         assert ai._freshly_asked(ney, world) is False
-
-    def test_lever_down_answers_it_in_the_same_phase(self, monkeypatch):
-        from backend.ai import enemy_ai as EA
-        _flip(monkeypatch, EA, "THE_ENEMY_WAITS_ONE_TURN", False)
-        world, ney, ai, ex, results = self._phase()
-        assert ney.captured_by == "Austria" and ney.strength == 0
-        assert ney.pending_interrupt is None
-        attacks = [r for r in results if (r.get("ai_action") or {}).get("action") == "attack"]
-        assert len(attacks) >= 2
 
     def test_the_wait_is_read_where_a_target_is_chosen_never_where_occupancy_is(self):
         """The three target-choosing reads skip him; the occupancy read

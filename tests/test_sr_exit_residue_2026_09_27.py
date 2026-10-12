@@ -157,10 +157,3 @@ class TestASpentCorpsDoesNotShareTheField:
         joins, code = _combat()._muster_reason(
             soult, ney, ney.location, "France", world)
         assert (joins, code) == (False, "broken_recovering")
-
-    def test_lever_down_the_phantom_joiner(self, world, monkeypatch):
-        import backend.commands.combat_executor as CE
-        monkeypatch.setattr(CE, "A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD", False)
-        murat, mack, john = _stage_carniola(world, "retreat_recovery", 1)
-        joining, committed = _combat()._defender_muster(mack, world)
-        assert john in joining and committed > 0

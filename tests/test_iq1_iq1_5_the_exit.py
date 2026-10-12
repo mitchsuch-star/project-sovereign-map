@@ -47,11 +47,7 @@ import pytest
 from backend.game_logic import ledger as L
 from backend.game_logic import instruments as INST
 from backend.game_logic.ledger import NET_GOLD_COMPONENTS
-from backend.models.world_state import (
-    CHARGES_HOARD_FLOOR,
-    WAR_EFFORT_DIVISOR,
-    WorldState,
-)
+from backend.models.world_state import WorldState
 
 SCENARIO = "godot-client/project-sovereign/assets/maps/europe_1805.json"
 DIGESTS = (pathlib.Path(__file__).resolve().parents[1]
@@ -525,10 +521,8 @@ class TestIq151TheStaleQuote:
     red it). ✅ FIXED September 28, 2026 by SR-5a "The chest", which owns the
     row (PB-7): the forecast prices the war-exhaustion term at the value the
     advance's own tick writes before the income phase levies the charge
-    (`coalition.next_war_exhaustion`, the tick's single source;
-    `world_state.THE_FORECAST_PRICES_TOMORROWS_WAR`). The pins now assert the
-    quote IS the levy, and the lever-down arm reproduces the measured stale
-    gap to the gold, so the cause stays named.
+    (`coalition.next_war_exhaustion`, the tick's single source). The pins
+    assert the quote IS the levy.
     """
 
     @staticmethod
@@ -543,12 +537,6 @@ class TestIq151TheStaleQuote:
 
     @pytest.fixture
     def one_turn(self):
-        return self._one_turn()
-
-    @pytest.fixture
-    def stale(self, monkeypatch):
-        from backend.models import world_state as WS
-        monkeypatch.setattr(WS, "THE_FORECAST_PRICES_TOMORROWS_WAR", False)
         return self._one_turn()
 
     def test_every_other_ledger_term_is_exact(self, one_turn):
@@ -566,23 +554,6 @@ class TestIq151TheStaleQuote:
     def test_the_charge_quoted_is_the_charge_levied(self, one_turn):
         quoted, applied, _, _ = one_turn
         assert int(quoted["state_charges"]) == int(applied["state_charges"]) == 1337
-
-    def test_lever_down_the_levy_exceeds_the_quote(self, stale):
-        quoted, applied, _, _ = stale
-        assert int(applied["state_charges"]) > int(quoted["state_charges"])
-        assert int(applied["state_charges"]) - int(quoted["state_charges"]) == 121
-
-    def test_the_cause_is_the_war_exhaustion_tick(self, stale):
-        """Named, not guessed (lever down): the rate itself moves across the
-        advance, and the gap is exactly the chest above the floor times that
-        move."""
-        quoted, applied, rate_before, rate_after = stale
-        assert rate_after > rate_before
-        gap = int(applied["state_charges"]) - int(quoted["state_charges"])
-        chest_above_floor = 40_000 - CHARGES_HOARD_FLOOR
-        predicted = (chest_above_floor * rate_after // WAR_EFFORT_DIVISOR
-                     - chest_above_floor * rate_before // WAR_EFFORT_DIVISOR)
-        assert gap == predicted
 
     def test_the_forecast_reads_the_ticks_own_arithmetic(self):
         from backend.game_logic.coalition import next_war_exhaustion
@@ -606,19 +577,15 @@ class TestIq151TheStaleQuote:
         assert "war_exhaustion" in keys_projected
         assert "war_exhaustion" in keys_after
 
-    def test_the_gap_is_closed_at_every_chest(self, monkeypatch):
+    def test_the_gap_is_closed_at_every_chest(self):
         """Why it mattered more the richer the player was: at the control arm's
         88,556-gold chest the stale quote was worth more than twice what it
-        was at 40,000 (lever down). Fixed, the gap is 0 at both."""
+        was at 40,000. Fixed, the gap is 0 at both."""
         def gap_at(gold):
             quoted, applied, _, _ = self._one_turn(gold)
             return int(applied["state_charges"]) - int(quoted["state_charges"])
 
         assert gap_at(40_000) == 0 and gap_at(88_556) == 0
-        from backend.models import world_state as WS
-        monkeypatch.setattr(WS, "THE_FORECAST_PRICES_TOMORROWS_WAR", False)
-        small, large = gap_at(40_000), gap_at(88_556)
-        assert large > 2 * small > 0
 
 
 # ---------------------------------------------------------------------------

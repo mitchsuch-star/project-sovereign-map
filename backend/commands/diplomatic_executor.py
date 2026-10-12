@@ -135,6 +135,7 @@ def _specify_courts(world) -> str:
 TRANSIT_GATED_EXECUTOR_ACTIONS = frozenset({
     "diplomatic_proposal", "diplomatic_mission", "diplomatic_advisory",
     "diplomatic_error", "diplomatic_break", "diplomatic_downgrade",
+    "diplomatic_ask_return", "diplomatic_bid",
     "diplomatic_declare_war", "diplomatic_ultimatum", "make_amends",
     "repudiate_bargain",
 })
@@ -146,6 +147,8 @@ TRANSIT_GATED_WIZARD_ACTIONS = frozenset({
     "mission_improve_relations", "mission_court", "mission_gather_intel",
     "mission_undermine", "mission_reassure",
     "cancel_mission",
+    # DD-1 S8 Step 3: the two verbs' chips dispatch through the gate too.
+    "ask_return_province", "bid_for_allegiance",
 })
 TRANSIT_DISABLED_REASON = "Talleyrand in transit"
 
@@ -303,8 +306,122 @@ class DiplomaticExecutor:
             return self._execute_make_amends(diplomatic_data, world)
         elif action == "repudiate_bargain":
             return self._execute_repudiate_bargain(diplomatic_data, world)
+        # DD-1 S8 Step 3 — the verbs (October 12, 2026)
+        elif action == "diplomatic_ask_return":
+            return self._execute_diplomatic_ask_return(diplomatic_data, world)
+        elif action == "diplomatic_bid":
+            return self._execute_diplomatic_bid(diplomatic_data, world)
         else:
             return {"success": False, "message": f"Unknown diplomatic action: {action}"}
+
+    # ════════════════════════════════════════════════════════════════
+    # DD-1 S8 Step 3 — THE VERBS (PRE_DEPLOY_PLAN.md §3.1; SYSTEMS_REFERENCE
+    # §109). Both ride the shared road (GR5): the executor resolves the
+    # words and spends the DP; `diplomacy.ask_return_province` and
+    # `ai_diplomacy.place_allegiance_bid` are the act, the AI's too.
+    # ════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _region_named_in(world, raw_text: str, *, not_nation: str = "") -> str:
+        """The province the line names: the LONGEST region name in the text
+        (the `_resolve_region_from_phrase` rule — 'Ile-de-France' beats
+        'France'), never the court's own name."""
+        lowered = (raw_text or "").lower()
+        best = ""
+        for name in world.regions:
+            low = name.lower()
+            if len(low) < 4 or low not in lowered:
+                continue
+            if not_nation and low == not_nation.lower():
+                continue
+            if len(name) > len(best):
+                best = name
+        return best
+
+    def _execute_diplomatic_ask_return(self, diplomatic_data: Dict, world) -> Dict:
+        """SFR-D42: 'ask Spain to return Provence' — a home province of ours
+        an ally holds, asked back. The verdict and the answer are
+        `treaty.can_ask_return` / `ask_return_score`; the act is
+        `diplomacy.ask_return_province` (1 DP when the ask is delivered)."""
+        from backend.game_logic.diplomacy import ask_return_province
+        from backend.game_logic.treaty import home_provinces_held_by
+
+        player = getattr(world, "player_nation", "France")
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            held = []
+            for court in sorted(world.get_active_nations()):
+                if court != player:
+                    for region in home_provinces_held_by(world, player, court):
+                        held.append(f"{region} ({_display_nation(court)})")
+            tail = (f" Our home soil in allied hands: {', '.join(held)}." if held
+                    else " No ally holds a province of ours today.")
+            return {
+                "success": False,
+                "message": (f"Which court shall I ask, Sire — e.g. 'ask Spain to return "
+                            f"Provence'?{tail}"),
+            }
+        raw_text = (diplomatic_data.get("raw_text") or diplomatic_data.get("raw_input")
+                    or "")
+        region = str(diplomatic_data.get("region") or "").strip()
+        if not region:
+            region = self._region_named_in(world, raw_text, not_nation=target_nation)
+        result = ask_return_province(world, player, target_nation, region)
+        if not result.get("asked"):
+            return {"success": False, "message": result.get("message", ""),
+                    "clause": result.get("clause", "")}
+        return {
+            "success": True,
+            "message": f"Talleyrand: \"{result.get('message', '')}\"",
+            "accepted": bool(result.get("accepted")),
+            "region": result.get("region"),
+            "target_nation": target_nation,
+        }
+
+    def _execute_diplomatic_bid(self, diplomatic_data: Dict, world) -> Dict:
+        """SFR-D40: 'bid for Sardinia, 100 gold' — a lump of gold laid before
+        a court whose allegiance is in play. The gate and the act are
+        `ai_diplomacy.allegiance_bid_refusal` / `place_allegiance_bid`; the
+        player pays 1 DP on a placed bid (the D5 instruments' price)."""
+        import re as _re
+        from backend.game_logic.ai_diplomacy import (
+            DEFAULT_ALLEGIANCE_BID, open_allegiance_auctions, place_allegiance_bid,
+        )
+        from backend.game_logic.instruments import INSTRUMENT_DP_COST
+
+        player = getattr(world, "player_nation", "France")
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            open_now = open_allegiance_auctions(world)
+            tail = (f" In play today: {', '.join(_display_nation(c) for c in open_now)}."
+                    if open_now else " No court's allegiance is in play today.")
+            return {
+                "success": False,
+                "message": (f"Which court's allegiance, Sire — e.g. 'bid for Denmark, "
+                            f"{int(DEFAULT_ALLEGIANCE_BID)} gold'?{tail}"),
+            }
+        raw_text = (diplomatic_data.get("raw_text") or diplomatic_data.get("raw_input")
+                    or "")
+        gold = int(DEFAULT_ALLEGIANCE_BID)
+        m = _re.search(r"(\d[\d,]*)\s*(?:gold|g\b|francs?|livres?)", raw_text.lower())
+        if m is None:
+            m = _re.search(r"\b(\d[\d,]*)\b", raw_text)
+        if m:
+            try:
+                gold = int(m.group(1).replace(",", ""))
+            except ValueError:
+                gold = int(DEFAULT_ALLEGIANCE_BID)
+        result = place_allegiance_bid(world, player, target_nation, gold)
+        if not result.get("success"):
+            return {"success": False, "message": result.get("message", "")}
+        world.diplomatic_points = int(getattr(world, "diplomatic_points", 0) or 0) - INSTRUMENT_DP_COST
+        return {
+            "success": True,
+            "message": f"Talleyrand: \"{result.get('message', '')}\"",
+            "target_nation": target_nation,
+            "gold": int(result.get("gold", gold)),
+            "total_bid": int(result.get("total", gold)),
+        }
 
     # ════════════════════════════════════════════════════════════════
     # AI-2b — THE D5 COUNTER-INSTRUMENTS (AI_INTENT_SPEC §6 D5)

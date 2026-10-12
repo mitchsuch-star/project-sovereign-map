@@ -145,11 +145,10 @@ class TestPresenceReachesTheMarchingArmy:
         w = make_world(nap, ney, mack)
         # RS-28: the inputs the aura is derived from, pinned BEFORE the
         # attack — a recurrence of the shard failure names the leaked input
-        # instead of the symptom (grip, the lever, the sovereign's own flag).
-        from backend.commands import combat_executor as _ce
+        # instead of the symptom (grip, the sovereign's own flag; the lever
+        # `SOVEREIGN_PRESENCE_ACTIVE` was retired in CODE-1 batch 4).
         from backend.models.authority import (get_imperial_grip,
                                               sovereign_aura_strength)
-        assert _ce.SOVEREIGN_PRESENCE_ACTIVE is True
         assert nap.is_sovereign, nap.personality
         assert get_imperial_grip(w, "France") == 100, (
             int(w.authority_tracker.authority), w.nation_starting_regions.get("France"))

@@ -493,14 +493,6 @@ class TestB6EndTurnBanner:
                           - ev["admiralty"] - ev["upkeep"])
         assert named_in_phase + int(phase["admin_bonus"]) == int(phase["net"])
 
-    def test_lever_down_the_printed_upkeep_was_never_charged(self, europe, monkeypatch):
-        monkeypatch.setattr(WS, "PLAYER_NEVER_LEAVES_THE_ROSTER", False)
-        _collapse(europe)
-        _res, ev = _end_turn(europe)
-        assert "France" not in europe._income_phase_results
-        assert ev["upkeep"] > 0   # printed from a recompute, never billed
-
-
 # ════════════════════════════════════════════════════════════════════════
 # B7 — the roster fix's economy consequences, at the executor level
 # ════════════════════════════════════════════════════════════════════════
@@ -514,15 +506,6 @@ class TestB7TheLandlessRealmStillPays:
         assert europe._income_phase_results["France"]["upkeep_data"]["total"] > 0
         assert europe.nation_gold["France"] < 0
         assert europe.nation_bankruptcy_turns["France"] == 1
-
-    def test_lever_down_her_army_was_free(self, europe, monkeypatch):
-        monkeypatch.setattr(WS, "PLAYER_NEVER_LEAVES_THE_ROSTER", False)
-        _collapse(europe)
-        europe.nation_gold["France"] = 0
-        _end_turn(europe)
-        assert "France" not in europe._income_phase_results
-        assert europe.nation_gold["France"] >= 0
-        assert europe.nation_bankruptcy_turns.get("France", 0) == 0
 
     def _owe_prussia(self, world):
         world.nation_gold["France"] = 5000
@@ -541,14 +524,6 @@ class TestB7TheLandlessRealmStillPays:
         assert europe.nation_gold["France"] == 4900
         assert europe.nation_gold["Prussia"] == prussia_before + 100
         assert europe.recurring_settlement_payments[0]["turns_remaining"] == 2
-
-    def test_lever_down_the_debt_was_cancelled_as_payer_eliminated(self, europe, monkeypatch):
-        monkeypatch.setattr(WS, "PLAYER_NEVER_LEAVES_THE_ROSTER", False)
-        _collapse(europe)
-        self._owe_prussia(europe)
-        events = process_recurring_settlement_payments(europe)
-        assert [c["reason"] for c in events["cancelled"]] == ["payer_eliminated"]
-        assert europe.nation_gold["France"] == 5000
 
     def test_the_debt_survives_a_whole_end_turn(self, europe):
         _collapse(europe)

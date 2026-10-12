@@ -74,7 +74,6 @@ FIXTURE = ROOT / "tests" / "fixtures" / "playtest_saves" / "fixture_t20_ambient.
 LEVERS = [
     (DM, "MOUNT_OVER_MAIL_ACTIVE"),
     (DM, "PARADOX_SURVIVES_THE_STALE_SWEEP"),
-    (M, "QUESTION_CARRIES_ITS_OWN_MODAL"),
 ]
 
 

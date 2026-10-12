@@ -46,9 +46,7 @@ def child(arm: str, levers: list) -> None:
     def verdict(self, marshal, nation, world, personality, current_region):
         from backend.commands.tactical_executor import drill_refusal
         from backend.game_logic.war_council import get_intent_frontier
-        if not EA.AI_DRILLS_TO_HEAL:
-            why = "lever"
-        elif personality == "literal" and not EA.LITERALS_DRILL_TO_HEAL:
+        if personality == "literal" and not EA.LITERALS_DRILL_TO_HEAL:
             why = "literal"
         elif int(marshal.morale) >= EA.HEAL_MORALE_BELOW:
             why = "morale"

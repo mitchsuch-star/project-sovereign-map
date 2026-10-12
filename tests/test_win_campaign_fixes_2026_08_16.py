@@ -22,7 +22,6 @@ Record: `docs/audits/PLAYTEST_WIN_CAMPAIGN_2026_08_16.md`; rows
 
 import pytest
 
-from backend.ai import enemy_ai as enemy_ai_module
 from backend.ai.enemy_ai import EnemyAI
 
 
@@ -132,17 +131,6 @@ class TestSpoilsOfWar:
         world._marshals[1].location = "Croatia_far"
         assert _ai()._defers_spoils_to_ally(deroy, "Hungary", "Bavaria",
                                                 world) is False
-
-    def test_the_flip_flag_restores_the_old_behaviour(self):
-        """BASELINE_SERIES attribution lever — False must be a no-op."""
-        world, deroy = _world(bavaria_strength=16_000, france_strength=60_000)
-        original = enemy_ai_module.SPOILS_DEFERENCE_ACTIVE
-        try:
-            enemy_ai_module.SPOILS_DEFERENCE_ACTIVE = False
-            assert _ai()._defers_spoils_to_ally(deroy, "Hungary",
-                                                    "Bavaria", world) is False
-        finally:
-            enemy_ai_module.SPOILS_DEFERENCE_ACTIVE = original
 
     def test_the_rule_is_symmetric_not_player_scoped(self):
         """GR5: it reads co-belligerents, so an AI defers to another AI

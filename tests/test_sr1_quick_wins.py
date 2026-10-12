@@ -106,7 +106,11 @@ class TestAAR15AnArmisticeIsAnArmistice:
         types = [e["type"] for e in europe.pending_dispatch_events]
         assert "armistice_ratified" in types and "peace_ratified" not in types
         beat = next(e for e in europe.pending_dispatch_events if e["type"] == "armistice_ratified")
-        assert beat["template_vars"] == {
+        # DD-1 S8 Step 3 (SFR-D28's announce half): the truce's `followers`
+        # sentence rides beside the clock — a string, "" when nobody follows.
+        vars_ = dict(beat["template_vars"])
+        assert isinstance(vars_.pop("followers"), str)
+        assert vars_ == {
             "proposer_nation": "Russia", "target_nation": "France", "other": "Russia",
             "turns": int(ARMISTICE_DURATION), "thaw": int(ARMISTICE_AUTO_PEACE_RELATION)}
 

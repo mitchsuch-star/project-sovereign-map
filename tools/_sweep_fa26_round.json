@@ -28,13 +28,6 @@
   "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_the_end_turn_re_raises_a_question_whose_carrier_never_reached_the_wire tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_question_is_not_minted_twice_while_it_stands"
  },
  {
-  "id": "admin/a the reaper spares an administrative man",
-  "file": "backend/models/world_state.py",
-  "old": "                      and not (ADMINISTRATIVE_EXEMPT_FROM_ATTRITION\n                               and getattr(m, \"administrative\", False))]",
-  "new": "                      and not (False\n                               and getattr(m, \"administrative\", False))]",
-  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_an_administrative_man_survives_the_attrition_sweep"
- },
- {
   "id": "carrier/a the interrupt-resolved battle carries the question",
   "file": "backend/commands/strategic.py",
   "old": "    \"redemption_event\",\n",

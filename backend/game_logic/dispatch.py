@@ -1527,6 +1527,7 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "diplomatic_ai_ai_treaty": ("courts_treaties", 85),
     "diplomatic_auto_downgrade": ("courts_treaties", 80),
     "diplomatic_treaty_signed": ("courts_treaties", 78),
+    "province_returned": ("courts_treaties", 77),
     "diplomatic_relation_shift": ("courts_treaties", 76),
     "paymaster_subsidy": ("courts_purse", 74),
     "design_promoted": ("courts_designs", 72),
@@ -6950,6 +6951,11 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "The allegiance of {nation_display} is in play — every court with gold "
         "or standing now bids for the flip."
     ),
+    # DD-1 S8 Step 3 (SFR-D42) — a home province asked back from an ally.
+    "province_returned": (
+        "{holder_display} hands {region} back to {asker_display} — the liberated "
+        "soil comes home."
+    ),
     # AI-2e §3.7 — the paymaster's gold, made visible.
     "paymaster_subsidy": (
         "{payer_display}'s gold reaches {nation_display} — the subsidy stands at "
@@ -7135,9 +7141,12 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "status_quo_conceded": ("{provinces} — left with {holder} by the peace, "
                             "titled to them by treaty."),
     # SR quick win AAR-15 — a truce is a truce, with its clock and its thaw
+    # DD-1 S8 Step 3 (SFR-D28's announce half): `{followers}` is the truce's
+    # own sentence — the clients it binds, the allies whose wars run on and
+    # our corps on their soil (`diplomacy.truce_followers_line`), or "".
     "armistice_ratified": ("A truce with {other}: the fighting stops for {turns} "
                            "turns — peace if relations heal to {thaw} or better, "
-                           "else the war resumes."),
+                           "else the war resumes.{followers}"),
     # WB-B — war bargain lifecycle
     "bargain_ratified": "{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}.",
     "bargain_triggered": "{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active.",
@@ -7177,6 +7186,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     # subsidy line stays MEDIUM by design.
     "broken_bargain": "HIGH",
     "allegiance_in_play": "HIGH",
+    "province_returned": "HIGH",
     "paymaster_subsidy": "MEDIUM",
     # AI-3/AI-4b (Stage D): beats are EVENTS, exempt from the routine
     # cap (§4.6's v1.2 amendment) — a beat is never collapsed into the

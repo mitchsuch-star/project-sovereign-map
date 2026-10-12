@@ -91,13 +91,6 @@
     "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_a_cooled_crisis_retires_with_a_receipt"
   },
   {
-    "id": "F10 lever down",
-    "file": "backend/models/world_state.py",
-    "old": "THE_LOADED_POPUP_IS_STILL_TRUE = True\n",
-    "new": "THE_LOADED_POPUP_IS_STILL_TRUE = False\n",
-    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheLoadAsksToo::test_a_proclamation_for_a_nation_that_left_the_map"
-  },
-  {
     "id": "F10 the petition is never asked at load",
     "file": "backend/models/world_state.py",
     "old": "            why = petition_retirement_reason(petition, self)\n            if why:\n",

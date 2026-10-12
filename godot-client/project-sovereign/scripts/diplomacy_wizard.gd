@@ -960,6 +960,14 @@ func _build_command(action_id: String, nation: String, action_payload: Dictionar
 			return "buy off " + nation
 		"guarantee_nation":
 			return "guarantee " + nation
+		# DD-1 S8 Step 3 (October 12, 2026) — the verbs. The ask-back's row
+		# carries the province (one chip per home province the ally holds);
+		# the bid's echo names the default sum the backend chip quotes.
+		"ask_return_province":
+			var ask_region = str(action_payload.get("region", ""))
+			return "ask " + nation + " to return " + ask_region
+		"bid_for_allegiance":
+			return "bid for " + nation + ", 100 gold"
 		"propose_armistice":
 			return "propose armistice with " + nation
 		"propose_peace":

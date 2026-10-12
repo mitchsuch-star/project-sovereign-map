@@ -264,7 +264,9 @@ def _wizard_echo_table():
         action_id, arm_body = arm.group(1), arm.group(2)
         ret = re.search(r"return (.+)", arm_body)
         assert ret, action_id
-        echo = eval(ret.group(1), {"nation": "Prussia", "aim": "Austria", "amount": 200, "str": str})
+        echo = eval(ret.group(1), {"nation": "Prussia", "aim": "Austria", "amount": 200, "str": str,
+                                   # DD-1 S8: the ask-back arm's province var
+                                   "ask_region": "Provence"})
         table[action_id] = echo
     assert len(table) >= 20, table
     return table

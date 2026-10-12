@@ -76,21 +76,9 @@ class TestD1RestlessTermNamesItsProvinces:
         assert term["label"].endswith("(+2 more)")
         assert term["label"].count(",") == 2  # three named
 
-    def test_lever_down_reproduces_the_bare_label(self, monkeypatch):
-        from backend.models import world_state as WS
-        _flip(monkeypatch, WS, "THE_RESTLESS_TERM_NAMES_ITS_PROVINCES", False)
-        w = self._restless_world()
-        term = {t["key"]: t for t in w.get_state_charges_rate("France")["terms"]}["restless_interior"]
-        assert term["label"] == "the interior is restless"
-        assert term["regions"] == []
-
-    def test_the_rate_is_the_same_in_both_arms_shown_equals_applied(self, monkeypatch):
-        from backend.models import world_state as WS
+    def test_the_rate_shown_equals_the_rate_applied(self):
         w = self._restless_world()
         up = w.get_state_charges_rate("France")["rate"]
-        _flip(monkeypatch, WS, "THE_RESTLESS_TERM_NAMES_ITS_PROVINCES", False)
-        down = w.get_state_charges_rate("France")["rate"]
-        assert up == down
         assert w.calculate_state_charges("France") == w.calculate_state_charges("France", rate=up)
 
 
@@ -105,17 +93,14 @@ class TestD2CoalitionRowReadsEveryPair:
         assert rows, "the 1805 boot has a coalition war"
         return rows[0]
 
-    def test_boot_row_carries_only_the_declarations_default(self, monkeypatch):
+    def test_boot_row_carries_only_the_declarations_default(self):
         """FA-D4 (Phase 2b) gives every boot pair the declaration's default
         `defense`; the row shows the LEADER pair's, labelled, and nothing
-        named. With D4 down the boot row has no objective at all."""
-        from backend.models import world_state as WS
+        named."""
         w = _boot()
         row = self._coalition_row(w)
         assert row["objective"]["type"] == "defense"
         assert row["objective"]["against"] == row["opponent"]
-        _flip(monkeypatch, WS, "THE_SPINE_WAR_HAS_A_PURPOSE", False)
-        assert self._coalition_row(_boot())["objective"] is None
 
     def test_a_purpose_set_against_a_member_renders_on_the_coalition_row(self):
         w = _boot()

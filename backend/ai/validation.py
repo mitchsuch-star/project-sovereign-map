@@ -71,6 +71,9 @@ VALID_ACTIONS: Set[str] = {
     # Diplomatic actions — Phase 4 (war declaration, ultimatum)
     "diplomatic_declare_war",  # Declare war on a nation
     "diplomatic_ultimatum",    # Issue ultimatum to a nation
+    # DD-1 S8 Step 3 — the verbs (October 12, 2026)
+    "diplomatic_ask_return",   # Ask an ally for a liberated home province back
+    "diplomatic_bid",          # Bid for a court whose allegiance is in play
     # Vassal release (Phase 8 Session 5)
     "release_vassal",          # Release a vassal nation
     # Diplomatic actions — LLM-returned meta-actions (Phase 8 wiring)
@@ -155,6 +158,8 @@ META_ACTIONS: Set[str] = {
     "diplomatic_downgrade",
     "diplomatic_declare_war",
     "diplomatic_ultimatum",
+    "diplomatic_ask_return",
+    "diplomatic_bid",
     # Diplomatic meta-actions (Phase 8 wiring)
     "release_vassal",
     "diplomatic_proposal",
@@ -254,6 +259,9 @@ DIPLOMATIC_ACTION_ALLOWLIST: Set[str] = {
     "propose_common_peace",
     "propose_white_peace",
     "request_terms",
+    # DD-1 S8 Step 3 — the verbs
+    "diplomatic_ask_return",
+    "diplomatic_bid",
     # GE-3: the mock parser's Congress route rides the Cabinet idiom
     # (command_type "diplomatic" + diplomatic_data) — without these two the
     # payload is thrown away here and the parse dies as "Unknown diplomatic

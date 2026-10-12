@@ -16,13 +16,13 @@ weakest enemy"), so the player named Charles and the game fought Mack.
 The rule: a target run that is a NEAR MISS of any enemy on the roster —
 matched omnisciently, answered fog-honestly — takes the ASK arm, naming no
 hidden man and no hidden province; every description the ESP-EV-4 pins cover
-still discloses and proceeds. Lever `combat_executor.A_NEAR_MISS_ASKS`.
+still discloses and proceeds. (Landed under `combat_executor.A_NEAR_MISS_ASKS`,
+retired by CODE-1 batch 4, October 2026.)
 """
 
 import pytest
 from fastapi.testclient import TestClient
 
-import backend.commands.combat_executor as CE
 import backend.main as M
 from backend.commands.parser import CommandParser
 
@@ -112,17 +112,6 @@ class TestANearMissOfARosterNameAsks:
         data = post(client, "Ney, attack Kutuzov")
         assert "no intelligence" in str(data.get("message") or "").lower(), data.get("message")
         assert int(world.actions_remaining) == ap
-
-    def test_the_lever_down_reproduces_the_battle_against_mack(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(CE, "A_NEAR_MISS_ASKS", False)
-        # SF-V4 re-seat: the proper-name ask answers the near miss first at
-        # the dispatch seam, so BOTH levers come down to reproduce the battle.
-        import backend.commands.proper_name as PN
-        monkeypatch.setattr(PN, "A_PROPER_NAME_ASKS", False)
-        data = post(client, "Ney, attack Archduke Charls")
-        assert "marches on Mack" in str(data.get("message") or "") or \
-            data.get("battle_report") or data.get("muster_preview"), data.get("message")
 
 
 # ═══════════════════════════════════════════════════════════════════════

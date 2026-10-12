@@ -1826,6 +1826,9 @@ class CommandParser:
             # Diplomatic actions — Phase 4 (war declaration, ultimatum)
             "diplomatic_declare_war",  # Declare war on a nation
             "diplomatic_ultimatum",    # Issue ultimatum to a nation
+            # DD-1 S8 Step 3 — the verbs (October 12, 2026)
+            "diplomatic_ask_return",   # Ask an ally for a home province back
+            "diplomatic_bid",          # Bid for a court whose allegiance is in play
             # Memory and Pressure v2.4.3 — B-B7 Make Amends (spec §8.6.1)
             "make_amends",
             # WPS-A: Set war purpose for defensive wars

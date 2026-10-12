@@ -960,17 +960,6 @@ class TestTheEngagementRungReadsTheBrakes:
         assert action == {"marshal": "Wellington", "action": "attack",
                           "target": "Ney"}, action
 
-    def test_the_lever_reproduces_the_prior_behaviour(self, monkeypatch):
-        from backend.ai import enemy_ai as enemy_mod
-        monkeypatch.setattr(enemy_mod, "P0_ENGAGEMENT_BRAKES_ACTIVE", False)
-        world, ai, wel, ney = _engaged_pair()
-        ai._attacked_targets_this_turn = {("Wellington", "Ney")}
-        with _quiet():
-            action, prio = ai._evaluate_marshal(wel, "Britain", world)
-        assert action == {"marshal": "Wellington", "action": "attack",
-                          "target": "Ney"}
-        assert prio == 0
-
     def test_the_real_phase_never_attacks_the_same_pair_twice(self):
         """Through `process_nation_turn`: Wellington cannot be re-selected
         against Ney after his first attack in one phase."""
@@ -993,17 +982,15 @@ class TestTheLeversShipTogether:
     the P0 brakes WITHOUT the unanswered-ask resolution leave an immortal
     remnant: the stub latch protects a corps whose re-asked question keeps
     suppressing his retreat, so Lannes, Massena and Ney all survived the
-    40-turn run at a few hundred men each. B is never shipped without A."""
+    40-turn run at a few hundred men each. B is never shipped without A —
+    and the brakes are now unconditional (their lever retired, CODE-1
+    batch 4), so the resolution must stay up."""
 
     def test_brakes_never_ship_without_the_resolution(self):
-        from backend.ai import enemy_ai as enemy_mod
         from backend.commands.combat_executor import CombatExecutor
-        if enemy_mod.P0_ENGAGEMENT_BRAKES_ACTIVE:
-            assert CombatExecutor.LAST_STAND_UNANSWERED_RESOLVES is True
+        assert CombatExecutor.LAST_STAND_UNANSWERED_RESOLVES is True
 
-    def test_all_three_levers_are_up(self):
-        from backend.ai import enemy_ai as enemy_mod
+    def test_the_remaining_levers_are_up(self):
         from backend.commands.combat_executor import CombatExecutor
-        assert enemy_mod.P0_ENGAGEMENT_BRAKES_ACTIVE is True
         assert CombatExecutor.LAST_STAND_UNANSWERED_RESOLVES is True
         assert strategic_mod.STANDALONE_DECISION_LIVENESS_ACTIVE is True

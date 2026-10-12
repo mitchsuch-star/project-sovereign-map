@@ -3,7 +3,10 @@ recon and the session exit filed: AAR4-X1 the captor inherits the garrison,
 AAR24-X1 a gun corps storms the works, AAR24-X2 the counter-punch on an
 assault, AAR24-X3 the unpriced assault objection, AAR10-X1 Rule 12. Rules
 `SYSTEMS_REFERENCE.md` §73.6. Every row reproduced on the shipped 1805 boot
-first; every fix behind its own lever, each class carrying the lever-down arm.
+first; every fix landed behind its own lever, and the world_state /
+combat_executor levers were retired in CODE-1 batch 4 (October 12, 2026 —
+only the objection's `THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES` still
+carries its lever-down arm here).
 """
 
 import contextlib
@@ -86,16 +89,6 @@ class TestTheCaptorRaisesHisOwnGarrison:
         with _quiet():
             world.capture_region("Vienna", "France")
         assert garrison_view(world, "Vienna", "France") == (None, 0)
-
-    def test_lever_down_the_captor_inherits(self, shipped, monkeypatch):
-        import backend.models.world_state as WS
-        monkeypatch.setattr(WS, "CAPTURE_CLEARS_THE_GARRISON", False)
-        _client, world = shipped
-        vienna = world.get_region("Vienna")
-        vienna.garrison_strength = 25000
-        with _quiet():
-            world.capture_region("Vienna", "France")
-        assert vienna.garrison_strength == 25000
 
     def test_a_return_to_the_same_hands_is_no_capture(self, shipped):
         _client, world = shipped
@@ -199,16 +192,6 @@ class TestRuleTwelveIsTheGunsRule:
         join, code = self._reason(world, soult, ney, "Vienna")
         assert join is False and code == "cooldown_spent"
 
-    def test_lever_down_the_guns_share_the_cooldown_row(self, shipped, monkeypatch):
-        import backend.commands.combat_executor as CE
-        monkeypatch.setattr(CE, "GUNS_LIMBERED_SAY_SO", False)
-        _client, world = shipped
-        soult, ney = self._stage(world)
-        soult.artillery = True
-        soult.moved_this_turn = True
-        _join, code = self._reason(world, soult, ney, "Vienna")
-        assert code == "cooldown_spent"
-
 
 # ═══════════════════════════ AAR24-X2 ══════════════════════════════════════
 
@@ -279,14 +262,6 @@ class TestTheCounterPunchRidesTheAssault:
         assert "COUNTER-PUNCH" in r.get("message", ""), r.get("message")
         assert world.actions_remaining == ap
 
-    def test_lever_down_the_insist_road_charges_in_silence(self, shipped, monkeypatch):
-        import backend.commands.combat_executor as CE
-        monkeypatch.setattr(CE, "COUNTER_PUNCH_CREDITS_THE_ASSAULT", False)
-        client, world = shipped
-        r, ap = self._insist(client, world, monkeypatch)
-        assert "COUNTER-PUNCH" not in r.get("message", "")
-        assert world.actions_remaining == ap - 1
-
     def _ai_assault(self, world):
         paris = world.get_region("Paris")
         _clear_field(world, "Paris")
@@ -315,13 +290,6 @@ class TestTheCounterPunchRidesTheAssault:
         result = self._ai_assault(world)
         assert result.get("free_action") is True
         assert result.get("counter_punch_used") is True
-
-    def test_lever_down_the_ai_pays(self, shipped, monkeypatch):
-        import backend.commands.combat_executor as CE
-        monkeypatch.setattr(CE, "COUNTER_PUNCH_CREDITS_THE_ASSAULT", False)
-        _client, world = shipped
-        result = self._ai_assault(world)
-        assert not result.get("free_action")
 
 
 # ═══════════════════════════ AAR24-X3 ══════════════════════════════════════

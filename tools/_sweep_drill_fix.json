@@ -112,24 +112,10 @@
     "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_a_debased_corps_out_of_reach_drills_before_it_fortifies"
   },
   {
-    "id": "the shock drill ignores the reach",
-    "file": "backend/ai/enemy_ai.py",
-    "old": "        if AI_DRILL_READS_THE_REACH:\n            threat = drill_reach_threat(world, marshal)",
-    "new": "        if False:\n            threat = drill_reach_threat(world, marshal)",
-    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheShockDrillReadsTheReach"
-  },
-  {
     "id": "a drilling corps is evaluated again the same phase",
     "file": "backend/ai/enemy_ai.py",
     "old": "                    and result.get(\"success\")):\n                self._marshals_done_this_turn.add(selected_action[\"marshal\"])",
     "new": "                    and result.get(\"success\")):\n                pass",
     "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheDaysWork"
-  },
-  {
-    "id": "the aggressive default orders the drilling corps a stance",
-    "file": "backend/ai/enemy_ai.py",
-    "old": "        if (EVERY_DEFAULT_LEAVES_THE_DRILL and DRILLING_CORPS_IS_LEFT_TO_DRILL\n                and _corps_is_drilling(marshal)):",
-    "new": "        if False:",
-    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestEveryDefaultLeavesTheDrill"
   }
 ]

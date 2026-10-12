@@ -63,20 +63,6 @@
   "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheRecoveringCorpsHoldsNoGround::test_the_lever_down_reproduces_the_annexation"
  },
  {
-  "id": "A/a the AI lever defaults to the pre-fix position",
-  "file": "backend/ai/enemy_ai.py",
-  "old": "RECOVERING_AI_CORPS_TAKES_NO_GROUND = True",
-  "new": "RECOVERING_AI_CORPS_TAKES_NO_GROUND = False",
-  "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheAiCaptureRungsReadTheWindow"
- },
- {
-  "id": "A/b the capture predicate drops its recovery arm",
-  "file": "backend/ai/enemy_ai.py",
-  "old": "        if EnemyAI._corps_is_limited(marshal):\n            return True\n        if not RECOVERING_AI_CORPS_TAKES_NO_GROUND:\n            return False\n        in_recovery = getattr(marshal, \"in_retreat_recovery\", None)\n        return bool(in_recovery()) if callable(in_recovery) else False",
-  "new": "        return EnemyAI._corps_is_limited(marshal)",
-  "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheAiCaptureRungsReadTheWindow"
- },
- {
   "id": "A/c the P-1 rung goes back to the narrow limiter",
   "file": "backend/ai/enemy_ai.py",
   "old": "                and not self._corps_takes_no_ground(marshal)\n                and world.is_at_war(nation, current_region.controller)):",
@@ -89,13 +75,6 @@
   "old": "        if (marshal.name in self._pending_intents\n                and not self._corps_takes_no_ground(marshal)):",
   "new": "        if (marshal.name in self._pending_intents\n                and not self._corps_is_limited(marshal)):",
   "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheAiCaptureRungsReadTheWindow::test_a_stored_capture_intent_is_not_executed_by_a_recovering_corps"
- },
- {
-  "id": "A/e the LIMITER is widened to the recovery window (REPRO_L's own recommendation, the flight dies)",
-  "file": "backend/ai/enemy_ai.py",
-  "old": "        if getattr(marshal, \"retreated_this_turn\", False):\n            return True\n        return BROKEN_AI_CORPS_IS_LIMITED and bool(getattr(marshal, \"broken\", False))",
-  "new": "        if getattr(marshal, \"retreated_this_turn\", False) or marshal.in_retreat_recovery():\n            return True\n        return BROKEN_AI_CORPS_IS_LIMITED and bool(getattr(marshal, \"broken\", False))",
-  "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheAiCaptureRungsReadTheWindow::test_the_recovery_flight_itself_stays_legal tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestThePredicateIsTheMarshalsOwn::test_the_limiter_itself_was_not_widened"
  },
  {
   "id": "D/a card XIII promises a future blow again",

@@ -175,20 +175,6 @@
     "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_the_dispatch_line_names_eight"
   },
   {
-    "id": "EPF1-27 the fog lever down",
-    "file": "backend/main.py",
-    "old": "THE_FOG_IS_ONE_SENTENCE = True           # LV-13",
-    "new": "THE_FOG_IS_ONE_SENTENCE = False          # LV-13",
-    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFogIsOneSentence::test_nine_fogged_courts_are_one_line"
-  },
-  {
-    "id": "EPF1-28 one court collapsed too",
-    "file": "backend/main.py",
-    "old": "if THE_FOG_IS_ONE_SENTENCE and len(_names) > 1:",
-    "new": "if THE_FOG_IS_ONE_SENTENCE:",
-    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFogIsOneSentence::test_one_fogged_court_keeps_its_own_sentence"
-  },
-  {
     "id": "EPF1-29 the world swap prints no briefing",
     "file": "godot-client/project-sovereign/scripts/main.gd",
     "old": "\tif briefing is Dictionary and not briefing.is_empty():\n\t\t_display_morning_dispatch(briefing)",

@@ -3141,6 +3141,129 @@ def follow_the_lord(world, nation_a: str, nation_b: str, new_state: str,
     return moved
 
 
+def allies_whose_war_runs_on(world, speaker: str, counterpart: str) -> List[Dict]:
+    """DD-1 S8 Step 3 (SFR-D28's announce half, October 12, 2026): the
+    courts a truce between `speaker` and `counterpart` does NOT bind — the
+    speaker's ALLIES (never its clients, who follow the lord per §107.1) still
+    at WAR with the counterpart or with one of the counterpart's clients —
+    each with the speaker's corps standing on its soil, the corps the truce
+    leaves there. Pure read; one row per ally."""
+    if not speaker or not counterpart:
+        return []
+    other_side = [counterpart] + _clients_of(world, counterpart)
+    rows: List[Dict] = []
+    for ally in sorted(world.get_active_nations()):
+        if ally in (speaker, counterpart):
+            continue
+        if world.get_diplomatic_state(speaker, ally) not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            continue
+        if world._top_overlord(ally) == speaker:
+            continue      # a client follows the lord (§107.1); it is named by the clients line
+        enemies = [c for c in other_side if world.is_at_war(ally, c)]
+        if not enemies:
+            continue
+        corps = [m.name for m in world.marshals.values()
+                 if getattr(m, "nation", None) == speaker
+                 and getattr(m, "location", None) in world.regions
+                 and world.regions[m.location].controller == ally
+                 and int(getattr(m, "strength", 0) or 0) > 0]
+        rows.append({"ally": ally, "enemies": enemies, "corps": sorted(corps)})
+    return rows
+
+
+def truce_followers_line(world, speaker: str, counterpart: str) -> str:
+    """The truce's own sentence, said on the armistice's confirm, the
+    incoming letter and the morning dispatch: which satellites the truce
+    BINDS (`clients_following_line`, the lord's clients follow him) and
+    which allies' wars it LEAVES RUNNING, with the speaker's corps that
+    stand on that ally's soil under the truce. Empty when nobody follows
+    and nobody fights on."""
+    from backend.display_names import nation_adjective as _adj
+    from backend.game_logic.formations import formed_display_name as _fdn
+    parts: List[str] = []
+    binds = clients_following_line(world, speaker, counterpart, "ARMISTICE", speaker)
+    if binds:
+        parts.append(binds)
+    for row in allies_whose_war_runs_on(world, speaker, counterpart):
+        ally = _fdn(world, row["ally"])
+        enemies = ", ".join(_fdn(world, e) for e in row["enemies"])
+        n = len(row["corps"])
+        if n:
+            corps = (f"{n} {_adj(speaker)} corps stand{'s' if n == 1 else ''} on "
+                     f"{_adj(row['ally'])} soil under the truce")
+        else:
+            corps = f"no corps of ours stands on {_adj(row['ally'])} soil"
+        parts.append(f"{ally} stays at war with {enemies} — an ally, not a client: "
+                     f"her war runs on, and {corps}.")
+    return " ".join(parts)
+
+
+def ask_return_province(world, asker: str, holder: str, region: str, *,
+                        charge_dp: bool = True) -> Dict:
+    """DD-1 S8 Step 3 (SFR-D42, October 12, 2026): `asker` asks its ally
+    `holder` for `region` — a home province of the asker's the ally holds —
+    back. ONE road for the player's typed verb, the chip under the ally's
+    card and the AI's own ask-back tick (GR5): the verdict
+    (`treaty.can_ask_return`) says whether the ask can be made and names
+    the clause when not; the formula (`treaty.ask_return_score`) is the
+    court's answer. A delivered ask costs the asker 1 DP whatever the
+    answer (the player's `diplomatic_points`; an AI court's `nation_dp`
+    when it holds any — the sponsor rung's own rule). A grant moves the
+    province exactly as a treaty cession does (controller, stability 50,
+    the title record — popped, since a home province is title by
+    construction) and leaves ONE log event either way, `province_returned`
+    with its `outcome`."""
+    from backend.game_logic import game_end as _ge
+    from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.game_logic.treaty import (
+        ASK_RETURN_DP_COST, ask_return_score, ask_return_words, can_ask_return,
+    )
+    verdict = can_ask_return(world, asker, holder, region, charge=charge_dp)
+    if not verdict.ok:
+        return {"success": False, "asked": False, "accepted": False,
+                "message": verdict.message, "clause": verdict.clause,
+                "target_nation": holder}
+    player = getattr(world, "player_nation", "France")
+    if charge_dp:
+        if asker == player:
+            world.diplomatic_points = int(getattr(world, "diplomatic_points", 0) or 0) - ASK_RETURN_DP_COST
+        else:
+            nation_dp = getattr(world, "nation_dp", {}) or {}
+            if int(nation_dp.get(asker, 0) or 0) >= ASK_RETURN_DP_COST:
+                nation_dp[asker] = int(nation_dp.get(asker, 0)) - ASK_RETURN_DP_COST
+                world.nation_dp = nation_dp
+    answer = ask_return_score(world, asker, holder, region)
+    words = ask_return_words(world, asker, holder, region, answer)
+    accepted = bool(answer.get("accepts"))
+    if accepted:
+        region_obj = world.regions[region]
+        region_obj.controller = asker
+        region_obj.stability = 50
+        if hasattr(world, "invalidate_active_nations_cache"):
+            world.invalidate_active_nations_cache()
+        _ge.record_province_title(world, region, _ge.TITLE_TREATY, holder, asker)
+    event = {
+        "type": "province_returned",
+        "nation": asker, "target_nation": holder, "region": region,
+        "outcome": "returned" if accepted else "refused",
+        "score": int(answer.get("score") or 0),
+        "shortfall": int(answer.get("shortfall") or 0),
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+    }
+    world.log_event(event)
+    if accepted:
+        from backend.game_logic.formations import formed_display_name as _fdn
+        queue_dispatch_event(world, "province_returned", {
+            "nation": asker, "target_nation": holder, "region": region,
+            "asker_display": _fdn(world, asker), "holder_display": _fdn(world, holder),
+            "outcome": event["outcome"],
+        }, "always")
+    return {"success": True, "asked": True, "accepted": accepted,
+            "message": words, "event": event, "target_nation": holder,
+            "region": region, "score": int(answer.get("score") or 0),
+            "shortfall": int(answer.get("shortfall") or 0)}
+
+
 def clients_following_line(world, nation_a: str, nation_b: str,
                            new_state: str, speaker: str) -> str:
     """The offer surface's sentence from `speaker`'s chair: 'Our clients
@@ -4726,6 +4849,9 @@ def build_war_context_snapshot(
         "commitment_conflicts": get_peace_commitment_conflicts(
             world, player_nation, target_nation, effective_terms.get("clauses", []),
             incoming=incoming,
+            # DD-1 S8 Step 3 (SFR-D28's announce half): a truce names the
+            # allies whose wars it leaves running, with our corps on their soil.
+            truce=str(proposal_type).startswith("armistice"),
         ),
     }
 
@@ -5100,7 +5226,7 @@ def build_peace_ratification_summary(
 
 def get_peace_commitment_conflicts(
     world, proposer: str, target: str, clauses: List[Dict],
-    incoming: bool = False,
+    incoming: bool = False, truce: bool = False,
 ) -> List[Dict]:
     """BPH-C §10.1: Check for commitment conflicts created by a peace proposal.
 
@@ -5114,11 +5240,20 @@ def get_peace_commitment_conflicts(
     it stops nothing — so on that road the label says what the road does:
     a WARNING naming the ally that fights on alone. The clients that
     follow the lord out of the war (SR-1b) are named beside it.
+
+    `truce` (DD-1 S8 Step 3, SFR-D28's announce half): the offer is an
+    ARMISTICE. A truce carries no contradiction (the send road exempts it),
+    so the paradox arm is not a stop here but the truce's own WARNING: the
+    ally whose war the truce LEAVES RUNNING, with our corps that stand on
+    her soil under it (`allies_whose_war_runs_on`) — the sentence the
+    armistice's confirm, the incoming letter and the dispatch all say.
     """
     conflicts: List[Dict] = []
 
     # Paradox: proposer allied with nation X, and X is at war with target
     all_nations = world.get_active_nations()
+    _runs_on = ({row["ally"]: row for row in allies_whose_war_runs_on(world, proposer, target)}
+                if truce else {})
     for nation in all_nations:
         if nation == proposer or nation == target:
             continue
@@ -5128,6 +5263,26 @@ def get_peace_commitment_conflicts(
             continue
         target_key = world._make_diplo_key(nation, target)
         if world.diplomatic_states.get(target_key, "PEACE") != "WAR":
+            continue
+        if truce:
+            row = _runs_on.get(nation) or {"ally": nation, "enemies": [target], "corps": []}
+            from backend.display_names import nation_adjective as _adj
+            from backend.game_logic.formations import formed_display_name as _fdn
+            n = len(row["corps"])
+            corps = (f"{n} {_adj(proposer)} corps stand{'s' if n == 1 else ''} on "
+                     f"{_adj(nation)} soil under the truce" if n
+                     else f"no corps of ours stands on {_adj(nation)} soil")
+            conflicts.append({
+                "conflict_type": "war_runs_on",
+                "severity": "WARNING",
+                "affected_entity": nation,
+                "display": (f"{_fdn(world, nation)} stays at war with "
+                            f"{', '.join(_fdn(world, e) for e in row['enemies'])} under "
+                            f"this truce — an ally, not a client: her war runs on, and "
+                            f"{corps}."),
+                "detail": {"ally": nation, "enemies": list(row["enemies"]),
+                           "corps": list(row["corps"])},
+            })
             continue
         if incoming:
             from backend.game_logic.formations import formed_display_name as _fdn
@@ -12694,6 +12849,9 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
+        # DD-1 S8 Step 3 (SFR-D42): the ask-back, one chip per home
+        # province this ally holds — under the ally's card, the verdict's.
+        actions.extend(_ask_return_actions(world, player, target_nation))
         # IQ-4 §1.4: beside IMPROVE (+8) at the same 1 DP, REASSURE (+4) was
         # never the right choice here. ALLIANCE keeps it — its unique cell.
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
@@ -12728,6 +12886,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         # belligerent — the armistice thaw and the settlement table are the
         # war-time levers). Absent by design, not by accident.
         actions.append(_mission_action("mission_reassure", "Reassure Ally", "REASSURE_ALLY"))
+        # DD-1 S8 Step 3 (SFR-D42): the ask-back under the ally's card.
+        actions.extend(_ask_return_actions(world, player, target_nation))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
         # PL-14: Ultimatums available for any non-war, non-vassal target
@@ -12748,6 +12908,9 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     # or in another court's war alike; the executor's own gates are
     # mirrored here so a disabled chip always names its reason).
     actions.extend(_instrument_actions(world, player, target_nation))
+    # DD-1 S8 Step 3 (SFR-D40): the bid, when this court's allegiance is in
+    # play — the auction's chip, read from the same gate the verb refuses on.
+    actions.extend(_bid_actions(world, player, target_nation))
 
     # DPF-2: Cancel mission — only if active mission targets THIS nation
     # (single source shared with the vassal branch, WO-D2/G1 contract 8).
@@ -12756,6 +12919,80 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_tail_cancel_row)
 
     return _mirror_transit_gate(actions)
+
+
+def _ask_return_actions(world, player: str, target_nation: str) -> List[Dict]:
+    """DD-1 S8 Step 3 (SFR-D42): one `ask_return_province` chip per home
+    province of ours this ally holds, availability from the ONE verdict
+    (`treaty.can_ask_return`) and the likelihood from the ONE formula
+    (`treaty.ask_return_score`) — the same two the typed verb and the AI's
+    tick read, so a chip never promises what the ask would refuse. The row
+    carries `region` for the wizard's echo ("ask Spain to return Provence")."""
+    from backend.game_logic.treaty import (
+        ASK_RETURN_DP_COST, ask_return_score, can_ask_return, home_provinces_held_by,
+    )
+    rows: List[Dict] = []
+    for region in home_provinces_held_by(world, player, target_nation):
+        verdict = can_ask_return(world, player, target_nation, region)
+        answer = ask_return_score(world, player, target_nation, region)
+        score = int(answer.get("score") or 0)
+        if score >= 70:
+            likelihood = "Almost Certain"
+        elif answer.get("accepts"):
+            likelihood = "Favorable"
+        elif score >= 20:
+            likelihood = "Unlikely"
+        else:
+            likelihood = "Hopeless"
+        row = {
+            "action": "ask_return_province",
+            "display_name": f"Ask for {region} Back",
+            "region": region,
+            "dp_cost": int(ASK_RETURN_DP_COST),
+            "available": bool(verdict.ok),
+            "disabled_reason": "" if verdict.ok else str(verdict.message or ""),
+            "disabled_reason_display": "" if verdict.ok else str(verdict.message or ""),
+            "likelihood": likelihood,
+            "likelihood_score": score,
+            "shortfall": int(answer.get("shortfall") or 0),
+        }
+        if not verdict.ok:
+            row["closed_clause"] = verdict.clause
+        rows.append(row)
+    return rows
+
+
+def _bid_actions(world, player: str, target_nation: str) -> List[Dict]:
+    """DD-1 S8 Step 3 (SFR-D40): the `bid_for_allegiance` chip, shown only
+    while this court's allegiance is IN PLAY (`world.allegiance_auctions`),
+    its gates the executor's own (`ai_diplomacy.allegiance_bid_refusal`):
+    at war with the court, the chest, the DP. The default sum is the typed
+    verb's (`DEFAULT_ALLEGIANCE_BID`); the row carries our standing bid."""
+    from backend.game_logic.ai_diplomacy import (
+        DEFAULT_ALLEGIANCE_BID, allegiance_bid_refusal,
+    )
+    record = (getattr(world, "allegiance_auctions", {}) or {}).get(target_nation)
+    if not record:
+        return []
+    from backend.game_logic.instruments import INSTRUMENT_DP_COST
+    why = allegiance_bid_refusal(world, player, target_nation, DEFAULT_ALLEGIANCE_BID)
+    standing = int((record.get("bids") or {}).get(player, 0) or 0)
+    effect = (f"The flip resolves on turn {int(record.get('resolves_turn', 0) or 0)}"
+              + (f" — our bid stands at {standing} gold" if standing else
+                 " — relations and standing patronage weigh beside the gold"))
+    return [{
+        "action": "bid_for_allegiance",
+        "display_name": "Bid for Their Allegiance",
+        "dp_cost": int(INSTRUMENT_DP_COST),
+        "gold_cost": int(DEFAULT_ALLEGIANCE_BID),
+        "available": not why,
+        "disabled_reason": why or "",
+        "disabled_reason_display": why or "",
+        "effect_text": effect,
+        "likelihood": "",
+        "standing_bid": standing,
+        "resolves_turn": int(record.get("resolves_turn", 0) or 0),
+    }]
 
 
 def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:

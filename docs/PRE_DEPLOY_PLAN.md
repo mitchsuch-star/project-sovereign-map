@@ -71,7 +71,7 @@ three resolutions. The head of every session from S2 on takes one lever batch
 | S5–S6 (▶ IN PROGRESS: **the head, CODE-1 batch 3, ✅ LANDED October 11, 2026** — 66 of the four files' 78 levers retired, 12 October ones kept; levers 562 → 496; record `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3, which also files batch 5 for the 116 levers in the game_logic modules over 3,000 lines the plan had left unnamed; **DD0-20 ✅ LANDED the same day** — the seventh set re-read 255 → 294 of 300 by hand keyless (98.0 %), keyed 281 → 296, 0 executed-other-than-meant (§3.0 "DD-0 S5 landing record"); **DD-1 S6 THE INSTRUMENT ✅ LANDED October 11, 2026** — the sign-ability sweep (A = 11, B = 2), the treaty fuzzer (81 distinct violations in 7 classes over 10 × 1,000) and the answer-binding shuffle (4 misbinds, one class) built and read, DD1-1 … DD1-12 filed (§3.1 "DD-1 S6 landing record"); **Step 2 the structural fix ▶ NEXT**) | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
 | ~~S7~~ (✅ **STRUCK October 11, 2026** — **Slice A LANDED** the same day: one exit for a pair, DD1-5 … DD1-11 fixed, the fuzzer **81 → 0** over 10 × 1,000 + the smoke seed, the shuffle **4 → 0** over 312 rows (§3.1 "DD-1 S7 landing record, Slice A"; rules §107); **Slice B LANDED** after the review pause: `treaty.can_sign` the ONE verdict read by every surface AND the ratifier, DD1-1 … DD1-4 + DD1-12 + SFR-B1 / B2 / B5 / D34 fixed, **the sweep 11 / 2 → 0 / 0** on every committed arm and the three seeds, the diplomacy pillar re-read 8.5 (§3.1 "DD-1 S7 landing record, Slice B"; rules `SYSTEMS_REFERENCE.md` §108). **DD-1 Step 3 the verbs = S8's head**; CODE-3 + DD-C = S7b) | **DD-1 Step 2 THE STRUCTURAL FIX** | Slice A: `cleanup_war_end` the one exit (every road restamps the instance), the client rule on ENTRY, the re-entry's stamps, the purpose on re-war, the round trip's three producers, the declaration's words, the display map's nouns. Slice B: `treaty.can_sign(world, letter) → Verdict` read by every surface AND the ratifier; DD1-1 … DD1-4 + DD1-12 + SFR-B1 / B2 / B5 / D34; the sweep 11 / 2 → 0 / 0 | 1.0 | DD-1 was sized 1.5 sessions; Step 2 takes this slot and the rows below move one down. |
 | S7b | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
-| S8 | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
+| ~~S8~~ ✅ **TAKEN by DD-1 Step 3 THE VERBS — LANDED October 12, 2026** (§3.1 "DD-1 S8 landing record": `ask <ally> to return <province>`, `bid for <court>`, the truce's followers announced — SFR-D42 / D40 / D28 FIXED, rules `SYSTEMS_REFERENCE.md` §109, pins `tests/test_dd1_s8_the_verbs.py`; the head **CODE-1 batch 4**, levers 496 → 429, `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 4). **CODE-2a moves one down; S7b (CODE-3 + DD-C) is NEXT, CODE-1 batch 5 at its head.** | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
 | S9 | **UXR-2** | The layout law: every panel anchors to a viewport fraction or clamps; a grip on the five big screens; the tutorial card resizable and theme-sized; the 268 font-size overrides reduced to named theme sizes | 1.0 | "Only some boxes are adjustable." |
 | S10 | **CODE-2b** | The monster functions the two deep dives did not absorb: `execute_command`, `format_event_oneliner`, `_execute_strategic_command` (one each, as S8) | 1.0 each | DD-0 takes `_parse_with_mock_chain` + `_execute_one`; DD-1 takes `_process_dialogue_choice` + `_ratify_treaty`. |
 | S11 | **UXR-3** | The look-and-feel review: every surface scored on the 8-item UX checklist at three resolutions, by three blind readers, fixes filed | 1.0 | The "full look feel ux review." Needs UXR-0's frames. |
@@ -860,7 +860,116 @@ lever, no re-score, no new serialized field; `BASELINE_SERIES` byte-identical.*
 - **S8's head:** Step 3 the verbs — `ask <ally> to return <province>`
   (SFR-D42), `bid for <court>` (SFR-D40), the truce's followers announced
   (SFR-D28's announce half); then CODE-3 + DD-C (S7b). CODE-1 batch 4 / 5
-  ride the heads after DD-1.
+  ride the heads after DD-1. ✅ **S8 LANDED October 12, 2026 — the record
+  below.**
+
+#### DD-1 S8 landing record, Step 3 — the verbs (October 12, 2026)
+
+*Step 3: the three verbs the depth campaign reached for and could not touch,
+each through the shared executor (GR5), a corpus row and a wizard chip, each
+reading ONE verdict the way `can_sign` taught. Rules `SYSTEMS_REFERENCE.md`
+§109; rows `BUG_FIXES.md` SFR-D42 / SFR-D40 / SFR-D28 FIXED (SFR-D28's entry
+half was Slice A's DD1-8); pins `tests/test_dd1_s8_the_verbs.py` (37); seven
+corpus rows `dd1-s8-*`; `backend/ai/routed_order_words.py` regenerated (+7
+words: asks, bid, bids, demands, enter, outbid, requests — `tell` / `urge`
+left out of the ask regex: as routed order words they turned CRT-3's
+"well then tell me why not retreat" from a question into an order); the
+sweep's chip poll widened to the two new chips (`tools/sign_ability_sweep.py`
+`VERB_CHIPS` / `dry_verb_chip`), its committed records UNCHANGED (no arm shows
+either chip: no home province is ally-held and no auction opens on the nine
+arms or the quick seed — A 0 / B 0 re-read); the fuzzer and the shuffle 0;
+`BASELINE_SERIES` + M1–M7 byte-identical with no re-record; two `.gd` edits
+(the wizard's two echoes; the Cabinet door's court-gated keywords in
+`main.gd`, so a typed ask-back or bid is claimed by the wizard like every
+other diplomatic order — WO slice 7's ruling; the Godot parse report
+regenerated). The session's head was CODE-1 batch 4
+(`CODE_HEALTH_PLAN.md` §CODE-1 BATCH 4): levers 496 → 429.*
+
+- **`ask <ally> to return <province>` (SFR-D42).** `treaty.can_ask_return(world,
+  asker, holder, region) → Verdict` is the ONE gate — the clause in words
+  when the ask cannot be made: no province named (the ones the ally holds
+  listed), unknown, not our home soil, already ours, not held by that court,
+  not an ally (the state named), the holder's own live war purpose on it, no
+  DP; `treaty.ask_return_score` is the ONE answer, the acceptance formula for
+  a return (the relation between the courts, +25 fighting beside us against a
+  common enemy, −income // 10 and −20 more for a capital, +15 when the ally
+  took it from OUR enemy — the liberator's road, −40 when it took it from us;
+  granted at 40). `diplomacy.ask_return_province` is the act: a delivered
+  ask costs 1 DP whatever the answer (the player's pool; an AI court's
+  `nation_dp` when it holds any — the sponsor rung's rule); a grant moves
+  the province exactly as a treaty cession does (controller, stability 50,
+  the title record — popped, a home province being title by construction);
+  ONE log type `province_returned` with its `outcome`, the dispatch beat on a
+  grant. Read by the chip under the ally's card (`_ask_return_actions`, one
+  per home province the ally holds, `region` on the row, the likelihood from
+  the formula), the typed road (`diplomatic_ask_return` — the ask-verb
+  regex `_asks_a_province_back`, read before the mission and proposal arms
+  that swallowed it; the province resolved from the raw text by the longest
+  region name) and the AI's own tick (`ai_diplomacy.process_province_returns`,
+  GR5: a court asks its ally only when the formula says the ally would
+  grant — boot-dormant, pinned; the series unmoved).
+- **`bid for <court>` (SFR-D40).** `ai_diplomacy.allegiance_bid_refusal` is
+  the ONE gate (no auction open — the court named and the ones in play
+  listed; at war with it; no sum; the chest; the DP), `place_allegiance_bid`
+  the act: the gold moves to the minor's chest at once (a gift, not a bond),
+  the bid is recorded on the auction (`bids[suitor]`, cumulative, in the
+  save — `SAVE_FORMAT_REFERENCE.md`) and weighed at the resolution as
+  `gold // AUCTION_SPONSORSHIP_LEAN_DIVISOR` beside relations and standing
+  patronage (100 gold = ten turns of a 10 g/turn subsidy); a bidder is a
+  suitor by that act. The typed road (`diplomatic_bid`, `_bids_for_a_court`;
+  the sum from the raw text, `DEFAULT_ALLEGIANCE_BID` 100 when none), the
+  chip on the court's card (`_bid_actions`, shown only while the auction is
+  open) and the chip on the auction's own notice (`action_command` on the
+  flip announcement — the dotation / recall idiom); the Admiralty-style
+  ledger line names our standing bid. No AI court bids in v1 (its standing
+  patronage is its bid, §12.6) — the function is theirs to call.
+- **The truce's followers (SFR-D28's announce half).** `get_peace_commitment_
+  conflicts(…, truce=True)`: for an ARMISTICE the paradox arm is not a stop
+  (the send road exempts a truce) but the truce's own WARNING — `war_runs_on`,
+  "Bavaria stays at war with Austria under this truce — an ally, not a
+  client: her war runs on, and 3 French corps stand on Bavarian soil under
+  the truce" (`allies_whose_war_runs_on`: the speaker's allies, never its
+  clients, still at war with the counterpart or its clients; our corps on
+  that ally's soil counted) — read by the armistice's confirm and the
+  incoming letter through `build_war_context_snapshot`; the clients the truce
+  BINDS stay on the SR-1b clients line beside it. The dispatch's
+  `armistice_ratified` carries `{followers}` = `diplomacy.truce_followers_line`
+  (both halves) from the ratifier's one producer.
+- **The recipe, walked:** `VALID_ACTIONS` + the no-marshal list + the
+  `DIPLOMATIC_ACTION_ALLOWLIST`, the parser's list, `_action_costs` (0 AP),
+  the executor's free-action list and dispatch tuple, the delegated-method
+  set, the three display maps, the prompt builder's diplomatic types,
+  `CAMPAIGN_LOG_TYPES` 173 → 175 (`allegiance_bid`, `province_returned`,
+  flipped consciously; the category, the routine tier, the court-to-court
+  visibility arm, the one-liners), the dispatch's template / row / priority,
+  the transit-gated sets (both verbs dispatch through `_execute_diplomatic`'s
+  gate; the FA-N81 echo table taught the ask arm's `ask_region` var), the
+  CN-4 census taught the same var.
+- **Found building, kept:** a French corps already stands on Bavarian soil
+  at boot, so the followers line counts three with Ney and Lannes marched in
+  (the pins count, never hard-code); the notification collector's reader is
+  `to_list`, not `get_all`. **The hook's first run failed 41:** four more
+  `len(CAMPAIGN_LOG_TYPES) == 173` pins (flipped to 175 with the note), the
+  meta-executor's twin `free_actions` list, the IQ-1 chest census (the bid
+  now calls `record_gold_spent`), the AAR-15 truce pin's exact
+  `template_vars` (the `followers` key popped before the compare), and the
+  seventeen parser cassettes — the parse prompt renders its action list
+  from `VALID_ACTIONS`, so the two new actions moved every prompt's hash;
+  the fingerprints were re-stamped keylessly (the L-1 / RF-1 idiom:
+  `request.prompt_sha256` / `prompt_chars`, the manifest, the re-stamp
+  record; the responses untouched) and the prompt builder's own text was
+  left as it was (the fast parser routes both verbs above the LLM gate).
+- **Gate:** the new pins 37; `test_campaign_log`, `test_ai_intent_participation`,
+  `test_cx_r1…` (the routed words), `test_dd1_s7_can_sign`, the serialization
+  pin, `test_sr2a…`, the FA-N81 transit pins, the CR-1 corpus gate (685
+  rows), the ratchet (`LEVERS_CAP` 429), the CN-4 chip census (31), the DD-1
+  instrument pins (sweep / fuzzer / shuffle, 83 with the one-exit and
+  retire-tool pins), `test_ai_intent_threat_migration` + `_variance` +
+  `_assurance` (121 — `BASELINE_SERIES` byte-identical); `ruff` clean; the
+  full suite on the hook.
+- **Next:** S7b — CODE-3 + DD-C (`CODE_HEALTH_PLAN.md` §CODE-3; §3 DD-C),
+  CODE-1 batch 5 at its head (the 116 levers in the `game_logic` modules
+  over 3,000 lines).
 
 ### DD-A — "Can a new player read it?" (= UXR-0 + UXR-1, S1)
 

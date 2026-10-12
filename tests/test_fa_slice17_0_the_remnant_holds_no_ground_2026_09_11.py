@@ -107,7 +107,6 @@ class TestThePredicateIsTheMarshalsOwn:
 
     def test_levers_default_on(self):
         assert MV.RECOVERING_CORPS_TAKES_NO_GROUND is True
-        assert EA.RECOVERING_AI_CORPS_TAKES_NO_GROUND is True
 
     def test_in_retreat_recovery_reads_the_whole_window(self):
         w = _tutorial()
@@ -257,18 +256,6 @@ class TestTheAiCaptureRungsReadTheWindow:
         k.strength = 8000
         action, _prio = _quiet(EnemyAI(CommandExecutor())._evaluate_marshal, k, "Austria", w)
         assert action == {"marshal": "Kienmayer", "action": "attack", "target": "Lorraine"}, action
-
-    def test_the_lever_down_lets_the_remnant_annex(self, monkeypatch):
-        monkeypatch.setattr(EA, "RECOVERING_AI_CORPS_TAKES_NO_GROUND", False)
-        # VP-R1 (b) (Sept 25, 2026), pin consciously flipped: the AI's
-        # capture rungs now also read the raiding-party rule, and a 1,218-man
-        # remnant onto French homeland is one. Both levers down = the row.
-        from backend.commands import movement_executor as _MV
-        monkeypatch.setattr(_MV, "RAIDING_PARTY_HOLDS_NO_HOMELAND", False)
-        w, k = self._on_open_lorraine()
-        action, _prio = _quiet(EnemyAI(CommandExecutor())._evaluate_marshal, k, "Austria", w)
-        assert action == {"marshal": "Kienmayer", "action": "attack", "target": "Lorraine"}, (
-            "the defect: a 1,218-man recovering remnant annexed the province under it")
 
     def test_the_recovery_flight_itself_stays_legal(self):
         """The P1 recovery rung must still be REACHED: a recovering corps on

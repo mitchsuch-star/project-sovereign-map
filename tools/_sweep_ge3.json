@@ -259,13 +259,6 @@
     "tests": "tests/test_congress_review_round.py::TestTheNarration::test_56_the_universal_monarchy_carries_no_dissolved_strip"
   },
   {
-    "id": "GE3-38 the siege outlives the war",
-    "file": "backend/models/world_state.py",
-    "old": "SIEGE_ENDS_WITH_THE_WAR = True",
-    "new": "SIEGE_ENDS_WITH_THE_WAR = False",
-    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_11_a_siege_is_lifted_by_the_peace"
-  },
-  {
     "id": "GE3-39 the reopened cession unnamed",
     "file": "backend/game_logic/game_end.py",
     "old": "            rec[\"reopened_by\"] = str(rec.get(\"from\") or \"\")",

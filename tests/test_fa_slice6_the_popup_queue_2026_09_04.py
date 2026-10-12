@@ -54,10 +54,6 @@ SCENARIO = str(REPO / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 MAIN_GD = REPO / "godot-client" / "project-sovereign" / "scripts" / "main.gd"
 
-LEVERS = ("POPUP_DRAIN_READS_THE_QUESTION", "REFUSAL_ARMS_NEVER_DRAIN",
-          "CANCEL_BUTTON_READS_THE_HARD_STOP", "LOAD_KEEPS_THE_DRAFT_NOTICES",
-          "PETITION_RIDES_THE_END_TURN")
-
 SAB = {"target_nation": "Austria", "sabotage_type": "leaked_terms",
        "authority_bonus_if_confronted": 5, "authority_penalty_if_overlooked": 3,
        "message": "probe"}
@@ -65,14 +61,6 @@ POPUP_KEYS = ("coalition_popup", "diplomatic_sabotage", "vassal_rebellion_immine
               "nation_proclamation", "diplomatic_objection", "marshal_petition",
               "incoming_proposal", "incoming_settlement_offer", "proposal_result",
               "commitment_paradox_popup")
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = {n: getattr(M, n) for n in LEVERS}
-    yield
-    for n, v in saved.items():
-        setattr(M, n, v)
 
 
 @contextlib.contextmanager
@@ -185,16 +173,6 @@ class TestAQuestionNeverCarriesAPoppedPopup:
             later = _cmd(client, "status")
         assert "diplomatic_sabotage" in _delivered(after) + _delivered(later)
 
-    def test_the_lever_off_arm_destroys_the_card(self):
-        M.POPUP_DRAIN_READS_THE_QUESTION = False
-        world = _boot()
-        _prime_sab(world)
-        with _served(world) as client:
-            reply = _cmd(client, "move to Brittany")
-        assert reply.get("state") == "awaiting_clarification"
-        assert reply.get("diplomatic_sabotage") is not None, "the row: popped beside the question"
-        assert "diplomatic_sabotage_popup" not in _queued(world)
-
     @pytest.mark.parametrize("line", ["Soult, deal with Mack", "Grouchy, attack Mack"])
     def test_the_other_asks_leave_the_queue_intact(self, line):
         world = _boot()
@@ -276,13 +254,6 @@ class TestARefusalNeverDrains:
         assert reply.get("diplomatic_sabotage") is None
         assert "diplomatic_sabotage_popup" in _queued(world)
 
-    def test_the_lever_off_arm_destroys_the_card(self):
-        M.REFUSAL_ARMS_NEVER_DRAIN = False
-        world = _boot()
-        reply = self._refused(world, "/cancel_order", {"marshal": ""})
-        assert reply.get("diplomatic_sabotage") is not None, "the row: the refusal ate the card"
-        assert "diplomatic_sabotage_popup" not in _queued(world)
-
     def test_cancel_order_except_arm(self, monkeypatch):
         world = _boot()
 
@@ -359,16 +330,6 @@ class TestTheCancelButtonReadsTheHardStop:
         assert "Talleyrand" not in message
         assert world.marshals["Ney"].strategic_order is not None
 
-    def test_the_lever_off_arm_blocks_on_any_letter(self):
-        M.CANCEL_BUTTON_READS_THE_HARD_STOP = False
-        world = self._ordered()
-        world.dialogue_manager.push({"type": "incoming_proposal", "from_nation": "Saxony",
-                                     "target_nation": "Saxony", "options": [], "message": "probe"})
-        with _served(world) as client:
-            reply = _post(client, "/cancel_order", {"marshal": "Ney"})
-        assert reply.get("success") is False
-        assert world.marshals["Ney"].strategic_order is not None
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-99 — /load keeps the draft notices
@@ -397,16 +358,6 @@ class TestLoadKeepsTheDraftNotices:
             assert M.world.pending_settlement_draft_notices, "the notice was drained on load"
             later = _cmd(client, "status")
         assert later.get("settlement_draft_notices") == [self.NOTICE]
-
-    def test_the_lever_off_arm_drains_it_into_the_swap(self):
-        M.LOAD_KEEPS_THE_DRAFT_NOTICES = False
-        world, fname = self._saved()
-        with _served(world) as client:
-            reply = _post(client, "/load", {"filename": fname})
-            assert reply.get("settlement_draft_notices") == [self.NOTICE], "the row"
-            assert not M.world.pending_settlement_draft_notices
-            later = _cmd(client, "status")
-        assert not later.get("settlement_draft_notices")
 
     def test_the_builder_kwarg_is_honoured(self):
         world = _boot()
@@ -461,25 +412,6 @@ class TestThePetitionRidesTheEndTurn:
         assert card
         command_arm = next(o for o in card.get("options", []) if o.get("id") == "command")
         assert command_arm.get("enabled") is True, command_arm
-
-    def test_the_lever_off_arm_never_delivers_it(self):
-        M.PETITION_RIDES_THE_END_TURN = False
-        world = _boot()
-        _petition(world)
-        card = world.pending_marshal_petition
-        with _served(world) as client:
-            for _ in range(3):
-                reply = _cmd(client, "end turn")
-                assert "deferred_marshal_petition" not in reply
-                assert reply.get("marshal_petition") is None
-        # CONSCIOUS FLIP, PC15-10 B1 (Sept 26 2026): the per-turn re-push now
-        # asks the FA-S17-D4 liveness predicate first, so a card whose quarrel
-        # cooled during these three turns (Ney's grievance can be settled by
-        # the ladder) is RETIRED rather than re-queued forever. The pin's
-        # claim is unchanged: it is never DELIVERED on this arm — it is either
-        # still queued, or gone because it went stale, never handed over.
-        assert ("pending_marshal_petition" in _queued(world)
-                or not J.petition_is_still_live(card, world))
 
     def test_the_client_stashes_and_raises_the_card(self):
         """The wiring the payload needs, pinned where it lives: the stash beside

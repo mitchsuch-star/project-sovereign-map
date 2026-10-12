@@ -195,7 +195,13 @@ class TestTheCassetteAttribution:
     the two law verbs (`enact_law`, `repeal_law` in the action list) and their
     two board-independent examples, common to BOTH arms — so the lever still
     isolates the reorder. A later prompt change re-derives both arms the same
-    way (`tests/data/l1_prompt_restamp.json`) and says so here."""
+    way (`tests/data/l1_prompt_restamp.json`) and says so here.
+
+    ⚑ Re-derived at DD-1 S8 Step 3 (October 12, 2026): the prompt's action
+    list is rendered from `VALID_ACTIONS`, which gained the two verbs
+    (`diplomatic_ask_return`, `diplomatic_bid`) — every parse prompt moved by
+    the same two lines; the fingerprints were re-stamped keylessly (the
+    responses untouched), the manifest's hashes with them."""
 
     @pytest.mark.parametrize("cid", sorted(RESTAMP))
     def test_both_arms(self, cid, monkeypatch):

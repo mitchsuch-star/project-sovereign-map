@@ -11,7 +11,7 @@ could find). The driver pins the hash seed and never saw it.
 
 The pins below feed the reader a region set whose iteration order is
 deliberately REVERSED, so "sorted" and "as iterated" can never coincide by
-luck of the seed: the lever UP yields map order, the lever DOWN the set's own.
+luck of the seed: the reader yields map order regardless.
 """
 from __future__ import annotations
 
@@ -19,7 +19,6 @@ import contextlib
 import io
 from pathlib import Path
 
-from backend.models import world_state as WS
 from backend.models.world_state import WorldState
 
 ROOT = next(p for p in (Path(__file__).resolve().parents[1], Path.cwd()) if (p / "backend").is_dir())
@@ -72,16 +71,10 @@ class TestTheContactListIsInMapOrder:
         reversed_seen = _regions_of(w2.get_live_visible_enemies("Austria"))
         assert plain == reversed_seen == sorted(plain)
 
-    def test_lever_down_reads_the_sets_own_order(self, monkeypatch):
-        monkeypatch.setattr(WS, "THE_CONTACT_LIST_IS_ORDERED", False)
-        w = self._world_with_reversed_sight(monkeypatch)
-        regions = _regions_of(w.get_live_visible_enemies("Austria"))
-        assert len(regions) >= 2
-        assert regions == sorted(regions, reverse=True), regions
-
     def test_the_same_men_either_way(self, monkeypatch):
+        """The ordering changes the ORDER, never the men: the reversed-sight
+        world names exactly the corps the plain one does."""
+        plain = sorted(m.name for m in _boot().get_live_visible_enemies("Austria"))
         w = self._world_with_reversed_sight(monkeypatch)
-        up = sorted(m.name for m in w.get_live_visible_enemies("Austria"))
-        monkeypatch.setattr(WS, "THE_CONTACT_LIST_IS_ORDERED", False)
-        down = sorted(m.name for m in w.get_live_visible_enemies("Austria"))
-        assert up == down and up
+        seen = sorted(m.name for m in w.get_live_visible_enemies("Austria"))
+        assert plain == seen and plain

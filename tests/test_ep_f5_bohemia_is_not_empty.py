@@ -9,11 +9,10 @@ Two halves from the September 23, 2026 live review:
   three-turn punishment. P4.5's walk-in rung had no per-turn cap and no
   strength check for a "literal" marshal. Now: one walk-in per corps per
   turn (`movement_range` of them), and a literal corps runs the cautious
-  counter-attack check before stepping beside a stronger enemy. Two levers
-  (`enemy_ai.ONE_WALK_IN_PER_CORPS_PER_TURN`,
-  `enemy_ai.THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK`); both down is
-  the pre-F5 rung byte-for-byte. `BASELINE_SERIES` re-recorded ONCE with a
-  four-arm attribution (`tools/_f5_series_arms.py`).
+  counter-attack check before stepping beside a stronger enemy. The two
+  levers that landed it were retired by CODE-1 batch 4 (October 2026);
+  `BASELINE_SERIES` was re-recorded ONCE with a four-arm attribution at the
+  landing.
 * **LV-14(a) / LV-D4** — the whole-war legitimacy blocker names the courts
   ("London and Vilna are unbeaten — a whole-war peace needs their consent
   (Austria 31/50, Britain 23/50, Russia 23/50). Press Austria alone: the
@@ -32,7 +31,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.main as M
-from backend.ai import enemy_ai as EA
 from backend.ai.enemy_ai import EnemyAI
 from backend.commands.executor import CommandExecutor
 from backend.commands.parser import CommandParser
@@ -99,26 +97,15 @@ def _check_passes_board():
 
 class TestTheWalkInCap:
 
-    def test_the_uncapped_rung_hands_deroy_two_provinces_in_one_phase(self, monkeypatch):
-        """The defect, reproduced on the historical seed's boot: with the cap
-        down Bavaria's one corps takes Bohemia and then Carniola in ONE
-        phase (the review's "Bohemia + 2" was the commanded board)."""
-        monkeypatch.setattr(EA, "ONE_WALK_IN_PER_CORPS_PER_TURN", False)
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", False)
-        taken = _bavarias_phase(_boot())
-        assert len(taken) >= 2, taken
-
-    def test_the_cap_hands_deroy_one(self, monkeypatch):
-        monkeypatch.setattr(EA, "ONE_WALK_IN_PER_CORPS_PER_TURN", True)
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", False)
+    def test_the_cap_hands_deroy_one(self):
         taken = _bavarias_phase(_boot())
         assert len(taken) <= 1, taken
 
-    def test_the_cap_is_the_corps_movement_range(self, monkeypatch):
-        """A cavalry corps (range 2) may take two; the counter is per corps."""
-        monkeypatch.setattr(EA, "ONE_WALK_IN_PER_CORPS_PER_TURN", True)
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", False)
-        world = _boot()
+    def test_the_cap_is_the_corps_movement_range(self):
+        """A cavalry corps (range 2) may take two; the counter is per corps.
+        Staged on the board where the literal check passes (every Austrian
+        corps far from the frontier), so only the cap can refuse him."""
+        world = _check_passes_board()
         deroy = world.marshals["Deroy"]
         ai = EnemyAI(CommandExecutor())
         ai._walk_ins_this_turn = {"Deroy": 1}
@@ -128,12 +115,11 @@ class TestTheWalkInCap:
         ai._walk_ins_this_turn = {"Deroy": 2}
         assert ai._find_undefended_capture(deroy, "Bavaria", world) is None
 
-    def test_the_action_is_tagged_and_the_loop_counts_it(self, monkeypatch):
-        """The rung's dict carries `walk_in` so the loop can count it (the
-        literal check is DOWN here: at boot it refuses Deroy Bohemia,
-        74,000 against 22,000 — the other half of the slice)."""
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", False)
-        world = _boot()
+    def test_the_action_is_tagged_and_the_loop_counts_it(self):
+        """The rung's dict carries `walk_in` so the loop can count it (staged
+        on the board where the literal check passes: at boot it refuses Deroy
+        Bohemia, 74,000 against 22,000 — the other half of the slice)."""
+        world = _check_passes_board()
         deroy = world.marshals["Deroy"]
         ai = EnemyAI(CommandExecutor())
         ai._walk_ins_this_turn = {}
@@ -141,10 +127,9 @@ class TestTheWalkInCap:
         assert action is not None and action.get("walk_in") is True, action
         assert action["action"] == "attack"
 
-    def test_the_literal_check_refuses_deroy_bohemia_at_boot(self, monkeypatch):
-        """With the check UP the same call refuses: Bohemia is one march from
-        the Austrian mass and Deroy's 22,000 would stand beside it."""
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", True)
+    def test_the_literal_check_refuses_deroy_bohemia_at_boot(self):
+        """The check refuses at boot: Bohemia is one march from the Austrian
+        mass and Deroy's 22,000 would stand beside it."""
         world = _boot()
         deroy = world.marshals["Deroy"]
         ai = EnemyAI(CommandExecutor())
@@ -152,21 +137,14 @@ class TestTheWalkInCap:
         assert ai._find_undefended_capture(deroy, "Bavaria", world) is None
 
     def test_the_cap_binds_where_the_check_passes(self):
-        """The cap's own pin, no lever touched: on the boot board the
-        literal check refuses Deroy (Charles is one march from Bohemia), so
-        a board where the check PASSES is staged — every Austrian corps
-        sent far from the frontier — and Deroy, who then takes two
-        provinces uncapped, takes one."""
+        """The cap's own pin: on the boot board the literal check refuses
+        Deroy (Charles is one march from Bohemia), so a board where the
+        check PASSES is staged — every Austrian corps sent far from the
+        frontier — and Deroy, who took two provinces uncapped at the
+        landing, takes one."""
         world = _check_passes_board()
         taken = _bavarias_phase(world)
         assert len(taken) <= 1, taken
-
-    def test_the_same_board_uncapped_hands_him_two(self, monkeypatch):
-        """The staging above is sensitive: with the cap down he takes two."""
-        monkeypatch.setattr(EA, "ONE_WALK_IN_PER_CORPS_PER_TURN", False)
-        world = _check_passes_board()
-        taken = _bavarias_phase(world)
-        assert len(taken) >= 2, taken
 
     def test_the_counter_resets_with_the_phase(self):
         world = _boot()
@@ -195,22 +173,13 @@ class TestTheLiteralTakesTheStrengthCheck:
         assert charles.strength > deroy.strength * 1.5
         return world, deroy
 
-    def test_a_literal_corps_refuses_the_walk_in_beside_a_stronger_enemy(self, monkeypatch):
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", True)
+    def test_a_literal_corps_refuses_the_walk_in_beside_a_stronger_enemy(self):
         world, deroy = self._stage()
         ai = EnemyAI(CommandExecutor())
         safe, reason = ai._evaluate_capture_safety(deroy, "Bohemia", "Bavaria", world)
         assert safe is False and reason.startswith("Literal:"), (safe, reason)
 
-    def test_with_the_lever_down_he_walks_in(self, monkeypatch):
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", False)
-        world, deroy = self._stage()
-        ai = EnemyAI(CommandExecutor())
-        safe, _reason = ai._evaluate_capture_safety(deroy, "Bohemia", "Bavaria", world)
-        assert safe is True
-
-    def test_the_cautious_check_is_untouched(self, monkeypatch):
-        monkeypatch.setattr(EA, "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK", False)
+    def test_the_cautious_check_is_untouched(self):
         world, deroy = self._stage()
         deroy.personality = "cautious"
         ai = EnemyAI(CommandExecutor())
@@ -242,11 +211,6 @@ class TestThreeSeeds:
 
 
 class TestTheSeriesAttribution:
-
-    def test_the_arms_tool_exists_and_names_both_levers(self):
-        src = (REPO / "tools" / "_f5_series_arms.py").read_text(encoding="utf-8")
-        assert "ONE_WALK_IN_PER_CORPS_PER_TURN" in src
-        assert "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK" in src
 
     def test_the_recorded_series_is_the_shipped_tree(self):
         """F5's fork at index [7] (58 -> 46: the Kingdom of Italy leaves

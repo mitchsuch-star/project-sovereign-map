@@ -337,11 +337,3 @@ class TestWO19TheSackedFlag:
         assert region.plundered is False
         assert plunder_yield(region) == int(
             region.income_value * WS.PLUNDER_INCOME_MULTIPLIER)
-
-    def test_with_the_lever_down_the_flag_clears_on_secure_again(self, monkeypatch):
-        monkeypatch.setattr(WS, "PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE", False)
-        world = _quiet(WorldState, player_nation="France")
-        region = next(r for r in world.regions.values() if r.controller)
-        region.plundered = True
-        apply_secure_effects(region)
-        assert region.plundered is False

@@ -21,13 +21,6 @@
   "tests": "tests/test_sr2_quick_wins.py"
  },
  {
-  "id": "SR-2 reserve/AAR-16 the foreign work drops its owner",
-  "file": "backend/models/world_state.py",
-  "old": "        if (FOREIGN_WORKS_NAME_THEIR_OWNER and owner\n                and owner != self.player_nation):",
-  "new": "        if False:",
-  "tests": "tests/test_sr2_quick_wins.py"
- },
- {
   "id": "SR-2 reserve/AAR-16 the watchtower arm bypasses the builder",
   "file": "backend/models/world_state.py",
   "old": "                        \"message\": self._construction_complete_message(\n                            region, \"watchtower\"),",

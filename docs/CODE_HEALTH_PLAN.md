@@ -344,6 +344,85 @@ DD-1's session).**
   levers of batches 1–3 (26 + 56 + 12) join the first batch after October
   2026 closes. The plan's "done under 40" needs batches 4 and 5 both.
 
+
+**✅ BATCH 4 LANDING RECORD — October 12, 2026 (the head of Pre-Deploy S8,
+DD-1 Step 3's session).**
+
+- **The batch, as defined and as measured.** `world_state.py` (23 levers),
+  `combat_executor.py` (23), `enemy_ai.py` (39) and `main.py` (15) hold
+  **100** by the census regex; **32 landed in October 2026** and keep their
+  session (PRE_DEPLOY §5-4: world_state ×5 — the supply bite, the three
+  SR-5a/economy-gate bills, `DISPERSION_IS_NOT_PUNISHED`; combat_executor
+  ×14 — the SF-CL-1 / Step 7 group; enemy_ai ×8 — the economy gate's and
+  Step 3's rungs; main ×5 — the interrupt trio, the net's fallback, the
+  colours); **one is a decided `False`, not a lever: `LITERALS_DRILL_TO_HEAL`**
+  (AIDR-D1, ruled held-out September 28, 2026 with its measured arm kept and
+  a written re-open condition — it stays); **67 retired** (every one `True`
+  in production, dated January 26 – September 29, 2026): enemy_ai ×30 (the
+  FA slice-4 board rungs and their review round, F5's two, the AI drill fix's
+  four, AI scoring, the naval AP parity, the spoils deference, the sovereign
+  fear), combat_executor ×9 (CQ-30, NP-2's presence, WO-17's two, VP-R1 (a),
+  the counter-punch credits, AAR10-X1, SRX-10), main ×10 (FA slice 6's five,
+  FA-N44, FA-23, FA-N66, LV-13, the dismissal), world_state ×18 (R1-2,
+  IQ-2, AAR4-X1, AAR-16, IQ-4, GE-3 #11, FA-D1 / D4 / D19, FA-S17-2 / 17,
+  SR-5a's forecast, PC15-10, WO-17, WO-14, FA-N54, FA-S12-2's two). 61
+  named in a landing record under `docs/`; six named by their tests alone
+  (`AI_SCORING_ENABLED`, `SOVEREIGN_FEAR_ACTIVE`, `SOVEREIGN_PRESENCE_ACTIVE`,
+  `DISMISSAL_IS_NOT_A_DEATH`, `THE_ASSAULT_ON_OUR_GARRISON_IS_REPORTED`,
+  `SIEGE_ENDS_WITH_THE_WAR`'s tests are its sweep row and five docs).
+- **The sites.** The tool rewrote the production sites across six modules
+  (`enemy_ai.py`, `combat_executor.py`, `main.py`, `world_state.py`, plus
+  the cross-module reads in `tactical_executor.py` and `war_status.py`) and
+  dropped the sweep rows from 31 `tools/_sweep_*.json`; **19 by hand**: the
+  three boolean operands outside a test position (`return LEVER and
+  bool(broken)` → `bool(broken)`; `(LEVER and _corps_is_drilling(m))` →
+  `_corps_is_drilling(m)`; `personality == "cautious" or (LEVER and
+  personality == "literal")` → `personality in ("cautious", "literal")`),
+  the eleven reads inside a keyword (`include_popup_passthroughs=not
+  REFUSAL_ARMS_NEVER_DRAIN` ×9 and `drain_draft_notices=not
+  LOAD_KEEPS_THE_DRAFT_NOTICES` ×2 → `False`), and the five overlaps the
+  tool named (two `FIELD_PRICES_THE_TARGET_TOO` bodies nested in rewritten
+  `if`s, the `EVERY_DEFAULT_LEAVES_THE_DRILL` operand, the
+  `ADMIN_RECRUIT_SPARES_THE_SQUARE` import + operand in
+  `tactical_executor.py`). `tools/_ai_drill_diag.py`'s read of the
+  retired `AI_DRILLS_TO_HEAL` dropped; the attribution scripts that SET
+  retired names (`_drill_fix_*`, `_f5_*`) left as written, like batch 3's.
+  **The orphaned lever headers** (an agent, comments only): 16 blocks in
+  `world_state.py`, 8 in `combat_executor.py`, 12 in `enemy_ai.py`, 4 in
+  `main.py` re-titled to the rule they document; two docstrings that
+  promised a lever-down arm trimmed by hand. Prior-batch orphans found and
+  left for their own batch: `war_status.py`'s IQ-2 / LV-8 / FA-N75 / FA-D2
+  blocks and `tactical_executor.py`'s AAR-23 line.
+- **The test arms, decided one by one** (three agents by disjoint file
+  group, the recipe and the traps as the brief; 43 files; every file re-run
+  green): **≈ 60 whole deletions** — every `test_lever_down_*` /
+  `test_with_the_lever_down_*` / `test_the_lever_off_arm_*` / control-arm /
+  "reproduces the prior" test, a whole class (`TestTheLeversAreRealLevers`
+  in WO-17, whose other pin was a source scan for a read that no longer
+  exists), FA slice 6's `LEVERS` tuple and its autouse `_levers_at_default`
+  fixture, IQ-1's `stale` fixture; **≈ 15 tails trimmed** (the live head
+  kept, the flip-and-compare arm cut); **2 re-pointed** (F5's cap pins
+  staged on `_check_passes_board()` instead of the boot, where the literal
+  check — live now — refuses Deroy the walk-in the old arm needed); **1
+  un-conditioned** (FA slice 2's brakes-ship-with-the-resolution pin); the
+  `is True` attribute pins shed their retired lines (`test_all_nine_are_up`
+  and kin keep the live ones); ≈ 10 restore-list entries and ≈ 12 unused
+  imports removed. Nothing unresolved; no genuine regression surfaced.
+- **The reading:** levers **496 → 429** (425 on, 392 named by a test);
+  functions over 500 lines 34 → 34; silent handlers 367 → 367 (the next
+  slice's business). **The ratchet** lowered to `LEVERS_CAP 429`.
+- **Gate:** `BASELINE_SERIES` + M1–M7 byte-identical with no re-record
+  (`test_ai_intent_threat_migration` / `_variance` / `_assurance`, 121),
+  corpus 685 / 685, the ratchet / tool / series / corpus pins green; every
+  touched test file green; `ruff` clean; the full suite green on the hook.
+- **Next batches:** batch 5 = the `game_logic/` modules over 3,000 lines
+  (116 levers — `dispatch.py` 50, `coalition.py` 18, `ai_diplomacy.py` 15,
+  `congress.py` 13, `settlement_offers.py` 11, `diplomatic_templates.py` 4,
+  `settlement_staging.py` 3, `settlement_actions.py` 2), the head of S7b;
+  the October 2026 levers of batches 1–4 (26 + 56 + 12 + 32) join the first
+  batch after October 2026 closes. The plan's "done under 40" needs batch 5
+  and that November batch.
+
 ## CODE-2 — Split the monster functions into named stages (1 session each)
 
 **Order:** `_execute_attack` → `_process_dialogue_choice` → `_execute_one` →

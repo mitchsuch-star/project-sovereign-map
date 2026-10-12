@@ -62,7 +62,6 @@ LEVERS = [
     (CG, "A_QUESTION_NEVER_ORDERS"),
     (PM, "ADMIN_VERBS_NEVER_MARCH"), (PM, "A_BARE_RETREAT_IS_A_RETREAT"),
     (PM, "ADMIRAL_IS_AN_ADDRESSEE"),
-    (M, "DISMISSAL_IS_NOT_A_DEATH"),
 ]
 
 COMMAND_REFERENCE = "COMMAND REFERENCE"
@@ -272,9 +271,6 @@ class TestOneHonorific:
         assert r["success"] is False
         assert "relieved of command by your own order" in r["message"]
         assert "destroyed" not in r["message"]
-        M.DISMISSAL_IS_NOT_A_DEATH = False
-        r = post(client, "Bernadotte, attack Mack")
-        assert "destroyed at" in r["message"], "lever off = the pre-slice line"
 
     def test_the_honorific_still_binds_a_living_marshal(self, board):
         for text, action in (("Gen. Ney, hold", "hold"),

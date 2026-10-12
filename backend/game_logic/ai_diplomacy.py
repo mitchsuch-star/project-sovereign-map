@@ -102,6 +102,12 @@ AI_SPONSORSHIPS_PER_TURN = 1      # narration budget: one new patron per turn
 # empires, signed at Bogenhausen. Blessed numbers, in-band tunable.
 ALLEGIANCE_AUCTION_WINDOW = 3     # turns between the announcement and the flip
 AUCTION_SPONSORSHIP_LEAN_DIVISOR = 10  # 10g/turn of standing patronage = 1 lean point
+# DD-1 S8 Step 3 (SFR-D40, October 12, 2026): the bid — a lump of gold laid
+# before the court while its allegiance is in play, weighed at the resolution
+# through the SAME divisor as standing patronage (100 gold = 10 lean points =
+# ten turns of a 10g/turn subsidy). The typed verb's default sum when none is
+# named; the chip's too.
+DEFAULT_ALLEGIANCE_BID = 100
 
 # ═══════ AI-5 (Stage E, AI_INTENT_SPEC §4.5 + §3.6 + §12.5) ═══════
 # Blessed numbers, in-band tunable; structure escalates.
@@ -3510,14 +3516,24 @@ def process_allegiance_auctions(world) -> List[Dict]:
             NotificationPriority,
             create_notification,
         )
+        # DD-1 S8 Step 3 (SFR-D40): the notice carries the verb — the
+        # chip on the auction's own announcement (`action_command` rides
+        # the ordinary typed pipeline, the dotation / recall idiom).
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
             f"{nation}'s allegiance is in play",
             (f"The court of {nation} weighs its allegiance — the flip "
              f"resolves within {int(ALLEGIANCE_AUCTION_WINDOW)} turns. "
-             f"Sponsorship and standing win it."),
+             f"Sponsorship, standing and a bid of gold win it."),
             turn,
+            details={
+                "action_command": f"bid for {nation}, {int(DEFAULT_ALLEGIANCE_BID)} gold",
+                "action_label": f"Bid for {nation} ({int(DEFAULT_ALLEGIANCE_BID)}g, 1 DP)",
+                "action_detail": (f"Lay {int(DEFAULT_ALLEGIANCE_BID)} gold before the court "
+                                  f"of {nation}; relations and standing patronage weigh "
+                                  f"beside it when the flip resolves."),
+            },
         ))
 
     # ── Resolve or lapse due auctions ──
@@ -3551,9 +3567,14 @@ def process_allegiance_auctions(world) -> List[Dict]:
         if hegemon:
             suitors.append(hegemon)
         suitors.append(player)
+        # DD-1 S8 Step 3 (SFR-D40): a court that laid gold before the
+        # minor is a suitor by that act.
+        bids = dict(record.get("bids") or {})
+        suitors.extend(sorted(bids.keys()))
         seen = []
         for suitor in suitors:
             if (suitor and suitor != nation and suitor not in seen
+                    and suitor in active
                     and not world.is_at_war(nation, suitor)):
                 seen.append(suitor)
         best, best_score = None, None
@@ -3562,7 +3583,8 @@ def process_allegiance_auctions(world) -> List[Dict]:
                 world._make_diplo_key(nation, suitor), 0) or 0)
             patronage = (standing_sponsorship_amount(world, suitor, nation)
                          // int(AUCTION_SPONSORSHIP_LEAN_DIVISOR))
-            score = relation + patronage
+            bid_lean = int(bids.get(suitor, 0) or 0) // int(AUCTION_SPONSORSHIP_LEAN_DIVISOR)
+            score = relation + patronage + bid_lean
             if best_score is None or (score, suitor) > (best_score, best):
                 best, best_score = suitor, score
         del auctions[nation]
@@ -3618,6 +3640,118 @@ def process_allegiance_auctions(world) -> List[Dict]:
     return events
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# DD-1 S8 Step 3 — THE VERBS (October 12, 2026; PRE_DEPLOY_PLAN.md §3.1)
+# ═══════════════════════════════════════════════════════════════════════
+
+def open_allegiance_auctions(world) -> List[str]:
+    """The courts whose allegiance is in play today, sorted."""
+    return sorted((getattr(world, "allegiance_auctions", {}) or {}).keys())
+
+
+def allegiance_bid_refusal(world, suitor: str, nation: str, gold: int) -> str:
+    """SFR-D40: why `suitor` cannot lay `gold` before `nation` today — in
+    words, or "" when the bid can be placed. The ONE gate the chip, the
+    typed verb and any AI bidder read: no auction open for that court (the
+    open ones named), at war with it, no sum, the chest, the DP (the
+    player's; an AI court's `nation_dp` is the act's business)."""
+    from backend.display_names import display_nation as _dn
+    record = (getattr(world, "allegiance_auctions", {}) or {}).get(nation)
+    if not record:
+        others = [c for c in open_allegiance_auctions(world) if c != nation]
+        tail = (f" {', '.join(_dn(c) for c in others)}"
+                f"{' is' if len(others) == 1 else ' are'} in play today."
+                if others else " No court's allegiance is in play today.")
+        return (f"No auction is open for {_dn(nation)}'s allegiance, Sire — a court's "
+                f"flip is announced in the dispatch when it is in play.{tail}")
+    if world.is_at_war(suitor, nation):
+        return (f"We are at war with {_dn(nation)}, Sire — one does not bid for the "
+                f"allegiance of a court one is fighting.")
+    gold = int(gold or 0)
+    if gold < 1:
+        return "Name a sum, Sire — e.g. 'bid for Denmark, 100 gold'."
+    chest = int((getattr(world, "nation_gold", {}) or {}).get(suitor, 0) or 0)
+    if chest < gold:
+        return (f"The chest holds {chest} gold, Sire — not the {gold} the bid names.")
+    if suitor == getattr(world, "player_nation", "France"):
+        from backend.game_logic.instruments import INSTRUMENT_DP_COST
+        if int(getattr(world, "diplomatic_points", 0) or 0) < INSTRUMENT_DP_COST:
+            return (f"Talleyrand has no diplomatic points left this season, Sire — "
+                    f"the bid for {_dn(nation)} waits for the next.")
+    return ""
+
+
+def place_allegiance_bid(world, suitor: str, nation: str, gold: int) -> Dict:
+    """SFR-D40: `suitor` lays `gold` before the court of `nation` while its
+    allegiance is in play. ONE road for the typed verb, the chip and any AI
+    bidder (GR5; no AI court bids in v1 — its standing patronage is its
+    bid, §12.6). The gold moves to the minor's chest at once (a gift, not a
+    bond), the bid is recorded on the auction (`bids[suitor]`, cumulative)
+    and weighed at the resolution through AUCTION_SPONSORSHIP_LEAN_DIVISOR.
+    The DP is the caller's to spend (the player's executor; an AI's pool)."""
+    from backend.display_names import display_nation as _dn
+    why = allegiance_bid_refusal(world, suitor, nation, gold)
+    if why:
+        return {"success": False, "message": why, "target_nation": nation}
+    gold = int(gold)
+    record = world.allegiance_auctions[nation]
+    nation_gold = getattr(world, "nation_gold", {}) or {}
+    nation_gold[suitor] = int(nation_gold.get(suitor, 0) or 0) - gold
+    nation_gold[nation] = int(nation_gold.get(nation, 0) or 0) + gold
+    world.nation_gold = nation_gold
+    world.record_gold_spent(suitor, gold)     # IQ-1: every purchase on the chest's record
+    bids = record.setdefault("bids", {})
+    bids[suitor] = int(bids.get(suitor, 0) or 0) + gold
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    event = {
+        "type": "allegiance_bid",
+        "nation": suitor, "target_nation": nation,
+        "gold": gold, "total": int(bids[suitor]),
+        "resolves_turn": int(record.get("resolves_turn", turn) or turn),
+        "turn": turn,
+    }
+    world.log_event(event)
+    lean = int(bids[suitor]) // int(AUCTION_SPONSORSHIP_LEAN_DIVISOR)
+    message = (f"{gold} gold laid before the court of {_dn(nation)}, Sire — our bid "
+               f"stands at {int(bids[suitor])} (worth {lean} of standing when the "
+               f"flip resolves on turn {event['resolves_turn']}); relations and "
+               f"standing patronage weigh beside it.")
+    return {"success": True, "message": message, "event": event,
+            "target_nation": nation, "gold": gold, "total": int(bids[suitor])}
+
+
+def process_province_returns(world) -> List[Dict]:
+    """SFR-D42's GR5 half: an AI court whose home province is held by its
+    own ally asks for it back through the SAME road the player's verb takes
+    (`diplomacy.ask_return_province`) — only when the formula says the ally
+    would grant it (a court does not spend its standing on a refusal it can
+    read). Boot-dormant on 1805 (no home province is ally-held at boot,
+    pinned); the series moves only where the situation arises."""
+    from backend.game_logic.diplomacy import ask_return_province
+    from backend.game_logic.treaty import (
+        ask_return_score, can_ask_return, home_provinces_held_by,
+    )
+    events: List[Dict] = []
+    player = getattr(world, "player_nation", "France")
+    active = set(world.get_active_nations())
+    for court in sorted(getattr(world, "enemy_nations", []) or []):
+        if court == player or court not in active:
+            continue
+        for ally in sorted(active):
+            if ally == court or world.get_diplomatic_state(court, ally) not in (
+                    "ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                continue
+            for region in home_provinces_held_by(world, court, ally):
+                if not can_ask_return(world, court, ally, region, charge=False).ok:
+                    continue
+                if not ask_return_score(world, court, ally, region).get("accepts"):
+                    continue
+                result = ask_return_province(world, court, ally, region)
+                if result.get("event"):
+                    events.append(result["event"])
+    return events
+
+
 def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
     """Process diplomatic proposals between AI nations (excluding France).
 
@@ -3636,6 +3770,10 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
 
     # §12.6: the allegiance auction — announce/resolve minors' flips.
     rivalry_events = rivalry_events + process_allegiance_auctions(world)
+
+    # DD-1 S8 Step 3 (SFR-D42, GR5): a court asks its ally for its own
+    # home province back through the player's road.
+    rivalry_events = rivalry_events + process_province_returns(world)
 
     enemy_nations = list(getattr(world, 'enemy_nations', []))
     treaties_this_turn = 0

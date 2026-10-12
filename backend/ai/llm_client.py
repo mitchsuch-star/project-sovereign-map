@@ -1488,6 +1488,40 @@ def _asks_a_court_for_terms(command_lower: str) -> bool:
     return bool(_ASKS_FOR_TERMS_RE.search(command_lower or ""))
 
 
+# DD-1 S8 Step 3 (SFR-D42, October 12, 2026): the ask-back — "ask Spain to
+# return Provence", "Talleyrand, ask Spain to give back Provence", "demand
+# Provence back from Spain", "request the return of Provence from Spain",
+# "have Spain hand Provence over". An ASK verb must open the clause (the
+# bare "return to Paris" is a march, and the recall's own); the court is
+# checked by the caller against the roster.
+_ASKS_A_PROVINCE_BACK_RE = re.compile(
+    r"\b(?:ask|asks|request|requests|demand|demands|press|have|get)\b"
+    r"(?:(?!\bfor\s+terms\b).){0,60}?"
+    r"\b(?:to\s+)?(?:return|give\s+(?:us\s+)?back|hand\s+(?:us\s+)?back|"
+    r"hand\s+(?:\S+\s+){0,3}?over|"
+    r"restore|cede\s+back|give\s+up|the\s+return\s+of|the\s+restoration\s+of)\b"
+    r"|\b(?:ask|asks|request|requests|demand|demands|press)\b.{0,60}?\bback\b"
+)
+
+
+def _asks_a_province_back(command_lower: str) -> bool:
+    return bool(_ASKS_A_PROVINCE_BACK_RE.search(command_lower or ""))
+
+
+# DD-1 S8 Step 3 (SFR-D40): the bid — "bid for Sardinia", "Talleyrand, bid for
+# Denmark, 200 gold", "enter the bidding for Saxony", "outbid Britain for
+# Denmark", "make our bid for Sardinia".
+_BIDS_FOR_A_COURT_RE = re.compile(
+    r"\b(?:bid|bids|outbid)\b"
+    r"|\benter\s+(?:the\s+)?(?:bidding|auction)\b"
+    r"|\bmake\s+(?:a\s+|our\s+|the\s+)?bid\b"
+)
+
+
+def _bids_for_a_court(command_lower: str) -> bool:
+    return bool(_BIDS_FOR_A_COURT_RE.search(command_lower or ""))
+
+
 def _names_a_known_court(command_text: str, game_state) -> bool:
     try:
         from backend.game_logic.diplomatic_dialogue import extract_nation_from_command
@@ -3045,6 +3079,16 @@ class LLMClient:
             "repair relations", "offer reparations", "send reparations",
         ]
         if any(kw in command_lower for kw in _amends_keywords):
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
+
+        # DD-1 S8 Step 3 (October 12, 2026): the ask-back and the bid route to
+        # the Cabinet without the address when they name a court — never for
+        # a marshal-addressed order ("Ney, get Provence back" is Ney's).
+        if (not _addressed_marshal
+                and (_asks_a_province_back(command_lower) or _bids_for_a_court(command_lower))
+                and any(re.search(r"(?<![a-z])" + re.escape(n), command_lower)
+                        for n in st.known_nations_lower)):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
 
@@ -4796,6 +4840,14 @@ class LLMClient:
         if (not is_question and not _mentions_peace_intent(command_lower)
                 and re.search(r"\bdeclar(?:e|es|ed|ing|ation\s+of)\s+war\b", command_lower)):
             action = "diplomatic_declare_war"
+        # DD-1 S8 Step 3 (October 12, 2026): the ask-back (SFR-D42) and the
+        # bid (SFR-D40) — read before the mission and proposal arms, which
+        # used to swallow "ask Spain to give back Provence" into the bare
+        # proposal card and "bid for Sardinia" into a shrug.
+        elif not is_question and _asks_a_province_back(command_lower):
+            action = "diplomatic_ask_return"
+        elif not is_question and _bids_for_a_court(command_lower):
+            action = "diplomatic_bid"
         elif mission_type and not shared_question:
             action = "diplomatic_mission"
         elif is_question and any(kw in command_lower for kw in FEASIBILITY_KEYWORDS):

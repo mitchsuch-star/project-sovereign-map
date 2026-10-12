@@ -2,97 +2,97 @@
   "aggressive-plain": {
     "recorded_chars": 17804,
     "recorded_sha256": "f9671079a3fc507ad1e39b75b45543c184ababcf7b9c13aece1b647701a6a469",
-    "static_first_chars": 17987,
-    "static_first_sha256": "751bd89859634f64b02426862705fe8eb309c7b86c246b13b2e54dda61a03c48"
+    "static_first_chars": 18026,
+    "static_first_sha256": "7fe127a591291b9ad184794fd8ceb8f09625032c25eac7190a37726f288ce358"
   },
   "backlog-make-your-way": {
     "recorded_chars": 17808,
     "recorded_sha256": "55e981aebe9c1b69c876da396451535fc9b362fd9e044027e6f3a94ed165d3f9",
-    "static_first_chars": 17994,
-    "static_first_sha256": "d1ef166238609c7371e2490cca6ab3c5be3b7d325f8071cad693acbecc75198e"
+    "static_first_chars": 18033,
+    "static_first_sha256": "bf22a72caf5af0bba778020e1641ca8b0fdb8aba91a69287eade47b44080fe08"
   },
   "below-gate-get-after": {
     "recorded_chars": 17796,
     "recorded_sha256": "db55d35011fe6239b877ce2a9b85a9ef38d9b7494017e49ee08f974c1a23afa5",
-    "static_first_chars": 17979,
-    "static_first_sha256": "5a95081ece6e30f195bbcaebee9c8236f7d2cc1744acd1f012e4cdbd81faeaee"
+    "static_first_chars": 18018,
+    "static_first_sha256": "f3c2b8e53fa33206556534a7ba6cc03e9c362a4619c001f6c3445cbc6a7d8f21"
   },
   "below-gate-keep-an-eye": {
     "recorded_chars": 17804,
     "recorded_sha256": "c16b8e84a7cf0af4fb7cc04dbe3cf0a53c852550aaaa369b28fffe2f22d95a88",
-    "static_first_chars": 17988,
-    "static_first_sha256": "dd35bbe052594830b51ea8111efc55c3e30c051da8945a174db705772e1339a1"
+    "static_first_chars": 18027,
+    "static_first_sha256": "f9662a6d4d4c90ad56e879cb927627c44dc4c70cbad37abfde65ef312508a26e"
   },
   "cr2-retry-hunt-down-mack": {
     "recorded_chars": 17791,
     "recorded_sha256": "8773110b6928f735a894cd343d4f69ddb5f0c2715a81a8f720e3c5224bb92121",
-    "static_first_chars": 17927,
-    "static_first_sha256": "2ce79606786b54323cbc89cc50de05270b97d3fe941125310f02d5c23b175c21"
+    "static_first_chars": 17966,
+    "static_first_sha256": "4efce80d6bcfe291d206e099d0230593aed16feef9c4a6ab64c7e7dd8a02b97c"
   },
   "cr2-unresolved-address": {
     "recorded_chars": 17797,
     "recorded_sha256": "64421b5759712f723e42288f9578ac9f927e4f4d77a0f881feea5b0487ba2e70",
-    "static_first_chars": 17933,
-    "static_first_sha256": "7f955e1174065af3b0b5eb196ba648f60d970eee9602dc7c983e3c68398d6f02"
+    "static_first_chars": 17972,
+    "static_first_sha256": "b306dcf835ecd0346988afa998bdafd76f4ba6244500fa212b0c237d8d496342"
   },
   "cr5-deleg-aggressive-ney-resolves-live": {
     "recorded_chars": 17796,
     "recorded_sha256": "adbc6c4c43cafb2c383c35b854374f5a806680a241b76c75fe87f1e4a336f80c",
-    "static_first_chars": 17979,
-    "static_first_sha256": "730b56c58c3fa2faa62e5c471ff0fe0bcef18ae7848a45e74670ba59e9ec2218"
+    "static_first_chars": 18018,
+    "static_first_sha256": "b18625dc18b14a9e5bfa00c2fdf6e7412db0f040f2da7ed320f40effed1b3b5c"
   },
   "cr5-deleg-cautious-davout-resolves-live": {
     "recorded_chars": 17799,
     "recorded_sha256": "224e79aa238be524d77e1f15ddf6e518b5ad6605c1fb04988f7c12952fe42297",
-    "static_first_chars": 17983,
-    "static_first_sha256": "d0f1d114c5ef3119b296667144d47f45dd5d55b1a9cd9ca071c49139ebd85c51"
+    "static_first_chars": 18022,
+    "static_first_sha256": "fe5ce7a567bf7f88d1b61263c5975c1417f7c46ccd990fa23bca3fa59861def3"
   },
   "cr5-deleg-literal-soult-asks": {
     "recorded_chars": 17798,
     "recorded_sha256": "f8bd1442fbd9ae8a09b4b46eca7dfc49e587980b6a5666766d2a9ff5e0dabe57",
-    "static_first_chars": 17980,
-    "static_first_sha256": "a01f6ffcdf4e2ff73eb1d8b66ad6f7a0e93cf9aaf03aa952247e5f81e8265fba"
+    "static_first_chars": 18019,
+    "static_first_sha256": "a6d9f8eb051b6a8a852e6c39445c78fcbc4c6b6d6177d974c162a60b53326175"
   },
   "demonym-harass": {
     "recorded_chars": 17804,
     "recorded_sha256": "0282296f27eaeebfc127af81743cda9606a4b08f16089970cafedc2a417a9a4d",
-    "static_first_chars": 17989,
-    "static_first_sha256": "c509a1dc9b968cac01ff1a9e767ddce33b048510e89e0add45000839670d8252"
+    "static_first_chars": 18028,
+    "static_first_sha256": "57d03b62337ed62353c8c6bdb06f90bb1eb5cc7f065e16097028efb4c663b1d0"
   },
   "diplomatic-ask-austria": {
     "recorded_chars": 17803,
     "recorded_sha256": "00005dc7143bfd293325f17f83f79ec2cb1114a6b0cb2f54d51bc1dec9e4193c",
-    "static_first_chars": 17939,
-    "static_first_sha256": "c6bd2e17269b23ad11856bda4bf38bcbc0edaeb9b909c7b64071b5e64277f467"
+    "static_first_chars": 17978,
+    "static_first_sha256": "bcc269758f3b42a32ea02867ba025b2241db8348e93ce1bb7583e22eaf87fca5"
   },
   "fa73-live-cover-the-retreat-is-not-a-retreat.1805": {
     "recorded_chars": 17799,
     "recorded_sha256": "6dbfdab36e5b1fdf631986bdbabb3270d7c98fa058f56af667c7cfee63149d68",
-    "static_first_chars": 17982,
-    "static_first_sha256": "49ef71083833b55e1486b89f2532b3c029a2004a9b620fcd220769629d189313"
+    "static_first_chars": 18021,
+    "static_first_sha256": "a0e5a0a3531f286fd393d2049bf1cf74570b6b518c820dc246272d48d4d0bcb2"
   },
   "fa73-live-cover-the-retreat-is-not-a-retreat.legacy": {
     "recorded_chars": 16038,
     "recorded_sha256": "1265599700768d671086f23e65d511c3ee95961b9f15466c313c0f8bd365da72",
-    "static_first_chars": 16245,
-    "static_first_sha256": "e4718c7da95152861c207dd94ccea9f8685f542bd97c8d065a28990ef739416b"
+    "static_first_chars": 16284,
+    "static_first_sha256": "bdeea5bbc2d1395740c84a3fca43bda684a8c927cfc81bb36ed4332dc70dba82"
   },
   "fa73-live-fix-bayonets-is-not-a-repair.1805": {
     "recorded_chars": 17794,
     "recorded_sha256": "11e5ef73a7022658421b234250a9976c76d9d261ff085c7e483d780bcfb3695e",
-    "static_first_chars": 17977,
-    "static_first_sha256": "9315fc337a960de2981c0fd2177ce6164be4d63fd79ad4dda1e6256276c244f3"
+    "static_first_chars": 18016,
+    "static_first_sha256": "6d46a7189f6a218dfdd00aeb10507f7d5602ecacd754f8761285863613f9ad64"
   },
   "fa73-live-fix-bayonets-is-not-a-repair.legacy": {
     "recorded_chars": 16033,
     "recorded_sha256": "d4201cd86a0a02f961ab06e577f2dd1148822e7b3dab032a95dd9c3cc89bd4d5",
-    "static_first_chars": 16240,
-    "static_first_sha256": "8e7828221a7070612d280bd1ea4c6a908a31c82760c3f68b664f74f3e70123b0"
+    "static_first_chars": 16279,
+    "static_first_sha256": "1b4d3df926551ec5e23eb2c2a75bd05e21f991ec13d210a4f27e9a0d6f724213"
   },
   "gibberish-berthier": {
     "recorded_chars": 17795,
     "recorded_sha256": "f6d29b6f452278482077f0bf4dc228c4d081ec59aa3b83ffc730ca563b2f3e53",
-    "static_first_chars": 17931,
-    "static_first_sha256": "53e3a749d5967b15517d91b4154dc5ef6952b888f3014fe2752cff65410898a3"
+    "static_first_chars": 17970,
+    "static_first_sha256": "67ce37e5b8e5d9159711c503606698fc06d8ff4df89c36122db3b0db3276485f"
   }
 }

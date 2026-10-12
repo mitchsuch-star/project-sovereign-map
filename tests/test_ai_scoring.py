@@ -11,7 +11,7 @@ Tests cover:
 import pytest
 from unittest.mock import Mock
 from backend.models.world_state import WorldState
-from backend.ai.enemy_ai import calculate_ai_strategic_score, AI_SCORING_ENABLED
+from backend.ai.enemy_ai import calculate_ai_strategic_score
 from backend.ai.feedback import apply_strategic_bonuses
 
 
@@ -309,12 +309,3 @@ class TestAIStrategicScoreWithRealMarshals:
         # Base 55 for aggressive, no modifiers
         assert 45 <= avg <= 65, f"Blucher vs Ney average {avg} not in expected range"
         print(f"Blucher attacking Ney average: {avg:.1f}")
-
-
-class TestAIScoringEnabled:
-    """Test AI_SCORING_ENABLED flag."""
-
-    def test_scoring_enabled_by_default(self):
-        """AI_SCORING_ENABLED should be True by default."""
-        assert AI_SCORING_ENABLED is True
-        print("AI_SCORING_ENABLED is True")

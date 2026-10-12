@@ -63,6 +63,10 @@ FAMILY_ACTIONS = {
     "diplomatic_break",
     "diplomatic_downgrade",
     "diplomatic_mission",
+    # DD-1 S8 Step 3 (October 12, 2026): the ask-back and the bid — both
+    # route through `_parse_diplomatic_command` and have wizard chips.
+    "diplomatic_ask_return",
+    "diplomatic_bid",
     "make_vassal",
     "invest_vassal",
     "change_autonomy",

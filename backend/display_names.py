@@ -37,6 +37,8 @@ ACTION_DISPLAY = {
     "cancel": "cancels order",     # R18: cancel strategic order
     "economy": "reviews finances", # R18: economy info command
     "diplomatic_ultimatum": "delivers ultimatum to",  # PL-14
+    "diplomatic_ask_return": "asks for a province back from",  # DD-1 S8 (SFR-D42)
+    "diplomatic_bid": "bids for the allegiance of",            # DD-1 S8 (SFR-D40)
     "make_amends": "offers amends to",                # B-B7 (spec §8.6.1)
     "set_war_purpose": "sets war purpose against",    # WPS-A
     "repudiate_bargain": "repudiates bargain with",  # WB-C
@@ -204,6 +206,8 @@ OBJECTION_DISPLAY = {
     "cancel": "cancelling order",   # R18
     "economy": "reviewing finances",# R18
     "diplomatic_ultimatum": "issuing ultimatum",  # PL-14
+    "diplomatic_ask_return": "asking for a province back",   # DD-1 S8 (no objections)
+    "diplomatic_bid": "bidding for an allegiance",           # DD-1 S8 (no objections)
     "make_amends": "offering amends",              # B-B7 (no marshal objections in v0.1)
     "set_war_purpose": "setting war purpose",      # WPS-A
     "repudiate_bargain": "repudiating bargain",   # WB-C
@@ -259,6 +263,8 @@ DEFIANCE_DISPLAY = {
     "cancel": "cancelled order",     # R18
     "economy": "reviewed finances",  # R18
     "diplomatic_ultimatum": "issued ultimatum",  # PL-14
+    "diplomatic_ask_return": "asked for a province back",   # DD-1 S8 (no defiance)
+    "diplomatic_bid": "bid for an allegiance",              # DD-1 S8 (no defiance)
     "make_amends": "offered amends",             # B-B7 (no marshal defiance in v0.1)
     "set_war_purpose": "set war purpose",         # WPS-A
     "repudiate_bargain": "repudiated bargain",   # WB-C

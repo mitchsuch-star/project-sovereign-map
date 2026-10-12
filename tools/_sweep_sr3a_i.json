@@ -105,13 +105,6 @@
   "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestSomebodyElsesRetreatIsNotAnOrderToRetreat::test_his_own_retreat_is_still_an_order"
  },
  {
-  "id": "SR-3a/CQ-30 the near miss discloses and proceeds again",
-  "file": "backend/commands/combat_executor.py",
-  "old": "    if auto_resolved and A_NEAR_MISS_ASKS and _near_miss_of_a_roster_name(\n            raw_target_words, world, marshal, _shared_words):",
-  "new": "    if False:",
-  "tests": "tests/test_crt2_the_name_is_never_replaced.py"
- },
- {
   "id": "SR-3a/CQ-30 the near-miss test reads only exact names",
   "file": "backend/commands/combat_executor.py",
   "old": "                if word == token or _plausible_name_typo(word, token):\n                    return True",

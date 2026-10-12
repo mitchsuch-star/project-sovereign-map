@@ -436,13 +436,6 @@ class TestTheLoadedWarHasAPurposeToo:
             world._migrate_missing_war_purposes()
         assert not (world.war_objectives or {}).get("Austria|France")
 
-    def test_lever_down_leaves_the_loaded_war_purposeless(self, monkeypatch):
-        monkeypatch.setattr(WS, "THE_LOADED_WAR_HAS_A_PURPOSE_TOO", False)
-        world = self._purposeless()
-        with _quiet():
-            world._migrate_missing_war_purposes()
-        assert not (world.war_objectives or {}).get("Austria|France")
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-S17-18 / FA-S17-19 — the two client surfaces

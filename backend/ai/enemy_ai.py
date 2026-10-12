@@ -65,25 +65,21 @@ from backend.game_logic import withdrawal
 import os as _os  # noqa: E402
 AI_DEBUG = _os.environ.get("AI_DEBUG", "").lower() in ("1", "true", "yes")
 
-# AI Scoring flag - enables strategic scoring for AI actions (Phase 5)
-# Set to False to disable for performance testing
-AI_SCORING_ENABLED = True
+# AI strategic scoring (Phase 5): every successful autonomous action is
+# scored (`calculate_ai_strategic_score`) and its bonuses applied.
 
-# HC-4b "The Admiralty's bill" (gate §5b) — flip lever for the
-# BASELINE_SERIES attribution experiment: False reproduces the flat
-# 1-AP admin billing byte-identically. When True, naval_expedition /
+# HC-4b "The Admiralty's bill" (gate §5b): naval_expedition /
 # naval_diversion bill at the `world._action_costs` table price (2 / 1)
 # against the AI's 2-AP admin budget, and the expedition rung is
 # affordability-gated at that price — the parity the dead table entry
-# always intended (the player's expedition costs 2 MILITARY AP).
-AI_NAVAL_AP_PARITY = True
+# always intended (the player's expedition costs 2 MILITARY AP; the flat
+# 1-AP admin billing was the prior rule).
 
 # WIN-D2 "The Spoils of War" (gate record: docs/audits/
 # PLAYTEST_WIN_CAMPAIGN_2026_08_16.md §5.2 + the ruling in
-# DESIGN_REFINEMENT.md §Win-Attempt Campaign) — flip lever for the
-# BASELINE_SERIES attribution experiment: False restores the old
-# behaviour byte-identically (any co-belligerent may walk into any
-# undefended province first).
+# DESIGN_REFINEMENT.md §Win-Attempt Campaign): an AI defers an undefended
+# prize to a better-placed co-belligerent (before: any co-belligerent
+# could walk into any undefended province first).
 #
 # Measured cause: France annihilated Austria's field army and gained ONE
 # province while allied Bavaria walked into Vienna, Bohemia, Moravia and
@@ -97,43 +93,21 @@ AI_NAVAL_AP_PARITY = True
 # acts and the rung can never deadlock. Symmetric by construction: it
 # reads co-belligerents, not "the player", so AI-AI coalitions obey it
 # too, and an ally who is not adjacent never blocks anything.
-SPOILS_DEFERENCE_ACTIVE = True
 
-# FA-N72 + FA-35 (slice 2, Sept 4 2026) flip lever — the HOST_RULE_ACTIVE
-# idiom. False reproduces the pre-slice behaviour byte-for-byte: the P0
-# engagement rung and P8's two engaged arms read neither of the brakes P4
-# carries, so a co-located corps attacked the same defender twice in one
-# turn, and every corps of the nation queued on a sub-1,000 stub.
-P0_ENGAGEMENT_BRAKES_ACTIVE = True
-# Slice 2 review round (Sept 4 2026, review R1 F1/F2 + FA-N72's non-stub
-# half) — three more levers on the same rung, each False reproducing the
-# slice-2 series byte-for-byte:
-#   P0_BRAKED_CORPS_HOLDS — an engaged corps whose blow is spent HOLDS
-#     instead of falling through to an order the executor refuses (the
-#     engaged rule bars every attack-elsewhere and advance while ANY
-#     at-war corps shares the province, remnant included), which wrote a
-#     two-turn `attack` cooldown and froze him the following turn;
-#   P0_PRICES_THE_WHOLE_FIELD — the ratio is priced over every corps that
-#     will actually reinforce, not the braked subset (CA9-N6 re-created:
-#     a pair-braked 20,000 left the pool while still standing there);
-#   P0_READS_FUTILITY — P0 drops a defender this corps has failed against
-#     ATTACK_FUTILITY_LIMIT times, the brake P4 has carried since CA9-N7.
-P0_BRAKED_CORPS_HOLDS = True
-P0_PRICES_THE_WHOLE_FIELD = True
-P0_READS_FUTILITY = True
-# FA slice 4 "The AI Reads the Board" (Sept 4 2026) — one lever per row,
-# each False reproducing the slice-2-review-round series byte-for-byte:
-P425_SKIPS_A_HELD_FIELD = True           # FA-8: a garrisoned province with a field army is P4's business; P7.5 prices the field too
-# FA-D29 (slice 17, Phase 2) flip lever: the four field-price rungs add the
-# defender's VISIBLE muster forecast (the preview's own term). False = the
-# field standing in the province alone (the prior price).
-P4_PRICES_THE_MUSTER = True
-# FA-S2-D1 (slice 17, Phase 2) flip lever: a player marshal whose last-stand
-# question the AI raised THIS turn is a non-target for the rest of the enemy
-# phase (every court's), so the W6-7 choice reaches the player; an ask still
-# standing at the next phase is resolved by FA-1's rule as before. False =
-# the next action in the same phase answers it.
-THE_ENEMY_WAITS_ONE_TURN = True
+# FA-N72 + FA-35 (slice 2, Sept 4 2026): the P0 engagement rung and P8's
+# two engaged arms read the brakes P4 carries (pair / stub latch /
+# futility). Before the slice they read neither, so a co-located corps
+# attacked the same defender twice in one turn, and every corps of the
+# nation queued on a sub-1,000 stub.
+# FA slice 4 "The AI Reads the Board" (Sept 4 2026) — FA-8: a garrisoned
+# province with a field army is P4's business; P7.5 prices the field too.
+# FA-D29 (slice 17, Phase 2): the four field-price rungs add the defender's
+# VISIBLE muster forecast (the preview's own term) to the field standing in
+# the province (the prior price was the field alone).
+# FA-S2-D1 (slice 17, Phase 2): a player marshal whose last-stand question
+# the AI raised THIS turn is a non-target for the rest of the enemy phase
+# (every court's), so the W6-7 choice reaches the player; an ask still
+# standing at the next phase is resolved by FA-1's rule as before.
 # ═══════ the AI's purse (the economy audit, October 5, 2026 —
 # `docs/audits/ECONOMY_AUDIT_2026_10_05.md` §7) ═══════
 # EA-10 "No tower for a court without fog": a watchtower lifts the PLAYER's
@@ -180,8 +154,6 @@ A_COURT_WITHOUT_A_GENERAL_MAY_COMMISSION = True
 COURT_ARMS_RESERVE = 1000          # gold kept after the levy (the laws rung's floor)
 COURT_ARMS_UPKEEP_TURNS = 5        # turns of the new bill the chest must hold
 COURT_ARMS_PEACE_FACTOR = 1.25     # at peace: up to this × the boot establishment
-SQUARE_FORMS_AFTER_THE_STRIKES = True    # FA-27 / FA-N38: the square is the LAST word of a phase, and a broken one takes a cooldown
-BROKEN_AI_CORPS_IS_LIMITED = True        # FA-N6: a broken corps takes the limiter (both sides, GR5)
 # FA-9 (slice 17, Sept 11 2026): a corps in the RETREAT-RECOVERY window takes
 # no ground — the P-1 capture-current rung and a stored capture intent are
 # refused for the whole window, not only the turn it routed. The player's own
@@ -192,19 +164,10 @@ BROKEN_AI_CORPS_IS_LIMITED = True        # FA-N6: a broken corps takes the limit
 # of War board: Kienmayer, 1,218 men, `retreating=True, retreat_recovery=1`,
 # fled into ungarrisoned Lorraine and the walk-in seam annexed it; with a
 # garrison under him the P-1 rung would have done the same one step earlier.
-RECOVERING_AI_CORPS_TAKES_NO_GROUND = True
-COUNTER_PUNCH_PRICES_THE_FIELD = True    # FA-N7: the free blow is priced against the field, under a floor
-STAGNATION_READS_THE_CROSSING = True     # FA-N80: the breaker never orders an attack across barred water
-ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES = True  # FA-R1: "attacking X to join" picks an ENEMY, never an ally standing with him
-DRILL_RUNG_READS_FORTIFIED = True        # FA-R2: a fortified corps is not ordered to drill
 # ── FA slice 4 REVIEW ROUND "The Board Reads Back" (September 4, 2026) ─────
 # Three lenses at 85130a6f attacked slice 4's fixes and found the board
-# reading back wrong at eight more seams (REVIEW_slice4_R1_ai_decisions.md).
-# Each lever's False arm reproduces the prior behaviour byte-for-byte.
-FIELD_PRICES_THE_TARGET_TOO = True       # R1-1: a retreated target is never priced at his NEIGHBOURS' strength (P4's own guard)
-ALLY_SUPPORT_PRICES_THE_FIELD = True     # R1-2: "attacking X to join" is priced and thresholded like P4, reads futility + the crossing
-ADMIN_RECRUIT_SPARES_THE_SQUARE = True   # R1-3: the admin recruit never breaks the square the phase just paid for
-STAGNATION_READS_THE_PHASE = True        # R1-4: form_square is meaningful; a corps that acted (or drills) this phase is not forced
+# reading back wrong at eight more seams (REVIEW_slice4_R1_ai_decisions.md);
+# the R1-n rules are stated at the rungs that read them.
 # SF7-X34 (Score Finish Step 7 slice 10, Oct 5 2026): the stagnation
 # tracker read only `battle` events for an attack's achievement, so an
 # attack that TOOK a province — a garrison's collapse (`garrison_destroyed`
@@ -214,12 +177,9 @@ STAGNATION_READS_THE_PHASE = True        # R1-4: form_square is meaningful; a co
 # Milan. ONE predicate, `attack_achieved_something`. False = battles only.
 THE_STAGNATION_COUNTS_A_CAPTURE = True
 CAPTURE_EVENT_TYPES = ("conquest", "occupation_started", "garrison_destroyed")
-# F5 "Bohemia is not empty" (row EP, Sept 25 2026 — LV-D2 / FA-D13 option (a)).
-# Both down = the pre-F5 walk-in rung byte-for-byte (the BASELINE_SERIES
-# attribution arms, tools/_f5_series_arms.py).
-ONE_WALK_IN_PER_CORPS_PER_TURN = True    # P4.5 hands a corps at most `movement_range` walk-ins a turn
-THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK = True  # a literal corps runs the cautious 1.5x counter-attack check before a walk-in
-DRILLING_CORPS_IS_LEFT_TO_DRILL = True   # R1-5: no stance / fortify / supply-move is ordered to a drilling corps
+# F5 "Bohemia is not empty" (row EP, Sept 25 2026 — LV-D2 / FA-D13 option (a)):
+# P4.5 hands a corps at most `movement_range` walk-ins a turn, and a literal
+# corps runs the cautious 1.5x counter-attack check before a walk-in.
 # ── The AI drill fix (user-directed, Sept 27, 2026: "we don't want them
 # drilling when they can get attacked") ─────────────────────────────────────
 # P4.9 "drill to heal": a debased corps drills to restore its morale, where
@@ -227,7 +187,6 @@ DRILLING_CORPS_IS_LEFT_TO_DRILL = True   # R1-5: no stance / fortify / supply-mo
 # census (tools/_ai_drill_census.py) found the AI almost never drilled — P6
 # asks only aggressive marshals, for the shock bonus alone — and a corps sat a
 # campaign below 70 morale (Mack 27 turns, down to 0).
-AI_DRILLS_TO_HEAL = True
 HEAL_MORALE_BELOW = 70                   # band 60-75
 # AAR-D8 (Score Finish Step 3 / SR-7a, October 2, 2026): the cautious kit's
 # odds gate on the AI's P4 attack rung — the muster band the player's
@@ -247,13 +206,10 @@ AI_ATTACKS_OBEY_THE_MUSTER_GATE = True
 # re-fortify cooldown the stagnation breaker writes.
 A_HELD_CORPS_IS_NOT_IDLE = True
 # Every drill the AI orders (the heal and P6's shock drill) first asks the ONE
-# reach predicate, `drill_reach_threat`. Down: P6 keeps its fog-adjacent
-# check alone.
-AI_DRILL_READS_THE_REACH = True
+# reach predicate, `drill_reach_threat` (P6 keeps its fog-adjacent check too).
 # A corps that began a drill has done the day's work: marked done for the
 # phase, so P2's "defend" cannot cancel it the same phase and P8 cannot order
 # a stance change the executor refuses (a 2-turn cooldown write).
-DRILL_IS_THE_DAYS_WORK = True
 # MC-V-2 (the user's July 11 ruling): an enemy literal takes NO drill
 # initiative. AIDR-D1 DECIDED September 28, 2026 (the user delegated it:
 # "make a decision — remember Mack sucked"): HELD OUT. A literal's rot in
@@ -265,14 +221,12 @@ DRILL_IS_THE_DAYS_WORK = True
 LITERALS_DRILL_TO_HEAL = False
 # R1-5 guarded a drilling corps in P8's CAUTIOUS default only; the aggressive
 # default still ordered it a stance change, which the executor refuses (a
-# failed-action write). True = every default branch leaves the drill be.
-EVERY_DEFAULT_LEAVES_THE_DRILL = True
+# failed-action write). Every default branch leaves the drill be.
 # A drill ordered on turn N stands through the enemy phases of N and N+1
 # (Soult's Drillmaster: N alone). In a phase a corps can march its range and
 # strike from its range (move + attack, 2 actions), so the reach over the
 # exposure is (phases + 1) x range: 3 regions for infantry, 6 for cavalry.
 DRILL_EXPOSED_PHASES = 2
-CAVALRY_AI_READS_THE_LIMIT = True        # R1-7: the cautious rungs never park cavalry in DEFENSIVE or a fort under the cavalry limit
 
 # Below this, a hostile corps is a remnant one corps finishes while the rest
 # of the nation's actions go somewhere useful (P4.5 / P7). The same 1,000-man
@@ -290,11 +244,9 @@ def ai_debug(msg: str):
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# NP-2 THE FEAR (NAPOLEON_SPEC §5.2, N3) — flip lever for the NP-V
-# BASELINE_SERIES attribution experiment: False reproduces pre-slice
-# behavior byte-identically (the HOST_RULE_ACTIVE idiom).
+# NP-2 THE FEAR (NAPOLEON_SPEC §5.2, N3): the enemy's appetite to attack a
+# stack the Emperor stands in is scaled by his aura (the factor below).
 # ══════════════════════════════════════════════════════════════════════════
-SOVEREIGN_FEAR_ACTIVE = True
 
 # N3 (in-band tunable): the enemy needs ~1.33x its normal appetite to
 # attack the Emperor's army at full aura — a cautious court wants ~1.73x.
@@ -565,7 +517,7 @@ def _cavalry_under_the_limit(marshal) -> bool:
     from France 2 to France 19 provinces and was NOT taken."""
     import backend.models.world_state as _ws
     return bool(getattr(marshal, "cavalry", False)
-                and getattr(_ws, "CAVALRY_LIMITS_ALL_NATIONS", False)
+                and True
                 and getattr(marshal, "stance", None) == Stance.AGGRESSIVE)
 
 
@@ -958,8 +910,6 @@ class EnemyAI:
         list, the P0 brake site) and never where OCCUPANCY is read: the
         asked corps still stands on his province, so it is not undefended,
         not a free road, and not a garrison without a field army."""
-        if not THE_ENEMY_WAITS_ONE_TURN:
-            return False
         ask = getattr(marshal, "pending_interrupt", None)
         return (isinstance(ask, dict)
                 and ask.get("interrupt_type") == "last_stand"
@@ -1227,7 +1177,7 @@ class EnemyAI:
         # AI STRATEGIC SCORING (Phase 5): Apply bonuses to autonomous marshals
         # ════════════════════════════════════════════════════════════
         ai_score = None
-        if AI_SCORING_ENABLED and result.get("success", False):
+        if result.get("success", False):
             # Get target marshal if exists
             target_marshal = None
             if action.get("target"):
@@ -1497,7 +1447,7 @@ class EnemyAI:
             # has acted — the counter the stagnation rung reads is last
             # phase's, so a corps that drilled a moment ago read as idle
             # and was force-marched out of the drill it had paid for.
-            if STAGNATION_READS_THE_PHASE and selected_action["action"] in (
+            if selected_action["action"] in (
                     "move", "drill", "recruit", "unfortify", "retreat",
                     "form_square", "fortify"):
                 self._acted_this_phase.add(selected_action["marshal"])
@@ -1505,8 +1455,7 @@ class EnemyAI:
             # The AI drill fix: a corps that began a drill has done the day's
             # work — P2 cannot cancel it and P8 cannot order it a stance the
             # executor refuses, later in the same phase.
-            if (DRILL_IS_THE_DAYS_WORK and selected_action["action"] == "drill"
-                    and result.get("success")):
+            if (selected_action["action"] == "drill" and result.get("success")):
                 self._marshals_done_this_turn.add(selected_action["marshal"])
 
             # Track successful stance changes to prevent spam
@@ -1522,8 +1471,7 @@ class EnemyAI:
                 # evaluation would otherwise find the strike it did not
                 # find a moment ago (another corps moved) and break the
                 # square it just paid for.
-                if SQUARE_FORMS_AFTER_THE_STRIKES:
-                    self._marshals_done_this_turn.add(selected_action["marshal"])
+                self._marshals_done_this_turn.add(selected_action["marshal"])
 
             # Track successful attacks to prevent same attacker→target repetition
             if selected_action["action"] == "attack" and selected_action.get("target"):
@@ -1646,7 +1594,7 @@ class EnemyAI:
                 else:
                     print(f"  [STAGNATION] {m_name} attacked but achieved nothing - not counted as meaningful")
             elif action in ("move", "drill", "recruit", "unfortify", "retreat") or (
-                    STAGNATION_READS_THE_PHASE and action == "form_square"):
+                    action == "form_square"):
                 # R1-4: a square is a decision, not idleness — the tracker
                 # marched squared corps out from under the cavalry.
                 meaningful_actions.add(m_name)
@@ -2028,7 +1976,7 @@ class EnemyAI:
 
         print(f"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}")
 
-        if field_in_region and not enemies_in_region and P0_BRAKED_CORPS_HOLDS:
+        if field_in_region and not enemies_in_region:
             # Review round (R1-F1). Slice 2 let an emptied list fall THROUGH
             # P0 on the theory that P4.5 / P7 would give the corps a useful
             # order. They cannot: the executor's engaged rule refuses every
@@ -2074,7 +2022,7 @@ class EnemyAI:
             # of the pool priced a 20,700 field as 8,000 (3.5x wrong) and
             # charged it.
             defenders = self._defending_strength_in_region(
-                field_in_region if P0_PRICES_THE_WHOLE_FIELD else enemies_in_region)
+                field_in_region)
             # FA-D29: plus what his friends next door will commit.
             defenders += self._muster_price(weakest_enemy, nation, world)
             ratio = combined_strength / defenders if defenders > 0 else 999
@@ -2318,12 +2266,6 @@ class EnemyAI:
                     self, '_squares_formed_this_turn', set())
                 if (adj_cavalry and not adj_artillery and cooldown <= 0
                         and not formed_this_phase):
-                    if not SQUARE_FORMS_AFTER_THE_STRIKES:
-                        ai_debug("  P2.5: Cavalry threat, no artillery — forming square")
-                        return ({
-                            "marshal": marshal.name,
-                            "action": "form_square",
-                        }, 2)
                     # FA-27 / FA-N38 (slice 4, Sept 4 2026): THE SQUARE IS THE
                     # LAST WORD OF A PHASE, NOT THE FIRST. Sited here, above
                     # every strike rung, the square was formed and then
@@ -2933,7 +2875,7 @@ class EnemyAI:
         # fading to nothing as his authority collapses — the aura of
         # invincibility is EARNED state, and losses erode it (user
         # direction, Aug 15 2026: "his losses have weight").
-        if world and SOVEREIGN_FEAR_ACTIVE:
+        if world:
             sovereign_in_stack = None
             for m in world.get_friendly_marshals_in_region_indexed(
                     target.location, target.nation):
@@ -2989,7 +2931,7 @@ class EnemyAI:
         if not adjacent_enemies:
             return None
 
-        if DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal):
+        if _corps_is_drilling(marshal):
             # R1-5: the executor refuses a drilling corps every stance
             # change and fortify (a 2-turn cooldown each — six of the
             # shipped board's seven remaining refusals); leave him to it.
@@ -3011,7 +2953,7 @@ class EnemyAI:
                 and world.active_coalition.get("strategic_posture", "defensive") in ("defensive", "cautious")
             )
             if personality == "cautious" or coalition_defensive:
-                if CAVALRY_AI_READS_THE_LIMIT and _cavalry_under_the_limit(marshal):
+                if _cavalry_under_the_limit(marshal):
                     # R1-7: the limit forced this horse OUT of DEFENSIVE at
                     # turn start (-3 trust, -10% defence on the flip) and this
                     # rung bought it straight back for 2 AP — measured on
@@ -3092,7 +3034,7 @@ class EnemyAI:
         """
         if getattr(marshal, "retreated_this_turn", False):
             return True
-        return BROKEN_AI_CORPS_IS_LIMITED and bool(getattr(marshal, "broken", False))
+        return bool(getattr(marshal, "broken", False))
 
     @staticmethod
     def _corps_takes_no_ground(marshal: Marshal) -> bool:
@@ -3108,8 +3050,6 @@ class EnemyAI:
         `Marshal.in_retreat_recovery`)."""
         if EnemyAI._corps_is_limited(marshal):
             return True
-        if not RECOVERING_AI_CORPS_TAKES_NO_GROUND:
-            return False
         in_recovery = getattr(marshal, "in_retreat_recovery", None)
         return bool(in_recovery()) if callable(in_recovery) else False
 
@@ -3119,7 +3059,7 @@ class EnemyAI:
         every other attack rung reads. Measured: Castanos boxed at Normandy
         ordered `attack Moore` at London, refused ("the Royal Navy commands
         the water"), and wrote himself a two-turn attack cooldown."""
-        if not STAGNATION_READS_THE_CROSSING or not getattr(world, "fleets", None):
+        if not getattr(world, "fleets", None):
             return True
         from backend.game_logic.naval import crossing_allowed
         return bool(crossing_allowed(world, nation, origin, dest))
@@ -3161,10 +3101,8 @@ class EnemyAI:
         # attack raised the question and Mack's and John's answered it in
         # the same phase (3,000 -> 1,075 -> captured).
         enemies = [e for e in enemies if not self._freshly_asked(e, world)]
-        if not P0_ENGAGEMENT_BRAKES_ACTIVE:
-            return enemies
         attacked = getattr(self, '_attacked_targets_this_turn', None) or set()
-        futility = (getattr(world, "ai_attack_futility", None) or {}) if P0_READS_FUTILITY else {}
+        futility = (getattr(world, "ai_attack_futility", None) or {})
         if not attacked and not futility:
             return enemies
         out: List[Marshal] = []
@@ -3241,23 +3179,18 @@ class EnemyAI:
         # declined. The field is priced as P0/P4 price it, and the mood
         # threshold is the floor — drawn only when a target exists, so the
         # RNG stream moves only where a decision is actually made.
-        floor = (self._get_mood_adjusted_threshold(marshal, world)
-                 if COUNTER_PUNCH_PRICES_THE_FIELD else 0.0)
+        floor = (self._get_mood_adjusted_threshold(marshal, world))
         for enemy in adjacent_enemies:
-            if COUNTER_PUNCH_PRICES_THE_FIELD:
-                field = self._defending_strength_in_region(
-                    self._get_hostile_marshals_in_region(enemy.location, nation, world)
-                ) or enemy.strength
-                if FIELD_PRICES_THE_TARGET_TOO:
-                    # R1-1: the helper excludes broken and retreated corps —
-                    # when the TARGET is the retreated one, the price was
-                    # whoever else stood there (a 5k friend for a 30k Ney,
-                    # ratio 4.0 where the board said 0.57). P4's own guard.
-                    field = max(field, int(enemy.strength))
-                # FA-D29: plus what his friends next door will commit.
-                field += self._muster_price(enemy, nation, world)
-            else:
-                field = enemy.strength
+            field = self._defending_strength_in_region(
+                self._get_hostile_marshals_in_region(enemy.location, nation, world)
+            ) or enemy.strength
+            # R1-1: the helper excludes broken and retreated corps —
+            # when the TARGET is the retreated one, the price was
+            # whoever else stood there (a 5k friend for a 30k Ney,
+            # ratio 4.0 where the board said 0.57). P4's own guard.
+            field = max(field, int(enemy.strength))
+            # FA-D29: plus what his friends next door will commit.
+            field += self._muster_price(enemy, nation, world)
             base_ratio = marshal.strength / field if field > 0 else 999
             effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
             ai_debug(f"    Counter-punch target: {enemy.name} (base={base_ratio:.2f}, effective={effective_ratio:.2f})")
@@ -3311,10 +3244,7 @@ class EnemyAI:
         muster the same way (CA9-F1: a safety gate, not intel surfaced), so
         GR5 gives the AI the same gate. Measured on the row's own geometry: a 100,000-man
         Moore priced a 500-man Ney at Paris as 200:1 while Davout's 48,000
-        stood one province over and arrived — the honest price is 2.9:1.
-        Returns 0 with the lever down."""
-        if not P4_PRICES_THE_MUSTER:
-            return 0
+        stood one province over and arrived — the honest price is 2.9:1."""
         combat = getattr(self.executor, "_combat", None)
         if combat is None or target is None:
             return 0
@@ -4073,8 +4003,6 @@ class EnemyAI:
         Scale (GR8): walks the target's own adjacency list (<= 8) and the
         marshal roster per region — never `world.regions.values()`.
         """
-        if not SPOILS_DEFERENCE_ACTIVE:
-            return False
 
         region = world.get_region(target_region)
         if not region:
@@ -4133,11 +4061,10 @@ class EnemyAI:
         # the same turn. The counter is per-phase state (reset with the
         # other per-turn sets); a corps that already took its share this
         # turn finds no capture here and falls through to the rungs below.
-        if ONE_WALK_IN_PER_CORPS_PER_TURN:
-            _taken = int(getattr(self, "_walk_ins_this_turn", {}).get(marshal.name, 0))
-            if _taken >= max(1, int(getattr(marshal, "movement_range", 1) or 1)):
-                ai_debug(f"    {marshal.name} has taken his walk-in this turn ({_taken})")
-                return None
+        _taken = int(getattr(self, "_walk_ins_this_turn", {}).get(marshal.name, 0))
+        if _taken >= max(1, int(getattr(marshal, "movement_range", 1) or 1)):
+            ai_debug(f"    {marshal.name} has taken his walk-in this turn ({_taken})")
+            return None
 
         ai_debug(f"    Checking adjacent regions: {marshal_region.adjacent_regions}")
 
@@ -4302,8 +4229,7 @@ class EnemyAI:
             # ambient run's garrison orders were this; two resolved as
             # garrison combat. Fog-aware like P-1/P0 (adjacency grants
             # visibility, so the rung never reads through fog).
-            if (P425_SKIPS_A_HELD_FIELD
-                    and world.get_live_visible_enemies_in_region(adj_name, marshal.nation)):
+            if (world.get_live_visible_enemies_in_region(adj_name, marshal.nation)):
                 ai_debug(f"    P4.25: {adj_name} is held by a field army — P4 prices that")
                 continue
 
@@ -4495,12 +4421,11 @@ class EnemyAI:
                 # Austria|Russia at ALLIANCE, refused as a coalition ally,
                 # cooldown written. The at-war list two lines up is the one
                 # that means "blocking".
-                enemies_at_dest = (enemies_at_ally if ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES
-                                   else present_non_friendlies)
+                enemies_at_dest = (enemies_at_ally)
                 if enemies_at_dest:
                     # Must attack to join ally
                     weakest = min(enemies_at_dest, key=lambda e: e.strength)
-                    if ALLY_SUPPORT_PRICES_THE_FIELD and not self._ally_strike_is_worth_it(
+                    if not self._ally_strike_is_worth_it(
                             marshal, nation, world, weakest, enemies_at_dest, ally):
                         continue
                     ai_debug(f"    -> Moving to support {ally.name} (attacking {weakest.name} to join)")
@@ -4576,7 +4501,7 @@ class EnemyAI:
         # Can't act if broken or in retreat recovery
         if getattr(marshal, 'broken', False) or getattr(marshal, 'retreat_recovery', 0) > 0:
             return None
-        if STAGNATION_READS_THE_PHASE and (
+        if (
                 _corps_is_drilling(marshal)
                 or marshal.name in getattr(self, '_acted_this_phase', set())):
             # R1-4: a corps that drills, or has already acted this phase,
@@ -4731,15 +4656,11 @@ class EnemyAI:
                             continue
                         # FA-8's rider (slice 4): the range arm priced ONE man
                         # while P0/P4 price the field the attack meets.
-                        if P425_SKIPS_A_HELD_FIELD:
-                            field = self._defending_strength_in_region(
-                                self._get_hostile_marshals_in_region(enemy.location, nation, world)
-                            ) or enemy.strength
-                            if FIELD_PRICES_THE_TARGET_TOO:
-                                # R1-1: never below the target himself.
-                                field = max(field, int(enemy.strength))
-                        else:
-                            field = enemy.strength
+                        field = self._defending_strength_in_region(
+                            self._get_hostile_marshals_in_region(enemy.location, nation, world)
+                        ) or enemy.strength
+                        # R1-1: never below the target himself.
+                        field = max(field, int(enemy.strength))
                         ratio = marshal.strength / field
                         if ratio >= reduced_threshold:
                             print(f"  [STAGNATION] {marshal.name}: Attacking {enemy.name} with lowered threshold {reduced_threshold:.2f} (was {base_threshold:.2f}, ratio {ratio:.2f})")
@@ -4900,7 +4821,7 @@ class EnemyAI:
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
 
-        if CAVALRY_AI_READS_THE_LIMIT and _cavalry_under_the_limit(marshal):
+        if _cavalry_under_the_limit(marshal):
             # R1-7 (slice-4 review round): the third producer of the parked
             # horse — the frontier-fortify rung buys DEFENSIVE then a fort,
             # and the cavalry limit forces both out at three turns (-3 trust
@@ -4947,8 +4868,6 @@ class EnemyAI:
             threatened ally.
         It ignores P6's shock-bonus gate (a bonus only an attack clears: a
         corps at peace would heal once)."""
-        if not AI_DRILLS_TO_HEAL:
-            return None
         if personality == "literal" and not LITERALS_DRILL_TO_HEAL:
             return None
         if int(getattr(marshal, "morale", 100) or 0) >= HEAL_MORALE_BELOW:
@@ -4991,7 +4910,7 @@ class EnemyAI:
         # FA-R2 (slice 4, Sept 4 2026): the executor refuses a FORTIFIED
         # corps ("Abandon fortification first") — fourteen of the ambient
         # board's twenty-three cooldown writes were this order.
-        if DRILL_RUNG_READS_FORTIFIED and getattr(marshal, 'fortified', False):
+        if getattr(marshal, 'fortified', False):
             ai_debug(f"    P6: Can't drill - {marshal.name} is fortified")
             return None
 
@@ -5013,11 +4932,10 @@ class EnemyAI:
 
         # The AI drill fix: no drill where a corps at war could reach him
         # before it ends (the ONE reach predicate, shared with P4.9).
-        if AI_DRILL_READS_THE_REACH:
-            threat = drill_reach_threat(world, marshal)
-            if threat is not None:
-                ai_debug(f"    P6: Can't drill - {threat.name} could reach him")
-                return None
+        threat = drill_reach_threat(world, marshal)
+        if threat is not None:
+            ai_debug(f"    P6: Can't drill - {threat.name} could reach him")
+            return None
 
         # CQ-22 (SR-7a): the rung asks the executor's STANCE gate — the one
         # rule the player's road always had — so no drill the executor now
@@ -5054,7 +4972,7 @@ class EnemyAI:
         supply_excess_ratio = (total_troops_here - supply_cap) / supply_cap if supply_cap > 0 else 0
 
         _rung_blind = (
-            (DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal))
+            _corps_is_drilling(marshal)
             or (_fortified_corps_never_marches()
                 and getattr(marshal, 'fortified', False)))
         # R1-5 / R1-8: a drilling corps cannot march and a fortified one
@@ -5616,8 +5534,7 @@ class EnemyAI:
         # The AI drill fix: R1-5's guard, for EVERY branch below (it sat in
         # the cautious branch alone; Paget, drilling at London, was ordered
         # an aggressive stance on the commanded arm's turn 17).
-        if (EVERY_DEFAULT_LEAVES_THE_DRILL and DRILLING_CORPS_IS_LEFT_TO_DRILL
-                and _corps_is_drilling(marshal)):
+        if _corps_is_drilling(marshal):
             return {"marshal": marshal.name, "action": "wait"}
         if personality == "aggressive":
             # Prefer aggressive stance
@@ -5696,10 +5613,10 @@ class EnemyAI:
                     }
 
             # Not engaged - normal cautious behavior
-            if DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal):
+            if _corps_is_drilling(marshal):
                 # R1-5: a drilling corps is refused both arms below.
                 return {"marshal": marshal.name, "action": "wait"}
-            if CAVALRY_AI_READS_THE_LIMIT and _cavalry_under_the_limit(marshal):
+            if _cavalry_under_the_limit(marshal):
                 # R1-7: cavalry is never parked in DEFENSIVE or a fort by the
                 # cautious default — the limit forces it out at three turns.
                 return {"marshal": marshal.name, "action": "wait"}
@@ -6022,8 +5939,7 @@ class EnemyAI:
         # was destroyed for it two turns later. The cautious arm's stale-
         # fortification relaxation applies to him too (a literal corps sat
         # fortified reads the same clock).
-        _takes_strength_check = personality == "cautious" or (
-            THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK and personality == "literal")
+        _takes_strength_check = personality in ("cautious", "literal")
         if _takes_strength_check and adjacent_enemy_strength > 0:
             # Stale fortification relaxation: after N turns fortified, accept more risk
             # Stale fortification: idle too long → accept more risk to break deadlock
@@ -6422,8 +6338,7 @@ class EnemyAI:
                 # Scoped to these two verbs ONLY (re-pricing the whole
                 # admin chain would reopen the admin-economy design);
                 # every other action keeps the flat 1.
-                if (AI_NAVAL_AP_PARITY
-                        and action["action"] in ("naval_expedition",
+                if (action["action"] in ("naval_expedition",
                                                  "naval_diversion")):
                     admin_ap -= int(world._action_costs.get(
                         action["action"], 1))
@@ -6716,8 +6631,7 @@ class EnemyAI:
         # payable, not overdrawn into a hidden discount).
         if ("naval_expedition" not in skip_actions
                 and getattr(world, "fleets", None)
-                and (not AI_NAVAL_AP_PARITY
-                     or admin_ap >= int(world._action_costs.get(
+                and (admin_ap >= int(world._action_costs.get(
                          "naval_expedition", 1)))):
             from backend.game_logic.naval import find_ai_expedition
             expedition = find_ai_expedition(world, nation)
@@ -7140,7 +7054,7 @@ class EnemyAI:
                 # fills a serving contingent's ranks either — its satellite
                 # raises and pays its men (`contingent.lord_fill_refusal`).
                 continue
-            if ADMIN_RECRUIT_SPARES_THE_SQUARE and getattr(marshal, 'square_formation', False):
+            if getattr(marshal, 'square_formation', False):
                 # R1-3: the admin phase runs AFTER the corps squared against
                 # the cavalry beside it; recruiting into him broke the square
                 # and (through _auto_break_square) forbade re-forming it for
@@ -8128,7 +8042,7 @@ class EnemyAI:
         # Same system as player commands for fairness
         # ════════════════════════════════════════════════════════════
         ai_score = None
-        if AI_SCORING_ENABLED and result.get("success", False):
+        if result.get("success", False):
             world = game_state.get("world")
             if world:
                 marshal = world.get_marshal(action["marshal"])

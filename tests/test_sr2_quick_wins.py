@@ -1,9 +1,9 @@
 """Score Mandate Chunk 2 — the quick-win reserve (`docs/SCORE_MANDATE_PLAN.md`
 §3; September 26, 2026): AAR-22, AAR-16, AAR-30, AAR-18, AAR-14, AAR-13.
 
-Every pin binds to the production line it names (`tools/_sweep_sr2_reserve.json`);
-each rule with a lever has its lever-down pin, so the old behaviour is
-reproduced, not remembered.
+Every pin binds to the production line it names (`tools/_sweep_sr2_reserve.json`).
+The AAR-16 lever (`FOREIGN_WORKS_NAME_THEIR_OWNER`) was retired in CODE-1
+batch 4 (October 12, 2026); the rule is unconditional.
 """
 import contextlib
 import io
@@ -14,7 +14,6 @@ import pytest
 import backend.ai.question_desk as QD
 import backend.commands.economy_executor as EC
 import backend.game_logic.dispatch as D
-import backend.models.world_state as WS
 from backend.campaign_log import format_event_oneliner
 from backend.commands.executor import CommandExecutor
 from backend.commands.naval_executor import intercepted_at_sea_line
@@ -147,11 +146,6 @@ class TestAAR16ForeignWorksNameTheirOwner:
                   if e.get("region") == "Vienna"]
         assert events and events[0]["building"] == "watchtower"
         assert events[0]["message"] == "Austria completes a watchtower at Vienna."
-
-    def test_the_lever_down_restores_the_ownerless_line(self, europe, monkeypatch):
-        monkeypatch.setattr(WS, "FOREIGN_WORKS_NAME_THEIR_OWNER", False)
-        assert (_completed(europe, "Vienna")["message"]
-                == "Construction complete: Market in Vienna!")
 
     def test_the_campaign_log_names_the_owner_too(self):
         event = {"type": "building_completed", "building": "market",

@@ -50,7 +50,6 @@ with contextlib.redirect_stdout(io.StringIO()):
     from backend.game_logic import dispatch as DI
     from backend.game_logic import ledger as L
     from backend.game_logic import settlement_reactions as SR
-    from backend.models import world_state as WS
     from backend.models.world_state import WorldState
     from backend.notifications import DIPLOMATIC_MISSION, NotificationPriority
 
@@ -67,7 +66,6 @@ _LEVERS = (
     (ME, "MISSION_HELP_BLOCK"),
     (CL, "THE_LOG_NAMES_THE_MISSION"),
     # the review round's levers
-    (WS, "COUNTER_OFFER_RETURN_RESTORES_HIM"),
     (DI, "IDLE_NUDGE_READS_THE_LIVE_MISSION"),
 )
 
@@ -1037,26 +1035,6 @@ class TestTheRailHasOneRowPerMission:
             f"DP={w.diplomatic_points}: {row['message']}")
         assert row["priority"] == int(NotificationPriority.NORMAL)
 
-    def test_lever_down_a_counter_offer_return_reads_as_starved(self, http):
-        """The DOWN arm (review P4 e): with the restore skipped for a
-        counter-offer, he is left IDLE with the mission paused, and the rail
-        reads the false starvation the fix removed."""
-        WS.COUNTER_OFFER_RETURN_RESTORES_HIM = False
-        w, client = http
-        assert _start_http(client, "court Prussia").get("success")
-        _advance(w)
-        _advance(w)
-        w.diplomatic_points = 10
-        assert _send_http(client, "propose open borders with Prussia").get("success")
-        _advance(w)
-        assert w.proposal_in_transit is None
-        dm = w.dialogue_manager
-        dtypes = [d.get("type") for d in [dm.peek(), *dm.iter_queue()] if d]
-        assert "counter_offer_response" in dtypes, dtypes
-        assert w.talleyrand_state != "ON_MISSION"
-        assert w.active_diplomatic_mission.get("paused")
-        assert _row(w)["details"]["beat"] == "paused_starved"
-
     def test_a_failed_counter_offer_does_not_strand_him_in_transit(self, http, monkeypatch):
         """Probe-found (pre-existing, `world_state._process_proposal_in_transit`):
         a COUNTER_OFFER outcome with no viable counter terms clears the
@@ -1418,7 +1396,7 @@ class TestTheLogRecordsTheEnd:
     def test_the_type_is_registered(self):
         assert "diplomatic_mission_ended" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["diplomatic_mission_ended"] == "diplomacy"
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 173  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — a loyal satellite's petition (THE PROVINCE / THE RELIEF) is the web's first non-rebellion decision, and its answer — granted, refused, or left to lapse — had no persistent surface (no inert diplomacy type was retired in exchange: the six producerless ones are the FA-R5 census's, not this slice's)  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface  # 172->173 flipped consciously: TILSIT (SF-NAV-1-D1, Score Finish Step 7, Oct 4, 2026) adds `continental_system_membership` — a court joining or leaving France's Continental System (by the Tilsit clause, a forced alliance, a satellite's auto-join, or the exit at war) had no persistent surface
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 175  # 173->175 flipped consciously: DD-1 S8 Step 3 (Oct 12, 2026) adds `allegiance_bid` (a bid laid before a court in play, SFR-D40) and `province_returned` (a home province asked back from an ally, with its outcome, SFR-D42) — neither act had a persistent surface; no inert diplomacy type retired in exchange  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — a loyal satellite's petition (THE PROVINCE / THE RELIEF) is the web's first non-rebellion decision, and its answer — granted, refused, or left to lapse — had no persistent surface (no inert diplomacy type was retired in exchange: the six producerless ones are the FA-R5 census's, not this slice's)  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface  # 172->173 flipped consciously: TILSIT (SF-NAV-1-D1, Score Finish Step 7, Oct 4, 2026) adds `continental_system_membership` — a court joining or leaving France's Continental System (by the Tilsit clause, a forced alliance, a satellite's auto-join, or the exit at war) had no persistent surface
 
     def test_lever_down_the_started_line_is_todays(self):
         CL.THE_LOG_NAMES_THE_MISSION = False

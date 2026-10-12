@@ -98,13 +98,6 @@
     "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheDefenceLineIsSplit::test_the_two_terms_are_their_own_rows"
   },
   {
-    "id": "EPF5-1 the walk-in cap lever down",
-    "file": "backend/ai/enemy_ai.py",
-    "old": "ONE_WALK_IN_PER_CORPS_PER_TURN = True",
-    "new": "ONE_WALK_IN_PER_CORPS_PER_TURN = False",
-    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_cap_binds_where_the_check_passes tests/test_ai_intent_threat_migration.py"
-  },
-  {
     "id": "EPF5-2 the cap is not the corps' range",
     "file": "backend/ai/enemy_ai.py",
     "old": "            if _taken >= max(1, int(getattr(marshal, \"movement_range\", 1) or 1)):",
@@ -117,20 +110,6 @@
     "old": "                    self._walk_ins_this_turn.get(selected_action[\"marshal\"], 0) + 1)",
     "new": "                    self._walk_ins_this_turn.get(selected_action[\"marshal\"], 0) + 0)",
     "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_cap_hands_deroy_one"
-  },
-  {
-    "id": "EPF5-4 the literal lever down",
-    "file": "backend/ai/enemy_ai.py",
-    "old": "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK = True",
-    "new": "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK = False",
-    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestThreeSeeds::test_at_most_one_province_on_turn_one tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeriesAttribution::test_the_recorded_series_is_the_shipped_tree tests/test_ai_intent_threat_migration.py"
-  },
-  {
-    "id": "EPF5-5 the literal never takes the check",
-    "file": "backend/ai/enemy_ai.py",
-    "old": "        _takes_strength_check = personality == \"cautious\" or (\n            THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK and personality == \"literal\")",
-    "new": "        _takes_strength_check = personality == \"cautious\"",
-    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheLiteralTakesTheStrengthCheck::test_a_literal_corps_refuses_the_walk_in_beside_a_stronger_enemy tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_literal_check_refuses_deroy_bohemia_at_boot"
   },
   {
     "id": "EPF5-6 the blocker lever down",

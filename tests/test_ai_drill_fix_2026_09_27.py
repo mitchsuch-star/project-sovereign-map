@@ -26,6 +26,11 @@ we don't want them drilling when they can get attacked".
   done for the phase; P8's aggressive default no longer orders a drilling
   corps a stance change the executor refuses (R1-5 guarded the cautious
   branch alone).
+
+The four enemy_ai levers named above were retired in CODE-1 batch 4
+(October 12, 2026): the rules are unconditional, and the lever-down arms
+that reproduced the old AI live only in the measured-arms record
+(`tools/_drill_fix_series_arms.json`, read by `TestTheMeasuredArms`).
 """
 import contextlib
 import io
@@ -179,16 +184,13 @@ class TestTheHealRung:
                                              ("Hohenlohe", "Prussia"),
                                              ("Armfelt", "Sweden")])
     def test_a_debased_corps_out_of_reach_drills_before_it_fortifies(
-            self, world, ai, monkeypatch, name, nation):
+            self, world, ai, name, nation):
         world.marshals[name].morale = 50
+        # priority 5 is the rung it pre-empts: P5, the cautious works (its
+        # first step, a stance change) — the heal answers in its place
         with _quiet():
             assert ai._evaluate_marshal(world.marshals[name], nation, world) == (
                 {"marshal": name, "action": "drill"}, 5)
-        monkeypatch.setattr(EA, "AI_DRILLS_TO_HEAL", False)
-        with _quiet():
-            action, prio = ai._evaluate_marshal(world.marshals[name], nation, world)
-        # the rung it pre-empts: P5, the cautious works (its first step)
-        assert (action["action"], prio) == ("stance_change", 5)
 
     def test_a_corps_within_reach_does_not_heal(self, world, ai):
         """Kutuzov at Podolia: Murat's cavalry is within six regions."""
@@ -246,26 +248,22 @@ class TestTheHealRung:
                             lambda w, n: {"Portugal"} if n == "Spain" else set())
         assert _heal(ai, world, "Castanos", "Spain") is None
 
-    def test_the_lever_down_heals_no_one(self, world, ai, monkeypatch):
-        world.marshals["Castanos"].morale = 50
-        monkeypatch.setattr(EA, "AI_DRILLS_TO_HEAL", False)
-        assert _heal(ai, world, "Castanos", "Spain") is None
-
 
 # ═══════════════════════════ P6 READS THE REACH ═══════════════════════════════
 
 class TestTheShockDrillReadsTheReach:
 
-    def test_no_shock_drill_within_reach(self, world, ai, monkeypatch):
+    def test_no_shock_drill_within_reach(self, world, ai):
         """Moore two regions from Castanos — not adjacent, so the old fog
-        check passed, yet he can march and strike before the drill ends."""
+        check passed, yet he can march and strike before the drill ends.
+        Out of reach (four regions), the same corps drills."""
         castanos, moore = world.marshals["Castanos"], world.marshals["Moore"]
         castanos.personality = "aggressive"
         _only_threat(world, castanos, "Moore")
         moore.location = _at_distance(world, castanos.location, 2)
         with _quiet():
             assert ai._consider_drill(castanos, world) is None
-        monkeypatch.setattr(EA, "AI_DRILL_READS_THE_REACH", False)
+        moore.location = _at_distance(world, castanos.location, 4)
         with _quiet():
             assert ai._consider_drill(castanos, world) == {"marshal": "Castanos", "action": "drill"}
 
@@ -283,19 +281,16 @@ def _spain_phase():
 
 class TestTheDaysWork:
 
-    def test_a_corps_that_began_a_drill_is_done_for_the_phase(self, monkeypatch):
+    def test_a_corps_that_began_a_drill_is_done_for_the_phase(self):
         world, ai, actions = _spain_phase()
         assert actions == [{"marshal": "Castanos", "action": "drill"}]
         assert world.marshals["Castanos"].drilling is True
         assert "Castanos" in ai._marshals_done_this_turn
-        monkeypatch.setattr(EA, "DRILL_IS_THE_DAYS_WORK", False)
-        _world, _ai, actions = _spain_phase()
-        assert actions[0] == {"marshal": "Castanos", "action": "drill"} and len(actions) > 1
 
 
 class TestEveryDefaultLeavesTheDrill:
 
-    def test_the_aggressive_default_orders_a_drilling_corps_nothing(self, world, ai, monkeypatch):
+    def test_the_aggressive_default_orders_a_drilling_corps_nothing(self, world, ai):
         from backend.models.marshal import Stance
         castanos = world.marshals["Castanos"]
         castanos.personality = "aggressive"
@@ -303,7 +298,9 @@ class TestEveryDefaultLeavesTheDrill:
         castanos.stance = Stance.NEUTRAL
         with _quiet():
             assert ai._get_default_action(castanos, world) == {"marshal": "Castanos", "action": "wait"}
-        monkeypatch.setattr(EA, "EVERY_DEFAULT_LEAVES_THE_DRILL", False)
+        # the positive control: the same corps, not drilling, is ordered the
+        # aggressive stance the default exists to buy
+        castanos.drilling, castanos.drilling_locked = False, False
         with _quiet():
             assert ai._get_default_action(castanos, world) == {
                 "marshal": "Castanos", "action": "stance_change", "target": "aggressive"}

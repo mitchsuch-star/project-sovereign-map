@@ -137,8 +137,7 @@ class TestWO24TheGloriousChargeHaltsAtTheFrontier:
 
     def test_the_charge_halts_at_a_peaceful_courts_frontier(self):
         """Killed by deleting the neutral-arm halt in
-        `_execute_glorious_charge` (or freezing `CHARGE_FRONTIER_HALT_ACTIVE`
-        at import time)."""
+        `_execute_glorious_charge`."""
         world, ney, _ = _charge_world(2)
         ex = _executor()
         res = _quiet(ex._combat._execute_glorious_charge, ney, "Wellington",
@@ -163,18 +162,6 @@ class TestWO24TheGloriousChargeHaltsAtTheFrontier:
             == "war_purpose_selection"
         assert "To seize it is to make war on Prussia" in res["message"]
         assert res.get("awaiting_diplomatic_response") is True
-
-    def test_with_the_lever_down_the_cavalry_stands_on_neutral_soil(
-            self, monkeypatch):
-        """The measured defect, reproduced by the flip lever - so the
-        BASELINE_SERIES attribution arm is a real lever, not a comment."""
-        monkeypatch.setattr(WS, "CHARGE_FRONTIER_HALT_ACTIVE", False)
-        world, ney, _ = _charge_world(2)
-        ex = _executor()
-        res = _quiet(ex._combat._execute_glorious_charge, ney, "Wellington",
-                     world, {"world": world})
-        assert ney.location == "Rhineland"
-        assert "halts at the frontier" not in res["message"]
 
     def test_an_enemys_own_war_soil_is_still_taken_by_the_charge(self):
         """The halt is the NEUTRAL arm only. Killed by halting on `is not
@@ -209,13 +196,6 @@ class TestWO24TheGloriousChargeHaltsAtTheFrontier:
         assert ney.location == "Belgium"
         assert world.get_region("Rhineland").controller == "Prussia"
         assert "halts at the frontier of Rhineland" in events[0]["message"]
-
-    def test_the_reckless_auto_charge_lever_down_relocates_again(
-            self, monkeypatch):
-        monkeypatch.setattr(WS, "CHARGE_FRONTIER_HALT_ACTIVE", False)
-        world, ney, _ = _charge_world(4)
-        _quiet(world._process_reckless_cavalry_turn_start)
-        assert ney.location == "Rhineland"
 
     def test_the_reckless_auto_charge_still_takes_war_soil(self):
         """Killed by an inverted predicate (`is_at_war` -> `not`)."""
@@ -305,34 +285,6 @@ class TestWO25TheAutonomousAttackNeverAsks:
                                               "target": "Wellington"}},
                      {"world": world})
         assert res["success"] is True
-        assert (world.pending_diplomatic_dialogue or {}).get("type") \
-            == "war_purpose_selection"
-
-    def test_with_the_lever_down_the_popup_returns(self, monkeypatch):
-        monkeypatch.setattr(CE, "AUTONOMOUS_CHARGE_GUARD_ACTIVE", False)
-        world, ney, _ = _charge_world(3, enemy_loc="Netherlands")
-        ex = _executor()
-        res = _quiet(ex.execute, _attack_cmd("Ney", "Wellington", **AUTONOMOUS),
-                     {"world": world})
-        assert res["success"] is False
-        assert res.get("pending_glorious_charge") is True
-        assert ney.pending_glorious_charge is True
-
-    def test_with_the_lever_down_the_answered_charge_stages_the_war_decision(
-            self, monkeypatch):
-        """The measured defect end to end, reproduced by the lever: the
-        answered popup relocates Ney onto Prussian PEACE soil (WO-24's
-        halt is ALSO down here, to reproduce the pre-slice tree) and
-        stages the modal from an attack nobody ordered."""
-        monkeypatch.setattr(CE, "AUTONOMOUS_CHARGE_GUARD_ACTIVE", False)
-        monkeypatch.setattr(WS, "CHARGE_FRONTIER_HALT_ACTIVE", False)
-        world, ney, _ = _charge_world(3)
-        ex = _executor()
-        _quiet(ex.execute, _attack_cmd("Ney", "Wellington", **AUTONOMOUS),
-               {"world": world})
-        res = _quiet(ex._combat.respond_to_glorious_charge, "charge", world)
-        assert res["success"] is True
-        assert ney.location == "Rhineland"
         assert (world.pending_diplomatic_dialogue or {}).get("type") \
             == "war_purpose_selection"
 
@@ -647,16 +599,6 @@ class TestWO31TheSallyDoesNotTakeTheGround:
         assert "sally clears Netherlands but does not hold it" in msg
         assert "taken by the army that stands on it" in msg
 
-    def test_with_the_lever_down_the_sally_flips_the_province(self, monkeypatch):
-        """The measured defect: the flip AND the question for a province
-        he never entered."""
-        monkeypatch.setattr(CE, "SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE", False)
-        world, ney = _sally_world()
-        _run_hold(world)
-        assert ney.location == "Belgium"
-        assert world.get_region("Netherlands").controller == "France"
-        assert world.pending_capture_choice
-
     def test_a_direct_attack_from_the_same_position_still_takes_it(self):
         """The predicate is `_current_sortie`, not "attacked from
         adjacent". Killed by keying on `marshal.location != target`
@@ -752,27 +694,6 @@ class TestWO31TheSallyDoesNotTakeTheGround:
             msg = (r.get("battle_details") or {}).get("message", "")
             assert "does not hold it" not in msg
         assert world.get_region("Netherlands").controller == "Britain"
-
-
-# ══════════════════════════════════════════════════════════════════
-# 5. The levers exist as module globals, read at call time
-# ══════════════════════════════════════════════════════════════════
-
-class TestTheLeversAreRealLevers:
-
-    def test_all_four_levers_ship_up(self):
-        assert WS.CHARGE_FRONTIER_HALT_ACTIVE is True
-        assert CE.AUTONOMOUS_CHARGE_GUARD_ACTIVE is True
-        assert CE.SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE is True
-
-    def test_the_charge_reads_world_states_lever_at_call_time(self):
-        """A from-import would freeze the lever at import and make the
-        attribution arm a no-op on the executor path. Code-only scan for
-        the module-alias read."""
-        code = _code_only(COMBAT_PY.read_text(encoding="utf-8"))
-        squeezed = re.sub(r"\s+", "", code)
-        assert "_ws_mod.CHARGE_FRONTIER_HALT_ACTIVE" in squeezed
-        assert "importCHARGE_FRONTIER_HALT_ACTIVE" not in squeezed
 
 
 # ══════════════════════════════════════════════════════════════════

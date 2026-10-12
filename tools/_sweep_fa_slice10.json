@@ -161,13 +161,6 @@
   "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_the_sweep_still_clears_the_wedge_it_was_written_for"
  },
  {
-  "id": "deliver/g the question carries its own modal",
-  "file": "backend/main.py",
-  "old": "    if not QUESTION_CARRIES_ITS_OWN_MODAL:\n        return",
-  "new": "    if True:\n        return",
-  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_the_crisis_carries_its_own_modal"
- },
- {
   "id": "deliver/h only the BOUND modal rides",
   "file": "backend/main.py",
   "old": "        if payload.get(\"dialogue_id\") != dialogue_id:\n            continue",

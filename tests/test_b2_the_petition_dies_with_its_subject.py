@@ -18,9 +18,9 @@ F10: every restored popup slot answers "is this still true?" at load, and
 each one retired leaves a receipt (`popup_retired`). PopupQueue's dead
 to_dict/from_dict pair is deleted (pinned in test_cooldown_popup_manager).
 
-Lever: `world_state.THE_LOADED_POPUP_IS_STILL_TRUE`; the two jealousy rules
-(the petition dies with its subject, the newer word supersedes) are inlined
-(CODE-1 batch 3).
+The load-time pass landed under `world_state.THE_LOADED_POPUP_IS_STILL_TRUE`
+(retired by CODE-1 batch 4); the two jealousy rules (the petition dies with
+its subject, the newer word supersedes) are inlined (CODE-1 batch 3).
 """
 
 import contextlib
@@ -415,10 +415,3 @@ class TestTheLoadAsksToo:
         loaded = _reload(world)
         assert getattr(loaded, "_active_nations_cache", None) is None
         assert getattr(loaded, "_nation_regions_cache", None) is None
-
-    def test_lever_down_the_load_is_pc15_17_alone(self, world, monkeypatch):
-        import backend.models.world_state as WS
-        monkeypatch.setattr(WS, "THE_LOADED_POPUP_IS_STILL_TRUE", False)
-        world.nation_proclamation_popup = {"nation": "Atlantis"}
-        loaded = _reload(world)
-        assert loaded.nation_proclamation_popup is not None

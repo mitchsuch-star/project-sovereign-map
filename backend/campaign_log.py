@@ -416,6 +416,12 @@ CAMPAIGN_LOG_TYPES = {
     # AI-2d §12.6 — the allegiance auction
     "allegiance_auction_opened",
     "allegiance_auction_resolved",
+    # DD-1 S8 Step 3 — the verbs (October 12, 2026): a bid laid before a
+    # court in play (SFR-D40); a home province asked back from an ally, with
+    # its outcome (SFR-D42). 173 -> 175 flipped consciously — neither had a
+    # persistent surface and no inert diplomacy type was retired in exchange.
+    "allegiance_bid",
+    "province_returned",
     # AI-2e §3.7 — the paymaster's gold, on the record
     "british_subsidy",
     # AI-2b review fix — an instrument ending WITHOUT a breaker (term
@@ -542,6 +548,9 @@ CATEGORY_MAP = {
     # AI-2d §12.6 — the allegiance auction
     "allegiance_auction_opened": "diplomacy",
     "allegiance_auction_resolved": "diplomacy",
+    # DD-1 S8 Step 3 — the verbs
+    "allegiance_bid": "diplomacy",
+    "province_returned": "diplomacy",
     # AI-2e §3.7 — the paymaster subsidy
     "british_subsidy": "diplomacy",
     "instrument_lapsed": "diplomacy",
@@ -736,6 +745,7 @@ LOG_TIER_ROUTINE = frozenset({
     "ai_proposal_counter_failed", "ai_proposal_rejected",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected", "ai_ultimatum_void",
     "allegiance_auction_opened", "allegiance_auction_resolved",
+    "allegiance_bid", "province_returned",
     "ally_entry_accepted", "ally_entry_refused", "ally_refused_free_join",
     "amends_offered", "auto_downgrade", "bargain_fulfilled",
     "bargain_ratified", "bargain_repudiated", "bargain_triggered",
@@ -896,6 +906,9 @@ COURT_TO_COURT_EVENT_TYPES = (
     # PARTIAL+ arm (payer/recipient keys)
     "british_subsidy",
     "instrument_lapsed",
+    # DD-1 S8 Step 3: a court asks its ally for its home province back
+    # (`nation` / `target_nation` keys; a player-party event passes above)
+    "province_returned",
     "balance_of_europe_shifted",
     "call_to_arms_refused_defensive",
     "call_to_arms_refused_offensive",
@@ -2925,6 +2938,23 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
     if event_type == "allegiance_auction_opened":
         nation = display_nation(event.get("nation", "Unknown"))
         return f"THE FLIP IS IN PLAY: {nation} weighs its allegiance"
+
+    # DD-1 S8 Step 3 — the verbs (October 12, 2026)
+    if event_type == "allegiance_bid":
+        suitor = display_nation(event.get("nation", "Unknown"))
+        court = display_nation(event.get("target_nation", "Unknown"))
+        return (f"{suitor} lays {int(event.get('gold', 0) or 0)} gold before the court of "
+                f"{court} — the bid stands at {int(event.get('total', 0) or 0)}; the flip "
+                f"resolves on turn {int(event.get('resolves_turn', 0) or 0)}")
+
+    if event_type == "province_returned":
+        asker = display_nation(event.get("nation", "Unknown"))
+        holder = display_nation(event.get("target_nation", "Unknown"))
+        region = event.get("region", "a province")
+        if event.get("outcome") == "returned":
+            return f"{holder} hands {region} back to {asker} — the liberated soil comes home"
+        return (f"{holder} declines to return {region} to {asker} "
+                f"({int(event.get('shortfall', 0) or 0)} more standing wanted)")
 
     if event_type == "allegiance_auction_resolved":
         nation = display_nation(event.get("nation", "Unknown"))

@@ -118,6 +118,10 @@ CHIP_TYPES = {
     "propose_defensive_alliance": "defensive_alliance", "propose_alliance": "alliance",
     "propose_vassal": "vassalage",
 }
+# DD-1 S8 Step 3 — the verbs' chips (the ask-back under an ally's card, the
+# bid on a court in play): polled like the treaty chips, dry-run through
+# their own act on the clone (`dry_verb_chip`).
+VERB_CHIPS = frozenset({"ask_return_province", "bid_for_allegiance"})
 _COUNSEL_RX = re.compile(
     r"Propose (peace|armistice|alliance|non-aggression pact|defensive alliance|open borders)",
     re.I)
@@ -376,6 +380,38 @@ class _Sweep:
             self.dry_depth -= 1
             random.setstate(state)
 
+    def dry_verb_chip(self, world, court: str, chip: Dict[str, Any]) -> Dict[str, Any]:
+        """DD-1 S8 Step 3: the ask-back / the bid on a clone — the chip's
+        promise is that the act can be made (`asked` / `success`)."""
+        state = random.getstate()
+        self.dry_depth += 1
+        try:
+            clone = self.clone(world)
+            player = getattr(clone, "player_nation", "France")
+            action = str(chip.get("action") or "")
+            try:
+                if action == "ask_return_province":
+                    from backend.game_logic.diplomacy import ask_return_province
+                    result = ask_return_province(clone, player, court, str(chip.get("region") or ""))
+                    made = bool(result.get("asked"))
+                else:
+                    from backend.game_logic.ai_diplomacy import (
+                        DEFAULT_ALLEGIANCE_BID, place_allegiance_bid,
+                    )
+                    result = place_allegiance_bid(
+                        clone, player, court, int(chip.get("gold_cost") or DEFAULT_ALLEGIANCE_BID))
+                    made = bool(result.get("success"))
+            except Exception as exc:
+                return {"verdict": "error", "message": f"{type(exc).__name__}: {exc}", "type_sent": action}
+            if made:
+                return {"verdict": "signed", "message": str(result.get("message") or "")[:200],
+                        "type_sent": action, "state_moved": []}
+            return {"verdict": "refused", "message": str(result.get("message") or ""),
+                    "type_sent": action, "state_moved": []}
+        finally:
+            self.dry_depth -= 1
+            random.setstate(state)
+
     def dry_white_peace(self, world, war_id: str, target: str) -> Dict[str, Any]:
         """propose_white_peace + confirm_settlement on a clone."""
         state = random.getstate()
@@ -480,6 +516,21 @@ class _Sweep:
                     continue
                 for chip in rows or []:
                     action = str(chip.get("action") or "")
+                    if action in VERB_CHIPS:
+                        # DD-1 S8 Step 3: the two verbs' chips — the promise is
+                        # that the act can be MADE (the court's answer is the
+                        # formula, shown as likelihood); dry-run on the clone.
+                        shown = bool(chip.get("available"))
+                        row = {"turn": turn, "surface": "chip", "moment": "shown", "court": court,
+                               "type": action, "action": action, "shown_signable": shown,
+                               "disabled_reason": str(chip.get("disabled_reason") or "") if not shown else "",
+                               "likelihood": str(chip.get("likelihood") or "")}
+                        if shown:
+                            row.update(self.dry_verb_chip(world, court, chip))
+                        else:
+                            row.update(verdict="not_shown", message="")
+                        self.record(**row)
+                        continue
                     if action not in CHIP_TYPES:
                         continue
                     shown = bool(chip.get("available"))

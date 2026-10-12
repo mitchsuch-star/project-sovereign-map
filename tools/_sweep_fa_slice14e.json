@@ -84,39 +84,11 @@
   "tests": "tests/test_win_d3_road_home.py::TestCutOffCorps::test_a_cut_off_corps_is_never_interned"
  },
  {
-  "id": "FA-S12-2/a the threat lever is down",
-  "file": "backend/models/world_state.py",
-  "old": "ELIMINATION_RELIEVES_THE_LORD = True",
-  "new": "ELIMINATION_RELIEVES_THE_LORD = False",
-  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFourthExitRelievesTheLord::test_the_empire_is_one_satellite_smaller"
- },
- {
-  "id": "FA-S12-2/b the relief is sited BEFORE the pop (the empire docks itself)",
-  "file": "backend/models/world_state.py",
-  "old": "        _lord_of_the_fallen = str(\n            (self.vassals.get(nation) or {}).get(\"lord\") or \"\")\n        self.vassals.pop(nation, None)",
-  "new": "        _lord_of_the_fallen = str(\n            (self.vassals.get(nation) or {}).get(\"lord\") or \"\")\n        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:\n            from backend.game_logic.coalition import reduce_threat\n            reduce_threat(self, 10, \"vassal_lost_to_conquest\",\n                          target=_lord_of_the_fallen)\n        self.vassals.pop(nation, None)",
-  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFourthExitRelievesTheLord::test_the_empire_does_not_dock_itself"
- },
- {
-  "id": "FA-S12-2/c the declined sibling shock ships anyway",
-  "file": "backend/models/world_state.py",
-  "old": "        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:\n            from backend.game_logic.coalition import reduce_threat",
-  "new": "        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:\n            for _o in self.vassals.values():\n                if _o.get(\"lord\") == _lord_of_the_fallen:\n                    _o[\"loyalty\"] = max(0, int(_o[\"loyalty\"]) - 10)\n            from backend.game_logic.coalition import reduce_threat",
-  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheThreeDeclines::test_the_siblings_do_not_notice"
- },
- {
   "id": "FA-S12-2/d the declined relation rupture ships anyway",
   "file": "backend/models/world_state.py",
   "old": "            reduce_threat(self, 10, \"vassal_lost_to_conquest\",\n                          target=_lord_of_the_fallen)",
   "new": "            reduce_threat(self, 10, \"vassal_lost_to_conquest\",\n                          target=_lord_of_the_fallen)\n            self.modify_nation_relation(_lord_of_the_fallen, nation, -50)",
   "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheThreeDeclines::test_no_relation_moves"
- },
- {
-  "id": "FA-S12-2/e the fifth-exit lever is down",
-  "file": "backend/models/world_state.py",
-  "old": "FREED_SATELLITE_KEEPS_ITS_ARMY = True",
-  "new": "FREED_SATELLITE_KEEPS_ITS_ARMY = False",
-  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheFifthExitIsWorseThanTheFourth::test_the_freed_satellite_keeps_its_army"
  },
  {
   "id": "FA-S12-2/f the hand-back runs AFTER the marshal sweep",

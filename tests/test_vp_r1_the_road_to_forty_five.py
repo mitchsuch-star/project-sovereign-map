@@ -7,7 +7,8 @@ Four levers, each measured before it was built:
     honest expectation (74 of 74 supported strikes within 20% of the
     Monte-Carlo mean); its LABEL read as a promise and 35 of 100 strikes
     printed "WILL JOIN" for a corps priced at 0%. Display only —
-    `combat_executor.MUSTER_ROWS_NAME_THEIR_ODDS`.
+    `combat_executor.MUSTER_ROWS_NAME_THEIR_ODDS` (retired, CODE-1 batch 4;
+    the rows are unconditional).
 (b) A RAIDING PARTY HOLDS NO HOMELAND. Wellesley's 3,782 men took nine
     French provinces by walking in. A corps under `MARCH_HALTS_AT_GARRISON`
     (5,000) annexes no province that opened the campaign as its holder's own
@@ -37,7 +38,6 @@ from fastapi.testclient import TestClient
 import backend.main as M
 from backend.ai import enemy_ai as EA
 from backend.ai.enemy_ai import EnemyAI
-from backend.commands import combat_executor as CE
 from backend.commands import movement_executor as MV
 from backend.commands.parser import CommandParser
 from backend.game_logic import congress, jealousy as J, naval as NV
@@ -169,9 +169,6 @@ def _opening_b_shape(world):
 
 class TestATheMusterNamesItsOdds:
 
-    def test_lever_defaults_on(self):
-        assert CE.MUSTER_ROWS_NAME_THEIR_ODDS is True
-
     def test_the_headline_names_the_expected_arrival_and_the_ceiling_says_if_all_march(self):
         w = _fresh()
         _refresh(w)
@@ -239,25 +236,6 @@ class TestATheMusterNamesItsOdds:
         row = next(r for r in pv["rows"] if r["marshal"] == "Davout")
         assert row["reason"] == "has_support_order"
         assert "order '" not in row["arrival_note"]
-
-    def test_the_band_and_the_figures_never_move(self, monkeypatch):
-        """Display only: the odds band, the committed figure and the
-        ceiling are identical with the lever up and down."""
-        ce = M.executor._combat
-        w = _fresh()
-        lead, enemy = _opening_b_shape(w)
-        up = ce._build_muster_preview(lead, enemy, w, {"world": w})
-        monkeypatch.setattr(CE, "MUSTER_ROWS_NAME_THEIR_ODDS", False)
-        down = ce._build_muster_preview(lead, enemy, w, {"world": w})
-        assert up["odds_band"] == down["odds_band"]
-        assert up["attacker"]["committed_strength"] == down["attacker"]["committed_strength"]
-        assert up["attacker"]["ceiling_strength"] == down["attacker"]["ceiling_strength"]
-        assert all("arrival_odds" not in r for r in down["rows"])
-        text = ce._format_muster_lines(down)
-        committed = int(down["attacker"]["committed_strength"])
-        assert f"; {committed:,} if all march, up to " in text
-        assert f"expect about {committed:,}" not in text
-        assert "if every corps arrives" in text
 
     def test_the_muster_preview_quotes_the_expected_arrival(self):
         """GEV-D1's named completion test: the quoted figure is within 20% of

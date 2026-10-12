@@ -8194,6 +8194,104 @@
         "target": "Savoy"
       },
       "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd1-s8-ask-return-plain",
+      "utterance": "ask Spain to return Provence",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_ask_return",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Spain"
+        }
+      },
+      "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
+      "notes": "SFR-D42: the ask-back, the plain form."
+    },
+    {
+      "id": "dd1-s8-ask-return-addressed-give-back",
+      "utterance": "Talleyrand, ask Spain to give back Provence",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_ask_return",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Spain"
+        }
+      },
+      "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
+      "notes": "SFR-D42: the playtester's own line (k03 t21), once a shrug."
+    },
+    {
+      "id": "dd1-s8-ask-return-demand-back",
+      "utterance": "demand Spain give back Provence",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_ask_return",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Spain"
+        }
+      },
+      "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
+      "notes": "SFR-D42: the demand form; the court is the one named, the province rides the raw text."
+    },
+    {
+      "id": "dd1-s8-ask-return-request-the-return-of",
+      "utterance": "request the return of Provence from Spain",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_ask_return",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Spain"
+        }
+      },
+      "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
+      "notes": "SFR-D42: the formal form."
+    },
+    {
+      "id": "dd1-s8-bid-plain",
+      "utterance": "bid for Sardinia",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_bid",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Sardinia"
+        }
+      },
+      "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
+      "notes": "SFR-D40: the playtester's own line (k03 t21), once a shrug."
+    },
+    {
+      "id": "dd1-s8-bid-addressed-with-sum",
+      "utterance": "Talleyrand, bid for Denmark, 200 gold",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_bid",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Denmark"
+        }
+      },
+      "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
+      "notes": "SFR-D40: the sum rides the raw text for the executor."
+    },
+    {
+      "id": "dd1-s8-bid-enter-the-bidding",
+      "utterance": "enter the bidding for Saxony",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_bid",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Saxony"
+        }
+      },
+      "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
+      "notes": "SFR-D40: the auction's own word."
     }
   ]
 }

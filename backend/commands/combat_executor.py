@@ -11,11 +11,9 @@ from backend.models.world_state import (
     PLUNDER_INCOME_MULTIPLIER as WS_PLUNDER_INCOME_MULTIPLIER,
     WorldState,
 )
-# WO-24 (slice 17): the frontier-halt lever and predicate live in
-# world_state so the reckless auto-charge (a WorldState method) and the
-# glorious charge (here) read ONE source. Module alias, not a from-import,
-# so the lever is read at CALL time — a from-import would freeze it at
-# import and make the attribution flip a no-op on this path.
+# WO-24 (slice 17): the frontier-halt predicate lives in world_state so
+# the reckless auto-charge (a WorldState method) and the glorious charge
+# (here) read ONE source. Module alias, not a from-import.
 from backend.models import world_state as _ws_mod
 from backend.models.marshal import Marshal
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
@@ -210,9 +208,7 @@ _GUARD_FILLER_WORDS = frozenset({
 # slip turned an honest refusal into a battle against a different army — the
 # NPC-1 class, disclosed after the fact. A target run that is a near miss of
 # ANY enemy on the roster — matched omnisciently, answered fog-honestly — takes
-# the ASK arm instead, naming no hidden man and no hidden province. Flip lever:
-# False restores disclose-and-proceed for the near miss.
-A_NEAR_MISS_ASKS = True
+# the ASK arm instead, naming no hidden man and no hidden province.
 
 
 def _near_miss_of_a_roster_name(raw_words, world, marshal, shared_words=()) -> bool:
@@ -353,7 +349,7 @@ def guessed_target_refusal(world, marshal, command, target,
 
     # The player said something specific and it grounds nothing.
     near_miss = False
-    if auto_resolved and A_NEAR_MISS_ASKS and _near_miss_of_a_roster_name(
+    if auto_resolved and _near_miss_of_a_roster_name(
             raw_target_words, world, marshal, _shared_words):
         # CQ-30: the words are a NEAR MISS of a commander's name — the player
         # named Charles and slipped a letter. Not a description; never a
@@ -567,12 +563,10 @@ def _voice_rotation_key(world, region_name: str) -> int:
     return max(0, int(getattr(world, "battle_counts", {}).get(region_name, 1)) - 1)
 
 
-# NP-2 The Presence (NAPOLEON_SPEC §5.1) — flip lever for the NP-V
-# BASELINE_SERIES attribution experiment: False reproduces the pre-slice
-# behavior byte-identically (the HOST_RULE_ACTIVE idiom). Guards ONLY the
-# stamp in _calculate_coordination_context; the modifier reads see 0.0
-# when nothing was stamped.
-SOVEREIGN_PRESENCE_ACTIVE = True
+# NP-2 The Presence (NAPOLEON_SPEC §5.1): the sovereign's aura is stamped
+# on every participant in _calculate_coordination_context (and on the two
+# paths that never reach it — the garrison assault and the cavalry charge);
+# the modifier reads see 0.0 when nothing was stamped.
 
 # ═══════ Row WO slice 17 — "The Frontier Halts the Charge" ═══════
 #
@@ -613,12 +607,7 @@ SOVEREIGN_PRESENCE_ACTIVE = True
 # every adjacent province in turn without ever leaving his works. So the
 # sally clears the field and the copy says the ground is not held.
 #
-# Flip levers for the BASELINE_SERIES attribution experiment: False
-# reproduces the pre-slice behaviour byte-identically (the HOST_RULE_ACTIVE
-# idiom). Not config surfaces.
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
-AUTONOMOUS_CHARGE_GUARD_ACTIVE = True
-SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE = True
 
 # ═══════ VP-R1 (a) — "The Road to Forty-Five": THE MUSTER ROWS NAME THEIR ODDS ═══════
 #
@@ -641,11 +630,8 @@ SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE = True
 # game already has (a written SUPPORT order is +10 to the score and a 60
 # threshold; 40 of the 46 zero-odds corps become reachable under it).
 #
-# Flip lever for the attribution idiom: False restores the pre-slice text
-# byte-for-byte (the odds keys are not stamped, the labels revert). Display
-# only — `committed_strength` / `ceiling_strength` and the odds band are
-# unchanged, so nothing that reads the band can move.
-MUSTER_ROWS_NAME_THEIR_ODDS = True
+# Display only — `committed_strength` / `ceiling_strength` and the odds band
+# are unchanged, so nothing that reads the band can move.
 # SF-CL-1 "The forecast keeps its word" (October 3, 2026): the attack result
 # carries `massed_strength` {lead, committed, total} — the CO-6 figures as a
 # structured key, read by the playtest driver's forecast ledger. Display
@@ -704,14 +690,12 @@ def _attack_is_unordered(command) -> bool:
 # is consumed at the head of `_execute_attack`; the undefended-capture exits
 # returned without `free_action`, so the AI paid an AP for its free blow and
 # lost it (the player's route stamps the credit on that very exit).
-COUNTER_PUNCH_CREDITS_THE_CAPTURE = True
 
 # AAR10-X1 (Score Mandate Chunk 4 reserve, Sept 26 2026): Rule 12 is the
 # GUNS' rule, decided — a battery that limbered and marched this turn
 # cannot unlimber to join a battle, and the muster row says so in its own
-# words (`guns_limbered`) instead of the reinforcement cooldown's. Lever
-# False = the shared "has already marched this turn" row. Display only.
-GUNS_LIMBERED_SAY_SO = True
+# words (`guns_limbered`) instead of the reinforcement cooldown's shared
+# "has already marched this turn" row. Display only.
 
 # SRX-10 (the session exit of September 27, 2026): the muster's CO-LOCATED
 # arm returned "shares the field" for every corps standing on the battle
@@ -723,9 +707,7 @@ GUNS_LIMBERED_SAY_SO = True
 # does not stand alone") and the resolver fought Mack alone — Murat broke
 # him, 6,247 to 594. The co-located arm now reads the resolver's own
 # exclusions, for both sides of the muster (the defender's term feeds
-# `muster_odds`, the glory gate on both boards). Lever False = the
-# phantom joiner (the flip arm of tools/_sr_exit_residue_2026_09_27_series_arms.py).
-A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD = True
+# `muster_odds`, the glory gate on both boards).
 
 # AAR24-X2 (Score Mandate Chunk 4 reserve, Sept 26 2026): the banked
 # counter-punch is consumed at the head of `_execute_attack`, and the
@@ -734,9 +716,7 @@ A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD = True
 # spent, one action was charged and nothing said so. The exit now carries
 # the COUNTER-PUNCH line and `free_action`, as the field and capture exits
 # do — for every nation (GR5): the AI's cautious marshals get back the
-# action they were silently charged. Lever False = the silent charge (the
-# flip arm of tools/_sr4_reserve_series_arms.py).
-COUNTER_PUNCH_CREDITS_THE_ASSAULT = True
+# action they were silently charged.
 
 # RS-3 (Score Finish Step 3, October 2, 2026): A FIELD WIN HALTS BEFORE THE
 # WORKS. Played, turn 4 of the retest: the scout read "Garrison: 25,000 — it
@@ -1422,12 +1402,11 @@ class CombatExecutor:
         # his defeats did not. The main attack path is unchanged — its
         # participant stamp overwrites this one unconditionally.
         _aura_strength = 0.0
-        if SOVEREIGN_PRESENCE_ACTIVE:
-            from backend.models.authority import sovereign_aura_strength
-            for m in eligible:
-                if getattr(m, 'is_sovereign', False):
-                    _aura_strength = sovereign_aura_strength(world, m.nation)
-                    break
+        from backend.models.authority import sovereign_aura_strength
+        for m in eligible:
+            if getattr(m, 'is_sovereign', False):
+                _aura_strength = sovereign_aura_strength(world, m.nation)
+                break
 
         # Each marshal gets their OWN coordination based on their relationships
         for m in eligible:
@@ -1666,7 +1645,7 @@ class CombatExecutor:
             # SRX-10: the resolver's own exclusions (`_get_casualty_
             # participants`) — a corps broken, retreated this turn or still
             # recovering stands on the field and does not fight.
-            if A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD and (
+            if (
                     getattr(candidate, 'broken', False)
                     or getattr(candidate, 'retreated_this_turn', False)
                     or getattr(candidate, 'retreat_recovery', 0) > 0):
@@ -1716,8 +1695,7 @@ class CombatExecutor:
             return False, "cooldown_spent"
         if getattr(candidate, 'moved_this_turn', False):
             return False, ("guns_limbered"
-                           if getattr(candidate, 'artillery', False)
-                           and GUNS_LIMBERED_SAY_SO else "cooldown_spent")
+                           if getattr(candidate, 'artillery', False) else "cooldown_spent")
         # Engaged: enemies stand in the candidate's own region.
         engaged = any(
             m.location == candidate.location and m.nation != nation
@@ -2142,9 +2120,7 @@ class CombatExecutor:
             # no march and no roll. A gun never relocates, but he rolls the
             # same die and is priced at it (SF7-X2), so his row states it
             # too; with that lever down he is priced at 0 and says nothing.
-            if (MUSTER_ROWS_NAME_THEIR_ODDS and will_join
-                    and m.location != battle_region
-                    and (not getattr(m, "artillery", False)
+            if (will_join and m.location != battle_region and (not getattr(m, "artillery", False)
                          or AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL)):
                 row.update(self._arrival_odds_row(marshal, m, battle_region,
                                                   world, code))
@@ -2193,12 +2169,11 @@ class CombatExecutor:
                           for m in [marshal] + will_join_marshals}
                 try:
                     _aura = 0.0
-                    if SOVEREIGN_PRESENCE_ACTIVE:
-                        from backend.models.authority import sovereign_aura_strength
-                        for m in [marshal] + will_join_marshals:
-                            if getattr(m, "is_sovereign", False):
-                                _aura = sovereign_aura_strength(world, m.nation)
-                                break
+                    from backend.models.authority import sovereign_aura_strength
+                    for m in [marshal] + will_join_marshals:
+                        if getattr(m, "is_sovereign", False):
+                            _aura = sovereign_aura_strength(world, m.nation)
+                            break
                     for m in [marshal] + will_join_marshals:
                         m.sovereign_presence = _aura
                     ceiling_attacker = self._committed_reinforcement_strength(
@@ -2419,7 +2394,7 @@ class CombatExecutor:
             (m for m in [marshal] + will_join_marshals
              if getattr(m, "is_sovereign", False) and m.strength > 0
              and not getattr(m, "broken", False)), None)
-        if SOVEREIGN_PRESENCE_ACTIVE and _sov_present is not None:
+        if _sov_present is not None:
             from backend.models.authority import sovereign_aura_strength
             _aura = sovereign_aura_strength(world, _sov_present.nation)
             _pct = int(round(Marshal.SOVEREIGN_PRESENCE_ATTACK * _aura * 100))
@@ -2571,16 +2546,12 @@ class CombatExecutor:
             # muster ladder says WILL happen, not what has happened. The
             # unqualified number read as a promise; the played campaign
             # fought Franconia at 18,101 under a preview of 54,408.
-            if MUSTER_ROWS_NAME_THEIR_ODDS:
-                # VP-R1 (a): the figure is the arrival-WEIGHTED expectation
-                # (PT-A2), so say so — "if all march" is the CEILING's label
-                # now, below. The P1 probe: 74 of 74 within 20% of the mean.
-                attacker_display += (
-                    f"; expect about {committed:,} with the corps likely "
-                    f"to arrive")
-            else:
-                attacker_display += (
-                    f"; {committed:,} if all march")
+            # VP-R1 (a): the figure is the arrival-WEIGHTED expectation
+            # (PT-A2), so say so — "if all march" is the CEILING's label
+            # now, below. The P1 probe: 74 of 74 within 20% of the mean.
+            attacker_display += (
+                f"; expect about {committed:,} with the corps likely "
+                f"to arrive")
             # FA-61: and what it is NOT. The figure above is
             # arrival-weighted and omits the sovereign aura, so the resolver
             # can exceed it — measured, 84,266 resolved against 78,676
@@ -2590,10 +2561,7 @@ class CombatExecutor:
             # is what keeps them green.
             ceiling = int(preview['attacker'].get('ceiling_strength', 0))
             if ceiling > committed:
-                if MUSTER_ROWS_NAME_THEIR_ODDS:
-                    attacker_display += f", up to {ceiling:,} if all march"
-                else:
-                    attacker_display += f", up to {ceiling:,} if every corps arrives"
+                attacker_display += f", up to {ceiling:,} if all march"
         # LV-2 (row EP F2): the header names the men, not their roster keys
         # ("vs ArchdukeJohn (substantial force)" was the muster's own leak;
         # the same NPC-12 class the scout report and the covering lines had).
@@ -6155,8 +6123,7 @@ class CombatExecutor:
             # `respond_to_glorious_charge` — is never armed by it.
             _no_charge_popup = bool(
                 marshal.in_strategic_mode
-                or (AUTONOMOUS_CHARGE_GUARD_ACTIVE
-                    and _attack_is_unordered(command)))
+                or (_attack_is_unordered(command)))
 
             # At recklessness 3, player gets popup choice
             # AI at 3+ auto-charges
@@ -7005,8 +6972,7 @@ class CombatExecutor:
                         # AAR24-X2: the blow consumed at the head of this
                         # method rides the exit it took — the assault's too
                         # (the field and capture exits already credit it).
-                        if (is_counter_punch and COUNTER_PUNCH_CREDITS_THE_ASSAULT
-                                and garrison_result.get("success")):
+                        if (is_counter_punch and garrison_result.get("success")):
                             garrison_result["message"] = (
                                 counter_punch_message + garrison_result["message"])
                             garrison_result["free_action"] = True
@@ -7141,7 +7107,7 @@ class CombatExecutor:
                             }],
                             "new_state": game_state
                         }
-                        if is_counter_punch and COUNTER_PUNCH_CREDITS_THE_CAPTURE:
+                        if is_counter_punch:
                             _occ["free_action"] = True   # R1-6
                             _occ["counter_punch_used"] = True
                         return _occ
@@ -7173,7 +7139,7 @@ class CombatExecutor:
                         "events": [conquest_event],
                         "new_state": game_state
                     }
-                    if is_counter_punch and COUNTER_PUNCH_CREDITS_THE_CAPTURE:
+                    if is_counter_punch:
                         # R1-6: the blow was consumed at the head of this method;
                         # the credit rides the exit the blow actually took.
                         result["free_action"] = True
@@ -7650,8 +7616,6 @@ class CombatExecutor:
 
         def _side_presence(participants) -> float:
             """The aura's STRENGTH for this side — a magnitude (§15.4)."""
-            if not SOVEREIGN_PRESENCE_ACTIVE:
-                return 0.0
             sov = _side_sovereign(participants)
             return sovereign_aura_strength(world, sov.nation) if sov else 0.0
 
@@ -9112,11 +9076,9 @@ class CombatExecutor:
         # arm beside it, it does not TAKE the ground either. A province is
         # taken by the army that stands on it. Decided at build; the
         # alternative (the flip as the spoils of a won sally) is recorded
-        # and rejected at the lever's definition.
+        # and rejected in the module-level "Frontier Halts the Charge" block.
         sortie_stands_off = bool(
-            SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE
-            and getattr(self._executor, '_current_sortie', False)
-            and marshal.location != target_location)
+            getattr(self._executor, '_current_sortie', False) and marshal.location != target_location)
         if (target_region and target_region.controller != marshal.nation
                 and not is_artillery_no_advance and not sortie_stands_off):
             # Find all remaining defenders (marshals from nations other than attacker)
@@ -10438,7 +10400,7 @@ class CombatExecutor:
             sov = next((m for m in roster
                         if getattr(m, 'is_sovereign', False) and m.strength > 0
                         and not getattr(m, 'broken', False)), None)
-            if sov is None or not SOVEREIGN_PRESENCE_ACTIVE:
+            if sov is None:
                 return 0.0, sov is not None
             from backend.models.authority import sovereign_aura_strength
             return sovereign_aura_strength(world, sov.nation), True
@@ -10497,9 +10459,7 @@ class CombatExecutor:
                 world, marshal, world.get_region(charge_battle_region))
             if marshal.location != charge_battle_region and charge_works_line:
                 movement_msg = charge_works_line
-            elif (marshal.location != charge_battle_region
-                    and _ws_mod.CHARGE_FRONTIER_HALT_ACTIVE
-                    and pursuit_block and pursuit_block["arm"] == "neutral"):
+            elif (marshal.location != charge_battle_region and pursuit_block and pursuit_block["arm"] == "neutral"):
                 # The frontier halt: the cavalry stops at the border it
                 # cannot legally cross (PT-F1's own vocabulary).
                 charge_halted = True
@@ -10582,8 +10542,7 @@ class CombatExecutor:
                     # the province stands.
                     if (pursuit_block["arm"] == "neutral"
                             and marshal.nation == world.player_nation
-                            and not (AUTONOMOUS_CHARGE_GUARD_ACTIVE
-                                     and _attack_is_unordered(command))):
+                            and not (_attack_is_unordered(command))):
                         staged_war_purpose = self._stage_war_purpose_selection(
                             world, marshal.nation, pursuit_block["owner"])
                         conquest_msg += (

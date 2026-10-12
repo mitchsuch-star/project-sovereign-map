@@ -775,7 +775,8 @@ def _expected_echo(action_id, nation, payload):
         expr = rets[0]
     return _compose(expr.strip(), nation=nation, aim=payload.get("aim", ""),
                     amount=payload.get("amount", 200),
-                    cede_region=payload.get("region", ""))
+                    cede_region=payload.get("region", ""),
+                    ask_region=payload.get("region", ""))
 
 
 def _wizard_board():
@@ -811,7 +812,7 @@ class TestTheWizardSaysWhatItSends:
             nation = WIZARD_NATION.get(action_id, "Prussia")
             for ret in re.findall(r"return (.+)", code):
                 text = _compose(ret.strip(), nation=nation, aim="Hanover", amount=200,
-                                cede_region=CEDE_REGION)
+                                cede_region=CEDE_REGION, ask_region="")
                 client = _wizard_board()
                 if action_id == "cancel_mission":
                     # A LIVE mission: "court" opens the confirm; begin it.

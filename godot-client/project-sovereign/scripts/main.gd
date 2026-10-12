@@ -2281,6 +2281,17 @@ const DIPLO_NATION_ANYWHERE_KEYWORDS = [
 	"bought out",
 	"pay off",
 	"pay out",
+	# DD-1 S8 Step 3 (October 12, 2026): the ask-back ("ask Spain to return
+	# Provence", "give back", "the return of") and the bid ("bid for
+	# Sardinia", "enter the bidding for Saxony", "outbid") — court-gated.
+	"to return ",
+	"give back",
+	"hand back",
+	"the return of",
+	"the restoration of",
+	"bid for",
+	"bidding for",
+	"outbid",
 ]
 
 # The address route. The parser sends ANY diplomat-addressed sentence

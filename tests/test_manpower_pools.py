@@ -367,8 +367,7 @@ class TestManpowerRegen:
     def test_landless_player_still_regenerates(self):
         """IQ-2: a France holding no province is still a court in the war —
         her depots' base infantry regen is territory-independent, and the
-        processor now reaches her. Lever down restores the old skip."""
-        import backend.models.world_state as ws
+        processor reaches her."""
         world = fresh_world()
         for r in world.regions.values():
             if r.controller == "France":
@@ -377,16 +376,6 @@ class TestManpowerRegen:
         world.manpower_pools["France"]["infantry"] = 0
         world._process_manpower_regen()
         assert world.manpower_pools["France"]["infantry"] > 0
-        saved = ws.PLAYER_NEVER_LEAVES_THE_ROSTER
-        ws.PLAYER_NEVER_LEAVES_THE_ROSTER = False
-        try:
-            world.invalidate_active_nations_cache()
-            world.manpower_pools["France"]["infantry"] = 0
-            world._process_manpower_regen()
-            assert world.manpower_pools["France"]["infantry"] == 0
-        finally:
-            ws.PLAYER_NEVER_LEAVES_THE_ROSTER = saved
-            world.invalidate_active_nations_cache()
 
     def test_get_cavalry_regen_rate_matches_regen(self):
         """get_cavalry_regen_rate returns same value as _process_manpower_regen computes."""

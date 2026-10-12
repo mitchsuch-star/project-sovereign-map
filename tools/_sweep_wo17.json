@@ -1,23 +1,9 @@
 [
  {
-  "id": "WO17-1 charge frontier halt deleted",
-  "file": "backend/commands/combat_executor.py",
-  "old": "                    and _ws_mod.CHARGE_FRONTIER_HALT_ACTIVE\n                    and pursuit_block and pursuit_block[\"arm\"] == \"neutral\"):",
-  "new": "                    and False):",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
   "id": "WO17-2 charge halts on the ally arm too",
   "file": "backend/commands/combat_executor.py",
   "old": "                    and pursuit_block and pursuit_block[\"arm\"] == \"neutral\"):",
   "new": "                    and pursuit_block is not None):",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
-  "id": "WO17-3 charge lever frozen at import",
-  "file": "backend/commands/combat_executor.py",
-  "old": "                    and _ws_mod.CHARGE_FRONTIER_HALT_ACTIVE\n",
-  "new": "                    and True\n",
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
  {
@@ -28,24 +14,10 @@
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
  {
-  "id": "WO17-5 charge staging guard deleted",
-  "file": "backend/commands/combat_executor.py",
-  "old": "                            and marshal.nation == world.player_nation\n                            and not (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                                     and _attack_is_unordered(command))):",
-  "new": "                            and marshal.nation == world.player_nation):",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
   "id": "WO17-6 auto-charge arm drops the command",
   "file": "backend/commands/combat_executor.py",
   "old": "                            return self._execute_glorious_charge(\n                                marshal, resolved_target, world, game_state,\n                                command=command)",
   "new": "                            return self._execute_glorious_charge(\n                                marshal, resolved_target, world, game_state,\n                                command=None)",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
-  "id": "WO17-7 popup predicate loses the autonomous arm",
-  "file": "backend/commands/combat_executor.py",
-  "old": "            _no_charge_popup = bool(\n                marshal.in_strategic_mode\n                or (AUTONOMOUS_CHARGE_GUARD_ACTIVE\n                    and _attack_is_unordered(command)))",
-  "new": "            _no_charge_popup = bool(marshal.in_strategic_mode)",
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
  {
@@ -63,13 +35,6 @@
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
  {
-  "id": "WO17-10 sortie stand-off deleted",
-  "file": "backend/commands/combat_executor.py",
-  "old": "        sortie_stands_off = bool(\n            SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE\n            and getattr(self._executor, '_current_sortie', False)\n            and marshal.location != target_location)",
-  "new": "        sortie_stands_off = False",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
   "id": "WO17-11 sortie predicate loses the standing clause",
   "file": "backend/commands/combat_executor.py",
   "old": "            and getattr(self._executor, '_current_sortie', False)\n            and marshal.location != target_location)",
@@ -81,20 +46,6 @@
   "file": "backend/commands/combat_executor.py",
   "old": "            elif not _sortie_remaining:\n                conquest_msg = (",
   "new": "            elif True:\n                conquest_msg = (",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
-  "id": "WO17-13 reckless halt arm deleted",
-  "file": "backend/models/world_state.py",
-  "old": "                _halt_owner = (\n                    frontier_halt_owner(self, marshal.nation,\n                                        auto_charge_battle_region)\n                    if CHARGE_FRONTIER_HALT_ACTIVE else None)",
-  "new": "                _halt_owner = None",
-  "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
- },
- {
-  "id": "WO17-14 reckless lever frozen",
-  "file": "backend/models/world_state.py",
-  "old": "                    if CHARGE_FRONTIER_HALT_ACTIVE else None)",
-  "new": "                    if True else None)",
   "tests": "tests/test_wo_slice17_frontier_halts_the_charge.py"
  },
  {

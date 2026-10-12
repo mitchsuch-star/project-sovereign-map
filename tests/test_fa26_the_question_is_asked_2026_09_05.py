@@ -35,7 +35,6 @@ from fastapi.testclient import TestClient
 
 import backend.commands.disobedience as DO
 import backend.commands.meta_executor as ME
-import backend.models.world_state as WS
 import backend.game_logic.jealousy as J
 import backend.main as M
 from backend.commands.parser import CommandParser
@@ -47,8 +46,7 @@ SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 
 LEVERS = [(DO, "REDEMPTION_AT_EVERY_TRUST_WRITE"), (DO, "REDEMPTION_NET_ACTIVE"),
-          (DO, "REDEMPTION_ASKS_THE_LIVING"), (DO, "REDEMPTION_RERAISED_AT_END_TURN"),
-          (WS, "ADMINISTRATIVE_EXEMPT_FROM_ATTRITION")]
+          (DO, "REDEMPTION_ASKS_THE_LIVING"), (DO, "REDEMPTION_RERAISED_AT_END_TURN")]
 
 
 @pytest.fixture(autouse=True)
@@ -593,16 +591,6 @@ class TestTheReviewRound:
         assert "Lannes" in board.marshals, "the sweep destroyed an administrative man"
         assert lannes.administrative is True and int(lannes.administrative_strength) == frozen
         assert "Lannes" not in (board.fallen_marshals or {})
-
-    def test_exemption_off_reproduces_the_destruction(self, board, client):
-        WS.ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = False
-        lannes = board.marshals["Lannes"]
-        lannes.trust.set(15)
-        assert asked(end_turn(client))
-        with _quiet():
-            client.post("/respond_to_redemption", json={"choice": "administrative_role"})
-        end_turn(client)
-        assert "Lannes" not in board.marshals                    # the measured P1
 
     # ── R1-3: the PURSUE first step carries the question ────────────────
     def test_a_pursue_first_step_no_show_carries_the_question(self, board, client, monkeypatch):

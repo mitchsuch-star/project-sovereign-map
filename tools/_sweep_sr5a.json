@@ -70,13 +70,6 @@
     "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved tests/test_iq1_iq1_5_the_exit.py::TestTheLedgerSaysWhy"
   },
   {
-    "id": "IQ1-5-1 the forecast prices today's war again",
-    "file": "backend/models/world_state.py",
-    "old": "        if projected and THE_FORECAST_PRICES_TOMORROWS_WAR:",
-    "new": "        if False:",
-    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote"
-  },
-  {
     "id": "IQ1-5-1 the ledger never asks for the projection",
     "file": "backend/game_logic/ledger.py",
     "old": "        income_data = world.calculate_turn_income(player, projected=True)",

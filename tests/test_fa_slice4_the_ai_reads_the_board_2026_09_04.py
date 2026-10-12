@@ -10,8 +10,10 @@ other attack rung reads (FA-N80), the player's horses but not its own
 beside the friend it meant to support (FA-R1), and a fortification the
 executor refuses a drill over (FA-R2). Every row was reproduced before a
 line was written (`docs/audits/fa_build_2026_09_04/REPRO_B_*.md`, and the
-slice-2 review round's probes for FA-R1/FA-R2), and every fix sits behind
-its own lever so the ambient-series re-record is attributed row by row.
+slice-2 review round's probes for FA-R1/FA-R2); every fix landed behind its
+own lever so the ambient-series re-record was attributed row by row, and the
+levers were retired once the attribution was recorded (CODE-1 batch 4,
+October 12, 2026 — the rules are unconditional now).
 """
 
 import contextlib
@@ -20,8 +22,6 @@ import random
 
 import pytest
 
-import backend.ai.enemy_ai as enemy_mod
-import backend.models.world_state as world_mod
 from backend.ai.enemy_ai import EnemyAI
 from backend.commands.combat_executor import CombatExecutor
 from backend.commands.executor import CommandExecutor
@@ -87,17 +87,6 @@ class TestTheGarrisonRungSeesTheFieldArmy:
             action = _ai()._find_garrison_attack(wel, "Britain", world)
         assert action is None, action
 
-    def test_the_lever_down_prices_the_garrison_alone(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "P425_SKIPS_A_HELD_FIELD", False)
-        world, wel = self._wellington_at_belgium()
-        world.marshals["Davout"].location = "Paris"
-        world.marshals["Davout"].strength = 50000
-        world._build_marshal_index()
-        world.calculate_visibility()
-        with _quiet():
-            action = _ai()._find_garrison_attack(wel, "Britain", world)
-        assert action and action["target"] == "Paris", "the defect, reproduced"
-
     def test_the_range_arm_prices_the_field(self):
         """FA-8's rider: the stagnation breaker's range arm read ONE man.
         A cavalry corps two hops from a 5,000-man stub standing in a
@@ -126,14 +115,6 @@ class TestTheGarrisonRungSeesTheFieldArmy:
         with _quiet():
             action = ai._get_stagnation_action(uxb, "Britain", world, 3, "cautious")
         assert not (action and action.get("action") == "attack"), action
-        with _quiet(), pytest.MonkeyPatch.context() as mp:
-            mp.setattr(enemy_mod, "P425_SKIPS_A_HELD_FIELD", False)
-            ai2 = _ai()
-            ai2._marshal_visited_locations = {
-                "Uxbridge": set(world.get_region("Belgium").adjacent_regions)}
-            down = ai2._get_stagnation_action(uxb, "Britain", world, 3, "cautious")
-        assert down == {"marshal": "Uxbridge", "action": "attack", "target": "Ney"}, \
-            "the pre-slice range arm charged the 5,000-man stub in a 95,000-man field"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -224,18 +205,6 @@ class TestTheSquareIsTheLastWord:
         assert wel.square_formation is False
         assert wel.ai_square_cooldown == 2
 
-    def test_the_lever_down_forms_first_and_sets_no_cooldown(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "SQUARE_FORMS_AFTER_THE_STRIKES", False)
-        world, wel = self._with_a_stub()
-        with _quiet():
-            action, _prio = _ai()._evaluate_marshal(wel, "Britain", world)
-        assert action == {"marshal": "Wellington", "action": "form_square"}, \
-            "the pre-slice order: the square before the strike that breaks it"
-        wel.square_formation = True
-        wel.ai_square_cooldown = 0
-        CommandExecutor()._tactical._auto_break_square(wel, "attack")
-        assert wel.ai_square_cooldown == 0
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-N6 — a broken corps takes the limiter
@@ -278,14 +247,6 @@ class TestABrokenCorpsTakesTheLimiter:
         with _quiet():
             action, _prio = _ai()._evaluate_marshal(wel, "Britain", world)
         assert action == {"marshal": "Wellington", "action": "attack", "target": "Belgium"}, action
-
-    def test_the_lever_down_lets_the_broken_corps_capture(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "BROKEN_AI_CORPS_IS_LIMITED", False)
-        world, wel = self._broken_on_french_soil()
-        with _quiet():
-            action, _prio = _ai()._evaluate_marshal(wel, "Britain", world)
-        assert action == {"marshal": "Wellington", "action": "attack", "target": "Belgium"}, \
-            "the defect: a broken 1,000-man corps took the province"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -335,13 +296,6 @@ class TestTheCounterPunchIsPriced:
         with _quiet():
             action = _ai()._get_counter_punch_action(wel, "Britain", world)
         assert action == {"marshal": "Wellington", "action": "attack", "target": "Ney"}, action
-
-    def test_the_lever_down_counter_punches_the_giant(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "COUNTER_PUNCH_PRICES_THE_FIELD", False)
-        world, wel = self._armed([60000])
-        with _quiet():
-            action = _ai()._get_counter_punch_action(wel, "Britain", world)
-        assert action == {"marshal": "Wellington", "action": "attack", "target": "Ney"}
 
     def test_the_threshold_is_drawn_only_when_a_target_exists(self):
         """RNG discipline: no adjacent enemy, no `random.uniform` draw."""
@@ -401,15 +355,6 @@ class TestTheStagnationBreakerReadsTheCrossing:
         assert not (action and action.get("action") == "attack"
                     and action.get("target") == "Moore"), action
 
-    def test_the_lever_down_orders_the_refused_attack(self, channel, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "STAGNATION_READS_THE_CROSSING", False)
-        world, cast = channel
-        ai = self._boxed(world, "Castanos")
-        with _quiet():
-            action = ai._get_stagnation_action(cast, "Spain", world, 3, "cautious")
-        assert action == {"marshal": "Castanos", "action": "attack", "target": "Moore"}, \
-            "the defect: the breaker ordered the attack the executor refuses"
-
     def test_a_land_neighbour_is_still_struck(self):
         world = _legacy()
         wel = world.marshals["Wellington"]
@@ -453,13 +398,6 @@ class TestTheHorseObeysBothSides:
         world, uxb, _trust = self._restless()
         events = world._check_cavalry_limits()
         assert not any(e.get("type") == "redemption_event" for e in events)
-
-    def test_the_lever_down_spares_the_ai(self, monkeypatch):
-        monkeypatch.setattr(world_mod, "CAVALRY_LIMITS_ALL_NATIONS", False)
-        world, uxb, trust = self._restless()
-        events = world._check_cavalry_limits()
-        assert not [e for e in events if e.get("marshal") == "Uxbridge"]
-        assert uxb.stance == Stance.DEFENSIVE and uxb.trust.value == trust
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -549,14 +487,6 @@ class TestAllySupportNeverStrikesAnAlly:
             action = _ai()._find_ally_support_opportunity(wel, "Britain", world)
         assert action == {"marshal": "Wellington", "action": "attack", "target": "Blucher"}, action
 
-    def test_the_lever_down_attacks_the_ally(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES", False)
-        world, wel = self._shape()
-        with _quiet():
-            action = _ai()._find_ally_support_opportunity(wel, "Britain", world)
-        assert action == {"marshal": "Wellington", "action": "attack", "target": "Blucher"}, \
-            "the defect: 'attacking Blucher to support Uxbridge' — Blucher is our ally"
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-R2 — no drill order to a fortified corps
@@ -602,22 +532,10 @@ class TestNoDrillOrderToAFortifiedCorps:
                              "_autonomous_execution": True}}, {"world": world})
         assert result["success"] is False and "fortified" in result["message"].lower()
 
-    def test_the_lever_down_orders_the_refused_drill(self, monkeypatch):
-        monkeypatch.setattr(enemy_mod, "DRILL_RUNG_READS_FORTIFIED", False)
-        world, wel = self._idle(True)
-        with _quiet():
-            assert _ai()._consider_drill(wel, world) == {"marshal": "Wellington", "action": "drill"}
-
 
 class TestTheLeversShip:
 
-    def test_all_nine_are_up(self):
-        assert enemy_mod.P425_SKIPS_A_HELD_FIELD is True
-        assert enemy_mod.SQUARE_FORMS_AFTER_THE_STRIKES is True
-        assert enemy_mod.BROKEN_AI_CORPS_IS_LIMITED is True
-        assert enemy_mod.COUNTER_PUNCH_PRICES_THE_FIELD is True
-        assert enemy_mod.STAGNATION_READS_THE_CROSSING is True
-        assert world_mod.CAVALRY_LIMITS_ALL_NATIONS is True
+    def test_the_garrison_assault_lever_is_up(self):
+        """The one FA-slice-4 lever still standing (a class attribute, not a
+        module-level flip); the other eight were retired in CODE-1 batch 4."""
         assert CombatExecutor.GARRISON_ASSAULT_COUNTS is True
-        assert enemy_mod.ALLY_SUPPORT_FIGHTS_ONLY_ENEMIES is True
-        assert enemy_mod.DRILL_RUNG_READS_FORTIFIED is True

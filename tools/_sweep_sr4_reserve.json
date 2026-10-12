@@ -1,24 +1,10 @@
 [
   {
-    "id": "AAR4-X1 lever down (the captor inherits)",
-    "file": "backend/models/world_state.py",
-    "old": "CAPTURE_CLEARS_THE_GARRISON = True\n",
-    "new": "CAPTURE_CLEARS_THE_GARRISON = False\n",
-    "tests": "tests/test_sr4_quick_wins.py::TestTheCaptorRaisesHisOwnGarrison::test_a_capture_clears_the_losers_garrison"
-  },
-  {
     "id": "AAR4-X1 a detachment changes sides",
     "file": "backend/models/world_state.py",
     "old": "            region.garrison_strength = 0\n            region.garrison_detachment = False\n\n        # PT-J2",
     "new": "            region.garrison_strength = 0\n\n        # PT-J2",
     "tests": "tests/test_sr4_quick_wins.py::TestTheCaptorRaisesHisOwnGarrison::test_a_capture_clears_the_losers_garrison"
-  },
-  {
-    "id": "AAR4-X1 a return home clears the garrison",
-    "file": "backend/models/world_state.py",
-    "old": "        if (CAPTURE_CLEARS_THE_GARRISON and old_controller\n                and old_controller != capturing_nation):",
-    "new": "        if CAPTURE_CLEARS_THE_GARRISON:",
-    "tests": "tests/test_sr4_quick_wins.py::TestTheCaptorRaisesHisOwnGarrison::test_a_return_to_the_same_hands_is_no_capture"
   },
   {
     "id": "AAR24-X1 the battery never asks",
@@ -35,25 +21,11 @@
     "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_a_corps_in_the_field_is_still_a_battle"
   },
   {
-    "id": "AAR10-X1 lever down (the cooldown's words)",
-    "file": "backend/commands/combat_executor.py",
-    "old": "GUNS_LIMBERED_SAY_SO = True\n",
-    "new": "GUNS_LIMBERED_SAY_SO = False\n",
-    "tests": "tests/test_sr4_quick_wins.py::TestRuleTwelveIsTheGunsRule::test_guns_that_limbered_say_so"
-  },
-  {
     "id": "AAR10-X1 a reinforcer answers twice",
     "file": "backend/commands/combat_executor.py",
     "old": "        if getattr(candidate, 'reinforced_this_turn', False):\n            return False, \"cooldown_spent\"\n        if getattr(candidate, 'moved_this_turn', False):",
     "new": "        if getattr(candidate, 'moved_this_turn', False):",
     "tests": "tests/test_sr4_quick_wins.py::TestRuleTwelveIsTheGunsRule::test_a_corps_that_answered_the_guns_keeps_the_cooldown"
-  },
-  {
-    "id": "AAR24-X2 lever down (the blow is charged in silence)",
-    "file": "backend/commands/combat_executor.py",
-    "old": "COUNTER_PUNCH_CREDITS_THE_ASSAULT = True\n",
-    "new": "COUNTER_PUNCH_CREDITS_THE_ASSAULT = False\n",
-    "tests": "tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_insist_road_is_free_and_said tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_ai_takes_its_blow_free_too"
   },
   {
     "id": "AAR24-X2 the line is dropped",

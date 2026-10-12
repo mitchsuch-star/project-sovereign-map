@@ -50,7 +50,8 @@ from backend.display_names import humanize_entity_name as _shown_name  # NPC-12:
 # (troops frozen, +1 AP) — and the next turn's attrition sweep read strength
 # 0 as a dead corps and DESTROYED him ("eliminated by supply attrition at
 # None"), the bought action persisting. Pre-existing; the question that
-# leads to it was unreachable in ordinary play before slice 9. Flip lever.
+# leads to it was unreachable in ordinary play before slice 9. An
+# administrative marshal is exempt from the attrition sweep.
 # SF-DC-1 "Nothing unnamed" (Score Finish Step 7, October 4, 2026): a supply
 # bite names the doctrine that caused it on the attrition line itself —
 # "Supply shortage at Posen: Davout loses 1,240 troops — 620 of them to living
@@ -62,8 +63,6 @@ from backend.display_names import humanize_entity_name as _shown_name  # NPC-12:
 # False = the pre-SF-DC-1 message byte for byte.
 THE_SUPPLY_BITE_IS_NAMED = True
 
-
-ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 
 # IQ-2 "The Collapse Is Legible" (September 14, 2026): a France holding NO
 # province dropped out of `get_active_nations()` — the roster reads "0
@@ -78,8 +77,7 @@ ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 # banner printed an upkeep bill that was never charged. Retaking ONE province
 # switched the whole bill back on in a single turn (~2,900g). The player is
 # never eliminated, so the player never leaves the roster — the carve-out
-# `_process_dp_regen` already made for DP. Flip lever: False restores the
-# region-only test for the player too.
+# `_process_dp_regen` already made for DP.
 #
 # Deliberately GENERAL, recorded after the review round measured both edges:
 # (a) the legacy 19-region world's defeat turn now bills the landless player
@@ -88,7 +86,6 @@ ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 # bloc arithmetic, so the court-relative hegemon and Britain's paymaster read
 # her as they already did at ONE province — the change removes a cliff at
 # exactly zero, it adds no new AI geometry. BASELINE_SERIES never reaches 0.
-PLAYER_NEVER_LEAVES_THE_ROSTER = True
 
 # AAR4-X1 (Score Mandate Chunk 4 reserve, Sept 26 2026): the captor does
 # NOT inherit the loser's garrison. `capture_region` changed the
@@ -100,30 +97,22 @@ PLAYER_NEVER_LEAVES_THE_ROSTER = True
 # the gap. Cleared at the ONE capture seam, for every nation (GR5) — the
 # captor's own garrison grows from nothing (a capital through the ONE
 # regen rule). A treaty cession is not a capture and does not pass here.
-# Lever False = the inherited garrison (the flip arm of
-# tools/_sr4_reserve_series_arms.py).
-CAPTURE_CLEARS_THE_GARRISON = True
 
 # AAR-16 (Score Mandate Chunk 2 reserve, Sept 26 2026): a FOREIGN court's
 # completed work names its owner in the player's terminal ("Austria
 # completes a market at Vienna."); our own keeps the receipt it always
 # had. The event rides `tactical_events` at FULL visibility (PT-E6) with
-# no owner in its text, so a Habsburg market read as ours. False restores
-# the ownerless line.
-FOREIGN_WORKS_NAME_THEIR_OWNER = True
+# no owner in its text, so a Habsburg market read as ours.
 
 # IQ-4 (probe-found, pre-existing): `_process_proposal_in_transit` restores
 # Talleyrand after a COUNTER_OFFER too — a live mission resumes, and a failed
-# counter no longer strands him IN_TRANSIT with nothing in transit.
-# False = the prior rule (every COUNTER_OFFER skipped the restore).
-COUNTER_OFFER_RETURN_RESTORES_HIM = True
+# counter no longer strands him IN_TRANSIT with nothing in transit (every
+# COUNTER_OFFER had skipped the restore).
 
 # GE-3 review #11 (Sept 25, 2026): a siege is lifted when the besieger is no
 # longer at war with the province's holder — the occupation tick had no war
 # check, so a court that signed its peace completed the siege on the next
-# advance and annexed a province at PEACE. Flip lever (the series arms read
-# it in a child process).
-SIEGE_ENDS_WITH_THE_WAR = True
+# advance and annexed a province at PEACE.
 
 # SR-4a (Score Mandate Chunk 4, AAR-24): what a capital garrison regains each
 # turn — ONE home for the regen loop and every surface that quotes it (the
@@ -566,49 +555,42 @@ CHARGES_GRIP_RATE = 50        # B5: imperial grip < 70 — "the Emperor's grip f
 CHARGES_ILL_SCORE = -20       # war-score threshold for the ILL term
 CHARGES_GRIP_THRESHOLD = 70   # grip threshold for the GRIP term
 CHARGES_UNREST_STABILITY = 50  # a held province at/below this stability is restless
-# FA-D1 (slice 17, Phase 2) flip lever: the restless-interior term carries
-# the provinces that trip it. False = the bare label and no `regions` key.
-THE_RESTLESS_TERM_NAMES_ITS_PROVINCES = True
-# FA-D4 (slice 17, Phase 2) flip lever: every belligerent of a scenario's
-# starting wars boots with the objective a LIVE declaration would have given
-# it — the defender's `defense` (which `set war purpose` may replace, as the
-# rule for a defense objective has always allowed) — instead of no purpose
-# at all. False = the prior boot (`war_objectives == {}`).
-THE_SPINE_WAR_HAS_A_PURPOSE = True
-# FA-D19 (slice 17, Phase 2) flip lever: a DETACHED garrison (the `garrison`
-# verb's own flag) feeds the province's stability like a standing marshal.
-# False = marshals only (the prior tick).
-THE_DETACHMENT_FEEDS_STABILITY = True
-# FA-S17-2 (slice 17, Phase 3) flip lever: the AI's live contact list is
-# built in MAP order (sorted region names). It was built by iterating a
+# FA-D1 (slice 17, Phase 2): the restless-interior term carries the
+# provinces that trip it (the `regions` key).
+# FA-D4 (slice 17, Phase 2): every belligerent of a scenario's starting wars
+# boots with the objective a LIVE declaration would have given it — the
+# defender's `defense` (which `set war purpose` may replace, as the rule for
+# a defense objective has always allowed) — instead of no purpose at all
+# (the prior boot: `war_objectives == {}`).
+# FA-D19 (slice 17, Phase 2): a DETACHED garrison (the `garrison` verb's own
+# flag) feeds the province's stability like a standing marshal (the prior
+# tick read marshals only).
+# FA-S17-2 (slice 17, Phase 3): the AI's live contact list is built in MAP
+# order (sorted region names). It was built by iterating a
 # SET of region names, so its order — and P4's first-found target — was the
 # process's hash seed: the same campaign seed gave a different enemy phase
 # under PYTHONHASHSEED 0 and 1 (measured on the School's control lesson,
 # turn 6: Archduke Charles attacks Senarmont under one seed and Davout
 # under the other). The driver pins the hash seed and never saw it; an
-# in-process test did. False = the hash-ordered list.
-THE_CONTACT_LIST_IS_ORDERED = True
-# SR-5a (IQ1-5-1, September 28, 2026) flip lever: a FORECAST of the Charges
-# of Empire (the ledger's forward projection — the economy tab, the laws'
-# lapse forecast, the AI's purse test) prices the war-exhaustion term at the
-# value the advance's own tick will write before the income phase levies
-# the charge. It priced today's: quoted 1,216, charged 1,337 at a 40,000
-# chest. False = today's figure (the one-tick-stale quote).
-THE_FORECAST_PRICES_TOMORROWS_WAR = True
-# FA-S17-17 (slice 17, Phase 4) flip lever: FA-D4's boot purpose reaches a
-# LOADED campaign too. The ruling gives every belligerent of every starting
+# in-process test did.
+# SR-5a (IQ1-5-1, September 28, 2026): a FORECAST of the Charges of Empire
+# (the ledger's forward projection — the economy tab, the laws' lapse
+# forecast, the AI's purse test) prices the war-exhaustion term at the value
+# the advance's own tick will write before the income phase levies the
+# charge. It priced today's (the one-tick-stale quote): quoted 1,216,
+# charged 1,337 at a 40,000 chest.
+# FA-S17-17 (slice 17, Phase 4): FA-D4's boot purpose reaches a LOADED
+# campaign too. The ruling gives every belligerent of every starting
 # war the objective a live declaration would have given it — but the pass
 # lived in `from_scenario` only, so a campaign saved before September 11 (and
 # both committed playtest fixtures) keeps a purposeless spine war: the
 # war-detail popup honestly says "No war purpose set" forever and the score
 # ticks toward nothing. The same producer runs once at load, and ONLY for a
 # pair that has no objectives at all — a campaign where the player has set
-# his own purpose, or concluded one, is untouched. False = scenario boots only.
-THE_LOADED_WAR_HAS_A_PURPOSE_TOO = True
-# PC15-10 B2 — F10 flip lever: every restored popup slot answers "is this
-# still true?" at load (`_retire_stale_restored_popups`), and each one
-# retired leaves a receipt. False = PC15-17's rebellion check alone, silent.
-THE_LOADED_POPUP_IS_STILL_TRUE = True
+# his own purpose, or concluded one, is untouched.
+# PC15-10 B2 — F10: every restored popup slot answers "is this still true?"
+# at load (`_retire_stale_restored_popups`), and each one retired leaves a
+# receipt (PC15-17's rebellion check had been the only one, and silent).
 # PT-J3 "The Pensions of the Fallen" (gate record PLAYTEST_FIXES_SPEC.md §4):
 # a condition term pricing the CAMPAIGN'S OWN DEAD, read from the PT-J2
 # campaign ledger. EC-U1's ruling stands — upkeep bills fielded strength, so
@@ -791,11 +773,7 @@ def ai_prefers_plunder(marshal, world, region_name: str) -> bool:
 # `test_wo_slice17_frontier_halts_the_charge.py` holds the executor's guard
 # and this helper to the same answer on every diplomatic state.
 #
-# Flip lever for the BASELINE_SERIES attribution experiment: False
-# reproduces the pre-slice relocation byte-identically (the HOST_RULE_ACTIVE
-# idiom). Not a config surface.
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
-CHARGE_FRONTIER_HALT_ACTIVE = True
 
 
 def frontier_halt_owner(world, nation: str, region_name: str) -> Optional[str]:
@@ -845,10 +823,7 @@ def is_own_soil_recapture(world, region_name: str, nation: str) -> bool:
 # nothing for the common case; only an already-stripped province stays
 # stripped across the hand-change.
 #
-# Flip lever for the BASELINE_SERIES attribution experiment: False restores
-# the pre-slice clears byte-identically (the HOST_RULE_ACTIVE idiom). Not a
-# config surface. Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 14.
-PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE = True
+# Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 14.
 
 
 def apply_plunder_effects(world, region, receiving_nation: str) -> int:
@@ -912,8 +887,6 @@ def apply_secure_effects(region) -> None:
     region.stability = 25
     # WO-19 (slice 14): securing does not un-sack. The flag survives to
     # `process_stability_growth`'s stability-50 clear — the documented one.
-    if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:
-        region.plundered = False
     for building in region.buildings:
         building["damaged"] = True
     region.building_under_construction = None
@@ -1214,9 +1187,8 @@ def reconcile_saved_registry_corrections(world) -> Dict[str, int]:
     return moved
 
 
-# FA slice 4 (Sept 4 2026) flip lever — FA-N54: the cavalry defensive limits
-# apply to every nation's horse, not only the player's (GR5).
-CAVALRY_LIMITS_ALL_NATIONS = True
+# FA slice 4 (Sept 4 2026) — FA-N54: the cavalry defensive limits apply to
+# every nation's horse, not only the player's (GR5).
 
 # ── FA-S12-2 — elimination is a fourth (and a fifth) vassal exit ───────────
 #
@@ -1252,7 +1224,6 @@ CAVALRY_LIMITS_ALL_NATIONS = True
 # `amount = 8` (the exact `release_vassal` figure) was measured and is worse:
 # it makes the series' largest single-turn fall non-unique, which destroys a
 # standing pin's identity for no gain. 10 stands.
-ELIMINATION_RELIEVES_THE_LORD = True
 
 # The FIFTH exit, and it is worse than the fourth. When a LORD is eliminated
 # the same handler deletes every satellite row in total silence — and the
@@ -1261,7 +1232,6 @@ ELIMINATION_RELIEVES_THE_LORD = True
 # contingent flies the lord's. The satellite survives with its provinces and
 # no army. The hand-back therefore has to run BEFORE the sweep, which is the
 # opposite of where it would go on the satellite path.
-FREED_SATELLITE_KEEPS_ITS_ARMY = True
 
 
 # AAR-D4 "Dispersion" (Score Finish Step 3 / SR-7c) — the module-level lever
@@ -1597,6 +1567,9 @@ class WorldState:
             "sponsor_design": 0,
             "buy_off_design": 0,
             "guarantee_nation": 0,
+            # DD-1 S8 Step 3 — the verbs: 1 DP each in-executor, never AP.
+            "diplomatic_ask_return": 0,
+            "diplomatic_bid": 0,
             # GE-3 The Congress of Paris: the summons is an act of state —
             # 1 ADMIN action (ADMIN_ACTIONS) + 2 DP in-executor; the
             # sweetener rides the instrument verbs (0 AP, 1 DP + the gold).
@@ -3053,7 +3026,7 @@ class WorldState:
         all_nations = [self.player_nation] + list(getattr(self, 'enemy_nations', []))
         # IQ-2: the player is never eliminated (`_eliminate_nation` returns
         # early for her), so she never leaves the roster either.
-        _player = self.player_nation if PLAYER_NEVER_LEAVES_THE_ROSTER else None
+        _player = self.player_nation
         result = [n for n in all_nations
                   if n == _player or n in vassals
                   or not _is_nation_eliminated(self, n)]
@@ -4625,8 +4598,7 @@ class WorldState:
         the first target at an equal ratio)."""
         self.refresh_marshal_indexes()
         visible_regions = self._get_live_visible_regions_cached(nation)
-        if THE_CONTACT_LIST_IS_ORDERED:
-            visible_regions = sorted(visible_regions)
+        visible_regions = sorted(visible_regions)
         enemies: List[Marshal] = []
         for region_name in visible_regions:
             enemies.extend(self.get_hostile_marshals_in_region_indexed(region_name, nation))
@@ -4779,8 +4751,7 @@ class WorldState:
         self.invalidate_active_nations_cache()
         region.stability = 25  # Captured regions start at low stability
         # AAR4-X1: the loser's garrison does not change sides with the walls.
-        if (CAPTURE_CLEARS_THE_GARRISON and old_controller
-                and old_controller != capturing_nation):
+        if (old_controller and old_controller != capturing_nation):
             region.garrison_strength = 0
             region.garrison_detachment = False
 
@@ -4890,34 +4861,33 @@ class WorldState:
         # the satellite itself survives with its provinces. The rows are not
         # deleted until ~60 lines down; this is the FA-38 `_lord_of_the_fallen`
         # idiom (Golden Rule 4: get the value, use it, then clear).
-        if FREED_SATELLITE_KEEPS_ITS_ARMY:
-            _freed_satellites = [
-                vname for vname, vstate in self.vassals.items()
-                if (vstate or {}).get("lord") == nation]
-            for _freed in _freed_satellites:
-                # VD-C: the freed satellite's contingent walks out with its
-                # men — the record closes here, read before the row goes.
-                from backend.game_logic.contingent import on_break as _contingent_break
-                _contingent_break(self, _freed, nation)
-                for _marshal in list(self.marshals.values()):
-                    if (getattr(_marshal, "original_nation", None) == _freed
-                            and getattr(_marshal, "nation", "") == nation):
-                        from backend.game_logic.doctrines import set_marshal_nation
-                        set_marshal_nation(self, _marshal, _freed)
-                        _marshal.original_nation = None
-                        if hasattr(_marshal, "relationship_with_lord"):
-                            delattr(_marshal, "relationship_with_lord")
-                # Reuses `vassal_broke_free` with its own `exit` rather than
-                # minting a type: a new one costs twelve pins across twelve
-                # files and forfeits the fog arm, the one-liner switch and the
-                # dispatch consumer this inherits for free.
-                self.log_event({
-                    "type": "vassal_broke_free",
-                    "vassal": _freed,
-                    "lord": nation,
-                    "exit": "lord_eliminated",
-                    "turn": int(self.current_turn),
-                })
+        _freed_satellites = [
+            vname for vname, vstate in self.vassals.items()
+            if (vstate or {}).get("lord") == nation]
+        for _freed in _freed_satellites:
+            # VD-C: the freed satellite's contingent walks out with its
+            # men — the record closes here, read before the row goes.
+            from backend.game_logic.contingent import on_break as _contingent_break
+            _contingent_break(self, _freed, nation)
+            for _marshal in list(self.marshals.values()):
+                if (getattr(_marshal, "original_nation", None) == _freed
+                        and getattr(_marshal, "nation", "") == nation):
+                    from backend.game_logic.doctrines import set_marshal_nation
+                    set_marshal_nation(self, _marshal, _freed)
+                    _marshal.original_nation = None
+                    if hasattr(_marshal, "relationship_with_lord"):
+                        delattr(_marshal, "relationship_with_lord")
+            # Reuses `vassal_broke_free` with its own `exit` rather than
+            # minting a type: a new one costs twelve pins across twelve
+            # files and forfeits the fog arm, the one-liner switch and the
+            # dispatch consumer this inherits for free.
+            self.log_event({
+                "type": "vassal_broke_free",
+                "vassal": _freed,
+                "lord": nation,
+                "exit": "lord_eliminated",
+                "turn": int(self.current_turn),
+            })
 
         # Remove all marshals
         # PC15-1: tombstoned but NOT per-marshal logged — the nation's fall
@@ -4986,9 +4956,9 @@ class WorldState:
         # FA-S12-2, the FOURTH exit. Sited AFTER the pop, and that ordering
         # is load-bearing for any later rider: before it, the departing row
         # still satisfies `other_state["lord"] == lord` and the empire docks
-        # ITSELF. See the levers above for the three effects declined here
-        # and why.
-        if ELIMINATION_RELIEVES_THE_LORD and _lord_of_the_fallen:
+        # ITSELF. See the FA-S12-2 ruling at module level for the three
+        # effects declined here and why.
+        if _lord_of_the_fallen:
             from backend.game_logic.coalition import reduce_threat
             reduce_threat(self, 10, "vassal_lost_to_conquest",
                           target=_lord_of_the_fallen)
@@ -5095,8 +5065,6 @@ class WorldState:
                 # CA8-13: no question is asked about liberating France.
                 region.stability = 25
                 # WO-19 (slice 14): the flag survives — see apply_secure_effects.
-                if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:
-                    region.plundered = False
                 self._last_occupation_capture_choice = "secure"
                 # WO-42 (slice 12): the occupation-completes liberation logs
                 # its row too (the attack-capture sibling lives in
@@ -5154,8 +5122,6 @@ class WorldState:
                 # Secure: stability 25, damage buildings, cancel construction
                 region.stability = 25
                 # WO-19 (slice 14): the flag survives — see apply_secure_effects.
-                if not PLUNDERED_SURVIVES_HANDCHANGE_ACTIVE:
-                    region.plundered = False
                 for building in region.buildings:
                     building["damaged"] = True
                 region.building_under_construction = None
@@ -6479,7 +6445,7 @@ class WorldState:
         terms = []
         # The existing war-exhaustion term (EC-W2's arithmetic, absorbed).
         we = int(getattr(self, "war_exhaustion", {}).get(nation, 0) or 0)
-        if projected and THE_FORECAST_PRICES_TOMORROWS_WAR:
+        if projected:
             from backend.game_logic.coalition import next_war_exhaustion
             we = int(next_war_exhaustion(self, nation))
         if we > 0:
@@ -6527,19 +6493,15 @@ class WorldState:
                 continue
             if region_name in disrupted or region.stability <= CHARGES_UNREST_STABILITY:
                 restless_regions.append(region_name)
-                if not THE_RESTLESS_TERM_NAMES_ITS_PROVINCES:
-                    break
         if restless_regions:
             label = "the interior is restless"
-            if THE_RESTLESS_TERM_NAMES_ITS_PROVINCES:
-                shown = sorted(restless_regions)[:3]
-                more = len(restless_regions) - len(shown)
-                label += " — " + ", ".join(shown) + (f" (+{more} more)" if more > 0 else "")
+            shown = sorted(restless_regions)[:3]
+            more = len(restless_regions) - len(shown)
+            label += " — " + ", ".join(shown) + (f" (+{more} more)" if more > 0 else "")
             terms.append({"key": "restless_interior",
                           "label": label,
                           "amount": CHARGES_UNREST_RATE,
-                          "regions": sorted(restless_regions)
-                          if THE_RESTLESS_TERM_NAMES_ITS_PROVINCES else []})
+                          "regions": sorted(restless_regions)})
         # NOTE: no try/except here — this slice's first cut imported the
         # wrong module path inside one and shipped a silently-DEAD term
         # (the ILL term fell into the same trap with a wrong signature).
@@ -7611,8 +7573,7 @@ class WorldState:
             # FA-D19 (slice 17, Phase 2): the `garrison` verb's own detachment
             # counts as the garrison it is (one predicate, read here).
             garrison_bonus = 5 if (self._has_marshal_in_region(region.name, region.controller)
-                                   or (THE_DETACHMENT_FEEDS_STABILITY
-                                       and self.region_has_detached_garrison(region))) else 0
+                                   or (self.region_has_detached_garrison(region))) else 0
             steward = steward_map.get(region.name, 0)
             region.stability = min(100, region.stability + base_growth + garrison_bonus + steward)
             # Clear plundered flag when region recovers (Phase 6.2.E)
@@ -7975,8 +7936,7 @@ class WorldState:
         # invisible in the campaign log; the type is retired).
         eliminated = [m_name for m_name, m in self.marshals.items()
                       if m.strength <= 0 and not getattr(m, "captured_by", "")
-                      and not (ADMINISTRATIVE_EXEMPT_FROM_ATTRITION
-                               and getattr(m, "administrative", False))]
+                      and not (getattr(m, "administrative", False))]
         for m_name in eliminated:
             dead = self.marshals[m_name]
             dead_location = dead.location
@@ -8097,8 +8057,7 @@ class WorldState:
         value the event's `nation` carries (PT-E6)."""
         words = str(building_type or "building").replace("_", " ")
         owner = region.controller or ""
-        if (FOREIGN_WORKS_NAME_THEIR_OWNER and owner
-                and owner != self.player_nation):
+        if (owner and owner != self.player_nation):
             from backend.display_names import display_nation
             article = "" if words.endswith("s") else "a "
             return (f"{display_nation(owner)} completes {article}{words} "
@@ -9910,10 +9869,8 @@ class WorldState:
             no longer holds, or whose court is no more — the delivery gate
             would reap it anyway, in silence;
           * a Proclamation for a nation that has since left the map.
-        Returns the slots retired (for the pins). Lever down = PC15-17 only.
+        Returns the slots retired (for the pins).
         """
-        if not THE_LOADED_POPUP_IS_STILL_TRUE:
-            return []
         from backend.display_names import display_nation, humanize_entity_name
         retired: List[str] = []
 
@@ -10013,8 +9970,6 @@ class WorldState:
         `defense` at once), so the only worlds this touches are saves from
         before FA-D4 landed.
         """
-        if not THE_LOADED_WAR_HAS_A_PURPOSE_TOO:
-            return
         # N1, and the reason the first cut broke to_dict/from_dict identity:
         # FA-D4's boot pass lives in `from_scenario`, so the LEGACY fixture
         # world has always booted at war with no objectives BY DESIGN. An
@@ -10263,15 +10218,14 @@ class WorldState:
             # (France's, which `set war purpose` may replace). A defense
             # objective ticks only for homeland LOST, so the boot war score
             # moves nothing on turn 1.
-            if THE_SPINE_WAR_HAS_A_PURPOSE:
-                from backend.game_logic.diplomacy import _auto_assign_defense_objective
-                for entry in starting_wars:
-                    attacker = str(entry.get("attacker") or "").strip()
-                    defender = str(entry.get("defender") or "").strip()
-                    pair = world._make_diplo_key(attacker, defender)
-                    for side, other in ((defender, attacker), (attacker, defender)):
-                        if side not in (world.war_objectives.get(pair) or {}):
-                            _auto_assign_defense_objective(world, side, other, pair)
+            from backend.game_logic.diplomacy import _auto_assign_defense_objective
+            for entry in starting_wars:
+                attacker = str(entry.get("attacker") or "").strip()
+                defender = str(entry.get("defender") or "").strip()
+                pair = world._make_diplo_key(attacker, defender)
+                for side, other in ((defender, attacker), (attacker, defender)):
+                    if side not in (world.war_objectives.get(pair) or {}):
+                        _auto_assign_defense_objective(world, side, other, pair)
 
         # DEF-5 naval (NAVAL_SPEC §3.2/§6): transform the authored `navies`
         # block into live fleet records. MUST run after the starting-wars
@@ -12370,13 +12324,12 @@ class WorldState:
         # paused mission could never resume or be recalled, for the rest of
         # the campaign. Answering a counter needs no particular state; the
         # transit gate refuses only IN_TRANSIT.
-        if outcome != "COUNTER_OFFER" or COUNTER_OFFER_RETURN_RESTORES_HIM:
-            mission = getattr(self, 'active_diplomatic_mission', None)
-            if mission and not mission.get("completed"):
-                self.talleyrand_state = "ON_MISSION"
-                mission["paused"] = False
-            else:
-                self.talleyrand_state = "IDLE"
+        mission = getattr(self, 'active_diplomatic_mission', None)
+        if mission and not mission.get("completed"):
+            self.talleyrand_state = "ON_MISSION"
+            mission["paused"] = False
+        else:
+            self.talleyrand_state = "IDLE"
 
         self.proposal_in_transit = None
         return events
@@ -13189,12 +13142,18 @@ class WorldState:
                     from backend.game_logic.diplomacy import (
                         ARMISTICE_AUTO_PEACE_RELATION, ARMISTICE_DURATION,
                     )
+                    from backend.game_logic.diplomacy import truce_followers_line
                     from backend.game_logic.formations import formed_display_name as _fdn
+                    # DD-1 S8 Step 3 (SFR-D28's announce half): the truce's
+                    # own sentence — whom it binds, whose war runs on.
+                    _followers = truce_followers_line(
+                        self, self.player_nation, player_counterpart or target_nation)
                     queue_dispatch_event(self, "armistice_ratified", {
                         "proposer_nation": proposer, "target_nation": target_nation,
                         "other": _fdn(self, player_counterpart or target_nation),
                         "turns": int(ARMISTICE_DURATION),
                         "thaw": int(ARMISTICE_AUTO_PEACE_RELATION),
+                        "followers": (" " + _followers) if _followers else "",
                     }, "always")
                 else:
                     queue_dispatch_event(self, "peace_ratified",
@@ -13629,9 +13588,7 @@ class WorldState:
                 occ_region = marshal.occupation_region
                 _occ = self.regions.get(occ_region)
                 _occ_holder = getattr(_occ, "controller", None) if _occ is not None else None
-                if (SIEGE_ENDS_WITH_THE_WAR and marshal.location == occ_region
-                        and _occ_holder and _occ_holder != marshal.nation
-                        and not self.is_at_war(marshal.nation, _occ_holder)):
+                if (marshal.location == occ_region and _occ_holder and _occ_holder != marshal.nation and not self.is_at_war(marshal.nation, _occ_holder)):
                     # GE-3 review #11: a siege does not outlive its war — a
                     # court that signed the peace cannot complete the siege
                     # the next advance and annex a province at PEACE.
@@ -14392,9 +14349,6 @@ class WorldState:
             # while the counters accrued (Paget: 24 marshal-turns at or
             # over the limit in 40). GR5 — the rule is the horse's, not the
             # player's; the redemption check keeps its own player scope.
-            if (marshal.nation != self.player_nation
-                    and not CAVALRY_LIMITS_ALL_NATIONS):
-                continue
 
             is_cavalry = getattr(marshal, 'cavalry', False)
             if not is_cavalry:
@@ -14444,7 +14398,7 @@ class WorldState:
                     # default dug the horse in again next turn. Its own
                     # refortify memory carries the forced unfortify instead.
                     from backend.ai import enemy_ai as _ea
-                    if getattr(_ea, "CAVALRY_AI_READS_THE_LIMIT", False):
+                    if True:
                         self.ai_refortify_cooldown[marshal.name] = max(
                             int(self.ai_refortify_cooldown.get(marshal.name, 0) or 0), 3)
 
@@ -14885,8 +14839,7 @@ class WorldState:
                 # charge advance (`frontier_halt_owner`, module level).
                 _halt_owner = (
                     frontier_halt_owner(self, marshal.nation,
-                                        auto_charge_battle_region)
-                    if CHARGE_FRONTIER_HALT_ACTIVE else None)
+                                        auto_charge_battle_region))
                 if attacker_won and marshal.strength > 0:
                     if marshal.location != auto_charge_battle_region and _halt_owner:
                         movement_msg = (

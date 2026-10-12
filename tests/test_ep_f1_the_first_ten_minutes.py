@@ -508,13 +508,6 @@ class TestTheFogIsOneSentence:
             "Our scouts report activity within the borders of the Ottoman "
             "Empire, but their formations remain beyond our sight."]
 
-    def test_lever_down_one_line_per_court(self, monkeypatch):
-        monkeypatch.setattr(M, "THE_FOG_IS_ONE_SENTENCE", False)
-        world = _scenario_world()
-        out = _fogged_phase(world, monkeypatch, NINE)
-        assert len(out["fog_hidden_summary"]) == 9
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # LV-12 — the route table: which modals wait behind the order's result
 # ═══════════════════════════════════════════════════════════════════════════

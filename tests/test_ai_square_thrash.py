@@ -154,23 +154,13 @@ def _forms_by(actions, name):
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestSquareFormedAtMostOncePerPhase:
-    def test_control_arm_the_shape_still_provokes_the_thrash(self, world, monkeypatch):
-        """With the latch structurally disabled, the counter-punch shape
-        must still produce ≥2 formations — else the real test is vacuous.
-
-        FA slice 4 (Sept 4, 2026, FA-27): the pre-fix planner is now BOTH
-        halves off — the latch neutered AND the square evaluated at P2.5
-        ahead of the strikes (`SQUARE_FORMS_AFTER_THE_STRIKES` down).
-        With the ordering fix alone the shape produces no square at all
-        (measured: four captures, no formation), so the control arm has
-        to reach back past it to provoke the thrash it exists to prove."""
-        import backend.ai.enemy_ai as ea
-        monkeypatch.setattr(ea, "SQUARE_FORMS_AFTER_THE_STRIKES", False)
-        _counter_punch_shape(world)
-        actions = _run_phase(_ThrashAI, world)
-        assert len(_forms_by(actions, "Moore")) >= 2, (
-            "the reproduction shape no longer provokes the thrash — the "
-            "board drifted; re-derive the shape before trusting the pins")
+    # The neutered control arm (the latch disabled AND the square evaluated
+    # at P2.5 ahead of the strikes, `SQUARE_FORMS_AFTER_THE_STRIKES` down)
+    # went with that lever's retirement (CODE-1 batch 4, October 12, 2026):
+    # with the ordering unconditional the shape produces no square at all
+    # (measured: four captures, no formation), so the thrash can no longer
+    # be provoked from the shipped tree. The pin below keeps its own
+    # drift guard ("no square and no strike — the shape drifted").
 
     def test_production_ai_forms_square_at_most_once(self, world):
         """FA slice 4 (Sept 4, 2026, FA-27): the contract is no longer

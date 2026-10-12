@@ -28,10 +28,11 @@ several inside the slice's own fixes:
 * R1-8 (GR5, pre-existing) — a fortified AI or autonomous corps could MARCH
   and keep its fortification bonus; the refusal lived in the player branch.
 
-Every fix sits behind a lever whose False arm reproduces the prior
-behaviour byte-for-byte; `BASELINE_SERIES` is re-recorded ONCE with a
-ten-arm attribution (arm 0 reproduces the prior series). The fixtures below
-are the reviewer's own reproductions, re-run on the shipped code.
+`BASELINE_SERIES` was re-recorded ONCE with a ten-arm attribution (arm 0
+reproduced the prior series); the slice's levers were retired (CODE-1
+batch 4, October 12, 2026) and the rules are now unconditional. The
+fixtures below are the reviewer's own reproductions, re-run on the shipped
+code.
 """
 import contextlib
 import io
@@ -39,7 +40,6 @@ import random
 
 import pytest
 
-import backend.ai.enemy_ai as ea
 import backend.commands.combat_executor as ce
 import backend.commands.movement_executor as mv
 from backend.ai.enemy_ai import EnemyAI
@@ -49,11 +49,6 @@ from backend.models.marshal import Stance
 from backend.models.world_state import WorldState
 
 LEVERS = {
-    ea: ("FIELD_PRICES_THE_TARGET_TOO", "ALLY_SUPPORT_PRICES_THE_FIELD",
-         "ADMIN_RECRUIT_SPARES_THE_SQUARE", "STAGNATION_READS_THE_PHASE",
-         "DRILLING_CORPS_IS_LEFT_TO_DRILL", "CAVALRY_AI_READS_THE_LIMIT",
-         "AI_DRILL_READS_THE_REACH", "DRILL_IS_THE_DAYS_WORK"),
-    ce: ("COUNTER_PUNCH_CREDITS_THE_CAPTURE",),
     mv: ("FORTIFIED_CORPS_NEVER_MARCHES",),
 }
 
@@ -156,14 +151,6 @@ class TestTheFieldPricesTheTargetToo:
         assert not (blow and blow.get("target") == "Ney"), blow
         assert blow is None or blow.get("target") == "Davout", blow
 
-    def test_the_lever_off_arm_reproduces_the_row(self):
-        ea.FIELD_PRICES_THE_TARGET_TOO = False
-        world, wel = self._board()
-        random.seed(7)
-        with _quiet():
-            blow = _ai()._get_counter_punch_action(wel, "Britain", world)
-        assert blow is not None and blow.get("target") == "Ney"
-
     def _range_board(self):
         world = _legacy()
         for m in world.marshals.values():
@@ -190,13 +177,6 @@ class TestTheFieldPricesTheTargetToo:
         with _quiet():
             act = ai._get_stagnation_action(uxb, "Britain", world, 3, "cautious")
         assert not (act and act.get("action") == "attack" and act.get("target") == "Ney"), act
-
-    def test_the_range_arm_lever_off_strikes_the_retreated_man(self):
-        ea.FIELD_PRICES_THE_TARGET_TOO = False
-        world, uxb, ai = self._range_board()
-        with _quiet():
-            act = ai._get_stagnation_action(uxb, "Britain", world, 3, "cautious")
-        assert act and act.get("action") == "attack" and act.get("target") == "Ney", act
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -231,12 +211,6 @@ class TestTheAllySupportStrikeIsPriced:
         world, wel = self._board()
         act = self._support(world, wel)
         assert not (act and act.get("action") == "attack"), act
-
-    def test_the_lever_off_arm_reproduces_the_row(self):
-        ea.ALLY_SUPPORT_PRICES_THE_FIELD = False
-        world, wel = self._board()
-        act = self._support(world, wel)
-        assert act and act.get("action") == "attack" and act.get("target") == "Davout", act
 
     def test_the_field_is_priced_not_one_man(self):
         """Davout 40k with a 10k Grouchy beside him: the weakest is Grouchy,
@@ -320,12 +294,6 @@ class TestTheAdminRecruitSparesTheSquare:
         pick = _ai()._find_weakest_marshal_for_admin("Britain", world)
         assert pick is None or pick.name != "Wellington", pick
 
-    def test_the_lever_off_pick_recruits_into_the_square(self):
-        ea.ADMIN_RECRUIT_SPARES_THE_SQUARE = False
-        world, wel = self._board()
-        pick = _ai()._find_weakest_marshal_for_admin("Britain", world)
-        assert pick is not None and pick.name == "Wellington"
-
     def _recruit(self, world):
         with _quiet():
             return CommandExecutor().execute(
@@ -339,12 +307,6 @@ class TestTheAdminRecruitSparesTheSquare:
         assert wel.square_formation is False, "the square still breaks — that is not the defect"
         assert int(getattr(wel, "ai_square_cooldown", 0) or 0) == 0
 
-    def test_the_lever_off_recruit_forbids_the_square_for_two_turns(self):
-        ea.ADMIN_RECRUIT_SPARES_THE_SQUARE = False
-        world, wel = self._board()
-        self._recruit(world)
-        assert int(getattr(wel, "ai_square_cooldown", 0) or 0) == 2
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # R1-4 — stagnation reads the phase
@@ -353,14 +315,17 @@ class TestTheAdminRecruitSparesTheSquare:
 class TestStagnationReadsThePhase:
 
     def _blucher(self):
-        # RE-SEATED by the AI drill fix (September 27, 2026): P6 now also asks
-        # `drill_reach_threat`, and on the 19-region fixture the French corps
-        # this staging keeps as the stagnation breaker's enemy are within
-        # reach of Hanover. The reach gate stands down here (restored by the
-        # autouse fixture); it is pinned in tests/test_ai_drill_fix_2026_09_27.py.
-        ea.AI_DRILL_READS_THE_REACH = False
+        # RE-SEATED by the AI drill fix (September 27, 2026): P6 also asks
+        # `drill_reach_threat` (pinned in tests/test_ai_drill_fix_2026_09_27.py),
+        # and on the 19-region fixture Ney's horse at Bordeaux — 4 hops from
+        # Hanover, a cavalry reach of 6 — is the one French corps within
+        # reach. RE-SEATED again by CODE-1 batch 4 (October 12, 2026): the
+        # reach gate is no longer a lever, so Ney stands down (the foot corps
+        # at Bordeaux stay in the field as the breaker's enemy, out of an
+        # infantry reach of 3).
         world = _legacy()
         _british_soil(world)
+        world.marshals["Ney"].strength = 0
         blu = world.marshals["Blucher"]
         # RE-SEATED by CQ-22 (Score Finish Step 3 / SR-7a, October 2, 2026):
         # ONE stance rule for drill on every road — a corps in AGGRESSIVE
@@ -391,14 +356,6 @@ class TestStagnationReadsThePhase:
             act = ai._get_stagnation_action(blu, "Prussia", world, 3, "aggressive")
         assert act is None, act
 
-    def test_the_lever_off_arm_forces_the_drilling_corps(self):
-        ea.STAGNATION_READS_THE_PHASE = False
-        world, blu = self._blucher()
-        blu.drilling = True
-        with _quiet():
-            act = _ai()._get_stagnation_action(blu, "Prussia", world, 3, "aggressive")
-        assert act is not None and act.get("action") in ("move", "unfortify", "attack"), act
-
     def _phase(self, world):
         world.nation_actions["Prussia"] = 4
         ai = _ai()
@@ -428,25 +385,6 @@ class TestStagnationReadsThePhase:
         assert blu.drilling is True, mine
         assert "Blucher" in ai._acted_this_phase
 
-    def test_the_lever_off_phase_cancels_the_drill(self):
-        """RE-SEATED by the AI drill fix (September 27, 2026): the day's work
-        (`DRILL_IS_THE_DAYS_WORK`) is a second guard over this seam — a corps
-        that began a drill is not evaluated again in its phase — so R1-4's
-        lever-off defect shows only with that guard down too, and with it up
-        the drill survives R1-4's lever alone."""
-        ea.STAGNATION_READS_THE_PHASE = False
-        ea.DRILL_IS_THE_DAYS_WORK = False
-        world, blu = self._blucher()
-        _ai_, acts = self._phase(world)
-        mine = [a.get("action") for a in acts if a.get("marshal") == "Blucher"]
-        assert "drill" in mine, mine
-        assert blu.drilling is False, mine
-        ea.DRILL_IS_THE_DAYS_WORK = True
-        world, blu = self._blucher()
-        _ai_, acts = self._phase(world)
-        mine = [a.get("action") for a in acts if a.get("marshal") == "Blucher"]
-        assert mine == ["drill"] and blu.drilling is True, mine
-
     def test_a_square_is_meaningful_at_phase_end(self):
         """The phase-end tracker: a corps whose whole phase was `form_square`
         is not idle."""
@@ -469,28 +407,6 @@ class TestStagnationReadsThePhase:
                 if (r.get("ai_action") or {}).get("marshal") == "Wellington"]
         assert "form_square" in mine, mine
         assert world.ai_stagnation_turns.get("Wellington", 0) == 0
-
-    def test_the_lever_off_arm_counts_the_square_as_idle(self):
-        ea.STAGNATION_READS_THE_PHASE = False
-        world = _legacy()
-        _british_soil(world)
-        wel = world.marshals["Wellington"]
-        wel.location, wel.strength, wel.stance, wel.fortified = "Belgium", 20000, Stance.DEFENSIVE, False
-        wel.personality, wel.ai_square_cooldown = "cautious", 0
-        world.marshals["Uxbridge"].location = "Hanover"
-        ney = world.marshals["Ney"]
-        ney.location, ney.strength, ney.cavalry = "Paris", 60000, True
-        world.ai_stagnation_turns["Wellington"] = 1
-        world.ai_refortify_cooldown["Wellington"] = 3
-        _rebuild(world)
-        world.nation_actions["Britain"] = 3
-        random.seed(4)
-        with _quiet():
-            results = _ai().process_nation_turn("Britain", world, {"world": world})
-        mine = [(r.get("ai_action") or {}).get("action") for r in results
-                if (r.get("ai_action") or {}).get("marshal") == "Wellington"]
-        assert "form_square" in mine, mine
-        assert world.ai_stagnation_turns.get("Wellington", 0) >= 2
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -516,14 +432,6 @@ class TestADrillingCorpsIsLeftToDrill:
         random.seed(1)
         with _quiet():
             assert _ai()._check_threats(wel, "Britain", world) is None
-
-    def test_the_lever_off_arm_orders_the_refused_stance(self):
-        ea.DRILLING_CORPS_IS_LEFT_TO_DRILL = False
-        world, wel = self._board()
-        random.seed(1)
-        with _quiet():
-            act = _ai()._check_threats(wel, "Britain", world)
-        assert act and act.get("action") == "stance_change", act
 
     def test_the_tree_never_orders_a_drilling_corps_a_stance_or_a_fort(self):
         for stance in (Stance.NEUTRAL, Stance.DEFENSIVE):
@@ -566,14 +474,6 @@ class TestTheCounterPunchCreditsTheCapture:
         assert result.get("success") is True, result.get("message")
         assert world.regions["Normandy"].controller == "Britain"
         assert result.get("free_action") is True and result.get("counter_punch_used") is True
-        assert wel.counter_punch_available is False
-
-    def test_the_lever_off_arm_eats_the_blow(self):
-        ce.COUNTER_PUNCH_CREDITS_THE_CAPTURE = False
-        world, wel = self._board()
-        result = self._capture(world)
-        assert result.get("success") is True
-        assert not result.get("free_action") and not result.get("counter_punch_used")
         assert wel.counter_punch_available is False
 
     def test_the_occupation_exit_carries_the_credit_too(self, monkeypatch):
@@ -626,14 +526,6 @@ class TestCavalryIsNotParkedAgain:
             act = _ai()._check_threats(uxb, "Britain", world)
         assert not (act and act.get("action") in ("stance_change", "fortify")), act
 
-    def test_the_lever_off_arm_buys_the_stance_the_limit_just_forced_out(self):
-        ea.CAVALRY_AI_READS_THE_LIMIT = False
-        world, uxb = self._board()
-        random.seed(1)
-        with _quiet():
-            act = _ai()._check_threats(uxb, "Britain", world)
-        assert act and act.get("action") == "stance_change" and act.get("target") == "defensive", act
-
     def test_a_never_parked_horse_may_still_park_once(self):
         world, uxb = self._board(stance=Stance.NEUTRAL)
         random.seed(1)
@@ -657,12 +549,6 @@ class TestCavalryIsNotParkedAgain:
         act, _prio = self._default(world, uxb)
         assert not (act and act.get("action") in ("stance_change", "fortify")), act
         assert act and act.get("action") == "wait", act
-
-    def test_the_default_lever_off_arm_parks_it_again(self):
-        ea.CAVALRY_AI_READS_THE_LIMIT = False
-        world, uxb = self._board(no_field=True)
-        act, _prio = self._default(world, uxb)
-        assert act and act.get("action") in ("stance_change", "fortify"), act
 
     def test_infantry_is_still_parked(self):
         """The rule is about horses: a cautious infantry corps forced

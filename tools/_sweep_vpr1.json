@@ -1,12 +1,5 @@
 [
  {
-  "id": "VP-R1 (a) lever down",
-  "file": "backend/commands/combat_executor.py",
-  "old": "MUSTER_ROWS_NAME_THEIR_ODDS = True",
-  "new": "MUSTER_ROWS_NAME_THEIR_ODDS = False",
-  "tests": "tests/test_vp_r1_the_road_to_forty_five.py::TestATheMusterNamesItsOdds"
- },
- {
   "id": "VP-R1 (a) the odds are not the resolver's",
   "file": "backend/commands/combat_executor.py",
   "old": "        return {\"arrival_odds\": pct,",

@@ -1,12 +1,5 @@
 [
   {
-    "id": "D4/a lever",
-    "file": "backend/models/world_state.py",
-    "old": "            if THE_SPINE_WAR_HAS_A_PURPOSE:\n                from backend.game_logic.diplomacy import _auto_assign_defense_objective\n",
-    "new": "            if False:\n                from backend.game_logic.diplomacy import _auto_assign_defense_objective\n",
-    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD4TheSpineWarHasAPurpose"
-  },
-  {
     "id": "D4/b one side only",
     "file": "backend/models/world_state.py",
     "old": "                    for side, other in ((defender, attacker), (attacker, defender)):\n",
@@ -84,13 +77,6 @@
     "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD7TheDeskIsReadBeforeTheDraft"
   },
   {
-    "id": "D19/a lever",
-    "file": "backend/models/world_state.py",
-    "old": "                                   or (THE_DETACHMENT_FEEDS_STABILITY\n                                       and self.region_has_detached_garrison(region))) else 0\n",
-    "new": "                                   or (False\n                                       and self.region_has_detached_garrison(region))) else 0\n",
-    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD19TheDetachmentFeedsStability"
-  },
-  {
     "id": "D19/b a flag with no men",
     "file": "backend/models/world_state.py",
     "old": "                and int(getattr(region, \"garrison_strength\", 0) or 0) > 0)\n",
@@ -119,13 +105,6 @@
     "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD23TrustReachesTheField"
   },
   {
-    "id": "S2D1/a lever inverted",
-    "file": "backend/ai/enemy_ai.py",
-    "old": "        if not THE_ENEMY_WAITS_ONE_TURN:\n            return False\n        ask = getattr(marshal, \"pending_interrupt\", None)\n",
-    "new": "        if THE_ENEMY_WAITS_ONE_TURN:\n            return False\n        ask = getattr(marshal, \"pending_interrupt\", None)\n",
-    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
-  },
-  {
     "id": "S2D1/b any raiser",
     "file": "backend/ai/enemy_ai.py",
     "old": "                and bool(ask.get(\"raised_by_ai\"))\n",
@@ -137,13 +116,6 @@
     "file": "backend/ai/enemy_ai.py",
     "old": "                and int(ask.get(\"raised_turn\", -1)) == int(getattr(world, \"current_turn\", -2)))\n",
     "new": "                and True)\n",
-    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
-  },
-  {
-    "id": "S2D1/d the P0 brake site",
-    "file": "backend/ai/enemy_ai.py",
-    "old": "        enemies = [e for e in enemies if not self._freshly_asked(e, world)]\n        if not P0_ENGAGEMENT_BRAKES_ACTIVE:\n",
-    "new": "        enemies = list(enemies)\n        if not P0_ENGAGEMENT_BRAKES_ACTIVE:\n",
     "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestS2D1TheEnemyWaitsOneTurn"
   },
   {

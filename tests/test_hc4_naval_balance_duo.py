@@ -10,10 +10,9 @@
     bill at the `world._action_costs` TABLE price (2 / 1) against its
     2-AP admin budget, and the expedition rung is affordability-gated.
 
-The bill carries a flip lever (`enemy_ai.AI_NAVAL_AP_PARITY`) for the
-BASELINE_SERIES attribution experiment — False reproduces the pre-slice
-billing byte-identically. The lifeline is unconditional (its flip lever
-retired, CODE-1 batch 3).
+Both halves are unconditional: the lifeline's flip lever was retired in
+CODE-1 batch 3 and the bill's (`enemy_ai.AI_NAVAL_AP_PARITY`, the
+BASELINE_SERIES attribution experiment) in CODE-1 batch 4 (October 12, 2026).
 """
 
 from pathlib import Path
@@ -244,16 +243,6 @@ class TestShownEqualsAppliedCap:
             {"action": "recruit", "marshal": "X", "target": None},
         ])
         assert bonus == 25
-
-    def test_flip_lever_restores_flat_billing(self, monkeypatch):
-        import backend.ai.enemy_ai as enemy_ai_module
-        monkeypatch.setattr(enemy_ai_module, "AI_NAVAL_AP_PARITY", False)
-        ai = self._ai_with_stub_executor()
-        bonus = self._run_phase(ai, [
-            {"action": "naval_expedition", "marshal": "Moore",
-             "target": "Lisbon", "confirmed": True},
-        ])
-        assert bonus == 25  # pre-slice: the descent cost 1 of 2
 
     def test_rung_is_affordability_gated(self, europe, monkeypatch):
         """With 1 AP left the 2-AP expedition is never PICKED — the

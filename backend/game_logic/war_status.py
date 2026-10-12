@@ -880,9 +880,6 @@ def _objective_hint(objective_info, opponent: str, world=None) -> str:
     keeps ticking as the claim on soil this pair's court holds — so the
     hint states the one fact that is true on every such board and invites
     nothing it cannot keep."""
-    from backend.models.world_state import THE_SPINE_WAR_HAS_A_PURPOSE
-    if not THE_SPINE_WAR_HAS_A_PURPOSE:
-        return ""
     if (world is not None and (not objective_info
                  or str(objective_info.get("type") or "") == "defense")):
         from backend.models.authority import _homeland_held_fraction

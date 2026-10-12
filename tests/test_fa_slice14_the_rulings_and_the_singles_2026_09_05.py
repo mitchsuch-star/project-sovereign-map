@@ -988,7 +988,7 @@ class TestTheFrozenMenSurviveTheSave:
 
     def test_the_attrition_sweep_spares_him_across_a_save(self):
         """The measured P1 the slice-9 review round had already fixed once:
-        `ADMINISTRATIVE_EXEMPT_FROM_ATTRITION` reads the flag, so a load
+        the sweep's administrative exemption reads the flag, so a load
         that lost the flag handed him back to the sweep. Before this, the
         sweep ELIMINATED him and logged it."""
         world = _europe()

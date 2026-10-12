@@ -133,13 +133,6 @@
   "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheEnemyPhaseReadsTheField::test_a_bloodless_conquest_says_the_province_fell"
  },
  {
-  "id": "phase/c the garrison assault survives the fog",
-  "file": "backend/main.py",
-  "old": "            if (THE_ASSAULT_ON_OUR_GARRISON_IS_REPORTED\n                    and not involves_player and isinstance(events, list)):",
-  "new": "            if False:",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheEnemyPhaseReadsTheField::test_an_assault_on_our_own_garrison_survives_the_fog"
- },
- {
   "id": "phase/d it is our OWN soil only",
   "file": "backend/main.py",
   "old": "                    if _region is not None and _region.controller == player_nation:",

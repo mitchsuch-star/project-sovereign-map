@@ -9,10 +9,11 @@ reproduction found underneath: the RESOLVER sized the reinforced defender's
 casualties by the primary's 500 men while pricing the attacker's against the
 48,000-man committed field, a 10:1 exchange from accounting — the attacker
 "lost", broke at morale 15, and on 3 of 5 rolls was CAPTURED WHOLE, 48,000
-of his men "escaping home". Two levers:
+of his men "escaping home". Two fixes:
 
-  (a) P4_PRICES_THE_MUSTER        — the four field-price rungs add the visible
-                                     muster forecast (the preview's own term)
+  (a) the four field-price rungs add the visible muster forecast (the
+      preview's own term) — landed under `P4_PRICES_THE_MUSTER`, retired by
+      CODE-1 batch 4 (October 2026)
   (b) CASUALTIES_FALL_ON_THE_FIELD — the loss pool is the bodies on the field
 """
 from __future__ import annotations
@@ -96,15 +97,11 @@ class TestThePriceReadsTheMuster:
 
     def test_a_smaller_attacker_declines_what_it_would_have_charged(self, monkeypatch):
         """30,000 vs a 500 stub with 48,000 next door: 60:1 by the old price, ~0.9:1 by the honest one."""
-        from backend.ai import enemy_ai as EA
         w = _boot()
         ney, dav, moore = _stage(w, attacker=30000)
         ai = EnemyAI(CommandExecutor())
         monkeypatch.setattr(ai, "_get_mood_adjusted_threshold", lambda m, world: 1.2)
         assert ai._find_attack_opportunity(moore, "Britain", w) is None
-        monkeypatch.setattr(EA, "P4_PRICES_THE_MUSTER", False)
-        assert ai._find_attack_opportunity(moore, "Britain", w) == {
-            "marshal": "Moore", "action": "attack", "target": "Ney"}
 
     def test_the_price_is_ground_truth_like_the_players_own_gate(self):
         """The player's odds band reads the enemy muster as ground truth (CA9-F1:
@@ -130,14 +127,6 @@ class TestThePriceReadsTheMuster:
         # the executor's own preview summer, not a copy of it
         joining, committed = ai.executor._combat._defender_muster(ney, w)
         assert ai._muster_price(ney, "Britain", w) == int(committed)
-
-    def test_lever_down_prices_the_field_alone(self, monkeypatch):
-        from backend.ai import enemy_ai as EA
-        monkeypatch.setattr(EA, "P4_PRICES_THE_MUSTER", False)
-        w = _boot()
-        ney, dav, moore = _stage(w)
-        ai = EnemyAI(CommandExecutor())
-        assert ai._muster_price(ney, "Britain", w) == 0
 
     def test_all_four_rungs_read_the_one_helper(self):
         src = (ROOT / "backend" / "ai" / "enemy_ai.py").read_text(encoding="utf-8")
@@ -245,10 +234,6 @@ class TestCasualtiesFallOnTheField:
 # the census
 # ═══════════════════════════════════════════════════════════════════════
 class TestCensus:
-    def test_the_muster_lever_is_on(self):
-        from backend.ai import enemy_ai as EA
-        assert EA.P4_PRICES_THE_MUSTER is True
-
     def test_no_pool_reads_the_primary_strength_bare(self):
         src = (ROOT / "backend" / "game_logic" / "combat.py").read_text(encoding="utf-8")
         start = src.index("    def resolve_battle(")

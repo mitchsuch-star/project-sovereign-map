@@ -745,3 +745,190 @@ def iter_accept_options(dialogue: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
     for option in dialogue.get("options") or []:
         if isinstance(option, dict) and str(option.get("action") or "") in ACCEPT_ACTIONS:
             yield option
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# (e) The ask-back — DD-1 S8 Step 3 "the verbs", SFR-D42 (October 12, 2026)
+#
+# A liberated home province held by an ally (the ally walked in as a
+# liberator and the capture road gave it the keys) could be asked back by no
+# verb — `Talleyrand, ask Spain to give back Provence` was shrugged at. ONE
+# verdict, read by the chip under the ally's card, the typed road and the
+# AI's own ask-back tick (GR5): `can_ask_return` says whether the ask can be
+# MADE (the clause in words when it cannot), `ask_return_score` is the
+# court's answer — the acceptance formula for a return: the relation between
+# the courts, the ally fighting beside us, the province's worth, and the
+# road by which the ally came to hold it. The act (`diplomacy.
+# ask_return_province`) reads both; nothing else re-derives either.
+# ═══════════════════════════════════════════════════════════════════════════
+
+ASK_RETURN_ACCEPT_AT = 40      # the ally hands the province back at this score
+ASK_RETURN_DP_COST = 1         # the ask, delivered, is 1 DP (the D5 instruments' price)
+ASK_RETURN_BESIDE_US = 25      # the ally stands in a war with us against a common enemy
+ASK_RETURN_LIBERATOR = 15      # the ally took it from OUR enemy (the liberator's road)
+ASK_RETURN_TOOK_IT_FROM_US = -40   # the ally took it from us (an old quarrel, since healed)
+ASK_RETURN_CAPITAL_WORTH = 20  # a capital weighs this much more than its income says
+ALLY_STATES = ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+
+
+def home_provinces_held_by(world, owner: str, holder: str) -> List[str]:
+    """`owner`'s home provinces (its `nation_starting_regions`) that `holder`
+    controls today — the provinces an ask-back can name. Sorted, so the
+    chips and the AI tick walk them in one order."""
+    if not owner or not holder or owner == holder:
+        return []
+    homes = (getattr(world, "nation_starting_regions", {}) or {}).get(owner, []) or []
+    out: List[str] = []
+    for name in homes:
+        region = world.regions.get(name)
+        if region is not None and getattr(region, "controller", None) == holder:
+            out.append(name)
+    return sorted(out)
+
+
+def _common_enemy(world, asker: str, holder: str) -> str:
+    """A court at WAR with both `asker` and `holder` — the war the ally
+    fights beside us. Empty when there is none."""
+    for other in world.get_active_nations():
+        if other in (asker, holder):
+            continue
+        if world.is_at_war(asker, other) and world.is_at_war(holder, other):
+            return other
+    return ""
+
+
+def ask_return_score(world, asker: str, holder: str, region: str) -> Dict[str, Any]:
+    """The court's answer to an ask-back, as a score against
+    ASK_RETURN_ACCEPT_AT: relations between the courts, +25 when the holder
+    fights beside the asker, the province's worth against it (income // 10,
+    a capital +20 more), +15 when the holder took it from the asker's enemy
+    (the liberator's road), −40 when it took it from the asker. Deterministic
+    (GR6); every term rides `components` for the chip and the pins."""
+    key = world._make_diplo_key(asker, holder)
+    relation = int((getattr(world, "nation_relations", {}) or {}).get(key, 0) or 0)
+    beside = _common_enemy(world, asker, holder)
+    region_obj = world.regions.get(region)
+    income = int(getattr(region_obj, "income_value", 0) or 0) if region_obj is not None else 0
+    worth = income // 10
+    if region_obj is not None and getattr(region_obj, "is_capital", False):
+        worth += ASK_RETURN_CAPITAL_WORTH
+    road = 0
+    road_name = "unknown"
+    title = ((getattr(world, "province_title", {}) or {}).get(region) or {})
+    taken_from = str(title.get("from") or "")
+    if taken_from == asker:
+        road, road_name = ASK_RETURN_TOOK_IT_FROM_US, "taken_from_us"
+    elif taken_from:
+        road, road_name = ASK_RETURN_LIBERATOR, "liberated"
+    score = relation + (ASK_RETURN_BESIDE_US if beside else 0) - worth + road
+    return {
+        "score": int(score),
+        "accepts": bool(score >= ASK_RETURN_ACCEPT_AT),
+        "shortfall": int(max(0, ASK_RETURN_ACCEPT_AT - score)),
+        "components": {
+            "relation": int(relation),
+            "beside_us": int(ASK_RETURN_BESIDE_US if beside else 0),
+            "common_enemy": beside,
+            "worth": int(-worth),
+            "road": int(road),
+            "road_name": road_name,
+        },
+    }
+
+
+def can_ask_return(world, asker: str, holder: str, region: str, *,
+                   charge: bool = True) -> Verdict:
+    """Can `asker` ASK `holder` for `region` back today? The clause in words
+    when not: the province unknown or not ours, not held by that court, the
+    court no ally of ours, the court's own war purpose on it, no DP left
+    (the player only — an AI court's pool is `nation_dp`, read by the act).
+    `price` is the relation shortfall the court would still want; `target`
+    the court the chip and the refusal name."""
+    holder_name = _court(world, holder, capitalize=True) if holder else "that court"
+    region = str(region or "").strip()
+    if not region:
+        held = home_provinces_held_by(world, asker, holder)
+        if held:
+            return _no("no_province",
+                       f"Which province shall I ask {holder_name} to return, Sire? "
+                       f"{holder_name} holds {', '.join(held)} of ours.",
+                       target=holder)
+        return _no("no_province",
+                   f"Which province, Sire? {holder_name} holds none of our home soil.",
+                   target=holder)
+    region_obj = world.regions.get(region)
+    if region_obj is None:
+        return _no("unknown_province",
+                   f"I know no province called '{region}', Sire.", target=holder)
+    homes = (getattr(world, "nation_starting_regions", {}) or {}).get(asker, []) or []
+    if region not in homes:
+        return _no("not_our_soil",
+                   f"{region} was never {_court(world, asker, capitalize=True)}'s own soil, "
+                   f"Sire — only a home province can be asked back; the rest is taken "
+                   f"or signed for.",
+                   target=holder)
+    controller = str(getattr(region_obj, "controller", "") or "")
+    if controller == asker:
+        return _no("already_ours", f"{region} is ours already, Sire.", target=holder)
+    if controller != holder:
+        who = _court(world, controller, capitalize=True) if controller else "no court"
+        return _no("not_held",
+                   f"{holder_name} does not hold {region}, Sire — {who} does.",
+                   target=holder)
+    state = str(world.get_diplomatic_state(asker, holder) or "PEACE")
+    if state not in ALLY_STATES:
+        pretty = state.replace("_", " ").lower()
+        return _no("not_an_ally",
+                   f"{holder_name} is no ally of ours (we stand at {pretty}), Sire — a "
+                   f"province is asked back from a friend; from anyone else it is "
+                   f"taken, or signed for at the table.",
+                   target=holder)
+    # The holder's own live war purpose names it: it will not hear of it.
+    key = world._make_diplo_key(asker, holder)
+    for pair_key, by_nation in (getattr(world, "war_objectives", {}) or {}).items():
+        obj = (by_nation or {}).get(holder) if isinstance(by_nation, dict) else None
+        if not isinstance(obj, dict) or obj.get("concluded_turn") is not None:
+            continue
+        if region in (obj.get("target_regions") or []):
+            return _no("war_purpose",
+                       f"{holder_name} took {region} by its own war purpose and will "
+                       f"not hear of giving it up, Sire.",
+                       target=holder)
+    del key
+    if charge and asker == getattr(world, "player_nation", "France"):
+        dp = int(getattr(world, "diplomatic_points", 0) or 0)
+        if dp < ASK_RETURN_DP_COST:
+            return _no("no_dp",
+                       f"Talleyrand has no diplomatic points left this season, Sire — "
+                       f"the ask to {holder_name} waits for the next.",
+                       target=holder)
+    answer = ask_return_score(world, asker, holder, region)
+    return _ok(price=int(answer["shortfall"]), target=holder)
+
+
+def ask_return_words(world, asker: str, holder: str, region: str,
+                     answer: Dict[str, Any]) -> str:
+    """The court's answer in the envoy's words — the grant, or the refusal
+    naming what it would still take (never a code)."""
+    holder_name = _court(world, holder, capitalize=True)
+    comp = answer.get("components") or {}
+    if answer.get("accepts"):
+        beside = comp.get("common_enemy") or ""
+        why = (f"she fights beside us against {_court(world, beside, capitalize=True)} "
+               f"and will not quarrel over liberated soil" if beside
+               else "the friendship is worth more to her than the province")
+        return (f"{holder_name} hands {region} back to us — {why}. "
+                f"The liberated soil comes home.")
+    shortfall = int(answer.get("shortfall") or 0)
+    relation = int(comp.get("relation") or 0)
+    bits = []
+    if int(comp.get("worth") or 0) < 0:
+        bits.append(f"{region} is worth {-int(comp.get('worth'))} to her")
+    if comp.get("road_name") == "taken_from_us":
+        bits.append("she took it from us herself")
+    if not comp.get("common_enemy"):
+        bits.append("she fights no war beside ours")
+    tail = f" ({'; '.join(bits)})" if bits else ""
+    return (f"{holder_name} declines to part with {region}, Sire — our standing "
+            f"with her is {relation}, and she would want {shortfall} more{tail}. "
+            f"Warm the court, or stand beside her in a war, and ask again.")
