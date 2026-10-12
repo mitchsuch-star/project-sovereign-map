@@ -183,7 +183,9 @@ class TestD1GhostChainClosed:
         code_text = "\n".join(code)
         # One token per line above - squeeze before a multi-token needle.
         code_text = re.sub(r"\s+", "", code_text)
+        # CODE-2a: inside the attack's stages the command is `ctx.command`.
         calls = (code_text.count("_attack_is_unordered(command)")
+                 + code_text.count("_attack_is_unordered(ctx.command)")
                  - code_text.count("def_attack_is_unordered(command)"))
         assert calls >= 5, (
             "a war-purpose staging site, the reckless-popup predicate or the "

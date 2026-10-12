@@ -41,6 +41,7 @@ from backend.campaign_log import CAMPAIGN_LOG_TYPES
 from backend.commands.executor import CommandExecutor
 from backend.game_logic import jealousy as J
 
+from tests._attack_stages import is_attack_function
 from tests.conftest import MarshalFactory, WorldFactory
 
 REPO = Path(__file__).resolve().parents[1]
@@ -418,6 +419,10 @@ class TestEveryCallSiteCarriesAnArm:
         actual = set()
         for path in {p for p, _ in self.SITES}:
             for owner, _ in self._calls(path):
+                # CODE-2a: the attack is a driver plus stages — a call in any
+                # of them is the `_execute_attack` seam.
+                if path == "backend/commands/combat_executor.py" and is_attack_function(owner):
+                    owner = "_execute_attack"
                 actual.add((path, owner))
         assert actual == set(self.SITES), (
             "a new battle seam calls check_battle_resolution — give it a "

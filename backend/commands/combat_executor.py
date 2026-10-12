@@ -6,7 +6,8 @@ Extracted from executor.py in R10A (Architecture Refactoring Session 10A).
 """
 import contextlib
 import re
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 from backend.models.world_state import (
     PLUNDER_INCOME_MULTIPLIER as WS_PLUNDER_INCOME_MULTIPLIER,
     WorldState,
@@ -784,6 +785,119 @@ def works_halt_line(world, marshal, region) -> str:
             else "the garrison")
     return (f" {marshal.name} halts before {region.name}'s works — "
             f"{kind} of {garrison:,} still stands and must be assaulted.")
+
+
+# CODE-2a (October 2026): what the stages of `CombatExecutor._execute_attack`
+# share. Built once at the driver's head, never on the wire. The parameters
+# are init fields; every other field is set by the stage that first assigns
+# it — `slots` with no default, so a read before any assignment raises as
+# the local it replaced did, and `getattr(ctx, name, default)` /
+# `hasattr(ctx, name)` keep the old `locals()` reads exact.
+_NEXT_STAGE = object()
+
+
+@dataclass(slots=True, repr=False, eq=False)
+class AttackContext:
+    marshal: Any
+    target: Any
+    world: Any
+    game_state: Any
+    skip_reckless_popup: Any
+    command: Any
+    staged_war_purpose: Any = field(init=False)
+    counter_punch_message: Any = field(init=False)
+    is_counter_punch: Any = field(init=False)
+    drill_cancelled_message: Any = field(init=False)
+    resolved_target: Any = field(init=False)
+    nearest: Any = field(init=False)
+    enemy: Any = field(init=False)
+    m: Any = field(init=False)
+    _target_auto_resolved: Any = field(init=False)
+    _nation_hint: Any = field(init=False)
+    result: Any = field(init=False)
+    distance: Any = field(init=False)
+    current_region: Any = field(init=False)
+    _cross: Any = field(init=False)
+    old_location: Any = field(init=False)
+    attrition_info: Any = field(init=False)
+    enemy_by_name: Any = field(init=False)
+    target_location: Any = field(init=False)
+    target_region: Any = field(init=False)
+    _refusal: Any = field(init=False)
+    enemy_marshal: Any = field(init=False)
+    _stage_war_purpose_for_attack: Any = field(init=False)
+    capture_result: Any = field(init=False)
+    bombard_result: Any = field(init=False)
+    muster_preview: Any = field(init=False)
+    covering_message: Any = field(init=False)
+    flanking_info: Any = field(init=False)
+    flanking_bonus: Any = field(init=False)
+    flanking_message: Any = field(init=False)
+    cavalry_charge_message: Any = field(init=False)
+    battle_terrain: Any = field(init=False)
+    fort_bonus: Any = field(init=False)
+    pre_battle_attacker_strength: Any = field(init=False)
+    pre_battle_defender_strength: Any = field(init=False)
+    battle_region_name: Any = field(init=False)
+    attacker_reinforcements: Any = field(init=False)
+    defender_reinforcements: Any = field(init=False)
+    arrived_names: Any = field(init=False)
+    artillery_reinforced_adjacent: Any = field(init=False)
+    reinforcer_origin: Any = field(init=False)
+    side_primary: Any = field(init=False)
+    results_list: Any = field(init=False)
+    arriving: Any = field(init=False)
+    order: Any = field(init=False)
+    total_engaged_strength: Any = field(init=False)
+    _side_results: Any = field(init=False)
+    _r: Any = field(init=False)
+    attacker_coord: Any = field(init=False)
+    defender_coord: Any = field(init=False)
+    atk_participants: Any = field(init=False)
+    def_participants: Any = field(init=False)
+    _atk_sovereign: Any = field(init=False)
+    _def_sovereign: Any = field(init=False)
+    p: Any = field(init=False)
+    is_coordinated_battle: Any = field(init=False)
+    _bd_pre_strengths: Any = field(init=False)
+    overwatch_count: Any = field(init=False)
+    auto_bombardment_messages: Any = field(init=False)
+    auto_bombardment_results: Any = field(init=False)
+    support_bombardment_total_damage: Any = field(init=False)
+    pursuit_block: Any = field(init=False)
+    conquest_msg: Any = field(init=False)
+    remaining_defenders: Any = field(init=False)
+    pipeline_out: Any = field(init=False)
+    atk_distribution: Any = field(init=False)
+    def_distribution: Any = field(init=False)
+    _iq5_atk_contrib: Any = field(init=False)
+    _iq5_def_contrib: Any = field(init=False)
+    _iq5_faith: Any = field(init=False)
+    _iq5_atk_rubble: Any = field(init=False)
+    _iq5_def_rubble: Any = field(init=False)
+    _iq5_solo_applied: Any = field(init=False)
+    _p: Any = field(init=False)
+    _co6_lead_pre_strength: Any = field(init=False)
+    _co6_committed_attacker: Any = field(init=False)
+    _co6_lead_pre_strength_def: Any = field(init=False)
+    _co6_committed_defender: Any = field(init=False)
+    battle_result: Any = field(init=False)
+    outcome: Any = field(init=False)
+    atk_won: Any = field(init=False)
+    def_won: Any = field(init=False)
+    _n: Any = field(init=False)
+    coord_context: Any = field(init=False)
+    rel: Any = field(init=False)
+    battle_name: Any = field(init=False)
+    _jl_resolutions: Any = field(init=False)
+    _kept_order_names: Any = field(init=False)
+    enemy_destroyed: Any = field(init=False)
+    destroyed_msg: Any = field(init=False)
+    _was_free: Any = field(init=False)
+    _removed: Any = field(init=False)
+    forced_retreat_msg: Any = field(init=False)
+    conquered: Any = field(init=False)
+    advance_losses: Any = field(init=False)
 
 
 class CombatExecutor:
@@ -6032,19 +6146,80 @@ class CombatExecutor:
                 strategic / muster-confirmed flags) arms the muster-preview
                 gate; every other caller (strategic execution, auto-dispatch,
                 defiance, post-objection) leaves it None and bypasses.
+
+        CODE-2a (October 2026): a driver of named stages behind one
+        `AttackContext`. A stage returns `_NEXT_STAGE` to continue or the
+        result to stop; nothing on the context reaches the wire.
+
+         1. `_attack_open` — Square break, the war-purpose stager, counter-punch, drill and moved-artillery gates.
+         2. `_attack_reckless_cavalry` — Phase 3 recklessness: the glorious-charge popup or the AI auto-charge.
+         3. `_attack_nearest_target` — PT-H3 / ESP-EV-4: a target left open (or a named nation) resolved to the nearest foe.
+         4. `_attack_resolve_target` — Fuzzy-match the named target; EC-9 coalition guard; ESP-EV-4 guessed-target guard.
+         5. `_attack_range_check` — The target's location and the attack-range check.
+         6. `_attack_engagement_and_crossing` — Engagement lock, the DEF-5 crossing gate (attack arm), NV-9 guns over a strait.
+         7. `_attack_war_and_bombard_target` — Auto war declaration; region-name bombardment targeting, garrisons and raids.
+         8. `_attack_routing_and_muster` — Opening guidance, bombardment routing, PF-7, the W6-4 muster preview and gate.
+         9. `_attack_cover_flank_charge` — An ally covers a retreated target; flanking origin; Ney's two-region charge.
+        10. `_attack_reinforce_and_coordinate` — Reinforcement arrivals, coordination context, casualty participants, NP-V presence.
+        11. `_attack_overwatch_and_auto_bombard` — Enemy overwatch count; SUPPORT auto-bombardment before the battle.
+        12. `_attack_dead_defender` — An auto-bombardment that killed the defender: the win without a battle.
+        13. `_attack_resolve_combat` — resolve_battle, solo or coordinated, and the casualty distribution.
+        14. `_attack_battle_record` — Coordination context, W6-1 participation counts, W6-2 battle name, W6-6 voices.
+        15. `_attack_relationships_and_report` — Win/loss relationships, the observation re-pick, kept orders, destruction.
+        16. `_attack_forced_retreat` — Broken armies retreat or break before the advance.
+        17. `_attack_advance_and_capture` — The advance, the capture, the R1 pipeline and the result dict.
+        18. `_attack_compose_result` — The battle diorama and the result's riders (muster, last stand, overwatch).
+        19. `_attack_tutorial_and_casualty_lines` — The coordination tutorial, IQ-5 / CA8-1 / CO-6 casualty lines, the capture choice.
+        20. `_attack_trust_and_exhaustion` — Reinforcement trust penalties, SR-7d doctrine, exhaustion, Berthier's advisory.
         """
+        ctx = AttackContext(
+            marshal=marshal,
+            target=target,
+            world=world,
+            game_state=game_state,
+            skip_reckless_popup=skip_reckless_popup,
+            command=command,
+        )
+        for stage in (
+                self._attack_open,
+                self._attack_reckless_cavalry,
+                self._attack_nearest_target,
+                self._attack_resolve_target,
+                self._attack_range_check,
+                self._attack_engagement_and_crossing,
+                self._attack_war_and_bombard_target,
+                self._attack_routing_and_muster,
+                self._attack_cover_flank_charge,
+                self._attack_reinforce_and_coordinate,
+                self._attack_overwatch_and_auto_bombard,
+                self._attack_dead_defender,
+                self._attack_resolve_combat,
+                self._attack_battle_record,
+                self._attack_relationships_and_report,
+                self._attack_forced_retreat,
+                self._attack_advance_and_capture,
+                self._attack_compose_result,
+                self._attack_tutorial_and_casualty_lines,
+        ):
+            result = stage(ctx)
+            if result is not _NEXT_STAGE:
+                return result
+        return self._attack_trust_and_exhaustion(ctx)
+
+    def _attack_open(self, ctx: AttackContext):
+        """Stage 1 of `_execute_attack`: Square break, the war-purpose stager, counter-punch, drill and moved-artillery gates."""
         # Auto-break square formation (Session 67)
-        self._executor._auto_break_square(marshal, "attack")
+        self._executor._auto_break_square(ctx.marshal, "attack")
 
         # CA9-F6: set by the two PT-F1 pursuit-capture gates below, and
         # delivered on whichever result this call returns. Never None on a
         # path that staged the hard stop — that was the lockout.
-        staged_war_purpose = None
+        ctx.staged_war_purpose = None
 
         def _stage_war_purpose_for_attack(target_nation: str) -> Dict:
             """Stage WPS-A purpose selection instead of auto-declaring by attack."""
             popup = self._stage_war_purpose_selection(
-                world, marshal.nation, target_nation)
+                ctx.world, ctx.marshal.nation, target_nation)
             return {
                 "success": True,
                 "message": (
@@ -6052,57 +6227,61 @@ class CombatExecutor:
                     "Issue the attack again after the declaration is settled."
                 ),
                 "war_purpose_popup": popup,
-                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                "diplomatic_dialogue": ctx.world.pending_diplomatic_dialogue,
                 "awaiting_diplomatic_response": True,
             }
+        ctx._stage_war_purpose_for_attack = _stage_war_purpose_for_attack
 
         # ════════════════════════════════════════════════════════════
         # COUNTER-PUNCH CHECK (Phase 2.8): Davout's free attack after defending
         # If Davout has counter_punch_available, this attack costs 0 actions
         # ════════════════════════════════════════════════════════════
-        counter_punch_message = ""
-        is_counter_punch = False
-        if marshal.has_counter_punch():
-            is_counter_punch = True
-            marshal.counter_punch_available = False  # Consume the counter-punch
-            marshal.counter_punch_turns = 0  # Clear the turns counter
-            counter_punch_message = (
+        ctx.counter_punch_message = ""
+        ctx.is_counter_punch = False
+        if ctx.marshal.has_counter_punch():
+            ctx.is_counter_punch = True
+            ctx.marshal.counter_punch_available = False  # Consume the counter-punch
+            ctx.marshal.counter_punch_turns = 0  # Clear the turns counter
+            ctx.counter_punch_message = (
                 f"========================================\n"
                 f"  [!] COUNTER-PUNCH! (FREE ACTION) [!]  \n"
                 f"========================================\n"
-                f"{marshal.name} strikes back after successfully defending!\n"
+                f"{ctx.marshal.name} strikes back after successfully defending!\n"
                 f"This attack costs NO actions.\n\n"
             )
-            print(f"  [COUNTER-PUNCH] {marshal.name} uses counter-punch (free attack)")
+            print(f"  [COUNTER-PUNCH] {ctx.marshal.name} uses counter-punch (free attack)")
 
         # ════════════════════════════════════════════════════════════
         # DRILL STATE CHECK: Handle drilling marshal trying to attack
         # ════════════════════════════════════════════════════════════
-        drill_cancelled_message = ""
-        if getattr(marshal, 'drilling', False):
-            if getattr(marshal, 'drilling_locked', False):
+        ctx.drill_cancelled_message = ""
+        if getattr(ctx.marshal, 'drilling', False):
+            if getattr(ctx.marshal, 'drilling_locked', False):
                 # Turn 2: Locked in drill, cannot attack
                 return {
                     "success": False,
-                    "message": f"{marshal.name} is locked in drill formation and cannot attack. Only RETREAT is allowed.",
+                    "message": f"{ctx.marshal.name} is locked in drill formation and cannot attack. Only RETREAT is allowed.",
                     "drilling_locked": True
                 }
             else:
                 # Turn 1: Can attack but drill is cancelled
-                marshal.drilling = False
-                marshal.drill_complete_turn = -1
-                drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+                ctx.marshal.drilling = False
+                ctx.marshal.drill_complete_turn = -1
+                ctx.drill_cancelled_message = f"[!] DRILL CANCELLED: {ctx.marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         # ════════════════════════════════════════════════════════════
         # ARTILLERY MOVEMENT CHECK: Can't attack on the turn artillery moved
         # ════════════════════════════════════════════════════════════
-        if getattr(marshal, 'artillery', False) and getattr(marshal, 'moved_this_turn', False):
+        if getattr(ctx.marshal, 'artillery', False) and getattr(ctx.marshal, 'moved_this_turn', False):
             return {
                 "success": False,
-                "message": f"{marshal.name}'s artillery is still setting up after repositioning. "
+                "message": f"{ctx.marshal.name}'s artillery is still setting up after repositioning. "
                            f"Available to fire next turn."
             }
+        return _NEXT_STAGE
 
+    def _attack_reckless_cavalry(self, ctx: AttackContext):
+        """Stage 2 of `_execute_attack`: Phase 3 recklessness: the glorious-charge popup or the AI auto-charge."""
         # ════════════════════════════════════════════════════════════
         # CAVALRY RECKLESSNESS CHECK (Phase 3)
         # At recklessness 3+, trigger popup for player choice
@@ -6110,9 +6289,9 @@ class CombatExecutor:
         # AI (non-player nation) auto-charges at 3+ without popup
         # Skip if called from restrain response (skip_reckless_popup=True)
         # ════════════════════════════════════════════════════════════
-        if marshal.is_reckless_cavalry and not skip_reckless_popup:
-            recklessness = getattr(marshal, 'recklessness', 0)
-            is_player = marshal.nation == world.player_nation
+        if ctx.marshal.is_reckless_cavalry and not ctx.skip_reckless_popup:
+            recklessness = getattr(ctx.marshal, 'recklessness', 0)
+            is_player = ctx.marshal.nation == ctx.world.player_nation
             # WO-25 (slice 17): neither charge popup is ever mounted by an
             # attack the player did not order this instant. A HOLD sally
             # never asked (the strategic-sally arm below); a jealousy-
@@ -6121,21 +6300,21 @@ class CombatExecutor:
             # `pending_glorious_charge` — the only door into
             # `respond_to_glorious_charge` — is never armed by it.
             _no_charge_popup = bool(
-                marshal.in_strategic_mode
-                or (_attack_is_unordered(command)))
+                ctx.marshal.in_strategic_mode
+                or (_attack_is_unordered(ctx.command)))
 
             # At recklessness 3, player gets popup choice
             # AI at 3+ auto-charges
             if recklessness >= 3:
                 # Resolve target if empty (find nearest enemy) BEFORE proceeding
                 # This ensures we have a valid target for the popup or auto-charge
-                resolved_target = target
-                if not resolved_target:
-                    nearest = world.find_nearest_enemy(marshal.location)
-                    if nearest:
-                        enemy, dist = nearest
-                        if dist <= marshal.movement_range:
-                            resolved_target = enemy.name
+                ctx.resolved_target = ctx.target
+                if not ctx.resolved_target:
+                    ctx.nearest = ctx.world.find_nearest_enemy(ctx.marshal.location)
+                    if ctx.nearest:
+                        ctx.enemy, dist = ctx.nearest
+                        if dist <= ctx.marshal.movement_range:
+                            ctx.resolved_target = ctx.enemy.name
 
                 # ESP-EV-4: this block returns early (charge popup / auto-
                 # charge), so it is a lethal seam of its own and must consult
@@ -6145,20 +6324,20 @@ class CombatExecutor:
                 # words alone, so a target the engine picked just above (for an
                 # order that named no foe) correctly stands it down.
                 _charge_guess = guessed_target_refusal(
-                    world, marshal, command, target,
-                    resolved_target=resolved_target,
+                    ctx.world, ctx.marshal, ctx.command, ctx.target,
+                    resolved_target=ctx.resolved_target,
                     enemy_candidates=(
-                        world.get_enemy_by_name_for_nation(
-                            resolved_target, marshal.nation),
+                        ctx.world.get_enemy_by_name_for_nation(
+                            ctx.resolved_target, ctx.marshal.nation),
                     ),
-                    auto_resolved=not target,
-                ) if resolved_target else None
+                    auto_resolved=not ctx.target,
+                ) if ctx.resolved_target else None
                 if _charge_guess is not None:
                     return _charge_guess
 
                 # Only trigger recklessness popup/auto-charge if we have a valid target
                 # If no target in range, let normal attack flow handle it (move toward enemy)
-                if resolved_target:
+                if ctx.resolved_target:
                     # ════════════════════════════════════════════════════════════
                     # TERRAIN CHARGE BLOCKING (Phase 6.1): mountains/forest/urban
                     # block cavalry charges. Check the DEFENDER's region terrain.
@@ -6170,15 +6349,15 @@ class CombatExecutor:
                     charge_terrain_blocked = False
                     blocked_terrain_name = None
                     charge_target_marshal = None
-                    for m in world.marshals.values():
-                        if (m.name.lower() == resolved_target.lower()
-                                and m.nation != marshal.nation
-                                and world.is_at_war(marshal.nation, m.nation)):
-                            charge_target_marshal = m
+                    for ctx.m in ctx.world.marshals.values():
+                        if (ctx.m.name.lower() == ctx.resolved_target.lower()
+                                and ctx.m.nation != ctx.marshal.nation
+                                and ctx.world.is_at_war(ctx.marshal.nation, ctx.m.nation)):
+                            charge_target_marshal = ctx.m
                             break
                     if charge_target_marshal:
                         # Check terrain at DEFENDER's location (not attacker's)
-                        charge_target_region = world.get_region(charge_target_marshal.location)
+                        charge_target_region = ctx.world.get_region(charge_target_marshal.location)
                         if charge_target_region and charge_target_region.terrain in CHARGE_BLOCKED_TERRAIN:
                             charge_terrain_blocked = True
                             blocked_terrain_name = charge_target_region.terrain.replace("_", " ").title()
@@ -6189,24 +6368,24 @@ class CombatExecutor:
                         # Sort by: nearest first, then weakest (reckless cavalry
                         # charges the closest easy prey on open ground).
                         chargeable_alternatives = []
-                        for m in world.marshals.values():
-                            if m.nation == marshal.nation or m.strength <= 0:
+                        for ctx.m in ctx.world.marshals.values():
+                            if ctx.m.nation == ctx.marshal.nation or ctx.m.strength <= 0:
                                 continue
-                            if not world.is_at_war(marshal.nation, m.nation):
+                            if not ctx.world.is_at_war(ctx.marshal.nation, ctx.m.nation):
                                 continue
-                            if m.name == (charge_target_marshal.name if charge_target_marshal else ""):
+                            if ctx.m.name == (charge_target_marshal.name if charge_target_marshal else ""):
                                 continue  # Skip the blocked target
-                            dist = world.get_distance(marshal.location, m.location)
-                            if dist <= marshal.movement_range:
-                                alt_region = world.get_region(m.location)
+                            dist = ctx.world.get_distance(ctx.marshal.location, ctx.m.location)
+                            if dist <= ctx.marshal.movement_range:
+                                alt_region = ctx.world.get_region(ctx.m.location)
                                 if alt_region and alt_region.terrain not in CHARGE_BLOCKED_TERRAIN:
                                     alt_terrain = alt_region.terrain.replace("_", " ").title()
                                     chargeable_alternatives.append({
-                                        "name": m.name,
-                                        "location": m.location,
+                                        "name": ctx.m.name,
+                                        "location": ctx.m.location,
                                         "terrain": alt_terrain,
                                         "distance": dist,
-                                        "strength": m.strength,
+                                        "strength": ctx.m.strength,
                                     })
                         # Nearest first, weakest as tiebreaker
                         chargeable_alternatives.sort(key=lambda a: (a["distance"], a["strength"]))
@@ -6220,29 +6399,29 @@ class CombatExecutor:
                                                 f"at {alt['location']} ({alt['terrain']}, {alt['distance']} away)")
                             alt_text = "\n".join(alt_lines)
 
-                            marshal.pending_glorious_charge = True
-                            marshal.pending_charge_target = chargeable_alternatives[0]["name"]
+                            ctx.marshal.pending_glorious_charge = True
+                            ctx.marshal.pending_charge_target = chargeable_alternatives[0]["name"]
                             # Review round: RESTRAIN promises a normal attack
                             # on the BLOCKED original, so remember him — the
                             # answer used to attack the alternative instead.
-                            marshal.pending_charge_restrain_target = resolved_target
+                            ctx.marshal.pending_charge_restrain_target = ctx.resolved_target
 
                             return {
                                 "success": False,
                                 "pending_glorious_charge": True,
-                                "marshal": marshal.name,
+                                "marshal": ctx.marshal.name,
                                 "target": chargeable_alternatives[0]["name"],
                                 "recklessness": recklessness,
                                 "charge_redirected": True,
-                                "blocked_target": resolved_target,
+                                "blocked_target": ctx.resolved_target,
                                 "blocked_terrain": blocked_terrain_name,
                                 "message": (
-                                    f"[Cavalry][Blocked] {marshal.name}'s blood is up (Recklessness: {recklessness}) "
+                                    f"[Cavalry][Blocked] {ctx.marshal.name}'s blood is up (Recklessness: {recklessness}) "
                                     f"but {blocked_terrain_name} terrain at {charge_target_marshal.location} "
                                     f"blocks the cavalry charge!\n\n"
                                     f"Alternative targets on open ground:\n{alt_text}\n\n"
                                     f"• CHARGE: Redirect charge to {chargeable_alternatives[0]['name']}\n"
-                                    f"• RESTRAIN: Normal attack on {resolved_target} (no charge bonus)"
+                                    f"• RESTRAIN: Normal attack on {ctx.resolved_target} (no charge bonus)"
                                 ),
                                 "options": ["charge", "restrain"]
                             }
@@ -6250,7 +6429,7 @@ class CombatExecutor:
                             # No alternatives (or AI/4+) — tell player terrain blocks,
                             # fall through to normal attack below
                             print(f"  [CHARGE BLOCKED] {blocked_terrain_name} terrain blocks "
-                                  f"{marshal.name}'s charge on {resolved_target} — normal attack")
+                                  f"{ctx.marshal.name}'s charge on {ctx.resolved_target} — normal attack")
 
                     elif not charge_terrain_blocked:
                         # Terrain allows charge — show popup or auto-charge
@@ -6259,17 +6438,17 @@ class CombatExecutor:
                         # to ask permission. Result shows in strategic report.
                         if is_player and recklessness < 4 and not _no_charge_popup:  # Player at exactly 3 - popup
                             # Set pending state for popup
-                            marshal.pending_glorious_charge = True
-                            marshal.pending_charge_target = resolved_target
-                            marshal.pending_charge_restrain_target = resolved_target
+                            ctx.marshal.pending_glorious_charge = True
+                            ctx.marshal.pending_charge_target = ctx.resolved_target
+                            ctx.marshal.pending_charge_restrain_target = ctx.resolved_target
 
                             return {
                                 "success": False,  # Not executed yet - waiting for response
                                 "pending_glorious_charge": True,
-                                "marshal": marshal.name,
-                                "target": resolved_target,
+                                "marshal": ctx.marshal.name,
+                                "target": ctx.resolved_target,
                                 "recklessness": recklessness,
-                                "message": f"[Cavalry] {marshal.name}'s blood is up! (Recklessness: {recklessness})\n\n"
+                                "message": f"[Cavalry] {ctx.marshal.name}'s blood is up! (Recklessness: {recklessness})\n\n"
                                           f"Choose:\n"
                                           f"• CHARGE: Execute Glorious Charge (2x damage dealt AND taken, resets recklessness)\n"
                                           f"• RESTRAIN: Normal attack (marshal may object next time)",
@@ -6280,14 +6459,17 @@ class CombatExecutor:
                             # WO-25: the command rides along so the charge's
                             # own staging site can read the autonomous flag.
                             return self._execute_glorious_charge(
-                                marshal, resolved_target, world, game_state,
-                                command=command)
+                                ctx.marshal, ctx.resolved_target, ctx.world, ctx.game_state,
+                                command=ctx.command)
+        return _NEXT_STAGE
 
+    def _attack_nearest_target(self, ctx: AttackContext):
+        """Stage 3 of `_execute_attack`: PT-H3 / ESP-EV-4: a target left open (or a named nation) resolved to the nearest foe."""
         # ESP-EV-4 fix (July 12, 2026): remember when the ENGINE chose the
         # target because the player left it open (bare "Ney, attack"). The
         # guessed-target guard below must never fire on a delegated target —
         # only on a SPECIFIC name the player typed that resolution overrode.
-        _target_auto_resolved = False
+        ctx._target_auto_resolved = False
 
         # PT-H3: the nation the player NAMED. `parser.py` drops a demonym
         # target to None by design (the "Austrians" -> Asturias fix) and
@@ -6295,63 +6477,63 @@ class CombatExecutor:
         # Austrians` sent him at Shrapnel — BRITISH — one turn after
         # signing an armistice with Austria, and never said so.
         # `find_nearest_enemy` has no nation parameter on either side.
-        _nation_hint = str((command or {}).get("target_nation_hint", "") or "")
+        ctx._nation_hint = str((ctx.command or {}).get("target_nation_hint", "") or "")
 
         # Handle None target - find nearest enemy for this marshal
-        if not target:
+        if not ctx.target:
             # Find the nearest enemy to this specific marshal
             # FOG-AWARE (Session 37): Player marshals only auto-target visible enemies
-            if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
+            if ctx.marshal.nation == ctx.world.player_nation and hasattr(ctx.world, 'get_region_intel'):
                 from backend.models.intel import FULL as _FULL, PARTIAL as _PARTIAL
 
                 def _visible_and_named(enemy) -> bool:
-                    if world.get_region_intel(enemy.location).visibility \
+                    if ctx.world.get_region_intel(enemy.location).visibility \
                             not in (_FULL, _PARTIAL):
                         return False
-                    if _nation_hint and enemy.nation != _nation_hint:
+                    if ctx._nation_hint and enemy.nation != ctx._nation_hint:
                         return False
                     return True
 
-                result = world.find_nearest_enemy(
-                    marshal.location, filter_fn=_visible_and_named)
-                if result is None and _nation_hint:
+                ctx.result = ctx.world.find_nearest_enemy(
+                    ctx.marshal.location, filter_fn=_visible_and_named)
+                if ctx.result is None and ctx._nation_hint:
                     # He named a court with nobody in reach. Say THAT,
                     # rather than silently attacking somebody else.
                     from backend.display_names import display_nation, nation_adjective
 
                     # SF7-X8 (Score Finish Step 7 slice 5a): "No Prussia force"
                     # — the court as an adjective, like its NPC-26 sibling.
-                    _court = (nation_adjective(_nation_hint)
+                    _court = (nation_adjective(ctx._nation_hint)
                               if A_NAMED_NATION_IS_ANSWERED
-                              else display_nation(_nation_hint))
+                              else display_nation(ctx._nation_hint))
                     return {
                         "success": False,
                         "message": (
                             f"No {_court} force is "
-                            f"within {marshal.name}'s reach, Sire."),
+                            f"within {ctx.marshal.name}'s reach, Sire."),
                         "suggestion": (
                             "Name the marshal you mean, or move him closer "
                             "first."),
                     }
             else:
                 # C2 fix: Use nation-aware lookup for AI marshals to prevent same-nation targeting
-                result = world._find_nearest_enemy_for_nation(marshal.location, marshal.nation)
+                ctx.result = ctx.world._find_nearest_enemy_for_nation(ctx.marshal.location, ctx.marshal.nation)
 
-            if result:
-                nearest_enemy, distance = result
+            if ctx.result:
+                nearest_enemy, ctx.distance = ctx.result
                 # Check if in range (distance already returned by find_nearest_enemy)
-                if distance <= marshal.movement_range:
+                if ctx.distance <= ctx.marshal.movement_range:
                     # Auto-target the nearest enemy
-                    target = nearest_enemy.name
-                    _target_auto_resolved = True
+                    ctx.target = nearest_enemy.name
+                    ctx._target_auto_resolved = True
                 else:
                     # Out of range — literal marshals ask for clarification instead of guessing
-                    if getattr(marshal, 'personality', '') == 'literal':
+                    if getattr(ctx.marshal, 'personality', '') == 'literal':
                         # R5: Fog-filtered for player, omniscient for AI
-                        if marshal.nation == world.player_nation:
-                            enemies = [e for e in world.get_visible_enemies(marshal.nation) if e.strength > 0]
+                        if ctx.marshal.nation == ctx.world.player_nation:
+                            enemies = [e for e in ctx.world.get_visible_enemies(ctx.marshal.nation) if e.strength > 0]
                         else:
-                            enemies = [e for e in world.get_enemies_of_nation(marshal.nation) if e.strength > 0]
+                            enemies = [e for e in ctx.world.get_enemies_of_nation(ctx.marshal.nation) if e.strength > 0]
                         # CR-2: options carry the full reissue command so the
                         # popup and typed answers resolve identically.
                         # Adversarial-review fix: sort by distance so the
@@ -6361,16 +6543,16 @@ class CombatExecutor:
                         from backend.commands.clarification import strategic_reissue_command
 
                         enemies.sort(
-                            key=lambda e: world.get_distance(marshal.location, e.location))
+                            key=lambda e: ctx.world.get_distance(ctx.marshal.location, e.location))
                         options = []
                         for e in enemies[:3]:
-                            e_dist = world.get_distance(marshal.location, e.location)
+                            e_dist = ctx.world.get_distance(ctx.marshal.location, e.location)
                             options.append({
                                 "label": f"Pursue {e.name} ({e.location}, {e_dist} away)",
                                 "value": "specify",
                                 "target": e.name,
                                 "command": strategic_reissue_command(
-                                    marshal.name, "PURSUE", e.name),
+                                    ctx.marshal.name, "PURSUE", e.name),
                             })
                         # Note: popup adds its own "Cancel Order" button — don't duplicate
                         return {
@@ -6379,101 +6561,104 @@ class CombatExecutor:
                             "state": "awaiting_clarification",
                             "type": "clarification",
                             "strategic_type": "PURSUE",
-                            "marshal": marshal.name,
-                            "message": f"{nearest_enemy.name} is {distance} regions away, Sire. Shall I pursue?",
+                            "marshal": ctx.marshal.name,
+                            "message": f"{nearest_enemy.name} is {ctx.distance} regions away, Sire. Shall I pursue?",
                             "interpreted_target": nearest_enemy.name,
                             "interpretation_reason": "nearest",
                             "alternatives": [e.name for e in enemies if e.name != nearest_enemy.name][:2],
                             "options": options,
-                            "action_summary": world.get_action_summary(),
-                            "game_state": world.get_filtered_game_state_summary()
+                            "action_summary": ctx.world.get_action_summary(),
+                            "game_state": ctx.world.get_filtered_game_state_summary()
                         }
 
                     # Non-literal marshals: move toward the enemy
-                    current_region = world.get_region(marshal.location)
+                    ctx.current_region = ctx.world.get_region(ctx.marshal.location)
                     best_next = None
-                    best_distance = distance  # Current distance
+                    best_distance = ctx.distance  # Current distance
 
-                    for adjacent_name in current_region.adjacent_regions:
-                        adj_distance = world.get_distance(adjacent_name, nearest_enemy.location)
+                    for adjacent_name in ctx.current_region.adjacent_regions:
+                        adj_distance = ctx.world.get_distance(adjacent_name, nearest_enemy.location)
                         if adj_distance < best_distance:
                             best_distance = adj_distance
                             best_next = adjacent_name
 
                     if best_next:
                         # [4A-1] Break square formation before auto-move
-                        self._executor._auto_break_square(marshal, "attack")
+                        self._executor._auto_break_square(ctx.marshal, "attack")
 
                         # [4A-1] Diplomatic territory check
                         from backend.game_logic.diplomacy import can_enter_territory
-                        best_region = world.get_region(best_next)
-                        if best_region and best_region.controller and best_region.controller != marshal.nation:
+                        best_region = ctx.world.get_region(best_next)
+                        if best_region and best_region.controller and best_region.controller != ctx.marshal.nation:
                             if not can_enter_territory(
-                                    world, marshal.nation,
+                                    ctx.world, ctx.marshal.nation,
                                     best_region.controller,
-                                    mover_location=marshal.location):
+                                    mover_location=ctx.marshal.location):
                                 return {
                                     "success": False,
-                                    "message": f"{marshal.name} cannot enter {best_next} — diplomatic restrictions."
+                                    "message": f"{ctx.marshal.name} cannot enter {best_next} — diplomatic restrictions."
                                 }
                         # DEF-5 naval §4.1: the approach may not walk a covered strait
-                        if getattr(world, "fleets", None):
+                        if getattr(ctx.world, "fleets", None):
                             from backend.game_logic.naval import crossing_check
-                            _cross = crossing_check(
-                                world, marshal.nation, marshal.location,
+                            ctx._cross = crossing_check(
+                                ctx.world, ctx.marshal.nation, ctx.marshal.location,
                                 best_next,
-                                mover_strength=int(marshal.strength))
-                            if not _cross["allowed"]:
+                                mover_strength=int(ctx.marshal.strength))
+                            if not ctx._cross["allowed"]:
                                 return {
                                     "success": False,
-                                    "message": _cross["message"],
-                                    "blocked_naval": _cross["coverer"],
+                                    "message": ctx._cross["message"],
+                                    "blocked_naval": ctx._cross["coverer"],
                                 }
 
-                        old_location = marshal.location
-                        marshal.move_to(best_next)
+                        ctx.old_location = ctx.marshal.location
+                        ctx.marshal.move_to(best_next)
 
                         # [4A-1] Artillery: mark as moved (blocks attacking this turn)
-                        if getattr(marshal, 'artillery', False):
-                            marshal.moved_this_turn = True
+                        if getattr(ctx.marshal, 'artillery', False):
+                            ctx.marshal.moved_this_turn = True
 
                         # [4A-1] Reset idle tracking
-                        marshal.idle_turns = 0
-                        marshal.acted_this_turn = True
+                        ctx.marshal.idle_turns = 0
+                        ctx.marshal.acted_this_turn = True
 
                         # [4A-1] Refresh fog of war
-                        if marshal.nation == world.player_nation:
-                            world.calculate_visibility()
+                        if ctx.marshal.nation == ctx.world.player_nation:
+                            ctx.world.calculate_visibility()
 
                         # [4A-1] Movement attrition
-                        attrition_info = self._executor._calculate_movement_attrition(marshal, best_next, world)
-                        attrition_msg = f" ({attrition_info['total_losses']:,} lost to march)" if attrition_info["total_losses"] > 0 else ""
+                        ctx.attrition_info = self._executor._calculate_movement_attrition(ctx.marshal, best_next, ctx.world)
+                        attrition_msg = f" ({ctx.attrition_info['total_losses']:,} lost to march)" if ctx.attrition_info["total_losses"] > 0 else ""
 
                         return {
                             "success": True,
-                            "message": f"{marshal.name} advances from {old_location} to {best_next}, moving toward {nearest_enemy.name} at {nearest_enemy.location}! (Now {best_distance} region{'s' if best_distance != 1 else ''} away){attrition_msg}"
+                            "message": f"{ctx.marshal.name} advances from {ctx.old_location} to {best_next}, moving toward {nearest_enemy.name} at {nearest_enemy.location}! (Now {best_distance} region{'s' if best_distance != 1 else ''} away){attrition_msg}"
                         }
                     else:
                         return {
                             "success": False,
-                            "message": f"{marshal.name} cannot get closer to any enemy from {marshal.location}."
+                            "message": f"{ctx.marshal.name} cannot get closer to any enemy from {ctx.marshal.location}."
                         }
             else:
                 return {
                     "success": False,
                     "message": "No enemies found to attack!"
                 }
+        return _NEXT_STAGE
 
+    def _attack_resolve_target(self, ctx: AttackContext):
+        """Stage 4 of `_execute_attack`: Fuzzy-match the named target; EC-9 coalition guard; ESP-EV-4 guessed-target guard."""
         # ============================================================
         # FUZZY MATCHING: Resolve target name first
         # ============================================================
 
         # Try fuzzy matching for enemy marshal name first
         # Pass attacker's nation for nation-aware enemy lookup (required for enemy AI)
-        enemy_by_name, enemy_error = self._executor._fuzzy_match_enemy(target, world, marshal.nation)
-        resolved_target = target
+        ctx.enemy_by_name, enemy_error = self._executor._fuzzy_match_enemy(ctx.target, ctx.world, ctx.marshal.nation)
+        ctx.resolved_target = ctx.target
 
-        if not enemy_by_name:
+        if not ctx.enemy_by_name:
             # PT-4 FIX: If fuzzy match returned a diplomatic block (armistice/etc),
             # return it immediately instead of falling through to "Unknown target"
             if enemy_error and enemy_error.get("diplomatic_block"):
@@ -6487,10 +6672,10 @@ class CombatExecutor:
 
             # 4D-4: Check if target is a friendly marshal name
             friendly_match = None
-            target_lower = target.lower()
-            for m in world.marshals.values():
-                if m.nation == marshal.nation and m.name.lower() == target_lower:
-                    friendly_match = m
+            target_lower = ctx.target.lower()
+            for ctx.m in ctx.world.marshals.values():
+                if ctx.m.nation == ctx.marshal.nation and ctx.m.name.lower() == target_lower:
+                    friendly_match = ctx.m
                     break
             # SF-LB-2 (SCORE_FINISH_SPEC §6.4, October 3, 2026): a PROVINCE
             # outranks a friendly namesake. Measured on the shipped board:
@@ -6505,7 +6690,7 @@ class CombatExecutor:
             # untouched — this arm runs only after no enemy answered.
             namesake_region = None
             if A_PROVINCE_OUTRANKS_A_FRIENDLY_NAMESAKE and friendly_match:
-                for region_name in world.regions:
+                for region_name in ctx.world.regions:
                     if region_name.lower() == target_lower:
                         namesake_region = region_name
                         break
@@ -6516,7 +6701,7 @@ class CombatExecutor:
                 }
 
             # Not an enemy - try fuzzy matching for region names
-            target_region_fuzzy, region_error = self._executor._fuzzy_match_region(target, world)
+            target_region_fuzzy, region_error = self._executor._fuzzy_match_region(ctx.target, ctx.world)
 
             # If region has a suggestion, ask for confirmation — unless the
             # ENEMY seam refused an implausible marshal correction, in which
@@ -6538,7 +6723,7 @@ class CombatExecutor:
                 return region_error
 
             if target_region_fuzzy:
-                resolved_target = target_region_fuzzy.name
+                ctx.resolved_target = target_region_fuzzy.name
             elif enemy_error and (
                     "Did you mean" in enemy_error.get("message", "")
                     or enemy_error.get("refused_marshal_correction")):
@@ -6550,14 +6735,14 @@ class CombatExecutor:
         # EC-9: COALITION MEMBER ATTACK PREVENTION (COALITION_SPEC §11.9)
         # During coalition war, members cannot attack each other.
         # ============================================================
-        if enemy_by_name:
+        if ctx.enemy_by_name:
             from backend.game_logic.coalition import is_coalition_member, is_coalition_active
-            if is_coalition_active(world) and \
-               is_coalition_member(marshal.nation, world) and \
-               is_coalition_member(enemy_by_name.nation, world):
+            if is_coalition_active(ctx.world) and \
+               is_coalition_member(ctx.marshal.nation, ctx.world) and \
+               is_coalition_member(ctx.enemy_by_name.nation, ctx.world):
                 return {
                     "success": False,
-                    "message": f"Cannot attack {enemy_by_name.name} — {enemy_by_name.nation} is a coalition ally."
+                    "message": f"Cannot attack {ctx.enemy_by_name.name} — {ctx.enemy_by_name.nation} is a coalition ally."
                 }
 
         # ════════════════════════════════════════════════════════════
@@ -6570,34 +6755,37 @@ class CombatExecutor:
         # auto-war-declaration too, so a guess can never drag France into a war.
         # ════════════════════════════════════════════════════════════
         _guess_refusal = guessed_target_refusal(
-            world, marshal, command, target,
-            resolved_target=resolved_target,
+            ctx.world, ctx.marshal, ctx.command, ctx.target,
+            resolved_target=ctx.resolved_target,
             enemy_candidates=(
-                enemy_by_name,
-                world.get_enemy_by_name_for_nation(target, marshal.nation),
-                world.get_enemy_at_location_for_nation(resolved_target,
-                                                       marshal.nation),
+                ctx.enemy_by_name,
+                ctx.world.get_enemy_by_name_for_nation(ctx.target, ctx.marshal.nation),
+                ctx.world.get_enemy_at_location_for_nation(ctx.resolved_target,
+                                                       ctx.marshal.nation),
             ),
-            auto_resolved=_target_auto_resolved,
+            auto_resolved=ctx._target_auto_resolved,
         )
         if _guess_refusal is not None:
             return _guess_refusal
+        return _NEXT_STAGE
 
+    def _attack_range_check(self, ctx: AttackContext):
+        """Stage 5 of `_execute_attack`: The target's location and the attack-range check."""
         # ============================================================
         # RANGE CHECK: Verify target is within marshal's attack range
         # ============================================================
 
         # First, determine target location
-        target_location = None
+        ctx.target_location = None
 
         # Check if target is an enemy marshal name
-        if enemy_by_name:
-            target_location = enemy_by_name.location
+        if ctx.enemy_by_name:
+            ctx.target_location = ctx.enemy_by_name.location
         else:
             # Use resolved target name for region lookup
-            target_region = world.get_region(resolved_target)
-            if target_region:
-                target_location = resolved_target
+            ctx.target_region = ctx.world.get_region(ctx.resolved_target)
+            if ctx.target_region:
+                ctx.target_location = ctx.resolved_target
                 # NPC-26 (Score Finish Step 7 slice 5a): "Murat, ride down
                 # the Austrians at Swabia" with no Austrian at Swabia was
                 # answered "cannot attack Bavaria — they are our ally" (Swabia
@@ -6607,39 +6795,39 @@ class CombatExecutor:
                 # so, whose soil the province is, and where the nearest of
                 # them stands in sight. Fog-honest ("in sight"); the
                 # player's orders only (the AI names no courts in words).
-                _refusal = _named_nation_not_at_province(
-                    world, marshal, _nation_hint, resolved_target, target_region)
-                if _refusal is not None:
-                    return _refusal
+                ctx._refusal = _named_nation_not_at_province(
+                    ctx.world, ctx.marshal, ctx._nation_hint, ctx.resolved_target, ctx.target_region)
+                if ctx._refusal is not None:
+                    return ctx._refusal
 
         # If we found a valid target location, check range
-        if target_location:
-            distance = world.get_distance(marshal.location, target_location)
+        if ctx.target_location:
+            ctx.distance = ctx.world.get_distance(ctx.marshal.location, ctx.target_location)
 
-            if distance > marshal.movement_range:
+            if ctx.distance > ctx.marshal.movement_range:
                 # ARTILLERY: Block PURSUE auto-promotion — artillery can't chase
-                if getattr(marshal, 'artillery', False):
+                if getattr(ctx.marshal, 'artillery', False):
                     return {
                         "success": False,
-                        "message": f"Target out of range. {marshal.name}'s artillery can only engage adjacent regions."
+                        "message": f"Target out of range. {ctx.marshal.name}'s artillery can only engage adjacent regions."
                     }
 
                 # OUT OF RANGE — auto-upgrade to strategic PURSUE if targeting enemy marshal
-                is_player_nation = marshal.nation == world.player_nation
+                is_player_nation = ctx.marshal.nation == ctx.world.player_nation
                 # FA slice 3 review round (R1-F3): NEVER under
                 # `_strategic_execution`. The answer to a stale contact
                 # reached this arm, minted a PURSUE, marched a province at
                 # 0 AP, logged the order and then deleted it as "Assault
                 # failed". An order-driven attack that finds its man out of
                 # reach is a refusal, in the refusal's own shape.
-                if (enemy_by_name and (command or {}).get("_strategic_execution")):
+                if (ctx.enemy_by_name and (ctx.command or {}).get("_strategic_execution")):
                     return {
                         "success": False,
                         "out_of_reach": True,
-                        "message": (f"{enemy_by_name.name} is no longer within "
-                                    f"reach of {marshal.name}."),
+                        "message": (f"{ctx.enemy_by_name.name} is no longer within "
+                                    f"reach of {ctx.marshal.name}."),
                     }
-                if enemy_by_name and is_player_nation:
+                if ctx.enemy_by_name and is_player_nation:
                     # Pre-check: strategic commands cost 2 AP (1 for the
                     # literal / the sovereign). NP-V: single source on the
                     # marshal (GR1).
@@ -6659,23 +6847,23 @@ class CombatExecutor:
                     # One local now feeds BOTH the price and the flag, so the
                     # gate and the charge cannot disagree again.
                     priced_as_auto_upgrade = False
-                    strategic_cost = marshal.strategic_order_ap(
+                    strategic_cost = ctx.marshal.strategic_order_ap(
                         auto_upgrade=priced_as_auto_upgrade,
                         order_type="PURSUE")
-                    if world.actions_remaining < strategic_cost:
+                    if ctx.world.actions_remaining < strategic_cost:
                         return {
                             "success": False,
-                            "message": f"Not enough actions for a strategic pursuit! Need {strategic_cost}, have {world.actions_remaining}.",
-                            "actions_remaining": int(world.actions_remaining),
-                            "action_summary": world.get_action_summary()
+                            "message": f"Not enough actions for a strategic pursuit! Need {strategic_cost}, have {ctx.world.actions_remaining}.",
+                            "actions_remaining": int(ctx.world.actions_remaining),
+                            "action_summary": ctx.world.get_action_summary()
                         }
-                    print(f"[ATTACK->PURSUE] {marshal.name}: {target} out of range (distance {distance}), auto-upgrading to PURSUE")
+                    print(f"[ATTACK->PURSUE] {ctx.marshal.name}: {ctx.target} out of range (distance {ctx.distance}), auto-upgrading to PURSUE")
                     pursue_parsed = {
                         "success": True,
                         "command": {
-                            "marshal": marshal.name,
+                            "marshal": ctx.marshal.name,
                             "action": "attack",
-                            "target": enemy_by_name.name,
+                            "target": ctx.enemy_by_name.name,
                             "target_type": "marshal",
                         },
                         "is_strategic": True,
@@ -6687,27 +6875,27 @@ class CombatExecutor:
                         "auto_upgrade": priced_as_auto_upgrade,
                         # NPC-11: the player's own words, where the command
                         # carries them; the synthetic line only as a fallback.
-                        "raw_input": ((str((command or {}).get("_raw_input") or "").strip()
+                        "raw_input": ((str((ctx.command or {}).get("_raw_input") or "").strip()
                                        if THE_LITERAL_QUOTES_THE_TYPED_ORDER else "")
-                                      or f"{marshal.name} attack {target}"),
+                                      or f"{ctx.marshal.name} attack {ctx.target}"),
                         "strategic_score": 60,
                         "ambiguity": 15,
                     }
-                    return self._executor._execute_strategic_command(pursue_parsed, pursue_parsed["command"], game_state)
+                    return self._executor._execute_strategic_command(pursue_parsed, pursue_parsed["command"], ctx.game_state)
 
                 # Non-enemy or AI marshal — provide helpful error
                 # Find closer targets within range
                 # R5: Fog-filtered for player, omniscient for AI
                 nearby_targets = []
-                if marshal.nation == world.player_nation:
-                    candidate_enemies = world.get_visible_enemies(marshal.nation)
+                if ctx.marshal.nation == ctx.world.player_nation:
+                    candidate_enemies = ctx.world.get_visible_enemies(ctx.marshal.nation)
                 else:
-                    candidate_enemies = world.get_enemies_of_nation(marshal.nation)
-                for enemy in candidate_enemies:
-                    if enemy.strength > 0:
-                        enemy_distance = world.get_distance(marshal.location, enemy.location)
-                        if enemy_distance <= marshal.movement_range:
-                            nearby_targets.append(f"{enemy.name} at {enemy.location} ({enemy_distance} region{'s' if enemy_distance != 1 else ''} away)")
+                    candidate_enemies = ctx.world.get_enemies_of_nation(ctx.marshal.nation)
+                for ctx.enemy in candidate_enemies:
+                    if ctx.enemy.strength > 0:
+                        enemy_distance = ctx.world.get_distance(ctx.marshal.location, ctx.enemy.location)
+                        if enemy_distance <= ctx.marshal.movement_range:
+                            nearby_targets.append(f"{ctx.enemy.name} at {ctx.enemy.location} ({enemy_distance} region{'s' if enemy_distance != 1 else ''} away)")
 
                 # WIN-3: name the PLACE, not just a bare distance. The old
                 # line ("cannot reach Mack from Swabia! Range: 1, Distance:
@@ -6718,24 +6906,27 @@ class CombatExecutor:
                 # actually looked makes that misresolution visible instead
                 # of silent (the NPC-7 family). Fog-safe: this branch is
                 # only reached for a region target or a non-player marshal.
-                where = (f" ({target_location})"
-                         if str(target_location) != str(target) else "")
-                error_msg = (f"{marshal.name} cannot reach {target}{where} "
-                             f"from {marshal.location}! ")
-                error_msg += f"Range: {marshal.movement_range}, Distance: {distance}"
+                where = (f" ({ctx.target_location})"
+                         if str(ctx.target_location) != str(ctx.target) else "")
+                error_msg = (f"{ctx.marshal.name} cannot reach {ctx.target}{where} "
+                             f"from {ctx.marshal.location}! ")
+                error_msg += f"Range: {ctx.marshal.movement_range}, Distance: {ctx.distance}"
 
                 suggestion = None
                 if nearby_targets:
                     suggestion = f"Targets in range: {', '.join(nearby_targets)}"
                 else:
-                    suggestion = f"No enemies within range. Try 'move to {target_location}' to get closer first"
+                    suggestion = f"No enemies within range. Try 'move to {ctx.target_location}' to get closer first"
 
                 return {
                     "success": False,
                     "message": error_msg,
                     "suggestion": suggestion
                 }
+        return _NEXT_STAGE
 
+    def _attack_engagement_and_crossing(self, ctx: AttackContext):
+        """Stage 6 of `_execute_attack`: Engagement lock, the DEF-5 crossing gate (attack arm), NV-9 guns over a strait."""
         # ============================================================
         # NORMAL ATTACK LOGIC (Range check passed)
         # ============================================================
@@ -6744,15 +6935,15 @@ class CombatExecutor:
         # ENGAGEMENT CHECK: Cannot attack elsewhere if enemy in your region
         # Same rule as movement - must deal with engaged enemies first
         # ════════════════════════════════════════════════════════════
-        marshals_here = world.get_marshals_in_region(marshal.location)
-        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
+        marshals_here = ctx.world.get_marshals_in_region(ctx.marshal.location)
+        enemies_here = [m for m in marshals_here if m.nation != ctx.marshal.nation and m.strength > 0 and ctx.world.is_at_war(ctx.marshal.nation, m.nation)]
 
         if enemies_here:
             # Check if target is in a DIFFERENT region
             # (Attacking enemy in same region is allowed - that's fighting them!)
             target_in_same_region = False
-            for enemy in enemies_here:
-                if enemy.name.lower() == target.lower() or enemy.location == resolved_target:
+            for ctx.enemy in enemies_here:
+                if ctx.enemy.name.lower() == ctx.target.lower() or ctx.enemy.location == ctx.resolved_target:
                     target_in_same_region = True
                     break
 
@@ -6773,21 +6964,21 @@ class CombatExecutor:
                     "success": False,
                     "message": f"Cannot attack elsewhere while engaged with enemy forces! {', '.join(enemy_display)} must be dealt with first.",
                     "engaged_with": enemy_names,
-                    "suggestion": f"Attack {humanize_entity_name(enemies_here[0].name)} in {marshal.location} first"
+                    "suggestion": f"Attack {humanize_entity_name(enemies_here[0].name)} in {ctx.marshal.location} first"
                 }
 
         # Find enemy marshal - either by name or at target location
         # Use nation-aware lookups (required for enemy AI to attack player marshals)
-        enemy_marshal = None
+        ctx.enemy_marshal = None
 
         # Check if target is an enemy marshal name (use original target for enemy names)
-        enemy_marshal = world.get_enemy_by_name_for_nation(target, marshal.nation)
-        if not enemy_marshal and enemy_by_name and enemy_by_name.nation != marshal.nation:
-            enemy_marshal = enemy_by_name
+        ctx.enemy_marshal = ctx.world.get_enemy_by_name_for_nation(ctx.target, ctx.marshal.nation)
+        if not ctx.enemy_marshal and ctx.enemy_by_name and ctx.enemy_by_name.nation != ctx.marshal.nation:
+            ctx.enemy_marshal = ctx.enemy_by_name
 
-        if not enemy_marshal:
+        if not ctx.enemy_marshal:
             # Check if target is a region with enemies (use resolved_target for regions)
-            enemy_marshal = world.get_enemy_at_location_for_nation(resolved_target, marshal.nation)
+            ctx.enemy_marshal = ctx.world.get_enemy_at_location_for_nation(ctx.resolved_target, ctx.marshal.nation)
 
         # ════════════════════════════════════════════════════════════
         # THE CROSSING GATE — attack arm (DEF-5 naval §4.1). An assault
@@ -6796,12 +6987,12 @@ class CombatExecutor:
         # MOVE but not ATTACK is not a blockade." Same predicate as the
         # movement seam, both sides (GR5); one truthiness read dormant.
         # ════════════════════════════════════════════════════════════
-        if getattr(world, "fleets", None):
+        if getattr(ctx.world, "fleets", None):
             _battle_region_name = None
-            if enemy_marshal and enemy_marshal.location != marshal.location:
-                _battle_region_name = enemy_marshal.location
-            elif not enemy_marshal and resolved_target != marshal.location:
-                _battle_region_name = resolved_target
+            if ctx.enemy_marshal and ctx.enemy_marshal.location != ctx.marshal.location:
+                _battle_region_name = ctx.enemy_marshal.location
+            elif not ctx.enemy_marshal and ctx.resolved_target != ctx.marshal.location:
+                _battle_region_name = ctx.resolved_target
             if _battle_region_name:
                 # NV-9: the REACH gate, not the direct pair. A cavalry
                 # strike at range 2 may put the water on its MIDDLE leg —
@@ -6812,16 +7003,16 @@ class CombatExecutor:
                 # `attack` hits, and it was one of four left unthreaded —
                 # so the refusal kept advertising an expedition that could
                 # not lift the corps standing right there.
-                _cross = crossing_check_reach(world, marshal.nation,
-                                              marshal.location,
+                ctx._cross = crossing_check_reach(ctx.world, ctx.marshal.nation,
+                                              ctx.marshal.location,
                                               _battle_region_name,
-                                              int(marshal.strength))
-                if not _cross["allowed"]:
+                                              int(ctx.marshal.strength))
+                if not ctx._cross["allowed"]:
                     return {
                         "success": False,
-                        "message": _cross["message"],
-                        "blocked_naval": _cross["coverer"],
-                        "naval_ratio": _cross["ratio"],
+                        "message": ctx._cross["message"],
+                        "blocked_naval": ctx._cross["coverer"],
+                        "naval_ratio": ctx._cross["ratio"],
                     }
 
         # ════════════════════════════════════════════════════════════
@@ -6834,34 +7025,37 @@ class CombatExecutor:
         # the physical refusal. A player must never pay for a war to be
         # told the order was impossible all along.
         # ════════════════════════════════════════════════════════════
-        if (getattr(marshal, "artillery", False) and enemy_marshal
-                and marshal.location != enemy_marshal.location):
+        if (getattr(ctx.marshal, "artillery", False) and ctx.enemy_marshal
+                and ctx.marshal.location != ctx.enemy_marshal.location):
             from backend.game_logic.naval import is_sea_link
-            if is_sea_link(world, marshal.location, enemy_marshal.location):
+            if is_sea_link(ctx.world, ctx.marshal.location, ctx.enemy_marshal.location):
                 return {
                     "success": False,
                     "message": (
-                        f"{marshal.name}'s guns cannot reach "
-                        f"{enemy_marshal.location} — no battery carries "
+                        f"{ctx.marshal.name}'s guns cannot reach "
+                        f"{ctx.enemy_marshal.location} — no battery carries "
                         f"across open water, Sire. The sea is the fleet's "
                         f"business."),
                 }
+        return _NEXT_STAGE
 
+    def _attack_war_and_bombard_target(self, ctx: AttackContext):
+        """Stage 7 of `_execute_attack`: Auto war declaration; region-name bombardment targeting, garrisons and raids."""
         # ════════════════════════════════════════════════════════════
         # AUTO WAR DECLARATION (Phase 8 Session 2)
         # If attacking a nation we're not at WAR with, auto-declare war
         # before proceeding. Costs 1 DP, applies relation penalties.
         # ════════════════════════════════════════════════════════════
-        if enemy_marshal and not world.is_at_war(marshal.nation, enemy_marshal.nation):
+        if ctx.enemy_marshal and not ctx.world.is_at_war(ctx.marshal.nation, ctx.enemy_marshal.nation):
             # Never turn an attack into a war declaration against our own ally
             # or vassal (friendly-fire backstop).
-            _refusal = friendly_fire_refusal(world, marshal, enemy_marshal.nation)
-            if _refusal is not None:
-                return _refusal
-            if marshal.nation == world.player_nation:
-                return _stage_war_purpose_for_attack(enemy_marshal.nation)
+            ctx._refusal = friendly_fire_refusal(ctx.world, ctx.marshal, ctx.enemy_marshal.nation)
+            if ctx._refusal is not None:
+                return ctx._refusal
+            if ctx.marshal.nation == ctx.world.player_nation:
+                return ctx._stage_war_purpose_for_attack(ctx.enemy_marshal.nation)
             from backend.game_logic.diplomacy import declare_war
-            war_result = declare_war(world, marshal.nation, enemy_marshal.nation)
+            war_result = declare_war(ctx.world, ctx.marshal.nation, ctx.enemy_marshal.nation)
             if not war_result.get("success"):
                 # §4.3a-3 (pin 15): the declaration is the GATE, not a side
                 # effect — a refused declaration (armistice cooldown, side
@@ -6869,14 +7063,14 @@ class CombatExecutor:
                 # of proceeding against a nation still at peace.
                 return {
                     "success": False,
-                    "message": (f"{marshal.name} cannot open hostilities with "
-                                f"{enemy_marshal.nation}: "
+                    "message": (f"{ctx.marshal.name} cannot open hostilities with "
+                                f"{ctx.enemy_marshal.nation}: "
                                 f"{war_result.get('message', 'the declaration was refused.')}"),
                 }
             # Deduct DP for player
-            if marshal.nation == world.player_nation:
-                dp = getattr(world, 'diplomatic_points', 0)
-                world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
+            if ctx.marshal.nation == ctx.world.player_nation:
+                dp = getattr(ctx.world, 'diplomatic_points', 0)
+                ctx.world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
             # War declared — continue with attack
 
         # ════════════════════════════════════════════════════════════
@@ -6884,31 +7078,31 @@ class CombatExecutor:
         # When artillery bombards a region name, pick the strongest enemy
         # marshal as the primary target. Other marshals take collateral.
         # ════════════════════════════════════════════════════════════
-        if (enemy_marshal and not enemy_by_name
-                and getattr(marshal, 'artillery', False)
-                and marshal.location != (enemy_marshal.location or "")):
+        if (ctx.enemy_marshal and not ctx.enemy_by_name
+                and getattr(ctx.marshal, 'artillery', False)
+                and ctx.marshal.location != (ctx.enemy_marshal.location or "")):
             all_enemies_at_target = [
-                m for m in world.marshals.values()
-                if m.location == resolved_target
-                and m.nation != marshal.nation
+                m for m in ctx.world.marshals.values()
+                if m.location == ctx.resolved_target
+                and m.nation != ctx.marshal.nation
                 and m.strength > 0
                 and not getattr(m, 'broken', False)
-                and world.is_at_war(marshal.nation, m.nation)
+                and ctx.world.is_at_war(ctx.marshal.nation, m.nation)
             ]
             if len(all_enemies_at_target) > 1:
-                enemy_marshal = max(all_enemies_at_target, key=lambda m: m.strength)
+                ctx.enemy_marshal = max(all_enemies_at_target, key=lambda m: m.strength)
 
-        if not enemy_marshal:
+        if not ctx.enemy_marshal:
             # No enemy found - target should already be resolved, get the region
-            target_region = world.get_region(resolved_target)
+            ctx.target_region = ctx.world.get_region(ctx.resolved_target)
 
-            if target_region:
+            if ctx.target_region:
                 # Check if already controlled
                 # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
-                if target_region.controller == marshal.nation:
+                if ctx.target_region.controller == ctx.marshal.nation:
                     return {
                         "success": False,
-                        "message": f"{resolved_target} is already controlled by {marshal.nation}"
+                        "message": f"{ctx.resolved_target} is already controlled by {ctx.marshal.nation}"
                     }
 
                 # Auto-war-declaration for undefended territory (Phase 8 Session 2)
@@ -6919,30 +7113,30 @@ class CombatExecutor:
                 # objective and no reason to render ("no unannounced
                 # conquest"). Plain movement under those treaties is
                 # untouched (movement_executor); this is the CAPTURE path.
-                if target_region.controller and not world.is_at_war(marshal.nation, target_region.controller):
+                if ctx.target_region.controller and not ctx.world.is_at_war(ctx.marshal.nation, ctx.target_region.controller):
                     # Don't declare war on our own ally/vassal to seize their land.
-                    _refusal = friendly_fire_refusal(world, marshal, target_region.controller)
-                    if _refusal is not None:
-                        return _refusal
+                    ctx._refusal = friendly_fire_refusal(ctx.world, ctx.marshal, ctx.target_region.controller)
+                    if ctx._refusal is not None:
+                        return ctx._refusal
                     from backend.game_logic.diplomacy import declare_war
-                    if marshal.nation == world.player_nation:
-                        return _stage_war_purpose_for_attack(target_region.controller)
-                    war_result = declare_war(world, marshal.nation, target_region.controller)
+                    if ctx.marshal.nation == ctx.world.player_nation:
+                        return ctx._stage_war_purpose_for_attack(ctx.target_region.controller)
+                    war_result = declare_war(ctx.world, ctx.marshal.nation, ctx.target_region.controller)
                     if not war_result.get("success"):
                         # §4.3a-3: refused declaration aborts the capture —
                         # region.controller, marshals and strengths stay
                         # byte-identical, no war_instance, no conquest event.
                         return {
                             "success": False,
-                            "message": (f"{marshal.name} cannot seize "
-                                        f"{resolved_target}: "
+                            "message": (f"{ctx.marshal.name} cannot seize "
+                                        f"{ctx.resolved_target}: "
                                         f"{war_result.get('message', 'the declaration was refused.')}"),
                         }
 
                 # Check for any defenders (marshals from nations other than attacker)
-                defenders = [m for m in world.marshals.values()
-                            if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation
-                            and world.is_at_war(marshal.nation, m.nation)]
+                defenders = [m for m in ctx.world.marshals.values()
+                            if m.location == ctx.resolved_target and m.strength > 0 and m.nation != ctx.marshal.nation
+                            and ctx.world.is_at_war(ctx.marshal.nation, m.nation)]
 
                 if not defenders:
                     # ════════════════════════════════════════════════════════════
@@ -6958,20 +7152,20 @@ class CombatExecutor:
                     from backend.game_logic.garrison_report import (
                         garrison_fights as _garrison_stands)
                     garrison_fights = (
-                        target_region.controller != marshal.nation
-                        and _garrison_stands(target_region))
+                        ctx.target_region.controller != ctx.marshal.nation
+                        and _garrison_stands(ctx.target_region))
 
                     if garrison_fights:
                         garrison_result = self._resolve_garrison_combat(
-                            marshal, target_region, world, game_state)
-                        if drill_cancelled_message:
-                            garrison_result["message"] = drill_cancelled_message + garrison_result["message"]
+                            ctx.marshal, ctx.target_region, ctx.world, ctx.game_state)
+                        if ctx.drill_cancelled_message:
+                            garrison_result["message"] = ctx.drill_cancelled_message + garrison_result["message"]
                         # AAR24-X2: the blow consumed at the head of this
                         # method rides the exit it took — the assault's too
                         # (the field and capture exits already credit it).
-                        if (is_counter_punch and garrison_result.get("success")):
+                        if (ctx.is_counter_punch and garrison_result.get("success")):
                             garrison_result["message"] = (
-                                counter_punch_message + garrison_result["message"])
+                                ctx.counter_punch_message + garrison_result["message"])
                             garrison_result["free_action"] = True
                             garrison_result["counter_punch_used"] = True
                         return garrison_result
@@ -6986,15 +7180,15 @@ class CombatExecutor:
                         raiding_party_holds_no_ground, raiding_party_refusal,
                         RAIDING_PARTY_FLOOR)
                     _raid_refused = raiding_party_holds_no_ground(
-                        marshal, target_region, world)
+                        ctx.marshal, ctx.target_region, ctx.world)
 
                     def _refuse_the_raid():
                         return {
                             "success": False,
                             "capture_refused_raiding_party": True,
                             "message": (
-                                raiding_party_refusal(marshal, resolved_target)
-                                + f" March him in with 'move to {resolved_target}' "
+                                raiding_party_refusal(ctx.marshal, ctx.resolved_target)
+                                + f" March him in with 'move to {ctx.resolved_target}' "
                                   f"to stand there, or bring {RAIDING_PARTY_FLOOR:,}."),
                         }
 
@@ -7006,23 +7200,23 @@ class CombatExecutor:
                     # lays down its arms — said, so the player learns the floor.
                     surrender_note = ""
                     garrison_gave_way = 0
-                    if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
+                    if ctx.target_region.garrison_strength > 0 and ctx.target_region.controller != ctx.marshal.nation:
                         from backend.game_logic.garrison_report import (
                             detachment_surrenders as _detachment_surrenders)
-                        if _detachment_surrenders(target_region):
+                        if _detachment_surrenders(ctx.target_region):
                             surrender_note = (
-                                f" The detachment of {int(target_region.garrison_strength):,} "
-                                f"at {resolved_target} lays down its arms.")
+                                f" The detachment of {int(ctx.target_region.garrison_strength):,} "
+                                f"at {ctx.resolved_target} lays down its arms.")
                         elif self.A_GARRISON_THAT_GIVES_WAY_IS_SAID:
                             # SF7-X31: under the collapse line the garrison
                             # does not fight — and the player is told so.
                             surrender_note = (
-                                f" The last {int(target_region.garrison_strength):,} "
-                                f"of the garrison at {resolved_target} give way.")
+                                f" The last {int(ctx.target_region.garrison_strength):,} "
+                                f"of the garrison at {ctx.resolved_target} give way.")
                         if self.A_GARRISON_THAT_GIVES_WAY_IS_SAID:
-                            garrison_gave_way = int(target_region.garrison_strength)
-                        target_region.garrison_strength = 0
-                        target_region.garrison_detachment = False
+                            garrison_gave_way = int(ctx.target_region.garrison_strength)
+                        ctx.target_region.garrison_strength = 0
+                        ctx.target_region.garrison_detachment = False
 
                     # The lever-down arm (SF7-X33): the old order — the
                     # garrison above is already gone when the raid is refused.
@@ -7030,11 +7224,11 @@ class CombatExecutor:
                         return _refuse_the_raid()
 
                     # UNDEFENDED - Capture attempt (may start occupation if fortified)
-                    old_controller = target_region.controller
-                    old_location = marshal.location
+                    old_controller = ctx.target_region.controller
+                    ctx.old_location = ctx.marshal.location
 
                     # Move attacker to captured region
-                    marshal.move_to(resolved_target)
+                    ctx.marshal.move_to(ctx.resolved_target)
                     # ══════════════════════════════════════════════════
                     # PT-F2: taking a province is not idling.
                     #
@@ -7050,123 +7244,123 @@ class CombatExecutor:
                     # `idle_turns` feeds two jealousy gates as well as
                     # the dispatch and the marshal card.
                     # ══════════════════════════════════════════════════
-                    marshal.idle_turns = 0
-                    marshal.acted_this_turn = True
+                    ctx.marshal.idle_turns = 0
+                    ctx.marshal.acted_this_turn = True
 
                     # Movement attrition (Phase 6.2.F). XR-3 (SR-7a, the
                     # remaining half): a corps already standing on the
                     # province marched nowhere and bleeds nothing to the road
                     # — AAR-22 fixed the sentence, this fixes the bill.
                     if (AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE
-                            and old_location == resolved_target):
-                        attrition_info = {"march_losses": 0, "harassment_losses": 0,
+                            and ctx.old_location == ctx.resolved_target):
+                        ctx.attrition_info = {"march_losses": 0, "harassment_losses": 0,
                                           "total_losses": 0, "depot_bonus": False}
                     else:
-                        attrition_info = self._executor._calculate_movement_attrition(marshal, resolved_target, world)
+                        ctx.attrition_info = self._executor._calculate_movement_attrition(ctx.marshal, ctx.resolved_target, ctx.world)
 
                     # Attempt capture (Phase 6.2.F: contested capture)
-                    capture_result = self._attempt_region_capture(
-                        marshal, resolved_target, world, game_state, had_garrison=False)
+                    ctx.capture_result = self._attempt_region_capture(
+                        ctx.marshal, ctx.resolved_target, ctx.world, ctx.game_state, had_garrison=False)
 
-                    if old_location == resolved_target:
+                    if ctx.old_location == ctx.resolved_target:
                         # AAR-22 (SR Chunk 2 reserve): a corps already
                         # standing on the province does not march
                         # "from Bohemia into Bohemia".
-                        capture_message = f"{marshal.name} takes {resolved_target} where he stands!"
+                        capture_message = f"{ctx.marshal.name} takes {ctx.resolved_target} where he stands!"
                     else:
-                        capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed!"
+                        capture_message = f"{ctx.marshal.name} marches from {ctx.old_location} into {ctx.resolved_target} unopposed!"
                     if surrender_note:
                         capture_message = surrender_note.strip() + " " + capture_message
-                    if attrition_info["total_losses"] > 0:
-                        capture_message += f" ({attrition_info['march_losses']:,} lost to march"
-                        if attrition_info.get("depot_bonus"):
+                    if ctx.attrition_info["total_losses"] > 0:
+                        capture_message += f" ({ctx.attrition_info['march_losses']:,} lost to march"
+                        if ctx.attrition_info.get("depot_bonus"):
                             capture_message += " — forward supply lines reduce losses"
-                        if attrition_info["harassment_losses"] > 0:
-                            capture_message += f", {attrition_info['harassment_losses']:,} to enemy harassment"
+                        if ctx.attrition_info["harassment_losses"] > 0:
+                            capture_message += f", {ctx.attrition_info['harassment_losses']:,} to enemy harassment"
                         capture_message += ")"
 
-                    if capture_result["occupation_started"]:
-                        capture_message += f" {capture_result['message']}"
-                        if drill_cancelled_message:
-                            capture_message = drill_cancelled_message + capture_message
+                    if ctx.capture_result["occupation_started"]:
+                        capture_message += f" {ctx.capture_result['message']}"
+                        if ctx.drill_cancelled_message:
+                            capture_message = ctx.drill_cancelled_message + capture_message
                         _occ = {
                             "success": True,
                             "message": capture_message,
                             "occupation_started": True,
                             "events": [{
                                 "type": "occupation_started",
-                                "marshal": marshal.name,
-                                "region": resolved_target,
-                                "turns_required": capture_result["turns_required"],
+                                "marshal": ctx.marshal.name,
+                                "region": ctx.resolved_target,
+                                "turns_required": ctx.capture_result["turns_required"],
                                 # SF7-X31: the garrison that gave way (0 = none).
                                 **({"garrison_gave_way": garrison_gave_way}
                                    if garrison_gave_way else {}),
                             }],
-                            "new_state": game_state
+                            "new_state": ctx.game_state
                         }
-                        if is_counter_punch:
+                        if ctx.is_counter_punch:
                             _occ["free_action"] = True   # R1-6
                             _occ["counter_punch_used"] = True
                         return _occ
 
                     # Instant capture
-                    capture_message += f" Captured: {old_controller} → {marshal.nation}"
-                    if drill_cancelled_message:
-                        capture_message = drill_cancelled_message + capture_message
+                    capture_message += f" Captured: {old_controller} → {ctx.marshal.nation}"
+                    if ctx.drill_cancelled_message:
+                        capture_message = ctx.drill_cancelled_message + capture_message
 
                     conquest_event = {
                         "type": "conquest",
-                        "marshal": marshal.name,
-                        "region": resolved_target,
+                        "marshal": ctx.marshal.name,
+                        "region": ctx.resolved_target,
                         "unopposed": True,
                         # WO-9 (slice 12): the second conquest producer —
                         # same carve-out, same missing stamp.
-                        "captured_by": marshal.nation,
+                        "captured_by": ctx.marshal.nation,
                         "captured_from": old_controller,
                     }
                     if garrison_gave_way:
                         # SF7-X31: the men who gave way, for the surfaces
                         # that rebuild the line from the event.
                         conquest_event["garrison_gave_way"] = garrison_gave_way
-                    if capture_result.get("capture_choice"):
-                        conquest_event["capture_choice"] = capture_result["capture_choice"]
-                    result = {
+                    if ctx.capture_result.get("capture_choice"):
+                        conquest_event["capture_choice"] = ctx.capture_result["capture_choice"]
+                    ctx.result = {
                         "success": True,
                         "message": capture_message,
                         "events": [conquest_event],
-                        "new_state": game_state
+                        "new_state": ctx.game_state
                     }
-                    if is_counter_punch:
+                    if ctx.is_counter_punch:
                         # R1-6: the blow was consumed at the head of this method;
                         # the credit rides the exit the blow actually took.
-                        result["free_action"] = True
-                        result["counter_punch_used"] = True
+                        ctx.result["free_action"] = True
+                        ctx.result["counter_punch_used"] = True
 
-                    if marshal.nation == world.player_nation and world.pending_capture_choice:
+                    if ctx.marshal.nation == ctx.world.player_nation and ctx.world.pending_capture_choice:
                         from backend.models.world_state import capture_choice_prompt
-                        result["message"] += capture_choice_prompt(
-                            world.pending_capture_choice)
-                        result["pending_capture_choice"] = True
-                        result["capture_data"] = world.pending_capture_choice
+                        ctx.result["message"] += capture_choice_prompt(
+                            ctx.world.pending_capture_choice)
+                        ctx.result["pending_capture_choice"] = True
+                        ctx.result["capture_data"] = ctx.world.pending_capture_choice
 
-                    return result
+                    return ctx.result
 
             # If region not found, return error
-            if not target_region:
+            if not ctx.target_region:
                 return {
                     "success": False,
-                    "message": f"Unknown target: {target}"
+                    "message": f"Unknown target: {ctx.target}"
                 }
 
             # Try to find nearest enemy as last resort
-            nearest = world.find_nearest_enemy(marshal.location)
-            if nearest:
-                enemy_marshal, distance = nearest
-                if distance > 2:
+            ctx.nearest = ctx.world.find_nearest_enemy(ctx.marshal.location)
+            if ctx.nearest:
+                ctx.enemy_marshal, ctx.distance = ctx.nearest
+                if ctx.distance > 2:
                     return {
                         "success": False,
-                        "message": f"No enemy found at {target}. Nearest enemy is {enemy_marshal.name} at {enemy_marshal.location} ({distance} regions away).",
-                        "suggestion": f"Try: 'Attack {enemy_marshal.name}' or move closer first"
+                        "message": f"No enemy found at {ctx.target}. Nearest enemy is {ctx.enemy_marshal.name} at {ctx.enemy_marshal.location} ({ctx.distance} regions away).",
+                        "suggestion": f"Try: 'Attack {ctx.enemy_marshal.name}' or move closer first"
                     }
             else:
                 return {
@@ -7174,26 +7368,29 @@ class CombatExecutor:
                     "message": "No enemies found! You may have won the campaign.",
                 }
 
-        if not enemy_marshal or enemy_marshal.strength <= 0:
+        if not ctx.enemy_marshal or ctx.enemy_marshal.strength <= 0:
             return {
                 "success": False,
-                "message": f"Cannot find living enemy: {resolved_target}"
+                "message": f"Cannot find living enemy: {ctx.resolved_target}"
             }
+        return _NEXT_STAGE
 
+    def _attack_routing_and_muster(self, ctx: AttackContext):
+        """Stage 8 of `_execute_attack`: Opening guidance, bombardment routing, PF-7, the W6-4 muster preview and gate."""
         # ════════════════════════════════════════════════════════════
         # BOMBARDMENT ROUTING (§3): Artillery in different region → bombardment
         # Same-region artillery combat still uses full resolve_battle().
         # ════════════════════════════════════════════════════════════
-        if self._should_surface_opening_attack_guidance(marshal, enemy_marshal, world):
-            world.opening_attack_guidance_shown = True
-            guidance = self._build_opening_attack_guidance(world)
+        if self._should_surface_opening_attack_guidance(ctx.marshal, ctx.enemy_marshal, ctx.world):
+            ctx.world.opening_attack_guidance_shown = True
+            guidance = self._build_opening_attack_guidance(ctx.world)
             return {
                 "success": True,
                 "message": guidance["summary"],
                 "opening_attack_guidance": guidance,
                 "free_action": True,
-                "action_summary": world.get_action_summary(),
-                "game_state": world.get_filtered_game_state_summary(),
+                "action_summary": ctx.world.get_action_summary(),
+                "game_state": ctx.world.get_filtered_game_state_summary(),
             }
 
         # PF-7: a "bombard" verb issued to a marshal with NO guns previously
@@ -7205,29 +7402,29 @@ class CombatExecutor:
         # artillery "bombard" -> full battle is intended (BOMBARDMENT_SPEC §3)
         # and handled by the routing below, so this only fires with no guns.
         _bombard_verbs = ("bombard", "barrage", "shell", "cannonade")
-        if (command
-                and any(v in (command.get("raw_command") or "").lower()
+        if (ctx.command
+                and any(v in (ctx.command.get("raw_command") or "").lower()
                         for v in _bombard_verbs)
-                and not getattr(marshal, 'artillery', False)):
+                and not getattr(ctx.marshal, 'artillery', False)):
             return {
                 "success": False,
-                "message": (f"Berthier shakes his head. \"{marshal.name} commands "
+                "message": (f"Berthier shakes his head. \"{ctx.marshal.name} commands "
                             f"no guns, Sire — he cannot bombard. Order a direct "
                             f"assault, or bring an artillery corps within range.\""),
             }
 
-        if (getattr(marshal, 'artillery', False)
-                and marshal.location != enemy_marshal.location):
-            bombard_result = self._execute_bombardment(
-                marshal, enemy_marshal, world, game_state)
-            if drill_cancelled_message:
-                bombard_result["message"] = drill_cancelled_message + bombard_result["message"]
-            if counter_punch_message:
-                bombard_result["message"] = counter_punch_message + bombard_result["message"]
-            if is_counter_punch:
-                bombard_result["free_action"] = True
-                bombard_result["counter_punch_used"] = True
-            return bombard_result
+        if (getattr(ctx.marshal, 'artillery', False)
+                and ctx.marshal.location != ctx.enemy_marshal.location):
+            ctx.bombard_result = self._execute_bombardment(
+                ctx.marshal, ctx.enemy_marshal, ctx.world, ctx.game_state)
+            if ctx.drill_cancelled_message:
+                ctx.bombard_result["message"] = ctx.drill_cancelled_message + ctx.bombard_result["message"]
+            if ctx.counter_punch_message:
+                ctx.bombard_result["message"] = ctx.counter_punch_message + ctx.bombard_result["message"]
+            if ctx.is_counter_punch:
+                ctx.bombard_result["free_action"] = True
+                ctx.bombard_result["counter_punch_used"] = True
+            return ctx.bombard_result
 
         # ════════════════════════════════════════════════════════════
         # W6-4 MUSTER PREVIEW + GATE (EXP-C1 + E-CA-4). Player-issued
@@ -7237,20 +7434,20 @@ class CombatExecutor:
         # is a player legibility surface). Counter-punch attacks skip the
         # gate too (the free attack was already earned and consumed).
         # ════════════════════════════════════════════════════════════
-        muster_preview = None
+        ctx.muster_preview = None
         # Step 3 (combat C1): a strategic re-issue the player CONFIRMED
         # (the answered contact question, `_muster_confirmed`) still builds
         # its muster — the block rides the battle with the gate off.
-        if (command is not None
-                and (not command.get("_strategic_execution")
-                     or command.get("_muster_confirmed"))
-                and not command.get("_autonomous_execution")
-                and not _attack_is_unordered(command)
-                and marshal.nation == world.player_nation):
-            muster_preview = self._build_muster_preview(
-                marshal, enemy_marshal, world, game_state)
-            gate_armed = (not command.get("_muster_confirmed")
-                          and not is_counter_punch)
+        if (ctx.command is not None
+                and (not ctx.command.get("_strategic_execution")
+                     or ctx.command.get("_muster_confirmed"))
+                and not ctx.command.get("_autonomous_execution")
+                and not _attack_is_unordered(ctx.command)
+                and ctx.marshal.nation == ctx.world.player_nation):
+            ctx.muster_preview = self._build_muster_preview(
+                ctx.marshal, ctx.enemy_marshal, ctx.world, ctx.game_state)
+            gate_armed = (not ctx.command.get("_muster_confirmed")
+                          and not ctx.is_counter_punch)
             # CA9 row 2: the blocking confirm is armed by CHARACTER, not by
             # odds alone — `unfavorable` AND a cautious marshal. ONE source
             # (objection_v2.muster_gate_arms) decides this and the copy
@@ -7258,12 +7455,12 @@ class CombatExecutor:
             # narrowing the gate removes the interruption, not the numbers.
             from backend.commands.objection_v2 import muster_gate_arms
             if gate_armed and muster_gate_arms(
-                    marshal, muster_preview["odds_band"]):
+                    ctx.marshal, ctx.muster_preview["odds_band"]):
                 # E-CA-4: the attack does NOT resolve on the first call —
                 # the muster block IS the odds warning. The interrupt
                 # carries `marshal` (the July-7 L1 lesson) and resolves
                 # via /strategic_response.
-                muster_text = self._format_muster_lines(muster_preview)
+                muster_text = self._format_muster_lines(ctx.muster_preview)
                 # CA9-F1 (found by the F1 landing): the executor's ESP-EV-4
                 # disclosure prepend is suppressed on `requires_input`,
                 # because "an interrupt already owns its copy" — and this
@@ -7274,21 +7471,21 @@ class CombatExecutor:
                 # now arms far more often"; row 2 narrows it again, but the
                 # carry is still required — the surviving cautious case is
                 # exactly the one where the player is asked to commit.)
-                _disclosure = (command or {}).get("_target_disclosure")
+                _disclosure = (ctx.command or {}).get("_target_disclosure")
                 from backend.game_logic.marshal_voice import (
                     cautious_muster_halt,
                 )
                 interrupt = {
                     "interrupt_type": "muster_confirm",
-                    "marshal": marshal.name,
-                    "target": enemy_marshal.name,
+                    "marshal": ctx.marshal.name,
+                    "target": ctx.enemy_marshal.name,
                     "options": ["attack_anyway", "cancel_order"],
                     "message": (
                         (f"{_disclosure}\n\n" if _disclosure else "")
                         + cautious_muster_halt(
-                            marshal.name, int(world.current_turn))
+                            ctx.marshal.name, int(ctx.world.current_turn))
                         + f"\n\nThe muster reads "
-                        f"{muster_preview['odds_band']}. "
+                        f"{ctx.muster_preview['odds_band']}. "
                         # WO slice 8 in-game pass [V-3]: this message is
                         # rendered by `interrupt_popup.gd`'s MessageLabel,
                         # a PLAIN Label — it cannot parse BBCode, so the
@@ -7301,32 +7498,35 @@ class CombatExecutor:
                         f"regardless — or Cancel to hold him "
                         f"back.\n{muster_text}"
                     ),
-                    "muster_preview": muster_preview,
+                    "muster_preview": ctx.muster_preview,
                 }
-                marshal.pending_interrupt = interrupt
+                ctx.marshal.pending_interrupt = interrupt
                 return {
                     "success": True,
                     "requires_input": True,
                     "no_action_cost": True,
                     "pending_interrupt": interrupt,
-                    "muster_preview": muster_preview,
+                    "muster_preview": ctx.muster_preview,
                     "message": interrupt["message"],
                 }
+        return _NEXT_STAGE
 
+    def _attack_cover_flank_charge(self, ctx: AttackContext):
+        """Stage 9 of `_execute_attack`: An ally covers a retreated target; flanking origin; Ney's two-region charge."""
         # ============================================================
         # ALLY COVERS RETREAT SYSTEM: If target retreated this turn,
         # an ally in the same region can step in to defend
         # ============================================================
-        covering_message = ""
+        ctx.covering_message = ""
         original_target = None  # Track original target for messaging
 
-        if getattr(enemy_marshal, 'retreated_this_turn', False):
+        if getattr(ctx.enemy_marshal, 'retreated_this_turn', False):
             # Target retreated this turn - check for covering allies
             covering_candidates = [
-                m for m in world.marshals.values()
-                if m.location == enemy_marshal.location  # Same region
-                and m.nation == enemy_marshal.nation     # Same nation
-                and m.name != enemy_marshal.name         # Not the target itself
+                m for m in ctx.world.marshals.values()
+                if m.location == ctx.enemy_marshal.location  # Same region
+                and m.nation == ctx.enemy_marshal.nation     # Same nation
+                and m.name != ctx.enemy_marshal.name         # Not the target itself
                 and m.strength > 0                       # Has troops
                 and not getattr(m, 'retreated_this_turn', False)  # Didn't also retreat
             ]
@@ -7334,8 +7534,8 @@ class CombatExecutor:
             if covering_candidates:
                 # Pick the strongest ally to cover
                 covering_ally = max(covering_candidates, key=lambda m: m.strength)
-                original_target = enemy_marshal
-                enemy_marshal = covering_ally  # Swap defender
+                original_target = ctx.enemy_marshal
+                ctx.enemy_marshal = covering_ally  # Swap defender
 
                 # LV-2 (row EP F2, Sept 25 2026): these two lines rode
                 # `covering_message` into the strategic dialog with the
@@ -7343,18 +7543,18 @@ class CombatExecutor:
                 # is the one source for a man's printed name (R7).
                 _cover_name = humanize_entity_name(covering_ally.name)
                 _covered_name = humanize_entity_name(original_target.name)
-                covering_message = (
+                ctx.covering_message = (
                     f"[Shield] {_cover_name} steps forward to cover {_covered_name}'s retreat! "
                     f"\"{_covered_name} is in no condition to fight - I'll handle this!\"\n\n"
                 )
                 print(f"  [ALLY COVER] {covering_ally.name} covers for retreating {original_target.name}")
             else:
                 # No covering ally - target is EXPOSED
-                covering_message = (
-                    f"[!] {humanize_entity_name(enemy_marshal.name)} is EXPOSED! "
+                ctx.covering_message = (
+                    f"[!] {humanize_entity_name(ctx.enemy_marshal.name)} is EXPOSED! "
                     f"(Just retreated, no ally to cover)\n\n"
                 )
-                print(f"  [EXPOSED] {enemy_marshal.name} retreated and has no cover!")
+                print(f"  [EXPOSED] {ctx.enemy_marshal.name} retreated and has no cover!")
 
         # §0.6.8 item 4c: snapshot both principals' battles_won BEFORE any
         # resolve path runs. The increment seams differ (combat.py bumps on
@@ -7363,55 +7563,55 @@ class CombatExecutor:
         # kill) — the DELTA is the single truth the expectation note reads.
         _exp_wins_before = {
             m_.name: int(getattr(m_, "battles_won", 0))
-            for m_ in (marshal, enemy_marshal) if m_ is not None
+            for m_ in (ctx.marshal, ctx.enemy_marshal) if m_ is not None
         }
 
         # ============================================================
         # FLANKING SYSTEM (Phase 2.5): Record attack origin BEFORE combat
         # ============================================================
-        origin_region = marshal.location  # Capture origin BEFORE any movement
-        target_location = enemy_marshal.location
+        origin_region = ctx.marshal.location  # Capture origin BEFORE any movement
+        ctx.target_location = ctx.enemy_marshal.location
 
         # Record this attack for flanking calculation.
         # PC-6: the pincer is counted among the ATTACKER'S OWN columns. Two
         # armies contesting one province used to pool their approaches, so
         # each side was handed a flanking bonus for the other side's march —
         # and the message named the enemy's start line as a friendly one.
-        world.record_attack(marshal.name, origin_region, target_location,
-                            marshal.nation)
+        ctx.world.record_attack(ctx.marshal.name, origin_region, ctx.target_location,
+                            ctx.marshal.nation)
 
         # Calculate flanking bonus based on all attacks this turn
-        flanking_info = world.calculate_flanking_bonus(target_location,
-                                                       marshal.nation)
-        flanking_bonus = flanking_info["bonus"]
+        ctx.flanking_info = ctx.world.calculate_flanking_bonus(ctx.target_location,
+                                                       ctx.marshal.nation)
+        ctx.flanking_bonus = ctx.flanking_info["bonus"]
 
         # Generate flanking message if applicable
-        flanking_message = world.get_flanking_message(
-            marshal.name, origin_region, target_location, marshal.nation)
+        ctx.flanking_message = ctx.world.get_flanking_message(
+            ctx.marshal.name, origin_region, ctx.target_location, ctx.marshal.nation)
 
         # ════════════════════════════════════════════════════════════
         # CAVALRY CHARGE (Phase 2.8): Ney can attack from 2 regions away
         # Cannot leapfrog over enemies - must engage them first
         # ════════════════════════════════════════════════════════════
-        cavalry_charge_message = ""
-        attack_distance = world.get_distance(origin_region, target_location)
-        is_cavalry = getattr(marshal, 'cavalry', False)
+        ctx.cavalry_charge_message = ""
+        attack_distance = ctx.world.get_distance(origin_region, ctx.target_location)
+        is_cavalry = getattr(ctx.marshal, 'cavalry', False)
 
         if is_cavalry and attack_distance == 2:
             # Find the middle region for the charge
             middle_regions = []
-            current_region = world.get_region(origin_region)
-            for adj in current_region.adjacent_regions:
-                if world.get_distance(adj, target_location) == 1:
+            ctx.current_region = ctx.world.get_region(origin_region)
+            for adj in ctx.current_region.adjacent_regions:
+                if ctx.world.get_distance(adj, ctx.target_location) == 1:
                     middle_regions.append(adj)
 
             # CHECK FOR ENEMIES IN MIDDLE REGION - Cannot leapfrog!
             if middle_regions:
                 for middle in middle_regions:
                     enemies_in_middle = [
-                        m for m in world.get_marshals_in_region(middle)
-                        if m.nation != marshal.nation and m.strength > 0
-                        and world.is_at_war(marshal.nation, m.nation)
+                        m for m in ctx.world.get_marshals_in_region(middle)
+                        if m.nation != ctx.marshal.nation and m.strength > 0
+                        and ctx.world.is_at_war(ctx.marshal.nation, m.nation)
                     ]
                     if enemies_in_middle:
                         blocking_enemy = enemies_in_middle[0]
@@ -7425,50 +7625,53 @@ class CombatExecutor:
 
                 middle = middle_regions[0]
                 # Transit intel: cavalry charging through middle region gets PARTIAL snapshot
-                if marshal.nation == world.player_nation:
-                    world.update_intel_from_transit(middle, world.current_turn)
-                cavalry_charge_message = f"[Cavalry] {marshal.name}'s cavalry thunders across {middle} to strike! (Cavalry Charge: 2-region attack)\n"
+                if ctx.marshal.nation == ctx.world.player_nation:
+                    ctx.world.update_intel_from_transit(middle, ctx.world.current_turn)
+                ctx.cavalry_charge_message = f"[Cavalry] {ctx.marshal.name}'s cavalry thunders across {middle} to strike! (Cavalry Charge: 2-region attack)\n"
             else:
-                cavalry_charge_message = f"[Cavalry] {marshal.name}'s cavalry charges across the battlefield! (Cavalry Charge: 2-region attack)\n"
+                ctx.cavalry_charge_message = f"[Cavalry] {ctx.marshal.name}'s cavalry charges across the battlefield! (Cavalry Charge: 2-region attack)\n"
 
         # Read terrain from defender's region (defender chose this ground)
-        defender_region = world.get_region(enemy_marshal.location)
-        battle_terrain = defender_region.terrain if defender_region else "plains"
+        defender_region = ctx.world.get_region(ctx.enemy_marshal.location)
+        ctx.battle_terrain = defender_region.terrain if defender_region else "plains"
 
         # Fortification bonus (Phase 6.2.E): defender gets +25% if region has functional fortification
-        fort_bonus = 0.0
+        ctx.fort_bonus = 0.0
         if defender_region and defender_region.has_building("fortification"):
-            fort_bonus = REGION_FORTIFICATION_DEFENSE_BONUS
+            ctx.fort_bonus = REGION_FORTIFICATION_DEFENSE_BONUS
 
         # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
-        pre_battle_attacker_strength = marshal.strength
-        pre_battle_defender_strength = enemy_marshal.strength
-        battle_region_name = enemy_marshal.location
+        ctx.pre_battle_attacker_strength = ctx.marshal.strength
+        ctx.pre_battle_defender_strength = ctx.enemy_marshal.strength
+        ctx.battle_region_name = ctx.enemy_marshal.location
+        return _NEXT_STAGE
 
+    def _attack_reinforce_and_coordinate(self, ctx: AttackContext):
+        """Stage 10 of `_execute_attack`: Reinforcement arrivals, coordination context, casualty participants, NP-V presence."""
         # ════════════════════════════════════════════════════════════
         # REINFORCEMENT (Phase 7, Session 61a): Adjacent marshals
         # physically relocate to battle region before combat.
         # Must run BEFORE coordination context (A-C2 ordering).
         # ════════════════════════════════════════════════════════════
-        attacker_reinforcements = self._calculate_reinforcements(
-            marshal, enemy_marshal, battle_region_name, marshal.nation, world
+        ctx.attacker_reinforcements = self._calculate_reinforcements(
+            ctx.marshal, ctx.enemy_marshal, ctx.battle_region_name, ctx.marshal.nation, ctx.world
         )
-        defender_reinforcements = self._calculate_reinforcements(
-            enemy_marshal, marshal, battle_region_name, enemy_marshal.nation, world
+        ctx.defender_reinforcements = self._calculate_reinforcements(
+            ctx.enemy_marshal, ctx.marshal, ctx.battle_region_name, ctx.enemy_marshal.nation, ctx.world
         )
 
         # Process arrivals — BEFORE coordination context (A-C2)
-        arrived_names = set()
+        ctx.arrived_names = set()
         # Artillery that reinforced but stayed in adjacent position (Gate 4 fix)
-        artillery_reinforced_adjacent = []
+        ctx.artillery_reinforced_adjacent = []
         # Track pre-arrival locations for retreat-on-loss (Gate 4: spec says
         # "reinforcer retreats with primary if battle lost")
-        reinforcer_origin = {}  # marshal_name -> original_location
-        for side_primary, results_list in [(marshal, attacker_reinforcements),
-                                           (enemy_marshal, defender_reinforcements)]:
-            for result in results_list:
-                if result["arrived"]:
-                    arriving = world.marshals.get(result["marshal"])
+        ctx.reinforcer_origin = {}  # marshal_name -> original_location
+        for ctx.side_primary, ctx.results_list in [(ctx.marshal, ctx.attacker_reinforcements),
+                                           (ctx.enemy_marshal, ctx.defender_reinforcements)]:
+            for ctx.result in ctx.results_list:
+                if ctx.result["arrived"]:
+                    ctx.arriving = ctx.world.marshals.get(ctx.result["marshal"])
                     # ── CA9-F13: no reinforcement TELEPORTS onto soil it
                     # could not legally march to.
                     #
@@ -7487,52 +7690,52 @@ class CombatExecutor:
                     # arm still marches (driving the enemy off an ally's
                     # province is what the alliance is for), so this only
                     # bites the case that had no legal route.
-                    if arriving is not None:
+                    if ctx.arriving is not None:
                         _block = self._pursuit_capture_guard(
-                            arriving, battle_region_name, world)
+                            ctx.arriving, ctx.battle_region_name, ctx.world)
                         if _block is not None and _block["arm"] == "neutral":
-                            result["arrived"] = False
-                            result["reason"] = "neutral_soil"
-                            arriving = None
-                    if arriving:
+                            ctx.result["arrived"] = False
+                            ctx.result["reason"] = "neutral_soil"
+                            ctx.arriving = None
+                    if ctx.arriving:
                         # Record arrived_via_support BEFORE any changes (A-C2)
-                        order = getattr(arriving, 'strategic_order', None)
-                        result["arrived_via_support"] = (
-                            order is not None
-                            and order.command_type == "SUPPORT"
-                            and order.target == side_primary.name
+                        ctx.order = getattr(ctx.arriving, 'strategic_order', None)
+                        ctx.result["arrived_via_support"] = (
+                            ctx.order is not None
+                            and ctx.order.command_type == "SUPPORT"
+                            and ctx.order.target == ctx.side_primary.name
                         )
                         # Save origin for retreat-on-loss BEFORE relocation
-                        reinforcer_origin[arriving.name] = arriving.location
+                        ctx.reinforcer_origin[ctx.arriving.name] = ctx.arriving.location
                         # Physical relocation — artillery stays in adjacent position
                         # (Gate 4: artillery reinforces via fire support, not advance)
-                        if getattr(arriving, 'artillery', False):
+                        if getattr(ctx.arriving, 'artillery', False):
                             # Artillery provides coordination bonus from adjacent
                             # position but does NOT advance to front line.
                             # NOT added to arrived_names — artillery remains
                             # countable as an adjacent ally for +2% attack bonus.
-                            artillery_reinforced_adjacent.append(arriving)
+                            ctx.artillery_reinforced_adjacent.append(ctx.arriving)
                         else:
-                            arriving.location = battle_region_name
+                            ctx.arriving.location = ctx.battle_region_name
                             # MC-1c: direct assignment bypasses move_to —
                             # marching to the guns uncoils Iron Resolve.
-                            arriving.clear_iron_resolve()
-                            arrived_names.add(arriving.name)
-                        arriving.reinforced_this_turn = True
+                            ctx.arriving.clear_iron_resolve()
+                            ctx.arrived_names.add(ctx.arriving.name)
+                        ctx.arriving.reinforced_this_turn = True
                         # Clear path (now invalid) but DO NOT clear strategic_order yet (A-C2)
-                        if arriving.strategic_order:
-                            arriving.strategic_order.path = []
+                        if ctx.arriving.strategic_order:
+                            ctx.arriving.strategic_order.path = []
 
         # W6-2 Dynamic Battle Naming: total engaged for the Great tier —
         # both primaries + every arrived reinforcer, PRE-battle strengths
         # (captured here, before combat consumes anyone).
-        total_engaged_strength = int(pre_battle_attacker_strength) + int(pre_battle_defender_strength)
-        for _side_results in (attacker_reinforcements, defender_reinforcements):
-            for _r in _side_results:
-                if _r.get("arrived"):
-                    _arr = world.marshals.get(_r.get("marshal", ""))
+        ctx.total_engaged_strength = int(ctx.pre_battle_attacker_strength) + int(ctx.pre_battle_defender_strength)
+        for ctx._side_results in (ctx.attacker_reinforcements, ctx.defender_reinforcements):
+            for ctx._r in ctx._side_results:
+                if ctx._r.get("arrived"):
+                    _arr = ctx.world.marshals.get(ctx._r.get("marshal", ""))
                     if _arr:
-                        total_engaged_strength += int(_arr.strength)
+                        ctx.total_engaged_strength += int(_arr.strength)
 
         # ════════════════════════════════════════════════════════════
         # COORDINATION (Phase 7, Session 57): Combined arms detection
@@ -7540,33 +7743,33 @@ class CombatExecutor:
         # S61a: Pass reinforcement_results for A-C2 dedicated support,
         # exclude arrived names from adjacent count.
         # ════════════════════════════════════════════════════════════
-        attacker_coord = self._calculate_coordination_context(
-            marshal, world,
-            reinforcement_results=attacker_reinforcements,
-            exclude_from_adjacent=arrived_names,
-            field=battle_region_name)
-        defender_coord = self._calculate_coordination_context(
-            enemy_marshal, world,
-            reinforcement_results=defender_reinforcements,
-            exclude_from_adjacent=arrived_names,
-            field=battle_region_name)
+        ctx.attacker_coord = self._calculate_coordination_context(
+            ctx.marshal, ctx.world,
+            reinforcement_results=ctx.attacker_reinforcements,
+            exclude_from_adjacent=ctx.arrived_names,
+            field=ctx.battle_region_name)
+        ctx.defender_coord = self._calculate_coordination_context(
+            ctx.enemy_marshal, ctx.world,
+            reinforcement_results=ctx.defender_reinforcements,
+            exclude_from_adjacent=ctx.arrived_names,
+            field=ctx.battle_region_name)
 
         # ════════════════════════════════════════════════════════════
         # [S62] CASUALTY DISTRIBUTION: Build participant lists BEFORE
         # clearing strategic orders (so SUPPORT detection works for D3).
         # ════════════════════════════════════════════════════════════
-        atk_participants = self._get_casualty_participants(
-            marshal, battle_region_name, marshal.nation, world)
-        def_participants = self._get_casualty_participants(
-            enemy_marshal, battle_region_name, enemy_marshal.nation, world)
+        ctx.atk_participants = self._get_casualty_participants(
+            ctx.marshal, ctx.battle_region_name, ctx.marshal.nation, ctx.world)
+        ctx.def_participants = self._get_casualty_participants(
+            ctx.enemy_marshal, ctx.battle_region_name, ctx.enemy_marshal.nation, ctx.world)
 
         # Gate 4: Artillery that reinforced from adjacent (didn't relocate)
         # must still participate in casualty distribution
-        for art in artillery_reinforced_adjacent:
-            if art.nation == marshal.nation and art not in atk_participants:
-                atk_participants.append(art)
-            elif art.nation == enemy_marshal.nation and art not in def_participants:
-                def_participants.append(art)
+        for art in ctx.artillery_reinforced_adjacent:
+            if art.nation == ctx.marshal.nation and art not in ctx.atk_participants:
+                ctx.atk_participants.append(art)
+            elif art.nation == ctx.enemy_marshal.nation and art not in ctx.def_participants:
+                ctx.def_participants.append(art)
 
         # ════════════════════════════════════════════════════════════
         # NP-V — THE PRESENCE REACHES THE ARMY THAT MARCHES.
@@ -7614,10 +7817,10 @@ class CombatExecutor:
         def _side_presence(participants) -> float:
             """The aura's STRENGTH for this side — a magnitude (§15.4)."""
             sov = _side_sovereign(participants)
-            return sovereign_aura_strength(world, sov.nation) if sov else 0.0
+            return sovereign_aura_strength(ctx.world, sov.nation) if sov else 0.0
 
-        _atk_presence = _side_presence(atk_participants)
-        _def_presence = _side_presence(def_participants)
+        _atk_presence = _side_presence(ctx.atk_participants)
+        _def_presence = _side_presence(ctx.def_participants)
         # ⚠ NP promise audit (Aug 15, 2026): these two were
         # `_atk_presence > 0.0`, which routed a MAGNITUDE change into a
         # BOOLEAN IDENTITY. §15.4 made the aura decay with imperial grip
@@ -7627,8 +7830,8 @@ class CombatExecutor:
         # again. §15.4 changed the aura's size; it never said the Shadow
         # lifts. The Shadow is about whose field it is, and that does not
         # depend on whether Europe still fears him.
-        _atk_sovereign = _side_sovereign(atk_participants) is not None
-        _def_sovereign = _side_sovereign(def_participants) is not None
+        ctx._atk_sovereign = _side_sovereign(ctx.atk_participants) is not None
+        ctx._def_sovereign = _side_sovereign(ctx.def_participants) is not None
         # The assignment is UNCONDITIONAL, and that closes the mirror
         # defect: `_calculate_coordination_context` stamps co-location at
         # the primary's ORIGIN, so a marshal who mustered in the Emperor's
@@ -7637,12 +7840,12 @@ class CombatExecutor:
         # Napoleon refuses to reinforce Bernadotte, stays home, and
         # Bernadotte fought at +10% anyway). Presence now states exactly
         # who is in THIS battle with him, in both directions.
-        for p in atk_participants:
-            p.sovereign_presence = _atk_presence
-        for p in def_participants:
-            p.sovereign_presence = _def_presence
+        for ctx.p in ctx.atk_participants:
+            ctx.p.sovereign_presence = _atk_presence
+        for ctx.p in ctx.def_participants:
+            ctx.p.sovereign_presence = _def_presence
 
-        is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
+        ctx.is_coordinated_battle = (len(ctx.atk_participants) >= 2 or len(ctx.def_participants) >= 2)
 
         # BD (Battle Diorama): every participant's strength at muster,
         # captured BEFORE support bombardment / resolve_battle /
@@ -7651,15 +7854,15 @@ class CombatExecutor:
         from backend.game_logic.battle_diorama import (
             build_battle_diorama, snapshot_pre_battle_strengths,
         )
-        _bd_pre_strengths = snapshot_pre_battle_strengths(
-            atk_participants, def_participants)
+        ctx._bd_pre_strengths = snapshot_pre_battle_strengths(
+            ctx.atk_participants, ctx.def_participants)
 
         # Jealousy v3.2 (spec §3): the grievance as fuel — a jealous marshal
         # attacking ALONE (no same-side participants) fights at +15%.
         # Transient stamp consumed by get_attack_modifier; cleared with the
         # other coordination transients (GR4: read, use, clear).
-        if getattr(marshal, 'jealous_of', None) and len(atk_participants) <= 1:
-            marshal._jealousy_solo_attack = True
+        if getattr(ctx.marshal, 'jealous_of', None) and len(ctx.atk_participants) <= 1:
+            ctx.marshal._jealousy_solo_attack = True
 
         # NOTE: Strategic order clearing for arrived reinforcements is DEFERRED
         # until after process_battle_relationships() so Hostile+SUPPORT marshals
@@ -7668,7 +7871,10 @@ class CombatExecutor:
         # Coordination preview removed — Berthier's narrative observation
         # handles coordination storytelling; detailed numbers deferred to
         # Battle History screen (Phase 8.5).
+        return _NEXT_STAGE
 
+    def _attack_overwatch_and_auto_bombard(self, ctx: AttackContext):
+        """Stage 11 of `_execute_attack`: Enemy overwatch count; SUPPORT auto-bombardment before the battle."""
         # ════════════════════════════════════════════════════════════
         # ARTILLERY OVERWATCH (Session 68): Enemy artillery in defender's
         # region passively debuffs all attackers by -3% per gun.
@@ -7676,9 +7882,9 @@ class CombatExecutor:
         # Overwatch is NOT coordination — does not count toward cap.
         # Does NOT apply to bombardment (ranged fire, separate path).
         # ════════════════════════════════════════════════════════════
-        overwatch_count = self._calculate_overwatch(
-            marshal, atk_participants, battle_region_name, world,
-            defender_name=enemy_marshal.name)
+        ctx.overwatch_count = self._calculate_overwatch(
+            ctx.marshal, ctx.atk_participants, ctx.battle_region_name, ctx.world,
+            defender_name=ctx.enemy_marshal.name)
 
         # ════════════════════════════════════════════════════════════
         # SUPPORT AUTO-BOMBARDMENT (Session 68): Artillery on SUPPORT
@@ -7687,67 +7893,70 @@ class CombatExecutor:
         # Does NOT fire on defensive battles (only when supported
         # marshal is the ATTACKER). Does NOT consume player AP.
         # ════════════════════════════════════════════════════════════
-        auto_bombardment_messages = []
-        auto_bombardment_results = []
-        support_bombardment_total_damage = 0
+        ctx.auto_bombardment_messages = []
+        ctx.auto_bombardment_results = []
+        ctx.support_bombardment_total_damage = 0
 
-        for m in list(world.marshals.values()):
-            if m.nation != marshal.nation:
+        for ctx.m in list(ctx.world.marshals.values()):
+            if ctx.m.nation != ctx.marshal.nation:
                 continue
-            if not getattr(m, 'artillery', False):
+            if not getattr(ctx.m, 'artillery', False):
                 continue
-            order = getattr(m, 'strategic_order', None)
-            if order is None or order.command_type != "SUPPORT" or order.target != marshal.name:
+            ctx.order = getattr(ctx.m, 'strategic_order', None)
+            if ctx.order is None or ctx.order.command_type != "SUPPORT" or ctx.order.target != ctx.marshal.name:
                 continue
             # Eligibility checks
-            if getattr(m, 'moved_this_turn', False):
+            if getattr(ctx.m, 'moved_this_turn', False):
                 continue
-            if getattr(m, 'bombardments_this_turn', 0) >= 2:
+            if getattr(ctx.m, 'bombardments_this_turn', 0) >= 2:
                 continue
-            if m.strength <= 0:
+            if ctx.m.strength <= 0:
                 continue
-            if getattr(m, 'broken', False):
+            if getattr(ctx.m, 'broken', False):
                 continue
-            if getattr(m, 'retreated_this_turn', False):
+            if getattr(ctx.m, 'retreated_this_turn', False):
                 continue
-            if getattr(m, 'retreat_recovery', 0) > 0:
+            if getattr(ctx.m, 'retreat_recovery', 0) > 0:
                 continue
             # Must be adjacent to or co-located with battle region
-            m_region = world.get_region(m.location)
-            if m.location != battle_region_name:
-                if not m_region or battle_region_name not in m_region.adjacent_regions:
+            m_region = ctx.world.get_region(ctx.m.location)
+            if ctx.m.location != ctx.battle_region_name:
+                if not m_region or ctx.battle_region_name not in m_region.adjacent_regions:
                     continue
 
             # Fire auto-bombardment against defender
-            print(f"  [AUTO-BOMBARD] {m.name} (SUPPORT {marshal.name}) fires on {enemy_marshal.name}")
-            bombard_result = self._execute_bombardment(m, enemy_marshal, world, game_state)
+            print(f"  [AUTO-BOMBARD] {ctx.m.name} (SUPPORT {ctx.marshal.name}) fires on {ctx.enemy_marshal.name}")
+            ctx.bombard_result = self._execute_bombardment(ctx.m, ctx.enemy_marshal, ctx.world, ctx.game_state)
 
-            if bombard_result.get("success"):
-                auto_bombardment_results.append(bombard_result)
-                br = bombard_result.get("bombardment_result", {})
+            if ctx.bombard_result.get("success"):
+                ctx.auto_bombardment_results.append(ctx.bombard_result)
+                br = ctx.bombard_result.get("bombardment_result", {})
                 def_cas = br.get("defender", {}).get("casualties", 0)
-                support_bombardment_total_damage += def_cas
-                auto_bombardment_messages.append(
-                    f"Artillery support: {m.name}'s guns bombard {enemy_marshal.name}'s position! "
+                ctx.support_bombardment_total_damage += def_cas
+                ctx.auto_bombardment_messages.append(
+                    f"Artillery support: {ctx.m.name}'s guns bombard {ctx.enemy_marshal.name}'s position! "
                     f"({def_cas:,} casualties)"
                 )
 
                 # Fog of war: auto-bombardment from adjacent region gives
                 # defender PARTIAL intel on artillery's source region
-                if (m.location != battle_region_name
-                        and enemy_marshal.nation == getattr(world, 'player_nation', 'France')):
-                    world.update_intel_from_transit(m.location, world.current_turn)
+                if (ctx.m.location != ctx.battle_region_name
+                        and ctx.enemy_marshal.nation == getattr(ctx.world, 'player_nation', 'France')):
+                    ctx.world.update_intel_from_transit(ctx.m.location, ctx.world.current_turn)
 
                 # Early exit: defender destroyed by bombardment
-                if enemy_marshal.strength <= 0:
-                    print(f"  [AUTO-BOMBARD] Defender {enemy_marshal.name} destroyed by bombardment!")
+                if ctx.enemy_marshal.strength <= 0:
+                    print(f"  [AUTO-BOMBARD] Defender {ctx.enemy_marshal.name} destroyed by bombardment!")
                     break
+        return _NEXT_STAGE
 
+    def _attack_dead_defender(self, ctx: AttackContext):
+        """Stage 12 of `_execute_attack`: An auto-bombardment that killed the defender: the win without a battle."""
         # ════════════════════════════════════════════════════════════
         # DEAD-DEFENDER CHECK: If auto-bombardment killed the defender,
         # skip resolve_battle entirely. Attacker wins with 0 casualties.
         # ════════════════════════════════════════════════════════════
-        if enemy_marshal.strength <= 0 and auto_bombardment_results:
+        if ctx.enemy_marshal.strength <= 0 and ctx.auto_bombardment_results:
             # CA8-19(i): this exit ADVANCES the attacker (below) before it
             # calls the pipeline, and the defender is popped from world.marshals
             # a line from here — so by clear time `{attacker.location,
@@ -7755,52 +7964,52 @@ class CombatExecutor:
             # origin's allies (an artillery marshal on SUPPORT, typically)
             # keep the stamp forever. Name the origin now, while it is still
             # the attacker's location.
-            auto_kill_stamp_region = marshal.location
+            auto_kill_stamp_region = ctx.marshal.location
             # Remove destroyed defender (PC15-1: tombstone + event)
             # ⚠ NP promise audit (Aug 15, 2026): keep the return — a
             # SOVEREIGN is CAPTURED here, not removed, and the message
             # below said "the preparatory bombardment destroyed him".
-            auto_kill_removed = world.destroy_marshal(
-                enemy_marshal, cause="bombardment", victor=marshal.nation)
+            auto_kill_removed = ctx.world.destroy_marshal(
+                ctx.enemy_marshal, cause="bombardment", victor=ctx.marshal.nation)
 
             # PT-F1: same guard as the main battle-advance — the soil of a
             # court we are not at war with never transfers by pursuit.
-            pursuit_block = self._pursuit_capture_guard(marshal, battle_region_name, world)
+            ctx.pursuit_block = self._pursuit_capture_guard(ctx.marshal, ctx.battle_region_name, ctx.world)
 
             # Advance attacker if not artillery
             advance_msg = ""
             # RS-3: the works halt reads the same predicate on this exit.
             auto_works_line = works_halt_line(
-                world, marshal, world.get_region(battle_region_name))
-            if not getattr(marshal, 'artillery', False) and marshal.location != battle_region_name:
+                ctx.world, ctx.marshal, ctx.world.get_region(ctx.battle_region_name))
+            if not getattr(ctx.marshal, 'artillery', False) and ctx.marshal.location != ctx.battle_region_name:
                 if auto_works_line:
                     advance_msg = auto_works_line
-                elif pursuit_block and pursuit_block["arm"] == "neutral":
+                elif ctx.pursuit_block and ctx.pursuit_block["arm"] == "neutral":
                     advance_msg = (
-                        f" {marshal.name} halts at the frontier of "
-                        f"{battle_region_name} — {pursuit_block['owner']}'s soil, "
-                        f"and we are not at war with {pursuit_block['owner']}.")
+                        f" {ctx.marshal.name} halts at the frontier of "
+                        f"{ctx.battle_region_name} — {ctx.pursuit_block['owner']}'s soil, "
+                        f"and we are not at war with {ctx.pursuit_block['owner']}.")
                 else:
-                    marshal.move_to(battle_region_name)
-                    advance_msg = f" {marshal.name} advances into {battle_region_name}."
+                    ctx.marshal.move_to(ctx.battle_region_name)
+                    advance_msg = f" {ctx.marshal.name} advances into {ctx.battle_region_name}."
 
             # Attempt capture
-            conquest_msg = ""
-            target_region = world.get_region(battle_region_name)
-            if (target_region and target_region.controller != marshal.nation
-                    and not getattr(marshal, 'artillery', False)):
-                remaining_defenders = [
-                    m for m in world.marshals.values()
-                    if m.location == battle_region_name and m.strength > 0 and m.nation != marshal.nation
-                    and world.is_at_war(marshal.nation, m.nation)
+            ctx.conquest_msg = ""
+            ctx.target_region = ctx.world.get_region(ctx.battle_region_name)
+            if (ctx.target_region and ctx.target_region.controller != ctx.marshal.nation
+                    and not getattr(ctx.marshal, 'artillery', False)):
+                ctx.remaining_defenders = [
+                    m for m in ctx.world.marshals.values()
+                    if m.location == ctx.battle_region_name and m.strength > 0 and m.nation != ctx.marshal.nation
+                    and ctx.world.is_at_war(ctx.marshal.nation, m.nation)
                 ]
-                if not remaining_defenders and auto_works_line:
+                if not ctx.remaining_defenders and auto_works_line:
                     # RS-3: the garrison still fights — nothing is taken.
                     if auto_works_line not in advance_msg:
-                        conquest_msg = auto_works_line
-                elif pursuit_block is not None and not remaining_defenders:
-                    if pursuit_block["arm"] == "ally":
-                        conquest_msg = pursuit_block["message"]
+                        ctx.conquest_msg = auto_works_line
+                elif ctx.pursuit_block is not None and not ctx.remaining_defenders:
+                    if ctx.pursuit_block["arm"] == "ally":
+                        ctx.conquest_msg = ctx.pursuit_block["message"]
                     # PC15-D1(c): a JEALOUSY-AUTONOMOUS attack never stages
                     # the war-purpose dialogue — the marshal went on his
                     # own initiative, so a war-declaration modal the player
@@ -7808,40 +8017,40 @@ class CombatExecutor:
                     # principle: war decisions never ride a pursuit's
                     # momentum). The frontier line still prints; the
                     # province stands.
-                    if (pursuit_block["arm"] == "neutral"
-                            and marshal.nation == world.player_nation
-                            and not _attack_is_unordered(command)):
-                        staged_war_purpose = self._stage_war_purpose_selection(
-                            world, marshal.nation, pursuit_block["owner"])
-                        conquest_msg = (
-                            f" To seize {battle_region_name} is to make war on "
-                            f"{pursuit_block['owner']} — choose our purpose, "
+                    if (ctx.pursuit_block["arm"] == "neutral"
+                            and ctx.marshal.nation == ctx.world.player_nation
+                            and not _attack_is_unordered(ctx.command)):
+                        ctx.staged_war_purpose = self._stage_war_purpose_selection(
+                            ctx.world, ctx.marshal.nation, ctx.pursuit_block["owner"])
+                        ctx.conquest_msg = (
+                            f" To seize {ctx.battle_region_name} is to make war on "
+                            f"{ctx.pursuit_block['owner']} — choose our purpose, "
                             f"or let the province stand.")
-                elif not remaining_defenders:
-                    capture_result = self._attempt_region_capture(
-                        marshal, battle_region_name, world, game_state, had_garrison=True)
-                    if capture_result.get("captured"):
-                        conquest_msg = f" {battle_region_name} captured by {marshal.nation}!"
+                elif not ctx.remaining_defenders:
+                    ctx.capture_result = self._attempt_region_capture(
+                        ctx.marshal, ctx.battle_region_name, ctx.world, ctx.game_state, had_garrison=True)
+                    if ctx.capture_result.get("captured"):
+                        ctx.conquest_msg = f" {ctx.battle_region_name} captured by {ctx.marshal.nation}!"
 
-            preamble = "\n".join(auto_bombardment_messages)
+            preamble = "\n".join(ctx.auto_bombardment_messages)
             if auto_kill_removed:
                 main_msg = (
                     f"The preparatory bombardment destroyed "
-                    f"{enemy_marshal.name}. "
-                    f"{marshal.name} advances unopposed."
+                    f"{ctx.enemy_marshal.name}. "
+                    f"{ctx.marshal.name} advances unopposed."
                 )
                 # GE-1: a sovereign the barrage KILLED is not "destroyed" —
                 # the fall clause says who fell (the one-literal pin holds).
-                if getattr(enemy_marshal, "is_sovereign", False):
-                    main_msg = (self._fall_clause(world, enemy_marshal, True).strip()
-                                + f" {marshal.name} advances unopposed.")
+                if getattr(ctx.enemy_marshal, "is_sovereign", False):
+                    main_msg = (self._fall_clause(ctx.world, ctx.enemy_marshal, True).strip()
+                                + f" {ctx.marshal.name} advances unopposed.")
             else:
                 from backend.display_names import marshal_honorific
                 main_msg = (
                     f"The preparatory bombardment broke "
-                    f"{marshal_honorific(world, enemy_marshal.name)}'s "
+                    f"{marshal_honorific(ctx.world, ctx.enemy_marshal.name)}'s "
                     f"escort, and he was taken on the field. "
-                    f"{marshal.name} advances unopposed."
+                    f"{ctx.marshal.name} advances unopposed."
                 )
 
             # R1 Pipeline: centralized post-combat recording
@@ -7850,49 +8059,49 @@ class CombatExecutor:
             # as the actual casualties for correct war score (Bug 2 fix).
             auto_kill_battle_result = {
                 "outcome": "attacker_wins",
-                "victor": marshal.name,
+                "victor": ctx.marshal.name,
                 "attacker_casualties": 0,
-                "defender_casualties": int(support_bombardment_total_damage),
+                "defender_casualties": int(ctx.support_bombardment_total_damage),
             }
-            pipeline_out = self._post_combat_pipeline({
-                'attacker': marshal,
-                'defender': enemy_marshal,
-                'defender_nation': enemy_marshal.nation,
-                'battle_region': battle_region_name,
+            ctx.pipeline_out = self._post_combat_pipeline({
+                'attacker': ctx.marshal,
+                'defender': ctx.enemy_marshal,
+                'defender_nation': ctx.enemy_marshal.nation,
+                'battle_region': ctx.battle_region_name,
                 'outcome': 'attacker_victory',
                 'attacker_won': True,
                 'defender_won': False,
                 'attacker_casualties': 0,
-                'defender_casualties': int(support_bombardment_total_damage),
-                'pre_battle_attacker_strength': pre_battle_attacker_strength,
-                'pre_battle_defender_strength': pre_battle_defender_strength,
+                'defender_casualties': int(ctx.support_bombardment_total_damage),
+                'pre_battle_attacker_strength': ctx.pre_battle_attacker_strength,
+                'pre_battle_defender_strength': ctx.pre_battle_defender_strength,
                 'battle_result': auto_kill_battle_result,
-                'conquered': bool(conquest_msg),
+                'conquered': bool(ctx.conquest_msg),
                 'is_auto_bombardment_kill': True,
                 'coordination_regions': (
                     auto_kill_stamp_region,
                     # ... and the adjacent guns that overwatch stamped but
                     # that never move (review finding, same class).
-                    *(a.location for a in artillery_reinforced_adjacent),
+                    *(a.location for a in ctx.artillery_reinforced_adjacent),
                 ),
-            }, world)
+            }, ctx.world)
 
             # EC-W3 (review finding #4): shown = applied on the auto-kill path.
-            auto_kill_materiel = pipeline_out.get('materiel_msg', '')
+            auto_kill_materiel = ctx.pipeline_out.get('materiel_msg', '')
             # NP promise audit (Aug 15, 2026): §15.4's "the battle says it
             # out loud" was wired into the ORDINARY attack message only, so
             # an emperor-led auto-kill moved his prestige +-2/-5 in silence
             # — the exact "mechanically yes, experientially no" defect that
             # amendment landed to fix, still live on the path it missed.
-            auto_kill_materiel += pipeline_out.get('sovereign_prestige_msg', '')
+            auto_kill_materiel += ctx.pipeline_out.get('sovereign_prestige_msg', '')
 
             auto_kill_event = {
                 "type": "battle",
-                "attacker": {"name": marshal.name},
-                "defender": {"name": enemy_marshal.name},
-                "attacker_nation": getattr(marshal, "nation", ""),
-                "defender_nation": getattr(enemy_marshal, "nation", ""),
-                "location": battle_region_name,
+                "attacker": {"name": ctx.marshal.name},
+                "defender": {"name": ctx.enemy_marshal.name},
+                "attacker_nation": getattr(ctx.marshal, "nation", ""),
+                "defender_nation": getattr(ctx.enemy_marshal, "nation", ""),
+                "location": ctx.battle_region_name,
                 "outcome": "attacker_victory",
                 "auto_bombardment_kill": True,
             }
@@ -7900,103 +8109,106 @@ class CombatExecutor:
             # decided choice rides the event (enemy_phase_dialog renders
             # "(plundered)"/"(secured)"), and the region flag tells the bare
             # " CAPTURED!" arm which province fell.
-            if conquest_msg:
+            if ctx.conquest_msg:
                 auto_kill_event["region_conquered"] = True
-                auto_kill_event["region_name"] = battle_region_name
-                if capture_result.get("capture_choice"):
+                auto_kill_event["region_name"] = ctx.battle_region_name
+                if ctx.capture_result.get("capture_choice"):
                     auto_kill_event["capture_choice"] = (
-                        capture_result["capture_choice"])
+                        ctx.capture_result["capture_choice"])
 
-            result = {
+            ctx.result = {
                 "success": True,
                 "action": "attack",
-                "message": f"{preamble}\n\n{main_msg}{advance_msg}{conquest_msg}{auto_kill_materiel}",
+                "message": f"{preamble}\n\n{main_msg}{advance_msg}{ctx.conquest_msg}{auto_kill_materiel}",
                 "auto_bombardment": True,
                 "auto_bombardment_results": [
-                    r.get("bombardment_result", {}) for r in auto_bombardment_results
+                    r.get("bombardment_result", {}) for r in ctx.auto_bombardment_results
                 ],
                 "events": [auto_kill_event],
-                "new_state": game_state,
+                "new_state": ctx.game_state,
             }
             # IGR-X8: this route SET the world-side pending choice but never
             # told the response — the player got an invisible question that
             # only surfaced as a block on their next command. Same
             # prompt+flags block as the garrison route.
-            if (conquest_msg and marshal.nation == world.player_nation
-                    and world.pending_capture_choice):
+            if (ctx.conquest_msg and ctx.marshal.nation == ctx.world.player_nation
+                    and ctx.world.pending_capture_choice):
                 from backend.models.world_state import capture_choice_prompt
-                result["message"] += capture_choice_prompt(
-                    world.pending_capture_choice)
-                result["pending_capture_choice"] = True
-                result["capture_data"] = world.pending_capture_choice
-            if counter_punch_message:
-                result["message"] = counter_punch_message + result["message"]
-            if drill_cancelled_message:
-                result["message"] = drill_cancelled_message + result["message"]
-            if covering_message:
-                result["message"] = covering_message + result["message"]
-            if cavalry_charge_message:
-                result["message"] = cavalry_charge_message + result["message"]
+                ctx.result["message"] += capture_choice_prompt(
+                    ctx.world.pending_capture_choice)
+                ctx.result["pending_capture_choice"] = True
+                ctx.result["capture_data"] = ctx.world.pending_capture_choice
+            if ctx.counter_punch_message:
+                ctx.result["message"] = ctx.counter_punch_message + ctx.result["message"]
+            if ctx.drill_cancelled_message:
+                ctx.result["message"] = ctx.drill_cancelled_message + ctx.result["message"]
+            if ctx.covering_message:
+                ctx.result["message"] = ctx.covering_message + ctx.result["message"]
+            if ctx.cavalry_charge_message:
+                ctx.result["message"] = ctx.cavalry_charge_message + ctx.result["message"]
             return self._attach_staged_war_purpose(
-                result, world, staged_war_purpose)
+                ctx.result, ctx.world, ctx.staged_war_purpose)
+        return _NEXT_STAGE
 
+    def _attack_resolve_combat(self, ctx: AttackContext):
+        """Stage 13 of `_execute_attack`: resolve_battle, solo or coordinated, and the casualty distribution."""
         # ════════════════════════════════════════════════════════════
         # RESOLVE COMBAT
         # Solo battles (1v1): apply_casualties=True — zero behavior change.
         # Coordinated battles (2+ on either side): apply_casualties=False,
         # caller distributes among participants (Session 62).
         # ════════════════════════════════════════════════════════════
-        atk_distribution = {}  # Per-marshal casualty map (populated in coordinated path)
-        def_distribution = {}  # BD: initialized both paths — the diorama builder reads it
+        ctx.atk_distribution = {}  # Per-marshal casualty map (populated in coordinated path)
+        ctx.def_distribution = {}  # BD: initialized both paths — the diorama builder reads it
         # IQ-5 (display only, both paths): the co-located contributors each
         # side's mass line names (R3), every participant's resolve-time
         # strength for the log's field bound and the dispatch's per-man
         # beat (R4/R5), and the Broken-faith records (R9/R11). Empty on the
         # solo path and with the levers down.
-        _iq5_atk_contrib = []
-        _iq5_def_contrib = []
+        ctx._iq5_atk_contrib = []
+        ctx._iq5_def_contrib = []
         _iq5_atk_pre = []
         _iq5_def_pre = []
-        _iq5_faith = []
+        ctx._iq5_faith = []
         # IQ-5 review (E): the rubble `take_casualties` zeroed per man (his
         # realised battle loss = share + this), read before pursuit, capture
         # or retreat. (F): a LONE side's applied loss on the solo path, for
         # the diorama. Display only; empty with the lever down.
-        _iq5_atk_rubble = {}
-        _iq5_def_rubble = {}
-        _iq5_solo_applied = {}
-        if is_coordinated_battle:
+        ctx._iq5_atk_rubble = {}
+        ctx._iq5_def_rubble = {}
+        ctx._iq5_solo_applied = {}
+        if ctx.is_coordinated_battle:
             # CO-1/CO-1b: committed reinforcement strength adds to the clash,
             # personality- & relationship-scaled (single source, GR1-safe read).
             # Symmetric for a reinforced defender (GR5).
             committed_attacker = self._committed_reinforcement_strength(
-                marshal, atk_participants, world)
+                ctx.marshal, ctx.atk_participants, ctx.world)
             committed_defender = self._committed_reinforcement_strength(
-                enemy_marshal, def_participants, world)
+                ctx.enemy_marshal, ctx.def_participants, ctx.world)
             # IQ-5: snapshots taken with the same reads the committed sums
             # just made, BEFORE resolve_battle mutates anyone. Pure reads —
             # no RNG, no state (the BASELINE_SERIES board runs this path).
             if self.BOTH_SIDES_NAME_THEIR_SCOPE:
                 for _lead, _parts, _contrib, _pre in (
-                        (marshal, atk_participants, _iq5_atk_contrib, _iq5_atk_pre),
-                        (enemy_marshal, def_participants, _iq5_def_contrib,
+                        (ctx.marshal, ctx.atk_participants, ctx._iq5_atk_contrib, _iq5_atk_pre),
+                        (ctx.enemy_marshal, ctx.def_participants, ctx._iq5_def_contrib,
                          _iq5_def_pre)):
-                    for _p in _parts:
-                        _pre.append((_p.name, int(getattr(_p, "strength", 0))))
-                        if _p is _lead or _p.name == _lead.name:
+                    for ctx._p in _parts:
+                        _pre.append((ctx._p.name, int(getattr(ctx._p, "strength", 0))))
+                        if ctx._p is _lead or ctx._p.name == _lead.name:
                             continue
-                        if getattr(_p, "strength", 0) <= 0:
+                        if getattr(ctx._p, "strength", 0) <= 0:
                             continue
-                        if self._pair_contribution_scale(_lead, _p) > 0.0:
-                            _contrib.append(_p.name)
-            _iq5_faith = self._faith_records(
-                marshal, enemy_marshal, atk_participants, def_participants)
+                        if self._pair_contribution_scale(_lead, ctx._p) > 0.0:
+                            _contrib.append(ctx._p.name)
+            ctx._iq5_faith = self._faith_records(
+                ctx.marshal, ctx.enemy_marshal, ctx.atk_participants, ctx.def_participants)
             # CO-6 (Combat Overhaul Phase 2): capture the pre-battle lead
             # strength and the committed sum for the reinforcement legibility
             # line (built with reinforcement_messages below). marshal.strength
             # here is still pre-distribution (casualties applied later).
-            _co6_lead_pre_strength = int(marshal.strength)
-            _co6_committed_attacker = committed_attacker
+            ctx._co6_lead_pre_strength = int(ctx.marshal.strength)
+            ctx._co6_committed_attacker = committed_attacker
             # CA8-1 (creative audit, Aug 4 2026): the SAME two numbers for the
             # defending side. `combat.py:1098` puts the whole friendly stack
             # into the defensive ratio — committed mass is the variable that
@@ -8004,15 +8216,15 @@ class CombatExecutor:
             # printed only for the attacker, i.e. only for the side that does
             # not need it. When the player is attacked he was told
             # "+25% mountains" and shown a 567:1 exchange.
-            _co6_lead_pre_strength_def = int(enemy_marshal.strength)
-            _co6_committed_defender = committed_defender
-            battle_result = self.combat_resolver.resolve_battle(
-                attacker=marshal,
-                defender=enemy_marshal,
-                terrain=battle_terrain,
-                flanking_bonus=flanking_bonus,
-                flanking_message=flanking_message,
-                fortification_bonus=fort_bonus,
+            ctx._co6_lead_pre_strength_def = int(ctx.enemy_marshal.strength)
+            ctx._co6_committed_defender = committed_defender
+            ctx.battle_result = self.combat_resolver.resolve_battle(
+                attacker=ctx.marshal,
+                defender=ctx.enemy_marshal,
+                terrain=ctx.battle_terrain,
+                flanking_bonus=ctx.flanking_bonus,
+                flanking_message=ctx.flanking_message,
+                fortification_bonus=ctx.fort_bonus,
                 apply_casualties=False,
                 committed_attacker=committed_attacker,
                 committed_defender=committed_defender,
@@ -8020,16 +8232,16 @@ class CombatExecutor:
                 # lead's whole corps plus each reinforcer's committed share —
                 # over the same two participant lists the distribution below
                 # spreads the losses across.
-                attacker_bodies=self._committed_bodies(marshal, atk_participants),
-                defender_bodies=self._committed_bodies(enemy_marshal, def_participants),
+                attacker_bodies=self._committed_bodies(ctx.marshal, ctx.atk_participants),
+                defender_bodies=self._committed_bodies(ctx.enemy_marshal, ctx.def_participants),
             )
 
             # Distribute raw casualties proportionally among participants —
             # IQ5-R1: by the men each committed (the pool's own sizing).
-            atk_distribution = self._distribute_casualties(
-                battle_result["attacker_raw_casualties"], atk_participants, lead=marshal)
-            def_distribution = self._distribute_casualties(
-                battle_result["defender_raw_casualties"], def_participants, lead=enemy_marshal)
+            ctx.atk_distribution = self._distribute_casualties(
+                ctx.battle_result["attacker_raw_casualties"], ctx.atk_participants, lead=ctx.marshal)
+            ctx.def_distribution = self._distribute_casualties(
+                ctx.battle_result["defender_raw_casualties"], ctx.def_participants, lead=ctx.enemy_marshal)
 
             # F1a fix: resolve_battle builds the outcome description BEFORE the
             # caller distributes casualties, so it bakes the WHOLE-CORPS raw total
@@ -8038,38 +8250,38 @@ class CombatExecutor:
             # to the primary's ACTUAL distributed share; the reinforcers' share is
             # reported separately via reinforcement_messages ("supporting allies lost
             # N combined") so there is no double-count.
-            battle_result["description"] = self._rewrite_primary_casualties(
-                battle_result.get("description", ""),
-                marshal.name, battle_result["attacker_raw_casualties"],
-                atk_distribution.get(marshal.name, battle_result["attacker_raw_casualties"]),
-                enemy_marshal.name, battle_result["defender_raw_casualties"],
-                def_distribution.get(enemy_marshal.name, battle_result["defender_raw_casualties"]),
+            ctx.battle_result["description"] = self._rewrite_primary_casualties(
+                ctx.battle_result.get("description", ""),
+                ctx.marshal.name, ctx.battle_result["attacker_raw_casualties"],
+                ctx.atk_distribution.get(ctx.marshal.name, ctx.battle_result["attacker_raw_casualties"]),
+                ctx.enemy_marshal.name, ctx.battle_result["defender_raw_casualties"],
+                ctx.def_distribution.get(ctx.enemy_marshal.name, ctx.battle_result["defender_raw_casualties"]),
             )
 
-            outcome = battle_result["raw_outcome"]
-            atk_won = outcome in ("attacker_victory", "attacker_tactical_victory")
-            atk_lost = outcome in ("defender_victory", "defender_tactical_victory", "mutual_destruction")
-            def_won = outcome in ("defender_victory", "defender_tactical_victory")
+            ctx.outcome = ctx.battle_result["raw_outcome"]
+            ctx.atk_won = ctx.outcome in ("attacker_victory", "attacker_tactical_victory")
+            atk_lost = ctx.outcome in ("defender_victory", "defender_tactical_victory", "mutual_destruction")
+            ctx.def_won = ctx.outcome in ("defender_victory", "defender_tactical_victory")
 
             # ── Apply per-participant effects (C1 caller responsibilities) ──
 
             # ATTACKER SIDE
-            for p in atk_participants:
-                p.take_casualties(atk_distribution.get(p.name, 0))
-                p.adjust_morale(battle_result["attacker_morale_delta"])  # UNIFORM morale
-                if atk_won:
-                    p.battles_won += 1
+            for ctx.p in ctx.atk_participants:
+                ctx.p.take_casualties(ctx.atk_distribution.get(ctx.p.name, 0))
+                ctx.p.adjust_morale(ctx.battle_result["attacker_morale_delta"])  # UNIFORM morale
+                if ctx.atk_won:
+                    ctx.p.battles_won += 1
                 elif atk_lost:
-                    p.battles_lost += 1
+                    ctx.p.battles_lost += 1
 
             # DEFENDER SIDE
-            for p in def_participants:
-                p.take_casualties(def_distribution.get(p.name, 0))
-                p.adjust_morale(battle_result["defender_morale_delta"])  # UNIFORM morale
-                if def_won:
-                    p.battles_won += 1
-                elif atk_won or outcome == "mutual_destruction":
-                    p.battles_lost += 1
+            for ctx.p in ctx.def_participants:
+                ctx.p.take_casualties(ctx.def_distribution.get(ctx.p.name, 0))
+                ctx.p.adjust_morale(ctx.battle_result["defender_morale_delta"])  # UNIFORM morale
+                if ctx.def_won:
+                    ctx.p.battles_won += 1
+                elif ctx.atk_won or ctx.outcome == "mutual_destruction":
+                    ctx.p.battles_lost += 1
 
             # IQ-5 review (E): each man's REALISED battle loss is his share
             # plus the rubble `take_casualties` zeroed (the `< 50 -> 0` rule):
@@ -8081,55 +8293,55 @@ class CombatExecutor:
             # (record_battle, the war score, the decisive test, the ledger).
             if self.BOTH_SIDES_NAME_THEIR_SCOPE:
                 for _pre, _dist, _rub, _parts in (
-                        (_iq5_atk_pre, atk_distribution, _iq5_atk_rubble,
-                         atk_participants),
-                        (_iq5_def_pre, def_distribution, _iq5_def_rubble,
-                         def_participants)):
+                        (_iq5_atk_pre, ctx.atk_distribution, ctx._iq5_atk_rubble,
+                         ctx.atk_participants),
+                        (_iq5_def_pre, ctx.def_distribution, ctx._iq5_def_rubble,
+                         ctx.def_participants)):
                     _now = {_p.name: int(getattr(_p, "strength", 0) or 0)
                             for _p in _parts}
-                    for _n, _s in _pre:
-                        if int(_s) > 0 and _now.get(_n, -1) == 0:
-                            _extra = int(_s) - int(_dist.get(_n, 0) or 0)
+                    for ctx._n, _s in _pre:
+                        if int(_s) > 0 and _now.get(ctx._n, -1) == 0:
+                            _extra = int(_s) - int(_dist.get(ctx._n, 0) or 0)
                             if _extra > 0:
-                                _rub[_n] = _extra
+                                _rub[ctx._n] = _extra
 
             # ── PRIMARY-ONLY EFFECTS ──
 
             # Recklessness: primary attacker only (N1)
             # Note: glorious_charge paths redirect to _execute_glorious_charge before
             # reaching this code, so recklessness always applies here.
-            if hasattr(marshal, 'is_reckless_cavalry') and marshal.is_reckless_cavalry:
-                if atk_won:
-                    marshal._increment_recklessness()
+            if hasattr(ctx.marshal, 'is_reckless_cavalry') and ctx.marshal.is_reckless_cavalry:
+                if ctx.atk_won:
+                    ctx.marshal._increment_recklessness()
                 elif atk_lost:
-                    marshal.reset_recklessness()
+                    ctx.marshal.reset_recklessness()
 
             # Counter-punch: primary defender only (N1)
-            if outcome in ("defender_victory", "defender_tactical_victory", "stalemate"):
-                if getattr(enemy_marshal, 'personality', '') == 'cautious':
-                    enemy_marshal.counter_punch_available = True
-                    enemy_marshal.counter_punch_turns = 2
+            if ctx.outcome in ("defender_victory", "defender_tactical_victory", "stalemate"):
+                if getattr(ctx.enemy_marshal, 'personality', '') == 'cautious':
+                    ctx.enemy_marshal.counter_punch_available = True
+                    ctx.enemy_marshal.counter_punch_turns = 2
 
             # Counter-Punch Mastery (Davout ability): primary defender only
-            if (enemy_marshal.strength > 0
-                    and hasattr(enemy_marshal, 'ability')
-                    and enemy_marshal.ability.get("name") == "Counter-Punch Mastery"):
-                enemy_marshal.counter_punch_ready = True
+            if (ctx.enemy_marshal.strength > 0
+                    and hasattr(ctx.enemy_marshal, 'ability')
+                    and ctx.enemy_marshal.ability.get("name") == "Counter-Punch Mastery"):
+                ctx.enemy_marshal.counter_punch_ready = True
 
             # ── Update battle_result with post-distribution state ──
             # Downstream code reads these fields for movement, conquest, retreat.
-            battle_result["attacker"]["remaining"] = int(marshal.strength)
-            battle_result["attacker"]["morale"] = int(marshal.morale)
-            battle_result["defender"]["remaining"] = int(enemy_marshal.strength)
-            battle_result["defender"]["morale"] = int(enemy_marshal.morale)
+            ctx.battle_result["attacker"]["remaining"] = int(ctx.marshal.strength)
+            ctx.battle_result["attacker"]["morale"] = int(ctx.marshal.morale)
+            ctx.battle_result["defender"]["remaining"] = int(ctx.enemy_marshal.strength)
+            ctx.battle_result["defender"]["morale"] = int(ctx.enemy_marshal.morale)
 
             # CO-5: single-source the survivor count — reconcile the battle
             # report's casualty_summary to the SAME post-distribution strengths
             # the event carries (the "two-truths" fix, M4). Runs before the
             # pursuit block, which then adds pursuit to BOTH surfaces.
             self._reconcile_report_survivors(
-                battle_result, marshal, enemy_marshal,
-                atk_distribution, def_distribution)
+                ctx.battle_result, ctx.marshal, ctx.enemy_marshal,
+                ctx.atk_distribution, ctx.def_distribution)
 
             # Set forced_retreat flags per-primary for _handle_forced_retreat
             # Uses module-level FORCED_RETREAT_THRESHOLD from combat.py (Bug 7 fix)
@@ -8138,120 +8350,120 @@ class CombatExecutor:
             # weakens his next fight instead.
             # MC-1: rout thresholds are per-marshal (Habsburg Resolve holds
             # to 15) — MUST mirror resolve_battle's get_rout_threshold call.
-            _atk_victor = outcome in ("attacker_victory", "attacker_tactical_victory")
-            _def_victor = outcome in ("defender_victory", "defender_tactical_victory")
-            battle_result["attacker"]["forced_retreat"] = (
-                marshal.strength > 0
-                and marshal.morale <= marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
+            _atk_victor = ctx.outcome in ("attacker_victory", "attacker_tactical_victory")
+            _def_victor = ctx.outcome in ("defender_victory", "defender_tactical_victory")
+            ctx.battle_result["attacker"]["forced_retreat"] = (
+                ctx.marshal.strength > 0
+                and ctx.marshal.morale <= ctx.marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
                 and not _atk_victor
             )
-            battle_result["defender"]["forced_retreat"] = (
-                enemy_marshal.strength > 0
-                and enemy_marshal.morale <= enemy_marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
+            ctx.battle_result["defender"]["forced_retreat"] = (
+                ctx.enemy_marshal.strength > 0
+                and ctx.enemy_marshal.morale <= ctx.enemy_marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
                 and not _def_victor
             )
 
             # MC-1 legibility rider (mirrors resolve_battle): when Habsburg
             # Resolve is the ONLY reason a beaten primary has not routed,
             # the battle description says so.
-            for combatant, is_victor in ((marshal, _atk_victor), (enemy_marshal, _def_victor)):
+            for combatant, is_victor in ((ctx.marshal, _atk_victor), (ctx.enemy_marshal, _def_victor)):
                 _personal = combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
                 if (combatant.strength > 0 and not is_victor
                         and _personal < FORCED_RETREAT_THRESHOLD
                         and _personal < combatant.morale <= FORCED_RETREAT_THRESHOLD):
-                    battle_result["description"] = battle_result.get("description", "") + (
+                    ctx.battle_result["description"] = ctx.battle_result.get("description", "") + (
                         f"\n\n{combatant.name}'s regiments close ranks — they will not break. "
                         f"(Habsburg Resolve: holds to {int(_personal)}% morale)"
                     )
 
             # Set notification flags for _process_combat_notifications
-            battle_result["counter_punch_earned"] = bool(
-                getattr(enemy_marshal, 'counter_punch_available', False)
-                and getattr(enemy_marshal, 'personality', '') == 'cautious'
-                and outcome in ("defender_victory", "defender_tactical_victory", "stalemate")
+            ctx.battle_result["counter_punch_earned"] = bool(
+                getattr(ctx.enemy_marshal, 'counter_punch_available', False)
+                and getattr(ctx.enemy_marshal, 'personality', '') == 'cautious'
+                and ctx.outcome in ("defender_victory", "defender_tactical_victory", "stalemate")
             )
-            battle_result["counter_punch_mastery_earned"] = bool(
-                getattr(enemy_marshal, 'counter_punch_ready', False)
-                and hasattr(enemy_marshal, 'ability')
-                and enemy_marshal.ability.get("name") == "Counter-Punch Mastery"
+            ctx.battle_result["counter_punch_mastery_earned"] = bool(
+                getattr(ctx.enemy_marshal, 'counter_punch_ready', False)
+                and hasattr(ctx.enemy_marshal, 'ability')
+                and ctx.enemy_marshal.ability.get("name") == "Counter-Punch Mastery"
             )
 
             # Pursuit damage: primary attacker vs primary defender only —
             # a reinforcing Murat earns nothing; he must LEAD the killing
             # blow (MC-1, pinned). MUST mirror resolve_battle's pursuit block.
-            if battle_result["defender"]["forced_retreat"] and atk_won:
+            if ctx.battle_result["defender"]["forced_retreat"] and ctx.atk_won:
                 attacker_ability_name = ""
-                if hasattr(marshal, 'ability'):
-                    attacker_ability_name = marshal.ability.get("name", "")
+                if hasattr(ctx.marshal, 'ability'):
+                    attacker_ability_name = ctx.marshal.ability.get("name", "")
 
                 pursuit_damage = 0
                 pursuit_message = None
-                if attacker_ability_name == "First Horseman of Europe" and getattr(marshal, 'cavalry', False):
+                if attacker_ability_name == "First Horseman of Europe" and getattr(ctx.marshal, 'cavalry', False):
                     pursuit_damage = 5000
-                elif attacker_ability_name == "Pursuit Master" and getattr(marshal, 'cavalry', False):
+                elif attacker_ability_name == "Pursuit Master" and getattr(ctx.marshal, 'cavalry', False):
                     pursuit_damage = 5000
                 elif attacker_ability_name == "Vorwärts!":
                     pursuit_damage = 3000
 
                 # The Old Fox: halve AFTER the attacker's bonus (5,000 -> 2,500)
-                old_fox_screens = (pursuit_damage > 0 and hasattr(enemy_marshal, 'ability')
-                                   and enemy_marshal.ability.get("name") == "The Old Fox")
+                old_fox_screens = (pursuit_damage > 0 and hasattr(ctx.enemy_marshal, 'ability')
+                                   and ctx.enemy_marshal.ability.get("name") == "The Old Fox")
                 if old_fox_screens:
                     pursuit_damage = int(pursuit_damage * 0.5)
 
                 # Fire only above the 1,000-survivor floor (mirrors the solo
                 # copy's P1-5 guard — the old `> 0` guard let max() RAISE a
                 # sub-1,000 defender back up to the floor).
-                if pursuit_damage > 0 and enemy_marshal.strength > 1000:
+                if pursuit_damage > 0 and ctx.enemy_marshal.strength > 1000:
                     # Clamp BEFORE composing the copy (shown = applied — the
                     # message and every casualty total carry the ACTUAL figure).
-                    pursuit_damage = min(pursuit_damage, enemy_marshal.strength - 1000)
-                    enemy_marshal.strength -= pursuit_damage
+                    pursuit_damage = min(pursuit_damage, ctx.enemy_marshal.strength - 1000)
+                    ctx.enemy_marshal.strength -= pursuit_damage
                     if attacker_ability_name == "First Horseman of Europe":
                         pursuit_message = (
-                            f"[Cavalry] {marshal.name}'s '{marshal.ability['name']}' — "
+                            f"[Cavalry] {ctx.marshal.name}'s '{ctx.marshal.ability['name']}' — "
                             f"the cavalry turns the rout into annihilation! (+{pursuit_damage:,} pursuit casualties)"
                         )
                     elif attacker_ability_name == "Pursuit Master":
                         pursuit_message = (
-                            f"[Cavalry] {marshal.name}'s '{marshal.ability['name']}' — "
+                            f"[Cavalry] {ctx.marshal.name}'s '{ctx.marshal.ability['name']}' — "
                             f"cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
                         )
                     else:  # Vorwärts!
                         pursuit_message = (
-                            f"[Combat] {marshal.name}'s '{marshal.ability['name']}' — "
+                            f"[Combat] {ctx.marshal.name}'s '{ctx.marshal.ability['name']}' — "
                             f"relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
                         )
                     if old_fox_screens:
                         pursuit_message += (
-                            f" But {enemy_marshal.name}'s rearguard screens the retreat — "
+                            f" But {ctx.enemy_marshal.name}'s rearguard screens the retreat — "
                             f"The Old Fox halves the harvest."
                         )
-                    battle_result["pursuit_damage"] = int(pursuit_damage)
-                    battle_result["pursuit_message"] = pursuit_message
+                    ctx.battle_result["pursuit_damage"] = int(pursuit_damage)
+                    ctx.battle_result["pursuit_message"] = pursuit_message
                     # MC-1 legibility fix: this message was stored but
                     # never surfaced (resolve_battle folds its copy into
                     # the description; the coordinated copy must too).
-                    battle_result["description"] = (
-                        battle_result.get("description", "") + f"\n\n{pursuit_message}"
+                    ctx.battle_result["description"] = (
+                        ctx.battle_result.get("description", "") + f"\n\n{pursuit_message}"
                     )
                     # Review fix (mirror the solo copy's accounting — solo
                     # folds pursuit into defender_casualties BEFORE its
                     # result dict/report/log are built; the coordinated copy
                     # builds them pre-pursuit, so every frozen number surface
                     # must be patched or the report contradicts the prose):
-                    battle_result["defender"]["remaining"] = int(enemy_marshal.strength)
-                    battle_result["defender"]["casualties"] = (
-                        int(battle_result["defender"].get("casualties", 0)) + int(pursuit_damage))
+                    ctx.battle_result["defender"]["remaining"] = int(ctx.enemy_marshal.strength)
+                    ctx.battle_result["defender"]["casualties"] = (
+                        int(ctx.battle_result["defender"].get("casualties", 0)) + int(pursuit_damage))
                     # Pursuit is primary-defender-only: his distributed share
                     # carries it (stored below for event logging).
-                    def_distribution[enemy_marshal.name] = (
-                        def_distribution.get(enemy_marshal.name, 0) + int(pursuit_damage))
-                    log_event = battle_result.get("log_battle_event")
+                    ctx.def_distribution[ctx.enemy_marshal.name] = (
+                        ctx.def_distribution.get(ctx.enemy_marshal.name, 0) + int(pursuit_damage))
+                    log_event = ctx.battle_result.get("log_battle_event")
                     if isinstance(log_event, dict):
                         log_event["defender_casualties"] = (
                             int(log_event.get("defender_casualties", 0)) + int(pursuit_damage))
-                    report = battle_result.get("battle_report")
+                    report = ctx.battle_result.get("battle_report")
                     if isinstance(report, dict) and isinstance(report.get("casualty_summary"), dict):
                         cs = report["casualty_summary"]
                         cs["defender_casualties"] = int(cs.get("defender_casualties", 0)) + int(pursuit_damage)
@@ -8276,15 +8488,15 @@ class CombatExecutor:
             #   named nowhere).
             # ════════════════════════════════════════════════════════════
             if self.BOTH_SIDES_NAME_THEIR_SCOPE:
-                battle_result["attacker"]["lead_remaining"] = int(marshal.strength)
-                battle_result["defender"]["lead_remaining"] = int(enemy_marshal.strength)
-                _iq5_log = battle_result.get("log_battle_event")
+                ctx.battle_result["attacker"]["lead_remaining"] = int(ctx.marshal.strength)
+                ctx.battle_result["defender"]["lead_remaining"] = int(ctx.enemy_marshal.strength)
+                _iq5_log = ctx.battle_result.get("log_battle_event")
                 if isinstance(_iq5_log, dict):
                     for _side, _pre, _dist, _rub in (
-                            ("attacker", _iq5_atk_pre, atk_distribution,
-                             _iq5_atk_rubble),
-                            ("defender", _iq5_def_pre, def_distribution,
-                             _iq5_def_rubble)):
+                            ("attacker", _iq5_atk_pre, ctx.atk_distribution,
+                             ctx._iq5_atk_rubble),
+                            ("defender", _iq5_def_pre, ctx.def_distribution,
+                             ctx._iq5_def_rubble)):
                         _iq5_log[f"{_side}_field_before"] = int(
                             sum(_s for _n, _s in _pre))
                         # Review (E): the realised loss — share + rubble —
@@ -8299,11 +8511,11 @@ class CombatExecutor:
                 # IQ-5 review (F): a LONE side destroyed by the rubble rule
                 # or the overkill cap carries its applied loss beside the
                 # raw figure (the report already prints the applied one).
-                _iq5_cs = ((battle_result.get("battle_report") or {})
+                _iq5_cs = ((ctx.battle_result.get("battle_report") or {})
                            .get("casualty_summary") or {})
-                for _side, _lead in (("attacker", marshal),
-                                     ("defender", enemy_marshal)):
-                    _sd = battle_result.get(_side)
+                for _side, _lead in (("attacker", ctx.marshal),
+                                     ("defender", ctx.enemy_marshal)):
+                    _sd = ctx.battle_result.get(_side)
                     if (not isinstance(_sd, dict)
                             or _sd.get("casualties_scope") == "army"
                             or int(getattr(_lead, "strength", 0) or 0) != 0):
@@ -8312,23 +8524,23 @@ class CombatExecutor:
                     _applied = int(_iq5_cs.get(f"{_side}_casualties", _raw) or 0)
                     if _applied != _raw:
                         self._stamp_lone_applied(
-                            battle_result, _side, _lead.name, _raw, _applied, 0)
+                            ctx.battle_result, _side, _lead.name, _raw, _applied, 0)
 
             # Store distribution info for event logging
-            battle_result["casualty_distribution"] = {
-                "attacker_side": atk_distribution,
-                "defender_side": def_distribution,
+            ctx.battle_result["casualty_distribution"] = {
+                "attacker_side": ctx.atk_distribution,
+                "defender_side": ctx.def_distribution,
             }
 
         else:
             # Solo battle — existing behavior unchanged (apply_casualties=True default)
-            battle_result = self.combat_resolver.resolve_battle(
-                attacker=marshal,
-                defender=enemy_marshal,
-                terrain=battle_terrain,
-                flanking_bonus=flanking_bonus,
-                flanking_message=flanking_message,
-                fortification_bonus=fort_bonus,
+            ctx.battle_result = self.combat_resolver.resolve_battle(
+                attacker=ctx.marshal,
+                defender=ctx.enemy_marshal,
+                terrain=ctx.battle_terrain,
+                flanking_bonus=ctx.flanking_bonus,
+                flanking_message=ctx.flanking_message,
+                fortification_bonus=ctx.fort_bonus,
             )
             # IQ-5 review (F), the solo path: both sides fought alone, and a
             # corps the rubble rule (or the overkill cap) destroyed had its
@@ -8338,29 +8550,32 @@ class CombatExecutor:
             # 0 and the raw figure is not his whole corps, stamp the applied
             # loss (display only — the mechanical figures stand).
             if self.BOTH_SIDES_NAME_THEIR_SCOPE:
-                for _side, _lead in (("attacker", marshal),
-                                     ("defender", enemy_marshal)):
-                    _sd = battle_result.get(_side)
+                for _side, _lead in (("attacker", ctx.marshal),
+                                     ("defender", ctx.enemy_marshal)):
+                    _sd = ctx.battle_result.get(_side)
                     if not isinstance(_sd, dict):
                         continue
                     _raw = int(_sd.get("casualties", 0) or 0)
-                    _orig = int(battle_result.get(
+                    _orig = int(ctx.battle_result.get(
                         f"{_side}_original_strength", 0) or 0)
                     if (_orig > 0 and _raw != _orig
                             and int(getattr(_lead, "strength", 0) or 0) == 0):
                         self._stamp_lone_applied(
-                            battle_result, _side, _lead.name, _raw, _orig, 0)
-                        _iq5_solo_applied[_lead.name] = _orig
+                            ctx.battle_result, _side, _lead.name, _raw, _orig, 0)
+                        ctx._iq5_solo_applied[_lead.name] = _orig
+        return _NEXT_STAGE
 
+    def _attack_battle_record(self, ctx: AttackContext):
+        """Stage 14 of `_execute_attack`: Coordination context, W6-1 participation counts, W6-2 battle name, W6-6 voices."""
         # ════════════════════════════════════════════════════════════
         # COORDINATION CONTEXT FOR BATTLE REPORT (Session 65)
         # Inject data before clearing transient fields so
         # _pick_observation() can use coordination-specific priorities.
         # ════════════════════════════════════════════════════════════
-        coord_context = {
+        ctx.coord_context = {
             # Legacy keys carry the ATTACKER side (existing readers + test
             # fixtures depend on this shape).
-            "type_count": attacker_coord.get("type_count", 0),
+            "type_count": ctx.attacker_coord.get("type_count", 0),
             "hostile_forced_participants": [],
             "hostile_refused": [],
             "devoted_allies": [],
@@ -8368,8 +8583,8 @@ class CombatExecutor:
             # side when the player is the defender — the legacy attacker-only
             # data credited an enemy combined-arms triangle to "our side"
             # (audit 2026-07-09 fix 2.2).
-            "attacker_type_count": attacker_coord.get("type_count", 0),
-            "defender_type_count": defender_coord.get("type_count", 0),
+            "attacker_type_count": ctx.attacker_coord.get("type_count", 0),
+            "defender_type_count": ctx.defender_coord.get("type_count", 0),
             "defender_hostile_forced_participants": [],
             "defender_hostile_refused": [],
             "defender_devoted_allies": [],
@@ -8380,45 +8595,45 @@ class CombatExecutor:
             # corps because the failed-reinforcement branch never had a way
             # to ask whether anyone else was there. Display-only; the primary
             # is always element one (_get_casualty_participants).
-            "attacker_participants": [p.name for p in atk_participants],
-            "defender_participants": [p.name for p in def_participants],
+            "attacker_participants": [p.name for p in ctx.atk_participants],
+            "defender_participants": [p.name for p in ctx.def_participants],
         }
         # Classify each side's participants by relationship toward that
         # side's primary combatant.
-        if is_coordinated_battle:
-            for side_primary, participants, forced_key, refused_key, devoted_key in (
-                (marshal, atk_participants,
+        if ctx.is_coordinated_battle:
+            for ctx.side_primary, participants, forced_key, refused_key, devoted_key in (
+                (ctx.marshal, ctx.atk_participants,
                  "hostile_forced_participants", "hostile_refused", "devoted_allies"),
-                (enemy_marshal, def_participants,
+                (ctx.enemy_marshal, ctx.def_participants,
                  "defender_hostile_forced_participants", "defender_hostile_refused",
                  "defender_devoted_allies"),
             ):
-                for p in participants:
-                    if p.name == side_primary.name:
+                for ctx.p in participants:
+                    if ctx.p.name == ctx.side_primary.name:
                         continue
-                    rel = p.get_relationship(side_primary.name)
-                    if rel == -2:
+                    ctx.rel = ctx.p.get_relationship(ctx.side_primary.name)
+                    if ctx.rel == -2:
                         # Hostile — check for SUPPORT order
-                        order = getattr(p, 'strategic_order', None)
+                        ctx.order = getattr(ctx.p, 'strategic_order', None)
                         has_support = (
-                            order is not None
-                            and order.command_type == "SUPPORT"
-                            and order.target == side_primary.name
+                            ctx.order is not None
+                            and ctx.order.command_type == "SUPPORT"
+                            and ctx.order.target == ctx.side_primary.name
                         )
                         if has_support:
-                            coord_context[forced_key].append(p.name)
+                            ctx.coord_context[forced_key].append(ctx.p.name)
                         else:
-                            coord_context[refused_key].append(p.name)
-                    elif rel == 2:
-                        coord_context[devoted_key].append(p.name)
-        battle_result["coordination_context"] = coord_context
-        battle_result["reinforcement_results_for_report"] = {
-            "attacker": attacker_reinforcements,
-            "defender": defender_reinforcements,
+                            ctx.coord_context[refused_key].append(ctx.p.name)
+                    elif ctx.rel == 2:
+                        ctx.coord_context[devoted_key].append(ctx.p.name)
+        ctx.battle_result["coordination_context"] = ctx.coord_context
+        ctx.battle_result["reinforcement_results_for_report"] = {
+            "attacker": ctx.attacker_reinforcements,
+            "defender": ctx.defender_reinforcements,
         }
         # Session 68: Inject auto-bombardment and overwatch data for observation re-pick
-        battle_result["support_bombardment_total_damage"] = support_bombardment_total_damage
-        battle_result["overwatch_count"] = overwatch_count
+        ctx.battle_result["support_bombardment_total_damage"] = ctx.support_bombardment_total_damage
+        ctx.battle_result["overwatch_count"] = ctx.overwatch_count
 
         # ════════════════════════════════════════════════════════════
         # W6-1 (BUG-CA-9): PARTICIPATION COUNTS. Every ARRIVED
@@ -8428,14 +8643,14 @@ class CombatExecutor:
         # fought is no longer idle; last_battle_turn feeds W6-3 arc memory.
         # Stalemates count for no one — mirroring the primary pair.
         # ════════════════════════════════════════════════════════════
-        _w6_outcome = battle_result.get("outcome", "")
+        _w6_outcome = ctx.battle_result.get("outcome", "")
         _atk_won = _w6_outcome in ("attacker_victory", "attacker_tactical_victory")
         _def_won = _w6_outcome in ("defender_victory", "defender_tactical_victory")
-        _w6_turn = int(world.current_turn)
-        marshal.last_battle_turn = _w6_turn
-        marshal.idle_turns = 0
-        enemy_marshal.last_battle_turn = _w6_turn
-        enemy_marshal.idle_turns = 0
+        _w6_turn = int(ctx.world.current_turn)
+        ctx.marshal.last_battle_turn = _w6_turn
+        ctx.marshal.idle_turns = 0
+        ctx.enemy_marshal.last_battle_turn = _w6_turn
+        ctx.enemy_marshal.idle_turns = 0
         # ── CA9-N1: dedupe against the coordinated tally above ──────────
         # The coordinated branch has ALREADY tallied every element of
         # `atk_participants` / `def_participants`, and an arrived
@@ -8462,19 +8677,19 @@ class CombatExecutor:
         # `last_battle_turn` writes below are NOT duplicated by seam A and
         # stay exactly as they are.
         _already_tallied = set()
-        if is_coordinated_battle:
-            _already_tallied = {p.name for p in atk_participants}
-            _already_tallied.update(p.name for p in def_participants)
-        for _side_results, _side_won, _side_lost in (
-            (attacker_reinforcements, _atk_won,
+        if ctx.is_coordinated_battle:
+            _already_tallied = {p.name for p in ctx.atk_participants}
+            _already_tallied.update(p.name for p in ctx.def_participants)
+        for ctx._side_results, _side_won, _side_lost in (
+            (ctx.attacker_reinforcements, _atk_won,
              _def_won or _w6_outcome == "mutual_destruction"),
-            (defender_reinforcements, _def_won,
+            (ctx.defender_reinforcements, _def_won,
              _atk_won or _w6_outcome == "mutual_destruction"),
         ):
-            for _r in _side_results:
-                if not _r.get("arrived"):
+            for ctx._r in ctx._side_results:
+                if not ctx._r.get("arrived"):
                     continue
-                _fighter = world.get_marshal(_r.get("marshal", ""))
+                _fighter = ctx.world.get_marshal(ctx._r.get("marshal", ""))
                 if _fighter is None:
                     continue
                 if _fighter.name not in _already_tallied:
@@ -8491,11 +8706,11 @@ class CombatExecutor:
         # the event-log write so the campaign log, the diplo record, the
         # war HUD, and the result/report all carry the same name.
         # ════════════════════════════════════════════════════════════
-        battle_name = world.compose_battle_name(
-            target_location, total_engaged_strength)
-        battle_result["battle_name"] = battle_name
-        if isinstance(battle_result.get("log_battle_event"), dict):
-            battle_result["log_battle_event"]["battle_name"] = battle_name
+        ctx.battle_name = ctx.world.compose_battle_name(
+            ctx.target_location, ctx.total_engaged_strength)
+        ctx.battle_result["battle_name"] = ctx.battle_name
+        if isinstance(ctx.battle_result.get("log_battle_event"), dict):
+            ctx.battle_result["log_battle_event"]["battle_name"] = ctx.battle_name
 
         # ════════════════════════════════════════════════════════════
         # W6-6 ENEMY VOICE (EXP-M2): after a battle that involves the
@@ -8516,12 +8731,12 @@ class CombatExecutor:
         # marquee enemy's authored OPENING line was structurally
         # unreachable as an opening.
         # ════════════════════════════════════════════════════════════
-        _player_nation = world.player_nation
+        _player_nation = ctx.world.player_nation
         _enemy_side = None
-        if marshal.nation != _player_nation and enemy_marshal.nation == _player_nation:
-            _enemy_side = (marshal, True)   # the enemy attacked us
-        elif marshal.nation == _player_nation and enemy_marshal.nation != _player_nation:
-            _enemy_side = (enemy_marshal, False)  # we attacked the enemy
+        if ctx.marshal.nation != _player_nation and ctx.enemy_marshal.nation == _player_nation:
+            _enemy_side = (ctx.marshal, True)   # the enemy attacked us
+        elif ctx.marshal.nation == _player_nation and ctx.enemy_marshal.nation != _player_nation:
+            _enemy_side = (ctx.enemy_marshal, False)  # we attacked the enemy
         if _enemy_side is not None:
             from backend.game_logic.enemy_voice import (
                 derive_enemy_situation, pick_enemy_voice,
@@ -8529,19 +8744,19 @@ class CombatExecutor:
             _enemy_m, _enemy_attacked = _enemy_side
             _side_key = "attacker" if _enemy_attacked else "defender"
             _situation = derive_enemy_situation(
-                battle_result.get("outcome", ""), _enemy_attacked,
-                bool(battle_result.get(_side_key, {}).get("forced_retreat")))
+                ctx.battle_result.get("outcome", ""), _enemy_attacked,
+                bool(ctx.battle_result.get(_side_key, {}).get("forced_retreat")))
             if _situation and _enemy_m.strength > 0:
                 _voice = pick_enemy_voice(
                     _enemy_m.name,
                     getattr(_enemy_m, "personality", "cautious"),
                     _situation,
-                    _voice_rotation_key_for(world, _enemy_m, target_location,
+                    _voice_rotation_key_for(ctx.world, _enemy_m, ctx.target_location,
                                             _situation))
                 if _voice:
-                    battle_result["enemy_voice"] = _voice
-                    if isinstance(battle_result.get("log_battle_event"), dict):
-                        battle_result["log_battle_event"]["enemy_voice"] = _voice
+                    ctx.battle_result["enemy_voice"] = _voice
+                    if isinstance(ctx.battle_result.get("log_battle_event"), dict):
+                        ctx.battle_result["log_battle_event"]["enemy_voice"] = _voice
 
             # ════════════════════════════════════════════════════════
             # MARSHAL VOICE TIER 1 (position 9): the player's OWN
@@ -8553,21 +8768,21 @@ class CombatExecutor:
             from backend.game_logic.marshal_voice import (
                 derive_own_situation, pick_marshal_voice,
             )
-            _own_m = enemy_marshal if _enemy_attacked else marshal
+            _own_m = ctx.enemy_marshal if _enemy_attacked else ctx.marshal
             _own_attacked = not _enemy_attacked
             _own_key = "attacker" if _own_attacked else "defender"
             _own_situation = derive_own_situation(
-                battle_result.get("outcome", ""), _own_attacked,
-                bool(battle_result.get(_own_key, {}).get("forced_retreat")))
+                ctx.battle_result.get("outcome", ""), _own_attacked,
+                bool(ctx.battle_result.get(_own_key, {}).get("forced_retreat")))
             if _own_situation and _own_m.strength > 0:
                 _own_voice = pick_marshal_voice(
                     _own_m.name,
                     getattr(_own_m, "personality", "cautious"),
                     _own_situation,
-                    _voice_rotation_key_for(world, _own_m, target_location,
+                    _voice_rotation_key_for(ctx.world, _own_m, ctx.target_location,
                                             _own_situation))
                 if _own_voice:
-                    battle_result["marshal_voice"] = _own_voice
+                    ctx.battle_result["marshal_voice"] = _own_voice
 
         # Clear coordination transient fields (D5 + X1)
         # CA8 sweep 4 review: three regions cannot cover every stamped
@@ -8577,11 +8792,11 @@ class CombatExecutor:
         # carrying a permanent −3%..−9% attack that nothing ever cleared.
         # Seed the set from the participants, which is the general form: the
         # bug is not a missing name, it is a missing REGION.
-        involved_regions = {marshal.location}
-        if enemy_marshal.strength > 0:
-            involved_regions.add(enemy_marshal.location)
-        involved_regions.add(battle_region_name)
-        involved_regions.update(p.location for p in atk_participants)
+        involved_regions = {ctx.marshal.location}
+        if ctx.enemy_marshal.strength > 0:
+            involved_regions.add(ctx.enemy_marshal.location)
+        involved_regions.add(ctx.battle_region_name)
+        involved_regions.update(p.location for p in ctx.atk_participants)
         # Aug 30, 2026 review: and the DEFENDER's side, for the very reason the
         # comment above gives. The seed was attacker-only, so a defending gun
         # firing in support from an adjacent province — which deliberately
@@ -8589,15 +8804,18 @@ class CombatExecutor:
         # `sovereign_presence`. A stale aura then rode into later muster
         # previews and odds bands as a strength the army does not have. The
         # bug is a missing REGION, and half the regions were missing.
-        involved_regions.update(p.location for p in def_participants)
-        self._clear_coordination_fields(involved_regions, world)
+        involved_regions.update(p.location for p in ctx.def_participants)
+        self._clear_coordination_fields(involved_regions, ctx.world)
 
         # Log battle event
-        self._log_battle_event(battle_result, battle_region_name, world)
+        self._log_battle_event(ctx.battle_result, ctx.battle_region_name, ctx.world)
 
         # Combat notifications (counter-punch earned, drill cancelled)
-        self._process_combat_notifications(battle_result, marshal, enemy_marshal, world)
+        self._process_combat_notifications(ctx.battle_result, ctx.marshal, ctx.enemy_marshal, ctx.world)
+        return _NEXT_STAGE
 
+    def _attack_relationships_and_report(self, ctx: AttackContext):
+        """Stage 15 of `_execute_attack`: Win/loss relationships, the observation re-pick, kept orders, destruction."""
         # ════════════════════════════════════════════════════════════
         # WIN/LOSS RELATIONSHIP FORMULA (Session 64)
         # Fires after resolve_battle with 2+ same-nation participants.
@@ -8612,33 +8830,33 @@ class CombatExecutor:
         # this (already cleared). Participants mirror step-10 semantics.
         from backend.game_logic import jealousy as _jealousy
         from backend.game_logic.relationship import get_battle_participants
-        _jl_outcome = battle_result.get("outcome", "")
+        _jl_outcome = ctx.battle_result.get("outcome", "")
         _jl_atk_won = "attacker" in _jl_outcome and "victory" in _jl_outcome
         _jl_def_won = "defender" in _jl_outcome and "victory" in _jl_outcome
         # A7: the records feed the battle note below (`_jl_resolutions`), and
         # `defer_dispatch` withholds the next-morning bullet for exactly the
         # men that note names — the battle surface owns what happened at the
         # battle. Anything it cannot carry is re-emitted at `:_jl_report`.
-        _jl_resolutions = _jealousy.check_battle_resolution(
-            world, marshal, enemy_marshal, _jl_atk_won, _jl_def_won,
-            int(pre_battle_attacker_strength), int(pre_battle_defender_strength),
+        ctx._jl_resolutions = _jealousy.check_battle_resolution(
+            ctx.world, ctx.marshal, ctx.enemy_marshal, _jl_atk_won, _jl_def_won,
+            int(ctx.pre_battle_attacker_strength), int(ctx.pre_battle_defender_strength),
             attacker_participants=get_battle_participants(
-                marshal, battle_region_name, marshal.nation, world),
+                ctx.marshal, ctx.battle_region_name, ctx.marshal.nation, ctx.world),
             defender_participants=get_battle_participants(
-                enemy_marshal, battle_region_name, enemy_marshal.nation, world),
-            defender_broken=bool(getattr(enemy_marshal, 'broken', False)),
+                ctx.enemy_marshal, ctx.battle_region_name, ctx.enemy_marshal.nation, ctx.world),
+            defender_broken=bool(getattr(ctx.enemy_marshal, 'broken', False)),
             defer_dispatch=True,
             # F6 (row EP, LV-17): the field, for the card that may reopen it.
-            battle_region=battle_region_name)
+            battle_region=ctx.battle_region_name)
         # [7B-1] Split artillery reinforcements by nation for relationship processing
-        atk_artillery = [a for a in artillery_reinforced_adjacent if a.nation == marshal.nation]
-        def_artillery = [a for a in artillery_reinforced_adjacent if a.nation == enemy_marshal.nation]
+        atk_artillery = [a for a in ctx.artillery_reinforced_adjacent if a.nation == ctx.marshal.nation]
+        def_artillery = [a for a in ctx.artillery_reinforced_adjacent if a.nation == ctx.enemy_marshal.nation]
         relationship_changes = process_battle_relationships(
-            marshal, enemy_marshal, battle_result, battle_region_name, world,
+            ctx.marshal, ctx.enemy_marshal, ctx.battle_result, ctx.battle_region_name, ctx.world,
             attacker_artillery=atk_artillery, defender_artillery=def_artillery
         )
         for rc in relationship_changes:
-            world.log_event({
+            ctx.world.log_event({
                 "type": "relationship_change",
                 "marshal": rc["marshal"],
                 "toward": rc["toward"],
@@ -8647,7 +8865,7 @@ class CombatExecutor:
                 "new_label": rc["new_label"],
                 "direction": rc["direction"],
                 "nation": rc["nation"],
-                "location": battle_region_name,
+                "location": ctx.battle_region_name,
             })
 
         # ════════════════════════════════════════════════════════════
@@ -8657,73 +8875,73 @@ class CombatExecutor:
         # Berthier observation. Coordination priorities (P0.5-P15)
         # may override the initial observation from resolve_battle().
         # ════════════════════════════════════════════════════════════
-        battle_result["relationship_changes"] = relationship_changes
+        ctx.battle_result["relationship_changes"] = relationship_changes
         # Session 68: inject auto-bombardment results for observation re-pick
-        if auto_bombardment_results:
-            battle_result["auto_bombardment_results"] = [
-                r.get("bombardment_result", {}) for r in auto_bombardment_results
+        if ctx.auto_bombardment_results:
+            ctx.battle_result["auto_bombardment_results"] = [
+                r.get("bombardment_result", {}) for r in ctx.auto_bombardment_results
             ]
-        if (coord_context.get("type_count", 0) >= 3
-                or coord_context.get("defender_type_count", 0) >= 3
-                or coord_context.get("hostile_forced_participants")
-                or coord_context.get("hostile_refused")
-                or coord_context.get("devoted_allies")
-                or coord_context.get("defender_hostile_forced_participants")
-                or coord_context.get("defender_hostile_refused")
-                or coord_context.get("defender_devoted_allies")
-                or attacker_reinforcements or defender_reinforcements
+        if (ctx.coord_context.get("type_count", 0) >= 3
+                or ctx.coord_context.get("defender_type_count", 0) >= 3
+                or ctx.coord_context.get("hostile_forced_participants")
+                or ctx.coord_context.get("hostile_refused")
+                or ctx.coord_context.get("devoted_allies")
+                or ctx.coord_context.get("defender_hostile_forced_participants")
+                or ctx.coord_context.get("defender_hostile_refused")
+                or ctx.coord_context.get("defender_devoted_allies")
+                or ctx.attacker_reinforcements or ctx.defender_reinforcements
                 or relationship_changes
-                or support_bombardment_total_damage > 0
-                or overwatch_count > 0):
+                or ctx.support_bombardment_total_damage > 0
+                or ctx.overwatch_count > 0):
             from backend.game_logic.battle_report import _pick_observation
-            new_observation = _pick_observation(battle_result, world.player_nation)
-            if "battle_report" in battle_result:
-                battle_result["battle_report"]["observation"] = new_observation
+            new_observation = _pick_observation(ctx.battle_result, ctx.world.player_nation)
+            if "battle_report" in ctx.battle_result:
+                ctx.battle_result["battle_report"]["observation"] = new_observation
             # Also update the log event's embedded report
-            if "log_battle_event" in battle_result:
-                log_report = battle_result["log_battle_event"].get("battle_report")
+            if "log_battle_event" in ctx.battle_result:
+                log_report = ctx.battle_result["log_battle_event"].get("battle_report")
                 if log_report:
                     log_report["observation"] = new_observation
 
         # NOW clear strategic orders for arrived reinforcements (A-C2 step 5).
         # Deferred to here so Hostile+SUPPORT marshals participate in
         # relationship checks above (W-1 fix, Session 62 post-review).
-        _kept_order_names = []   # SR-2e AAR-10: the player's, for the reply
-        for _side_idx, results_list in enumerate(
-                [attacker_reinforcements, defender_reinforcements]):
-            for result in results_list:
-                if result["arrived"]:
-                    arriving = world.marshals.get(result["marshal"])
-                    if (arriving
-                            and arriving.strategic_order is not None):
+        ctx._kept_order_names = []   # SR-2e AAR-10: the player's, for the reply
+        for _side_idx, ctx.results_list in enumerate(
+                [ctx.attacker_reinforcements, ctx.defender_reinforcements]):
+            for ctx.result in ctx.results_list:
+                if ctx.result["arrived"]:
+                    ctx.arriving = ctx.world.marshals.get(ctx.result["marshal"])
+                    if (ctx.arriving
+                            and ctx.arriving.strategic_order is not None):
                         # SR-2e AAR-10: a march keeps its tail. The path was
                         # emptied at arrival and is re-plotted from wherever
                         # he stands; his order-bound QUESTION is spent (he
                         # has just fought at or beside the ground it asked
                         # about). A pursuit that fought its own quarry here
                         # takes the pursuit's own one-turn pause.
-                        clear_order_bound_interrupt(arriving)  # NPC-2
-                        _kept = arriving.strategic_order
-                        _foe = enemy_marshal if _side_idx == 0 else marshal
+                        clear_order_bound_interrupt(ctx.arriving)  # NPC-2
+                        _kept = ctx.arriving.strategic_order
+                        _foe = ctx.enemy_marshal if _side_idx == 0 else ctx.marshal
                         if (_kept.command_type == "PURSUE" and _foe is not None
                                 and _kept.target == getattr(_foe, "name", None)):
                             _kept.last_combat_enemy = _foe.name
-                            _kept.last_combat_turn = world.current_turn
-                        if arriving.nation == world.player_nation:
-                            _kept_order_names.append(arriving.name)
+                            _kept.last_combat_turn = ctx.world.current_turn
+                        if ctx.arriving.nation == ctx.world.player_nation:
+                            ctx._kept_order_names.append(ctx.arriving.name)
                         continue
-                    if arriving:
+                    if ctx.arriving:
                         # CA9-F13, second half: a standing order died here
                         # SILENTLY. Murat's MOVE_TO Vienna was cancelled by
                         # answering a battle he never chose to join, and no
                         # event, message or log line ever said so — the
                         # player found out by giving him an order two turns
                         # later. Say what was voided, and by what.
-                        _voided = arriving.strategic_order
-                        arriving.strategic_order = None
-                        clear_order_bound_interrupt(arriving)  # NPC-2
+                        _voided = ctx.arriving.strategic_order
+                        ctx.arriving.strategic_order = None
+                        clear_order_bound_interrupt(ctx.arriving)  # NPC-2
                         if (_voided is not None
-                                and arriving.nation == world.player_nation):
+                                and ctx.arriving.nation == ctx.world.player_nation):
                             from backend.display_names import (
                                 humanize_entity_name as _hum,
                             )
@@ -8732,99 +8950,99 @@ class CombatExecutor:
                                 or "march").replace("_", " ").lower()
                             _obj = _hum(str(
                                 getattr(_voided, "target", "") or ""))
-                            world.log_event({
+                            ctx.world.log_event({
                                 "type": "order_voided_by_battle",
-                                "marshal": arriving.name,
-                                "nation": arriving.nation,
+                                "marshal": ctx.arriving.name,
+                                "nation": ctx.arriving.nation,
                                 "order": str(getattr(
                                     _voided, "command_type", "") or ""),
                                 "order_target": str(getattr(
                                     _voided, "target", "") or ""),
-                                "region": battle_region_name,
+                                "region": ctx.battle_region_name,
                                 "message": (
-                                    f"{arriving.name} marched to the guns at "
-                                    f"{battle_region_name}; his standing "
+                                    f"{ctx.arriving.name} marched to the guns at "
+                                    f"{ctx.battle_region_name}; his standing "
                                     f"order to {_verb} {_obj} is void. He "
                                     f"awaits fresh orders."),
                             })
 
         # Fog of War (Session 34A): Battle grants FULL visibility on battle region
-        world.update_intel_from_battle(battle_region_name, world.current_turn)
+        ctx.world.update_intel_from_battle(ctx.battle_region_name, ctx.world.current_turn)
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
-            battle_region_name, pre_battle_attacker_strength,
-            pre_battle_defender_strength, world
+            ctx.battle_region_name, ctx.pre_battle_attacker_strength,
+            ctx.pre_battle_defender_strength, ctx.world
         )
 
         # V2a: Reset idle tracking on attack
-        marshal.idle_turns = 0
-        marshal.acted_this_turn = True
+        ctx.marshal.idle_turns = 0
+        ctx.marshal.acted_this_turn = True
 
         # Record battle for cannon fire detection (hearing the guns)
-        world.record_battle(target_location, marshal.name, enemy_marshal.name,
-                            battle_result.get("outcome", "unknown"))
+        ctx.world.record_battle(ctx.target_location, ctx.marshal.name, ctx.enemy_marshal.name,
+                            ctx.battle_result.get("outcome", "unknown"))
 
         # Record battle for diplomatic war score (Phase 8 Session 2)
         from backend.game_logic.diplomacy import record_battle as record_diplo_battle
         from backend.game_logic.war_contribution import detect_battle_theater
-        outcome = battle_result.get("outcome", "")
-        atk_won = "attacker" in outcome and "victory" in outcome
-        def_won = "defender" in outcome and "victory" in outcome
-        diplo_winner = marshal.nation if atk_won else (enemy_marshal.nation if def_won else None)
+        ctx.outcome = ctx.battle_result.get("outcome", "")
+        ctx.atk_won = "attacker" in ctx.outcome and "victory" in ctx.outcome
+        ctx.def_won = "defender" in ctx.outcome and "victory" in ctx.outcome
+        diplo_winner = ctx.marshal.nation if ctx.atk_won else (ctx.enemy_marshal.nation if ctx.def_won else None)
         if diplo_winner:
             # Imperial Settlement B2: theater-aware emitter — pass one-hop
             # adjacency participants + theater strength so allies near the
             # battle receive battle-bucket credit (spec §9.4 line 717).
             theater = detect_battle_theater(
-                world,
-                battle_region=target_location,
-                attacker_nation=marshal.nation,
-                defender_nation=enemy_marshal.nation,
-                attacker_marshal_name=getattr(marshal, "name", None),
-                defender_marshal_name=getattr(enemy_marshal, "name", None),
-                attacker_pre_battle_strength=int(pre_battle_attacker_strength),
-                defender_pre_battle_strength=int(pre_battle_defender_strength),
+                ctx.world,
+                battle_region=ctx.target_location,
+                attacker_nation=ctx.marshal.nation,
+                defender_nation=ctx.enemy_marshal.nation,
+                attacker_marshal_name=getattr(ctx.marshal, "name", None),
+                defender_marshal_name=getattr(ctx.enemy_marshal, "name", None),
+                attacker_pre_battle_strength=int(ctx.pre_battle_attacker_strength),
+                defender_pre_battle_strength=int(ctx.pre_battle_defender_strength),
             )
             record_diplo_battle(
-                world,
-                attacker_nation=marshal.nation,
-                defender_nation=enemy_marshal.nation,
+                ctx.world,
+                attacker_nation=ctx.marshal.nation,
+                defender_nation=ctx.enemy_marshal.nation,
                 winner_nation=diplo_winner,
-                attacker_casualties=int(battle_result.get("attacker", {}).get("casualties", 0)),
-                defender_casualties=int(battle_result.get("defender", {}).get("casualties", 0)),
-                location=target_location,
+                attacker_casualties=int(ctx.battle_result.get("attacker", {}).get("casualties", 0)),
+                defender_casualties=int(ctx.battle_result.get("defender", {}).get("casualties", 0)),
+                location=ctx.target_location,
                 war_id=(theater or {}).get("war_id"),
                 attacker_participants=(theater or {}).get("attacker_participants"),
                 defender_participants=(theater or {}).get("defender_participants"),
                 nation_theater_strength=(theater or {}).get("nation_theater_strength"),
-                battle_name=battle_name,
+                battle_name=ctx.battle_name,
             )
         else:
             # PT-J2 review round [P2-3]: the drawn battle's dead still
             # accrue to the campaign ledger (this copy skips the
             # pipeline's step 8 via skip_diplo_record, so it needs its
             # own arm, mirrored).
-            world.record_campaign_casualties(
-                marshal.nation, enemy_marshal.nation,
-                int(battle_result.get("attacker", {}).get("casualties", 0)),
-                int(battle_result.get("defender", {}).get("casualties", 0)))
+            ctx.world.record_campaign_casualties(
+                ctx.marshal.nation, ctx.enemy_marshal.nation,
+                int(ctx.battle_result.get("attacker", {}).get("casualties", 0)),
+                int(ctx.battle_result.get("defender", {}).get("casualties", 0)))
 
         # [7A-3] Set last_combat_result for strategic condition checking (until_battle_won)
-        marshal.last_combat_turn = int(world.current_turn)  # CR-7-4 item 5
-        enemy_marshal.last_combat_turn = int(world.current_turn)
-        if atk_won:
-            marshal.last_combat_result = "victory"
-            enemy_marshal.last_combat_result = "defeat"
-        elif def_won:
-            marshal.last_combat_result = "defeat"
-            enemy_marshal.last_combat_result = "victory"
-        elif "mutual_destruction" in outcome:
-            marshal.last_combat_result = "defeat"
-            enemy_marshal.last_combat_result = "defeat"
+        ctx.marshal.last_combat_turn = int(ctx.world.current_turn)  # CR-7-4 item 5
+        ctx.enemy_marshal.last_combat_turn = int(ctx.world.current_turn)
+        if ctx.atk_won:
+            ctx.marshal.last_combat_result = "victory"
+            ctx.enemy_marshal.last_combat_result = "defeat"
+        elif ctx.def_won:
+            ctx.marshal.last_combat_result = "defeat"
+            ctx.enemy_marshal.last_combat_result = "victory"
+        elif "mutual_destruction" in ctx.outcome:
+            ctx.marshal.last_combat_result = "defeat"
+            ctx.enemy_marshal.last_combat_result = "defeat"
         else:
-            marshal.last_combat_result = "stalemate"
-            enemy_marshal.last_combat_result = "stalemate"
+            ctx.marshal.last_combat_result = "stalemate"
+            ctx.enemy_marshal.last_combat_result = "stalemate"
 
         # Check if enemy was destroyed (PC15-1: tombstone + event — this
         # site runs BEFORE the forced-retreat/fate arm, so no capture can
@@ -8835,17 +9053,17 @@ class CombatExecutor:
         # False — and this copy composed its sentence BEFORE the call and
         # printed it regardless, so the player was told the Emperor had
         # been destroyed. §7.1 says a sovereign cannot die in v1.
-        enemy_destroyed = enemy_marshal.strength <= 0
-        if enemy_destroyed:
-            destroyed_msg = self._fall_clause(
-                world, enemy_marshal,
-                world.destroy_marshal(enemy_marshal, cause="battle",
-                                      victor=marshal.nation))
+        ctx.enemy_destroyed = ctx.enemy_marshal.strength <= 0
+        if ctx.enemy_destroyed:
+            ctx.destroyed_msg = self._fall_clause(
+                ctx.world, ctx.enemy_marshal,
+                ctx.world.destroy_marshal(ctx.enemy_marshal, cause="battle",
+                                      victor=ctx.marshal.nation))
         else:
-            destroyed_msg = ""
+            ctx.destroyed_msg = ""
 
         # ALSO check if attacker was destroyed
-        if marshal.strength <= 0:
+        if ctx.marshal.strength <= 0:
             # GE-1: an attacking sovereign killed with his corps is named
             # (the removal of any other attacker stays silent, as before).
             # Review round: he fell on the FIELD — `location` names it (an
@@ -8854,20 +9072,23 @@ class CombatExecutor:
             # Verification round: TAKEN is named too — the death roll's 85%
             # branch (the corps annihilated, the Emperor a prisoner) was the
             # silent one on every battle surface.
-            _was_free = not getattr(marshal, "captured_by", "")
-            _removed = world.destroy_marshal(marshal, cause="battle",
-                                             victor=enemy_marshal.nation,
-                                             location=battle_region_name)
-            if getattr(marshal, "is_sovereign", False) and _was_free:
-                destroyed_msg += self._fall_clause(world, marshal, _removed)
+            ctx._was_free = not getattr(ctx.marshal, "captured_by", "")
+            ctx._removed = ctx.world.destroy_marshal(ctx.marshal, cause="battle",
+                                             victor=ctx.enemy_marshal.nation,
+                                             location=ctx.battle_region_name)
+            if getattr(ctx.marshal, "is_sovereign", False) and ctx._was_free:
+                ctx.destroyed_msg += self._fall_clause(ctx.world, ctx.marshal, ctx._removed)
+        return _NEXT_STAGE
 
+    def _attack_forced_retreat(self, ctx: AttackContext):
+        """Stage 16 of `_execute_attack`: Broken armies retreat or break before the advance."""
         # ============================================================
         # FORCED RETREAT: Handle broken armies (morale <= 25%)
         # MUST happen BEFORE movement/conquest check so retreating
         # defenders don't block territory capture!
         # ============================================================
-        forced_retreat_msg = self._handle_forced_retreat(
-            battle_result, marshal, enemy_marshal, world
+        ctx.forced_retreat_msg = self._handle_forced_retreat(
+            ctx.battle_result, ctx.marshal, ctx.enemy_marshal, ctx.world
         )
 
         # [S62] Handle forced retreat for non-primary participants in coordinated battles
@@ -8877,30 +9098,30 @@ class CombatExecutor:
         # consult get_rout_threshold like the two primary copies (Habsburg
         # Resolve holds a non-primary Charles to 15, and the close-ranks
         # line names the hold when the ability is the only reason he stands).
-        if is_coordinated_battle:
-            if not atk_won:
-                for p in atk_participants:
-                    if p.name != marshal.name and p.strength > 0:
-                        _p_threshold = p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
-                        if p.morale <= _p_threshold:
-                            msg = self._apply_forced_retreat_or_break(p, enemy_marshal, world)
+        if ctx.is_coordinated_battle:
+            if not ctx.atk_won:
+                for ctx.p in ctx.atk_participants:
+                    if ctx.p.name != ctx.marshal.name and ctx.p.strength > 0:
+                        _p_threshold = ctx.p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
+                        if ctx.p.morale <= _p_threshold:
+                            msg = self._apply_forced_retreat_or_break(ctx.p, ctx.enemy_marshal, ctx.world)
                             if msg:
-                                forced_retreat_msg += "\n" + msg
-                        elif p.morale <= FORCED_RETREAT_THRESHOLD:
-                            forced_retreat_msg += (
-                                f"\n{p.name}'s regiments close ranks — they will not break. "
+                                ctx.forced_retreat_msg += "\n" + msg
+                        elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
+                            ctx.forced_retreat_msg += (
+                                f"\n{ctx.p.name}'s regiments close ranks — they will not break. "
                                 f"(Habsburg Resolve: holds to {int(_p_threshold)}% morale)")
-            if not def_won:
-                for p in def_participants:
-                    if p.name != enemy_marshal.name and p.strength > 0:
-                        _p_threshold = p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
-                        if p.morale <= _p_threshold:
-                            msg = self._apply_forced_retreat_or_break(p, marshal, world)
+            if not ctx.def_won:
+                for ctx.p in ctx.def_participants:
+                    if ctx.p.name != ctx.enemy_marshal.name and ctx.p.strength > 0:
+                        _p_threshold = ctx.p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
+                        if ctx.p.morale <= _p_threshold:
+                            msg = self._apply_forced_retreat_or_break(ctx.p, ctx.marshal, ctx.world)
                             if msg:
-                                forced_retreat_msg += "\n" + msg
-                        elif p.morale <= FORCED_RETREAT_THRESHOLD:
-                            forced_retreat_msg += (
-                                f"\n{p.name}'s regiments close ranks — they will not break. "
+                                ctx.forced_retreat_msg += "\n" + msg
+                        elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
+                            ctx.forced_retreat_msg += (
+                                f"\n{ctx.p.name}'s regiments close ranks — they will not break. "
                                 f"(Habsburg Resolve: holds to {int(_p_threshold)}% morale)")
 
             # ── Gate 4: Reinforcer retreat on non-win ──
@@ -8908,30 +9129,30 @@ class CombatExecutor:
             # their origin if their side didn't win (loss OR stalemate).
             # (Morale-based retreat above handles the broken case;
             # this handles the "orderly withdrawal" case.)
-            if not atk_won:
-                for p in atk_participants:
-                    origin = reinforcer_origin.get(p.name)
-                    if (origin and p.name != marshal.name
-                            and p.strength > 0
-                            and not getattr(p, 'broken', False)
-                            and not getattr(p, 'retreated_this_turn', False)
-                            and p.location == battle_region_name):
-                        p.location = origin
-                        p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
-                        forced_retreat_msg += (
-                            f"\n{p.name} withdraws to {origin} after the battle.")
-            if not def_won:
-                for p in def_participants:
-                    origin = reinforcer_origin.get(p.name)
-                    if (origin and p.name != enemy_marshal.name
-                            and p.strength > 0
-                            and not getattr(p, 'broken', False)
-                            and not getattr(p, 'retreated_this_turn', False)
-                            and p.location == battle_region_name):
-                        p.location = origin
-                        p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
-                        forced_retreat_msg += (
-                            f"\n{p.name} withdraws to {origin} after the battle.")
+            if not ctx.atk_won:
+                for ctx.p in ctx.atk_participants:
+                    origin = ctx.reinforcer_origin.get(ctx.p.name)
+                    if (origin and ctx.p.name != ctx.marshal.name
+                            and ctx.p.strength > 0
+                            and not getattr(ctx.p, 'broken', False)
+                            and not getattr(ctx.p, 'retreated_this_turn', False)
+                            and ctx.p.location == ctx.battle_region_name):
+                        ctx.p.location = origin
+                        ctx.p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
+                        ctx.forced_retreat_msg += (
+                            f"\n{ctx.p.name} withdraws to {origin} after the battle.")
+            if not ctx.def_won:
+                for ctx.p in ctx.def_participants:
+                    origin = ctx.reinforcer_origin.get(ctx.p.name)
+                    if (origin and ctx.p.name != ctx.enemy_marshal.name
+                            and ctx.p.strength > 0
+                            and not getattr(ctx.p, 'broken', False)
+                            and not getattr(ctx.p, 'retreated_this_turn', False)
+                            and ctx.p.location == ctx.battle_region_name):
+                        ctx.p.location = origin
+                        ctx.p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
+                        ctx.forced_retreat_msg += (
+                            f"\n{ctx.p.name} withdraws to {origin} after the battle.")
 
             # Clean up destroyed non-primary participants
             # PC15-1 sibling seam: the [S62] rout loop above can CAPTURE a
@@ -8939,28 +9160,31 @@ class CombatExecutor:
             # then deleted the prisoner the same tick his capture event was
             # written. destroy_marshal skips prisoners and tombstones the
             # truly destroyed.
-            for p in atk_participants + def_participants:
-                if p.name not in (marshal.name, enemy_marshal.name) and p.strength <= 0:
-                    p_victor = (enemy_marshal.nation if p in atk_participants
-                                else marshal.nation)
+            for ctx.p in ctx.atk_participants + ctx.def_participants:
+                if ctx.p.name not in (ctx.marshal.name, ctx.enemy_marshal.name) and ctx.p.strength <= 0:
+                    p_victor = (ctx.enemy_marshal.nation if ctx.p in ctx.atk_participants
+                                else ctx.marshal.nation)
                     # GE-1: a sovereign killed as a PARTICIPANT in another
                     # commander's battle is named like one killed leading it.
                     # (A participant the rout loop above already TOOK is
                     # named by that loop — only a fate decided HERE is.)
-                    _was_free = not getattr(p, "captured_by", "")
-                    _removed = world.destroy_marshal(p, cause="battle", victor=p_victor,
-                                                     location=battle_region_name)
-                    if getattr(p, "is_sovereign", False) and _was_free:
-                        destroyed_msg += self._fall_clause(world, p, _removed)
+                    ctx._was_free = not getattr(ctx.p, "captured_by", "")
+                    ctx._removed = ctx.world.destroy_marshal(ctx.p, cause="battle", victor=p_victor,
+                                                     location=ctx.battle_region_name)
+                    if getattr(ctx.p, "is_sovereign", False) and ctx._was_free:
+                        ctx.destroyed_msg += self._fall_clause(ctx.world, ctx.p, ctx._removed)
         self._stamp_death_on_report(
-            battle_result, world,
-            [marshal, enemy_marshal] + list(atk_participants) + list(def_participants))
+            ctx.battle_result, ctx.world,
+            [ctx.marshal, ctx.enemy_marshal] + list(ctx.atk_participants) + list(ctx.def_participants))
+        return _NEXT_STAGE
 
+    def _attack_advance_and_capture(self, ctx: AttackContext):
+        """Stage 17 of `_execute_attack`: The advance, the capture, the R1 pipeline and the result dict."""
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
-        conquered = False
-        conquest_msg = ""
+        ctx.conquered = False
+        ctx.conquest_msg = ""
         movement_msg = ""
-        capture_result = None  # IGR-X8: read by the event-parity block below
+        ctx.capture_result = None  # IGR-X8: read by the event-parity block below
         # IQ-2: who held the field before the capture — the battle event
         # stamps it so the enemy-phase dialog can read a French province
         # lost in a field battle as a LOSS (it rendered in victory green;
@@ -8969,58 +9193,58 @@ class CombatExecutor:
 
         # Check if defender retreated/fled (even in stalemate, empty territory = advance)
         defender_fled = (
-            enemy_marshal.strength > 0 and  # Defender survived
-            enemy_marshal.location != target_location  # But no longer in target territory
+            ctx.enemy_marshal.strength > 0 and  # Defender survived
+            ctx.enemy_marshal.location != ctx.target_location  # But no longer in target territory
         )
 
         # Move attacker to target location if:
         # 1. They won the battle (victor = attacker), OR
         # 2. Defender fled (even in stalemate, pursue into empty territory)
-        victor = battle_result.get('victor')
-        can_advance = (victor == marshal.name) or defender_fled
+        victor = ctx.battle_result.get('victor')
+        can_advance = (victor == ctx.marshal.name) or defender_fled
 
-        print(f"[ATTACK MOVEMENT] Checking: victor={victor}, marshal={marshal.name}, strength={marshal.strength}")
-        print(f"[ATTACK MOVEMENT] defender_fled={defender_fled}, enemy_location={enemy_marshal.location if enemy_marshal.strength > 0 else 'DESTROYED'}")
-        print(f"[ATTACK MOVEMENT] marshal.location={marshal.location}, target_location={target_location}")
+        print(f"[ATTACK MOVEMENT] Checking: victor={victor}, marshal={ctx.marshal.name}, strength={ctx.marshal.strength}")
+        print(f"[ATTACK MOVEMENT] defender_fled={defender_fled}, enemy_location={ctx.enemy_marshal.location if ctx.enemy_marshal.strength > 0 else 'DESTROYED'}")
+        print(f"[ATTACK MOVEMENT] marshal.location={ctx.marshal.location}, target_location={ctx.target_location}")
 
         # PT-F1: classify the region's OWNER before any advance — a pursuit
         # may only transfer soil of a court we are AT WAR with.
-        pursuit_block = self._pursuit_capture_guard(marshal, target_location, world)
+        ctx.pursuit_block = self._pursuit_capture_guard(ctx.marshal, ctx.target_location, ctx.world)
 
         # ARTILLERY: No advance on win — positional platform stays in place
         pursuit_halted = False
-        advance_losses = 0  # LV-11: the advance's own toll, shown beside the locked figure
+        ctx.advance_losses = 0  # LV-11: the advance's own toll, shown beside the locked figure
         # RS-3: the works halt — read once, before the advance and again at
         # the capture (a co-located victor never moved, but takes nothing
         # from a province whose garrison still fights either).
-        works_line = works_halt_line(world, marshal, world.get_region(target_location))
-        is_artillery_no_advance = getattr(marshal, 'artillery', False) and marshal.location != target_location
+        works_line = works_halt_line(ctx.world, ctx.marshal, ctx.world.get_region(ctx.target_location))
+        is_artillery_no_advance = getattr(ctx.marshal, 'artillery', False) and ctx.marshal.location != ctx.target_location
         if is_artillery_no_advance:
             if can_advance:
-                movement_msg = (f" {marshal.name}'s bombardment forces the enemy to retreat from {target_location}. "
+                movement_msg = (f" {ctx.marshal.name}'s bombardment forces the enemy to retreat from {ctx.target_location}. "
                                 f"Region must be secured by infantry to complete the capture.")
-            print(f"[ATTACK MOVEMENT] Artillery {marshal.name} stays at {marshal.location} (no advance on win)")
-        elif can_advance and marshal.strength > 0 and not getattr(self._executor, '_current_sortie', False):
-            if marshal.location != target_location:
+            print(f"[ATTACK MOVEMENT] Artillery {ctx.marshal.name} stays at {ctx.marshal.location} (no advance on win)")
+        elif can_advance and ctx.marshal.strength > 0 and not getattr(self._executor, '_current_sortie', False):
+            if ctx.marshal.location != ctx.target_location:
                 if works_line:
                     # RS-3: the victor halts before the works — the garrison
                     # inside still fights (the assault resolver's own rule:
                     # the attacker stays outside until the walls give way).
                     pursuit_halted = True
                     movement_msg = works_line
-                    print(f"[ATTACK MOVEMENT] RS-3 works halt: {marshal.name} stays at {marshal.location}")
-                elif pursuit_block and pursuit_block["arm"] == "neutral":
+                    print(f"[ATTACK MOVEMENT] RS-3 works halt: {ctx.marshal.name} stays at {ctx.marshal.location}")
+                elif ctx.pursuit_block and ctx.pursuit_block["arm"] == "neutral":
                     # The frontier halt: no uninvited army on a peaceful
                     # court's soil — the movement rule this seam mirrors.
                     pursuit_halted = True
                     movement_msg = (
-                        f" {marshal.name} halts at the frontier of "
-                        f"{target_location} — {pursuit_block['owner']}'s soil, "
-                        f"and we are not at war with {pursuit_block['owner']}.")
-                    print(f"[ATTACK MOVEMENT] PT-F1 frontier halt: {marshal.name} stays at {marshal.location}")
-                elif (getattr(world, "fleets", None)
+                        f" {ctx.marshal.name} halts at the frontier of "
+                        f"{ctx.target_location} — {ctx.pursuit_block['owner']}'s soil, "
+                        f"and we are not at war with {ctx.pursuit_block['owner']}.")
+                    print(f"[ATTACK MOVEMENT] PT-F1 frontier halt: {ctx.marshal.name} stays at {ctx.marshal.location}")
+                elif (getattr(ctx.world, "fleets", None)
                       and not self._naval_advance_allowed(
-                          marshal, target_location, world)):
+                          ctx.marshal, ctx.target_location, ctx.world)):
                     # NV-9: the ADVANCE is a move, and a move across water
                     # the enemy commands is the one thing the whole naval
                     # phase exists to refuse. The victor holds the field
@@ -9028,16 +9252,16 @@ class CombatExecutor:
                     # PT-F1 frontier halt directly above.
                     pursuit_halted = True
                     movement_msg = (
-                        f" {marshal.name} holds the shore — the enemy's "
+                        f" {ctx.marshal.name} holds the shore — the enemy's "
                         f"sail still command the water between him and "
-                        f"{target_location}, and no victory ashore puts "
+                        f"{ctx.target_location}, and no victory ashore puts "
                         f"boats under an army.")
-                    print(f"[ATTACK MOVEMENT] NV-9 naval halt: {marshal.name} stays at {marshal.location}")
+                    print(f"[ATTACK MOVEMENT] NV-9 naval halt: {ctx.marshal.name} stays at {ctx.marshal.location}")
                 else:
-                    print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
-                    marshal.move_to(target_location)
+                    print(f"[ATTACK MOVEMENT] MOVING {ctx.marshal.name}: {ctx.marshal.location} -> {ctx.target_location}")
+                    ctx.marshal.move_to(ctx.target_location)
                     # Movement attrition on post-battle advance (Phase 6.2.F)
-                    attrition_info = self._executor._calculate_movement_attrition(marshal, target_location, world)
+                    ctx.attrition_info = self._executor._calculate_movement_attrition(ctx.marshal, ctx.target_location, ctx.world)
                     # LV-11 (row EP F2): the report's strength line and the
                     # diorama's lead card are LOCKED at the battle figure
                     # (CO-5 — the war score reads it). The advance bleeds
@@ -9045,26 +9269,26 @@ class CombatExecutor:
                     # the next diorama opened him ~300 men lighter than the
                     # last one closed. Recorded here, shown beside the
                     # locked figure below; the lock point does not move.
-                    advance_losses = int(attrition_info.get("total_losses", 0) or 0)
-                    if defender_fled and victor != marshal.name:
-                        movement_msg = f" {enemy_marshal.name} retreats! {marshal.name} pursues into {target_location}."
+                    ctx.advance_losses = int(ctx.attrition_info.get("total_losses", 0) or 0)
+                    if defender_fled and victor != ctx.marshal.name:
+                        movement_msg = f" {ctx.enemy_marshal.name} retreats! {ctx.marshal.name} pursues into {ctx.target_location}."
                     else:
-                        movement_msg = f" {marshal.name} advances into {target_location}."
-                    if attrition_info["total_losses"] > 0:
-                        march_note = f" ({attrition_info['total_losses']:,} lost to march"
-                        if attrition_info.get("depot_bonus"):
+                        movement_msg = f" {ctx.marshal.name} advances into {ctx.target_location}."
+                    if ctx.attrition_info["total_losses"] > 0:
+                        march_note = f" ({ctx.attrition_info['total_losses']:,} lost to march"
+                        if ctx.attrition_info.get("depot_bonus"):
                             march_note += " — forward supply lines reduce losses"
                         march_note += ")"
                         movement_msg += march_note
             else:
                 print("[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
-            print(f"[ATTACK MOVEMENT] NOT moving: can_advance={can_advance}, strength={marshal.strength}")
+            print(f"[ATTACK MOVEMENT] NOT moving: can_advance={can_advance}, strength={ctx.marshal.strength}")
 
         # Check if territory can be captured
         # Use target_location (the region) not resolved_target (which might be marshal name)
         # ARTILLERY: Skip capture for artillery attacking from adjacent (no advance = no capture)
-        target_region = world.get_region(target_location)
+        ctx.target_region = ctx.world.get_region(ctx.target_location)
         # WO-31 (slice 17): a HOLD sortie fights from its own position and
         # never advances (`_current_sortie` above) — so, like the artillery
         # arm beside it, it does not TAKE the ground either. A province is
@@ -9072,111 +9296,111 @@ class CombatExecutor:
         # alternative (the flip as the spoils of a won sally) is recorded
         # and rejected in the module-level "Frontier Halts the Charge" block.
         sortie_stands_off = bool(
-            getattr(self._executor, '_current_sortie', False) and marshal.location != target_location)
-        if (target_region and target_region.controller != marshal.nation
+            getattr(self._executor, '_current_sortie', False) and ctx.marshal.location != ctx.target_location)
+        if (ctx.target_region and ctx.target_region.controller != ctx.marshal.nation
                 and not is_artillery_no_advance and not sortie_stands_off):
             # Find all remaining defenders (marshals from nations other than attacker)
             # NOTE: This check happens AFTER forced retreats, so fled defenders aren't counted
-            remaining_defenders = [
-                m for m in world.marshals.values()
-                if m.location == target_location and m.strength > 0 and m.nation != marshal.nation
-                and world.is_at_war(marshal.nation, m.nation)
+            ctx.remaining_defenders = [
+                m for m in ctx.world.marshals.values()
+                if m.location == ctx.target_location and m.strength > 0 and m.nation != ctx.marshal.nation
+                and ctx.world.is_at_war(ctx.marshal.nation, m.nation)
             ]
 
-            print(f"[CONQUEST CHECK] target_location={target_location}, controller={target_region.controller}")
-            print(f"[CONQUEST CHECK] remaining_defenders={[m.name for m in remaining_defenders]}")
+            print(f"[CONQUEST CHECK] target_location={ctx.target_location}, controller={ctx.target_region.controller}")
+            print(f"[CONQUEST CHECK] remaining_defenders={[m.name for m in ctx.remaining_defenders]}")
 
-            if pursuit_block is not None and not remaining_defenders:
+            if ctx.pursuit_block is not None and not ctx.remaining_defenders:
                 # PT-F1: no transfer. The ally arm advanced as liberator;
                 # the neutral arm halted at the frontier above. The player
                 # may still choose the war — the pin-15 dialogue, never a
                 # silent annexation.
                 if not pursuit_halted:
-                    conquest_msg = pursuit_block["message"]
+                    ctx.conquest_msg = ctx.pursuit_block["message"]
                 # PC15-D1(c): never staged for a jealousy-autonomous attack
                 # (see the auto-bombardment site above — same rule).
-                if (pursuit_block["arm"] == "neutral"
-                        and marshal.nation == world.player_nation
-                        and can_advance and marshal.strength > 0
-                        and not _attack_is_unordered(command)):
-                    staged_war_purpose = self._stage_war_purpose_selection(
-                        world, marshal.nation, pursuit_block["owner"])
-                    conquest_msg += (
+                if (ctx.pursuit_block["arm"] == "neutral"
+                        and ctx.marshal.nation == ctx.world.player_nation
+                        and can_advance and ctx.marshal.strength > 0
+                        and not _attack_is_unordered(ctx.command)):
+                    ctx.staged_war_purpose = self._stage_war_purpose_selection(
+                        ctx.world, ctx.marshal.nation, ctx.pursuit_block["owner"])
+                    ctx.conquest_msg += (
                         f" To seize it is to make war on "
-                        f"{pursuit_block['owner']} — choose our purpose, "
+                        f"{ctx.pursuit_block['owner']} — choose our purpose, "
                         f"or let the province stand.")
             # RS-3: the garrison still fights — the province is not taken by
             # a field win (the works line already printed if the victor was
             # halted outside; a co-located victor hears it here).
-            elif not remaining_defenders and works_line:
+            elif not ctx.remaining_defenders and works_line:
                 if works_line not in movement_msg:
-                    conquest_msg = works_line
+                    ctx.conquest_msg = works_line
             # If no defenders left, attempt capture (may start occupation if fortified)
-            elif not remaining_defenders:
-                conquest_from = target_region.controller or ""
-                capture_result = self._attempt_region_capture(
-                    marshal, target_location, world, game_state, had_garrison=True)
-                if capture_result["captured"]:
-                    conquered = True
-                    conquest_msg = f" {target_location} has been captured by {marshal.nation}!"
-                elif capture_result["occupation_started"]:
-                    conquest_msg = f" {capture_result['message']}"
-        elif (sortie_stands_off and target_region
-              and target_region.controller != marshal.nation
-              and can_advance and marshal.strength > 0):
+            elif not ctx.remaining_defenders:
+                conquest_from = ctx.target_region.controller or ""
+                ctx.capture_result = self._attempt_region_capture(
+                    ctx.marshal, ctx.target_location, ctx.world, ctx.game_state, had_garrison=True)
+                if ctx.capture_result["captured"]:
+                    ctx.conquered = True
+                    ctx.conquest_msg = f" {ctx.target_location} has been captured by {ctx.marshal.nation}!"
+                elif ctx.capture_result["occupation_started"]:
+                    ctx.conquest_msg = f" {ctx.capture_result['message']}"
+        elif (sortie_stands_off and ctx.target_region
+              and ctx.target_region.controller != ctx.marshal.nation
+              and can_advance and ctx.marshal.strength > 0):
             # WO-31: the sally won the field. Say what that does and does
             # not buy — shown = applied.
             _sortie_remaining = [
-                m for m in world.marshals.values()
-                if m.location == target_location and m.strength > 0
-                and m.nation != marshal.nation
-                and world.is_at_war(marshal.nation, m.nation)
+                m for m in ctx.world.marshals.values()
+                if m.location == ctx.target_location and m.strength > 0
+                and m.nation != ctx.marshal.nation
+                and ctx.world.is_at_war(ctx.marshal.nation, m.nation)
             ]
-            if not _sortie_remaining and pursuit_block is not None:
+            if not _sortie_remaining and ctx.pursuit_block is not None:
                 # Review round: on a third party's soil "the army that
                 # stands on it" would take nothing either (PT-F1) — say
                 # the true reason, in the reckless copy's own words.
-                conquest_msg = (
-                    f" {target_location} remains {pursuit_block['owner']}'s "
+                ctx.conquest_msg = (
+                    f" {ctx.target_location} remains {ctx.pursuit_block['owner']}'s "
                     f"soil — the sally was against the enemy standing on "
                     f"it, not the province.")
             elif not _sortie_remaining:
-                conquest_msg = (
-                    f" {marshal.name}'s sally clears {target_location} but "
+                ctx.conquest_msg = (
+                    f" {ctx.marshal.name}'s sally clears {ctx.target_location} but "
                     f"does not hold it — a province is taken by the army "
                     f"that stands on it.")
 
         # Build message with flanking info if applicable
         flanking_prefix = ""
-        if flanking_message:
-            flanking_prefix = f"\n{flanking_message}\n"
+        if ctx.flanking_message:
+            flanking_prefix = f"\n{ctx.flanking_message}\n"
 
         # R1 Pipeline: centralized vindication + authority + coalition
-        atk_pip_outcome = battle_result.get("outcome", "")
+        atk_pip_outcome = ctx.battle_result.get("outcome", "")
         atk_pip_won = "attacker" in atk_pip_outcome and "victory" in atk_pip_outcome
         def_pip_won = "defender" in atk_pip_outcome and "victory" in atk_pip_outcome
-        atk_pip_cas = int(battle_result.get("attacker", {}).get("casualties", 0))
-        def_pip_cas = int(battle_result.get("defender", {}).get("casualties", 0))
+        atk_pip_cas = int(ctx.battle_result.get("attacker", {}).get("casualties", 0))
+        def_pip_cas = int(ctx.battle_result.get("defender", {}).get("casualties", 0))
 
-        pipeline_out = self._post_combat_pipeline({
-            'attacker': marshal,
-            'defender': enemy_marshal,
-            'defender_nation': enemy_marshal.nation,
-            'battle_region': target_location,
+        ctx.pipeline_out = self._post_combat_pipeline({
+            'attacker': ctx.marshal,
+            'defender': ctx.enemy_marshal,
+            'defender_nation': ctx.enemy_marshal.nation,
+            'battle_region': ctx.target_location,
             'outcome': atk_pip_outcome,
             'attacker_won': atk_pip_won,
             'defender_won': def_pip_won,
             'attacker_casualties': atk_pip_cas,
             'defender_casualties': def_pip_cas,
-            'pre_battle_attacker_strength': pre_battle_attacker_strength,
-            'pre_battle_defender_strength': pre_battle_defender_strength,
-            'battle_result': battle_result,
-            'conquered': conquered,
+            'pre_battle_attacker_strength': ctx.pre_battle_attacker_strength,
+            'pre_battle_defender_strength': ctx.pre_battle_defender_strength,
+            'battle_result': ctx.battle_result,
+            'conquered': ctx.conquered,
             # NP-V: the per-side Presence verdict, computed above on the
             # true battle rosters BEFORE the victor advances (the Shadow
             # and the aura must share one audience).
-            'attacker_sovereign_present': _atk_sovereign,
-            'defender_sovereign_present': _def_sovereign,
+            'attacker_sovereign_present': ctx._atk_sovereign,
+            'defender_sovereign_present': ctx._def_sovereign,
             # Skip steps already handled inline by _execute_attack
             'skip_coordination_clear': True,
             'skip_log_battle_event': True,
@@ -9189,67 +9413,67 @@ class CombatExecutor:
             'skip_last_combat_result': True,
             'skip_relationships': True,
             'skip_exhaustion': True,
-        }, world)
+        }, ctx.world)
 
-        vindication_msg = pipeline_out.get('vindication_msg', '')
-        vindication_result = pipeline_out.get('vindication_result')
+        vindication_msg = ctx.pipeline_out.get('vindication_msg', '')
+        vindication_result = ctx.pipeline_out.get('vindication_result')
         # EC-W3: the materiel bill line (both sides' losses named)
-        materiel_msg = pipeline_out.get('materiel_msg', '')
+        materiel_msg = ctx.pipeline_out.get('materiel_msg', '')
         # NP-V: the Emperor's own prestige, said out loud (review lens 7:
         # an emperor-led defeat moved authority silently and read exactly
         # like one of Ney's).
-        sovereign_prestige_msg = pipeline_out.get('sovereign_prestige_msg', '')
+        sovereign_prestige_msg = ctx.pipeline_out.get('sovereign_prestige_msg', '')
 
         # Build auto-bombardment preamble (Session 68) — prepended before combat description
         auto_bombard_preamble = ""
-        if auto_bombardment_messages:
-            auto_bombard_preamble = "\n".join(auto_bombardment_messages) + "\n\n"
+        if ctx.auto_bombardment_messages:
+            auto_bombard_preamble = "\n".join(ctx.auto_bombardment_messages) + "\n\n"
 
         # Build final message with optional drill cancellation prefix, counter-punch, cavalry charge, and covering
         # SR-2e AAR-10: a reinforcer whose order stood through the battle
         # (and the withdrawal and rout blocks above) is told what resumes.
         kept_order_msg = ""
-        for _kept_name in _kept_order_names:
-            _km = world.marshals.get(_kept_name)
+        for _kept_name in ctx._kept_order_names:
+            _km = ctx.world.marshals.get(_kept_name)
             _ko = getattr(_km, "strategic_order", None) if _km else None
             if _km is None or _ko is None or getattr(_km, "strength", 0) <= 0:
                 continue
             from backend.commands.strategic import kept_order_line
             kept_order_msg += "\n" + kept_order_line(_km, _ko)
-        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + materiel_msg + sovereign_prestige_msg + forced_retreat_msg + kept_order_msg
-        if drill_cancelled_message:
-            battle_message = drill_cancelled_message + battle_message
+        battle_message = ctx.counter_punch_message + ctx.cavalry_charge_message + ctx.covering_message + flanking_prefix + auto_bombard_preamble + ctx.battle_result["description"] + ctx.destroyed_msg + movement_msg + ctx.conquest_msg + vindication_msg + materiel_msg + sovereign_prestige_msg + ctx.forced_retreat_msg + kept_order_msg
+        if ctx.drill_cancelled_message:
+            battle_message = ctx.drill_cancelled_message + battle_message
         # W6-4: the muster block rides every resolved player attack —
         # prepended compact (favorable odds resolve straight through; a
         # confirmed re-issue still shows who mustered and why).
-        if muster_preview is not None:
-            battle_message = (self._format_muster_lines(muster_preview)
+        if ctx.muster_preview is not None:
+            battle_message = (self._format_muster_lines(ctx.muster_preview)
                               + "\n\n" + battle_message)
 
         # W6-2 Dynamic Battle Naming: battle_name was composed once above
         # (right before the diplo record) — reused here for the result/event.
 
-        result = {
+        ctx.result = {
             "success": True,
             "message": battle_message,
-            "battle_name": battle_name,
+            "battle_name": ctx.battle_name,
             "events": [{
                 "type": "battle",
-                "battle_name": battle_name,
-                "attacker": battle_result["attacker"],
-                "defender": battle_result["defender"],
+                "battle_name": ctx.battle_name,
+                "attacker": ctx.battle_result["attacker"],
+                "defender": ctx.battle_result["defender"],
                 # Side nations so the enemy-phase dialog can color the outcome
                 # by WHO WON (the victor's side), not a hardcoded roster guess.
-                "attacker_nation": battle_result.get("attacker_nation", ""),
-                "defender_nation": battle_result.get("defender_nation", ""),
-                "outcome": battle_result["outcome"],
-                "victor": battle_result["victor"],
-                "enemy_destroyed": enemy_destroyed,
-                "region_conquered": conquered,
+                "attacker_nation": ctx.battle_result.get("attacker_nation", ""),
+                "defender_nation": ctx.battle_result.get("defender_nation", ""),
+                "outcome": ctx.battle_result["outcome"],
+                "victor": ctx.battle_result["victor"],
+                "enemy_destroyed": ctx.enemy_destroyed,
+                "region_conquered": ctx.conquered,
                 # IQ-2: present only for a real transfer (the client's
                 # `_taken_from_player` reads it; absent = the old render).
                 **({"captured_from": conquest_from}
-                   if conquered and conquest_from else {}),
+                   if ctx.conquered and conquest_from else {}),
                 # PC-1 (quiet-France played campaign, Aug 3 2026): this was
                 # `resolved_target`, which is only a REGION when the attacker
                 # named a region. `resolved_target` is reassigned to a region
@@ -9264,21 +9488,26 @@ class CombatExecutor:
                 # `enemy_phase_dialog.gd:291` and `main.gd:1977-1978` print
                 # "⚑ Ney captured! ⚑" when a PROVINCE fell. The comment at
                 # ~:5114 already warned against exactly this substitution.
-                "region_name": target_location if conquered else None,
-                "flanking_bonus": flanking_bonus,
-                "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
+                "region_name": ctx.target_location if ctx.conquered else None,
+                "flanking_bonus": ctx.flanking_bonus,
+                "flanking_origins": list(ctx.flanking_info["unique_origins"]) if ctx.flanking_info["unique_origins"] else [],
                 "vindication": vindication_result,
-                "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
-                "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False),
-                "cavalry_terrain_message": battle_result.get("cavalry_terrain_message"),
+                "attacker_forced_retreat": ctx.battle_result.get("attacker", {}).get("forced_retreat", False),
+                "defender_forced_retreat": ctx.battle_result.get("defender", {}).get("forced_retreat", False),
+                "cavalry_terrain_message": ctx.battle_result.get("cavalry_terrain_message"),
                 # Fort degradation (for enemy phase dialog display)
-                "fortification_degraded": battle_result.get("fortification_degraded", False),
-                "fortification_old": battle_result.get("fortification_old", 0),
-                "fortification_new": battle_result.get("fortification_new", 0),
+                "fortification_degraded": ctx.battle_result.get("fortification_degraded", False),
+                "fortification_old": ctx.battle_result.get("fortification_old", 0),
+                "fortification_new": ctx.battle_result.get("fortification_new", 0),
             }],
-            "new_state": game_state
+            "new_state": ctx.game_state
         }
+        return _NEXT_STAGE
 
+    def _attack_compose_result(self, ctx: AttackContext):
+        """Stage 18 of `_execute_attack`: The battle diorama and the result's riders (muster, last stand, overwatch)."""
+        from backend.game_logic import jealousy as _jealousy
+        from backend.game_logic.battle_diorama import build_battle_diorama
         # ════════════════════════════════════════════════════════════
         # BD (Battle Diorama): the self-contained tableau payload — one
         # builder for the solo and coordinated paths, fog-gated inside.
@@ -9287,43 +9516,43 @@ class CombatExecutor:
         # event (the enemy-phase transport, filtered with the action).
         # ════════════════════════════════════════════════════════════
         _iq5_faith_captions = (
-            self._faith_captions(world, marshal, enemy_marshal, _iq5_faith)
-            if (_iq5_faith and self.TRUST_NAMES_ITS_PRICE) else None)
+            self._faith_captions(ctx.world, ctx.marshal, ctx.enemy_marshal, ctx._iq5_faith)
+            if (ctx._iq5_faith and self.TRUST_NAMES_ITS_PRICE) else None)
         # IQ-5 review (E + F): the diorama's contingents read each man's
         # REALISED loss — share + rubble on the coordinated path, a lone
         # destroyed corps' applied loss on the solo path — the figures the
         # ally-loss line, the participant rows and the report print. Copies:
         # `atk_distribution` / `def_distribution` themselves are not touched.
-        _bd_atk_dist, _bd_def_dist = atk_distribution, def_distribution
+        _bd_atk_dist, _bd_def_dist = ctx.atk_distribution, ctx.def_distribution
         if self.BOTH_SIDES_NAME_THEIR_SCOPE:
-            if _iq5_atk_rubble:
-                _bd_atk_dist = dict(atk_distribution)
-                for _n, _x in _iq5_atk_rubble.items():
-                    _bd_atk_dist[_n] = int(_bd_atk_dist.get(_n, 0) or 0) + int(_x)
-            if _iq5_def_rubble:
-                _bd_def_dist = dict(def_distribution)
-                for _n, _x in _iq5_def_rubble.items():
-                    _bd_def_dist[_n] = int(_bd_def_dist.get(_n, 0) or 0) + int(_x)
-            if not atk_distribution and marshal.name in _iq5_solo_applied:
-                _bd_atk_dist = {marshal.name: int(_iq5_solo_applied[marshal.name])}
-            if not def_distribution and enemy_marshal.name in _iq5_solo_applied:
-                _bd_def_dist = {enemy_marshal.name:
-                                int(_iq5_solo_applied[enemy_marshal.name])}
+            if ctx._iq5_atk_rubble:
+                _bd_atk_dist = dict(ctx.atk_distribution)
+                for ctx._n, _x in ctx._iq5_atk_rubble.items():
+                    _bd_atk_dist[ctx._n] = int(_bd_atk_dist.get(ctx._n, 0) or 0) + int(_x)
+            if ctx._iq5_def_rubble:
+                _bd_def_dist = dict(ctx.def_distribution)
+                for ctx._n, _x in ctx._iq5_def_rubble.items():
+                    _bd_def_dist[ctx._n] = int(_bd_def_dist.get(ctx._n, 0) or 0) + int(_x)
+            if not ctx.atk_distribution and ctx.marshal.name in ctx._iq5_solo_applied:
+                _bd_atk_dist = {ctx.marshal.name: int(ctx._iq5_solo_applied[ctx.marshal.name])}
+            if not ctx.def_distribution and ctx.enemy_marshal.name in ctx._iq5_solo_applied:
+                _bd_def_dist = {ctx.enemy_marshal.name:
+                                int(ctx._iq5_solo_applied[ctx.enemy_marshal.name])}
         _bd_payload = build_battle_diorama(
-            world=world, attacker=marshal, defender=enemy_marshal,
-            battle_result=battle_result, battle_region=battle_region_name,
-            atk_participants=atk_participants,
-            def_participants=def_participants,
-            pre_strengths=_bd_pre_strengths,
+            world=ctx.world, attacker=ctx.marshal, defender=ctx.enemy_marshal,
+            battle_result=ctx.battle_result, battle_region=ctx.battle_region_name,
+            atk_participants=ctx.atk_participants,
+            def_participants=ctx.def_participants,
+            pre_strengths=ctx._bd_pre_strengths,
             atk_distribution=_bd_atk_dist,
             def_distribution=_bd_def_dist,
-            attacker_reinforcements=attacker_reinforcements,
-            defender_reinforcements=defender_reinforcements,
-            region_conquered=conquered,
-            total_engaged=total_engaged_strength,
+            attacker_reinforcements=ctx.attacker_reinforcements,
+            defender_reinforcements=ctx.defender_reinforcements,
+            region_conquered=ctx.conquered,
+            total_engaged=ctx.total_engaged_strength,
             # PT-D2 muster-promise parity: every WILL JOIN name renders
             # with SOME status even when the resolve ladder dropped him.
-            muster_rows=(muster_preview or {}).get("rows"),
+            muster_rows=(ctx.muster_preview or {}).get("rows"),
             # IQ-5 R11: the optional `faith` caption — passed only when
             # there is one, so the call is unchanged otherwise.
             **({"faith": _iq5_faith_captions} if _iq5_faith_captions else {}),
@@ -9335,61 +9564,61 @@ class CombatExecutor:
             # applied here, on the lead's own contingent, once the advance
             # has run. Shape-agnostic: any contingent dict marked lead and
             # named for the attacker takes it.
-            if advance_losses > 0:
+            if ctx.advance_losses > 0:
                 _stack = [_bd_payload]
                 while _stack:
                     _node = _stack.pop()
                     if isinstance(_node, dict):
                         if (_node.get("lead") is True
-                                and _node.get("name") == marshal.name
+                                and _node.get("name") == ctx.marshal.name
                                 and "remaining" in _node):
-                            _node["advance_losses"] = int(advance_losses)
+                            _node["advance_losses"] = int(ctx.advance_losses)
                             _node["after_advance"] = int(
-                                max(0, int(_node.get("remaining", 0)) - int(advance_losses)))
+                                max(0, int(_node.get("remaining", 0)) - int(ctx.advance_losses)))
                         _stack.extend(_node.values())
                     elif isinstance(_node, list):
                         _stack.extend(_node)
-            result["battle_diorama"] = _bd_payload
-            result["events"][0]["diorama"] = _bd_payload
+            ctx.result["battle_diorama"] = _bd_payload
+            ctx.result["events"][0]["diorama"] = _bd_payload
 
         # Phase 6.1: Pass cavalry terrain message through as separate field
         # so Godot can display it in structured UI (not just embedded in description text)
-        if battle_result.get("cavalry_terrain_message"):
-            result["cavalry_terrain_message"] = battle_result["cavalry_terrain_message"]
+        if ctx.battle_result.get("cavalry_terrain_message"):
+            ctx.result["cavalry_terrain_message"] = ctx.battle_result["cavalry_terrain_message"]
 
         # W6-4: structured muster block rides the result for UI rendering.
-        if muster_preview is not None:
-            result["muster_preview"] = muster_preview
+        if ctx.muster_preview is not None:
+            ctx.result["muster_preview"] = ctx.muster_preview
 
         # W6-7: a cornered PLAYER marshal's last-stand choice surfaces
         # synchronously on this response (the enemy-phase path reaches the
         # player via the stored marshal.pending_interrupt + typed answers).
-        for _fate_m in (marshal, enemy_marshal):
+        for _fate_m in (ctx.marshal, ctx.enemy_marshal):
             _fate_pi = getattr(_fate_m, "pending_interrupt", None)
             if (_fate_pi
                     and _fate_pi.get("interrupt_type") == "last_stand"
-                    and _fate_m.nation == world.player_nation):
-                result["pending_interrupt"] = _fate_pi
-                result["requires_input"] = True
+                    and _fate_m.nation == ctx.world.player_nation):
+                ctx.result["pending_interrupt"] = _fate_pi
+                ctx.result["requires_input"] = True
                 break
 
         # Berthier's After-Action Report
-        if battle_result.get("battle_report"):
-            result["battle_report"] = battle_result["battle_report"]
+        if ctx.battle_result.get("battle_report"):
+            ctx.result["battle_report"] = ctx.battle_result["battle_report"]
             # LV-11 (row EP F2): the advance's toll beside the locked figure
             # — "22,181 → 21,863 after the advance". Display only; the
             # casualty figures the war score reads are untouched.
-            _cs = result["battle_report"].get("casualty_summary")
-            if isinstance(_cs, dict) and advance_losses > 0:
-                _cs["attacker_advance_losses"] = int(advance_losses)
+            _cs = ctx.result["battle_report"].get("casualty_summary")
+            if isinstance(_cs, dict) and ctx.advance_losses > 0:
+                _cs["attacker_advance_losses"] = int(ctx.advance_losses)
                 _cs["attacker_after_advance"] = int(
-                    max(0, int(_cs.get("attacker_remaining", 0)) - int(advance_losses)))
+                    max(0, int(_cs.get("attacker_remaining", 0)) - int(ctx.advance_losses)))
             # W6-6: the enemy commander's line rides the report.
-            if battle_result.get("enemy_voice"):
-                result["battle_report"]["enemy_voice"] = battle_result["enemy_voice"]
+            if ctx.battle_result.get("enemy_voice"):
+                ctx.result["battle_report"]["enemy_voice"] = ctx.battle_result["enemy_voice"]
             # Marshal Voice Tier 1: so does the player's own commander's.
-            if battle_result.get("marshal_voice"):
-                result["battle_report"]["marshal_voice"] = battle_result["marshal_voice"]
+            if ctx.battle_result.get("marshal_voice"):
+                ctx.result["battle_report"]["marshal_voice"] = ctx.battle_result["marshal_voice"]
             # §0.6.8 item 4c: a victory that raised the winner's reward
             # expectation says so in the report at the moment it happens,
             # not just in tomorrow's dispatch.
@@ -9415,44 +9644,44 @@ class CombatExecutor:
                 get_expectation, get_satisfaction, is_decisive_victory,
                 is_dotation_world, raise_expectation, restate_reward_notice,
             )
-            if is_dotation_world(world):
+            if is_dotation_world(ctx.world):
                 _rise_winner = None
                 _rise_prev = 0
-                _f4_outcome = str(battle_result.get("raw_outcome")
-                                  or battle_result.get("outcome") or "")
-                _f4_atk = int(battle_result.get(
+                _f4_outcome = str(ctx.battle_result.get("raw_outcome")
+                                  or ctx.battle_result.get("outcome") or "")
+                _f4_atk = int(ctx.battle_result.get(
                     "attacker_raw_casualties",
-                    battle_result.get("attacker_casualties", 0)) or 0)
-                _f4_def = int(battle_result.get(
+                    ctx.battle_result.get("attacker_casualties", 0)) or 0)
+                _f4_def = int(ctx.battle_result.get(
                     "defender_raw_casualties",
-                    battle_result.get("defender_casualties", 0)) or 0)
+                    ctx.battle_result.get("defender_casualties", 0)) or 0)
                 _f4_lead, _f4_loser = None, None
                 _f4_won_cas, _f4_lost_cas = 0, 0
                 if _f4_outcome in ("attacker_victory",
                                    "attacker_tactical_victory"):
-                    _f4_lead, _f4_loser = marshal, enemy_marshal
+                    _f4_lead, _f4_loser = ctx.marshal, ctx.enemy_marshal
                     _f4_won_cas, _f4_lost_cas = _f4_atk, _f4_def
                 elif _f4_outcome in ("defender_victory",
                                      "defender_tactical_victory"):
-                    _f4_lead, _f4_loser = enemy_marshal, marshal
+                    _f4_lead, _f4_loser = ctx.enemy_marshal, ctx.marshal
                     _f4_won_cas, _f4_lost_cas = _f4_def, _f4_atk
                 if (_f4_lead is not None
                         and is_decisive_victory(
                             _f4_outcome, _f4_won_cas, _f4_lost_cas,
                             loser=_f4_loser)):
                     _rise_prev = get_expectation(_f4_lead)
-                    if raise_expectation(_f4_lead, world,
+                    if raise_expectation(_f4_lead, ctx.world,
                                          "decisive victory"):
                         _rise_winner = _f4_lead
                 if (_rise_winner is not None
-                        and _rise_winner.nation == world.player_nation):
+                        and _rise_winner.nation == ctx.world.player_nation):
                     _exp_now = get_expectation(_rise_winner)
                     if _exp_now > _rise_prev:
-                        result["battle_report"]["expectation_note"] = (
-                            f"Victory raises {marshal_title(world, _rise_winner.name)}'s "
+                        ctx.result["battle_report"]["expectation_note"] = (
+                            f"Victory raises {marshal_title(ctx.world, _rise_winner.name)}'s "
                             f"expectation of reward — he now looks for "
                             f"{_exp_now}g/turn (holds "
-                            f"{get_satisfaction(_rise_winner, world)}g).")
+                            f"{get_satisfaction(_rise_winner, ctx.world)}g).")
                         # UX23-A: a victory is the one thing that raises an
                         # expectation MID-TURN, and the reward rail was
                         # reconciled only at the turn boundary — so a standing
@@ -9463,7 +9692,7 @@ class CombatExecutor:
                         # "Grant rente — 120g/turn" and the treasury paid 180.
                         # Re-states an EXISTING row only; opening one belongs
                         # to the per-turn pass, which owns the grace clock.
-                        restate_reward_notice(world, _rise_winner)
+                        restate_reward_notice(ctx.world, _rise_winner)
 
             # HC-2 "The Butcher's Ledger Speaks" (gate §3): past the dead
             # threshold the report closes on the war's running cost —
@@ -9473,16 +9702,16 @@ class CombatExecutor:
             )
             _hc2_own = None
             _hc2_foe = None
-            if marshal is not None and marshal.nation == world.player_nation:
-                _hc2_own, _hc2_foe = marshal, enemy_marshal
-            elif (enemy_marshal is not None
-                    and enemy_marshal.nation == world.player_nation):
-                _hc2_own, _hc2_foe = enemy_marshal, marshal
+            if ctx.marshal is not None and ctx.marshal.nation == ctx.world.player_nation:
+                _hc2_own, _hc2_foe = ctx.marshal, ctx.enemy_marshal
+            elif (ctx.enemy_marshal is not None
+                    and ctx.enemy_marshal.nation == ctx.world.player_nation):
+                _hc2_own, _hc2_foe = ctx.enemy_marshal, ctx.marshal
             if _hc2_own is not None and _hc2_foe is not None:
                 _hc2_note = compose_campaign_cost_note(
-                    world, _hc2_own.nation, _hc2_foe.nation)
+                    ctx.world, _hc2_own.nation, _hc2_foe.nation)
                 if _hc2_note:
-                    result["battle_report"]["campaign_cost_note"] = _hc2_note
+                    ctx.result["battle_report"]["campaign_cost_note"] = _hc2_note
 
         # Jealousy v3.2 (spec §11): Berthier notes jealous conduct on the
         # field — display-only rider on the battle report (GR6), player
@@ -9493,52 +9722,55 @@ class CombatExecutor:
         # composer is shared with the two battle paths that never had a note
         # at all (the glorious charge and the reckless auto-charge).
         _jl_note, _jl_reported = _jealousy.compose_battle_jealousy_note(
-            world, (marshal, enemy_marshal), _jl_resolutions)
-        if _jl_note and isinstance(result.get("battle_report"), dict):
-            result["battle_report"]["jealousy_note"] = _jl_note
+            ctx.world, (ctx.marshal, ctx.enemy_marshal), ctx._jl_resolutions)
+        if _jl_note and isinstance(ctx.result.get("battle_report"), dict):
+            ctx.result["battle_report"]["jealousy_note"] = _jl_note
         else:
             # No battle report to write on — the note was never delivered,
             # so the men it would have named are owed their bullet.
             _jl_reported = []
         _jealousy.emit_unreported_resolutions(
-            world, _jl_resolutions, _jl_reported)
+            ctx.world, ctx._jl_resolutions, _jl_reported)
 
         # IQ-5 R9 (PR-X3): trust's price named where it is paid — composed
         # here for EVERY caller of this seam (player, AI, strategic,
         # autonomous; attacker or defender), from the resolve-time records
         # of non-lead participants whose trust factor applied. Absent when
         # empty (GR6 display-only).
-        if (_iq5_faith and self.TRUST_NAMES_ITS_PRICE
-                and isinstance(result.get("battle_report"), dict)):
+        if (ctx._iq5_faith and self.TRUST_NAMES_ITS_PRICE
+                and isinstance(ctx.result.get("battle_report"), dict)):
             _trust_note = self._compose_trust_note(
-                world, marshal, enemy_marshal, _iq5_faith)
+                ctx.world, ctx.marshal, ctx.enemy_marshal, ctx._iq5_faith)
             if _trust_note:
-                result["battle_report"]["trust_note"] = _trust_note
+                ctx.result["battle_report"]["trust_note"] = _trust_note
 
         # Auto-bombardment data (Session 68): pass through for Godot display
-        if auto_bombardment_results:
-            result["auto_bombardment"] = True
-            result["auto_bombardment_results"] = [
-                r.get("bombardment_result", {}) for r in auto_bombardment_results
+        if ctx.auto_bombardment_results:
+            ctx.result["auto_bombardment"] = True
+            ctx.result["auto_bombardment_results"] = [
+                r.get("bombardment_result", {}) for r in ctx.auto_bombardment_results
             ]
-            result["support_bombardment_total_damage"] = int(support_bombardment_total_damage)
+            ctx.result["support_bombardment_total_damage"] = int(ctx.support_bombardment_total_damage)
 
         # Overwatch data (Session 68): pass through for battle report
-        if overwatch_count > 0:
-            result["overwatch_count"] = int(overwatch_count)
-            result["overwatch_penalty_pct"] = int(overwatch_count * 3)
+        if ctx.overwatch_count > 0:
+            ctx.result["overwatch_count"] = int(ctx.overwatch_count)
+            ctx.result["overwatch_penalty_pct"] = int(ctx.overwatch_count * 3)
 
         # Coordination preview removed — narrative observation only (Gate 4).
+        return _NEXT_STAGE
 
+    def _attack_tutorial_and_casualty_lines(self, ctx: AttackContext):
+        """Stage 19 of `_execute_attack`: The coordination tutorial, IQ-5 / CA8-1 / CO-6 casualty lines, the capture choice."""
         # ════════════════════════════════════════════════════════════
         # FIRST-TIME COORDINATION TUTORIAL (Session 66)
         # Fires ONCE per campaign when player's marshals achieve combined arms.
         # ════════════════════════════════════════════════════════════
-        if (not world.coordination_tutorial_shown
-                and attacker_coord.get("type_count", 0) >= 2
-                and marshal.nation == world.player_nation):
-            world.coordination_tutorial_shown = True
-            result["coordination_tutorial"] = {
+        if (not ctx.world.coordination_tutorial_shown
+                and ctx.attacker_coord.get("type_count", 0) >= 2
+                and ctx.marshal.nation == ctx.world.player_nation):
+            ctx.world.coordination_tutorial_shown = True
+            ctx.result["coordination_tutorial"] = {
                 "title": "BERTHIER'S REPORT",
                 "message": (
                     '"Sire, our marshals fight as one corps for the first time! '
@@ -9571,13 +9803,13 @@ class CombatExecutor:
         from backend.game_logic.battle_report import _join_names
         _rn = self._reinf_name
         reinf_messages = []
-        arrived_names = []
-        for r in attacker_reinforcements:
+        ctx.arrived_names = []
+        for r in ctx.attacker_reinforcements:
             if r.get("arrived"):
                 reinf_messages.append(
                     f"{_rn(r['marshal'])}'s forces arrived to reinforce "
-                    f"{_rn(marshal.name)}!")
-                arrived_names.append(r["marshal"])
+                    f"{_rn(ctx.marshal.name)}!")
+                ctx.arrived_names.append(r["marshal"])
             else:
                 reason = r.get("reason", "unknown")
                 _who = _rn(r["marshal"])
@@ -9616,14 +9848,14 @@ class CombatExecutor:
                     # least visible.
                     friendly_reason = (
                         f"{_who} did not march. His quarrel with "
-                        f"{_rn(marshal.name)} kept him where he stood.")
+                        f"{_rn(ctx.marshal.name)} kept him where he stood.")
                 elif reason == "hostility_withheld":
                     # PT-D3: he was ordered, and he is openly hostile to
                     # the man he was ordered to save. That is a −20 on his
                     # arrival roll, not weather.
                     friendly_reason = (
                         f"{_who} took his time. He and "
-                        f"{_rn(marshal.name)} are openly at odds, and it "
+                        f"{_rn(ctx.marshal.name)} are openly at odds, and it "
                         f"showed on the march.")
                 else:
                     friendly_reason = f"{_who} could not reach the battlefield in time."
@@ -9646,22 +9878,22 @@ class CombatExecutor:
         # display list `_atk_named` is built beside the raw `arrived_names`,
         # never from it, so the distribution lookups below still key on the
         # roster key (a humanised "Archduke John" finds no share).
-        _atk_named = [_rn(_n) for _n in arrived_names]
-        _atk_loss_names = list(arrived_names)
+        _atk_named = [_rn(_n) for _n in ctx.arrived_names]
+        _atk_loss_names = list(ctx.arrived_names)
         if self.BOTH_SIDES_NAME_THEIR_SCOPE:
-            for _n in _iq5_atk_contrib:
-                if _n not in arrived_names and _rn(_n) not in _atk_named:
-                    _atk_named.append(_rn(_n))
-            for _p in atk_participants:
-                if (_p.name != marshal.name and _p.name not in _atk_loss_names
-                        and int(atk_distribution.get(_p.name, 0) or 0) > 0):
-                    _atk_loss_names.append(_p.name)
-        _co6_committed = int(locals().get("_co6_committed_attacker", 0) or 0)
+            for ctx._n in ctx._iq5_atk_contrib:
+                if ctx._n not in ctx.arrived_names and _rn(ctx._n) not in _atk_named:
+                    _atk_named.append(_rn(ctx._n))
+            for ctx._p in ctx.atk_participants:
+                if (ctx._p.name != ctx.marshal.name and ctx._p.name not in _atk_loss_names
+                        and int(ctx.atk_distribution.get(ctx._p.name, 0) or 0) > 0):
+                    _atk_loss_names.append(ctx._p.name)
+        _co6_committed = int(getattr(ctx, "_co6_committed_attacker", 0) or 0)
         if _atk_named and _co6_committed > 0:
-            _co6_lead = int(locals().get("_co6_lead_pre_strength", 0) or 0)
+            _co6_lead = int(getattr(ctx, "_co6_lead_pre_strength", 0) or 0)
             _co6_total = _co6_lead + _co6_committed
             joined = ", ".join(_atk_named)
-            if arrived_names:
+            if ctx.arrived_names:
                 # The arrival line above names the lead, so the CO-6 line
                 # keeps its literal, subject-less form (the CA8 census pins
                 # it).
@@ -9678,7 +9910,7 @@ class CombatExecutor:
                 # with BOTH_SIDES_NAME_THEIR_SCOPE up: without it
                 # `_atk_named` is the arrivals alone.)
                 reinf_messages.append(
-                    f"{_rn(marshal.name)} fought with "
+                    f"{_rn(ctx.marshal.name)} fought with "
                     f"{_join_names(_atk_named)} beside him — massed effective "
                     f"strength: {_co6_lead:,} (lead) + {_co6_committed:,} "
                     f"committed ({joined}) = {_co6_total:,}.")
@@ -9687,17 +9919,17 @@ class CombatExecutor:
         # IQ-5 review (E): each man's realised battle loss — his distributed
         # share plus the rubble `take_casualties` zeroed (empty with the
         # lever down, so the sum is the pre-IQ-5 share sum).
-        if _atk_loss_names and atk_distribution:
+        if _atk_loss_names and ctx.atk_distribution:
             ally_casualties = sum(
-                int(atk_distribution.get(name, 0) or 0)
-                + int(_iq5_atk_rubble.get(name, 0))
+                int(ctx.atk_distribution.get(name, 0) or 0)
+                + int(ctx._iq5_atk_rubble.get(name, 0))
                 for name in _atk_loss_names)
             if ally_casualties > 0:
-                if not arrived_names:
+                if not ctx.arrived_names:
                     # IQ-5 review (D): the co-located attacker, named.
                     _atk_plural = "allies" if len(_atk_loss_names) > 1 else "ally"
                     reinf_messages.append(
-                        f"{_rn(marshal.name)}'s supporting {_atk_plural} lost "
+                        f"{_rn(ctx.marshal.name)}'s supporting {_atk_plural} lost "
                         f"{int(ally_casualties):,} men.")
                 elif len(_atk_loss_names) == 1:
                     reinf_messages.append(
@@ -9718,7 +9950,7 @@ class CombatExecutor:
         # causes (the campaign's other headline), and on reading two
         # casualty figures for one battle learned to distrust both.
         # ════════════════════════════════════════════════════════════════
-        def_arrived = [r["marshal"] for r in defender_reinforcements
+        def_arrived = [r["marshal"] for r in ctx.defender_reinforcements
                        if r.get("arrived")]
         # IQ-5 R3: the defender's co-located stack, mirrored. Review (C):
         # the prose list is built beside the raw `def_arrived`, and the lead
@@ -9727,21 +9959,21 @@ class CombatExecutor:
         _def_named = [_rn(_n) for _n in def_arrived]
         _def_loss_names = list(def_arrived)
         if self.BOTH_SIDES_NAME_THEIR_SCOPE:
-            for _n in _iq5_def_contrib:
-                if _n not in def_arrived and _rn(_n) not in _def_named:
-                    _def_named.append(_rn(_n))
-            for _p in def_participants:
-                if (_p.name != enemy_marshal.name
-                        and _p.name not in _def_loss_names
-                        and int(def_distribution.get(_p.name, 0) or 0) > 0):
-                    _def_loss_names.append(_p.name)
-        _co6_committed_def = int(locals().get("_co6_committed_defender", 0) or 0)
+            for ctx._n in ctx._iq5_def_contrib:
+                if ctx._n not in def_arrived and _rn(ctx._n) not in _def_named:
+                    _def_named.append(_rn(ctx._n))
+            for ctx._p in ctx.def_participants:
+                if (ctx._p.name != ctx.enemy_marshal.name
+                        and ctx._p.name not in _def_loss_names
+                        and int(ctx.def_distribution.get(ctx._p.name, 0) or 0) > 0):
+                    _def_loss_names.append(ctx._p.name)
+        _co6_committed_def = int(getattr(ctx, "_co6_committed_defender", 0) or 0)
         if _def_named and _co6_committed_def > 0:
-            _co6_lead_def = int(locals().get("_co6_lead_pre_strength_def", 0) or 0)
+            _co6_lead_def = int(getattr(ctx, "_co6_lead_pre_strength_def", 0) or 0)
             joined_def = ", ".join(_def_named)
             if def_arrived:
                 reinf_messages.append(
-                    f"{_rn(enemy_marshal.name)} was reinforced — massed effective "
+                    f"{_rn(ctx.enemy_marshal.name)} was reinforced — massed effective "
                     f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
                     f"committed ({joined_def}) = "
                     f"{_co6_lead_def + _co6_committed_def:,}.")
@@ -9749,25 +9981,25 @@ class CombatExecutor:
                 # Nobody marched in: the stack stood there already. "Was
                 # reinforced" would be false, so the co-located wording.
                 reinf_messages.append(
-                    f"{_rn(enemy_marshal.name)} fought with "
+                    f"{_rn(ctx.enemy_marshal.name)} fought with "
                     f"{_join_names(_def_named)} beside him — massed effective "
                     f"strength: {_co6_lead_def:,} (lead) + {_co6_committed_def:,} "
                     f"committed ({joined_def}) = "
                     f"{_co6_lead_def + _co6_committed_def:,}.")
-        if _def_loss_names and def_distribution:
+        if _def_loss_names and ctx.def_distribution:
             # IQ-5 review (E): share + rubble, as the attacker side.
             def_ally_casualties = sum(
-                int(def_distribution.get(name, 0) or 0)
-                + int(_iq5_def_rubble.get(name, 0))
+                int(ctx.def_distribution.get(name, 0) or 0)
+                + int(ctx._iq5_def_rubble.get(name, 0))
                 for name in _def_loss_names)
             if def_ally_casualties > 0:
                 _plural = "allies" if len(_def_loss_names) > 1 else "ally"
                 reinf_messages.append(
-                    f"{_rn(enemy_marshal.name)}'s supporting {_plural} lost "
+                    f"{_rn(ctx.enemy_marshal.name)}'s supporting {_plural} lost "
                     f"{int(def_ally_casualties):,} men.")
 
         if reinf_messages:
-            result["reinforcement_messages"] = reinf_messages
+            ctx.result["reinforcement_messages"] = reinf_messages
 
         # SF-CL-1 "The forecast keeps its word" (October 3, 2026): the
         # resolver's massed effective strength as a STRUCTURED key beside the
@@ -9777,36 +10009,36 @@ class CombatExecutor:
         # "expect about X … up to Y" beside what fought, on the same α-scaled
         # basis the preview priced. Display only; stamped on every coordinated
         # battle (the solo path has no committed sum: the lead IS the mass).
-        if THE_REPORT_NAMES_THE_MASSED_STRENGTH and "_co6_lead_pre_strength" in locals():
-            _ms_lead = int(locals().get("_co6_lead_pre_strength", 0) or 0)
-            _ms_committed = int(locals().get("_co6_committed_attacker", 0) or 0)
-            result["massed_strength"] = {
+        if THE_REPORT_NAMES_THE_MASSED_STRENGTH and hasattr(ctx, "_co6_lead_pre_strength"):
+            _ms_lead = int(getattr(ctx, "_co6_lead_pre_strength", 0) or 0)
+            _ms_committed = int(getattr(ctx, "_co6_committed_attacker", 0) or 0)
+            ctx.result["massed_strength"] = {
                 "lead": _ms_lead,
                 "committed": _ms_committed,
                 "total": _ms_lead + _ms_committed,
                 # The men who ARRIVED (roster keys) — the diorama's contingent
                 # list is capped, so the ledger reads the arrivals here.
-                "arrived": [str(_n) for _n in (locals().get("arrived_names") or [])],
+                "arrived": [str(_n) for _n in (getattr(ctx, "arrived_names", None) or [])],
                 # The men the committed sum COUNTED: arrivals plus the corps
                 # standing on the field beside the lead (IQ-5 R3's own list —
                 # a co-located corps rolls no die and never "arrives").
-                "contributors": [str(_n) for _n in (locals().get("_iq5_atk_contrib") or [])],
+                "contributors": [str(_n) for _n in (getattr(ctx, "_iq5_atk_contrib", None) or [])],
                 # And the shelf: every reinforcer who did not, with the
                 # resolver's own reason (the diorama's shelf is capped too).
                 "absent": [[str(_r.get("marshal")), str(_r.get("reason") or "unknown")]
-                           for _r in (locals().get("attacker_reinforcements") or [])
+                           for _r in (getattr(ctx, "attacker_reinforcements", None) or [])
                            if isinstance(_r, dict) and not _r.get("arrived")],
             }
 
         # Mark as free action for Davout's Counter-Punch
-        if is_counter_punch:
-            result["free_action"] = True
-            result["counter_punch_used"] = True
+        if ctx.is_counter_punch:
+            ctx.result["free_action"] = True
+            ctx.result["counter_punch_used"] = True
 
         # Phase 6.2.E: Flag pending capture choice for popup
-        if world.pending_capture_choice:
-            result["pending_capture_choice"] = True
-            result["capture_data"] = world.pending_capture_choice
+        if ctx.world.pending_capture_choice:
+            ctx.result["pending_capture_choice"] = True
+            ctx.result["capture_data"] = ctx.world.pending_capture_choice
             # IGR-X8: the field-battle conquest (the most common capture)
             # never stated the question in the message — a typed-path player
             # had strictly less information than one clicking. Same priced
@@ -9815,18 +10047,21 @@ class CombatExecutor:
             # a stale pending from an EARLIER marshal's strategic capture
             # must not append "Your forces have taken Tyrol" to an unrelated
             # battle report.
-            if (conquered and marshal.nation == world.player_nation
-                    and world.pending_capture_choice.get("stage") != "estate"):
+            if (ctx.conquered and ctx.marshal.nation == ctx.world.player_nation
+                    and ctx.world.pending_capture_choice.get("stage") != "estate"):
                 from backend.models.world_state import capture_choice_prompt
-                result["message"] += capture_choice_prompt(
-                    world.pending_capture_choice)
+                ctx.result["message"] += capture_choice_prompt(
+                    ctx.world.pending_capture_choice)
 
         # IGR-X8: an AI field-battle conquest rendered a bare " CAPTURED!"
         # in the enemy-phase dialog while garrison/unopposed conquests said
         # "(plundered)"/"(secured)" — the decided choice now rides the event.
-        if conquered and capture_result and capture_result.get("capture_choice"):
-            result["events"][0]["capture_choice"] = capture_result["capture_choice"]
+        if ctx.conquered and ctx.capture_result and ctx.capture_result.get("capture_choice"):
+            ctx.result["events"][0]["capture_choice"] = ctx.capture_result["capture_choice"]
+        return _NEXT_STAGE
 
+    def _attack_trust_and_exhaustion(self, ctx: AttackContext):
+        """Stage 20 of `_execute_attack`: Reinforcement trust penalties, SR-7d doctrine, exhaustion, Berthier's advisory."""
         # ════════════════════════════════════════════════════════════
         # REINFORCEMENT TRUST PENALTIES (Session 61a)
         # Non-Literal, non-Hostile marshals who fail to arrive lose -3 trust.
@@ -9840,14 +10075,14 @@ class CombatExecutor:
         # SR-7d DC-3b (DOCTRINES_SPEC §4, RV-7, RV-16): the doctrine-decided
         # arrivals and no-shows, named, and Berthier's "the corps marched apart
         # and arrived together" — composed for every caller of this seam.
-        if isinstance(result.get("battle_report"), dict):
+        if isinstance(ctx.result.get("battle_report"), dict):
             _dlines = self._doctrine_lines(
-                world, marshal, enemy_marshal,
-                attacker_reinforcements, defender_reinforcements)
+                ctx.world, ctx.marshal, ctx.enemy_marshal,
+                ctx.attacker_reinforcements, ctx.defender_reinforcements)
             if _dlines:
-                result["battle_report"]["doctrine_lines"] = _dlines
+                ctx.result["battle_report"]["doctrine_lines"] = _dlines
 
-        all_reinforcements = attacker_reinforcements + defender_reinforcements
+        all_reinforcements = ctx.attacker_reinforcements + ctx.defender_reinforcements
         for reinf_result in all_reinforcements:
             # CA9 review round: `neutral_soil` added. F13 flips a
             # marshal who WAS marching to `arrived: False` because the
@@ -9866,15 +10101,15 @@ class CombatExecutor:
             if not reinf_result["arrived"] and reinf_result["reason"] not in (
                     "literal_personality", "fate_intervened",
                     "eyes_on_a_crown", "neutral_soil", "doctrine_delayed"):
-                failing = world.marshals.get(reinf_result["marshal"])
+                failing = ctx.world.marshals.get(reinf_result["marshal"])
                 if failing:
                     # Determine which primary this marshal was trying to reinforce
                     primary_name = (
-                        marshal.name if failing.nation == marshal.nation
-                        else enemy_marshal.name
+                        ctx.marshal.name if failing.nation == ctx.marshal.nation
+                        else ctx.enemy_marshal.name
                     )
-                    rel = failing.get_relationship(primary_name)
-                    if rel != -2:  # Hostile gets no penalty
+                    ctx.rel = failing.get_relationship(primary_name)
+                    if ctx.rel != -2:  # Hostile gets no penalty
                         failing.trust.modify(-3)
                         # FA-N1: the friendly-fire -5 in `_execute_bombardment`
                         # asks; this write never did. The checker refuses a non-player
@@ -9889,15 +10124,15 @@ class CombatExecutor:
                         # and the end-turn hoist re-raises it (R3-2).
                         from backend.commands.disobedience import stage_redemption
                         stage_redemption(
-                            world, failing,
-                            result=(result if marshal.nation == world.player_nation
+                            ctx.world, failing,
+                            result=(ctx.result if ctx.marshal.nation == ctx.world.player_nation
                                     else None))
 
         # Attach reinforcement data to result for display (N3)
-        if attacker_reinforcements or defender_reinforcements:
-            result["reinforcement_results"] = {
-                "attacker": attacker_reinforcements,
-                "defender": defender_reinforcements,
+        if ctx.attacker_reinforcements or ctx.defender_reinforcements:
+            ctx.result["reinforcement_results"] = {
+                "attacker": ctx.attacker_reinforcements,
+                "defender": ctx.defender_reinforcements,
             }
 
         # ════════════════════════════════════════════════════════════
@@ -9905,20 +10140,20 @@ class CombatExecutor:
         # Increment attack counter AFTER attack, but NOT for counter-punch
         # Counter-punch is reactive, not spam
         # ════════════════════════════════════════════════════════════
-        if not is_counter_punch:
-            marshal.increment_attacks_this_turn()
+        if not ctx.is_counter_punch:
+            ctx.marshal.increment_attacks_this_turn()
 
         # ════════════════════════════════════════════════════════════
         # BERTHIER BOMBARDMENT ADVISORY (Artillery Session 2)
         # Alert when enemy fortifications are crumbling after bombardment
         # ════════════════════════════════════════════════════════════
-        if getattr(marshal, 'artillery', False) and not enemy_destroyed:
-            defender_fort = getattr(enemy_marshal, 'defense_bonus', 0)
-            target_reg = world.get_region(target_location)
+        if getattr(ctx.marshal, 'artillery', False) and not ctx.enemy_destroyed:
+            defender_fort = getattr(ctx.enemy_marshal, 'defense_bonus', 0)
+            target_reg = ctx.world.get_region(ctx.target_location)
             has_fort_building = target_reg.has_building("fortification") if target_reg and hasattr(target_reg, 'has_building') else False
             if defender_fort <= 0 and not has_fort_building:
-                result["bombardment_advisory"] = (
-                    f"Sire, the enemy fortifications at {target_location} are crumbling. "
+                ctx.result["bombardment_advisory"] = (
+                    f"Sire, the enemy fortifications at {ctx.target_location} are crumbling. "
                     f"An infantry assault would now have favorable odds."
                 )
 
@@ -9927,10 +10162,10 @@ class CombatExecutor:
         # asked. One stage at the attack's own reply covers every in-pipeline
         # write for the player's man; the checker refuses an AI attacker.
         from backend.commands.disobedience import stage_redemption
-        stage_redemption(world, marshal, result=result)
+        stage_redemption(ctx.world, ctx.marshal, result=ctx.result)
 
         return self._attach_staged_war_purpose(
-            result, world, staged_war_purpose)
+            ctx.result, ctx.world, ctx.staged_war_purpose)
 
     def _execute_form_square(self, command: Dict, game_state: Dict) -> Dict:
         """

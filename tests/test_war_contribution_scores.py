@@ -1528,11 +1528,10 @@ def test_execute_attack_inline_source_calls_detect_battle_theater_before_record(
     pipeline call sets `skip_diplo_record=True`). That inline path must
     also detect theater and forward the payload.
     """
-    import inspect
+    from tests._attack_stages import attack_source
 
-    from backend.commands import combat_executor
-
-    src = inspect.getsource(combat_executor.CombatExecutor._execute_attack)
+    # CODE-2a: "the attack" is the driver plus its stages, in run order.
+    src = attack_source()
 
     detect_pos = src.find("detect_battle_theater(")
     record_pos = src.find("record_diplo_battle(")

@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 12, 2026).** The three most recent landed rows:
-- **S7b (October 12, 2026) — CODE-3 + DD-C + CODE-1 batch 5 — LANDED.** `errors.report(exc, site)`; the save path's typed `SaveError`, every fault a sentence + a WARNING. **Silent handlers 367 → 6; levers 429 → 358; 40 / 40 injected faults reached the player** (§110; pins `tests/test_dd_c_nothing_fails_silently.py`). **NEXT = S8b, CODE-2a** (`CODE_HEALTH_PLAN.md` §CODE-2: `_execute_attack` staged).
+- **S8b (October 12, 2026) — CODE-2a + CODE-1 batch 6 — LANDED.** `_execute_attack` = twenty `_attack_*` stages behind one `AttackContext`. **Functions over 500 lines 34 → 33; levers 358 → 231; the series byte-identical** (`CODE_HEALTH_PLAN.md` §CODE-2; pins `tests/test_code2a_the_attack_is_staged.py`). **NEXT = S9, UXR-2**.
+- **S7b (October 12, 2026) — CODE-3 + DD-C + CODE-1 batch 5 — LANDED.** `errors.report(exc, site)`; the save path's typed `SaveError`. **Silent handlers 367 → 6; levers 429 → 358; 40 / 40 injected faults reached the player** (§110; pins `tests/test_dd_c_nothing_fails_silently.py`).
 - **S8 (October 12, 2026) — DD-1 STEP 3 "THE VERBS" + CODE-1 batch 4 — LANDED.** `ask <ally> to return <province>` (SFR-D42: ONE gate `treaty.can_ask_return`, ONE answer `ask_return_score`), `bid for <court>` (SFR-D40: `place_allegiance_bid`), the truce's followers announced (SFR-D28). **All three FIXED; levers 496 → 429** (§109; pins `tests/test_dd1_s8_the_verbs.py`).
-- **S7 Slice B (October 11, 2026) — DD-1 STEP 2a "`can_sign`" — LANDED.** ONE verdict for every surface and the ratifier. **DD1-1 … 4 + DD1-12, SFR-B1 / B2 / B5 / D34 FIXED; the sweep 11 / 2 → 0 / 0; diplomacy 8.5** (§108; pins `tests/test_dd1_s7_can_sign.py`). S7 Slice A + S6 + S5: §105–§107.
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 
@@ -149,9 +149,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 | If you're modifying... | Read these first |
 |------------------------|------------------|
-| Combat damage/modifiers | `marshal.py` (get_*_modifier), `combat.py` (resolve_combat), `combat_executor.py` (_execute_attack, _execute_bombardment), `docs/MULTI_MARSHAL_SPEC.md` (coordination bonuses) |
+| Combat damage/modifiers | `marshal.py` (get_*_modifier), `combat.py` (resolve_combat), `combat_executor.py` (the `_attack_*` stages, _execute_bombardment), `docs/MULTI_MARSHAL_SPEC.md` (coordination bonuses) |
 | Multi-marshal coordination | `docs/MULTI_MARSHAL_SPEC.md`, `combat_executor.py` (_calculate_coordination_context, _calculate_reinforcements, _calculate_overwatch), `marshal.py` (transient bonus fields) |
-| Combat execution (attack/bombard/charge) | `combat_executor.py` (all _execute_* methods, post-combat pipeline, coordination, reinforcements, overwatch) |
+| Combat execution (attack/bombard/charge) | `combat_executor.py` (`_execute_attack` = 20 `_attack_*` stages on `AttackContext` (docstring = index); post-combat pipeline, coordination, reinforcements, overwatch) |
 | Marshal abilities | `personality_modifiers.py`, `marshal.py`, `combat.py`, `docs/ADDING_CONTENT.md` (wiring checklist), `marshal_overview.py` (_WIRED_ABILITY_MARSHALS) |
 | Fortify/Drill mechanics | `tactical_executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
 | Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py`, `docs/V2B_DEFIANCE_SPEC.md` |
@@ -174,7 +174,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger, POST /cancel_order) |
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
-| Win/Loss relationships | `relationship.py` (formulas, participants, process), `combat_executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
+| Win/Loss relationships | `relationship.py` (formulas, participants, process), `combat_executor.py` (`_attack_relationships_and_report`), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
 | Jealousy / glory / marshal petitions | `docs/JEALOUSY_SPEC.md` (§0 build record FIRST), `jealousy.py`, `marshal.py` (get_relationship derived −1, get_effective_skill crown, JEALOUSY_* constants), `combat_executor.py` (pipeline 9.5/10.5), `turn_manager.py` (process_turn + autonomous attacks), `cooldown_manager.py` (marshal_petition queue slot), `main.py` (/marshal_petition_response) |
 | Marshal recruitment | `docs/MARSHAL_RECRUITMENT_SPEC.md`, `recruitment.py`, `economy_executor.py` (_execute_recruit_marshal), `enemy_ai.py` (P1.75 rung), `europe_1805.json` (marshal_pool), `modding/validator.py` |
 | Naval / fleets / blockade / expeditions | `docs/NAVAL_SPEC.md` (§14 landing record FIRST; §18 for yards, coasts and port anchors), `naval.py`, `naval_executor.py`, `europe_1805.json` (navies block), `movement_executor.py` + `combat_executor.py` + `enemy_ai.py` (crossing-gate seams), `diplomacy.py` (process_trade_income blockade arm), `ledger.py` (Admiralty block), `modding/validator.py` (_validate_navies), `tools/gen_port_anchors.py` (the coast audit: run `--audit` and `--check` after any map-art, `is_coastal` or dockyard change) |

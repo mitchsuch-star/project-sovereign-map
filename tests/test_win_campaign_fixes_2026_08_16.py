@@ -326,10 +326,11 @@ class TestInterruptPromotion:
 
 class TestOutOfRangeNamesThePlace:
     def test_the_refusal_carries_the_resolved_location(self):
-        import inspect
-        from backend.commands.combat_executor import CombatExecutor
-        source = inspect.getsource(CombatExecutor._execute_attack)
-        assert "cannot reach {target}{where}" in source
+        # CODE-2a: "the attack" is the driver plus its stages; inside a
+        # stage the target is `ctx.target`.
+        from tests._attack_stages import attack_source
+        source = attack_source()
+        assert "cannot reach {ctx.target}{where}" in source
 
     @pytest.mark.parametrize("target,location,expected", [
         ("Mack", "La Mancha", " (La Mancha)"),

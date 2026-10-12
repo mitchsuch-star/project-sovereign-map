@@ -212,5 +212,8 @@ class TestTheHelper:
                     and getattr(sub.func, "id", None) == "works_halt_line")
                 if calls:
                     callers[node.name] = calls
-        assert callers.get("_execute_attack", 0) >= 2, callers   # the field win + the auto-bombard exit
+        # CODE-2a: the attack is a driver plus stages — count them together.
+        from tests._attack_stages import is_attack_function
+        attack_calls = sum(n for name, n in callers.items() if is_attack_function(name))
+        assert attack_calls >= 2, callers   # the field win + the auto-bombard exit
         assert callers.get("_execute_glorious_charge", 0) >= 2, callers

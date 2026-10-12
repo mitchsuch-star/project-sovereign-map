@@ -74,8 +74,8 @@ class TestCA81DefendingArmyIsAnArmy:
         The fix is a mirror, not a move — a regression that swapped which
         side is reported would pass every test above.
         """
-        import inspect
-        src = inspect.getsource(CombatExecutor._execute_attack)
+        from tests._attack_stages import attack_source
+        src = attack_source()
         assert "Massed effective strength" in src
         assert "His supporting ally lost" in src
 

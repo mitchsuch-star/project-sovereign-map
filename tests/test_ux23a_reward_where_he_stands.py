@@ -880,7 +880,8 @@ class TestThePriceOnTheButtonIsNeverStale:
         src = inspect.getsource(combat_executor)
         note_at = src.index('result["battle_report"]["expectation_note"]')
         window = src[note_at:note_at + 1400]
-        assert "restate_reward_notice(world, _rise_winner)" in window, (
+        # CODE-2a: the attack's shared `world` is `ctx.world` in its stages.
+        assert "restate_reward_notice(ctx.world, _rise_winner)" in window, (
             "the expectation_note seam is where the engine already knows the "
             "expectation rose; the rail has to learn it there too")
 

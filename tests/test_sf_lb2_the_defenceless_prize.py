@@ -574,7 +574,8 @@ class TestAProvinceOutranksAFriendlyNamesake:
         """WO-13's order stands: an ENEMY marshal named like a province is
         the target; the namesake arm runs only after no enemy answered."""
         src = (BACKEND / "commands" / "combat_executor.py").read_text(encoding="utf-8")
-        enemy_first = src.index("enemy_by_name, enemy_error = self._executor._fuzzy_match_enemy(target, world, marshal.nation)")
+        # CODE-2a: the attack's shared locals are `ctx.` fields now.
+        enemy_first = src.index("ctx.enemy_by_name, enemy_error = self._executor._fuzzy_match_enemy(ctx.target, ctx.world, ctx.marshal.nation)")
         namesake = src.index("A_PROVINCE_OUTRANKS_A_FRIENDLY_NAMESAKE and friendly_match")
         assert enemy_first < namesake
 

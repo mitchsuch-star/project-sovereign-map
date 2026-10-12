@@ -69,6 +69,17 @@ GD = ROOT / "godot-client" / "project-sovereign" / "scripts"
 CE = CombatExecutor
 
 
+def _attack_tree():
+    """CODE-2a: "the attack" is `_execute_attack`'s driver plus every stage
+    it runs — one Module holding each function's tree, so an `ast.walk`
+    reads the whole attack as it once read the one function."""
+    from tests._attack_stages import attack_functions
+    return ast.Module(
+        body=[ast.parse(textwrap.dedent(inspect.getsource(getattr(CE, name))))
+              for name in attack_functions()],
+        type_ignores=[])
+
+
 @pytest.fixture(autouse=True)
 def _iq5_measures_the_full_strength_split(monkeypatch):
     """IQ5-R1 (Score Finish Step 3 / SR-7a, October 2, 2026) changed the
@@ -1283,7 +1294,7 @@ class TestTheMassAndLossLinesAreNotFailures:
         appends (arrivals, mass, allied losses) is NOT."""
         markers = [m.lower() for m in _markers(_body("main.gd",
                                                      "_display_reinforcement_messages"))]
-        tree = ast.parse(textwrap.dedent(inspect.getsource(CE._execute_attack)))
+        tree = _attack_tree()
 
         def text_of(node):
             return "".join(n.value for n in ast.walk(node)
@@ -1526,7 +1537,7 @@ class TestEveryReinforcementNameIsProse:
     def test_every_no_show_reason_names_through_the_display_function(self):
         """AST census: no `friendly_reason` interpolates the raw
         `r['marshal']` / `marshal.name` — only `_who` / `_rn(...)`."""
-        tree = ast.parse(textwrap.dedent(inspect.getsource(CE._execute_attack)))
+        tree = _attack_tree()
         reasons = [n.value for n in ast.walk(tree)
                    if isinstance(n, ast.Assign)
                    and any(isinstance(t, ast.Name) and t.id == "friendly_reason"

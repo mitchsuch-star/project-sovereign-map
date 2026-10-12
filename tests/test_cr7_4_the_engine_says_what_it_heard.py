@@ -348,11 +348,20 @@ class TestUntilTheBattleIsWonReadsThisOrdersBattle:
         result` is written, `last_combat_turn` is written in the same block."""
         import inspect
         import backend.commands.combat_executor as ce
-        for func in (ce.CombatExecutor._post_combat_pipeline, ce.CombatExecutor._execute_attack):
-            src = inspect.getsource(func)
+        from tests._attack_stages import attack_source
+        # CODE-2a: the attack is the driver plus its stages, and its shared
+        # `world` is `ctx.world` there.
+        seams = (
+            ("_post_combat_pipeline",
+             inspect.getsource(ce.CombatExecutor._post_combat_pipeline),
+             "last_combat_turn = int(world.current_turn)"),
+            ("_execute_attack", attack_source(),
+             "last_combat_turn = int(ctx.world.current_turn)"),
+        )
+        for name, src, stamp in seams:
             block = src[src.index("last_combat_result"):]
             block = block[:block.index("victory")]
-            assert "last_combat_turn = int(world.current_turn)" in block, func.__name__
+            assert stamp in block, name
 
 
 class TestTheSweepIsUnmoved:

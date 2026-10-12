@@ -465,15 +465,25 @@ class TestBleedByTheMenCommitted:
         assert ce._distribute_casualties(4000, [lead, ally], lead=lead) == {"Ney": 2000, "Davout": 2000}
 
     def test_both_call_sites_pass_their_lead(self):
+        def _lead_name(v):
+            if isinstance(v, ast.Name):
+                return v.id
+            if (isinstance(v, ast.Attribute) and isinstance(v.value, ast.Name)
+                    and v.value.id == "ctx"):
+                return f"ctx.{v.attr}"
+            return None
+
         src = Path(CE.__file__).read_text(encoding="utf-8")
         tree = ast.parse(src)
         leads = []
         for node in ast.walk(tree):
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                     and node.func.attr == "_distribute_casualties"):
-                kw = {k.arg: getattr(k.value, "id", None) for k in node.keywords}
+                kw = {k.arg: _lead_name(k.value) for k in node.keywords}
                 leads.append(kw.get("lead"))
-        assert sorted(x for x in leads if x) == ["enemy_marshal", "marshal"], leads
+        # CODE-2a: both sites live in an attack stage, where the two
+        # principals are `ctx.marshal` / `ctx.enemy_marshal`.
+        assert sorted(x for x in leads if x) == ["ctx.enemy_marshal", "ctx.marshal"], leads
 
 
 # ═════════════════════════ XR-3: an in-place capture marches nowhere ═════

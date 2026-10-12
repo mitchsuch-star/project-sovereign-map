@@ -660,6 +660,87 @@ every move. *(Corrected October 12, 2026: this line used to name a
 **Done when:** no function over 500 lines in the eight named; the census pin
 caps "functions over 500 lines" at the new count and ratchets down.
 
+**CODE-2a LANDING RECORD — `_execute_attack` (Pre-Deploy S8b, October 12,
+2026).** *The stage list, written before the cut (recipe step 1).* The
+function (lines 6021–9933 on `3ed94831`, 3,913 lines) is cut at TOP-LEVEL
+statement boundaries only — no statement of its body crosses a cut, the
+largest single one is 386 lines — into twenty stages, each
+`_attack_<stage>(self, ctx)`, in this order:
+
+| # | Stage | Its header in the old body | What it holds |
+|---|---|---|---|
+| 1 | `_attack_open` | "Auto-break square formation (Session 67)" | the square break, the war-purpose stager, counter-punch, drill and moved-artillery gates |
+| 2 | `_attack_reckless_cavalry` | "CAVALRY RECKLESSNESS CHECK (Phase 3)" | the glorious-charge popup or the AI auto-charge |
+| 3 | `_attack_nearest_target` | "ESP-EV-4 fix (July 12, 2026)" | a target left open, or a named nation (PT-H3), resolved to the nearest foe |
+| 4 | `_attack_resolve_target` | "FUZZY MATCHING" | fuzzy match, EC-9 coalition guard, ESP-EV-4 guessed-target guard |
+| 5 | `_attack_range_check` | "RANGE CHECK" | the target's location and the range check |
+| 6 | `_attack_engagement_and_crossing` | "NORMAL ATTACK LOGIC" | engagement lock, the DEF-5 crossing gate, NV-9 guns over a strait |
+| 7 | `_attack_war_and_bombard_target` | "AUTO WAR DECLARATION" | auto war declaration; region-name bombardment targeting, garrisons, raids |
+| 8 | `_attack_routing_and_muster` | "BOMBARDMENT ROUTING (§3)" | opening guidance, bombardment routing, PF-7, the W6-4 muster gate |
+| 9 | `_attack_cover_flank_charge` | "ALLY COVERS RETREAT SYSTEM" | the covering ally, the flank origin, Ney's two-region charge |
+| 10 | `_attack_reinforce_and_coordinate` | "REINFORCEMENT (Phase 7, Session 61a)" | arrivals, coordination, casualty participants, NP-V presence |
+| 11 | `_attack_overwatch_and_auto_bombard` | "ARTILLERY OVERWATCH (Session 68)" | the overwatch count, SUPPORT auto-bombardment |
+| 12 | `_attack_dead_defender` | "DEAD-DEFENDER CHECK" | the win without a battle |
+| 13 | `_attack_resolve_combat` | "RESOLVE COMBAT" | `resolve_battle`, solo or coordinated, the casualty distribution |
+| 14 | `_attack_battle_record` | "COORDINATION CONTEXT FOR BATTLE REPORT" | coordination context, W6-1 counts, W6-2 name, W6-6 voices |
+| 15 | `_attack_relationships_and_report` | "WIN/LOSS RELATIONSHIP FORMULA" | relationships, the observation re-pick, kept orders, destruction |
+| 16 | `_attack_forced_retreat` | "FORCED RETREAT" | broken armies retreat or break before the advance |
+| 17 | `_attack_advance_and_capture` | "ATTACKER MOVEMENT & REGION CONQUEST LOGIC" | the advance, the capture, the R1 pipeline, the result dict |
+| 18 | `_attack_compose_result` | "BD (Battle Diorama)" | the diorama and the result's riders |
+| 19 | `_attack_tutorial_and_casualty_lines` | "FIRST-TIME COORDINATION TUTORIAL" | the tutorial, IQ-5 / CA8-1 / CO-6 casualty lines, the capture choice |
+| 20 | `_attack_trust_and_exhaustion` | "REINFORCEMENT TRUST PENALTIES" | trust penalties, SR-7d doctrine, exhaustion, Berthier's advisory |
+
+**The contract the cut keeps.** One `AttackContext` (`@dataclass(slots=True,
+repr=False, eq=False)`, module level) built once at the driver's head and
+never on the wire. The six parameters are init fields; a name read or written
+in MORE than one stage is a `field(init=False)` with NO default, so reading it
+before any stage assigned it raises (`AttributeError`) exactly where the
+local raised (`UnboundLocalError`); a name used in one stage stays a plain
+local of that stage. The old body's ten `locals().get("x", d)` / `"x" in
+locals()` reads of conditionally-assigned names become `getattr(ctx, "x", d)`
+/ `hasattr(ctx, "x")` — exact only because the fields have no default. A
+non-final stage that falls off its end returns the module sentinel
+`_NEXT_STAGE`; every early `return` is kept verbatim, so a `return` of a
+value that may be `None` still ends the attack with `None` (the driver tests
+`is not _NEXT_STAGE`, not truthiness). A function-local import read by a
+later stage is repeated at that stage's head; the nested
+`_stage_war_purpose_for_attack` stays in stage 1 and rides `ctx`. The cut is
+mechanical (`scratchpad` tool `stage_attack.py`, AST + `symtable`), and
+refuses unless every stage's symbol table shows no old local read as a
+global.
+
+*The outcome (✅ LANDED October 12, 2026).* Of the old body's 420 locals,
+**100 ride the context** (6 of them the parameters) and 320 stayed local to
+one stage; 10 of 10 `locals()` reads rewritten; two imports repeated at
+stage 18's head (`jealousy as _jealousy`, `build_battle_diorama`). Stage sizes
+73 – 414 lines; **functions over 500 lines 34 → 33**, `FUNCTIONS_OVER_500_CAP`
+lowered. **One departure from recipe step 4, said so:** the twenty stages
+were cut in ONE application of the tool, not one at a time with the fast
+gate between — the cut is a single mechanical transform whose proof is the
+symbol-table check plus the byte-identical replay, and a per-stage run would
+have gated the same transform twenty times. **The net:** `BASELINE_SERIES` +
+M1–M7 byte-identical with no re-record, the CR-1 corpus, every test file
+naming the combat executor (6,780 with the series and the ratchet) — the
+only failures were **30 source-text pins** in 20 files that read "the
+attack" as one function's text or named a now-`ctx.` local; each re-pointed,
+none weakened (two agents on disjoint files, the rule "same assertion, where
+the code now lives"), through the new `tests/_attack_stages.py`
+(`attack_stage_names()` read off the driver, `attack_functions()`,
+`is_attack_function()`, `attack_source()`, `stage_source()`). The F2 shadow
+pin (`test_the_humaniser_is_the_module_level_name_in_the_combat_executor`)
+now forbids a bare function-local humaniser import in every stage. One
+sharpening found on the way: IQ-2's conquest-stamp anchor `conquest_from =
+target_region.controller` also matched the charge's `charge_conquest_from`
+line; its `ctx.` form cannot. **The shape is pinned** in
+`tests/test_code2a_the_attack_is_staged.py`: the twenty stages in order, the
+driver's body nothing but the context, the loop and the last stage, the
+identity test `is not _NEXT_STAGE`, no stage over 500, the context's slots
+and no-default contract, and an attack's result carrying no `AttackContext`
+or sentinel. No rule moved — `SYSTEMS_REFERENCE.md` gains no section. Next
+in CODE-2: **CODE-2b** at `PRE_DEPLOY_PLAN.md` §2's S10 (the monster
+functions the deep dives did not absorb — DD-1 took `_process_dialogue_choice`
+and `_ratify_treaty`); S9 (UXR-2) comes first.
+
 ## CODE-3 — Every broad except speaks (1 session, with DD-C)
 
 **The rule.** `except Exception` is allowed only through

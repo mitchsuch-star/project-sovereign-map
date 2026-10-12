@@ -737,9 +737,11 @@ class TestTheCensus:
         src = _src("backend/commands/combat_executor.py")
         i = src.index("failing.trust.modify(-3)")
         window = src[i:i + 1600]
-        assert "stage_redemption(" in window and "world, failing," in window
+        # CODE-2a: the write lives in an attack stage — the shared locals are
+        # `ctx.world` / `ctx.result` / `ctx.marshal` there.
+        assert "stage_redemption(" in window and "ctx.world, failing," in window
         # R2-5: the battle result is a carrier only for the player's own attack
-        assert "result if marshal.nation == world.player_nation" in window
+        assert "ctx.result if ctx.marshal.nation == ctx.world.player_nation" in window
 
     def test_the_petition_endpoint_stages_and_surfaces(self):
         src = _src("backend/main.py")

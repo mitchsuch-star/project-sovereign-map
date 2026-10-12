@@ -187,9 +187,12 @@ class TestTheConquestNamesWhomItWasTakenFrom:
         src = (ROOT / "backend" / "commands" / "combat_executor.py").read_text(encoding="utf-8")
         assert '"captured_from": conquest_from' in src
         assert 'charge_event["captured_from"] = charge_conquest_from' in src
-        attack_set = src.index("conquest_from = target_region.controller")
-        assert attack_set < src.index("marshal, target_location, world, game_state, had_garrison=True)",
-                                      attack_set)
+        # CODE-2a: the attack's capture lives in a stage, where the shared
+        # locals are `ctx.<name>`.
+        attack_set = src.index("conquest_from = ctx.target_region.controller")
+        assert attack_set < src.index(
+            "ctx.marshal, ctx.target_location, ctx.world, ctx.game_state, had_garrison=True)",
+            attack_set)
         charge_set = src.index("charge_conquest_from = target_region.controller")
         assert charge_set < src.index("marshal, charge_battle_region, world, game_state, had_garrison=True",
                                       charge_set)

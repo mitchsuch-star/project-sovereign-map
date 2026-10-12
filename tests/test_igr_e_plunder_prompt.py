@@ -921,14 +921,21 @@ class TestX8RouteParity:
         import inspect
         return inspect.getsource(getattr(CombatExecutor, name))
 
+    def _attack_source(self):
+        """CODE-2a: `_execute_attack` is a driver of named stages; "the
+        attack" is the driver plus every stage, in run order, and a value
+        the stages share is a `ctx.` field there."""
+        from tests._attack_stages import attack_source
+        return attack_source()
+
     def test_the_field_battle_event_attaches_the_choice(self):
         """Review hardening: the GUARD is pinned with its body — a bare
         assignment pin survived `if False and conquered ...`."""
-        src = self._method_source("_execute_attack")
-        guard = src.index('if conquered and capture_result and '
-                          'capture_result.get("capture_choice"):')
-        body = src.index('result["events"][0]["capture_choice"] = '
-                         'capture_result["capture_choice"]')
+        src = self._attack_source()
+        guard = src.index('if ctx.conquered and ctx.capture_result and '
+                          'ctx.capture_result.get("capture_choice"):')
+        body = src.index('ctx.result["events"][0]["capture_choice"] = '
+                         'ctx.capture_result["capture_choice"]')
         assert guard < body < guard + 400
 
     def test_the_field_battle_prompt_is_gated_on_this_conquest(self):
@@ -936,16 +943,16 @@ class TestX8RouteParity:
         capture must not append its prompt to an unrelated battle report —
         the prompt arm requires `conquered` (the auto-kill sibling's
         conquest_msg gate, mirrored)."""
-        src = self._method_source("_execute_attack")
-        assert ('if (conquered and marshal.nation == world.player_nation'
+        src = self._attack_source()
+        assert ('if (ctx.conquered and ctx.marshal.nation == ctx.world.player_nation'
                 in src)
         charge = self._method_source("_execute_glorious_charge")
         assert ('if (conquered and marshal.nation == world.player_nation'
                 in charge)
 
     def test_the_auto_bombardment_event_attaches_conquest_keys(self):
-        src = self._method_source("_execute_attack")
-        guard = src.index("if conquest_msg:")
+        src = self._attack_source()
+        guard = src.index("if ctx.conquest_msg:")
         rc = src.index('auto_kill_event["region_conquered"] = True')
         cc = src.index('auto_kill_event["capture_choice"]')
         assert guard < rc < cc < guard + 600
@@ -954,12 +961,12 @@ class TestX8RouteParity:
         """Review finding: the auto-kill route's NEW player prompt/flags
         block had zero coverage — it is the route that used to leave the
         player an INVISIBLE pending question."""
-        src = self._method_source("_execute_attack")
-        block = src.index('if (conquest_msg and marshal.nation == '
-                          'world.player_nation')
+        src = self._attack_source()
+        block = src.index('if (ctx.conquest_msg and ctx.marshal.nation == '
+                          'ctx.world.player_nation')
         tail = src[block:block + 500]
-        assert 'result["pending_capture_choice"] = True' in tail
-        assert 'result["capture_data"] = world.pending_capture_choice' in tail
+        assert 'ctx.result["pending_capture_choice"] = True' in tail
+        assert 'ctx.result["capture_data"] = ctx.world.pending_capture_choice' in tail
         assert "capture_choice_prompt(" in tail
 
     def test_the_glorious_charge_event_attaches_conquest_keys(self):

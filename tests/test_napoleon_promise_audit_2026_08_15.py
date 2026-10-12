@@ -354,7 +354,10 @@ class TestTheShadowIsAnIdentityNotAMagnitude:
         from backend.commands import combat_executor as CX
         src = inspect.getsource(CX)
         assert "_atk_sovereign = _atk_presence > 0.0" not in src
-        assert "_side_sovereign(atk_participants) is not None" in src
+        assert "_atk_sovereign = ctx._atk_presence > 0.0" not in src
+        # CODE-2a: the verdict is computed in an attack stage, onto `ctx`.
+        from tests._attack_stages import attack_source
+        assert "_atk_sovereign = _side_sovereign(ctx.atk_participants) is not None" in attack_source()
 
 
 class TestTheChargeSharesOneAudience:

@@ -123,10 +123,13 @@ class TestWO9TheCaptureStamp:
         code = _squeeze(_code_only(COMBAT_PY.read_text(encoding="utf-8")))
         blocks = code.split('"type":"conquest"')[1:]
         assert len(blocks) == 2
-        for block in blocks:
+        # File order: the garrison producer, then the attack's (CODE-2a: an
+        # `_execute_attack` stage, where the attacker is `ctx.marshal`).
+        captors = ("marshal.nation", "ctx.marshal.nation")
+        for block, captor in zip(blocks, captors):
             head = block[:400]
             assert '"captured_from":old_controller' in head
-            assert '"captured_by":marshal.nation' in head
+            assert f'"captured_by":{captor}' in head
 
     def test_the_enemy_phase_keeps_an_ai_attack_capture_of_our_soil(self):
         """PT-E5's carve-out keys on `captured_from`; without the stamp an

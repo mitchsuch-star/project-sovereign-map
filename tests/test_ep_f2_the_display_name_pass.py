@@ -61,6 +61,7 @@ from backend.game_logic import mailbox_payloads as MP
 from backend.models.marshal import Stance
 from backend.models.personality_modifiers import get_defense_modifier_for_personality
 from tests import _chip_census as C
+from tests._attack_stages import attack_functions, attack_source
 
 REPO = C.REPO
 PROJECT = C.PROJECT
@@ -272,6 +273,8 @@ class TestTheCoveringLinesNameTheMen:
         # then raises. An aliased import (`as _hum`) binds a different name
         # and is harmless.
         shadows = []
+        _attack_fns = set(attack_functions())
+        assert "_execute_attack" in _attack_fns and len(_attack_fns) > 1
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
@@ -287,7 +290,7 @@ class TestTheCoveringLinesNameTheMen:
                           and isinstance(sub.ctx, ast.Load) and sub.lineno < first_import]
             if early_uses:
                 shadows.append((node.name, first_import, early_uses[:3]))
-            if node.name == "_execute_attack":
+            if node.name in _attack_fns:  # CODE-2a: the driver and every stage
                 shadows.append((node.name, "any local import at all", local_imports))
         assert shadows == [], shadows
 
@@ -389,7 +392,13 @@ class TestTheRouteUsesOneArrow:
     def test_the_materiel_capture_line_uses_the_one_arrow(self):
         src = (BACKEND / "commands" / "combat_executor.py").read_text(encoding="utf-8")
         assert "Captured: {old_controller} -> {marshal.nation}" not in src
-        assert src.count("Captured: {old_controller} → {marshal.nation}") == 2
+        assert "Captured: {old_controller} -> {ctx.marshal.nation}" not in src
+        # CODE-2a: the attack's capture line lives in a stage, where the
+        # attacker is `ctx.marshal`; the other producer keeps the bare local.
+        assert src.count("Captured: {old_controller} → {marshal.nation}") == 1
+        assert attack_source().count("Captured: {old_controller} → {ctx.marshal.nation}") == 1
+        assert (src.count("Captured: {old_controller} → {marshal.nation}")
+                + src.count("Captured: {old_controller} → {ctx.marshal.nation}")) == 2
 
 
 class TestThePluralHelper:
@@ -532,7 +541,9 @@ class TestTheCensus:
         assert "[Shield] {covering_ally.name}" not in block
         assert "[Shield] {_cover_name} steps forward to cover {_covered_name}'s retreat!" in block
         assert "{enemy_marshal.name} is EXPOSED" not in block
-        assert "{humanize_entity_name(enemy_marshal.name)} is EXPOSED" in block
+        assert "{ctx.enemy_marshal.name} is EXPOSED" not in block
+        # CODE-2a: inside the stage the defender is `ctx.enemy_marshal`.
+        assert "{humanize_entity_name(ctx.enemy_marshal.name)} is EXPOSED" in block
 
     def test_no_plural_hedge_in_a_backend_player_string(self):
         offenders = []

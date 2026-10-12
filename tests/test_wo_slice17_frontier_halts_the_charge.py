@@ -387,7 +387,11 @@ class TestWO25TheAutonomousAttackNeverAsks:
         squeezed = re.sub(r"\s+", "", code)
         # The definition line matches the needle too - subtract it, so a
         # lost site cannot hide behind the def.
+        # CODE-2a: inside `_execute_attack`'s stages the command is
+        # `ctx.command` — the attack's four sites read that form, the
+        # charge's site the plain one.
         calls = (squeezed.count("_attack_is_unordered(command)")
+                 + squeezed.count("_attack_is_unordered(ctx.command)")
                  - squeezed.count("def_attack_is_unordered(command)"))
         assert calls == 5
         assert code.count('"_jealousy_autonomous"') == 1

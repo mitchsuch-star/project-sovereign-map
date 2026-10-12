@@ -62,10 +62,14 @@ class TestTheRotationKeyIsZeroBased:
                / "combat_executor.py").read_text(encoding="utf-8")
         # SF-MD-1 (Oct 2 2026): both sides read the SPEAKER's own key
         # through the one range-aware helper, still in phase with each other.
-        assert src.count("_voice_rotation_key_for(world, _enemy_m, target_location,") == 1
-        assert src.count("_voice_rotation_key_for(world, _own_m, target_location,") == 1
+        # CODE-2a: the two voice sites live in an attack stage, where the
+        # world and the battle's province are `ctx.world` / `ctx.target_location`.
+        assert src.count("_voice_rotation_key_for(ctx.world, _enemy_m, ctx.target_location,") == 1
+        assert src.count("_voice_rotation_key_for(ctx.world, _own_m, ctx.target_location,") == 1
         assert src.count("_voice_rotation_key(world, target_location)") == 0
+        assert src.count("_voice_rotation_key(ctx.world, ctx.target_location)") == 0
         assert "int(world.battle_counts.get(target_location, 0)))" not in src
+        assert "int(ctx.world.battle_counts.get(ctx.target_location, 0)))" not in src
 
     def test_the_authored_opening_line_is_now_reachable(self):
         """`enemy_voice.py:24-29` claims index 0 is pinned "by the

@@ -21,6 +21,7 @@ import pytest
 from backend.commands.executor import CommandExecutor
 from backend.models.dialogue_manager import DialogueManager
 from backend.models.world_state import WorldState
+from tests._attack_stages import attack_source
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -184,8 +185,8 @@ class TestF6WarPurposeIsDelivered:
 
         from backend.commands import combat_executor as ce
 
-        src = inspect.getsource(ce.CombatExecutor._execute_attack)
-        assert '"diplomatic_dialogue": world.pending_diplomatic_dialogue' in src
+        src = attack_source()  # CODE-2a: the driver + its stages
+        assert '"diplomatic_dialogue": ctx.world.pending_diplomatic_dialogue' in src
         assert '"awaiting_diplomatic_response": True' in src
 
 
@@ -887,7 +888,7 @@ class TestF1SymmetricCommittedDefender:
 
         from backend.commands import combat_executor as ce
 
-        src = inspect.getsource(ce.CombatExecutor._execute_attack)
+        src = attack_source()  # CODE-2a: the driver + its stages
         assert '_target_disclosure' in src, (
             "the muster interrupt drops the engine-picked-target "
             "disclosure on the one surface asking the player to commit")
@@ -1911,9 +1912,9 @@ class TestN1OneBattleOneTally:
 
         from backend.commands import combat_executor as ce
 
-        src = inspect.getsource(ce.CombatExecutor._execute_attack)
-        assert "_already_tallied = {p.name for p in atk_participants}" in src
-        assert "_already_tallied.update(p.name for p in def_participants)" in src
+        src = attack_source()  # CODE-2a: the driver + its stages
+        assert "_already_tallied = {p.name for p in ctx.atk_participants}" in src
+        assert "_already_tallied.update(p.name for p in ctx.def_participants)" in src
         assert "if _fighter.name not in _already_tallied:" in src
 
     def test_the_expectation_that_prices_everything_halves_with_it(self):
@@ -2771,8 +2772,8 @@ class TestF13NoTeleportOntoNeutralSoil:
         import inspect
 
         from backend.commands import combat_executor as ce
-        src = inspect.getsource(ce.CombatExecutor._execute_attack)
-        head = src[:src.index("arriving.location = battle_region_name")]
+        src = attack_source()  # CODE-2a: the driver + its stages
+        head = src[:src.index("ctx.arriving.location = ctx.battle_region_name")]
         assert "self._pursuit_capture_guard(" in head, (
             "the relocation still teleports with no diplomatic guard")
         assert '_block["arm"] == "neutral"' in head
@@ -2884,8 +2885,8 @@ class TestF13AVoidedOrderSaysSo:
         import inspect
 
         from backend.commands import combat_executor as ce
-        src = inspect.getsource(ce.CombatExecutor._execute_attack)
-        assert "arriving.strategic_order = None" in src
+        src = attack_source()  # CODE-2a: the driver + its stages
+        assert "ctx.arriving.strategic_order = None" in src
 
     def test_only_the_players_own_orders_are_narrated(self):
         """The dispatch is the PLAYER's briefing; an AI marshal's voided
@@ -2893,9 +2894,9 @@ class TestF13AVoidedOrderSaysSo:
         import inspect
 
         from backend.commands import combat_executor as ce
-        src = inspect.getsource(ce.CombatExecutor._execute_attack)
+        src = attack_source()  # CODE-2a: the driver + its stages
         at = src.index('"type": "order_voided_by_battle"')
-        assert "arriving.nation == world.player_nation" in src[at - 900:at]
+        assert "ctx.arriving.nation == ctx.world.player_nation" in src[at - 900:at]
 
 
 # =======================================================================
