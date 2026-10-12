@@ -1,33 +1,5 @@
 [
   {
-    "id": "AAR-6 the admin order asks the military pool again",
-    "file": "backend/commands/executor.py",
-    "old": "                        and not (AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL\n                                 and is_admin_action)):",
-    "new": "                        and not (False\n                                 and is_admin_action)):",
-    "tests": "tests/test_sr5a_the_chest.py::TestAAR6TheAdminPool"
-  },
-  {
-    "id": "AAR-6 the exemption swallows field orders",
-    "file": "backend/commands/executor.py",
-    "old": "                        and not (AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL\n                                 and is_admin_action)):",
-    "new": "                        and not AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL):",
-    "tests": "tests/test_sr5a_the_chest.py::TestAAR6TheAdminPool"
-  },
-  {
-    "id": "Substitutes: the named ground is never read",
-    "file": "backend/commands/economy_executor.py",
-    "old": "        if (THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES\n                and world.get_marshal(marshal_name) is None):",
-    "new": "        if (False\n                and world.get_marshal(marshal_name) is None):",
-    "tests": "tests/test_sr5a_the_chest.py::TestTheNamedGroundReceivesTheSubstitutes"
-  },
-  {
-    "id": "Substitutes: the error dict is stuffed back into the message",
-    "file": "backend/commands/economy_executor.py",
-    "old": "            if THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES:\n                return error\n            return {\"success\": False, \"message\": error}",
-    "new": "            return {\"success\": False, \"message\": error}",
-    "tests": "tests/test_sr5a_the_chest.py::TestTheNamedGroundReceivesTheSubstitutes"
-  },
-  {
     "id": "Substitutes: a cavalry marshal on the ground is taken",
     "file": "backend/commands/economy_executor.py",
     "old": "                            and not getattr(m, \"cavalry\", False)\n                            and not getattr(m, \"artillery\", False)]",

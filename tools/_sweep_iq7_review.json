@@ -959,27 +959,6 @@
   "tests": "tests/test_iq7_review_round.py::TestClientSourcePins::test_the_rebellion_modal_shows_the_flag"
  },
  {
-  "id": "IQ7R-L5 A_PETITION_IS_ANSWERED_PLAINLY down",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "A_PETITION_IS_ANSWERED_PLAINLY = True\n",
-  "new": "A_PETITION_IS_ANSWERED_PLAINLY = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_deferred_conditional_or_interrogative_line_never_answers"
- },
- {
-  "id": "IQ7R-L6 THE_MATTER_GUARD_READS_THE_TABLE down",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "THE_MATTER_GUARD_READS_THE_TABLE = True\n",
-  "new": "THE_MATTER_GUARD_READS_THE_TABLE = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_the_players_own_ultimatum_order_reaches_the_executor tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_the_bare_verb_defies_the_ultimatum_while_a_petition_waits tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_the_client_petitions_words_get_the_waits_line_never_a_shrug"
- },
- {
-  "id": "IQ7R-P21a the deferred-answer yield removed (the label arms claim the line again)",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return petition_plain_answer(dialogue, typed)\n",
-  "new": "    if False:\n        return petition_plain_answer(dialogue, typed)\n",
-  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_deferred_conditional_or_interrogative_line_never_answers"
- },
- {
   "id": "IQ7R-P21b a question answers the petition",
   "file": "backend/commands/dialogue_routing.py",
   "old": "    if line_asks_a_question(text, options):\n        return None\n    # FA-N2's markers are phrases",
@@ -1057,32 +1036,11 @@
   "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_a_plain_answer_still_answers_at_the_quoted_price"
  },
  {
-  "id": "IQ7R-P21m the button route's free text skips the plain rule (the third copy)",
-  "file": "backend/commands/diplomatic_executor.py",
-  "old": "                if (_routing.A_PETITION_IS_ANSWERED_PLAINLY\n                        and _routing._is_client_petition_dialogue(dialogue)):",
-  "new": "                if False:",
-  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_button_routes_free_text_obeys_the_same_rule"
- },
- {
   "id": "IQ7R-P21n the button route relays a line that claimed nothing",
   "file": "backend/commands/diplomatic_executor.py",
   "old": "                    if not _token:\n",
   "new": "                    if False:\n",
   "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_the_button_routes_free_text_obeys_the_same_rule"
- },
- {
-  "id": "IQ7R-P21o the plain router ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return petition_plain_answer(dialogue, typed)\n",
-  "new": "    if (_is_client_petition_dialogue(dialogue)):\n        return petition_plain_answer(dialogue, typed)\n",
-  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_lever_down_the_pass_1_router_answers_the_deferred_line_at_price"
- },
- {
-  "id": "IQ7R-P21p the button route's third copy ignores its lever",
-  "file": "backend/commands/diplomatic_executor.py",
-  "old": "                if (_routing.A_PETITION_IS_ANSWERED_PLAINLY\n                        and _routing._is_client_petition_dialogue(dialogue)):",
-  "new": "                if (_routing._is_client_petition_dialogue(dialogue)):",
-  "tests": "tests/test_iq7_review_round.py::TestP21APetitionIsAnsweredPlainly::test_lever_down_the_button_route_keeps_its_own_pass_1_scan"
  },
  {
   "id": "IQ7R-P21q lever down, the petition's own words answer nothing (arm 3b, the pass-1 road)",
@@ -1379,20 +1337,6 @@
   "tests": "tests/test_iq7_review_round.py::TestP43TheLetterNounsAreNotPetitionVocabulary::test_with_the_petition_current_its_own_verb_never_answers_beside_a_letter_noun"
  },
  {
-  "id": "IQ7R-P43c the vocabulary drops the letter noun as filler",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "                 or (THE_MATTER_GUARD_READS_THE_TABLE\n                     and w in _LETTER_NOUN_WORDS))]",
-  "new": "                 or False)]",
-  "tests": "tests/test_iq7_review_round.py::TestP43TheLetterNounsAreNotPetitionVocabulary::test_the_vocabulary_keeps_the_letter_noun"
- },
- {
-  "id": "IQ7R-P43d the letter-noun rule ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "                 or (THE_MATTER_GUARD_READS_THE_TABLE\n                     and w in _LETTER_NOUN_WORDS))]",
-  "new": "                 or (w in _LETTER_NOUN_WORDS))]",
-  "tests": "tests/test_iq7_review_round.py::TestP43TheLetterNounsAreNotPetitionVocabulary::test_lever_down_the_letter_noun_is_filler_again"
- },
- {
   "id": "IQ7R-P44a the courtless arm removed",
   "file": "backend/commands/dialogue_routing.py",
   "old": "        elif active:\n            head = (f\"Sire — that answer would be delivered to \"",
@@ -1526,13 +1470,6 @@
   "tests": "tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_lever_down_the_line_falls_to_berthiers_shrug"
  },
  {
-  "id": "IQ7R-P46f the matter guard's table-reading ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    reads_the_table = bool(THE_MATTER_GUARD_READS_THE_TABLE)\n",
-  "new": "    reads_the_table = True\n",
-  "tests": "tests/test_iq7_review_round.py::TestP33TheRouterSeamRefusesAnswersOnly::test_lever_down_the_noun_alone_eats_the_order tests/test_iq7_review_round.py::TestP34ABareRefuseDefiesTheUltimatumOnTheTable::test_lever_down_the_bare_refuse_is_refused tests/test_iq7_review_round.py::TestP46TheAllyPetitionDoesNotOwnTheClientsWords::test_lever_down_the_line_falls_to_berthiers_shrug"
- },
- {
   "id": "IQ7R-SW2a the board fixture's five end turns autosave into the repo's saves/",
   "file": "tests/test_iq7_review_round.py",
   "old": "    save_manager.SAVE_DIR = Path(tmp)\n    _SNAPSHOT_SANDBOX[\"dir\"] = tmp\n",
@@ -1638,20 +1575,6 @@
   "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_a_line_that_was_trying_to_answer_is_reprompted_in_place"
  },
  {
-  "id": "IQ7R-R32f the re-prompt ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    text = str(typed or \"\").lower()",
-  "new": "    if not _is_client_petition_dialogue(dialogue):\n        return None\n    text = str(typed or \"\").lower()",
-  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_it_is_the_client_petitions_rule_and_the_levers"
- },
- {
-  "id": "IQ7R-R32g the re-prompt fires on an ordinary letter too",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    text = str(typed or \"\").lower()",
-  "new": "    if not A_PETITION_IS_ANSWERED_PLAINLY:\n        return None\n    text = str(typed or \"\").lower()",
-  "tests": "tests/test_iq7_review_round.py::TestR32NothingIsMountedOverTheCurrentPetition::test_it_is_the_client_petitions_rule_and_the_levers"
- },
- {
   "id": "IQ7R-R32h a re-prompted line is recorded as a phantom order",
   "file": "backend/main.py",
   "old": "                if not _consumed_as_dialogue_answer:\n                    from backend.commands.dialogue_routing import (\n",
@@ -1685,20 +1608,6 @@
   "old": "    active_display = with_definite_article(display_nation(active))\n",
   "new": "    active_display = display_nation(active)\n",
   "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_the_head_carries_the_active_courts_article"
- },
- {
-  "id": "IQ7R-R33e the router-seam court guard ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    if not _line_is_answer_shaped(",
-  "new": "    if not _is_client_petition_dialogue(dialogue):\n        return None\n    if not _line_is_answer_shaped(",
-  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_only_an_answer_shaped_line_and_only_a_client_petition"
- },
- {
-  "id": "IQ7R-R33f the router-seam court guard speaks for every dialogue",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if not (A_PETITION_IS_ANSWERED_PLAINLY\n            and _is_client_petition_dialogue(dialogue)):\n        return None\n    if not _line_is_answer_shaped(",
-  "new": "    if not A_PETITION_IS_ANSWERED_PLAINLY:\n        return None\n    if not _line_is_answer_shaped(",
-  "tests": "tests/test_iq7_review_round.py::TestR33TheCourtGuardSpeaksFirst::test_only_an_answer_shaped_line_and_only_a_client_petition"
  },
  {
   "id": "IQ7R-R34a the moot arm keeps the stored refuse and lapse lines (V2-5)",
@@ -1748,13 +1657,6 @@
   "old": "            and not (plain and w in _PLAIN_DIPLOMAT_WORDS)\n",
   "new": "",
   "tests": "tests/test_iq7_review_round.py::TestR35TheShapeGateKnowsTheEmphasis::test_the_petition_queued_keeps_its_envoys_pointer"
- },
- {
-  "id": "IQ7R-R35c the shape gate's pass-3 vocabulary ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    plain = bool(A_PETITION_IS_ANSWERED_PLAINLY)\n",
-  "new": "    plain = True\n",
-  "tests": "tests/test_iq7_review_round.py::TestR35TheShapeGateKnowsTheEmphasis::test_the_shape_reads_the_phrases_and_the_lever"
  },
  {
   "id": "IQ7R-R36a a court-named line is owned by the active petition again (V2-8)",
@@ -1827,27 +1729,6 @@
   "tests": "tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_the_typed_cede_names_the_court tests/test_iq7_review_round.py::TestR38TheTitleAndTheCedeCopy::test_every_sentence_of_the_verb"
  },
  {
-  "id": "IQ7R-L7 A_QUESTION_NEVER_ANSWERS down",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "A_QUESTION_NEVER_ANSWERS = True\n",
-  "new": "A_QUESTION_NEVER_ANSWERS = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_a_question_at_an_ordinary_letter_signs_nothing tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_the_button_routes_free_text"
- },
- {
-  "id": "IQ7R-R39a the typed router's question rule removed (`should i accept?` signs)",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if A_QUESTION_NEVER_ANSWERS and line_asks_a_question(typed, options):\n        return None\n",
-  "new": "    if False:\n        return None\n",
-  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_a_question_at_an_ordinary_letter_signs_nothing"
- },
- {
-  "id": "IQ7R-R39b the third copy's question rule removed",
-  "file": "backend/commands/diplomatic_executor.py",
-  "old": "                if (_routing.A_QUESTION_NEVER_ANSWERS\n                        and _routing.line_asks_a_question(choice, options)):\n",
-  "new": "                if False:\n",
-  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_the_button_routes_free_text"
- },
- {
   "id": "IQ7R-R39c an exact LABEL that ends in `?` no longer resolves",
   "file": "backend/commands/dialogue_routing.py",
   "old": "        if label_key and _label_key(token, question_label) == label_key:\n            return True\n",
@@ -1869,27 +1750,6 @@
   "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_a_question_at_an_ordinary_letter_signs_nothing"
  },
  {
-  "id": "IQ7R-R39f the typed router's question rule ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if A_QUESTION_NEVER_ANSWERS and line_asks_a_question(typed, options):\n",
-  "new": "    if line_asks_a_question(typed, options):\n",
-  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_lever_down_the_question_signs_the_treaty"
- },
- {
-  "id": "IQ7R-R39g the third copy's question rule ignores its lever",
-  "file": "backend/commands/diplomatic_executor.py",
-  "old": "                if (_routing.A_QUESTION_NEVER_ANSWERS\n                        and _routing.line_asks_a_question(choice, options)):\n",
-  "new": "                if (_routing.line_asks_a_question(choice, options)):\n",
-  "tests": "tests/test_iq7_review_round.py::TestR39AQuestionIsNeverAnAnswer::test_the_button_routes_free_text"
- },
- {
-  "id": "IQ7R-L8 THE_BUTTON_ROUTE_READS_THE_COURT down",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "THE_BUTTON_ROUTE_READS_THE_COURT = True\n",
-  "new": "THE_BUTTON_ROUTE_READS_THE_COURT = False\n",
-  "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_free_text_that_names_another_court_signs_nothing"
- },
- {
   "id": "IQ7R-R310a the endpoint never hands the handler its free text",
   "file": "backend/main.py",
   "old": "        _read_the_court = ({\"raw_text\": _free_text}\n                           if _free_text is not None else {})\n",
@@ -1909,13 +1769,6 @@
   "old": "                            \"stale_dialogue\", \"court_mismatch\",\n                            \"matter_mismatch\", \"matter_family\"):\n",
   "new": "                            \"stale_dialogue\"):\n",
   "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_free_text_that_names_another_court_signs_nothing"
- },
- {
-  "id": "IQ7R-R310d the free-text read ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    if not THE_BUTTON_ROUTE_READS_THE_COURT or not isinstance(choice, str):\n",
-  "new": "    if not isinstance(choice, str):\n",
-  "tests": "tests/test_iq7_review_round.py::TestR310TheButtonRouteReadsTheCourt::test_lever_down_the_free_text_signs_portugals_letter"
  },
  {
   "id": "IQ7R-R311a the hard-stop endpoint pins push onto whatever world was left behind",
@@ -1979,20 +1832,6 @@
   "old": "        question_label = \"?\" in label\n",
   "new": "        question_label = True\n",
   "tests": "tests/test_iq7_review_round.py::TestR42AQuestionShapedLabelStillResolves::test_a_plain_label_is_not_exempted"
- },
- {
-  "id": "IQ7R-R43a an inversion is no question (`then shall we ratify` RATIFIES)",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    return bool(A_QUESTION_NEVER_ANSWERS\n                and _SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))\n",
-  "new": "    return False\n",
-  "tests": "tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_a_hard_stop_ratifies_nothing tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_portugals_treaty_is_not_signed"
- },
- {
-  "id": "IQ7R-R43b the inversion arm ignores its lever",
-  "file": "backend/commands/dialogue_routing.py",
-  "old": "    return bool(A_QUESTION_NEVER_ANSWERS\n                and _SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))\n",
-  "new": "    return bool(_SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))\n",
-  "tests": "tests/test_iq7_review_round.py::TestR43AnInversionAnywhereIsAQuestion::test_lever_down_the_inversion_signs_as_it_always_did"
  },
  {
   "id": "IQ7R-R43c the inversion reads `we` only (`and must i yield` is a statement)",

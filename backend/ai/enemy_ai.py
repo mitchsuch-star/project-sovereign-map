@@ -501,9 +501,9 @@ def is_critical_situation(marshal: Marshal, world: WorldState) -> bool:
 
 
 def _fortified_corps_never_marches() -> bool:
-    """R1-8: the movement seam's lever, read live (it lives beside the seam)."""
+    """R1-8: a fortified corps never marches — the movement seam's rule."""
     from backend.commands import movement_executor as _mv
-    return bool(getattr(_mv, "FORTIFIED_CORPS_NEVER_MARCHES", False))
+    return bool(True)
 
 
 def _cavalry_under_the_limit(marshal) -> bool:
@@ -2166,14 +2166,13 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # SR-2e AAR-10 (GR5): a corps that answered a battle's guns this
         # turn has moved this turn — the road home resumes next turn.
-        from backend.commands.strategic import A_MARCH_KEEPS_ITS_TAIL as _KEEP_TAIL
         # VD-C (GR5): a satellite's contingent on the road home walks it the
         # same way — its own road (toward the satellite), not the treaty's.
         from backend.game_logic import contingent as _contingent
         _order_now = getattr(marshal, "strategic_order", None)
         _contingent_home = _contingent.is_contingent_home_order(_order_now)
         if ((withdrawal.is_road_home_order(_order_now) or _contingent_home)
-                and not (_KEEP_TAIL and getattr(marshal, "reinforced_this_turn", False))):
+                and not getattr(marshal, "reinforced_this_turn", False)):
             step = (_contingent.contingent_next_step(world, marshal)
                     if _contingent_home else withdrawal.next_step_home(world, marshal))
             if step:
@@ -6403,8 +6402,8 @@ class EnemyAI:
         Returns a `purchase_levy` command or None. Every gate below is a
         reason NOT to pay four times the drafted price:
 
-        * the market must be open (the slice's flip lever, read through the
-          executor module so one switch governs both sides);
+        * the substitute market is open (the executor's market, so both
+          sides buy at the one price);
         * the nation must be AT WAR — nobody buys replacements in peacetime;
         * a marshal must be genuinely weak (the same weakest-marshal helper
           the urgent draft uses, so the two rungs agree about who needs men);
@@ -6419,13 +6418,11 @@ class EnemyAI:
         the moment the real price moves and the AI attempts-and-fails.
         """
         from backend.commands.economy_executor import (
-            THE_SUBSTITUTE_MARKET_IS_OPEN, levy_substitute_price,
+            levy_substitute_price,
             levy_purchase_ceiling, region_has_friendly_supply,
         )
         from backend.models.world_state import INFANTRY_RECRUIT_AMOUNT
 
-        if not THE_SUBSTITUTE_MARKET_IS_OPEN:
-            return None
         if not world.get_nations_at_war_with(nation):
             return None
 

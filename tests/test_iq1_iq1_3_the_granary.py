@@ -63,7 +63,6 @@ import re
 
 import pytest
 
-from backend.commands import economy_executor as econ_mod
 from backend.commands.economy_executor import (
     EconomyExecutor, region_feeds_nation, levy_alarm_multiplier,
     levy_substitute_price, levy_purchase_ceiling, substitute_arrival_morale,
@@ -84,30 +83,6 @@ DRIVER = REPO / "tools" / "playtest_driver.py"
 @pytest.fixture
 def world():
     return WorldState.from_scenario(str(SCENARIO))
-
-
-@pytest.fixture
-def gate_shut():
-    before = econ_mod.LEVY_FEEDS_ON_ALLY_SOIL
-    econ_mod.LEVY_FEEDS_ON_ALLY_SOIL = False
-    yield
-    econ_mod.LEVY_FEEDS_ON_ALLY_SOIL = before
-
-
-@pytest.fixture
-def alarm_off():
-    before = econ_mod.THE_ALARM_PRICES_THE_LEVY
-    econ_mod.THE_ALARM_PRICES_THE_LEVY = False
-    yield
-    econ_mod.THE_ALARM_PRICES_THE_LEVY = before
-
-
-@pytest.fixture
-def premium_flat():
-    before = econ_mod.THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE
-    econ_mod.THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE = False
-    yield
-    econ_mod.THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE = before
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -153,15 +128,6 @@ class TestTheGranaryOfAnAlly:
         enemy = next(r for r in world.regions.values()
                      if r.controller and world.is_at_war("France", r.controller))
         assert region_feeds_nation(world, "France", enemy) is False
-
-    def test_the_gate_shut_reproduces_ownership_only(self, world, gate_shut):
-        """The negative control: with the lever down the predicate is the bare
-        ownership check that shipped, so the six archived refusals come back."""
-        for name in ("Franconia", "Milan", "Swabia"):
-            region = world.get_region(name)
-            assert region_feeds_nation(world, "France", region) is False, name
-        assert region_feeds_nation(world, "France",
-                                   world.get_region("Paris")) is True
 
     def test_the_predicate_agrees_with_the_engines_own_supply_decision(self, world):
         """The point of extracting it. `_supply_multiplier` is the original
@@ -249,15 +215,6 @@ class TestWhatTheGranaryActuallyBuys:
         assert result.get("success") is True, result.get("message")
         assert "substitutes into the line at Franconia" in result["message"]
 
-    def test_the_same_purchase_is_refused_with_the_gate_shut(self, world, gate_shut):
-        marshal = next(iter(m for m in world.marshals.values()
-                            if m.nation == "France"))
-        marshal.location = "Franconia"
-        world.nation_gold["France"] = 60_000
-        result = self._buy(world, marshal.name)
-        assert result.get("success") is False
-        assert "does not" in result["message"] or "do not hold" in result["message"]
-
     def test_the_refusal_names_who_holds_the_ground(self, world):
         """FA-54's class: a refusal must say which province and whose it is."""
         enemy_region = next(r for r in world.regions.values()
@@ -274,28 +231,6 @@ class TestWhatTheGranaryActuallyBuys:
 
 
 class TestTheHostsPriceIsNotDiscounted:
-    def test_the_capital_discount_is_suppressed_on_foreign_soil(self, world, monkeypatch):
-        """IQ1-3A2's own lever binds. Re-seated September 26, 2026 (SR Chunk 2
-        reserve, AAR-30): the capital discount now needs the recruiting
-        nation's OWN authored capital, so on the shipped board Milan — the
-        host's seat — is priced at the ordinary rate on BOTH arms (the next
-        test). With AAR-30's rule DOWN the ally's capital would discount our
-        recruiting again, and `foreign_soil` is what suppresses it."""
-        import backend.commands.economy_executor as EC
-        monkeypatch.setattr(EC, "THE_CAPITAL_DISCOUNT_IS_OURS_ONLY", False)
-        ex = EconomyExecutor(None)
-        milan = world.get_region("Milan")
-        assert milan.region_type == "capital", "fixture precondition"
-        base = levy_substitute_price(world, "France")
-        own = ex._calculate_recruit_cost(milan, world, base_cost=base,
-                                        nation="France", foreign_soil=False)
-        host = ex._calculate_recruit_cost(milan, world, base_cost=base,
-                                         nation="France", foreign_soil=True)
-        assert host > own, (
-            "the host's capital is still discounting our recruiting")
-        # The discount is 25%, so suppressing it is a 1/0.75 rise.
-        assert host == pytest.approx(own / 0.75, rel=0.02)
-
     def test_the_hosts_capital_is_not_ours_to_discount_at_all(self, world):
         """AAR-30 (SR Chunk 2 reserve, Sept 26, 2026): on the shipped board
         the host's capital is priced at the ordinary rate on BOTH arms — the
@@ -509,11 +444,6 @@ class TestTheSubstituteIsNotPunishedTwice:
         assert result.get("success") is True, result.get("message")
         assert "breaking line" not in result["message"]
 
-    def test_the_lever_down_restores_the_flat_base(self, world, premium_flat):
-        for region in (self._Region(False), self._Region(True)):
-            assert substitute_arrival_morale(
-                EconomyExecutor, region, None) == LEVY_MORALE_BASE
-
 
 # ════════════════════════════════════════════════════════════════════════
 # C. The alarm prices the levy
@@ -576,19 +506,6 @@ class TestTheAlarmPricesTheLevy:
         # …and it IS the threat above the anchor, by construction.
         threat = int((getattr(world, "threat_by_target", {}) or {}).get("France", 0))
         assert shown == max(0, threat - LEVY_ALARM_ANCHOR)
-        bare_base = levy_substitute_price(world, "France")
-        econ_mod.THE_ALARM_PRICES_THE_LEVY = False
-        try:
-            unpriced = levy_substitute_price(world, "France")
-        finally:
-            econ_mod.THE_ALARM_PRICES_THE_LEVY = True
-        assert bare_base == int(unpriced * applied) or abs(
-            bare_base - int(unpriced * applied)) <= 1
-
-    def test_the_lever_down_is_byte_identical(self, world, alarm_off):
-        threat = getattr(world, "threat_by_target", {}) or {}
-        threat["France"] = 100
-        assert levy_alarm_multiplier(world, "France") == 1.0
 
     def test_it_prices_substitutes_only(self):
         """The term is deliberately NOT in `_calculate_recruit_cost`, which
@@ -650,19 +567,6 @@ class TestTheLevyStatesItsTerms:
     def test_austria_has_no_room_at_boot(self, world):
         block = get_levy_status(world, "Austria")["substitutes"]
         assert block["room"] == 0 and block["open"] is False
-
-    def test_the_lever_down_omits_the_block(self, world):
-        before = econ_mod.THE_LEVY_STATES_ITS_TERMS
-        econ_mod.THE_LEVY_STATES_ITS_TERMS = False
-        try:
-            status = get_levy_status(world, "France")
-            assert status["substitutes"] is None
-            # …and every pre-existing key is untouched.
-            for key in ("force_limit", "army_strength", "headroom",
-                        "infantry_price", "infantry_pool", "open"):
-                assert key in status
-        finally:
-            econ_mod.THE_LEVY_STATES_ITS_TERMS = before
 
 
 class TestTheRegionPanelChip:

@@ -475,8 +475,8 @@ def _get_region_visibility(region_name: str, nation: str, world) -> str:
 # (`garrison_report.assault_forecast`: the attacker as the resolver counts
 # him, the garrison behind its ground and works), fog-honest: a count only
 # at FULL, a band's midpoint at PARTIAL / STALE. Player-only (the AI never
-# objects), so no board can move. Lever False = the marshal-only read.
-THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES = True
+# objects), so no board can move. The rule: the objection prices what the
+# attack engages.
 
 
 def attack_engages(marshal, order, world):
@@ -490,8 +490,6 @@ def attack_engages(marshal, order, world):
     named = world.marshals.get(target) if hasattr(world, "marshals") else None
     if named is not None:
         return "marshal", named
-    if not THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
-        return None, None
     region = world.get_region(target) if hasattr(world, "get_region") else None
     if region is None:
         return None, None
@@ -544,7 +542,7 @@ def garrison_objection_quote(marshal, order, world) -> str:
     garrison — the price from the assault's own reckoning, fog-honest (a
     count only at FULL); '' when the order is not a garrison assault (his
     personality's line stands)."""
-    if world is None or not THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+    if world is None:
         return ""
     kind, region = attack_engages(marshal, order, world)
     if kind != "garrison":
@@ -593,7 +591,7 @@ def get_target_intel_level(target_name: str, marshal, world) -> str:
         return _UNKNOWN
 
     target_marshal = world.marshals.get(target_name) if hasattr(world, 'marshals') else None
-    if target_marshal is None and THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+    if target_marshal is None:
         # AAR24-X3: a PROVINCE — the visibility of what the attack engages
         # there (the army the executor would fight, else the garrison).
         kind, engaged = attack_engages(marshal, {"target": target_name}, world)
@@ -887,7 +885,7 @@ def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
         return False
 
     target_marshal = world.marshals.get(target_name)
-    if target_marshal is None and THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+    if target_marshal is None:
         # AAR24-X3: the army a province order engages (a garrison's works
         # are already inside `garrison_assault_price` — no second bump).
         kind, engaged = attack_engages(marshal, order, world)
@@ -925,7 +923,7 @@ def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
         return 1.0
 
     target_marshal = world.marshals.get(target_name)
-    if target_marshal is None and THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+    if target_marshal is None:
         # AAR24-X3: a province prices what the attack engages there — the
         # army as that marshal's name would, the garrison by the assault's
         # own reckoning.
@@ -971,8 +969,8 @@ INFERRED_ATTACK_FAVORABLE_RATIO = 0.7
 # CR-5 gates keep their lead-only read) the ratio carries both leads'
 # standing modifiers through the SINGLE sources (`get_attack_modifier` /
 # `get_defense_modifier`, both with consume=False — a pure read) as the
-# resolver applies them to the whole side. Lever False: the men-only band.
-THE_BAND_WEIGHS_THE_STANDING_MODIFIERS = True
+# resolver applies them to the whole side. The rule: the band weighs the
+# standing modifiers.
 
 # Region fortification BUILDING bonus — the exact value combat_executor folds
 # into the defender's effective strength: `fort_bonus = 0.25 if
@@ -1061,9 +1059,7 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
     defender = max(1, getattr(enemy, "strength", 0) or 0)
 
     bonus = 0.0
-    fold = bool(fold_modifiers and THE_BAND_WEIGHS_THE_STANDING_MODIFIERS
-                and hasattr(marshal, "get_attack_modifier")
-                and hasattr(enemy, "get_defense_modifier"))
+    fold = bool(fold_modifiers and hasattr(marshal, "get_attack_modifier") and hasattr(enemy, "get_defense_modifier"))
     # (1) Personal fortify earthworks (casualty-channel; see docstring). Under
     #     the SR-4a fold the defender's own modifier carries it (x(1+bonus)),
     #     so it is not counted twice.
@@ -1121,9 +1117,8 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
 #   * "unfavorable" is UNTOUCHED (folded < 0.7, CA9 row 2's gate line — the
 #     only word that drives a decision: the cautious marshal's confirm and
 #     the glory gate on both boards), so the ruling moves no decision.
-# Display only: BASELINE_SERIES and M1–M7 cannot move. Lever False = the
-# folded 1.0 line.
-THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS = True
+# Display only: BASELINE_SERIES and M1–M7 cannot move. The rule: the
+# favorable line weighs the generals.
 FAVORABLE_WEIGHED_RATIO = 1.7
 
 
@@ -1164,7 +1159,7 @@ def odds_band_note(band: str, weighed_ratio: float) -> str:
     """AAR32-D1: what the band's word promises, said after it — only "even"
     carries a clause (the word alone promised a fair fight where the
     resolver delivers a stalemate or worse)."""
-    if not THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS or band != "even":
+    if band != "even":
         return ""
     if weighed_ratio >= 1.0:
         return "a hard fight that may well decide nothing"
@@ -1176,15 +1171,14 @@ def inferred_attack_odds_reading(marshal, enemy, game_state=None,
                                  committed_defender: float = 0.0,
                                  fold_modifiers: bool = False):
     """(band, weighed_ratio) — the band and the ratio its favorable line
-    reads. Without the fold (or with the lever down) the weighed ratio is
-    the folded ratio itself and the line is 1.0, byte-identically."""
+    reads. Without the fold the weighed ratio is the folded ratio itself
+    and the line is 1.0."""
     ratio = inferred_attack_effective_ratio(
         marshal, enemy, game_state, committed_attacker=committed_attacker,
         committed_defender=committed_defender, fold_modifiers=fold_modifiers)
     if ratio < INFERRED_ATTACK_FAVORABLE_RATIO:
         return "unfavorable", float(ratio)
-    if (fold_modifiers and THE_BAND_WEIGHS_THE_STANDING_MODIFIERS
-            and THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS
+    if (fold_modifiers
             and hasattr(marshal, "get_effective_skill")
             and hasattr(enemy, "get_effective_skill")):
         weighed = float(ratio) * generalship_factor(marshal, enemy)

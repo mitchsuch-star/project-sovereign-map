@@ -133,13 +133,6 @@
   "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheMusterIsReValidated::test_a_region_target_is_left_to_the_re_issue"
  },
  {
-  "id": "muster/c the answer arm re-validates",
-  "file": "backend/commands/strategic.py",
-  "old": "            if STANDALONE_DECISION_LIVENESS_ACTIVE:\n                live, reason = muster_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    return {\"success\": True, \"no_action_cost\": True,\n                            \"decision_retired\": True,\n                            \"message\": (f\"{marshal.name}'s muster is overtaken, \"",
-  "new": "            if False:\n                live, reason = muster_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    return {\"success\": True, \"no_action_cost\": True,\n                            \"decision_retired\": True,\n                            \"message\": (f\"{marshal.name}'s muster is overtaken, \"",
-  "tests": "tests/test_fa_slice2r_the_word_is_owed_2026_09_04.py::TestTheMusterIsReValidated::test_the_answer_arm_retires_a_dead_muster_instead_of_objecting_about_a_ghost"
- },
- {
   "id": "muster/d pass 3 re-validates the muster",
   "file": "backend/commands/strategic.py",
   "old": "            elif kind == \"muster_confirm\":\n                live, reason = muster_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    print(f\"[STRATEGIC] {marshal.name}: muster retired — {reason}\")",

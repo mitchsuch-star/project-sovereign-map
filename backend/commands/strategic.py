@@ -59,10 +59,8 @@ def _strategic_command_flavor(cmd_type: str) -> str:
 # fought at or beside the ground it asked about) — and the end-turn pass does
 # not march him again the turn he answered the guns: a corps moves once a
 # turn, and without the skip he heard his own battle as cannon fire. The AI's
-# road-home rung (P1.2) takes the same skip (GR5). Lever False restores the
-# clear, the void event and the old pass.
+# road-home rung (P1.2) takes the same skip (GR5).
 # ════════════════════════════════════════════════════════════════════════════
-A_MARCH_KEEPS_ITS_TAIL = True
 
 
 def kept_order_line(marshal, order) -> str:
@@ -98,9 +96,8 @@ def kept_order_line(marshal, order) -> str:
 # standalone decision, or an order-bound one whose order still stands (the
 # Ledger's `_is_halted` rule). A dead row is REPLACED (a new dict — the
 # stored interrupt is the same object as the row) by one that says the
-# question was overtaken. Lever False ships the rows as produced.
+# question was overtaken. The rule: a question row is answerable.
 # ════════════════════════════════════════════════════════════════════════════
-A_QUESTION_ROW_IS_ANSWERABLE = True
 
 
 def question_row_is_live(world, row) -> bool:
@@ -152,7 +149,7 @@ def overtaken_question_row(world, row) -> Dict:
 def reconcile_question_rows(world, reports):
     """AAR-8: replace every `requires_input` row whose question the marshal
     no longer holds. Returns a new list; every other row is untouched."""
-    if not A_QUESTION_ROW_IS_ANSWERABLE or not reports:
+    if not reports:
         return reports
     out = []
     for row in reports:
@@ -180,11 +177,10 @@ ORDER_BOUND_INTERRUPT_TYPES = frozenset({
 # and no order can retire. `last_stand` (W6-7) and `muster_confirm` (W6-4).
 STANDALONE_DECISION_TYPES = frozenset({"last_stand", "muster_confirm"})
 
-# FA-16 (slice 2, Sept 4 2026) flip lever — the HOST_RULE_ACTIVE idiom.
-# False reproduces the pre-slice behaviour byte-for-byte: an order-free
-# parked decision is invisible to the end-turn processor, never re-validated,
-# and a fresh order to the cornered marshal simply executes over it.
-STANDALONE_DECISION_LIVENESS_ACTIVE = True
+# FA-16 (slice 2, Sept 4 2026): a standalone decision stays live. Before the
+# slice an order-free parked decision was invisible to the end-turn
+# processor, never re-validated, and a fresh order to the cornered marshal
+# simply executed over it.
 
 # FA-16 review round (Sept 4 2026, reviews R1-F3 / R2-F1 / R3): the verbs
 # that may reach a marshal whose last stand is unanswered. `cancel` names
@@ -250,20 +246,18 @@ BLOCKED_PATH_ABANDON_TRUST = -3   # …and 0 when the order has not begun
 # the charge behind it are ONE number; `repeated_combat` answers through
 # the same responder and is quoted alike. Continue is free (FA-S16-D1).
 STALEMATE_ABANDON_TRUST = -3
-THE_STALEMATE_QUOTES_ITS_PRICE = True   # False = the buttons carry no figure
-# FA-D6 (slice 17, Phase 2) flip lever: the treaty's road-home order is
-# literal by nature — cannon fire never redirects or interrupts it. False =
-# an ordinary order (the prior behaviour: abandoned for any stake battle).
-THE_ROAD_HOME_IS_LITERAL = True
-# FA-S17-9 (slice 17, Phase 4) flip lever: a pursuit that loses its quarry
+# FA-D6 (slice 17, Phase 2): the treaty's road-home order is literal by
+# nature — cannon fire never redirects or interrupts it (before, it was an
+# ordinary order, abandoned for any stake battle).
+# FA-S17-9 (slice 17, Phase 4): the cold trail is an outcome — a pursuit that loses its quarry
 # ends with a verdict — the trail went cold, and where he was making for —
 # instead of the bare intelligence refusal the ISSUANCE gate uses for an
 # order it never accepted. Measured: emperor-historical turn 13 accepted a
 # pursuit on a real sighting and turn 14 cancelled it with the same sentence
 # the issuance gate prints, so the player could not tell a refused order from
-# an order that had been running. False = the prior sentence.
-THE_COLD_TRAIL_IS_AN_OUTCOME = True
-# FA-S17-13 (slice 17, Phase 4) flip lever: ONE answer for one state. A
+# an order that had been running.
+# FA-S17-13 (slice 17, Phase 4): the peaceful court gets ONE answer for one
+# state. A
 # hostile verb aimed at a court France is at PEACE with got four different
 # replies — `march` named the road ("Secure open borders or declare war to
 # pass"), the in-range attack staged the war-purpose declaration, `pursue`
@@ -271,9 +265,7 @@ THE_COLD_TRAIL_IS_AN_OUTCOME = True
 # at war with Austria", ~70 times across the Phase-3 accept arms), and
 # `charge` misstated the cause entirely ("Cannot find target 'Mack' for
 # Glorious Charge" — the marshal exists; the war does not). The two dishonest
-# arms now read the sentence the march arm already used. False = the prior
-# four replies.
-THE_PEACEFUL_COURT_GETS_ONE_ANSWER = True
+# arms now read the sentence the march arm already used.
 
 
 def hostile_verb_at_peace(world, marshal, enemy, verb: str) -> str:
@@ -285,8 +277,6 @@ def hostile_verb_at_peace(world, marshal, enemy, verb: str) -> str:
     two roads out — and humanizes the marshal's name (NPC-12's class, which
     is why the pursue arm printed `ArchdukeCharles`).
     """
-    if not THE_PEACEFUL_COURT_GETS_ONE_ANSWER:
-        return ""
     if enemy is None or marshal is None:
         return ""
     from backend.display_names import humanize_entity_name
@@ -366,9 +356,8 @@ def interrupt_option_costs(interrupt: Optional[Dict],
                 costs[option] = BLOCKED_PATH_ABANDON_TRUST
     elif kind in ("combat_stalemate", "repeated_combat"):
         # FA-S16-D5: priced from the constant the responder charges.
-        if THE_STALEMATE_QUOTES_ITS_PRICE:
-            for option in ("hold_position", "cancel_order"):
-                costs[option] = STALEMATE_ABANDON_TRUST
+        for option in ("hold_position", "cancel_order"):
+            costs[option] = STALEMATE_ABANDON_TRUST
     return {k: v for k, v in costs.items() if k in options and v}
 
 
@@ -380,8 +369,7 @@ def last_stand_question_line(marshal) -> str:
 
 def standing_last_stand_refusal(marshal, action: Optional[str] = None) -> Optional[Dict]:
     """FA-16: the free refusal for ANY order to a marshal whose last stand
-    is unanswered, or None when nothing is parked / the verb is exempt /
-    the lever is down.
+    is unanswered, or None when nothing is parked / the verb is exempt.
 
     Review round (Sept 4 2026). Slice 2 sited this refusal under the
     executor's `should_check_objection`, whose predicate excludes strategic
@@ -396,7 +384,7 @@ def standing_last_stand_refusal(marshal, action: Optional[str] = None) -> Option
     verb, by the un-addressed general retreat / bare attack / auto-scout
     rosters, and by Berthier's parse-recovery line.
     """
-    if not STANDALONE_DECISION_LIVENESS_ACTIVE or marshal is None:
+    if marshal is None:
         return None
     if action in STANDING_DECISION_EXEMPT_ACTIONS:
         return None
@@ -420,8 +408,6 @@ def pending_marshal_decisions(world) -> List[str]:
     the marshal had none. Rides beside `pending_lapsing_count` on every
     response so the client can warn before sending `end turn`.
     """
-    if not STANDALONE_DECISION_LIVENESS_ACTIVE:
-        return []
     names: List[str] = []
     for marshal in world.get_player_marshals():
         pending = standalone_decision(marshal)
@@ -629,19 +615,16 @@ def pursue_known_location(world, marshal, enemy):
 # (FA-N41). `plot_route` is the ONE ladder every seam plots by;
 # `issuance_road_refusal` reads its verdict before an AP is charged;
 # `_stall_verdict` is PF-8's stall idiom, one copy for MOVE_TO/HOLD/SUPPORT.
-# Each lever False reproduces the prior behaviour byte-for-byte.
-ROAD_LAW_AT_ISSUANCE = True      # issuance plots lawful-first, refuses at 0 AP
+# The rules: issuance plots lawful-first and refuses at 0 AP; the three
+# re-plots and the compromise obey the law; `_get_personality_aware_path`
+# delegates (one seam); HOLD keeps `order.path` and its stall speaks; SUPPORT
+# reroutes-or-breaks with the reason; a road whose first step is not adjacent
+# re-plots; a per-hop step never mints a NEW order.
 # CRT-11 / RS-8 rider (P4, Oct 3, 2026): an EXPLICIT order's bad-odds
 # interrupt names the muster too — the PC-8 note the inferred modal has
 # carried since Aug 3. The marshal's own read stays solo. False = the
 # bare "Odds unfavorable" line, as shipped.
 THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER = True
-ROAD_LAW_ON_REPLOT = True        # the three re-plots + the compromise obey it
-ROAD_LAW_ONE_SEAM = True         # `_get_personality_aware_path` delegates
-HOLD_KEEPS_ITS_ROAD = True       # HOLD keeps `order.path`; its stall speaks
-SUPPORT_STALL_SPEAKS = True      # SUPPORT reroutes-or-breaks with the reason
-STALE_ROAD_REPLOTS = True        # a road whose first step is not adjacent re-plots
-STRATEGIC_STEP_NEVER_UPGRADES = True  # a per-hop step never mints a NEW order
 
 
 def region_is_adjacent(world, here: str, there: str) -> bool:
@@ -833,7 +816,6 @@ def issuance_road_refusal(world, marshal, destination: str, strategic_type: str,
 # ONE arrival law (`march_turns`); the strategic executor, the `move to`
 # belt, the pre-objection battery and the desk all read them.
 # ════════════════════════════════════════════════════════════════════════════
-THE_ROAD_LAW_IS_READ_WHERE_QUOTED = True
 
 
 def march_road(world, marshal, dest: str, strategic_type: str = "MOVE_TO"):
@@ -925,10 +907,8 @@ def march_state_refusal(world, marshal) -> Optional[str]:
     """CRT-4: why `<marshal>, march to <X>` would be refused before any road
     is read — the executor's own sentences (recovering, broken, engaged) and
     the action pre-check's figures. None when the order would be taken. PURE."""
-    from backend.commands.movement_executor import RECOVERING_CORPS_TAKES_NO_GROUND
     from backend.display_names import humanize_entity_name, plural
-    if (marshal.in_retreat_recovery() if RECOVERING_CORPS_TAKES_NO_GROUND
-            else getattr(marshal, 'retreat_recovery', 0) > 0):
+    if (marshal.in_retreat_recovery()):
         turns_left = max(1, int(getattr(marshal, 'retreat_recovery', 0) or 0))
         return (f"{marshal.name} is recovering from retreat "
                 f"({plural(int(turns_left), 'turn')} remaining) and cannot "
@@ -1059,21 +1039,17 @@ def _combat_carry(result) -> Dict:
 # predicate, read at every one of them.
 # ═══════════════════════════════════════════════════════════════════════════
 
-# FA slice 3 REVIEW ROUND (Sept 4 2026) — flip levers, the HOST_RULE_ACTIVE
-# idiom. False reproduces the slice-3 behaviour byte-for-byte.
-#   CANNON_FIRE_READS_THE_ANSWER — the two cannon-fire arms act with the
+# FA slice 3 REVIEW ROUND (Sept 4 2026):
+#   cannon fire reads the answer — the two cannon-fire arms act with the
 #     order STANDING and abandon it only for a battle fought or a march made
 #     (R1-F1/F2, R2-F3: a refused attack destroyed a live order for nothing,
 #     and a recklessness-3 cavalryman armed a charge popup nothing could
 #     answer);
-#   ANSWERED_CONTACT_READS_THE_BOARD — the answered contact is re-validated,
-#     keyed on a fought battle, and never minted into a pursuit (R1-F3/F4,
-#     R2-F4).
-CANNON_FIRE_READS_THE_ANSWER = True
+#   the answered contact reads the board — it is re-validated, keyed on a
+#     fought battle, and never minted into a pursuit (R1-F3/F4, R2-F4).
 
-# FA-S16-D2, RULED September 6, 2026 — the guns a marshal has a REASON to
-# march to. False reproduces the nation-blind scan exactly.
-CANNON_FIRE_READS_THE_FLAGS = True
+# FA-S16-D2, RULED September 6, 2026 — cannon fire reads the flags: the guns
+# a marshal has a REASON to march to (no longer a nation-blind scan).
 
 
 # SR-2e AAR-9 (Score Mandate, September 26, 2026): cannon fire for a war
@@ -1086,8 +1062,7 @@ CANNON_FIRE_READS_THE_FLAGS = True
 # enemy phase had destroyed (his battle row outlives him) as a reason to go.
 # The redirect now requires a battle France can lawfully join; any other
 # battle his nation has a stake in gets at most the ask (the NPC-2 arm), and
-# the ask says whose war it is. Lever False restores the stake-only redirect.
-THE_GUNS_MUST_BE_OUR_WAR = True
+# the ask says whose war it is. The rule: the guns must be our war.
 
 
 def _cannon_fire_nation(world, name) -> Optional[str]:
@@ -1165,8 +1140,6 @@ def _cannon_fire_concerns(world, marshal, battle) -> bool:
     by the own-soil arm and an enemy storming one by the WAR arm. This clause
     is robustness against a producer nobody has enumerated, and nothing else.
     """
-    if not CANNON_FIRE_READS_THE_FLAGS:
-        return True
     nation = getattr(marshal, "nation", "")
     region = world.regions.get(battle.get("location"))
     controller = getattr(region, "controller", None) if region else None
@@ -1184,7 +1157,7 @@ def _cannon_fire_concerns(world, marshal, battle) -> bool:
             owner = (world.regions.get(name[:-len("_garrison")])
                      if name.endswith("_garrison") else None)
             other = getattr(owner, "controller", None) if owner else None
-            if other is None and THE_GUNS_MUST_BE_OUR_WAR:
+            if other is None:
                 # SR-2e AAR-9: a man the enemy phase destroyed is not
                 # unknowable — his tombstone keeps his nation, and his
                 # battle row outlives him until the turn advances.
@@ -1199,7 +1172,6 @@ def _cannon_fire_concerns(world, marshal, battle) -> bool:
         if state in ("WAR", "VASSAL") or world.are_allies(nation, other):
             return True
     return False
-ANSWERED_CONTACT_READS_THE_BOARD = True
 # Score Finish Step 3 (Oct 2 2026) — combat legibility C1, RS-13's family:
 # the attack an answered contact question commits to prints its muster
 # (the question itself carries only the odds word). False = the re-issue
@@ -1732,7 +1704,7 @@ class StrategicOrderProcessor:
             # SR-2e AAR-10: he answered the guns this turn — a corps moves
             # once a turn, and the battle he fought is not cannon fire to
             # him. His order stands; the march resumes next turn.
-            if A_MARCH_KEEPS_ITS_TAIL and getattr(marshal, "reinforced_this_turn", False):
+            if getattr(marshal, "reinforced_this_turn", False):
                 print(f"[STRATEGIC] {marshal.name}: SKIP - reinforced a battle this turn")
                 reports.append({
                     "marshal": marshal.name,
@@ -1825,8 +1797,6 @@ class StrategicOrderProcessor:
         "re-validates itself", and it did not: see `muster_is_live`).
         """
         rows: List[Dict] = []
-        if not STANDALONE_DECISION_LIVENESS_ACTIVE:
-            return rows
         from backend.notifications import dismiss_marshal_ask
         for marshal in sorted(world.get_player_marshals(), key=lambda m: m.name):
             if marshal.in_strategic_mode:
@@ -1927,14 +1897,13 @@ class StrategicOrderProcessor:
             # slipped out of sight since the muster was read — retire the
             # question with the reason rather than re-issue an attack that
             # objects about a ghost.
-            if STANDALONE_DECISION_LIVENESS_ACTIVE:
-                live, reason = muster_is_live(marshal, world, pending)
-                if not live:
-                    marshal.pending_interrupt = None
-                    return {"success": True, "no_action_cost": True,
-                            "decision_retired": True,
-                            "message": (f"{marshal.name}'s muster is overtaken, "
-                                        f"Sire — {reason}. He stands down.")}
+            live, reason = muster_is_live(marshal, world, pending)
+            if not live:
+                marshal.pending_interrupt = None
+                return {"success": True, "no_action_cost": True,
+                        "decision_retired": True,
+                        "message": (f"{marshal.name}'s muster is overtaken, "
+                                    f"Sire — {reason}. He stands down.")}
             marshal.pending_interrupt = None
             attack_target = pending.get("target", "")
             if choice == "cancel_order":
@@ -1970,15 +1939,14 @@ class StrategicOrderProcessor:
             # FA-16 (slice 2): the question is answered against the enemy
             # who asked it, where he asked it — or not at all. A stale ask
             # is retired here rather than fought through.
-            if STANDALONE_DECISION_LIVENESS_ACTIVE:
-                live, reason = last_stand_is_live(marshal, world, pending)
-                if not live:
-                    marshal.pending_interrupt = None
-                    dismiss_marshal_ask(world, marshal.name)
-                    return {"success": True, "no_action_cost": True,
-                            "decision_retired": True,
-                            "message": (f"{marshal.name}'s question is overtaken, "
-                                        f"Sire — {reason}. He awaits new orders.")}
+            live, reason = last_stand_is_live(marshal, world, pending)
+            if not live:
+                marshal.pending_interrupt = None
+                dismiss_marshal_ask(world, marshal.name)
+                return {"success": True, "no_action_cost": True,
+                        "decision_retired": True,
+                        "message": (f"{marshal.name}'s question is overtaken, "
+                                    f"Sire — {reason}. He awaits new orders.")}
             marshal.pending_interrupt = None
             # PC-9: the rail notice exists only to make an UNANSWERED last
             # stand visible. It was never retired when the player answered,
@@ -2091,11 +2059,6 @@ class StrategicOrderProcessor:
             cmd_flavor = _strategic_command_flavor(order.command_type)
             # FA slice 3 review round (R1-F1): abandoned only for a battle
             # fought or a march made — see `_abandon_for_the_guns`.
-            if not CANNON_FIRE_READS_THE_ANSWER:
-                marshal.strategic_order = None
-                # [7A-2] Clear holding state
-                marshal.holding_position = False
-                marshal.hold_region = ""
 
             # Distance-based: attack if adjacent with enemy, otherwise move
             is_cavalry = getattr(marshal, 'cavalry', False)
@@ -2125,7 +2088,7 @@ class StrategicOrderProcessor:
                 )
                 action_msg = action_result.get("message", "")
                 print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: Location AFTER = {marshal.location}")
-                if CANNON_FIRE_READS_THE_ANSWER and attack_was_refused(action_result):
+                if attack_was_refused(action_result):
                     return {
                         "success": True,
                         "no_action_cost": True,
@@ -2137,8 +2100,7 @@ class StrategicOrderProcessor:
                         "action_taken": "attack_refused",
                         **refusal_keys(action_result),
                     }
-                if CANNON_FIRE_READS_THE_ANSWER:
-                    self._abandon_for_the_guns(marshal)
+                self._abandon_for_the_guns(marshal)
                 return _carry_combat_fields({
                     "success": True,
                     "message": f"{marshal.name} abandons {cmd_flavor} and "
@@ -2176,12 +2138,11 @@ class StrategicOrderProcessor:
 
                 print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: Location AFTER = {marshal.location}")
                 if moved_to:
-                    if CANNON_FIRE_READS_THE_ANSWER:
-                        self._abandon_for_the_guns(marshal)
+                    self._abandon_for_the_guns(marshal)
                     msg = (f"{marshal.name} abandons {cmd_flavor} and "
                            f"rushes toward the guns at {battle_location}! "
                            f"Moved to {moved_to}.")
-                elif CANNON_FIRE_READS_THE_ANSWER:
+                else:
                     # No step could be made: the order stands.
                     return {
                         "success": True,
@@ -2192,9 +2153,6 @@ class StrategicOrderProcessor:
                         "trust_change": trust_change,
                         "action_taken": "investigate_refused",
                     }
-                else:
-                    msg = (f"{marshal.name} abandons {cmd_flavor} and "
-                           f"turns toward {battle_location}, but cannot advance yet.")
                 return {
                     "success": True,
                     "message": msg,
@@ -2287,21 +2245,20 @@ class StrategicOrderProcessor:
             # FA slice 3 review round (R1-F3/F4): the question may be STALE
             # — the enemy phase moved the blocker, or a peace was signed —
             # and the answer used to fight whoever the executor could find.
-            if ANSWERED_CONTACT_READS_THE_BOARD:
-                live, reason = contact_is_live(marshal, world, pending)
-                if not live:
-                    return {
-                        "success": True,
-                        "no_action_cost": True,
-                        "decision_retired": True,
-                        "message": (f"{marshal.name}'s contact is overtaken, Sire — "
-                                    f"{reason}. "
-                                    f"{_strategic_command_flavor(order.command_type).capitalize()} "
-                                    f"continues."),
-                        "order_cleared": False,
-                        "trust_change": 0,
-                        "action_taken": "contact_retired",
-                    }
+            live, reason = contact_is_live(marshal, world, pending)
+            if not live:
+                return {
+                    "success": True,
+                    "no_action_cost": True,
+                    "decision_retired": True,
+                    "message": (f"{marshal.name}'s contact is overtaken, Sire — "
+                                f"{reason}. "
+                                f"{_strategic_command_flavor(order.command_type).capitalize()} "
+                                f"continues."),
+                    "order_cleared": False,
+                    "trust_change": 0,
+                    "action_taken": "contact_retired",
+                }
             # Attack the blocking enemy
             _contact_cmd = {
                 "marshal": marshal.name,
@@ -2340,45 +2297,36 @@ class StrategicOrderProcessor:
             combat_msg = result.get("message", "")
             cmd_flavor = _strategic_command_flavor(order.command_type)
 
-            if ANSWERED_CONTACT_READS_THE_BOARD:
-                victor = fought_battle_victor(result, marshal.name)
-                if victor is None:
-                    # Not an assault at all — a staged dialogue, a minted
-                    # order. The executor's own sentence; the order stands;
-                    # no attempt is charged.
-                    return _carry_combat_fields({
-                        "success": True,
-                        "no_action_cost": True,
-                        "message": (f"{marshal.name} cannot bring {_shown_name(enemy_name)} to "
-                                    f"battle — {combat_msg}").strip(),
-                        "order_cleared": False,
-                        "trust_change": 0,
-                        "action_taken": "attack_not_made",
-                    }, result)
-                if victor == "":
-                    # A stalemate: the FA-34 ruling — the order stands, one
-                    # attempt charged, the next contact asks again (R2-F4:
-                    # this arm used to cancel where `continue_order` kept).
-                    order.combat_attempts = getattr(order, 'combat_attempts', 0) + 1
-                    order.last_combat_enemy = enemy_name
-                    order.last_combat_turn = world.current_turn
-                    return _carry_combat_fields({
-                        "success": True,
-                        "message": (f"{marshal.name} attacks {_shown_name(enemy_name)}. {combat_msg} "
-                                    f"The assault was inconclusive — {cmd_flavor} continues."),
-                        "order_cleared": False,
-                        "trust_change": 0,
-                        "action_taken": "attack",
-                    }, result)
-                battle_victor = victor
-            else:
-                # Check victory: victor is in events[0] or battle_result
-                battle_victor = ""
-                events = result.get("events", [])
-                if events and isinstance(events, list) and len(events) > 0:
-                    battle_victor = events[0].get("victor", "")
-                if not battle_victor:
-                    battle_victor = result.get("battle_result", {}).get("victor", "")
+            victor = fought_battle_victor(result, marshal.name)
+            if victor is None:
+                # Not an assault at all — a staged dialogue, a minted
+                # order. The executor's own sentence; the order stands;
+                # no attempt is charged.
+                return _carry_combat_fields({
+                    "success": True,
+                    "no_action_cost": True,
+                    "message": (f"{marshal.name} cannot bring {_shown_name(enemy_name)} to "
+                                f"battle — {combat_msg}").strip(),
+                    "order_cleared": False,
+                    "trust_change": 0,
+                    "action_taken": "attack_not_made",
+                }, result)
+            if victor == "":
+                # A stalemate: the FA-34 ruling — the order stands, one
+                # attempt charged, the next contact asks again (R2-F4:
+                # this arm used to cancel where `continue_order` kept).
+                order.combat_attempts = getattr(order, 'combat_attempts', 0) + 1
+                order.last_combat_enemy = enemy_name
+                order.last_combat_turn = world.current_turn
+                return _carry_combat_fields({
+                    "success": True,
+                    "message": (f"{marshal.name} attacks {_shown_name(enemy_name)}. {combat_msg} "
+                                f"The assault was inconclusive — {cmd_flavor} continues."),
+                    "order_cleared": False,
+                    "trust_change": 0,
+                    "action_taken": "attack",
+                }, result)
+            battle_victor = victor
             if combat_success and battle_victor == marshal.name:
                 # Victory — reset attempts, continue order
                 order.combat_attempts = 0
@@ -2431,20 +2379,11 @@ class StrategicOrderProcessor:
                 marshal.nation, world, marshal=marshal)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
-            if ROAD_LAW_ON_REPLOT:
-                # FA slice 5: a reroute prefers a lawful corridor and must
-                # still AVOID what it fled (it used to be terrain-only).
-                new_path, _ = plot_route(
-                    world, marshal, destination, use_weighted=use_weighted,
-                    avoid_regions=enemy_regions, avoid_is_law=True)
-            else:
-                pathfinder = world.find_weighted_path if use_weighted else world.find_path
-                new_path = pathfinder(
-                    marshal.location, destination,
-                    avoid_regions=enemy_regions
-                )
-                new_path = ([r for r in new_path if r != marshal.location]
-                            if new_path else None)
+            # FA slice 5: a reroute prefers a lawful corridor and must
+            # still AVOID what it fled (it used to be terrain-only).
+            new_path, _ = plot_route(
+                world, marshal, destination, use_weighted=use_weighted,
+                avoid_regions=enemy_regions, avoid_is_law=True)
             if new_path:
                 order.path = list(new_path)
                 # Execute one movement step along the new path
@@ -2642,10 +2581,7 @@ class StrategicOrderProcessor:
     def _retire_dead_decision(self, marshal, world, order) -> Optional[Dict]:
         """Step 0a's liveness arm for a standalone decision parked on an
         ORDERED marshal: retire a dead one with its reason (the order
-        stands and resumes next turn), or None when it is live / absent /
-        the lever is down."""
-        if not STANDALONE_DECISION_LIVENESS_ACTIVE:
-            return None
+        stands and resumes next turn), or None when it is live / absent."""
         pending = standalone_decision(marshal)
         if not pending:
             return None
@@ -2832,8 +2768,7 @@ class StrategicOrderProcessor:
                     return self._break_order(marshal, world,
                                              f"No path to {destination}")
 
-        if (STALE_ROAD_REPLOTS and order.path
-                and not region_is_adjacent(world, marshal.location, order.path[0])):
+        if (order.path and not region_is_adjacent(world, marshal.location, order.path[0])):
             # FA slice 5: a road whose first step is not one march away is
             # STALE (a forced retreat, a stored reroute from another province)
             # — handing it to `move` used to reach the auto-upgrade, which
@@ -3259,24 +3194,15 @@ class StrategicOrderProcessor:
         # ═══════════════════════════════════════════════════════════
         if is_player_marshal and not last_known:
             _quarry_name = humanize_entity_name(str(order.target))
-            if THE_COLD_TRAIL_IS_AN_OUTCOME:
-                # FA-S17-9: he WAS given this order on a sighting; say that
-                # the trail went cold, and from where, so a running order's
-                # end reads differently from an order never accepted.
-                _from = ((order.path[-1] if getattr(order, "path", None) else "")
-                         or marshal.location)
-                return self._break_order(marshal, world,
-                    f"The trail has gone cold, Sire — {_quarry_name} was last "
-                    f"making for {_from}, and {marshal.name} has no further "
-                    f"word of him. Scout for him to take up the chase again.")
+            # FA-S17-9: he WAS given this order on a sighting; say that
+            # the trail went cold, and from where, so a running order's
+            # end reads differently from an order never accepted.
+            _from = ((order.path[-1] if getattr(order, "path", None) else "")
+                     or marshal.location)
             return self._break_order(marshal, world,
-                # N27 (CA9), unfiled sibling found while pinning the
-                # PURSUE prose: this is the line the player actually
-                # meets, and it named the raw key —
-                # "No intelligence on ArchdukeCharles's position, Sire."
-                f"No intelligence on "
-                f"{_quarry_name}'s position, "
-                f"Sire.")
+                f"The trail has gone cold, Sire — {_quarry_name} was last "
+                f"making for {_from}, and {marshal.name} has no further "
+                f"word of him. Scout for him to take up the chase again.")
 
         # Same region? Engage and complete (physical encounter — real data).
         if marshal.location == target.location:
@@ -3601,22 +3527,18 @@ class StrategicOrderProcessor:
 
             # Use weighted pathfinding — march to hold position avoids expensive terrain
             last_fail = None  # FA slice 5: the step's refusal, for the stall verdict
-            if HOLD_KEEPS_ITS_ROAD:
-                # FA slice 5 (FA-N11/N12/N49): HOLD used to re-plot its road
-                # from scratch every turn, terrain-only — every reroute a
-                # literal marshal made was thrown away on the next tick and a
-                # lawful corridor was never chosen. Keep `order.path`; re-plot
-                # (lawful-first, cautious fog-aware — the MOVE_TO idiom) only
-                # when it is empty or its first step is not one march away.
-                path = list(order.path or [])
-                while path and path[0] == marshal.location:
-                    path.pop(0)
-                if not path or not region_is_adjacent(world, marshal.location, path[0]):
-                    path = self._get_personality_aware_path(
-                        marshal, hold_position, world, use_weighted=True) or []
-            else:
-                path = world.find_weighted_path(marshal.location, hold_position)
-                path = [r for r in path if r != marshal.location] if path else []
+            # FA slice 5 (FA-N11/N12/N49): HOLD used to re-plot its road
+            # from scratch every turn, terrain-only — every reroute a
+            # literal marshal made was thrown away on the next tick and a
+            # lawful corridor was never chosen. Keep `order.path`; re-plot
+            # (lawful-first, cautious fog-aware — the MOVE_TO idiom) only
+            # when it is empty or its first step is not one march away.
+            path = list(order.path or [])
+            while path and path[0] == marshal.location:
+                path.pop(0)
+            if not path or not region_is_adjacent(world, marshal.location, path[0]):
+                path = self._get_personality_aware_path(
+                    marshal, hold_position, world, use_weighted=True) or []
             if path:
                 order.path = path  # Persist path on order for UI/reroute
                 if path:
@@ -3676,14 +3598,13 @@ class StrategicOrderProcessor:
                                        f"{_plural_lv9(int(distance), 'region')} away."
                         }
 
-            if HOLD_KEEPS_ITS_ROAD:
-                # FA-N12/N49: a stall at a closed border reroutes once or
-                # breaks WITH its reason — never the bare "Cannot reach".
-                stalled = self._stall_verdict(
-                    marshal, order, world, last_fail, hold_position,
-                    verb="HOLD", allow_reroute=True, use_weighted=True)
-                if stalled is not None:
-                    return stalled
+            # FA-N12/N49: a stall at a closed border reroutes once or
+            # breaks WITH its reason — never the bare "Cannot reach".
+            stalled = self._stall_verdict(
+                marshal, order, world, last_fail, hold_position,
+                verb="HOLD", allow_reroute=True, use_weighted=True)
+            if stalled is not None:
+                return stalled
             return self._break_order(marshal, world,
                                      f"Cannot reach {hold_position}")
 
@@ -4187,19 +4108,18 @@ class StrategicOrderProcessor:
                            f"{_plural_lv9(int(distance), 'region')} away."
             }
 
-        if SUPPORT_STALL_SPEAKS:
-            # FA-N41: PF-8's stall idiom never reached SUPPORT — a first step
-            # refused at a closed border or a covered strait re-stalled
-            # "could not move toward" every turn, for ever, the order (and
-            # the W6-4 march-to-the-guns authorization it carries) standing.
-            stalled = self._stall_verdict(
-                marshal, order, world, last_fail, ally.location,
-                verb="SUPPORT", allow_reroute=True, use_weighted=False,
-                toward=ally.name,
-                lapse_note=(f" The standing authorization to march to "
-                            f"{ally.name}'s guns lapses with it."))
-            if stalled is not None:
-                return stalled
+        # FA-N41: PF-8's stall idiom never reached SUPPORT — a first step
+        # refused at a closed border or a covered strait re-stalled
+        # "could not move toward" every turn, for ever, the order (and
+        # the W6-4 march-to-the-guns authorization it carries) standing.
+        stalled = self._stall_verdict(
+            marshal, order, world, last_fail, ally.location,
+            verb="SUPPORT", allow_reroute=True, use_weighted=False,
+            toward=ally.name,
+            lapse_note=(f" The standing authorization to march to "
+                        f"{ally.name}'s guns lapses with it."))
+        if stalled is not None:
+            return stalled
         return {
             "marshal": marshal.name,
             "command": "SUPPORT",
@@ -4267,10 +4187,9 @@ class StrategicOrderProcessor:
         # leaving (measured: a stake battle one province over redirected a
         # road-home MOVE_TO on the shipped board). The order the peace
         # issued is not the marshal's to drop.
-        if THE_ROAD_HOME_IS_LITERAL:
-            from backend.game_logic.withdrawal import is_road_home_order
-            if is_road_home_order(getattr(marshal, "strategic_order", None)):
-                return None
+        from backend.game_logic.withdrawal import is_road_home_order
+        if is_road_home_order(getattr(marshal, "strategic_order", None)):
+            return None
 
         # Skip cannon fire if marshal recently chose "continue" (suppress for 1 turn)
         ignored_turn = getattr(marshal, 'cannon_fire_ignored_turn', None)
@@ -4293,8 +4212,7 @@ class StrategicOrderProcessor:
 
             # SR-2e AAR-9: only a war his nation is in may pull him off
             # his order; any other battle it has a stake in is at most asked.
-            lawful = (not THE_GUNS_MUST_BE_OUR_WAR
-                      or cannon_fire_is_lawful(world, marshal, battle))
+            lawful = cannon_fire_is_lawful(world, marshal, battle)
             if personality == "aggressive" and lawful:
                 # Aggressive rushes toward battle
                 return {
@@ -4339,11 +4257,6 @@ class StrategicOrderProcessor:
                 # end-turn wire cannot carry (WO-25's shape). The order stands
                 # while the executor answers; it is abandoned below only for a
                 # battle actually fought or a march actually made.
-                if not CANNON_FIRE_READS_THE_ANSWER:
-                    marshal.strategic_order = None
-                    # [7A-2] Clear holding state
-                    marshal.holding_position = False
-                    marshal.hold_region = ""
 
                 # Distance-based response: attack if in range, otherwise move toward
                 is_cavalry = getattr(marshal, 'cavalry', False)
@@ -4400,8 +4313,7 @@ class StrategicOrderProcessor:
                             # successes, so every refusal was reported as
                             # "no road leads there" (false beside a road
                             # the movement law had closed).
-                            if (THE_GUNS_MUST_BE_OUR_WAR
-                                    and not action_result):
+                            if (not action_result):
                                 action_result = step_result
                             break
                         action_result = step_result
@@ -4411,59 +4323,37 @@ class StrategicOrderProcessor:
                 action_events = action_result.get("events", [])
                 action_msg = action_result.get("message", "")
 
-                if CANNON_FIRE_READS_THE_ANSWER:
-                    flavor = _strategic_command_flavor(cmd_type) if order else "his orders"
-                    answered = ((action_taken == "attack"
-                                 and not attack_was_refused(action_result))
-                                or (action_taken == "move" and action_success))
-                    if not answered:
-                        # The guns go unanswered; the order STANDS.
-                        reason = (refusal_reason(action_result) if action_result
-                                  else "no road leads there.")
-                        return {
-                            "marshal": marshal.name,
-                            "command": cmd_type,
-                            "interrupt": "cannon_fire",
-                            "interrupt_type": "cannon_fire",
-                            "action_taken": ("attack_refused" if action_taken == "attack"
-                                             else "redirect_refused"),
-                            "action_success": False,
-                            "action_events": [],
-                            "battle_location": battle_loc,
-                            "to": battle_loc,
-                            "order_status": "continues",
-                            "message": (f"{marshal.name} hears cannon fire at {battle_loc} "
-                                        f"but cannot answer it — {reason} "
-                                        f"{flavor.capitalize()} continues."),
-                            **refusal_keys(action_result),
-                        }
-                    # The abandonment is real: a battle fought or a march made.
-                    marshal.strategic_order = None
-                    clear_order_bound_interrupt(marshal)  # NPC-2
-                    marshal.holding_position = False
-                    marshal.hold_region = ""
-                    row = {
+                flavor = _strategic_command_flavor(cmd_type) if order else "his orders"
+                answered = ((action_taken == "attack"
+                             and not attack_was_refused(action_result))
+                            or (action_taken == "move" and action_success))
+                if not answered:
+                    # The guns go unanswered; the order STANDS.
+                    reason = (refusal_reason(action_result) if action_result
+                              else "no road leads there.")
+                    return {
                         "marshal": marshal.name,
                         "command": cmd_type,
                         "interrupt": "cannon_fire",
                         "interrupt_type": "cannon_fire",
-                        "action_taken": action_taken,
-                        "action_success": action_success,
-                        "action_events": action_events,
+                        "action_taken": ("attack_refused" if action_taken == "attack"
+                                         else "redirect_refused"),
+                        "action_success": False,
+                        "action_events": [],
                         "battle_location": battle_loc,
                         "to": battle_loc,
-                        "order_status": "interrupted",
-                        "message": f"{marshal.name} hears cannon fire! "
-                                   f"Abandoning orders — rushing to {battle_loc}! "
-                                   f"{action_msg}".strip(),
+                        "order_status": "continues",
+                        "message": (f"{marshal.name} hears cannon fire at {battle_loc} "
+                                    f"but cannot answer it — {reason} "
+                                    f"{flavor.capitalize()} continues."),
+                        **refusal_keys(action_result),
                     }
-                    if action_taken == "attack":
-                        # R2-F3: the fighting redirect carried only
-                        # `action_events` — no report, no tableau.
-                        row.update(_combat_carry(action_result))
-                    return row
-
-                return {
+                # The abandonment is real: a battle fought or a march made.
+                marshal.strategic_order = None
+                clear_order_bound_interrupt(marshal)  # NPC-2
+                marshal.holding_position = False
+                marshal.hold_region = ""
+                row = {
                     "marshal": marshal.name,
                     "command": cmd_type,
                     "interrupt": "cannon_fire",
@@ -4478,6 +4368,12 @@ class StrategicOrderProcessor:
                                f"Abandoning orders — rushing to {battle_loc}! "
                                f"{action_msg}".strip(),
                 }
+                if action_taken == "attack":
+                    # R2-F3: the fighting redirect carried only
+                    # `action_events` — no report, no tableau.
+                    row.update(_combat_carry(action_result))
+                return row
+
             else:
                 # Cautious asks player (and, since SR-2e AAR-9, an aggressive
                 # marshal whose guns are not our war — the ask names whose).
@@ -4839,20 +4735,11 @@ class StrategicOrderProcessor:
                 enemy_regions.append(blocked_region)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
-            if ROAD_LAW_ON_REPLOT:
-                # FA slice 5: a reroute prefers a lawful corridor and must
-                # still AVOID what it fled (it used to be terrain-only).
-                new_path, _ = plot_route(
-                    world, marshal, destination, use_weighted=use_weighted,
-                    avoid_regions=enemy_regions, avoid_is_law=True)
-            else:
-                pathfinder = world.find_weighted_path if use_weighted else world.find_path
-                new_path = pathfinder(
-                    marshal.location, destination,
-                    avoid_regions=enemy_regions
-                )
-                new_path = ([r for r in new_path if r != marshal.location]
-                            if new_path else None)
+            # FA slice 5: a reroute prefers a lawful corridor and must
+            # still AVOID what it fled (it used to be terrain-only).
+            new_path, _ = plot_route(
+                world, marshal, destination, use_weighted=use_weighted,
+                avoid_regions=enemy_regions, avoid_is_law=True)
             if new_path:
                 order.path = list(new_path)
                 # Session 36: Discovery vs standard reroute message
@@ -5317,24 +5204,8 @@ class StrategicOrderProcessor:
         fog_aware is derived automatically: True for player marshals, False for AI.
         This prevents callers from forgetting to pass fog_aware.
         """
-        if ROAD_LAW_ONE_SEAM:
-            return enemy_occupied_regions(world, nation, marshal=marshal,
-                                          fog_aware=fog_aware)
-        from backend.models.intel import FULL, PARTIAL
-
-        # Auto-derive fog_aware from marshal if provided and caller didn't override
-        if marshal is not None and not fog_aware:
-            fog_aware = (marshal.nation == world.player_nation)
-
-        enemy_regions = []
-        for region_name in world.regions:
-            if fog_aware:
-                intel = world.get_region_intel(region_name)
-                if intel.visibility not in (FULL, PARTIAL):
-                    continue  # Can't see enemies here — skip
-            if world.get_enemies_in_region(region_name, nation):
-                enemy_regions.append(region_name)
-        return enemy_regions
+        return enemy_occupied_regions(world, nation, marshal=marshal,
+                                      fog_aware=fog_aware)
 
     def _get_personality_aware_path(self, marshal, destination, world,
                                      use_weighted: bool = False) -> Optional[List[str]]:
@@ -5358,48 +5229,12 @@ class StrategicOrderProcessor:
         Returns path excluding start location, or None if no path exists.
         """
         personality = getattr(marshal, 'personality', 'balanced')
-        if ROAD_LAW_ONE_SEAM:
-            # FA slice 5: ONE ladder (`plot_route`) — the arm below is the
-            # prior inline copy it reproduces byte-for-byte (pinned).
-            avoid = None
-            if personality == "cautious":
-                avoid = self._get_enemy_occupied_regions(
-                    marshal.nation, world, marshal=marshal)
-            road, _ = plot_route(world, marshal, destination,
-                                 use_weighted=use_weighted, avoid_regions=avoid)
-            return road or None
-        pathfinder = world.find_weighted_path if use_weighted else world.find_path
-        # PF-8: a PLAYER march prefers a passable (own/allied/open-border/at-war)
-        # corridor over impassable neutral land; the AI keeps omniscient routing.
-        # If no passable route exists, fall back so the order still forms and the
-        # stall-feedback path reports why (rather than silently vanishing).
-        _pf = marshal.nation if marshal.nation == world.player_nation else None
-
+        # FA slice 5: ONE ladder (`plot_route`) — the arm below is the
+        # prior inline copy it reproduces byte-for-byte (pinned).
+        avoid = None
         if personality == "cautious":
-            enemy_regions = self._get_enemy_occupied_regions(
+            avoid = self._get_enemy_occupied_regions(
                 marshal.nation, world, marshal=marshal)
-            path = pathfinder(marshal.location, destination,
-                              avoid_regions=enemy_regions, passable_for=_pf)
-            if not path:
-                # No safe route — fall back to direct path. The marshal will
-                # NOT walk through enemies: the movement loop (line 466-468)
-                # blocks entry and triggers _handle_blocked_path(), which asks
-                # the player before proceeding. This is intentional UX — the
-                # marshal starts moving and reports contact when it happens.
-                path = pathfinder(marshal.location, destination, passable_for=_pf)
-        else:
-            # Aggressive/literal/balanced: direct path. Movement loop at
-            # _execute_move_to line 466 still blocks entry into enemy regions
-            # and triggers _handle_blocked_path() for interrupt/reroute.
-            path = pathfinder(marshal.location, destination, passable_for=_pf)
-
-        if not path and _pf:
-            # PF-8 fallback: no passable corridor — form the terrain-only path so
-            # the march begins and stalls at the closed border with a reason.
-            path = pathfinder(marshal.location, destination)
-
-        if not path:
-            return None
-
-        # Strip start location (find_weighted_path/find_path returns start-inclusive)
-        return [r for r in path if r != marshal.location]
+        road, _ = plot_route(world, marshal, destination,
+                             use_weighted=use_weighted, avoid_regions=avoid)
+        return road or None

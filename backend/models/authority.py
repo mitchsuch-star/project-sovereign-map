@@ -557,11 +557,7 @@ def courting_effectiveness_scale(grip: int) -> float:
 # damping at the payment would have made the button lie, which is the
 # defect class this whole row exists to close.
 #
-# Flip lever for the BASELINE_SERIES attribution experiment: False
-# reproduces the pre-slice behaviour byte-identically (the
-# HOST_RULE_ACTIVE idiom). Not a config surface.
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 9.
-OBJECTION_TRUST_DAMPER_ACTIVE = True
 
 
 def objection_trust_modifier(world) -> float:
@@ -570,12 +566,10 @@ def objection_trust_modifier(world) -> float:
     Single source with `damp_objection_trust_gain` — the number a marshal
     is paid by and the number the dialog explains itself with must be the
     same read, or the explanation becomes its own shown-vs-applied bug.
-    Returns 1.0 whenever nothing is being damped (lever down, no tracker,
-    or under the >=5-answers guard), so a caller can render only when it
+    Returns 1.0 whenever nothing is being damped (no tracker, or under
+    the >=5-answers guard), so a caller can render only when it
     is < 1.0.
     """
-    if not OBJECTION_TRUST_DAMPER_ACTIVE:
-        return 1.0
     tracker = getattr(world, "authority_tracker", None)
     if tracker is None or not hasattr(tracker, "get_trust_gain_modifier"):
         return 1.0

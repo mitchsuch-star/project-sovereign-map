@@ -26,8 +26,8 @@ autosaves now see it); ONE liveness predicate `standing_redemption` read
 by the generation seam, GET and /load; ONE hoist `hoist_tactical_redemption`
 for both turn-advance paths; /load attaches the key and the client's
 world-swap tail stashes and raises it (PT-B1's discipline, never the
-route). Flip lever `REDEMPTION_LATCH_AT_GENERATION_ACTIVE` reproduces the
-prior behaviour so the tests below can show they are about the right thing.
+route). The flip lever `REDEMPTION_LATCH_AT_GENERATION_ACTIVE` that
+reproduced the prior behaviour was retired in CODE-1 batch 6 (Oct 2026).
 
 Every test names the mutation that kills it.
 """
@@ -40,7 +40,6 @@ import pytest
 from tests import _gd_calls as G
 
 from backend import save_manager
-from backend.commands import disobedience as DIS
 from backend.commands.disobedience import (
     DisobedienceSystem,
     hoist_tactical_redemption,
@@ -112,16 +111,6 @@ class TestTheQuestionIsWrittenWhereTheLatchIs:
         assert ney.redemption_pending is True
         assert world.pending_redemption is event
 
-    def test_lever_off_reproduces_the_filed_defect(self, monkeypatch):
-        """The prior behaviour: latch set, world field untouched. Proves the
-        pin above is about the lever, not about something else that
-        happens to set the field. Mutation: freeze the lever True."""
-        monkeypatch.setattr(DIS, "REDEMPTION_LATCH_AT_GENERATION_ACTIVE", False)
-        world = WorldState()
-        ney, event = _cross(world, "Ney")
-        assert event is not None and ney.redemption_pending is True
-        assert world.pending_redemption is None
-
     def test_no_world_no_write_no_crash(self):
         """Producers may hand the checker `world=None` (the objection path's
         `getattr(game_state, 'world', game_state)`). Mutation: drop the
@@ -179,24 +168,6 @@ class TestTheAutosaveCarriesTheQuestion:
         assert w2.get_marshal("Ney").redemption_pending is True
         assert standing_redemption(w2) is not None
         assert standing_redemption(w2)["marshal"] == "Ney"
-
-    def test_lever_off_reproduces_the_lost_audience(self, sandboxed_saves,
-                                                    monkeypatch):
-        """The measured defect: the save carries the latch and not the
-        question, and nothing can ever ask again. Mutation: freeze the
-        lever True."""
-        monkeypatch.setattr(DIS, "REDEMPTION_LATCH_AT_GENERATION_ACTIVE", False)
-        world = WorldState()
-        _arm_cavalry_limit(world, "Ney")
-        result = CommandExecutor()._execute_end_turn({}, {"world": world})
-        assert result["redemption_event"]["marshal"] == "Ney"
-        saved = self._autosave(sandboxed_saves)
-        assert saved["pending_redemption"] is None            # no question
-        loaded = load_game(sandboxed_saves / save_manager.AUTOSAVE_FILENAME)
-        ney2 = loaded["world"].get_marshal("Ney")
-        assert ney2.redemption_pending is True                # the latch
-        assert loaded["world"].disobedience_system.check_redemption_threshold(
-            ney2, loaded["world"]) is None                    # forever
 
     def test_auto_advance_hoists_the_redemption_and_autosaves_it(
             self, sandboxed_saves):
@@ -267,16 +238,6 @@ class TestOneLiveQuestionAtATime:
         assert second is not None and second["marshal"] == "Davout"
         assert world.pending_redemption is second
         assert davout.redemption_pending is True
-
-    def test_lever_off_latches_both(self, monkeypatch):
-        """The prior behaviour: both latched, one question lost.
-        Mutation: freeze the lever True."""
-        monkeypatch.setattr(DIS, "REDEMPTION_LATCH_AT_GENERATION_ACTIVE", False)
-        world = WorldState()
-        ney, first = _cross(world, "Ney")
-        davout, second = _cross(world, "Davout")
-        assert first is not None and second is not None
-        assert ney.redemption_pending and davout.redemption_pending
 
     def test_the_tick_hoist_agrees_with_the_world_field(self):
         """Two cavalry marshals trip the limit in ONE tick: the response

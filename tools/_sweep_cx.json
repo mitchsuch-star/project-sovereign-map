@@ -28,20 +28,6 @@
   "tests": "tests/test_cx1_a_question_never_orders.py::TestTheLever::test_the_roster_arm_is_dormant_without_a_roster"
  },
  {
-  "id": "CX1-5 clause_guards: an unaddressed line ending in ? stops asking",
-  "file": "backend/ai/clause_guards.py",
-  "old": "    if (A_QUESTION_NEVER_ORDERS and text.endswith(\"?\")\n            and not _ADDRESSED_LINE_RE.match(text)\n            and not is_bare_end_turn(text)):\n        return True",
-  "new": "    if False:\n        return True",
-  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheQuestionsThatFought"
- },
- {
-  "id": "CX1-6 clause_guards: the inverted-conditional stand-down deleted (a conditional becomes a question)",
-  "file": "backend/ai/clause_guards.py",
-  "old": "    if (A_QUESTION_NEVER_ORDERS and lead_word not in _WH_WORDS\n            and not _TRAILING_CLAUSE_RE.search(rest)):",
-  "new": "    if (A_QUESTION_NEVER_ORDERS and lead_word not in _WH_WORDS\n            and True):",
-  "tests": "tests/test_cx1_a_question_never_orders.py::TestEachArmOfTheGuardDirectly::test_arm_c_stands_down_before_a_trailing_clause"
- },
- {
   "id": "CX1-7 clause_guards: `have` joins the leads, so the causative imperative asks",
   "file": "backend/ai/clause_guards.py",
   "old": "|may|might|has|had%s)\\b\"",

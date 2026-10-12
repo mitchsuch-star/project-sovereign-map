@@ -525,25 +525,11 @@
     "tests": "tests/test_sf_agd1_the_agendas_arm.py::TestTheGateTermKey::test_the_holder_tail_is_not_part_of_the_term"
   },
   {
-    "id": "SF5-X1 lever down: a question answers the interrupt",
-    "file": "backend/main.py",
-    "old": "A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT = True",
-    "new": "A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT = False",
-    "tests": "tests/test_sf5_the_question_and_the_interrupt.py::TestAQuestionNeverAnswersAnInterrupt"
-  },
-  {
     "id": "SF5-X1 the interrupt not re-carried",
     "file": "backend/main.py",
     "old": "                        _reprompt[\"pending_interrupt\"] = dict(pending)\n",
     "new": "",
     "tests": "tests/test_sf5_the_question_and_the_interrupt.py::TestAQuestionNeverAnswersAnInterrupt"
-  },
-  {
-    "id": "SF5-X1 every question is the interrupt's",
-    "file": "backend/main.py",
-    "old": "                if choice and A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:",
-    "new": "                if A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:",
-    "tests": "tests/test_sf5_the_question_and_the_interrupt.py::TestAQuestionNeverAnswersAnInterrupt::test_a_question_about_something_else_is_the_desks"
   },
   {
     "id": "SF5-X2 lever down: the route runs ahead of the hard stop",

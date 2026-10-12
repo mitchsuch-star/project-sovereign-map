@@ -235,16 +235,6 @@ class TestTheNationIsNotAnAdjective(unittest.TestCase):
                                  for a, b in zip(out, out[1:])),
                              f"{tag} -> {out} still reads as a key")
 
-    def test_lever_down_reproduces_the_coined_demonym(self):
-        from backend import display_names as DN
-        original = DN.NATION_ADJECTIVE_REFUSES_TO_COIN
-        try:
-            DN.NATION_ADJECTIVE_REFUSES_TO_COIN = False
-            self.assertEqual(DN.nation_adjective("UnitedNetherlands"),
-                             "Unitednetherlandsian")
-        finally:
-            DN.NATION_ADJECTIVE_REFUSES_TO_COIN = original
-
     def test_the_regular_derivation_is_untouched(self):
         from backend.display_names import nation_adjective
         self.assertEqual(nation_adjective("Austria"), "Austrian")

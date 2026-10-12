@@ -147,13 +147,6 @@
   "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_the_safety_valve_knows_the_counter_family"
  },
  {
-  "id": "deliver/e the paradox survives the sweep",
-  "file": "backend/models/dialogue_manager.py",
-  "old": "                if (PARADOX_SURVIVES_THE_STALE_SWEEP\n                        and q_type in PARADOX_DIALOGUE_TYPES):",
-  "new": "                if (False\n                        and q_type in PARADOX_DIALOGUE_TYPES):",
-  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheCrisisReachesTheSlot::test_a_queued_paradox_survives_the_stale_sweep"
- },
- {
   "id": "deliver/f the sweep still clears a timed-out blocking wedge",
   "file": "backend/models/dialogue_manager.py",
   "old": "                if (q_blocking\n                        and q_created + self.BLOCKING_TIMEOUT_TURNS\n                        < current_turn):\n                    continue",

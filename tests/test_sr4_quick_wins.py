@@ -4,9 +4,8 @@ AAR24-X1 a gun corps storms the works, AAR24-X2 the counter-punch on an
 assault, AAR24-X3 the unpriced assault objection, AAR10-X1 Rule 12. Rules
 `SYSTEMS_REFERENCE.md` §73.6. Every row reproduced on the shipped 1805 boot
 first; every fix landed behind its own lever, and the world_state /
-combat_executor levers were retired in CODE-1 batch 4 (October 12, 2026 —
-only the objection's `THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES` still
-carries its lever-down arm here).
+combat_executor levers were retired in CODE-1 batch 4 and the objection's
+in batch 6 (October 12, 2026); every rule is now unconditional.
 """
 
 import contextlib
@@ -362,13 +361,3 @@ class TestTheObjectionPricesTheWorks:
             world.calculate_visibility()
         by_province = post(client, f"Davout, attack {mack.location}")
         assert not by_province.get("pending_objection"), by_province.get("message")
-
-    def test_lever_down_the_marshal_only_read(self, shipped, monkeypatch):
-        import backend.commands.objection_v2 as O
-        monkeypatch.setattr(O, "THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES", False)
-        _steady(monkeypatch)
-        client, world = shipped
-        _stage_assault(world)
-        r = post(client, "Davout, attack Vienna")
-        assert r.get("pending_objection"), r.get("message")
-        assert "the enemy is too strong" in r.get("message", "")

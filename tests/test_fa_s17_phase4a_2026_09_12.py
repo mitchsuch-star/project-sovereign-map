@@ -151,14 +151,6 @@ class TestTheColdTrailIsAnOutcome:
         report = self._tick(world, ney)
         assert "No intelligence on" not in str((report or {}).get("message", ""))
 
-    def test_lever_down_reproduces_the_bare_refusal(self, monkeypatch):
-        monkeypatch.setattr(ST, "THE_COLD_TRAIL_IS_AN_OUTCOME", False)
-        world, ney = self._order_with_no_intel()
-        report = self._tick(world, ney)
-        msg = str((report or {}).get("message", ""))
-        assert "No intelligence on Mack's position" in msg, msg
-        assert "trail has gone cold" not in msg
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-S17-11 — the battle that took a commander says so, at any scale

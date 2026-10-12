@@ -30,7 +30,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.main as M
-import backend.commands.parser as parser_mod
 from backend.ai import strategic_parser as sp
 from backend.ai.parser_eval import (
     build_llm_game_state,
@@ -366,38 +365,6 @@ class TestTheNamedCorpusRowsAreUnedited:
             mismatches = evaluate_entry(parser, entry, world_key, world,
                                         build_llm_game_state(world))
             assert mismatches == [], (entry_id, world_key, mismatches)
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# (e) The sensitivity arm — restore the old predicate and the battery reds
-# ═══════════════════════════════════════════════════════════════════════
-
-class TestTheSensitivityArm:
-    """`python -m backend.ai.parser_eval` reports 688/688 with the lever UP
-    and 688/688 with it DOWN (measured September 22, 2026), so a green corpus
-    is not evidence for this slice. This arm is."""
-
-    def test_the_lever_is_up(self):
-        assert parser_mod.TAIL_FUSES_ONLY_ONTO_A_MARCH is True
-
-    def test_at_least_thirty_of_forty_red_without_the_fix(self, shipped, monkeypatch):
-        monkeypatch.setattr(parser_mod, "TAIL_FUSES_ONLY_ONTO_A_MARCH", False)
-        eaten = [text for text in SHAPES if swallowed(parse(text))]
-        assert len(eaten) >= 30, (len(eaten), eaten)
-
-    def test_the_lever_reproduces_the_old_helper_verdict(self, monkeypatch):
-        monkeypatch.setattr(parser_mod, "TAIL_FUSES_ONLY_ONTO_A_MARCH", False)
-        assert _split_sequential_orders("Ney, fortify then attack Mack") is None
-        assert _split_sequential_orders("Ney, wait for Davout then attack Mack") == (
-            "Ney, wait for Davout", "attack Mack")
-
-    def test_the_lever_governs_the_rider_and_the_and_arm_too(self, shipped, monkeypatch):
-        """False must reproduce the pre-slice behaviour at EVERY seam this
-        slice touched, or the arm proves less than it claims."""
-        monkeypatch.setattr(parser_mod, "TAIL_FUSES_ONLY_ONTO_A_MARCH", False)
-        assert swallowed(parse("Ney, move to Swabia then attack Mack"))
-        result = parse("Ney, march to Swabia and attack Mack")
-        assert result.get("dropped_sequel") == "attack Mack"
 
 
 # ═══════════════════════════════════════════════════════════════════════

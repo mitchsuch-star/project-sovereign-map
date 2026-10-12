@@ -21,13 +21,6 @@
   "tests": "tests/test_vp_r1_the_road_to_forty_five.py::TestATheMusterNamesItsOdds"
  },
  {
-  "id": "VP-R1 (b) lever down",
-  "file": "backend/commands/movement_executor.py",
-  "old": "RAIDING_PARTY_HOLDS_NO_HOMELAND = True",
-  "new": "RAIDING_PARTY_HOLDS_NO_HOMELAND = False",
-  "tests": "tests/test_vp_r1_the_road_to_forty_five.py::TestBARaidingPartyHoldsNoHomeland"
- },
- {
   "id": "VP-R1 (b) the floor is the brief's 3,000",
   "file": "backend/commands/movement_executor.py",
   "old": "RAIDING_PARTY_FLOOR = MARCH_HALTS_AT_GARRISON",

@@ -1,31 +1,10 @@
 [
  {
-  "id": "living/a the liveness guard",
-  "file": "backend/commands/disobedience.py",
-  "old": "        if REDEMPTION_ASKS_THE_LIVING and (\n                getattr(marshal, 'strength', 0) <= 0\n                or getattr(marshal, 'captured_by', '')):\n            return None",
-  "new": "        if False:\n            return None",
-  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_prisoner_is_never_asked tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_prisoner_is_refused_at_every_seam tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_captive_beside_a_live_man_yields_one_question_for_the_live_man"
- },
- {
-  "id": "living/b a stale clear releases the latch",
-  "file": "backend/commands/disobedience.py",
-  "old": "        if (REDEMPTION_ASKS_THE_LIVING and marshal is not None\n                and getattr(marshal, \"redemption_pending\", False)):\n            marshal.redemption_pending = False",
-  "new": "        if False:\n            marshal.redemption_pending = False",
-  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_a_stale_question_releases_the_latch_and_he_asks_on_release"
- },
- {
   "id": "living/c the answer reads through the liveness predicate",
   "file": "backend/main.py",
   "old": "        redemption_event = standing_redemption(world)\n        if redemption_event is None:",
   "new": "        redemption_event = world.pending_redemption\n        if redemption_event is None:",
   "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_answering_a_stale_question_is_refused"
- },
- {
-  "id": "reraise/a the end-turn hoist falls back to the standing question",
-  "file": "backend/commands/disobedience.py",
-  "old": "    if world is not None and REDEMPTION_RERAISED_AT_END_TURN:\n        return standing_redemption(world)",
-  "new": "    if False:\n        return standing_redemption(world)",
-  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheReviewRound::test_the_end_turn_re_raises_a_question_whose_carrier_never_reached_the_wire tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_question_is_not_minted_twice_while_it_stands"
  },
  {
   "id": "carrier/a the interrupt-resolved battle carries the question",

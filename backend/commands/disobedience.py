@@ -686,10 +686,9 @@ OBJECTION_TEMPLATES = {
 
 
 # ── WO-41 (September 1, 2026): the redemption question survives the save ──
-# Flip lever for attribution runs (set False in a CHILD process to reproduce
-# the prior behaviour: world field written only at the API boundary, second
-# marshal latched behind a standing question, auto-advance never hoisting).
-REDEMPTION_LATCH_AT_GENERATION_ACTIVE = True
+# The question is latched at generation: the world field is written when the
+# question is made (before WO-41, only at the API boundary — a second marshal
+# was latched behind a standing question and auto-advance never hoisted it).
 
 
 def _war_is_over(world) -> bool:
@@ -736,8 +735,7 @@ def standing_redemption(world) -> Optional[Dict]:
         # release his latch so he asks again when he stands again at <= 20.
         # A man whose trust RECOVERED had the latch cleared by modify_trust
         # already, and the checker's trust guard keeps him refused.
-        if (REDEMPTION_ASKS_THE_LIVING and marshal is not None
-                and getattr(marshal, "redemption_pending", False)):
+        if (marshal is not None and getattr(marshal, "redemption_pending", False)):
             marshal.redemption_pending = False
         return None
     # GE-3 review #34: the settle arm's rente is priced at the READ, not the
@@ -796,10 +794,6 @@ def settle_account_option(marshal, world) -> Optional[Dict]:
 # penalty it has already applied and runs its own final checker. ONE helper
 # now stands after every such write, and ONE per-turn net catches any write
 # that bypasses it.
-# Flip levers for attribution runs (set False in a CHILD process to reproduce
-# the prior behaviour).
-REDEMPTION_AT_EVERY_TRUST_WRITE = True
-REDEMPTION_NET_ACTIVE = True
 # Slice-9 review round (September 5, 2026) — "the question is asked of the
 # LIVING". R1-1/R2-1: the checker had every guard but liveness, so the
 # per-turn net put the question to a PRISONER (strength 0, captured_by set)
@@ -809,25 +803,20 @@ REDEMPTION_NET_ACTIVE = True
 # stale-at-birth question defeated the one-live rule and orphaned the live
 # man behind it. R2-3 (WO-41, pre-existing, widened): a latch whose question
 # went stale was never released, so the man never asked again on release.
-REDEMPTION_ASKS_THE_LIVING = True
-# FA-D5 (slice 17, Phase 2) flip lever: the redemption audience offers the arm
-# that pays the man — a rente, through the executor — when an unpaid
-# expectation is the cause. False = the three prior arms only.
-THE_AUDIENCE_NAMES_ITS_CAUSE = True
-# FA-N76 (slice 14) flip lever: the answer to a redemption audience must be
-# one of the courses the audience OFFERED. False restores the pre-slice
-# behaviour, in which the endpoint checked a hardcoded three-word list and
-# the handler re-derived nothing — so Last Marshal Protection and the
+# FA-D5 (slice 17, Phase 2) — the audience names its cause: the redemption
+# audience offers the arm that pays the man — a rente, through the executor
+# — when an unpaid expectation is the cause (before, the three arms only).
+# FA-N76 (slice 14): the answer to a redemption audience must be one of the
+# courses the audience OFFERED. Before the slice the endpoint checked a
+# hardcoded three-word list and the handler re-derived nothing — so Last Marshal Protection and the
 # one-admin rule were presentation-only and the debug cheats were stricter
 # than the shipping surface.
-REDEMPTION_ANSWER_MUST_BE_OFFERED = True
 # R3-2: a question staged with a carrier that never reaches the wire (a
 # battle the AI began, a strategic first step) stood in the world field and
 # reached the player only through the client's once-per-turn poll — which
 # drops under an open modal, so on exactly the turns that ended with a
 # conquest the question slipped a whole turn. The end-turn hoist re-raises a
 # STANDING question when the tick minted no row.
-REDEMPTION_RERAISED_AT_END_TURN = True
 
 
 def stage_redemption(world, marshal, *, result=None, events=None) -> Optional[Dict]:
@@ -852,7 +841,7 @@ def stage_redemption(world, marshal, *, result=None, events=None) -> Optional[Di
     this after EVERY lowering write is idempotent and cheap. Returns the
     event, or None.
     """
-    if not REDEMPTION_AT_EVERY_TRUST_WRITE or world is None or marshal is None:
+    if world is None or marshal is None:
         return None
     system = getattr(world, "disobedience_system", None)
     if system is None:
@@ -893,7 +882,7 @@ def hoist_tactical_redemption(tactical_events, world=None) -> Optional[Dict]:
     # STAND from a seam whose carrier never reached the wire. The end-turn
     # response re-raises it — the client's stash-and-raise shows it once,
     # and `standing_redemption` clears a stale one instead of raising it.
-    if world is not None and REDEMPTION_RERAISED_AT_END_TURN:
+    if world is not None:
         return standing_redemption(world)
     return None
 
@@ -1712,10 +1701,9 @@ class DisobedienceSystem:
         # answer (pay him) lived on a different screen. When a shortfall is
         # open and a rente would actually help, the FIRST arm is the rente,
         # priced by the same builder the rail quotes.
-        if THE_AUDIENCE_NAMES_ITS_CAUSE:
-            _settle = settle_account_option(marshal, world)
-            if _settle is not None:
-                options.append(_settle)
+        _settle = settle_account_option(marshal, world)
+        if _settle is not None:
+            options.append(_settle)
 
         # Get counts using world_state helpers
         field_marshals = world.get_field_marshals()
@@ -1841,7 +1829,7 @@ class DisobedienceSystem:
         # seam inherits (the tick, the net, the petition loop, the attack,
         # the cavalry and strategic seams). The predicate
         # `standing_redemption` already uses for a stale question.
-        if REDEMPTION_ASKS_THE_LIVING and (
+        if (
                 getattr(marshal, 'strength', 0) <= 0
                 or getattr(marshal, 'captured_by', '')):
             return None
@@ -1862,14 +1850,12 @@ class DisobedienceSystem:
 
         # WO-41: one live question at a time. A stale one (the man recovered,
         # fell or was taken) is cleared by the predicate so it never blocks.
-        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None
-                and standing_redemption(world) is not None):
+        if (world is not None and standing_redemption(world) is not None):
             return None
 
         marshal.redemption_pending = True
         event = self._create_redemption_event(marshal, world)
-        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None
-                and hasattr(world, "pending_redemption")):
+        if (world is not None and hasattr(world, "pending_redemption")):
             world.pending_redemption = event
         return event
 
@@ -1929,19 +1915,18 @@ class DisobedienceSystem:
         # than at the endpoint, so the endpoint, the playtest driver and any
         # future caller inherit it — and a refused answer leaves the question
         # STANDING: no latch cleared, no cooldown paid, nothing spent.
-        if REDEMPTION_ANSWER_MUST_BE_OFFERED:
-            offered = [o.get('id') for o in
-                       (redemption_event.get('options') or [])
-                       if isinstance(o, dict) and o.get('id')]
-            if offered and choice not in offered:
-                return {
-                    'success': False,
-                    'message': (
-                        f"That is not among the courses open to you, Sire. "
-                        f"{marshal_name} awaits one of: "
-                        f"{', '.join(offered)}."),
-                    'offered_options': offered,
-                }
+        offered = [o.get('id') for o in
+                   (redemption_event.get('options') or [])
+                   if isinstance(o, dict) and o.get('id')]
+        if offered and choice not in offered:
+            return {
+                'success': False,
+                'message': (
+                    f"That is not among the courses open to you, Sire. "
+                    f"{marshal_name} awaits one of: "
+                    f"{', '.join(offered)}."),
+                'offered_options': offered,
+            }
 
         # ── FA-D5 (slice 17, Phase 2): the arm that pays him ──────────────
         # The SAME dict the UX23-A rail and the AI rung send, through the

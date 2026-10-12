@@ -514,6 +514,113 @@ CODE-3 + DD-C's session).**
   first batch after October 2026 closes. The plan's "done under 40" needs
   both.
 
+**✅ BATCH 6 LANDING RECORD — October 12, 2026 (the head of Pre-Deploy S8b,
+CODE-2a's session).**
+
+- **The batch, as defined and as measured.** Every pre-October lever no
+  batch had named — the `backend/ai/` and `backend/commands/` modules over
+  1,500 lines and the top-level / `models/` modules — holds **126** by
+  `tools/retire_lever.py --list backend` (batch 5's hand-off counted 125:
+  `llm_client.py` holds 12, not 11): `strategic.py` 19, `clause_guards.py` 15,
+  `question_desk.py` 15, `economy_executor.py` 12, `llm_client.py` 12,
+  `executor.py` 9, `dialogue_routing.py` 7, `disobedience.py` 7, `parser.py` 7,
+  three each in `campaign_log.py` / `diplomatic_executor.py` /
+  `movement_executor.py` / `objection_v2.py` / `strategic_executor.py` /
+  `dialogue_manager.py`, one each in `meta_executor.py` / `display_names.py` /
+  `intel_report.py` / `authority.py` / `marshal.py`. **All 126 retired**, every
+  one `True` in production, dated September 1 – 28, 2026; the census fell by
+  **127** because `QUESTION_DESK_ACTIVE` was defined twice (`llm_client.py`
+  and `question_desk.py`, FA slice 7's pair). Not in the batch and kept:
+  `LITERALS_DRILL_TO_HEAL` (AIDR-D1's decided `False`),
+  `THE_LEAGUE_TREATS_WHEN_SPENT` (batch 5's staging bundle), every October
+  lever. **One named by nothing** — `economy_executor.LEVY_PAYS_THE_HOSTS_PRICE`
+  (IQ1-3, no test, no doc, a sweep row's `old` text alone) — retired with this
+  note; `llm_client.ACCENTS_NEVER_HIDE_A_NAME` was named by its docs alone
+  (CRT-2, `COMMAND_ROBUSTNESS_SPEC.md` §12.10).
+- **The tool's run.** The production rewrites across 28 modules; the run
+  then died part-way through the sweep-row drops on a transient Windows
+  write error (`OSError 22` on `tools/_sweep_sr2e.json` — the file was intact
+  JSON, its earlier rows already dropped); the remaining twelve levers' rows
+  were dropped through the tool's own `drop_sweep_rows`, and no sweep file
+  names a batch-6 lever. **49 `tools/_sweep_*.json`** lost their rows.
+- **The sites by hand.** The six the dry run named (`return LEVER and
+  bool(…)` → `bool(…)`; `lawful = (not LEVER or f())` → `f()`, exact because
+  `False or x` is `x`; the `HYBRIDS_SURVIVE_A_NEW_FLOW` operand; the three
+  `_correction_survives(…, LEVER)` reads — **the predicate lost its
+  `gate_active` parameter**, whose only purpose was the WO-13 lever, and
+  `test_wo_slice10`'s False-arm assert went with it); **the overlaps** the
+  tool skipped (`QUESTION_DESK_ACTIVE` paired with
+  `THE_DESK_ANSWERS_THE_BOARD` / `THE_DESK_COUNTS_THE_POINTS` at four
+  `question_desk` sites and in `llm_client._routes_to_the_desk`, the second
+  definition deleted by hand; the objection band's two-lever condition);
+  and **the reads no dry run lists** — found by an AST scan for every `Name`,
+  `Attribute`, import `alias` and string naming a retired lever, since ruff's
+  F821 sees only bare names: four ALIASED imports (`A_MARCH_KEEPS_ITS_TAIL as
+  _KEEP_TAIL` in `enemy_ai` and `combat_executor`,
+  `THE_DESK_ANSWERS_THE_WAR_QUESTION as _war_lever` and
+  `THE_DESK_READS_THE_ODDS as _odds_lever` in `state_desk`,
+  `OBJECTION_TRUST_DAMPER_ACTIVE as _DAMPER_ACTIVE` in `strategic_executor`,
+  `AN_ANSWER_IS_READ_CLOSED as _CLOSED` in `main.py`) and two attribute reads
+  (`_routing.A_QUESTION_NEVER_ANSWERS` in `diplomatic_executor`,
+  `_road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED` in `strategic_executor` — its
+  `if/else` inlined by hand, the `_road_verdict` block it fed deleted as
+  unreachable). The attribution script `tools/_cx_sweep_both_arms.py`, which
+  SETS a retired name, left as written (batches 3–4's precedent).
+- **Dead code the tool leaves behind**, found by an AST scan for a statement
+  after a terminator and a constant test, compared against HEAD: **fourteen
+  unreachable tails** after an inlined `return` (`question_desk` ×3,
+  `strategic` ×4, `strategic_executor` ×2, `campaign_log`, `economy_executor`,
+  `executor`'s old addressee body, and `dialogue_routing`'s 109-line lever-down
+  answer reader) and one `if True:` in `parser.py` — removed by hand. What
+  the tails orphaned, deleted: `economy_executor._msg_subs_closed` (found by
+  an identifier census against HEAD), `CommandExecutor._ADDRESSEE_IS_AN_ORDER_RE`
+  and `_NOT_AN_ADDRESS_RE` (read only by the comma-only addressee body CX-7
+  replaced), and `diplomatic_executor`'s second `mission_type == "CANCEL"` arm
+  (the pre-IQ-4 recall, unreachable once `MISSION_CANCEL_READS_THE_NAME`'s
+  arm above it always runs).
+- **The orphaned lever headers**: an agent, comments and docstrings only,
+  proven by `ast.dump` equality (docstrings blanked) against a pre-agent
+  snapshot — ≈ 110 blocks re-titled across 23 of the 28 modules
+  (`clause_guards.py` 16, `economy_executor.py` 15, `executor.py` 10,
+  `strategic.py` 10, `llm_client.py` 8, `dialogue_routing.py` 7, …). Four
+  headers the tool had deleted WITH their constants (it deletes a lever's
+  inline comment and any block naming it) carried a slice's record and were
+  restored as the rules they list: FA slice 7's six in `llm_client.py` and
+  three in `parser.py`, FA slice 5's Road Law seven and FA slice 3's review
+  round in `strategic.py`. Two prior-batch orphans in the same files fixed
+  (`meta_executor.collapse_turn_end_fields`, `campaign_log`'s coalition
+  dissolution); `counsel.py` and `strategic_parser.py` each had one comment
+  naming a retired lever, re-worded.
+- **The test arms, decided one by one** (three agents by disjoint file group,
+  the recipe and the traps as the brief; 60 test files, −2,365 lines net;
+  every file re-run green — 1,606 / 1,603 / 878 + 1 xfail): ≈ 180 whole
+  deletions (every `test_lever_down_*`, every control arm, every `is True`
+  pin, five `LEVERS` / `_restore_*` autouse fixtures whose retired names
+  raised `AttributeError` on setup — 689 setup errors in one group alone —
+  `TestTheSensitivityArm` (CR-7-1), `TestTheSpawnHelperCannotLie` and
+  WO slice 10's `ungated` ambient fixture, `TestTheLevers` (CX-2)); ≈ 35
+  trims; five un-parametrized to the lever-up arm; four re-pointed (WO slice
+  9's normalisation pin now reads the damped-gain loop, IQ-7's statement-order
+  pin runs on the live router, FA-26's census keeps its `stage_redemption`
+  half, CN's lever pin reads the marshal's arm). **A dry-run false positive
+  to remember:** the tool's test grep matched `A_QUESTION_NEVER_ANSWERS` as a
+  prefix of the live `main.A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT`
+  (`test_sf5_…` — left as written). Nothing unresolved; no live assertion
+  failed; `test_ai_intent_threat_migration.py` untouched (comments only).
+- **The reading:** levers **358 → 231** (230 on, 204 named by a test);
+  functions over 500 lines 34 → 34; silent handlers 6 → 6. **The ratchet**
+  lowered to `LEVERS_CAP 231`.
+- **Gate:** `BASELINE_SERIES` + M1–M7 byte-identical with no re-record
+  (`test_ai_intent_threat_migration` / `_variance` / `_assurance`,
+  `test_combat_sweep_metrics`), the CR-1 corpus harness, the tool's pins, the
+  F2 shadow pin, the DD-C census and four of the touched files (1,708
+  together); `ruff` clean; the full suite on the hook.
+- **Next batch:** the October 2026 levers of batches 1–6 and
+  `THE_LEAGUE_TREATS_WHEN_SPENT` with its staging bundle — the first batch
+  after October 2026 closes (owner: CODE-1's November batch, STATUS ▶ NEXT
+  UP). With it the census reads ≈ 2 (`LITERALS_DRILL_TO_HEAL` and whatever
+  November lands): the plan's "done under 40" is met by that batch.
+
 ## CODE-2 — Split the monster functions into named stages (1 session each)
 
 **Order:** `_execute_attack` → `_process_dialogue_choice` → `_execute_one` →

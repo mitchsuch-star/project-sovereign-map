@@ -33,9 +33,8 @@ from backend.models.trust import SovereignTrust, Trust
 
 # SR-2e "standing orders reliable" (Score Mandate, September 26, 2026 — the
 # user's ruling of SR-D3 as (c) first): a SUPPORT order costs one action for
-# every marshal (`Marshal.strategic_order_ap`). Lever False restores the
-# two-action price everywhere the method is read.
-A_SUPPORT_ORDER_IS_ONE_ACTION = True
+# every marshal (`Marshal.strategic_order_ap`) — a support order is one
+# action (it was two).
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1001,15 +1000,14 @@ class Marshal:
         any new action point is minted. `order_type` is the strategic type
         ("MOVE_TO" / "PURSUE" / "HOLD" / "SUPPORT"); every pricing site and
         every button that quotes a strategic order passes it, so the price
-        a player reads is the price he pays (lever
-        `A_SUPPORT_ORDER_IS_ONE_ACTION`).
+        a player reads is the price he pays (a support order is one
+        action).
         """
         if auto_upgrade:
             return 1
         if getattr(self, "personality", "") == "literal" or self.is_sovereign:
             return 1
-        if (A_SUPPORT_ORDER_IS_ONE_ACTION
-                and str(order_type or "").upper() == "SUPPORT"):
+        if (str(order_type or "").upper() == "SUPPORT"):
             return 1
         return 2
 

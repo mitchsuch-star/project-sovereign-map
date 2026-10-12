@@ -299,29 +299,8 @@ class TestTheRouter:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Levers, fog and the counsel's own contract
+# Fog and the counsel's own contract
 # ═══════════════════════════════════════════════════════════════════════════
-
-class TestTheLevers:
-
-    def test_the_board_lever_returns_the_desk_to_five_kinds(self, ask):
-        original = QD.THE_DESK_ANSWERS_THE_BOARD
-        try:
-            QD.THE_DESK_ANSWERS_THE_BOARD = False
-            assert COMMAND_REFERENCE in (ask("what's my income").get("message") or "")
-            # …and the five older kinds are untouched by the lever.
-            assert "Rhineland" in (ask("where is Ney").get("message") or "")
-        finally:
-            QD.THE_DESK_ANSWERS_THE_BOARD = original
-
-    def test_the_desk_lever_still_governs_everything(self, ask):
-        original = QD.QUESTION_DESK_ACTIVE
-        try:
-            QD.QUESTION_DESK_ACTIVE = False
-            for text in ("where is Ney", "what's my income", "should I attack"):
-                assert COMMAND_REFERENCE in (ask(text).get("message") or ""), text
-        finally:
-            QD.QUESTION_DESK_ACTIVE = original
 
 class TestTheCounselIsHonest:
 

@@ -39,7 +39,6 @@ from fastapi.testclient import TestClient
 with contextlib.redirect_stdout(io.StringIO()):
     import backend.main as M
     from backend import campaign_log as CL
-    from backend.commands import diplomatic_executor as DE
     from backend.commands import meta_executor as ME
     from backend.commands.executor import CommandExecutor
     from backend.commands.parser import CommandParser
@@ -61,10 +60,6 @@ SCRIPTS = ROOT / "godot-client" / "project-sovereign" / "scripts"
 _LEVERS = (
     (D, "COURT_FAVOUR_PER_TURN"),
     (D, "COURT_FAVOUR_CAP"),
-    (DE, "MISSION_START_IS_NOT_A_REJECTION"),
-    (DE, "MISSION_CANCEL_READS_THE_NAME"),
-    (ME, "MISSION_HELP_BLOCK"),
-    (CL, "THE_LOG_NAMES_THE_MISSION"),
 )
 
 _MISSION_ROW = {
@@ -1086,16 +1081,6 @@ class TestTheLaunchIsNotARejection:
         assert _proposal_results(w) == []
         assert _row(w)["details"]["beat"] == "recalled"
 
-    def test_lever_down_titles_the_launch_a_rejection(self, http):
-        DE.MISSION_START_IS_NOT_A_REJECTION = False
-        w, client = http
-        assert _start_http(client, "court Prussia").get("success")
-        rows = _proposal_results(w)
-        # SR-6a RS-20 (Oct 2, 2026) — CONSCIOUS RE-SEAT: with THIS lever
-        # down the launch still rides the PL-14 net (the pin's point), but
-        # the net's own fallback is now neutral ("Noted"), never "Rejected".
-        assert [n["title"] for n in rows] == ["Diplomatic Action Noted"]
-
 
 # ════════════════════════════════════════════════════════════════════
 # T9 — recall
@@ -1197,14 +1182,6 @@ class TestRecall:
         if button:
             r = _cmd(client, button)
             assert r.get("success"), f"the rail's Recall is refused: {r.get('message')}"
-
-    def test_lever_down_a_mismatched_recall_clears_the_mission(self, http):
-        DE.MISSION_CANCEL_READS_THE_NAME = False
-        w, client = http
-        assert _start_http(client, "court Prussia").get("success")
-        r = _cmd(client, "Talleyrand, cancel mission with Austria")
-        assert r.get("success")
-        assert w.active_diplomatic_mission is None
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -1396,14 +1373,6 @@ class TestTheLogRecordsTheEnd:
         assert CL.CATEGORY_MAP["diplomatic_mission_ended"] == "diplomacy"
         assert len(CL.CAMPAIGN_LOG_TYPES) == 175  # 173->175 flipped consciously: DD-1 S8 Step 3 (Oct 12, 2026) adds `allegiance_bid` (a bid laid before a court in play, SFR-D40) and `province_returned` (a home province asked back from an ally, with its outcome, SFR-D42) — neither act had a persistent surface; no inert diplomacy type retired in exchange  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — a loyal satellite's petition (THE PROVINCE / THE RELIEF) is the web's first non-rebellion decision, and its answer — granted, refused, or left to lapse — had no persistent surface (no inert diplomacy type was retired in exchange: the six producerless ones are the FA-R5 census's, not this slice's)  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface  # 172->173 flipped consciously: TILSIT (SF-NAV-1-D1, Score Finish Step 7, Oct 4, 2026) adds `continental_system_membership` — a court joining or leaving France's Continental System (by the Tilsit clause, a forced alliance, a satellite's auto-join, or the exit at war) had no persistent surface
 
-    def test_lever_down_the_started_line_is_todays(self):
-        CL.THE_LOG_NAMES_THE_MISSION = False
-        line = CL.format_event_oneliner({"type": "diplomatic_mission_started",
-                                         "mission_type": "COURT_NATION",
-                                         "target": "PapalStates"})
-        assert line == "Talleyrand dispatched on COURT NATION to PapalStates"
-
-
 # ════════════════════════════════════════════════════════════════════
 # T12 — the help names the missions
 # ════════════════════════════════════════════════════════════════════
@@ -1457,13 +1426,6 @@ class TestTheHelpNamesTheMissions:
         for keyword in _family_keywords():
             for q in quoted:
                 assert keyword.lower() not in q, (keyword, q)
-
-    def test_lever_down_drops_the_entry(self, http):
-        ME.MISSION_HELP_BLOCK = False
-        _w, client = http
-        message = _cmd(client, "help").get("message") or ""
-        assert "  missions   -" not in message
-        assert "war terms" in message
 
 
 # ════════════════════════════════════════════════════════════════════

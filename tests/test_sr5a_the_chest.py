@@ -32,8 +32,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.main as M
-from backend.commands import economy_executor as EE
-from backend.commands import executor as EX
 from backend.commands.executor import CommandExecutor
 from backend.game_logic import ledger as LG
 from backend.game_logic.ledger import _build_economy, why_the_bills_moved
@@ -126,14 +124,6 @@ class TestAAR6TheAdminPool:
         assert world.marshals["Ney"].stance == Stance.DEFENSIVE
         assert world.actions_remaining == 1
 
-    def test_lever_down_is_the_reported_refusal(self, world, client, monkeypatch):
-        monkeypatch.setattr(EX, "AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL", False)
-        world.actions_remaining, world.admin_actions_remaining = 0, 2
-        r = _post(client, "Soult, recruit infantry")
-        assert r.get("success") is False
-        assert "Not enough actions remaining" in str(r.get("message"))
-        assert world.admin_actions_remaining == 2
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # The substitutes' named ground (found reproducing AAR-6)
@@ -163,15 +153,6 @@ class TestTheNamedGroundReceivesTheSubstitutes:
                 {"world": world})
         assert r.get("success") is False
         assert isinstance(r.get("message"), str), r.get("message")
-
-    def test_lever_down_is_the_dict_in_the_message(self, world, monkeypatch):
-        monkeypatch.setattr(EE, "THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES", False)
-        ex = CommandExecutor()
-        with _quiet():
-            r = ex._economy._execute_purchase_levy(
-                {"action": "purchase_levy", "target": "Paris"},
-                {"world": world})
-        assert isinstance(r.get("message"), dict), r.get("message")
 
 
 # ═══════════════════════════════════════════════════════════════════════

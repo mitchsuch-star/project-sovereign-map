@@ -104,18 +104,6 @@ class TestTheOverrideNamesWhatItSetsAside:
         _O.target = target
         assert EX.set_aside_clause(_M(), _O()) == expected
 
-    def test_a_refusal_names_nothing_even_when_the_order_is_lost(
-            self, board, monkeypatch):
-        """With SR5B-1's lever down a refusal still ends the order — and the
-        refusal is still not "carried out", so nothing is announced."""
-        monkeypatch.setattr(EX, "A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER",
-                            False)
-        assert _post("Soult, march to Bordelais").get("success")
-        reply = _post("Soult, attack Lisbon")
-        assert reply.get("success") is False
-        assert board.get_marshal("Soult").strategic_order is None
-        assert "set aside" not in (reply.get("message") or "")
-
     def test_an_order_that_never_ended_is_not_announced(self):
         class _W:
             player_nation = "France"
@@ -126,14 +114,6 @@ class TestTheOverrideNamesWhatItSetsAside:
         EX.CommandExecutor._announce_set_aside(
             [(soult, order, True, "Bearn", None)], result, {"world": _W()})
         assert result["message"] == "Soult drills."
-
-    def test_the_lever_down_is_silent(self, board, monkeypatch):
-        monkeypatch.setattr(EX, "AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE",
-                            False)
-        assert _post("Ney, hold Rhineland").get("success")
-        reply = _post("Ney, attack Mack")
-        assert _fought(reply)
-        assert "set aside" not in (reply.get("message") or "")
 
     def test_an_enemy_marshals_order_is_not_announced(self):
         """The announcement is for the player's own answer."""

@@ -126,13 +126,6 @@
   "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestAnOrderFreeQuestionReachesTheEndTurn::test_the_processor_emits_the_row"
  },
  {
-  "id": "FA-16/f the answer arm refuses to fight a ghost",
-  "file": "backend/commands/strategic.py",
-  "old": "            if STANDALONE_DECISION_LIVENESS_ACTIVE:\n                live, reason = last_stand_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    dismiss_marshal_ask(world, marshal.name)\n                    return {\"success\": True, \"no_action_cost\": True,",
-  "new": "            if False:\n                live, reason = last_stand_is_live(marshal, world, pending)\n                if not live:\n                    marshal.pending_interrupt = None\n                    dismiss_marshal_ask(world, marshal.name)\n                    return {\"success\": True, \"no_action_cost\": True,",
-  "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestAStaleQuestionIsRetiredNotFought::test_the_answer_arm_refuses_to_fight_a_ghost"
- },
- {
   "id": "FA-16/g liveness: the enemy must be on him or next to him",
   "file": "backend/commands/strategic.py",
   "old": "    if enemy.location != marshal.location and enemy.location not in adjacent:\n        return False, f\"{enemy_label} has drawn off to {enemy.location}\"",

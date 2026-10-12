@@ -323,8 +323,7 @@ def _moore_at_normandy(world, strength):
 
 class TestBARaidingPartyHoldsNoHomeland:
 
-    def test_lever_and_floor(self):
-        assert MV.RAIDING_PARTY_HOLDS_NO_HOMELAND is True
+    def test_the_floor(self):
         assert MV.RAIDING_PARTY_FLOOR == MV.MARCH_HALTS_AT_GARRISON == 5000
 
     def test_a_walk_in_under_the_floor_holds_nothing(self):
@@ -409,14 +408,11 @@ class TestBARaidingPartyHoldsNoHomeland:
         assert w.regions["Corsica"].controller == "France"
         assert "raiding party" in r["message"], r["message"]
 
-    def test_the_ai_capture_rung_skips_what_it_cannot_hold(self, monkeypatch):
+    def test_the_ai_capture_rung_skips_what_it_cannot_hold(self):
         w = _fresh()
         _moore_at_normandy(w, 3782)
         ai = EnemyAI(M.executor)
         assert _quiet(ai._find_undefended_capture, w.marshals["Moore"], "Britain", w) is None
-        monkeypatch.setattr(MV, "RAIDING_PARTY_HOLDS_NO_HOMELAND", False)
-        action = _quiet(ai._find_undefended_capture, w.marshals["Moore"], "Britain", w)
-        assert action is not None and action["action"] == "attack"
 
     def test_the_ai_expedition_never_sails_a_raiding_party_for_a_beach(self, monkeypatch):
         """With every host shore refused, the only candidates are enemy
@@ -442,14 +438,6 @@ class TestBARaidingPartyHoldsNoHomeland:
                                      "nation_starting_regions": w.nation_starting_regions})()
         assert MV.raiding_party_holds_no_ground(moore, w.regions["Maine"], legacy) is False
         assert MV.raiding_party_holds_no_ground(moore, w.regions["Maine"], w) is True
-
-    def test_the_lever_down_reproduces_the_walk_in(self, monkeypatch):
-        monkeypatch.setattr(MV, "RAIDING_PARTY_HOLDS_NO_HOMELAND", False)
-        w = _fresh()
-        _moore_at_normandy(w, 3782)
-        r = _exec(w, {"marshal": "Moore", "action": "move", "target": "Maine"})
-        assert w.regions["Maine"].controller == "Britain"
-        assert not r.get("capture_refused_raiding_party")
 
 
 # ═══════════════════════════════════════════════════════════════════════

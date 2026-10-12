@@ -173,15 +173,6 @@ class TestD5TheAudienceNamesItsCause:
                 {"marshal": m.name, "options": opts}, "settle_account", {"world": w})
         assert res["success"] is False and "not among the courses" in res["message"]
 
-    def test_lever_down_offers_the_three_arms_only(self, monkeypatch):
-        from backend.commands import disobedience as DS
-        _flip(monkeypatch, DS, "THE_AUDIENCE_NAMES_ITS_CAUSE", False)
-        w = _boot()
-        m = self._in_arrears(w)
-        with _quiet():
-            opts = w.disobedience_system._get_available_redemption_options(m, w)
-        assert [o["id"] for o in opts] == ["grant_autonomy", "administrative_role", "dismiss"]
-
     def test_the_client_builds_the_button_from_the_payload(self):
         dlg = (GD / "redemption_dialog.gd").read_text(encoding="utf-8")
         main = (GD / "main.gd").read_text(encoding="utf-8")
@@ -223,14 +214,6 @@ class TestD6TheRoadHomeIsLiteral:
         with _quiet():
             it = ST.StrategicOrderProcessor(CommandExecutor())._check_interrupts(ney, w)
         assert it and it["type"] == "cannon_fire" and it["action"] == "redirect"
-
-    def test_lever_down_abandons_the_road(self, monkeypatch):
-        from backend.commands import strategic as ST
-        _flip(monkeypatch, ST, "THE_ROAD_HOME_IS_LITERAL", False)
-        w, ney = self._board(road=True)
-        with _quiet():
-            it = ST.StrategicOrderProcessor(CommandExecutor())._check_interrupts(ney, w)
-        assert it and it["action"] == "redirect"
 
 
 # ═══════════════════════════════════════════════════════════════════════

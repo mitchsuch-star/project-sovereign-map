@@ -55,7 +55,6 @@ import backend.main as M
 from backend import save_manager
 from backend.ai import enemy_ai as EA
 from backend.ai.enemy_ai import EnemyAI
-from backend.commands import movement_executor as MV
 from backend.commands.executor import CommandExecutor
 from backend.commands.parser import CommandParser
 from backend.models.marshal import Marshal, Stance
@@ -104,9 +103,6 @@ def _refresh(world):
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestThePredicateIsTheMarshalsOwn:
-
-    def test_levers_default_on(self):
-        assert MV.RECOVERING_CORPS_TAKES_NO_GROUND is True
 
     def test_in_retreat_recovery_reads_the_whole_window(self):
         w = _tutorial()
@@ -171,14 +167,6 @@ class TestTheRecoveringCorpsHoldsNoGround:
         assert not r.get("capture_refused_recovering")
         assert "still rallying" not in r["message"]
 
-    def test_the_lever_down_reproduces_the_annexation(self, monkeypatch):
-        monkeypatch.setattr(MV, "RECOVERING_CORPS_TAKES_NO_GROUND", False)
-        w, ney, ex, gs = self._player_geometry()
-        r = _quiet(ex._movement._execute_move, ney, "Tyrol", w, gs)
-        assert w.regions["Tyrol"].controller == "France", (
-            "the defect: a corps in recovery annexed the province it fled onto")
-        assert not r.get("capture_refused_recovering")
-
     def _ai_geometry(self):
         """REPRO_L's own case: Kienmayer at Franche-Comte, 1,218 men, in the
         recovery window; Lorraine French, garrison 0, no fort, no marshal."""
@@ -202,19 +190,6 @@ class TestTheRecoveringCorpsHoldsNoGround:
         assert r.get("capture_refused_recovering") is True
         # The player's sentence is the player's; the AI march says nothing extra.
         assert "still rallying" not in r["message"]
-
-    def test_the_ai_lever_down_reproduces_the_row_verbatim(self, monkeypatch):
-        monkeypatch.setattr(MV, "RECOVERING_CORPS_TAKES_NO_GROUND", False)
-        # VP-R1 (b) (Sept 25, 2026), pin consciously flipped: the row's
-        # 1,218-man remnant is ALSO a raiding party onto French homeland,
-        # and a second lever now refuses that annexation on its own. The
-        # pre-FA-9 board is reproduced with BOTH levers down; each lever's
-        # own arm is pinned in its own file.
-        monkeypatch.setattr(MV, "RAIDING_PARTY_HOLDS_NO_HOMELAND", False)
-        w, k, ex, gs = self._ai_geometry()
-        r = _quiet(ex._movement._execute_move, k, "Lorraine", w, gs)
-        assert w.regions["Lorraine"].controller == "Austria"
-        assert "Lorraine falls to Austria" in r["message"]
 
 
 # ═══════════════════════════════════════════════════════════════════════

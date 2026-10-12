@@ -1,12 +1,5 @@
 [
   {
-    "id": "F1 lever down",
-    "file": "backend/ai/question_desk.py",
-    "old": "THE_SAFE_ANSWER_READS_THE_HOLDER = True\n",
-    "new": "THE_SAFE_ANSWER_READS_THE_HOLDER = False\n",
-    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF1TheSafeAnswerReadsTheHolder::test_austrias_own_army_is_named_as_its_cover_not_its_threat"
-  },
-  {
     "id": "F1 the holder's own corps is a threat",
     "file": "backend/ai/question_desk.py",
     "old": "            if enemy_soil:\n                cover.append((steps, marshal, force))\n",
@@ -33,27 +26,6 @@
     "old": "                     f\"beyond our reach today.\")\n",
     "new": "                     f\"safe today.\")\n",
     "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF1TheSafeAnswerReadsTheHolder::test_with_nothing_near_enemy_soil_lies_beyond_our_reach"
-  },
-  {
-    "id": "F2 named lever down",
-    "file": "backend/ai/question_desk.py",
-    "old": "THE_WHAT_IF_NAMES_ITS_MARSHAL = True\n",
-    "new": "THE_WHAT_IF_NAMES_ITS_MARSHAL = False\n",
-    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheWhatIfNamesItsMarshal::test_should_davout_attack_mack_weighs_davout"
-  },
-  {
-    "id": "F2 odds lever down",
-    "file": "backend/ai/question_desk.py",
-    "old": "THE_DESK_READS_THE_ODDS = True\n",
-    "new": "THE_DESK_READS_THE_ODDS = False\n",
-    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheOdds"
-  },
-  {
-    "id": "F2 province lever down",
-    "file": "backend/ai/question_desk.py",
-    "old": "THE_WHAT_IF_WEIGHS_A_PROVINCE = True\n",
-    "new": "THE_WHAT_IF_WEIGHS_A_PROVINCE = False\n",
-    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_ours_holds_nothing_to_attack"
   },
   {
     "id": "F2 an unplaceable name falls to the nearest corps",
@@ -166,13 +138,6 @@
     "old": "    return int(remaining) < MARCH_HALTS_AT_GARRISON\n",
     "new": "    return int(remaining) <= MARCH_HALTS_AT_GARRISON\n",
     "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestTheExchangeIsOneCopy::test_the_predicates_are_the_orders_rules"
-  },
-  {
-    "id": "F3 lever down",
-    "file": "backend/ai/clause_guards.py",
-    "old": "A_QUANTITY_OR_CONJECTURE_ASKS = True\n",
-    "new": "A_QUANTITY_OR_CONJECTURE_ASKS = False\n",
-    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF3TheQuestionLeads::test_the_lead_is_a_question"
   },
   {
     "id": "F3 how long is no question",

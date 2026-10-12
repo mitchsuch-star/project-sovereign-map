@@ -1,12 +1,5 @@
 [
   {
-    "id": "B3 hybrids lever down",
-    "file": "backend/models/dialogue_manager.py",
-    "old": "HYBRIDS_SURVIVE_A_NEW_FLOW = True\n",
-    "new": "HYBRIDS_SURVIVE_A_NEW_FLOW = False\n",
-    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestOpenFlowKeepsWhatThePlayerOwns::test_a_hybrid_is_preempted_not_destroyed"
-  },
-  {
     "id": "open_flow ignores the hybrid",
     "file": "backend/models/dialogue_manager.py",
     "old": "        if displaced_is_mail or displaced_is_hybrid:\n",
@@ -26,13 +19,6 @@
     "old": "        if displaced_is_mail or displaced_is_hybrid:\n",
     "new": "        if previous is not None:\n",
     "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestOpenFlowKeepsWhatThePlayerOwns::test_a_planning_step_is_still_overwritten"
-  },
-  {
-    "id": "the modal lever down",
-    "file": "backend/commands/diplomatic_executor.py",
-    "old": "THE_HYBRID_MODAL_RETURNS = True\n",
-    "new": "THE_HYBRID_MODAL_RETURNS = False\n",
-    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestTheRebellionReturns::test_the_whole_road"
   },
   {
     "id": "the rebellion modal is not re-issued",

@@ -1,12 +1,5 @@
 [
   {
-    "id": "SR-2e ii/CRT-5 lever down",
-    "file": "backend/commands/dialogue_routing.py",
-    "old": "AN_ANSWER_IS_READ_CLOSED = True\n",
-    "new": "AN_ANSWER_IS_READ_CLOSED = False\n",
-    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheLetterIsAnsweredPlainly"
-  },
-  {
     "id": "SR-2e ii/CRT-5 the line may say more",
     "file": "backend/commands/dialogue_routing.py",
     "old": "            return None                           # the line says more\n",
@@ -70,25 +63,11 @@
     "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_gibberish_is_not_told_it_deferred"
   },
   {
-    "id": "SR-2e ii/CRT-5 objection lever down",
-    "file": "backend/commands/dialogue_routing.py",
-    "old": "AN_OBJECTION_ANSWER_IS_READ_CLOSED = True\n",
-    "new": "AN_OBJECTION_ANSWER_IS_READ_CLOSED = False\n",
-    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheObjectionAnswerIsPlain"
-  },
-  {
     "id": "SR-2e ii/CRT-5 any word stands beside the objection answer",
     "file": "backend/commands/dialogue_routing.py",
     "old": "        if token == answer or token in _OBJECTION_ANSWER_FILLER or token in names:\n",
     "new": "        if True:\n",
     "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheObjectionAnswerIsPlain"
-  },
-  {
-    "id": "SR-2e ii/CRT-5 the button road keeps its open arms",
-    "file": "backend/commands/diplomatic_executor.py",
-    "old": "                elif (_routing.AN_ANSWER_IS_READ_CLOSED\n                        and not (_routing.A_QUESTION_NEVER_ANSWERS\n",
-    "new": "                elif (False\n                        and not (_routing.A_QUESTION_NEVER_ANSWERS\n",
-    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestAtTheWire::test_the_button_road_is_read_closed"
   },
   {
     "id": "SR-2e ii/CRT-5 the router never re-prompts",
@@ -130,13 +109,6 @@
     "file": "backend/commands/dialogue_routing.py",
     "old": "        if form in keep:\n            continue\n",
     "new": "",
-    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_a_court_the_label_names_is_part_of_the_answer"
-  },
-  {
-    "id": "SR-2e ii/CRT-5 label-court lever down",
-    "file": "backend/commands/dialogue_routing.py",
-    "old": "A_LABEL_COURT_IS_THE_ANSWER = True\n",
-    "new": "A_LABEL_COURT_IS_THE_ANSWER = False\n",
     "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_a_court_the_label_names_is_part_of_the_answer"
   }
 ]

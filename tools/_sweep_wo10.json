@@ -1,26 +1,5 @@
 [
  {
-  "id": "WO10-1 enemy gate deleted",
-  "file": "backend/commands/executor.py",
-  "old": "        if (result[\"action\"] == \"exact\"\n                or (result[\"action\"] == \"auto_correct\"\n                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
-  "new": "        if (result[\"action\"] == \"exact\"\n                or result[\"action\"] == \"auto_correct\"):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-2 absorber gate deleted",
-  "file": "backend/commands/executor.py",
-  "old": "        if (result[\"action\"] == \"exact\"\n                or (result[\"action\"] == \"auto_correct\"\n                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):\n            matched = world.get_marshal(result[\"match\"])",
-  "new": "        if result[\"action\"] in (\"exact\", \"auto_correct\"):\n            matched = world.get_marshal(result[\"match\"])",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-3 marshal gate deleted",
-  "file": "backend/commands/executor.py",
-  "old": "        if (result[\"action\"] == \"exact\"\n                or (result[\"action\"] == \"auto_correct\"\n                    and _correction_survives(marshal_name,\n                                             result.get(\"match\"),\n                                             MARSHAL_DIRECTION_GATE_ACTIVE))):",
-  "new": "        if result[\"action\"] == \"exact\" or result[\"action\"] == \"auto_correct\":",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
   "id": "WO10-4 predicate always allows (gate dead)",
   "file": "backend/commands/executor.py",
   "old": "    if not gate_active:\n        return True\n    from backend.commands.parser import _plausible_name_typo\n    return _plausible_name_typo(query or \"\", match or \"\")",
@@ -42,27 +21,6 @@
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
-  "id": "WO10-7 lever frozen at def time (enemy seam)",
-  "file": "backend/commands/executor.py",
-  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):",
-  "new": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             True))):",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-8 lever frozen at def time (marshal seam)",
-  "file": "backend/commands/executor.py",
-  "old": "                    and _correction_survives(marshal_name,\n                                             result.get(\"match\"),\n                                             MARSHAL_DIRECTION_GATE_ACTIVE))):",
-  "new": "                    and _correction_survives(marshal_name,\n                                             result.get(\"match\"),\n                                             True))):",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-9 lever frozen at def time (absorber)",
-  "file": "backend/commands/executor.py",
-  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):",
-  "new": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             True))):",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
   "id": "WO10-11 honest alternatives stop naming real candidates",
   "file": "backend/commands/executor.py",
   "old": "    return _humanised(allowed[:3])",
@@ -74,27 +32,6 @@
   "file": "backend/commands/executor.py",
   "old": "                \"message\": f\"Enemy '{enemy_name}' not found. Available: {suggestions_text}\",",
   "new": "                \"message\": f\"Enemy '{enemy_name}' not found. Did you mean '{suggestions_text}'?\",",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-13 enemy lever shipped down",
-  "file": "backend/commands/executor.py",
-  "old": "\nENEMY_DIRECTION_GATE_ACTIVE = True\n",
-  "new": "\nENEMY_DIRECTION_GATE_ACTIVE = False\n",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-14 absorber lever shipped down",
-  "file": "backend/commands/executor.py",
-  "old": "\nBROAD_DIPLOMATIC_GATE_ACTIVE = True\n",
-  "new": "\nBROAD_DIPLOMATIC_GATE_ACTIVE = False\n",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-15 marshal lever shipped down",
-  "file": "backend/commands/executor.py",
-  "old": "\nMARSHAL_DIRECTION_GATE_ACTIVE = True\n",
-  "new": "\nMARSHAL_DIRECTION_GATE_ACTIVE = False\n",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
@@ -138,20 +75,6 @@
   "old": "            if (result[\"action\"] == \"auto_correct\"\n                    and not _plausible_name_typo(\n                        region_name, result.get(\"match\") or \"\")):",
   "new": "            if (result[\"action\"] == \"auto_correct\"\n                    and not bool(\n                        region_name and result.get(\"match\") or \"\")):",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheCensus"
- },
- {
-  "id": "WO10-22 the gate reads the match against itself",
-  "file": "backend/commands/executor.py",
-  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
-  "new": "                    and _correction_survives(result.get(\"match\"),\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            # Exact match or plausible-typo correction - use corrected name\n            if attacker_nation:",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
- },
- {
-  "id": "WO10-23 the absorber reads the wrong lever",
-  "file": "backend/commands/executor.py",
-  "old": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):\n            matched = world.get_marshal(result[\"match\"])",
-  "new": "                    and _correction_survives(enemy_name,\n                                             result.get(\"match\"),\n                                             ENEMY_DIRECTION_GATE_ACTIVE))):\n            matched = world.get_marshal(result[\"match\"])",
-  "tests": "tests/test_wo_slice10_enemy_direction_gate.py"
  },
  {
   "id": "WO10-24 guessed_target_refusal loses its self-grounding clause",
@@ -310,7 +233,7 @@
  {
   "id": "WO10-51 the display filter fails OPEN again",
   "file": "backend/commands/executor.py",
-  "old": "        # FAIL CLOSED. The first cut returned `candidates` here \u2014 the\n        # omniscient roster, i.e. exactly the list this function exists to\n        # stop printing. On an R5 boundary an error must cost the player a\n        # helpful message, never cost them the fog.\n        return []",
+  "old": "        # FAIL CLOSED. The first cut returned `candidates` here — the\n        # omniscient roster, i.e. exactly the list this function exists to\n        # stop printing. On an R5 boundary an error must cost the player a\n        # helpful message, never cost them the fog.\n        return []",
   "new": "        return list(candidates)",
   "tests": "tests/test_wo_slice10_enemy_direction_gate.py::TestTheRefusalDoesNotLeakFog"
  },

@@ -1,12 +1,5 @@
 [
   {
-    "id": "SR-2e/SUPPORT lever down",
-    "file": "backend/models/marshal.py",
-    "old": "A_SUPPORT_ORDER_IS_ONE_ACTION = True\n",
-    "new": "A_SUPPORT_ORDER_IS_ONE_ACTION = False\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestSupportIsOneAction"
-  },
-  {
     "id": "SR-2e/SUPPORT branch prices two",
     "file": "backend/models/marshal.py",
     "old": "                and str(order_type or \"\").upper() == \"SUPPORT\"):\n            return 1\n",
@@ -105,13 +98,6 @@
     "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder::test_an_insisted_attack_is_judged_by_its_own_battle"
   },
   {
-    "id": "SR-2e/AAR-9 lever down",
-    "file": "backend/commands/strategic.py",
-    "old": "THE_GUNS_MUST_BE_OUR_WAR = True\n",
-    "new": "THE_GUNS_MUST_BE_OUR_WAR = False\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar"
-  },
-  {
     "id": "SR-2e/AAR-9 every battle is lawful",
     "file": "backend/commands/strategic.py",
     "old": "    nation = getattr(marshal, \"nation\", \"\")\n    for side in (battle.get(\"attacker\"), battle.get(\"defender\")):\n        other = _cannon_fire_nation(world, side)\n        if other and other != nation and world.is_at_war(nation, other):\n            return True\n",
@@ -131,27 +117,6 @@
     "old": "    if len(names) != 2:\n        return \"\"\n",
     "new": "    return \"\"\n",
     "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar"
-  },
-  {
-    "id": "SR-2e/AAR-9 the step loop forgets the refusal",
-    "file": "backend/commands/strategic.py",
-    "old": "                            if (THE_GUNS_MUST_BE_OUR_WAR\n                                    and not action_result):\n",
-    "new": "                            if (False\n                                    and not action_result):\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar::test_a_refused_step_names_its_own_reason"
-  },
-  {
-    "id": "SR-2e/AAR-10 lever down",
-    "file": "backend/commands/strategic.py",
-    "old": "A_MARCH_KEEPS_ITS_TAIL = True\n",
-    "new": "A_MARCH_KEEPS_ITS_TAIL = False\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail"
-  },
-  {
-    "id": "SR-2e/AAR-10 the pass marches him again",
-    "file": "backend/commands/strategic.py",
-    "old": "            if A_MARCH_KEEPS_ITS_TAIL and getattr(marshal, \"reinforced_this_turn\", False):\n",
-    "new": "            if False:\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail::test_he_does_not_march_twice_and_then_arrives"
   },
   {
     "id": "SR-2e/AAR-10 the AI road home walks twice",
@@ -175,13 +140,6 @@
     "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail::test_a_pursuit_that_fought_its_quarry_takes_its_pause"
   },
   {
-    "id": "SR-2e/AAR-8 lever down",
-    "file": "backend/commands/strategic.py",
-    "old": "A_QUESTION_ROW_IS_ANSWERABLE = True\n",
-    "new": "A_QUESTION_ROW_IS_ANSWERABLE = False\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAQuestionRowIsAnswerable"
-  },
-  {
     "id": "SR-2e/AAR-8 an orderless question is live",
     "file": "backend/commands/strategic.py",
     "old": "    if stored_type in STANDALONE_DECISION_TYPES:\n        return True\n    return bool(getattr(marshal, \"strategic_order\", None))\n",
@@ -201,13 +159,6 @@
     "old": "            strategic_reports = reconcile_question_rows(\n                self.world, strategic_reports)\n",
     "new": "            pass\n",
     "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAQuestionRowIsAnswerable::test_the_end_turn_reconciles_what_the_pass_shipped"
-  },
-  {
-    "id": "SR-2e/CRT-4 lever down",
-    "file": "backend/commands/strategic.py",
-    "old": "THE_ROAD_LAW_IS_READ_WHERE_QUOTED = True\n",
-    "new": "THE_ROAD_LAW_IS_READ_WHERE_QUOTED = False\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheDeskReadsTheMarch"
   },
   {
     "id": "SR-2e/CRT-4 the clock forgets the issuing turn",
@@ -236,12 +187,5 @@
     "old": "                            if _mv_refusal is not None and _mv_kind != \"no_path\":\n                                should_check_objection = False\n",
     "new": "                            pass\n",
     "tests": "tests/test_sr2e_standing_orders_reliable.py::TestMoveToAsksTheRoadFirst::test_no_objection_before_the_road_law"
-  },
-  {
-    "id": "SR-2e/CRT-4 the belt walks its own road",
-    "file": "backend/commands/movement_executor.py",
-    "old": "            if (_road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED\n                    and marshal.nation == world.player_nation):\n                # SR-2e CRT-4",
-    "new": "            if (False\n                    and marshal.nation == world.player_nation):\n                # SR-2e CRT-4",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestMoveToAsksTheRoadFirst::test_move_to_walks_the_marchs_road"
   }
 ]

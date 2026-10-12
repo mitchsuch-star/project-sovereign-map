@@ -32,7 +32,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.ai.first_contact as FC
-import backend.ai.llm_client as LC
 import backend.ai.question_desk as QD
 import backend.main as M
 from backend.game_logic import reforms as R
@@ -81,11 +80,6 @@ class TestTheBareWordAsksForTheLaws:
         world.nation_gold["France"] = 60000
         reply = _say("enact the Staff")
         assert "Enact it?" in reply["message"], reply["message"]
-
-    def test_the_lever_down_is_the_old_shrug(self, world, monkeypatch):
-        monkeypatch.setattr(LC, "THE_BARE_WORD_ASKS_FOR_THE_LAWS", False)
-        reply = _say("laws")
-        assert not reply["message"].startswith("The laws of state"), reply["message"]
 
 
 # ═══════════════════════════ R2 + R3 — THE LAWS ANSWER ════════════════════════
@@ -178,11 +172,6 @@ class TestTheDeskCountsThePoints:
     def test_a_diplomatic_order_still_reaches_talleyrand(self, world):
         command = _parse("Talleyrand, improve relations with Prussia").get("command") or {}
         assert command.get("action") != "status", command
-
-    def test_the_lever_down_is_the_old_assessment(self, world, monkeypatch):
-        monkeypatch.setattr(QD, "THE_DESK_COUNTS_THE_POINTS", False)
-        command = _parse("how many diplomatic points do I have").get("command") or {}
-        assert command.get("action") == "diplomatic_advisory", command
 
 
 # ═══════════════════════════ R5 — THE OCCUPIER, AS PRINTED ═════════════════════

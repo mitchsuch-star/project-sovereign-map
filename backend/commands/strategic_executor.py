@@ -40,9 +40,8 @@ from backend.display_names import humanize_entity_name as _shown_name  # NPC-12:
 # FA-N57 (slice 17, Sept 11 2026): the "is in square formation" Berthier
 # advisory read the LIVE `square_formation` 1,142 lines AFTER this very
 # function had auto-broken the square — production-dead since Session 67
-# while its `fortified` sibling one line up was live. False reproduces the
-# silence; True reads the PRE-break state and states the consequence.
-SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True
+# while its `fortified` sibling one line up was live. The square advisory
+# reads the PRE-break state and states the consequence.
 # NPC-18 (Score Finish Step 7 slice 5a): "the Emperor" is the sovereign
 # as a referent on the support road, and the refusal lists him by his
 # title. Flip lever: False restores "Cannot find marshal 'Emperor'".
@@ -57,8 +56,7 @@ THE_MARCH_ROAD_READS_ITS_ROADS = True
 # `move_to` / `pursue` where its arms asked for `move` / `attack`, so a
 # cautious marshal's objection to `march to Provence` was "I have concerns
 # about this order, Sire" (measured: Marmont, turn 13 of the Creative AAR).
-# False reproduces the reasonless line.
-THE_OBJECTION_NAMES_ITS_CONCERN = True
+# The rule: the objection names its concern.
 
 # CRT-2 (Score Mandate Chunk 3, SR-3b, September 26, 2026): A HOLD THE GAME
 # PLACED IS NO READING. A bare `Ney, hold` holds his own province (Bug #7's
@@ -67,9 +65,8 @@ THE_OBJECTION_NAMES_ITS_CONCERN = True
 # province nearest your order, Sire.)" — on every bare hold, measured on the
 # pre-slice tree. A note that fires when no name was typed teaches the player
 # to skip the one that matters (CQ-29's). The note is kept for a hold that
-# NAMED a province (`Soult, hold Mainz` still discloses Maine). False
-# restores the note on the defaulted hold.
-THE_DEFAULT_HOLD_READS_NO_NAME = True
+# NAMED a province (`Soult, hold Mainz` still discloses Maine). The rule:
+# the default hold reads no name.
 
 # WO-D11 copy half (SR-6b, Oct 2 2026): a strategic first step that captures
 # a province used to report only " Moves to X." — the movement executor's
@@ -365,8 +362,7 @@ class StrategicExecutor:
         # objection to `march to Provence` fell to "I have concerns about
         # this order, Sire" with no road, enemy or odds named. The type is
         # read as the verb it is, and the default names the order.
-        if THE_OBJECTION_NAMES_ITS_CONCERN:
-            action = {"move_to": "move", "pursue": "attack"}.get(action, action)
+        action = {"move_to": "move", "pursue": "attack"}.get(action, action)
 
         # Personality + action specific messages
         if personality == 'aggressive':
@@ -405,39 +401,35 @@ class StrategicExecutor:
                 else:
                     return f"{prefix} 'The odds are not in our favor. Perhaps we should reconsider.'"
             elif action == 'move':
-                if THE_OBJECTION_NAMES_ITS_CONCERN:
-                    road = self._road_concern(marshal, order)
-                    return (f"{prefix} 'That road{road} runs through enemy "
-                            f"country, Sire. It is dangerous.'")
-                return f"{prefix} 'That route passes through enemy territory. It is dangerous.'"
+                road = self._road_concern(marshal, order)
+                return (f"{prefix} 'That road{road} runs through enemy "
+                        f"country, Sire. It is dangerous.'")
 
         # Default objection message
-        if THE_OBJECTION_NAMES_ITS_CONCERN:
-            # AAR-31: name the order and its object, whatever the pairing —
-            # a reasonless objection is the one thing this line must not be.
-            target = str((order or {}).get("target") or "").strip()
-            shown_target = humanize_entity_name(target) if target else ""
-            verb = {
-                "move": "a march", "attack": "an attack", "hold": "a hold",
-                "support": "a support march", "retreat": "a retreat",
-                "scout": "a reconnaissance", "defend": "a defence",
-                "fortify": "the works", "drill": "the drill", "wait": "a wait",
-            }.get(action, action.replace("_", " ") or "this order")
-            object_clause = ""
-            if shown_target and shown_target.lower() not in ("generic", "none"):
-                object_clause = (f" on {shown_target}" if action == "attack"
-                                 else f" to {shown_target}" if action in ("move", "support")
-                                 else f" at {shown_target}")
-            if personality == 'cautious':
-                return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire? "
-                        f"The odds and the ground are against it — I would "
-                        f"sooner hold what we have.'")
-            if personality == 'aggressive':
-                return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire? "
-                        f"There is no battle in it. Give me the enemy.'")
-            return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire — I "
-                    f"have my doubts about that order, and I say so plainly.'")
-        return f"{prefix} 'I have concerns about this order, Sire.'"
+        # AAR-31: name the order and its object, whatever the pairing —
+        # a reasonless objection is the one thing this line must not be.
+        target = str((order or {}).get("target") or "").strip()
+        shown_target = humanize_entity_name(target) if target else ""
+        verb = {
+            "move": "a march", "attack": "an attack", "hold": "a hold",
+            "support": "a support march", "retreat": "a retreat",
+            "scout": "a reconnaissance", "defend": "a defence",
+            "fortify": "the works", "drill": "the drill", "wait": "a wait",
+        }.get(action, action.replace("_", " ") or "this order")
+        object_clause = ""
+        if shown_target and shown_target.lower() not in ("generic", "none"):
+            object_clause = (f" on {shown_target}" if action == "attack"
+                             else f" to {shown_target}" if action in ("move", "support")
+                             else f" at {shown_target}")
+        if personality == 'cautious':
+            return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire? "
+                    f"The odds and the ground are against it — I would "
+                    f"sooner hold what we have.'")
+        if personality == 'aggressive':
+            return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire? "
+                    f"There is no battle in it. Give me the enemy.'")
+        return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire — I "
+                f"have my doubts about that order, and I say so plainly.'")
 
     def _road_concern(self, marshal, order: Dict) -> str:
         """AAR-31: " to <destination>" for a march objection, so the road is
@@ -648,9 +640,7 @@ class StrategicExecutor:
         # on the rout turn itself (`retreating` set, the stage not yet
         # ticked) a PURSUE was accepted and its first step attacked and
         # annexed under strategic execution, while `attack` was refused.
-        from backend.commands.movement_executor import RECOVERING_CORPS_TAKES_NO_GROUND
-        if (marshal.in_retreat_recovery() if RECOVERING_CORPS_TAKES_NO_GROUND
-                else getattr(marshal, 'retreat_recovery', 0) > 0):
+        if (marshal.in_retreat_recovery()):
             turns_left = max(1, int(getattr(marshal, 'retreat_recovery', 0) or 0))
             return {
                 "success": False,
@@ -1124,53 +1114,19 @@ class StrategicExecutor:
                 pathfinder = world.find_weighted_path if use_weighted else world.find_path
                 personality = getattr(marshal, 'personality', 'balanced')
                 import backend.commands.strategic as _road
-                _road_verdict = None
-                if (_road.ROAD_LAW_AT_ISSUANCE
-                        and _road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED):
-                    # SR-2e CRT-4: the ONE road reader the desk, the `move
-                    # to` belt and the objection battery read too.
-                    path, _march_refusal, _march_kind = _road.march_road(
-                        world, marshal, dest, strategic_type)
-                    if _march_refusal is not None:
-                        if _march_kind == "road":
-                            _march_refusal = dict(_march_refusal)
-                            _march_refusal["message"] = (
-                                str(_march_refusal.get("message") or "")
-                                + destination_grounding_note(
-                                    parsed_command.get("raw_input"), dest))
-                        return _march_refusal
-                    path = [marshal.location] + list(path or [])
-                elif _road.ROAD_LAW_AT_ISSUANCE:
-                    # FA slice 5 (FA-13/FA-46): issuance plots by the ONE
-                    # lawful-first ladder the per-turn march already walks —
-                    # it used to plot terrain-only, announce a route through
-                    # a neutral's closed frontier, charge 2 AP and refuse the
-                    # first hop in silence. The verdict is read after the
-                    # strip, before an AP is charged.
-                    _avoid = None
-                    if personality == "cautious":
-                        _avoid = _road.enemy_occupied_regions(
-                            world, marshal.nation, marshal=marshal)
-                    path, _road_verdict = _road.plot_route(
-                        world, marshal, dest, use_weighted=use_weighted,
-                        avoid_regions=_avoid,
-                        want_verdict=(marshal.nation == world.player_nation))
-                elif personality == "cautious":
-                    # [7A-4] Fog-aware pathfinding: only avoid visible enemies
-                    from backend.models.intel import FULL, PARTIAL
-                    enemy_regions = []
-                    for rn in world.regions:
-                        intel = world.get_region_intel(rn)
-                        if intel.visibility in (FULL, PARTIAL):
-                            if world.get_enemies_in_region(rn, marshal.nation):
-                                enemy_regions.append(rn)
-                    path = pathfinder(marshal.location, dest,
-                                      avoid_regions=enemy_regions)
-                    if not path:
-                        # Fallback to direct path
-                        path = pathfinder(marshal.location, dest)
-                else:
-                    path = pathfinder(marshal.location, dest)
+                # SR-2e CRT-4: the ONE road reader the desk, the `move
+                # to` belt and the objection battery read too.
+                path, _march_refusal, _march_kind = _road.march_road(
+                    world, marshal, dest, strategic_type)
+                if _march_refusal is not None:
+                    if _march_kind == "road":
+                        _march_refusal = dict(_march_refusal)
+                        _march_refusal["message"] = (
+                            str(_march_refusal.get("message") or "")
+                            + destination_grounding_note(
+                                parsed_command.get("raw_input"), dest))
+                    return _march_refusal
+                path = [marshal.location] + list(path or [])
                 if not path:
                     return {
                         "success": False,
@@ -1178,23 +1134,6 @@ class StrategicExecutor:
                     }
                 # Strip start location
                 path = [r for r in path if r != marshal.location]
-
-                if _road_verdict is not None:
-                    # FA slice 5: a closed destination, no lawful corridor
-                    # (S5-D2's own words) or a sea leg the crossing gate
-                    # refuses — said NOW, at 0 AP.
-                    _road_refusal = _road.issuance_road_refusal(
-                        world, marshal, dest, strategic_type, _road_verdict)
-                    if _road_refusal is not None:
-                        # FA-54's rule holds on the refusal too: a destination
-                        # the player did not name is disclosed in the same
-                        # words the accepted route uses ("Lisboa" → Lisbon,
-                        # Portugal's — refused, and SAID which Lisbon).
-                        _road_refusal["message"] = (
-                            str(_road_refusal.get("message") or "")
-                            + destination_grounding_note(
-                                parsed_command.get("raw_input"), dest))
-                        return _road_refusal
 
                 # ── S5-D2: issuance-time passability honesty ──────────────
                 # The route above ignores diplomacy. PF-8's per-turn march
@@ -1323,7 +1262,6 @@ class StrategicExecutor:
                         insist_penalty = get_insist_penalty(trust_tier)
                         # WO-D9: damped at the QUOTE (see executor.py).
                         from backend.models.authority import (
-                            OBJECTION_TRUST_DAMPER_ACTIVE as _DAMPER_ACTIVE,
                             damp_objection_trust_gain,
                             objection_trust_modifier,
                         )
@@ -1461,18 +1399,9 @@ class StrategicExecutor:
                         # eight call sites — keeps the button and the payment
                         # the same number, which is the whole point of damping
                         # at the quote.
-                        # Behind the SAME lever as the damper, or the lever
-                        # would be a lie: the three producers mint that label
-                        # from an undamped MODERATE fallback while `trust_gain`
-                        # carries the real `strategic_concern`, so leaving the
-                        # loop unguarded made the button read +6/+9 instead of
-                        # +3 with the lever DOWN — not the pre-slice behaviour
-                        # the lever promises to reproduce. Found by review, not
-                        # by the sweep, whose text pins cannot see reachability.
-                        if _DAMPER_ACTIVE:
-                            for _opt in v1_options:
-                                if _opt.get("type") == "preferred":
-                                    _opt["trust_change"] = trust_gain
+                        for _opt in v1_options:
+                            if _opt.get("type") == "preferred":
+                                _opt["trust_change"] = trust_gain
 
                         objection = {
                             # V2 fields
@@ -1947,8 +1876,7 @@ class StrategicExecutor:
             # substituted province contradicting each other in one
             # sentence.
             msg = (f"{marshal.name} will hold {hold_loc}.{first_step_msg}"
-                   + ("" if (THE_DEFAULT_HOLD_READS_NO_NAME
-                             and _hold_placed_by_the_game)
+                   + ("" if (_hold_placed_by_the_game)
                       else destination_grounding_note(
                           parsed_command.get("raw_input"), hold_loc)))
         elif strategic_type == "SUPPORT":
@@ -1992,7 +1920,7 @@ class StrategicExecutor:
                     f"but is fortified — they cannot march to reinforce from their current "
                     f"position. Consider unfortifying, or rely on the co-location coordination bonus.\""
                 )
-            elif SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE and was_in_square:
+            elif was_in_square:
                 # FA-N57: the CONSEQUENCE, not the old sentence on the captured
                 # state — "they cannot march to reinforce" (he can) and
                 # "consider breaking square first" (it is already broken) are
@@ -2001,13 +1929,6 @@ class StrategicExecutor:
                     f"\n\nBerthier: \"Sire, {marshal.name} has broken square to take up "
                     f"the order — he marches to {target}'s aid, but the anti-cavalry "
                     f"formation is gone.\""
-                )
-            elif (not SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE
-                  and getattr(marshal, 'square_formation', False)):
-                msg += (
-                    f"\n\nBerthier: \"Sire, {marshal.name} is ordered to support {target} "
-                    f"but is in square formation — they cannot march to reinforce. "
-                    f"Consider breaking square first.\""
                 )
         else:
             msg = f"{marshal.name} received the order to {order_verb_display(strategic_type)}.{first_step_msg}"
@@ -2289,17 +2210,11 @@ class StrategicExecutor:
                 dest = path[-1] if path else target
                 use_weighted = (strategic_type in ("MOVE_TO", "HOLD"))
                 import backend.commands.strategic as _road
-                if _road.ROAD_LAW_ON_REPLOT:
-                    # FA slice 5: the compromise route prefers a lawful
-                    # corridor and must avoid what the marshal objected to.
-                    safe_path, _ = _road.plot_route(
-                        world, marshal, dest, use_weighted=use_weighted,
-                        avoid_regions=list(enemy_occupied), avoid_is_law=True)
-                else:
-                    safe_pathfinder = world.find_weighted_path if use_weighted else world.find_path
-                    safe_path = safe_pathfinder(marshal.location, dest, avoid_regions=enemy_occupied)
-                    safe_path = ([r for r in safe_path if r != marshal.location]
-                                 if safe_path else None)
+                # FA slice 5: the compromise route prefers a lawful
+                # corridor and must avoid what the marshal objected to.
+                safe_path, _ = _road.plot_route(
+                    world, marshal, dest, use_weighted=use_weighted,
+                    avoid_regions=list(enemy_occupied), avoid_is_law=True)
                 if safe_path:
                     path = list(safe_path)
                 else:
@@ -2616,20 +2531,11 @@ class StrategicExecutor:
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
             import backend.commands.strategic as _road
-            if _road.ROAD_LAW_ON_REPLOT:
-                # FA slice 5: a reroute prefers a lawful corridor and must
-                # still AVOID what it fled (it used to be terrain-only).
-                new_path, _ = _road.plot_route(
-                    world, marshal, destination, use_weighted=use_weighted,
-                    avoid_regions=enemy_regions, avoid_is_law=True)
-            else:
-                first_step_pathfinder = world.find_weighted_path if use_weighted else world.find_path
-                new_path = first_step_pathfinder(
-                    marshal.location, destination,
-                    avoid_regions=enemy_regions
-                )
-                new_path = ([r for r in new_path if r != marshal.location]
-                            if new_path else None)
+            # FA slice 5: a reroute prefers a lawful corridor and must
+            # still AVOID what it fled (it used to be terrain-only).
+            new_path, _ = _road.plot_route(
+                world, marshal, destination, use_weighted=use_weighted,
+                avoid_regions=enemy_regions, avoid_is_law=True)
             if new_path:
                 order.path = list(new_path)
                 # Return None — handled automatically, continue with normal flow

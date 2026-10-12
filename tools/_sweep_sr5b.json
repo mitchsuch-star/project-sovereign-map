@@ -196,13 +196,6 @@
     "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheAIRaisesAYard"
   },
   {
-    "id": "SR5B-1: the order is never restored",
-    "file": "backend/commands/executor.py",
-    "old": "        if not A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER:\n            return",
-    "new": "        if True:\n            return",
-    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestARefusedOrderKeepsTheStandingOrder"
-  },
-  {
     "id": "SR5B-1: an order carried out is undone",
     "file": "backend/commands/executor.py",
     "old": "        if not attack_was_refused(result):\n            return",

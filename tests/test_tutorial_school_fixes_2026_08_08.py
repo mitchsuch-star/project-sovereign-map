@@ -162,17 +162,6 @@ class TestOrderBoundInterruptClearedOnOverride:
         assert ney.strategic_order is not None
         assert ney.pending_interrupt == question
 
-    def test_lever_down_a_refused_move_clears_both(self, monkeypatch):
-        """The pre-SR5B-1 shape, behind its lever: order and question go
-        together, so the invariant holds on both arms."""
-        from backend.commands import executor as EX
-        monkeypatch.setattr(EX, "A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER",
-                            False)
-        result, ney, _question = self._refused_move()
-        assert result.get("success") is False
-        assert ney.strategic_order is None
-        assert ney.pending_interrupt is None
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TUT-F5 — the lesson world is jealousy-dormant

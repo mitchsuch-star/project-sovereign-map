@@ -40,7 +40,6 @@ import pytest
 
 from pathlib import Path
 
-from backend.commands import economy_executor as econ_mod
 from backend.commands.economy_executor import (
     levy_substitute_price, levy_purchase_ceiling,
 )
@@ -161,16 +160,6 @@ class TestArmB_TheControl:
         assert best == 1504, (best, who)
         assert who == "Murat", who
         assert best * 2 < 5_000
-
-    def test_the_lever_closes_the_market(self, ex, monkeypatch):
-        w = _staged()
-        monkeypatch.setattr(econ_mod, "THE_SUBSTITUTE_MARKET_IS_OPEN", False)
-        before = w.get_marshal("Ney").strength
-        gold = w.nation_gold["France"]
-        r = _buy(ex, w, batches=3)
-        assert not r["success"]
-        assert w.get_marshal("Ney").strength == before
-        assert w.nation_gold["France"] == gold
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -299,13 +288,6 @@ class TestArmD_TheAIPaysTheSamePrice:
         ai = EnemyAI(ex)
         w, _ = self._austria()
         assert ai._find_substitute_purchase("Austria", w, 100) is None
-
-    def test_the_lever_closes_the_rung_too(self, ex, monkeypatch):
-        from backend.ai.enemy_ai import EnemyAI
-        ai = EnemyAI(ex)
-        w, _ = self._austria()
-        monkeypatch.setattr(econ_mod, "THE_SUBSTITUTE_MARKET_IS_OPEN", False)
-        assert ai._find_substitute_purchase("Austria", w, 100_000) is None
 
     def test_ignore_pool_is_what_makes_the_rung_reachable(self, ex):
         """The helper answers None on an empty class unless asked not to —

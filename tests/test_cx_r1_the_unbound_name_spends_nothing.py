@@ -557,22 +557,5 @@ class TestTheLevers:
         assert not _refused(response)
         assert M.world.nation_gold["France"] == 400, changed
 
-    def test_the_derivation_lever(self, board, monkeypatch):
-        monkeypatch.setattr(CG, "ORDER_WORDS_ARE_DERIVED", False)
-        assert CG.address_of("Zorglub crush Mack", _ROSTER) is None
-        response, changed = _drive(board, "Zorglub crush Mack")
-        assert not _refused(response), response.get("message")
-        assert "ap" in changed, changed
-
-    def test_the_head_lever(self, monkeypatch):
-        monkeypatch.setattr(CG, "THE_ADDRESS_IS_ITS_HEAD", False)
-        assert CG.address_of("Zorglub just attack Mack", _ROSTER) is None
-        assert CG.address_of("the Prince of Moskowa attack Mack",
-                             _ROSTER) is None
-        assert CG.address_of("Zorglub attack Mack, then hold",
-                             _ROSTER) is None
-
     def test_the_levers_are_up(self):
         assert CommandExecutor.THE_UNBOUND_NAME_SPENDS_NOTHING is True
-        assert CG.ORDER_WORDS_ARE_DERIVED is True
-        assert CG.THE_ADDRESS_IS_ITS_HEAD is True

@@ -124,9 +124,7 @@ class TestANearMissOfARosterNameAsks:
 # ═══════════════════════════════════════════════════════════════════════
 
 import backend.ai.llm_client as LC  # noqa: E402
-import backend.commands.economy_executor as EE  # noqa: E402
 import backend.commands.parser as P  # noqa: E402
-import backend.commands.strategic_executor as SE  # noqa: E402
 
 READING_NOTE = "as the province nearest your order"
 
@@ -234,14 +232,6 @@ class TestARewardGoesToItsObject:
         assert read("Davout, revoke Ney's rente", roster, world) == "Ney"
         assert read("grant Ney a rente", roster, world) is None
         assert read("Ney, grant yourself a rente", roster, world) is None
-
-    def test_the_lever_down_pays_the_addressee(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(P, "A_REWARD_GOES_TO_ITS_OBJECT", False)
-        _stage_rewards(world)
-        post(client, "Davout, grant Ney a rente")
-        assert world.get_marshal("Davout").pension > 0
-        assert world.get_marshal("Ney").pension == 0
 
 
 class TestAFallenObjectIsNamedAsFallen:
@@ -404,14 +394,6 @@ class TestANamedProvinceIsNeverReplaced:
         assert data.get("success") is True, data.get("message")
         assert f"at {ney_at}" in str(data.get("message"))
 
-    def test_the_levers_down_raise_at_the_capital(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(LC, "A_NAMED_GROUND_IS_KEPT", False)
-        monkeypatch.setattr(EE, "A_NAMED_PROVINCE_IS_NEVER_REPLACED", False)
-        self._stage(world)
-        data = post(client, "recruit infantry in Atlantis")
-        assert "nearest to capital" in str(data.get("message")), data.get("message")
-
 
 class TestBuildAndRepairReadTheirGround:
     """CQ-29's build/repair half: the ground was dropped ("Specify a region.
@@ -497,9 +479,3 @@ class TestAHoldTheGamePlacedReadsNoName:
         client, _ = shipped
         message = str(post(client, line).get("message"))
         assert f"read {read} {READING_NOTE}" in message, message
-
-    def test_the_lever_down_restores_the_note(self, shipped, monkeypatch):
-        client, _ = shipped
-        monkeypatch.setattr(SE, "THE_DEFAULT_HOLD_READS_NO_NAME", False)
-        message = str(post(client, "Ney, hold").get("message"))
-        assert READING_NOTE in message, message

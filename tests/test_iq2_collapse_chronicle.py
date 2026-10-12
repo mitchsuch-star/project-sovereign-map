@@ -100,19 +100,9 @@ class TestD1OwnLossesStayInTheChronicle:
         w.get_region_intel("Normandy").visibility = UNKNOWN
         assert filter_campaign_log([ev], w) == [ev]
 
-    def test_lever_down_restores_the_drop(self):
-        w = _boot()
-        _collapse(w, keep=("Brittany",))
-        ev = _loss("Normandy")
-        w.log_event(ev)
-        w.get_region_intel("Normandy").visibility = UNKNOWN
-        with _lever(CL, "PLAYER_LOSSES_ARE_PLAYER_EVENTS", False):
-            assert filter_campaign_log([ev], w) == []
-
     def test_the_measured_shape_every_own_loss_row_survives(self):
         """27 own-loss rows, every lost province decayed to UNKNOWN — the
-        state two end turns produced in the played campaign. All 27 stay;
-        lever down, none do (the measured 27 -> few)."""
+        state two end turns produced in the played campaign. All 27 stay."""
         w = _boot()
         lost = sorted(r for r in w.get_nation_regions("France") if r != "Brittany")
         assert len(lost) == 27
@@ -126,8 +116,6 @@ class TestD1OwnLossesStayInTheChronicle:
         for name in lost:
             w.get_region_intel(name).visibility = UNKNOWN
         assert len(filter_campaign_log(rows, w)) == 27
-        with _lever(CL, "PLAYER_LOSSES_ARE_PLAYER_EVENTS", False):
-            assert len(filter_campaign_log(rows, w)) == 0
 
     def test_a_third_partys_loss_still_needs_eyes(self):
         """The fix is scoped to OUR losses: a Prussian province taken by

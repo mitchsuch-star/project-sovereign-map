@@ -1,30 +1,9 @@
 [
   {
-    "id": "SR-3 reserve/CQ-37 lever down",
-    "file": "backend/ai/clause_guards.py",
-    "old": "AT_ONCE_IS_NEVER_A_CONDITION = True\n",
-    "new": "AT_ONCE_IS_NEVER_A_CONDITION = False\n",
-    "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
-  },
-  {
     "id": "SR-3 reserve/CQ-37 the adverb pattern never matches",
     "file": "backend/ai/clause_guards.py",
     "old": "_AT_ONCE_RE = re.compile(r\"\\bat\\s+$\", re.IGNORECASE)\n",
     "new": "_AT_ONCE_RE = re.compile(r\"\\bat\\s+zz$\", re.IGNORECASE)\n",
-    "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
-  },
-  {
-    "id": "SR-3 reserve/CQ-37 the spans reader forgets the adverb",
-    "file": "backend/ai/clause_guards.py",
-    "old": "        if (collapsed == \"once\" and AT_ONCE_IS_NEVER_A_CONDITION\n                and _AT_ONCE_RE.search(text[:marker.start()])):\n            continue\n        out.append((marker.start(), marker.end()))\n",
-    "new": "        out.append((marker.start(), marker.end()))\n",
-    "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
-  },
-  {
-    "id": "SR-3 reserve/CQ-37 the refusing reader forgets the adverb",
-    "file": "backend/ai/clause_guards.py",
-    "old": "        if (collapsed == \"once\" and AT_ONCE_IS_NEVER_A_CONDITION\n                and _AT_ONCE_RE.search(text[:marker.start()])):\n            continue\n        marker_count += 1\n",
-    "new": "        marker_count += 1\n",
     "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
   },
   {

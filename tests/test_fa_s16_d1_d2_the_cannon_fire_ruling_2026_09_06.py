@@ -370,17 +370,12 @@ class TestTheGunsMustConcernHim:
         assert "player_nation" not in body
         assert "marshal, 'nation'" in body or 'marshal, "nation"' in body
 
-    def test_the_lever_reproduces_the_nation_blind_scan(self, world):
+    def test_the_scan_is_not_nation_blind(self, world):
         attacker, defender = self._third_party(world)
         battle = {"location": self._neutral_region(world),
                   "attacker": attacker, "defender": defender}
         davout = world.get_marshal("Davout")
         assert _cannon_fire_concerns(world, davout, battle) is False
-        strategic.CANNON_FIRE_READS_THE_FLAGS = False
-        try:
-            assert _cannon_fire_concerns(world, davout, battle) is True
-        finally:
-            strategic.CANNON_FIRE_READS_THE_FLAGS = True
 
     def test_the_scan_consults_it(self):
         src = _code(inspect.getsource(

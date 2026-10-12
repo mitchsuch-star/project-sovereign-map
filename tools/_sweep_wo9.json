@@ -91,13 +91,6 @@
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_a_world_without_a_tracker_does_not_crash"
   },
   {
-    "id": "WO9-16 the damper flip lever is left down",
-    "file": "backend/models/authority.py",
-    "old": "OBJECTION_TRUST_DAMPER_ACTIVE = True",
-    "new": "OBJECTION_TRUST_DAMPER_ACTIVE = False",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_the_lever_is_true_at_rest tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_a_pushover_is_paid_less_than_a_balanced_player"
-  },
-  {
     "id": "WO9-17 the ruled >0.80 threshold is retuned",
     "file": "backend/models/authority.py",
     "old": "        if trust_ratio > 0.80:\n            return 0.5  # Severe penalty for always trusting",
@@ -131,20 +124,6 @@
     "old": "                        if _DAMPER_ACTIVE:\n                            for _opt in v1_options:",
     "new": "                        if True:\n                            for _opt in v1_options:",
     "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_the_normalisation_loop_sits_behind_the_lever"
-  },
-  {
-    "id": "WO9-22 the damper is unreachable from the tactical quote though the call survives",
-    "file": "backend/models/authority.py",
-    "old": "    if not OBJECTION_TRUST_DAMPER_ACTIVE:\n        return 1.0",
-    "new": "    if True:\n        return 1.0",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_a_raised_objection_quotes_a_damped_figure"
-  },
-  {
-    "id": "WO9-23 the flag is frozen at import time (monkeypatch stops reaching it)",
-    "file": "backend/models/authority.py",
-    "old": "def objection_trust_modifier(world) -> float:",
-    "new": "def objection_trust_modifier(world,\n                             OBJECTION_TRUST_DAMPER_ACTIVE=OBJECTION_TRUST_DAMPER_ACTIVE) -> float:",
-    "tests": "tests/test_wo_slice9_the_courting_cap.py::TestTheDamperOnTheRealPath::test_the_lever_down_restores_the_undamped_quote tests/test_wo_slice9_the_courting_cap.py::TestTheDamperIsWired::test_false_is_a_no_op"
   },
   {
     "id": "WO9-24 shown stops equalling applied on the real path",

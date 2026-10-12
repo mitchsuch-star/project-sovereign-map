@@ -14,13 +14,6 @@
     "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestThePursuitQuotesItsSighting"
   },
   {
-    "id": "S17-9/c the cold trail is a bare refusal again",
-    "file": "backend/commands/strategic.py",
-    "old": "            if THE_COLD_TRAIL_IS_AN_OUTCOME:",
-    "new": "            if False:",
-    "tests": "tests/test_fa_s17_phase4a_2026_09_12.py::TestTheColdTrailIsAnOutcome"
-  },
-  {
     "id": "S17-11/a the capture stamp is switched off inside the helper",
     "file": "backend/commands/combat_executor.py",
     "old": "        if not cls.THE_CAPTURE_IS_ON_THE_REPORT:",

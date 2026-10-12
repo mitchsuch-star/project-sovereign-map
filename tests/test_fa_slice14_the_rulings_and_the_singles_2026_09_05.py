@@ -589,29 +589,6 @@ class TestTheRedemptionAnswerMustBeOffered:
                 event, "grant_autonomy", {"world": world})
         assert result["success"] is True
 
-    def test_the_lever_down_accepts_an_unoffered_course_again(self):
-        """Arm 0."""
-        from backend.commands import disobedience as D
-        world = _europe()
-        with contextlib.redirect_stdout(io.StringIO()):
-            for m in list(world.marshals.values()):
-                if m.nation == world.player_nation and m.name != "Lannes":
-                    world.capture_marshal(m, "Austria")
-        system = D.DisobedienceSystem()
-        lannes = world.marshals["Lannes"]
-        lannes.trust.modify(-100)
-        with contextlib.redirect_stdout(io.StringIO()):
-            event = system.check_redemption_threshold(lannes, world)
-        original = D.REDEMPTION_ANSWER_MUST_BE_OFFERED
-        D.REDEMPTION_ANSWER_MUST_BE_OFFERED = False
-        try:
-            with contextlib.redirect_stdout(io.StringIO()):
-                result = system.handle_redemption_response(
-                    event, "dismiss", {"world": world})
-            assert result["success"] is True
-        finally:
-            D.REDEMPTION_ANSWER_MUST_BE_OFFERED = original
-
 
 # ══════════════════════════════════════════════════════════════════════
 # FA-N46 — a rente-paid marshal keeps his grace window
@@ -823,19 +800,6 @@ class TestAStandingOrderIsPricedByTheOrder:
     def test_the_controls_are_unchanged(self, sentence, cost):
         before, after, _orders, _ok = _drive(sentence)
         assert before - after == cost, sentence
-
-    def test_the_lever_down_restores_the_free_ride(self):
-        """Arm 0."""
-        from backend.commands import executor as E
-        original = E.STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER
-        E.STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER = False
-        try:
-            before, after, orders, _ok = _drive(
-                "Davout, hold Rhineland and wait")
-            assert before == after
-            assert orders == 1, "the pre-slice defect: an order for nothing"
-        finally:
-            E.STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER = original
 
 
 # ══════════════════════════════════════════════════════════════════════

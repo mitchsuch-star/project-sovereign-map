@@ -71,19 +71,6 @@ SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 FIXTURE = ROOT / "tests" / "fixtures" / "playtest_saves" / "fixture_t20_ambient.json"
 
-LEVERS = [
-    (DM, "MOUNT_OVER_MAIL_ACTIVE"),
-    (DM, "PARADOX_SURVIVES_THE_STALE_SWEEP"),
-]
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = [(mod, name, getattr(mod, name)) for mod, name in LEVERS]
-    yield
-    for mod, name, value in saved:
-        setattr(mod, name, value)
-
 
 @contextlib.contextmanager
 def _quiet():
@@ -769,17 +756,6 @@ class TestTheCrisisReachesTheSlot:
         # The letter is preserved, not destroyed.
         assert "incoming_proposal" in [
             d.get("type") for d in world.dialogue_manager.iter_queue()]
-
-    def test_the_letter_used_to_answer_for_the_crisis(self, boot_board, client):
-        """The lever-off arm reproduces FA-N44's own headline: a bare option
-        index answers whatever is current, which was the letter."""
-        DM.MOUNT_OVER_MAIL_ACTIVE = False
-        from backend.game_logic.diplomacy import declare_war
-        world = boot_board
-        self._paradox_board(world)
-        with _quiet():
-            declare_war(world, "Prussia", "Denmark")
-        assert world.dialogue_manager.peek().get("type") == "incoming_proposal"
 
     def test_the_crisis_carries_its_own_modal(self, boot_board, client):
         """A hard stop refuses every command, and a refusal does not drain the

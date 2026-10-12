@@ -38,7 +38,6 @@ from fastapi.testclient import TestClient
 
 import backend.main as M
 from backend.ai.enemy_ai import EnemyAI
-from backend.commands import strategic as strategic_mod
 from backend.commands.executor import CommandExecutor
 from backend.commands.parser import CommandParser
 from backend.commands.strategic import (
@@ -179,17 +178,6 @@ class TestTheGateCoversEveryVerb:
                              "_strategic_execution": True}}, {"world": world})
         assert r.get("last_stand_pending") is None and ney.location == "Paris"
 
-    def test_the_lever_down_lets_the_march_through(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "STANDALONE_DECISION_LIVENESS_ACTIVE", False)
-        world, ney, _mack, ask = _adjacent_geometry()
-        parsed = {"is_strategic": True, "strategic_type": "MOVE_TO", "target": "Paris",
-                  "marshal": "Ney", "action": "move", "original_command": "Ney, march to Paris",
-                  "command": {"marshal": "Ney", "action": "move", "target": "Paris"}}
-        with _quiet():
-            result = CommandExecutor().execute(parsed, {"world": world})
-        assert result.get("last_stand_pending") is None
-        assert ney.strategic_order is not None or ney.location != "Belgium"
-
 
 class TestTheTypedRouteThroughTheEndpoint:
     """R2-F1's own repro, through POST /command with the mock parser."""
@@ -311,15 +299,6 @@ class TestTheGeneralRetreatLeavesHimStanding:
         assert ney.location == "Belgium", reply.get("message")
         assert ney.pending_interrupt is ask
         assert "fight to the last" in (reply.get("message") or ""), reply.get("message")
-
-    def test_the_lever_down_walks_him_out(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "STANDALONE_DECISION_LIVENESS_ACTIVE", False)
-        world, ney, _mack, ask = _adjacent_geometry()
-        with _quiet():
-            result = CommandExecutor().execute(
-                {"command": {"action": "retreat", "type": "general_retreat"}},
-                {"world": world})
-        assert result["success"] is True and ney.location != "Belgium"
 
 
 class TestTheBareAttackAndScoutRostersSkipHim:
@@ -594,11 +573,6 @@ class TestTheEndTurnSoftStop:
         assert "if _current_lapsing_count > 0 or not _current_decision_names.is_empty():" in src
         assert "'fight to the last' or 'attempt a breakout'" in src
 
-    def test_the_lever_down_lists_nobody(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "STANDALONE_DECISION_LIVENESS_ACTIVE", False)
-        world, ney, mack, ask = _cornered_ney()
-        assert pending_marshal_decisions(world) == []
-
 
 class TestThePromotionPinIsNotVacuous:
     """R2-F6: the slice-2 endpoint pin set the enemy's strength to 0, so
@@ -701,9 +675,3 @@ class TestTheFutilityBrakeReachesP0:
         src = (REPO / "backend/ai/enemy_ai.py").read_text(encoding="utf-8")
         assert "futility.get(key, 0) >= ATTACK_FUTILITY_LIMIT" in src
         assert "futility.get(key, 0) >= 3" not in src
-
-
-class TestTheLeversShip:
-
-    def test_all_are_up(self):
-        assert strategic_mod.STANDALONE_DECISION_LIVENESS_ACTIVE is True

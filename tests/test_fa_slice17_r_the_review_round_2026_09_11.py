@@ -128,13 +128,6 @@ class TestL1TheRecoveryWindowIsReadEverywhere:
         assert region.controller == "Austria", "the charge annexed the province"
         assert m.location == "Bohemia"
 
-    def test_the_lever_down_reproduces_the_charge_and_the_annexation(self, world, client, monkeypatch):
-        from backend.commands import movement_executor as ME
-        monkeypatch.setattr(ME, "RECOVERING_CORPS_TAKES_NO_GROUND", False)
-        m, victim, region = _stage_recovering_cavalry(world)
-        r = _post(client, "Murat, charge Archduke John")
-        assert r.get("success") is not False, r.get("message")
-
     def test_the_recovered_man_charges_again(self, world, client):
         m, victim, region = _stage_recovering_cavalry(world, recovery=0, retreating=False)
         assert not m.in_retreat_recovery()

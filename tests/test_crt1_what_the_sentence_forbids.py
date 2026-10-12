@@ -493,33 +493,6 @@ class TestTheGuardsStayNarrow:
 
 class TestSensitivity:
 
-    def test_the_vocabulary_lever_is_what_stops_nobody_retreat(self, shipped, monkeypatch):
-        monkeypatch.setattr(CG, "WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER", False)
-        client, world = shipped
-        before = snapshot(world)
-        post(client, "Nobody retreat")
-        after = snapshot(world)
-        assert after["m:Ney"][0] != before["m:Ney"][0], "lever down must reproduce the defect"
-
-    def test_the_vocabulary_lever_is_what_keeps_the_treaty_unsigned(self, shipped, monkeypatch):
-        monkeypatch.setattr(CG, "WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER", False)
-        # SR-2e part (ii): CRT-5's closed answer grammar ALSO refuses `I would
-        # not accept` (`not` is no answer word) — lowered with it to reproduce
-        # the old reading, so this pin still binds CRT-1's vocabulary lever.
-        import backend.commands.dialogue_routing as _DR
-        monkeypatch.setattr(_DR, "AN_ANSWER_IS_READ_CLOSED", False)
-        client, world = shipped
-        prussian_letter(world)
-        post(client, "I would not accept")
-        assert world.get_diplomatic_state("France", "Prussia") != "PEACE"
-
-    def test_the_reason_lever_is_what_stops_the_battle(self, shipped, monkeypatch):
-        monkeypatch.setattr(CG, "THE_REASON_IS_NOT_THE_ORDER", False)
-        client, world = shipped
-        before = snapshot(world)
-        data = post(client, "Ney, retreat as they attack")
-        assert spent_an_action(before, snapshot(world)), data.get("message")
-
     def test_the_legacy_regex_is_the_old_vocabulary_byte_for_byte(self):
         assert CG._NEGATION_MARKER_RE_LEGACY.pattern == (
             r"\b(?:" + CG._NEGATION_MARKER_SRC + r")\b")

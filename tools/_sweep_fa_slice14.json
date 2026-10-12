@@ -161,13 +161,6 @@
     "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestTheRentePayerKeepsHisGraceWindow::test_an_old_save_reads_no_frozen_clock tests/test_serialization_enforcement.py"
   },
   {
-    "id": "FA-R3 the order is priced by the base verb again",
-    "file": "backend/commands/executor.py",
-    "old": "        if (STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER\n                and not is_strategic_execution\n                and action != \"retreat\"\n                and parsed_command.get(\"is_strategic\")\n                and parsed_command.get(\"strategic_type\")):\n            action_costs_point = True",
-    "new": "        if False:\n            action_costs_point = True",
-    "tests": "tests/test_fa_slice14_the_rulings_and_the_singles_2026_09_05.py::TestAStandingOrderIsPricedByTheOrder"
-  },
-  {
     "id": "FA-R3 the retreat exemption is dropped (the shipped regression)",
     "file": "backend/commands/executor.py",
     "old": "                and action != \"retreat\"\n                and parsed_command.get(\"is_strategic\")",

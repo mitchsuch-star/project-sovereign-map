@@ -92,9 +92,8 @@ def display_nation(nation: str) -> str:
     return NATION_DISPLAY.get(nation, nation)
 
 
-# PR-2 flip lever. False = the pre-fix derivation, which coined a word from
-# any tag at all.
-NATION_ADJECTIVE_REFUSES_TO_COIN = True
+# PR-2: the nation adjective refuses to coin — the pre-fix derivation coined
+# a word from any tag at all.
 
 
 # ============================================================================
@@ -166,7 +165,7 @@ def nation_adjective(nation: str) -> str:
         return ""
     demonym = NATION_DEMONYMS.get(base)
     if demonym is None:
-        if NATION_ADJECTIVE_REFUSES_TO_COIN and _tag_shape_defeats_derivation(nation):
+        if _tag_shape_defeats_derivation(nation):
             # PR-2c (review round): `display_nation` alone returns an
             # UNAUTHORED tag verbatim, so the promised "the Kingdom of Italy
             # fleet" degradation only held for tags already in the table.

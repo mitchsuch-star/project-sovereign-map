@@ -1,26 +1,5 @@
 [
  {
-  "id": "WO41-1 the checker no longer writes the world field",
-  "file": "backend/commands/disobedience.py",
-  "old": "        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and hasattr(world, \"pending_redemption\")):\n            world.pending_redemption = event\n        return event",
-  "new": "        return event",
-  "tests": "tests/test_wo41_redemption_survives_the_save.py"
- },
- {
-  "id": "WO41-2 the lever is frozen ON (lever-off arms no longer reproduce the defect)",
-  "file": "backend/commands/disobedience.py",
-  "old": "        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and standing_redemption(world) is not None):\n            return None\n\n        marshal.redemption_pending = True\n        event = self._create_redemption_event(marshal, world)\n        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and hasattr(world, \"pending_redemption\")):",
-  "new": "        if (world is not None\n                and standing_redemption(world) is not None):\n            return None\n\n        marshal.redemption_pending = True\n        event = self._create_redemption_event(marshal, world)\n        if (world is not None\n                and hasattr(world, \"pending_redemption\")):",
-  "tests": "tests/test_wo41_redemption_survives_the_save.py"
- },
- {
-  "id": "WO41-3 a second marshal latches behind a live question",
-  "file": "backend/commands/disobedience.py",
-  "old": "        if (REDEMPTION_LATCH_AT_GENERATION_ACTIVE and world is not None\n                and standing_redemption(world) is not None):\n            return None\n",
-  "new": "",
-  "tests": "tests/test_wo41_redemption_survives_the_save.py"
- },
- {
   "id": "WO41-4 liveness ignores the latch (a recovered marshal's question stays)",
   "file": "backend/commands/disobedience.py",
   "old": "            and bool(getattr(marshal, \"redemption_pending\", False)))",

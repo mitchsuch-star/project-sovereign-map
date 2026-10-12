@@ -45,7 +45,6 @@ import backend.ai.clause_guards as CG
 import backend.ai.counsel as COUNSEL
 import backend.ai.question_desk as QD
 import backend.commands.executor as EX
-import backend.commands.strategic_executor as SE
 import backend.commands.tactical_executor as TE
 import backend.main as M
 from backend.commands.meta_executor import MetaExecutor
@@ -122,12 +121,6 @@ class TestTheWarQuestion:
         assert "Our purpose" in message and "homeland" in message, (q, message)
         assert "Redeem Italy" in message, (q, message)   # Austria's design
         assert SHRUG not in message, (q, message)
-
-    def test_the_lever_down_is_the_shrug(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_DESK_ANSWERS_THE_WAR_QUESTION", False)
-        message = ask(client, world, "who am I fighting and why")
-        assert SHRUG in message, message
 
     def test_a_truce_is_listed_under_truce(self, shipped):
         client, world = shipped
@@ -315,23 +308,9 @@ class TestTheNews:
     def test_a_past_tense_wh_lead_is_a_question(self, text):
         assert CG.is_question(text, []) is True, text
 
-    def test_the_past_tense_lever_down_reproduces_the_shrug(self, monkeypatch):
-        monkeypatch.setattr(CG, "A_PAST_TENSE_WH_IS_A_QUESTION", False)
-        assert CG.is_question("what happened last turn", []) is False
-
     def test_an_order_shaped_past_tense_stays_out(self):
         # "what took Vienna" is "take Vienna" one word over — a closed list.
         assert CG.is_question("what took Vienna", []) is False
-
-    @pytest.mark.parametrize("q", ["is Vienna safe?", "who are my allies",
-                                   "how is the war effort", "what happened last turn",
-                                   "when does the truce end"])
-    def test_the_war_question_lever_down_returns_each_kind_to_the_shrug(
-            self, shipped, monkeypatch, q):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_DESK_ANSWERS_THE_WAR_QUESTION", False)
-        message = ask(client, world, q)
-        assert SHRUG in message, (q, message)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -351,12 +330,6 @@ class TestTheWhatIfIsFogHonest:
         assert "no word of Kutuzov" in message, (q, message)
         assert "no battle to weigh" in message, (q, message)
 
-    def test_the_lever_down_leaks_the_cell(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_WHAT_IF_IS_FOG_HONEST", False)
-        message = ask(client, world, "why not attack Kutuzov")
-        assert world.get_marshal("Kutuzov").location in message, message
-
     def test_a_seen_foe_out_of_reach_still_names_his_province(self, shipped):
         client, world = shipped
         kutuzov = world.get_marshal("Kutuzov")
@@ -373,12 +346,6 @@ class TestTheWhatIfRefusesLikeTheOrder:
         message = ask(client, world, "what if I attack Deroy")
         assert "MUSTER" not in message, message
         assert "our ally" in message and "would be refused" in message, message
-
-    def test_the_lever_down_musters_against_the_ally(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_WHAT_IF_REFUSES_LIKE_THE_ORDER", False)
-        message = ask(client, world, "what if I attack Deroy")
-        assert "MUSTER" in message, message
 
     def test_the_refusal_is_the_order_s_own_predicate(self, shipped):
         _, world = shipped
@@ -445,12 +412,6 @@ class TestThePriceIsTheQuote:
         assert "treasury holds 800" in message, message
         assert "refused until it can pay" in message, message
 
-    def test_the_lever_down_quotes_the_ledger_s_ten_thousand(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_PRICE_IS_THE_QUOTE", False)
-        message = ask(client, world, "how much is a gun")
-        assert "10,000 artillery" in message, message
-
     def test_the_cheapest_levy_wins_over_the_first(self, shipped):
         """The sweep's first INERT: on the boot ONE province levies, so the
         first quote was the cheapest by accident. Staged: Ney (the wasteful
@@ -510,15 +471,6 @@ class TestTheIncomeSentenceSums:
         assert net == int(econ["net"]), (net, econ["net"])
         assert "treasury" in message and "Net" in message, message
 
-    def test_the_lever_down_reproduces_the_sentence_that_does_not_sum(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_INCOME_SENTENCE_SUMS", False)
-        message = ask(client, world, "what is my income")
-        m = re.search(r"yield ([\d,]+) and trade ([\d,]+); the army costs ([\d,]+)\. Net \+?([\d,]+)", message)
-        assert m, message
-        income, trade, army, net = (int(x.replace(",", "")) for x in m.groups())
-        assert income + trade - army != net, message
-
     def test_every_non_zero_component_is_named(self, shipped):
         _, world = shipped
         from backend.game_logic.ledger import NET_GOLD_COMPONENTS, _build_economy
@@ -551,12 +503,6 @@ class TestWhoIsWinningReadsTheBanner:
         world.invalidate_bloc_members_cache()
         message = ask(client, world, "who is winning")
         assert QD._court(world, court) in message, (court, message)
-
-    def test_the_lever_down_lists_the_courts_with_marshals(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "WHO_IS_WINNING_READS_THE_BANNER", False)
-        message = ask(client, world, "who is winning")
-        assert "Third Coalition" not in message and message.count("evenly matched") == 3, message
 
     def test_the_rows_are_the_banner_s_own(self, shipped):
         _, world = shipped
@@ -762,13 +708,6 @@ class TestOurOwnCapturedAndFallen:
         assert "dismissed from the service" in message, message
         assert "fell" not in message, message
 
-    def test_the_lever_down_is_the_shrug(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "OUR_OWN_FALLEN_ARE_ANSWERED", False)
-        world.destroy_marshal(world.get_marshal("Ney"), cause="battle")
-        message = ask(client, world, "where is Ney")
-        assert SHRUG in message, message
-
     def test_a_foreign_tombstone_keeps_the_enemy_arm(self, shipped):
         _, world = shipped
         assert QD.own_fallen_names(world) == []
@@ -929,15 +868,6 @@ class TestTheObjectionNamesItsConcern:
             davout, "hold", {"target": "Swabia"}, ConcernLevel.MODERATE, "firm")
         assert "hold at Swabia" in line, line
         assert "I have concerns about this order" not in line
-
-    def test_the_lever_down_is_the_reasonless_line(self, shipped, monkeypatch):
-        _, world = shipped
-        from backend.commands.objection_v2 import ConcernLevel
-        monkeypatch.setattr(SE, "THE_OBJECTION_NAMES_ITS_CONCERN", False)
-        line = M.executor._strategic._generate_objection_message(
-            world.get_marshal("Davout"), "move_to", {"target": "Provence"},
-            ConcernLevel.MODERATE, "firm")
-        assert "I have concerns about this order" in line, line
 
     def test_the_support_arm_is_untouched(self, shipped):
         _, world = shipped

@@ -52,27 +52,7 @@ REPO = Path(__file__).resolve().parents[1]
 SCENARIO = str(REPO / "godot-client" / "project-sovereign" / "assets" / "maps"
                / "europe_1805.json")
 
-LEVERS = [
-    (L, "NAVAL_VERBS_NEED_THEIR_OBJECT"), (L, "PLAIN_SPEECH_ACTIVE"),
-    (L, "SUPPORT_SPEAKS_PLAINLY"), (L, "VERB_TYPO_PASS_ACTIVE"),
-    (L, "QUESTION_DESK_ACTIVE"), (L, "BERTHIER_NAMES_AN_ENEMY"),
-    (CG, "MODAL_LEADS_ARE_QUESTIONS"), (QD, "QUESTION_DESK_ACTIVE"),
-    # CX slice 1: the file now flips this one too, so it must be
-    # restored with the rest or it leaks into the next test.
-    (CG, "A_QUESTION_NEVER_ORDERS"),
-    (PM, "ADMIN_VERBS_NEVER_MARCH"), (PM, "A_BARE_RETREAT_IS_A_RETREAT"),
-    (PM, "ADMIRAL_IS_AN_ADDRESSEE"),
-]
-
 COMMAND_REFERENCE = "COMMAND REFERENCE"
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = [(mod, name, getattr(mod, name)) for mod, name in LEVERS]
-    yield
-    for mod, name, value in saved:
-        setattr(mod, name, value)
 
 
 @contextlib.contextmanager
@@ -137,9 +117,6 @@ class TestTheAdmiraltyNamesItsObject:
         assert fleet(board)["ships"] == before and int(board.gold) == gold
         _, c = parse(board, "lay down a pontoon bridge across the Danube")
         assert c.get("action") != "build_fleet"
-        L.NAVAL_VERBS_NEED_THEIR_OBJECT = False
-        _, c = parse(board, "lay down a pontoon bridge across the Danube")
-        assert c.get("action") == "build_fleet", "lever off = the pre-slice reading"
 
     def test_lay_down_a_ship_lays_a_keel(self, board, client):
         """FA-N9: the help text's own example asked 'Did you mean Davout?'."""
@@ -166,9 +143,6 @@ class TestTheAdmiraltyNamesItsObject:
                      "Ney, create a diversion at Ulm"):
             _, c = parse(board, text)
             assert c.get("action") != "naval_diversion", text
-        L.NAVAL_VERBS_NEED_THEIR_OBJECT = False
-        _, c = parse(board, "Murat, mount a diversion on the left")
-        assert c.get("action") == "naval_diversion", "lever off = the pre-slice reading"
 
     def test_an_addressed_marshal_is_refused_not_discarded(self, board, client):
         """FA-11's optional half, shared by all three marshal-free naval verbs:
@@ -187,11 +161,6 @@ class TestTheAdmiraltyNamesItsObject:
         r, c = parse(board, "Villeneuve, order the diversion")
         assert r["success"] and c.get("action") == "naval_diversion"
         assert c.get("marshal") is None and not r.get("error")
-        PM.ADMIRAL_IS_AN_ADDRESSEE = False
-        r, c = parse(board, "Villeneuve, order the diversion")
-        assert not (r["success"] and c.get("action") == "naval_diversion"
-                    and c.get("marshal") is None and not r.get("error")), \
-            "lever off = the CR-2 arm treats the admiral as an unbound name"
 
     def test_the_meta_list_is_derived(self):
         """FA-N9: ONE list. parser.py's `meta_actions` is no longer a literal,
@@ -411,12 +380,6 @@ class TestTheMockSpeaksPlainly:
         got = r.get("strategic_type") if r.get("is_strategic") else None
         assert got == strategic, (text, got)
 
-    def test_plain_speech_lever(self, board):
-        L.PLAIN_SPEECH_ACTIVE = False
-        for text in ("Ney, stay put", "Ney, advance on Swabia", "Ney, pull back"):
-            r, _ = parse(board, text)
-            assert not r["success"], f"lever off = the pre-slice shrug for {text!r}"
-
     def test_a_bare_retreat_is_a_retreat(self, board):
         """Measured: 'Ney, fall back' → retreat + MOVE_TO generic → 'Mack blocks
         the path at Swabia' — a retreat plotted toward the nearest enemy."""
@@ -426,21 +389,12 @@ class TestTheMockSpeaksPlainly:
         r, c = parse(board, "Ney, fall back to Lorraine")
         assert c.get("action") == "move" and r.get("strategic_type") == "MOVE_TO"
         assert c.get("target") == "Lorraine"
-        PM.A_BARE_RETREAT_IS_A_RETREAT = False
-        r, c = parse(board, "Ney, fall back")
-        assert r.get("is_strategic") and r.get("strategic_type") == "MOVE_TO", \
-            "lever off = the pre-slice generic march"
-        assert c.get("target") == "generic"
 
     def test_an_administrative_verb_never_marches(self, board):
         """Measured: revoke_pension + the strategic table's bare 'withdraw' =
         a 2-AP MOVE_TO toward the phantom province \"Ney'S Rente\"."""
         r, c = parse(board, "withdraw Ney's rente")
         assert c.get("action") == "revoke_pension" and not r.get("is_strategic")
-        PM.ADMIN_VERBS_NEVER_MARCH = False
-        r, c = parse(board, "withdraw Ney's rente")
-        assert r.get("is_strategic") and r.get("strategic_type") == "MOVE_TO", \
-            "lever off = the pre-slice march"
         for verb in ("grant_pension", "revoke_pension", "grant_dotation",
                      "recruit_marshal", "recruit", "build", "repair", "garrison"):
             assert verb in NEVER_STRATEGIC_ACTIONS, verb
@@ -484,11 +438,6 @@ class TestTheMockSpeaksPlainly:
             assert r["success"] and c.get("action") == "attack", (text, r.get("error"))
             assert c.get("target") == "Mack" and "attak" in str(r.get("warning")), text
 
-    def test_typo_lever(self, board):
-        L.VERB_TYPO_PASS_ACTIVE = False
-        r, _ = parse(board, "Ney, attak Mack")
-        assert not r["success"], "lever off = the pre-slice shrug"
-
     def test_berthier_names_an_enemy_at_war(self, board, monkeypatch):
         """FA-80 (c): the shrug proposed attacking Deroy of Bavaria — a court
         France is at PEACE with (measured 2 of 12 shrugs)."""
@@ -499,10 +448,6 @@ class TestTheMockSpeaksPlainly:
         line = M.parser.llm._berthier_mock_response(
             "Ney, do the hokey cokey", gs, {"recognized_marshal": "Ney"})
         assert "Deroy" not in line and "attack Mack" in line, line
-        L.BERTHIER_NAMES_AN_ENEMY = False
-        line = M.parser.llm._berthier_mock_response(
-            "Ney, do the hokey cokey", gs, {"recognized_marshal": "Ney"})
-        assert "Deroy" in line, "lever off = the pre-slice enemies[0]"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -540,13 +485,6 @@ class TestSupportSpeaksPlainly:
             r, c = parse(board, text)
             assert c.get("action") == "attack" and c.get("target") == "Mack", text
             assert not r.get("is_strategic"), text
-
-    def test_support_lever(self, board):
-        L.SUPPORT_SPEAKS_PLAINLY = False
-        r, _ = parse(board, "Ney, join Davout")
-        assert not r["success"], "lever off = the pre-slice shrug"
-        r, c = parse(board, "Ney, protect Davout")
-        assert c.get("action") == "hold", "lever off = the hold family claims it"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # FA-D25 — the question desk
@@ -652,14 +590,6 @@ class TestTheQuestionDesk:
         assert board.marshals["Ney"].location == "Rhineland"
         assert CG.is_question("will Ney attack Mack?")
         assert CG.is_question("would Ney beat Mack?")
-        CG.MODAL_LEADS_ARE_QUESTIONS = False
-        # CX slice 1 gave this sentence a SECOND road to `question` (an
-        # unaddressed line ending in "?"), so the FA lever no longer decides
-        # it alone. The isolation is preserved by DARKENING the newer road
-        # rather than weakening the assertion — the project's own slice-9
-        # lesson. Both levers off must reproduce the pre-FA-slice-7 reading.
-        CG.A_QUESTION_NEVER_ORDERS = False
-        assert not CG.is_question("will Ney attack Mack?"), "lever off = the pre-slice lead set"
 
     def test_the_polite_order_stays_an_order(self):
         """Recorded, not changed: an unpunctuated modal lead with a SECOND
@@ -677,11 +607,6 @@ class TestTheQuestionDesk:
         assert not CG.is_question("can Ney attack Mack")          # no roster
         assert CG.is_question("can Ney attack Mack", ["Ney"])     # CX
         assert CG.is_question("can Ney attack Mack?")
-
-    def test_the_desk_lever(self, board, client):
-        QD.QUESTION_DESK_ACTIVE = False
-        r = post(client, "where is Mack?")
-        assert COMMAND_REFERENCE in r["message"], "lever off = the pre-slice help route"
 
     def test_berthier_is_the_desk(self, board, client):
         r = post(client, "Berthier, status")

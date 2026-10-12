@@ -101,9 +101,6 @@ def _post(client, text):
 
 class TestFAN57TheSquareAdvisorySpeaks:
 
-    def test_levers_default_on(self):
-        assert SE.SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE is True
-
     def test_a_support_order_from_square_names_the_broken_square(self, client):
         c, w = client
         soult = w.get_marshal("Soult")
@@ -121,19 +118,6 @@ class TestFAN57TheSquareAdvisorySpeaks:
         r = _post(c, "Soult, support Ney")
         assert r.get("success"), r.get("message")
         assert "Berthier" not in r.get("message", "") or "square" not in r.get("message", "").lower()
-
-    def test_the_lever_down_is_silent(self, monkeypatch, client):
-        """⚠ Slice 16c's square-break NOTICE ("[Square broken — …]") prints
-        regardless; the ADVISORY is Berthier's sentence, and that is what
-        the lever silences."""
-        monkeypatch.setattr(SE, "SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE", False)
-        c, w = client
-        w.get_marshal("Soult").square_formation = True
-        r = _post(c, "Soult, support Ney")
-        assert r.get("success"), r.get("message")
-        msg = r.get("message", "")
-        assert "has broken square to take up" not in msg, "the advisory must be dead with the lever down"
-        assert "in square formation" not in msg, "and the old dead sentence must not resurrect on the live attribute"
 
 
 # ═══════════════════════════════════════════════════════════════════════

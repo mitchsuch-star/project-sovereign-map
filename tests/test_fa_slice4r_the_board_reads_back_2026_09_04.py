@@ -38,27 +38,12 @@ import contextlib
 import io
 import random
 
-import pytest
-
 import backend.commands.combat_executor as ce
-import backend.commands.movement_executor as mv
 from backend.ai.enemy_ai import EnemyAI
 from backend.commands.executor import CommandExecutor
 from backend.commands.strategic import ATTACK_FUTILITY_LIMIT
 from backend.models.marshal import Stance
 from backend.models.world_state import WorldState
-
-LEVERS = {
-    mv: ("FORTIFIED_CORPS_NEVER_MARCHES",),
-}
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    saved = [(m, n, getattr(m, n)) for m, names in LEVERS.items() for n in names]
-    yield
-    for m, n, v in saved:
-        setattr(m, n, v)
 
 
 @contextlib.contextmanager
@@ -614,13 +599,6 @@ class TestAFortifiedCorpsNeverMarches:
         assert result.get("success") is False and result.get("fortified") is True, result
         assert dav.location == "Paris" and dav.fortified is True
 
-    def test_the_lever_off_arm_walks_off_with_the_fortification(self):
-        mv.FORTIFIED_CORPS_NEVER_MARCHES = False
-        world, dav = self._board()
-        result = self._move(world)
-        assert result.get("success") is True, result.get("message")
-        assert dav.location == "Lyon" and dav.fortified is True
-
     def _supply_board(self, monkeypatch, fortified=True, drilling=False):
         world = _legacy()
         _british_soil(world)
@@ -650,14 +628,6 @@ class TestAFortifiedCorpsNeverMarches:
             act, _prio = _ai()._evaluate_marshal(wel, "Britain", world)
         assert not (act and act.get("action") == "move"), act
 
-    def test_the_supply_rung_lever_off_marches_it(self, monkeypatch):
-        mv.FORTIFIED_CORPS_NEVER_MARCHES = False
-        world, wel = self._supply_board(monkeypatch)
-        random.seed(2)
-        with _quiet():
-            act, _prio = _ai()._evaluate_marshal(wel, "Britain", world)
-        assert act and act.get("action") == "move", act
-
     def test_the_supply_rung_does_not_march_a_drilling_corps(self, monkeypatch):
         world, wel = self._supply_board(monkeypatch, fortified=False, drilling=True)
         random.seed(2)
@@ -674,11 +644,6 @@ class TestAFortifiedCorpsNeverMarches:
         with _quiet():
             act, _prio = _ai()._evaluate_marshal(dav, "France", world)
         assert act and act.get("action") == "unfortify", act
-        mv.FORTIFIED_CORPS_NEVER_MARCHES = False
-        random.seed(2)
-        with _quiet():
-            act, _prio = _ai()._evaluate_marshal(dav, "France", world)
-        assert act and act.get("action") == "move" and act.get("target") == "Lyon", act
 
 
 # ═══════════════════════════════════════════════════════════════════════

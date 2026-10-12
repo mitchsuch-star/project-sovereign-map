@@ -145,51 +145,7 @@ PETITION_ANSWER_KEYWORDS: Dict[str, str] = {
 _PETITION_VERB_ACTIONS = {"grant": "accept_ai_proposal", "refuse": "reject_ai_proposal"}
 _PETITION_NOUN_WORDS = frozenset({"petition", "petitions", "petition's"})
 
-# ══════════════════════════════════════════════════════════════════════
-# IQ-7 review, pass 2 (September 18, 2026) — two levers, both ROUTING.
-#
-# A_PETITION_IS_ANSWERED_PLAINLY (P2-1). With a CLIENT petition current,
-# `grant the petition later` / `next turn` / `, but not now` / `if the
-# treasury allows` / `should i grant the petition?` / `maybe grant the
-# petition` all GRANTED it (1 DP, 1800g forgone), and `refuse the petition
-# later` REFUSED it at the -10 / -20 price: arm 1's label containment and
-# arm 3's every-label-word match fire on the very words the popup's buttons
-# teach, before the whole-line arm 3b is ever asked — and the keyword arm
-# did the same (`accept the petition later`, `yes, later`). True = a client
-# petition is answered by a PLAIN line only (`petition_plain_answer`): every
-# arm yields to the whole line, and a question never answers. False = the
-# pass-1 router, byte for byte.
-#
-# THE_MATTER_GUARD_READS_THE_TABLE (P3-3 / P3-4 / P4-3 / P4-6). The pass-1
-# matter guard read the NOUN and nothing else, so it ate the player's own
-# typed ULTIMATUM ORDER, refused a bare `refuse` at the ultimatum it
-# answers, claimed `refuse the offer` for a queued petition, and shrugged
-# where an ally petition was on the table. True = it reads the table too.
-# False = the pass-1 guard.
-# ══════════════════════════════════════════════════════════════════════
-A_PETITION_IS_ANSWERED_PLAINLY = True
-THE_MATTER_GUARD_READS_THE_TABLE = True
 
-# ══════════════════════════════════════════════════════════════════════
-# IQ-7 review, pass 3 (September 18, 2026) — two more ROUTING levers.
-#
-# A_QUESTION_NEVER_ANSWERS (R3-9). Measured with Portugal's open-borders
-# letter current: `should i accept?` SIGNED THE TREATY — the keyword arm
-# read `accept` out of a question. True = a line that carries `?`, or that
-# `clause_guards.is_question` flags, answers NO dialogue of any family (an
-# exact option id, a digit and an exact option label are exempt — a label
-# that happens to end in `?` must still resolve). False = the prior router.
-#
-# THE_BUTTON_ROUTE_READS_THE_COURT (R3-10). `POST /respond_to_diplomatic_
-# dialogue` handed the handler no `raw_text`, so the court guard and the
-# matter guard were bypassed there for every family: measured, the free
-# text `accept Switzerland's petition` signed Portugal's letter. True = a
-# choice that is FREE TEXT (not a digit, not an exact option id, not an
-# exact label) is passed on as `raw_text`, so the handler seam's guards
-# read it. False = the prior endpoint (no `raw_text`, ever).
-# ══════════════════════════════════════════════════════════════════════
-A_QUESTION_NEVER_ANSWERS = True
-THE_BUTTON_ROUTE_READS_THE_COURT = True
 
 # P4-3: the nouns of the LETTER on the table. They are answer filler to
 # every other reader ("reject the offer"), but a line that names one is
@@ -210,14 +166,12 @@ def _petition_vocabulary_kept(raw_lower: str) -> List[str]:
     """The words left once answer filler, plain emphasis and the petition
     noun are gone. P4-3: a LETTER noun is kept — it is not the petition's."""
     words = re.findall(r"[a-z']+", str(raw_lower or "").lower())
-    emphasis = (_PETITION_EMPHASIS_WORDS if A_PETITION_IS_ANSWERED_PLAINLY
-                else frozenset())
+    emphasis = (_PETITION_EMPHASIS_WORDS)
     return [w for w in words
             if w not in _PETITION_NOUN_WORDS
             and w not in emphasis
             and (w not in _ANSWER_FILLER_WORDS
-                 or (THE_MATTER_GUARD_READS_THE_TABLE
-                     and w in _LETTER_NOUN_WORDS))]
+                 or (w in _LETTER_NOUN_WORDS))]
 
 
 def petition_vocabulary_answer(raw_lower: str) -> Optional[str]:
@@ -567,8 +521,7 @@ def petition_line_reprompt(dialogue: Optional[dict], typed: str,
     from backend.ai.clause_guards import is_question
     from backend.commands.parser import _leading_addressed_token
 
-    if not (A_PETITION_IS_ANSWERED_PLAINLY
-            and _is_client_petition_dialogue(dialogue)):
+    if not (_is_client_petition_dialogue(dialogue)):
         return None
     text = str(typed or "").lower().replace("’", "'").strip()
     if not text:
@@ -660,9 +613,8 @@ def petition_line_reprompt(dialogue: Optional[dict], typed: str,
 # a negation of an answer is not one (FA-N2) — only an answer token that IS a
 # negation ("never mind", "Proceed Without Allies") survives. The auxiliaries
 # answer in statement order only (`we shall accept`, never `shall we
-# accept`). Lever False restores the open arms byte for byte.
+# accept`). The rule: an answer is read closed.
 # ════════════════════════════════════════════════════════════════════════════
-AN_ANSWER_IS_READ_CLOSED = True
 
 _CLOSED_FUNCTION_WORDS = _PLAIN_FUNCTION_WORDS | frozenset({"with", "would", "could"})
 _CLOSED_PRONOUNS = _PLAIN_PRONOUNS | frozenset({"that", "him", "her", "his"})
@@ -781,8 +733,7 @@ def _closed_blank_addressed_courts(padded: str, keep=()) -> str:
 # The census of the recon's 20 families (September 26, 2026) caught the one
 # family whose positives CRT-5's first cut lost: the commitment paradox, whose
 # labels NAME the courts ("Honor alliance with Bavaria" / "Side with Austria").
-# Lever False reproduces the loss.
-A_LABEL_COURT_IS_THE_ANSWER = True
+# The rule: a court a label names is the answer.
 
 
 def _closed_label_court_forms(options) -> set:
@@ -863,7 +814,7 @@ def closed_answer(dialogue: Optional[dict], raw_lower: str,
         action = str(option.get("action") or "").lower()
         if action and text.strip() == action:
             return action
-    if A_QUESTION_NEVER_ANSWERS and line_asks_a_question(text, options):
+    if line_asks_a_question(text, options):
         return None
     # FA-N2: a negated answer is not one. Most negations fail closed through
     # the allowlist anyway (`not`, `never`, `no` are no answer words), but a
@@ -887,7 +838,7 @@ def closed_answer(dialogue: Optional[dict], raw_lower: str,
         text = _NEVER_MIND_ANOTHER_MATTER_RE.sub(" ", text)
     norm = _closed_blank(_closed_normalised(text), blank_forms)
     norm = _closed_blank_addressed_courts(
-        norm, keep=_closed_label_court_forms(options) if A_LABEL_COURT_IS_THE_ANSWER else ())
+        norm, keep=_closed_label_court_forms(options))
     for phrase in _PLAIN_EMPHASIS_PHRASES:
         norm = re.sub(rf"(?<![a-z']){re.escape(phrase)}(?![a-z'])", " ", norm)
     tokens = norm.split()
@@ -986,7 +937,7 @@ def dialogue_line_reprompt(dialogue: Optional[dict], typed: str,
     ours, a line with military content (an ORDER — `cancel the march`), or
     the player's own order about ANOTHER court. A client petition keeps
     `petition_line_reprompt`."""
-    if not AN_ANSWER_IS_READ_CLOSED or _is_client_petition_dialogue(dialogue):
+    if _is_client_petition_dialogue(dialogue):
         return None
     from backend.ai.clause_guards import is_question
     text = str(typed or "").lower().replace("’", "'").strip()
@@ -1024,7 +975,7 @@ def court_mismatch_refusal_for_a_line(world, dialogue: Optional[dict],
     letter up is claimed and the guard refuses it at the handler — but a line
     the grammar returns None for (`decline the Portuguese offer, prussia`)
     still meets the guard here when it is ANSWER-SHAPED."""
-    if not AN_ANSWER_IS_READ_CLOSED or _is_client_petition_dialogue(dialogue):
+    if _is_client_petition_dialogue(dialogue):
         return None
     if not _line_is_answer_shaped(str(raw_text or ""), world):
         return None
@@ -1039,7 +990,6 @@ def court_mismatch_refusal_for_a_line(world, dialogue: Optional[dict],
 # answer word must stand with plain words only; anything else claims nothing
 # and the objection block names the words.
 # ════════════════════════════════════════════════════════════════════════════
-AN_OBJECTION_ANSWER_IS_READ_CLOSED = True
 
 _OBJECTION_ANSWER_FILLER = frozenset({
     "i", "we", "you", "he", "him", "his", "her", "it", "them", "their",
@@ -1056,8 +1006,6 @@ def objection_answer_is_plain(text: str, answer: str,
     """CRT-5 (S4): True when the typed objection answer is the one answer
     word and plain words — the objecting marshal's name (or any of ours)
     allowed, a deferral or a condition not."""
-    if not AN_OBJECTION_ANSWER_IS_READ_CLOSED:
-        return True
     names = set()
     for name in (marshal_names or []):
         names |= set(_closed_normalised(name).split())
@@ -1276,8 +1224,8 @@ def line_asks_a_question(typed: str, options: List[dict]) -> bool:
         we ratify` RATIFIED a seven-pair settlement at a HARD STOP, `sire do
         we accept` SIGNED Portugal's treaty, `then shall we yield` YIELDED an
         ultimatum. The statements `we shall accept`, `i will accept`, `we do
-        accept` are not inversions and still answer. Behind
-        A_QUESTION_NEVER_ANSWERS, like the rule it completes.
+        accept` are not inversions and still answer. Part of the rule it
+        completes: a question never answers (R3-9).
     """
     from backend.ai.clause_guards import is_question
 
@@ -1294,8 +1242,7 @@ def line_asks_a_question(typed: str, options: List[dict]) -> bool:
     text = strip_emphasis(text)
     if "?" in text or bool(is_question(text)):
         return True
-    return bool(A_QUESTION_NEVER_ANSWERS
-                and _SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))
+    return bool(_SUBJECT_AUXILIARY_INVERSION_RE.search(text.lower()))
 
 
 def free_text_of_choice(dialogue: Optional[dict], choice) -> Optional[str]:
@@ -1308,7 +1255,7 @@ def free_text_of_choice(dialogue: Optional[dict], choice) -> Optional[str]:
     endpoint handed the handler no `raw_text` and the court guard never
     ran. An exact token is what a button sends and names nothing, so it
     stays None (the W6-0 `dialogue_id` binds it instead)."""
-    if not THE_BUTTON_ROUTE_READS_THE_COURT or not isinstance(choice, str):
+    if not isinstance(choice, str):
         return None
     if choice_is_an_exact_token(choice, dialogue_options(dialogue)):
         return None
@@ -1594,7 +1541,7 @@ def match_dialogue_answer(dialogue: Optional[dict],
     # the question desk answers it; a hard stop re-prompts with its own
     # numbered options. Neither executes anything.
     # ══════════════════════════════════════════════════════════════════
-    if A_QUESTION_NEVER_ANSWERS and line_asks_a_question(typed, options):
+    if line_asks_a_question(typed, options):
         return None
     # ══════════════════════════════════════════════════════════════════
     # IQ-7 review pass 2 (P2-1) — A CLIENT PETITION IS ANSWERED PLAINLY.
@@ -1622,122 +1569,10 @@ def match_dialogue_answer(dialogue: Optional[dict],
     # The arms below are unreachable for such a dialogue by construction,
     # which is the point: there is no second reading of the line to drift.
     # ══════════════════════════════════════════════════════════════════
-    if (A_PETITION_IS_ANSWERED_PLAINLY
-            and _is_client_petition_dialogue(dialogue)):
+    if (_is_client_petition_dialogue(dialogue)):
         return petition_plain_answer(dialogue, typed)
-    # SR-2e part (ii) — CRT-5: every other family is read closed too. The
-    # open arms below are the lever-down road.
-    if AN_ANSWER_IS_READ_CLOSED:
-        return closed_answer(dialogue, typed, marshal_names, world_regions)
-    raw_lower = text_the_player_still_means(raw_lower, options)
-    raw_words = set(re.findall(r"[a-z]+", raw_lower))
-    addressed = addresses_a_marshal(typed, marshal_names)
-
-    # 1. verbatim — a label or an action id, spelled out.
-    #
-    # The guard is applied PER OPTION here, not as a gate below this loop.
-    # A first cut put it below, reasoning that a verbatim match is never a
-    # guess — but arm 1 is bare-substring containment, so any dialogue whose
-    # option label is a single common word matched before the guard ever ran.
-    # Measured on production option sets: with an incoming ULTIMATUM mounted
-    # (labels `Yield` / `Defy`), **`Ney, yield no ground` YIELDED THE
-    # ULTIMATUM** — an order to a marshal ceding the demanded provinces. Same
-    # for `Accept`/`Reject` on an incoming proposal and `Cancel` on the war-
-    # purpose chooser. That is the very class of defect this row exists to
-    # close, and the fix had walked straight past it.
-    #
-    # The exemption is what keeps `Recall Ney` and `Commission Suchet`
-    # working: an option whose OWN label names a marshal may still be matched
-    # verbatim, because there the name is the answer rather than the address.
-    for opt in options:
-        label = (opt.get("label") or "").lower().strip()
-        action = (opt.get("action") or "").lower().strip()
-        if addressed and not _names_a_marshal(label, marshal_names):
-            continue
-        # SR-2b (AAR-20b): the open NATION LIST (the proposal picker's
-        # `expand_options` rows) may claim a line only when the line IS the
-        # court. `improve relations with Russia` is an order for Russia —
-        # measured, the list claimed it by substring, the resolver matched
-        # "russia" inside "Prussia", and the player was answered with
-        # PRUSSIA's proposal menu.
-        if action == "expand_options" and not _line_is_only_the_court(raw_lower, label):
-            continue
-        # Aug 30, 2026 review: arm 1 is bare-substring containment, so a
-        # ONE-WORD label is as loose as the keyword scan below — measured, the
-        # label `Cancel` claimed "cancel the march", an order to break a
-        # standing move, and the executor never saw it. Same rule as arms 3
-        # and 4: an answer names the decision, an order names the war.
-        if label and label in raw_lower:
-            if _carries_military_content(typed, label, world_regions,
-                                         dialogue):
-                continue
-            return label
-        if action and action in raw_lower:
-            return action
-
-    # 2. the guard, for the inferential arms below.
-    if addressed:
-        return None
-
-    # 3. every word of a label, in any order. A live hijack vector of its own:
-    #    the label "Send as ordered" is {send, as, ordered}, which
-    #    `as ordered, send Ney` satisfies without meaning it.
-    for opt in options:
-        label = (opt.get("label") or "").lower().strip()
-        action = (opt.get("action") or "").lower().strip()
-        label_words = set(re.findall(r"[a-z]+", label))
-        # SR-2b (AAR-20b): same rule as arm 1 for the nation list.
-        if action == "expand_options" and not _line_is_only_the_court(raw_lower, label):
-            continue
-        if label_words and label_words <= raw_words:
-            # Aug 30, 2026 review: the same order-vs-answer rule as arm 4.
-            # A ONE-WORD label makes this arm as loose as a bare-substring
-            # scan — measured, the label `Cancel` claimed "cancel the march",
-            # an order to break a standing move, and the executor never saw
-            # it.
-            if _carries_military_content(typed, label, world_regions,
-                                         dialogue):
-                continue
-            return action or label
-
-    # 3b. IQ-7 review R9: the petition's own words, on a petition ONLY and
-    #     only as the whole line (see PETITION_ANSWER_KEYWORDS). Read from
-    #     the negation-stripped line like every matching arm, so `do not
-    #     grant it` survives as nothing and claims nothing (FA-N2).
-    #     Pass 2 (P2-1): with A_PETITION_IS_ANSWERED_PLAINLY up a CLIENT
-    #     petition never reaches this arm — `petition_plain_answer` is its
-    #     whole router, above; this arm is the lever-down (pass-1) road.
-    if _dialogue_is_petition_family(dialogue):
-        petition_action = petition_vocabulary_answer(raw_lower)
-        if petition_action and petition_action in offered_actions(options):
-            return petition_action
-
-    # 4. a bare verb keyword.
-    #
-    # Aug 30, 2026 review: "bare" was never enforced — the arm asked only
-    # whether the keyword appeared ANYWHERE in the sentence, so a marshal-less
-    # ORDER carrying one of these words was silently consumed as an answer.
-    # Measured against a live `proposal_confirm` option set: "send the corps
-    # north" -> `send` and "cancel the march" -> `cancel`. The order never
-    # reached the executor and the player was never told, which is the same
-    # class of defect as the `Ney, yield no ground` hijack arm 1 guards
-    # against — one rung down, and without a marshal name for that guard to
-    # catch.
-    #
-    # An answer names the decision; an order names the war. If anything
-    # military survives once the keyword and ordinary filler are removed, this
-    # is an order and the arm declines it.
-    offered = {str(o.get("action") or "") for o in options}
-    for keyword, actions in DIALOGUE_ACTION_KEYWORDS.items():
-        if not whole_phrase_in(keyword, raw_lower):
-            continue
-        if not any(a in offered for a in actions):
-            continue
-        if _carries_military_content(typed, keyword, world_regions,
-                                     dialogue):
-            continue
-        return keyword
-    return None
+    # SR-2e part (ii) — CRT-5: every other family is read closed too.
+    return closed_answer(dialogue, typed, marshal_names, world_regions)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1927,13 +1762,12 @@ def court_mismatch_refusal_for_a_petition(world, dialogue: Optional[dict],
     else — so with the petition current, `accept portugal's offer`, `decline
     the portuguese offer`, `grant the kingdom of italy's petition` and
     `decline spain's petition` never reached the guard and got Berthier's
-    shrug (lever down: "Portugal's matter waits in the letter-book"). Here
+    shrug (before R3-3: "Portugal's matter waits in the letter-book"). Here
     an ANSWER-SHAPED line (`_line_is_answer_shaped` — never an order that
     merely names a court) is read by the court guard first, so the waiting
     court's pointer is reachable again. Nothing is executed either way.
     """
-    if not (A_PETITION_IS_ANSWERED_PLAINLY
-            and _is_client_petition_dialogue(dialogue)):
+    if not (_is_client_petition_dialogue(dialogue)):
         return None
     if not _line_is_answer_shaped(str(raw_text or ""), world):
         return None
@@ -1990,7 +1824,7 @@ def _line_is_answer_shaped(typed: str, world) -> bool:
         except Exception as exc:
             report(exc, "dialogue_routing._line_is_answer_shaped: list / get_nations")
             nations = []
-    # Pass 3, behind A_PETITION_IS_ANSWERED_PLAINLY — the shape gate knows
+    # Pass 3, part of "a client petition is answered plainly" — the shape gate knows
     # the plain grammar's own vocabulary, so the SAME line is not a priced
     # answer with the petition current and Berthier's shrug with it queued:
     #   * R3-5 (V2-6): the emphasis PHRASES go (`grant the petition at
@@ -2000,7 +1834,7 @@ def _line_is_answer_shaped(typed: str, world) -> bool:
     #   * R3-3: `from <court>` goes with the court it introduces (`accept
     #     the offer from portugal` is answer-shaped, so the court guard can
     #     speak) — `from` is not answer filler on its own.
-    plain = bool(A_PETITION_IS_ANSWERED_PLAINLY)
+    plain = True
     introduced = r"(?:from\s+)?(?:the\s+)?" if plain else ""
     for nation in nations:
         for form in sorted(_addressee_forms(nation), key=len, reverse=True):
@@ -2074,7 +1908,7 @@ def matter_mismatch_refusal(world, dialogue: Optional[dict],
         is a petition-family line too, so it gets the same "waits" line and
         never Berthier's shrug.
 
-    Pass 2, behind THE_MATTER_GUARD_READS_THE_TABLE:
+    Pass 2, the matter guard reads the table:
 
       * P3-3 — `answers_only=True` is the `/command` ROUTER seam, where by
         construction no answer keyword matched the letter on top. There the
@@ -2112,7 +1946,7 @@ def matter_mismatch_refusal(world, dialogue: Optional[dict],
 
     from backend.display_names import display_nation, with_definite_article
 
-    reads_the_table = bool(THE_MATTER_GUARD_READS_THE_TABLE)
+    reads_the_table = True
     if (answers_only and reads_the_table
             and not _line_is_answer_shaped(typed, world)):
         return None

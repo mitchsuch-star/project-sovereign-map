@@ -14,13 +14,6 @@
     "tests": "tests/test_cn_the_chip_names_the_man.py"
   },
   {
-    "id": "CN-3 the quote ignores the requested arm",
-    "file": "backend/commands/economy_executor.py",
-    "old": "    if arm is not None and THE_ARM_CHOOSES_THE_MAN:\n        of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]\n",
-    "new": "    if False:\n        of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]\n",
-    "tests": "tests/test_cn_the_chip_names_the_man.py"
-  },
-  {
     "id": "CN-4 the quote forgets the field cap",
     "file": "backend/commands/economy_executor.py",
     "old": "    if (not region_has_friendly_supply(region)\n            and 0 < AI_CORPS_REGEN_CAP < amount):\n",

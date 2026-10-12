@@ -106,9 +106,7 @@ def _answer_is_affordable(world, action: Optional[str], *,
         if prices:
             required = min(prices)
         else:
-            from backend.models.marshal import A_SUPPORT_ORDER_IS_ONE_ACTION
-            required = (1 if (A_SUPPORT_ORDER_IS_ONE_ACTION
-                              and str(strategic_type).upper() == "SUPPORT")
+            required = (1 if (str(strategic_type).upper() == "SUPPORT")
                         else 2)
         return remaining >= required
     try:

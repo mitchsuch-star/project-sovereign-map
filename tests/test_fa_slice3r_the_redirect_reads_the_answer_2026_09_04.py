@@ -45,7 +45,6 @@ from tests import _gd_calls as G
 from fastapi.testclient import TestClient
 
 import backend.main as M
-from backend.commands import strategic as strategic_mod
 from backend.commands.executor import CommandExecutor
 from backend.commands.parser import CommandParser
 from backend.commands.strategic import (
@@ -209,16 +208,6 @@ class TestTheRedirectReadsTheAnswer:
             assert ney.strategic_order is None
         else:
             assert ney.strategic_order is not None
-
-    def test_the_lever_down_destroys_the_order_on_a_refusal(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "CANNON_FIRE_READS_THE_ANSWER", False)
-        world, ney, moore = _channel()
-        ney.strategic_order = _order("MOVE_TO", "Paris", path=["Paris"])
-        proc = StrategicOrderProcessor(CommandExecutor())
-        row = self._redirect(proc, ney, world, "London")
-        assert row["order_status"] == "interrupted"
-        assert ney.strategic_order is None, "the defect, reproduced"
-        assert "Abandoning orders" in row["message"]
 
 
 class TestTheInvestigateAnswerReadsTheAnswer:
@@ -384,14 +373,6 @@ class TestTheAnsweredContactReadsTheBoard:
                 {"command": {"marshal": "Davout", "action": "attack", "target": "Mack"}},
                 {"world": world})
         assert result.get("strategic_order") is True or result.get("strategic_type") == "PURSUE", result
-
-    def test_the_lever_down_mints_and_marches(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "ANSWERED_CONTACT_READS_THE_BOARD", False)
-        world, davout, mack, pending = _davout_contact(enemy_location="Flanders")
-        proc = StrategicOrderProcessor(CommandExecutor())
-        reply = self._answer(proc, davout, world, pending)
-        assert davout.location != "Rhineland" or "pursues" in reply["message"], \
-            "the defect: the stale answer marched through the upgrade"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -577,28 +558,6 @@ class TestTheDestinationCopy:
 
 class TestTheRefusedFirstStepLeavesNoLogRow:
 
-    def test_the_march_is_not_logged(self, monkeypatch):
-        # FA slice 5 (Sept 4, 2026): with the road law at issuance this
-        # march is refused BEFORE an order exists (the crossing gate, at
-        # 0 AP — pinned in test_fa_slice5_the_road_law_2026_09_04.py), so
-        # the retraction seam this pin guards is reached through the
-        # lever-off arm: it still serves every first-step refusal that is
-        # not a road-law refusal (engaged elsewhere, drilling-locked, guns
-        # limbered).
-        monkeypatch.setattr(strategic_mod, "ROAD_LAW_AT_ISSUANCE", False)
-        world, ney, moore = _channel()
-        before = [e for e in world.event_log if e.get("type") == "strategic_order"
-                  and e.get("marshal") == "Ney"]
-        parsed = {"is_strategic": True, "strategic_type": "MOVE_TO", "target": "London",
-                  "marshal": "Ney", "action": "move", "original_command": "Ney, march to London"}
-        with _quiet():
-            result = CommandExecutor().execute(parsed | {"command": {
-                "marshal": "Ney", "action": "move", "target": "London"}}, {"world": world})
-        assert result.get("success") is False and result.get("attack_refused") is True, result
-        after = [e for e in world.event_log if e.get("type") == "strategic_order"
-                 and e.get("marshal") == "Ney"]
-        assert after == before, "R1-F6: 'Ney ordered to move to London' survived the refusal"
-
     def test_the_helper_retracts_only_this_turn_and_marshal(self):
         world, ney, moore = _channel()
         world.log_event({"type": "strategic_order", "marshal": "Davout", "order_type": "MOVE_TO"})
@@ -642,10 +601,3 @@ class TestTheDriverAnswersEveryMarshal:
             answerer.scan(response)
         assert [p for p in posted if p[0] == "/strategic_response"] == [
             ("/strategic_response", "Davout"), ("/strategic_response", "Ney")], posted
-
-
-class TestTheLeversShip:
-
-    def test_both_are_up(self):
-        assert strategic_mod.CANNON_FIRE_READS_THE_ANSWER is True
-        assert strategic_mod.ANSWERED_CONTACT_READS_THE_BOARD is True

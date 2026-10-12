@@ -65,10 +65,10 @@ _CAMEL_SPLIT_RE = re.compile(r'(?<=[a-z])(?=[A-Z])')
 # for the Aug-30 pin and every reader below.
 _NON_ORDER_ACTIONS = NON_ORDER_ACTIONS
 
-# FA slice 7 flip levers (each False reproduces the pre-slice behaviour).
-ADMIN_VERBS_NEVER_MARCH = True      # the strategic gate reads NEVER_STRATEGIC_ACTIONS
-A_BARE_RETREAT_IS_A_RETREAT = True  # "Ney, fall back" is not a MOVE_TO toward the enemy
-ADMIRAL_IS_AN_ADDRESSEE = True      # "Villeneuve, order the diversion" accepts the admiral
+# FA slice 7: administrative verbs never march (the strategic gate reads
+# NEVER_STRATEGIC_ACTIONS); a bare retreat is a retreat ("Ney, fall back" is
+# not a MOVE_TO toward the enemy); the admiral is an addressee ("Villeneuve,
+# order the diversion" accepts the admiral).
 # SF-V8 (Oct 3, 2026): a routed order word ("land") is never fuzzy-read as a
 # marshal's name ("Lannes") in the word scan. False = the hand skip list alone.
 A_ROUTED_WORD_IS_NEVER_A_NAME = True
@@ -134,18 +134,13 @@ _ENGINE_CONDITION_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 # (`strategic_parser.clause_can_carry_an_arrival`, the two order types whose
 # executor reads the flag) — or when it is a standing order carrying `until`,
 # the one condition the engine implements. Everything else keeps its own
-# order and the tail lands in the existing `dropped_sequel` note.
-#
-# Flip lever: False reproduces the pre-slice predicate byte-for-byte (the
-# sensitivity arm in test_cr7_1_the_tail_stops_eating_the_head.py).
-TAIL_FUSES_ONLY_ONTO_A_MARCH = True
+# order and the tail lands in the existing `dropped_sequel` note. The rule:
+# the tail fuses only onto a march (pinned by
+# test_cr7_1_the_tail_stops_eating_the_head.py).
 
 
 def _head_can_carry_arrival(first: str) -> bool:
     """CR-7-1 — may an attack tail fuse onto this head?  See the rule above."""
-    if not TAIL_FUSES_ONLY_ONTO_A_MARCH:
-        return not (_STAND_FAST_FIRST_CLAUSE_RE.search(first)
-                    and not _ENGINE_CONDITION_RE.search(first))
     if clause_can_carry_an_arrival(first):
         return True
     # `until` rides a STANDING order only — "fortify until Davout arrives
@@ -1246,9 +1241,8 @@ def normalize_sovereign_address(command_text: str,
 # marshals named AFTER the address; the addressee is decoration (and an
 # address that names nobody of ours is still CX-R1's to refuse free). A
 # fallen man named there is answered as fallen (`fallen_reward_object_
-# refusal`). Flip lever False restores the addressee binding byte-for-byte.
+# refusal`).
 # ═══════════════════════════════════════════════════════════════════════
-A_REWARD_GOES_TO_ITS_OBJECT = True
 # SF-CMD-1 W1 (Oct 3, 2026): a question is never split into sequential
 # orders — "how do Davout and Bernadotte get on" is one question. False
 # restores the split (and the dropped tail) on questions.
@@ -1274,8 +1268,7 @@ REWARD_VERBS = frozenset({"grant_pension", "revoke_pension", "grant_dotation"})
 # so the live call was spent and discarded and the wrong question stood. The
 # live model read the whole sentence: on the RETRY its marshal reading stands
 # — the word scan is skipped, a marshal it NAMES is still validated, and the
-# primary road is unchanged. False restores the discard.
-THE_RETRY_READS_THE_MARSHAL = True
+# primary road is unchanged.
 
 # IQ9-X3 (SR-3c): A FAILURE NAMES ITS ROAD. The parser's failure dicts
 # carried no `mode`, so `main._PARSE_PROVENANCE` stamped "mock" on a request
@@ -1283,8 +1276,7 @@ THE_RETRY_READS_THE_MARSHAL = True
 # response stamped as the offline road). Every failure now carries the road
 # it came down — the
 # live provider when a live call was made (answered, discarded or failed at
-# the API), else the offline parser. False restores the bare dicts.
-A_FAILURE_NAMES_ITS_ROAD = True
+# the API), else the offline parser.
 
 
 def reward_recipient_from_text(command_text: str, roster,
@@ -1297,8 +1289,6 @@ def reward_recipient_from_text(command_text: str, roster,
     measured the narrower forms — "only when the addressee is ours", "never
     the addressee himself" — as unobservable on every road, so the rule is
     this one sentence."""
-    if not A_REWARD_GOES_TO_ITS_OBJECT:
-        return None
     text = command_text or ""
     match = ADDRESS_TOKEN_RE.match(text)
     if not match or not _leading_addressed_token(text):
@@ -1336,7 +1326,7 @@ def fallen_reward_object_refusal(command_text: str, bound: Optional[str],
     "Whose household…?". `bound` is the marshal the parse holds after the
     recipient rule; a living marshal of ours there means the sentence named
     him, so nothing is refused. None when no fallen man is the object."""
-    if not A_REWARD_GOES_TO_ITS_OBJECT or world is None:
+    if world is None:
         return None
     player = getattr(world, "player_nation", None)
     tombs = {name: (tomb or {})
@@ -2067,8 +2057,7 @@ class CommandParser:
         # CRT-2 / CQ-17: a reward goes to its OBJECT, on both roads — the
         # recipient named after the address replaces the addressee the
         # extraction bound (see `reward_recipient_from_text`).
-        if (A_REWARD_GOES_TO_ITS_OBJECT
-                and llm_result.get("action") in REWARD_VERBS):
+        if (llm_result.get("action") in REWARD_VERBS):
             _recipient = reward_recipient_from_text(
                 command_text, valid_marshals, world)
             if _recipient:
@@ -2216,9 +2205,7 @@ class CommandParser:
                 # FA slice 7: the fleet's own admiral is a legitimate
                 # addressee of a naval verb ("Villeneuve, order the
                 # diversion"), not a marshal typo — accepted as decoration.
-                if (ADMIRAL_IS_AN_ADDRESSEE and addressed
-                        and llm_result.get("action") in _NAVAL_META_VERBS
-                        and _names_the_admiral(addressed, world)):
+                if (addressed and llm_result.get("action") in _NAVAL_META_VERBS and _names_the_admiral(addressed, world)):
                     addressed = None
                 # GE-3: a question about the Congress of Paris put to the
                 # foreign minister ("Talleyrand, can we summon the
@@ -2304,9 +2291,8 @@ class CommandParser:
 
             # IQ9-X1: on the CR-2 retry the live model's "no marshal named"
             # stands — its reading of the sentence is not re-scanned word by
-            # word (see THE_RETRY_READS_THE_MARSHAL).
-            words = ([] if (trust_marshal_reading
-                            and THE_RETRY_READS_THE_MARSHAL)
+            # word (see "the retry reads the marshal", IQ9-X1, above).
+            words = ([] if (trust_marshal_reading)
                      else [(w.group(0), w.start())
                            for w in re.finditer(r'\S+', command_text)])
             for word_index, (word, word_pos) in enumerate(words):
@@ -2758,9 +2744,7 @@ class CommandParser:
         # split into a march plus a "One order at a time" note while the
         # `then` form fused. A head that cannot carry an arrival ("fortify
         # and attack Mack") still splits, as before.
-        if (TAIL_FUSES_ONLY_ONTO_A_MARCH
-                and _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail)
-                and _head_can_carry_arrival(first)):
+        if (_ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first)):
             return None
         # DD0-18 (a) (S4 part 4, October 11, 2026): "break camp and march to
         # Bohemia" / "strike camp and march" is ONE order — the march (D10's
@@ -2939,13 +2923,12 @@ class CommandParser:
         for _rule, _before, _after in _dd0_rows:
             _ptrace.note("parser", _rule, _before, _after)
             command_text = _after
-        if getattr(_lc, "VERB_TYPO_PASS_ACTIVE", False):
-            repaired, typo_note = repair_leading_verb_typo(command_text, game_state)
-            if repaired and repaired != command_text:
-                _ptrace.note("parser", "repair_leading_verb_typo", command_text, repaired)
-                command_text = repaired
-            else:
-                typo_note = None
+        repaired, typo_note = repair_leading_verb_typo(command_text, game_state)
+        if repaired and repaired != command_text:
+            _ptrace.note("parser", "repair_leading_verb_typo", command_text, repaired)
+            command_text = repaired
+        else:
+            typo_note = None
         # CR-7-1 rider (CQ-9): a tactical "move to" / "go to" head with an
         # attack-on-arrival tail is the march idiom — promoted here, after
         # the typo repair and before any reader, so every downstream layer
@@ -2963,13 +2946,12 @@ class CommandParser:
             _ptrace.note("parser", "strip_emphasis", command_text, _emphatic)
             command_text = _emphatic
         promoted = False
-        if TAIL_FUSES_ONLY_ONTO_A_MARCH:
-            promoted_text = promote_tactical_move_with_arrival_tail(command_text)
-            if promoted_text != command_text:
-                _ptrace.note("parser", "promote_tactical_move_with_arrival_tail",
-                             command_text, promoted_text)
-                command_text = promoted_text
-                promoted = True
+        promoted_text = promote_tactical_move_with_arrival_tail(command_text)
+        if promoted_text != command_text:
+            _ptrace.note("parser", "promote_tactical_move_with_arrival_tail",
+                         command_text, promoted_text)
+            command_text = promoted_text
+            promoted = True
         # SF-CMD-1 W2 (Oct 3, 2026): the contingency phrasings the engine can
         # hold, said in its own words BEFORE any reader sees the line — the
         # arrival idiom ("… when you get there" is the tail), the engagement
@@ -3279,8 +3261,7 @@ class CommandParser:
                         "unknown_name": enemy_refusal["unknown_name"],
                         "candidates": [],
                     }
-                    if A_FAILURE_NAMES_ITS_ROAD:
-                        _refused["mode"] = self._failure_road(llm_result)
+                    _refused["mode"] = self._failure_road(llm_result)
                     return _refused
                 diplomatic_data = llm_result["diplomatic_data"]
                 action = diplomatic_data.get("action", "diplomatic_proposal")
@@ -3372,9 +3353,8 @@ class CommandParser:
                     # clarification builder cost the would-be reissue
                     "partial_action": llm_result.get("action"),
                 }
-                if A_FAILURE_NAMES_ITS_ROAD:
-                    failure["mode"] = self._failure_road(
-                        llm_result, _consulted_mode)
+                failure["mode"] = self._failure_road(
+                    llm_result, _consulted_mode)
                 # CR-3(c): main.py's Berthier recovery must not fire a second
                 # blocking LLM call when this request's parse call already
                 # failed at the API layer.
@@ -3515,9 +3495,7 @@ class CommandParser:
                 # and the strategic table's bare "withdraw" then upgraded it
                 # into a 2-AP MOVE_TO toward the phantom province
                 # "Ney'S Rente".
-                _never_strategic = (NEVER_STRATEGIC_ACTIONS
-                                    if ADMIN_VERBS_NEVER_MARCH
-                                    else _NON_ORDER_ACTIONS)
+                _never_strategic = (NEVER_STRATEGIC_ACTIONS)
                 _is_order = (_resolved_action not in _never_strategic
                              and not is_question(command_text))
                 if world is not None and _is_order:
@@ -3594,8 +3572,7 @@ class CommandParser:
                             "partial_target": strategic.get("target"),
                             "dropped_sequel": dropped_sequel,
                         }
-                        if A_FAILURE_NAMES_ITS_ROAD:
-                            _refused["mode"] = self._failure_road(llm_result)
+                        _refused["mode"] = self._failure_road(llm_result)
                         return _refused
                     # FA slice 7: a BARE retreat verb is a retreat. "Ney, fall
                     # back" / "Ney, withdraw" parsed as `retreat` and were then
@@ -3612,16 +3589,9 @@ class CommandParser:
                     # Like Swabia", refused for want of a destination. When the
                     # mock has already read a bare retreat, the strategic
                     # upgrade is dropped whatever the tail says.
-                    if (strategic and A_BARE_RETREAT_IS_A_RETREAT
-                            and A_REASON_TAIL_IS_NOT_A_DESTINATION
-                            and str(llm_result.get("action") or "") == "retreat"
-                            and strategic.get("strategic_type") == "MOVE_TO"
-                            and not _names_a_destination_preposition(effective_text)):
+                    if (strategic and A_REASON_TAIL_IS_NOT_A_DESTINATION and str(llm_result.get("action") or "") == "retreat" and strategic.get("strategic_type") == "MOVE_TO" and not _names_a_destination_preposition(effective_text)):
                         strategic = None
-                    if (strategic and A_BARE_RETREAT_IS_A_RETREAT
-                            and _resolved_action == "retreat"
-                            and strategic.get("strategic_type") == "MOVE_TO"
-                            and (strategic.get("target") or "generic") == "generic"):
+                    if (strategic and _resolved_action == "retreat" and strategic.get("strategic_type") == "MOVE_TO" and (strategic.get("target") or "generic") == "generic"):
                         strategic = None
                     if strategic:
                         result["is_strategic"] = True
@@ -3825,8 +3795,7 @@ class CommandParser:
                     "partial_marshal": llm_result.get("marshal"),
                     "partial_target": llm_result.get("target"),
                 }
-                if A_FAILURE_NAMES_ITS_ROAD:
-                    failure["mode"] = self._failure_road(llm_result)
+                failure["mode"] = self._failure_road(llm_result)
                 # PARSE-NEG: this is not a failure to understand — the parser
                 # read the sentence exactly and there is no order in it. main.py
                 # answers with a specific Berthier line instead of the generic

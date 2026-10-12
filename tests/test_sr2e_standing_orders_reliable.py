@@ -29,7 +29,6 @@ from fastapi.testclient import TestClient
 
 import backend.commands.strategic_executor as SE
 import backend.main as M
-import backend.models.marshal as MA
 from backend.commands.parser import CommandParser
 
 
@@ -76,12 +75,6 @@ class TestSupportIsOneAction:
                 assert m.strategic_order_ap(order_type=other) == 2, other
             assert m.strategic_order_ap() == 2     # an unnamed order: 2
 
-    def test_the_lever_down_restores_two(self, shipped, monkeypatch):
-        _client, world = shipped
-        monkeypatch.setattr(MA, "A_SUPPORT_ORDER_IS_ONE_ACTION", False)
-        assert world.marshals["Davout"].strategic_order_ap(
-            order_type="SUPPORT") == 2
-
     def test_literal_and_sovereign_stay_at_one(self, shipped):
         _client, world = shipped
         for name in ("Soult", "Napoleon"):
@@ -113,13 +106,6 @@ class TestSupportIsOneAction:
         before = int(world.actions_remaining)
         data = post(client, "Davout, march to Lorraine")
         assert data.get("success") is True, data.get("message")
-        assert int(world.actions_remaining) == before - 2
-
-    def test_the_lever_down_charges_two_at_the_wire(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(MA, "A_SUPPORT_ORDER_IS_ONE_ACTION", False)
-        before = int(world.actions_remaining)
-        post(client, "Davout, support Ney")
         assert int(world.actions_remaining) == before - 2
 
 
@@ -413,14 +399,6 @@ class TestTheGunsMustBeOurWar:
         assert interrupt["not_our_war"] is True
         assert "France is not in it" in interrupt["message"]
 
-    def test_the_lever_down_rushes(self, shipped, monkeypatch):
-        _client, world = shipped
-        monkeypatch.setattr(ST, "THE_GUNS_MUST_BE_OUR_WAR", False)
-        _peace_with_austria(world)
-        massena = _marching(world, "Massena", "Tyrol", "Provence")
-        world.record_battle("Munich", "Mack", "Deroy", "defender_won")
-        assert self._interrupt(world, massena)["action"] == "redirect"
-
     def test_our_war_still_rushes(self, shipped):
         _client, world = shipped
         massena = _marching(world, "Massena", "Tyrol", "Provence")
@@ -560,22 +538,13 @@ class TestAMarchKeepsItsTail:
         assert order.last_combat_enemy == "ArchdukeJohn"
         assert order.last_combat_turn == world.current_turn
 
-    def test_the_lever_down_voids_the_order(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(ST, "A_MARCH_KEEPS_ITS_TAIL", False)
-        _stage_massena_reinforces(client, world, 6000)
-        assert world.marshals["Massena"].strategic_order is None
-
-    @pytest.mark.parametrize("lever,walks", [(True, False), (False, True)])
-    def test_the_ai_road_home_takes_the_same_skip(self, shipped, monkeypatch,
-                                                  lever, walks):
+    def test_the_ai_road_home_takes_the_same_skip(self, shipped):
         """GR5: an AI corps that answered a battle's guns this turn does not
         also walk its road home this turn (the WIN-D3 staging)."""
         from backend.ai.enemy_ai import EnemyAI
         from backend.commands.executor import CommandExecutor
         from backend.game_logic import withdrawal as W
         from backend.game_logic.diplomacy import set_diplomatic_state
-        monkeypatch.setattr(ST, "A_MARCH_KEEPS_ITS_TAIL", lever)
         _client, world = shipped
         kutuzov = world.marshals["Kutuzov"]
         set_diplomatic_state(world, "France", "Russia", "WAR")
@@ -591,7 +560,7 @@ class TestAMarchKeepsItsTail:
             kutuzov, "Russia", world)
         took_the_road = bool(action and action.get("action") == "move"
                              and action.get("target") == step)
-        assert took_the_road is walks, action
+        assert took_the_road is False, action
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -664,12 +633,6 @@ class TestAQuestionRowIsAnswerable:
         assert rows and rows[0]["order_status"] == "overtaken", rows
         assert rows[0]["requires_input"] is False
 
-    def test_the_lever_down_ships_the_row(self, shipped, monkeypatch):
-        _client, world = shipped
-        monkeypatch.setattr(ST, "A_QUESTION_ROW_IS_ANSWERABLE", False)
-        row = {"marshal": "Davout", "requires_input": True, "message": "ask"}
-        assert ST.reconcile_question_rows(world, [row])[0] is row
-
     def test_the_aar_board_ships_no_unanswerable_question(self, shipped):
         """The agent's staging: Davout (cautious) asks about Swabia first,
         then Ney's arrival battle there recruits him."""
@@ -738,12 +701,6 @@ class TestTheDeskReadsTheMarch:
                  or bool(data.get("objection") or data.get("pending_objection")))
         assert taken, data.get("message")
 
-    def test_the_lever_down_answers_yes_across_the_water(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(ST, "THE_ROAD_LAW_IS_READ_WHERE_QUOTED", False)
-        answer = str(post(client, "can Davout reach London").get("message") or "")
-        assert answer.startswith("Yes"), answer
-
 
 class TestTheDeskQuotesTheMarchsClock:
     """On a quiet board (no foreign corps) the driven arrival fits
@@ -799,12 +756,9 @@ class TestMoveToAsksTheRoadFirst:
     (Insist bought "Execution failed: the crossing is barred") while the
     march refuses it free."""
 
-    @pytest.mark.parametrize("lever", [True, False])
-    def test_move_to_walks_the_marchs_road(self, shipped, obedient,
-                                          monkeypatch, lever):
+    def test_move_to_walks_the_marchs_road(self, shipped, obedient):
         """`move to <far X>` is the march one verb over: a cautious man
         walks the march's own road around the enemy he can see."""
-        monkeypatch.setattr(ST, "THE_ROAD_LAW_IS_READ_WHERE_QUOTED", lever)
         client, world = shipped
         random.seed(5)
         data = post(client, "Davout, move to Vienna")
@@ -812,7 +766,7 @@ class TestMoveToAsksTheRoadFirst:
             client.post("/respond_to_objection", json={"choice": "insist"})
         order = world.marshals["Davout"].strategic_order
         assert order is not None
-        assert ("Swabia" in list(order.path)) is (not lever), list(order.path)
+        assert "Swabia" not in list(order.path), list(order.path)
 
     def test_no_objection_before_the_road_law(self, shipped, monkeypatch):
         client, world = shipped

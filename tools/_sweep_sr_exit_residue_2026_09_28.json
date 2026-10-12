@@ -56,13 +56,6 @@
     "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheDeskCountsThePoints::test_the_desks_own_classifier_knows_the_kind"
   },
   {
-    "id": "R4 the desk never answers the kind",
-    "file": "backend/ai/question_desk.py",
-    "old": "        if kind == \"points\" and THE_DESK_COUNTS_THE_POINTS:\n            return _answer_points(world, player)",
-    "new": "        if False:\n            return _answer_points(world, player)",
-    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheDeskCountsThePoints::test_the_answer_reads_the_pool_the_refill_and_the_orders"
-  },
-  {
     "id": "R4 the carry is not named",
     "file": "backend/ai/question_desk.py",
     "old": "        if carried:\n            head += (f\" and {carried} {'was' if carried == 1 else 'were'} \"",

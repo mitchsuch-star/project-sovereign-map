@@ -414,15 +414,7 @@ class TestTheKillCriteria:
         assert self._recruit_producers(ast.unparse(tree)) != []
 
 
-class TestTheLever:
+class TestTheArmReader:
 
-    def test_the_lever_restores_the_arm_blind_choice(self, board, monkeypatch):
-        monkeypatch.setattr(EE, "THE_ARM_CHOOSES_THE_MAN", False)
-        _fund()
-        res = _drive(board, "recruit cavalry in Rhineland")
-        assert res["ok"] and res["pool"] == {"infantry": -3000}, res
-        assert res["via"] == "Davout", res
-
-    def test_the_lever_is_up(self):
-        assert EE.THE_ARM_CHOOSES_THE_MAN is True
+    def test_the_arm_is_read_from_the_marshal(self):
         assert recruit_arm_of(type("M", (), {"artillery": True})()) == "artillery"

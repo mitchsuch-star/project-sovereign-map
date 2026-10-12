@@ -1,12 +1,5 @@
 [
  {
-  "id": "SR-3a/CRT-3 CX-X1 the Cabinet stops reading the shared verdict",
-  "file": "backend/ai/llm_client.py",
-  "old": "        shared_question = bool(\n            THE_CABINET_READS_THE_SHARED_QUESTION and question)",
-  "new": "        shared_question = False",
-  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtsQuestionReachesTheAdvisory"
- },
- {
   "id": "SR-3a/CRT-3 CX-X1 the mission outranks the question again",
   "file": "backend/ai/llm_client.py",
   "old": "        if mission_type and not shared_question:\n            action = \"diplomatic_mission\"",
@@ -21,25 +14,11 @@
   "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtsQuestionReachesTheAdvisory"
  },
  {
-  "id": "SR-3a/CRT-3 CXR1-2 any comma tail stands the arm down again",
-  "file": "backend/ai/clause_guards.py",
-  "old": "    if not THE_TAIL_STANDS_DOWN_ONLY_ON_AN_ORDER:\n        return bool(_TRAILING_CLAUSE_RE.search(rest))\n    match = _TRAILING_TAIL_RE.search(rest)",
-  "new": "    if True:\n        return bool(_TRAILING_CLAUSE_RE.search(rest))\n    match = _TRAILING_TAIL_RE.search(rest)",
-  "tests": "tests/test_crt3_a_question_never_orders.py::TestTheTailStandsDownOnlyOnAnOrder"
- },
- {
   "id": "SR-3a/CRT-3 CXR1-2 the tail's order verb no longer stands the arm down",
   "file": "backend/ai/clause_guards.py",
   "old": "    tail = match.group(1).strip().strip(\"'\\\"\")\n    return bool(order_verb_re().match(tail))",
   "new": "    tail = match.group(1).strip().strip(\"'\\\"\")\n    return False",
   "tests": "tests/test_crt3_a_question_never_orders.py::TestTheTailStandsDownOnlyOnAnOrder::test_the_inverted_conditional_still_stands_the_arm_down"
- },
- {
-  "id": "SR-3a/CRT-3 CXR1-4 the hedge arm goes silent",
-  "file": "backend/ai/clause_guards.py",
-  "old": "    if A_HEDGE_IS_NOT_AN_ORDER and text and _HEDGE_LEAD_RE.match(text):\n        return True",
-  "new": "    if False:\n        return True",
-  "tests": "tests/test_crt3_a_question_never_orders.py::TestAHedgeIsNotAnOrder"
  },
  {
   "id": "SR-3a/CRT-3 CXR1-5 the leading run hides the question again",
@@ -75,27 +54,6 @@
   "old": "                if addressed:\n                    from backend.ai.clause_guards import never_an_address\n                    if never_an_address(addressed):\n                        addressed = None",
   "new": "                if False:\n                    addressed = None",
   "tests": "tests/test_crt3_a_question_never_orders.py::TestALeadingRunHidesNoQuestion::test_nothing_moves"
- },
- {
-  "id": "SR-3a/CRT-3 L2-7b the courts leave the subject roster",
-  "file": "backend/ai/llm_client.py",
-  "old": "    if A_COURT_IS_A_SUBJECT:\n        try:\n            from backend.display_names import nation_adjective",
-  "new": "    if False:\n        try:\n            from backend.display_names import nation_adjective",
-  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtIsASubject"
- },
- {
-  "id": "SR-3a/CRT-3 L2-7b the subject loses its article",
-  "file": "backend/ai/clause_guards.py",
-  "old": "    if A_COURT_IS_A_SUBJECT and opening.startswith(\"the \"):\n        opening = opening[4:].lstrip()",
-  "new": "    if False:\n        opening = opening[4:].lstrip()",
-  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtIsASubject"
- },
- {
-  "id": "SR-3a/CX5-L5-F2 the narrow noun rule returns",
-  "file": "backend/ai/llm_client.py",
-  "old": "    noun_re = (_RETREAT_NOUN_WIDE_RE if THE_RETREAT_NOUN_TAKES_A_POSSESSIVE\n               else _RETREAT_NOUN_RE)",
-  "new": "    noun_re = _RETREAT_NOUN_RE",
-  "tests": "tests/test_crt6_the_retreat_is_a_word.py"
  },
  {
   "id": "SR-3a/CX5-L5-F2 the order verbs stop carrying out the retreat",

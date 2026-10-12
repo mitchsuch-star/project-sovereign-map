@@ -649,15 +649,6 @@ class TestARefusedOrderKeepsTheStandingOrder:
         assert ney.strategic_order is None
         assert not ney.holding_position
 
-    def test_the_lever_down_loses_the_march(self, board, monkeypatch):
-        from backend.commands import executor as EX
-        monkeypatch.setattr(EX, "A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER",
-                            False)
-        assert _post("Soult, march to Bordelais").get("success")
-        soult = board.get_marshal("Soult")
-        assert _post("Soult, attack Lisbon").get("success") is False
-        assert soult.strategic_order is None
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # The records

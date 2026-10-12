@@ -1,12 +1,5 @@
 [
  {
-  "id": "helper/a the write lever gates the helper",
-  "file": "backend/commands/disobedience.py",
-  "old": "    if not REDEMPTION_AT_EVERY_TRUST_WRITE or world is None or marshal is None:\n        return None",
-  "new": "    if True:\n        return None",
-  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheHelper::test_result_and_events_both_carry_the_question tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_lannes_is_asked_the_turn_he_crosses"
- },
- {
   "id": "helper/b the result carrier",
   "file": "backend/commands/disobedience.py",
   "old": "        result[\"redemption_event\"] = event\n",
@@ -47,13 +40,6 @@
   "old": "        if _erosion_events:\n            tactical_events.extend(_erosion_events)",
   "new": "        if False:\n            tactical_events.extend(_erosion_events)",
   "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheErosionTickAsks::test_the_tick_stages_at_its_own_write_with_the_net_off"
- },
- {
-  "id": "net/a the net lever",
-  "file": "backend/models/world_state.py",
-  "old": "        if REDEMPTION_NET_ACTIVE:\n            for marshal in self.marshals.values():",
-  "new": "        if False:\n            for marshal in self.marshals.values():",
-  "tests": "tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheNet::test_a_direct_write_is_asked_at_the_turn_boundary tests/test_fa26_the_question_is_asked_2026_09_05.py::TestTheNet::test_two_men_cross_in_one_tick_exactly_one_question"
  },
  {
   "id": "net/b the net stages onto the warnings list",

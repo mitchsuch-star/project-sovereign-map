@@ -14,13 +14,6 @@
   "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestThePredicateIsTheMarshalsOwn::test_in_retreat_recovery_reads_the_whole_window"
  },
  {
-  "id": "M/a the movement lever defaults to the pre-fix position",
-  "file": "backend/commands/movement_executor.py",
-  "old": "RECOVERING_CORPS_TAKES_NO_GROUND = True",
-  "new": "RECOVERING_CORPS_TAKES_NO_GROUND = False",
-  "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheRecoveringCorpsHoldsNoGround"
- },
- {
   "id": "M/b the walk-in refusal arm is removed",
   "file": "backend/commands/movement_executor.py",
   "old": "        if walk_in_open and corps_takes_no_ground(marshal):",
@@ -54,13 +47,6 @@
   "old": "        if capture_refused_recovering:\n            # FA-9: structured, beside the sentence",
   "new": "        if False:\n            # FA-9: structured, beside the sentence",
   "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheRecoveringCorpsHoldsNoGround"
- },
- {
-  "id": "M/g the module predicate ignores its lever",
-  "file": "backend/commands/movement_executor.py",
-  "old": "    if not RECOVERING_CORPS_TAKES_NO_GROUND:\n        return False\n    in_recovery = getattr(marshal, \"in_retreat_recovery\", None)",
-  "new": "    in_recovery = getattr(marshal, \"in_retreat_recovery\", None)",
-  "tests": "tests/test_fa_slice17_0_the_remnant_holds_no_ground_2026_09_11.py::TestTheRecoveringCorpsHoldsNoGround::test_the_lever_down_reproduces_the_annexation"
  },
  {
   "id": "A/c the P-1 rung goes back to the narrow limiter",

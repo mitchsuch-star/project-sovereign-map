@@ -422,10 +422,9 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
     if first_foe and re.match(r"^(?:who|what) (?:is|'s|are) (?:the\s+)?(?:general\s+|marshal\s+)?(?:"
                               + "|".join(re.escape(f) for f in _forms(first_foe)) + r")\b", norm) and not has(r"\bdoing\b|\bup to\b"):
         return q("who_is", first_foe, "enemy")
-    from backend.ai.question_desk import THE_DESK_ANSWERS_THE_WAR_QUESTION as _war_lever
-    if _war_lever and has(r"\bwho (?:are|am) (?:we|i) (?:at war with|fighting)\b|\bwho is at war with (?:us|me)\b"):
+    if has(r"\bwho (?:are|am) (?:we|i) (?:at war with|fighting)\b|\bwho is at war with (?:us|me)\b"):
         return q("wars_leader")
-    if _war_lever and first_place and has(r"\bsafe\b|\bin danger\b|\bthreatened\b|\bgetting close\b|\bsecure\b"):
+    if first_place and has(r"\bsafe\b|\bin danger\b|\bthreatened\b|\bgetting close\b|\bsecure\b"):
         return q("safe_natural", first_place, "region")
     if first_place and has(r"\bwhat(?:'s| is) in\b|\bwho(?:'s| is) in\b|\bwhat stands in\b|\bwhat is at\b|\bwhat(?:'s| is) (?:standing )?(?:in|at)\b"):
         return q("what_is_in", first_place, "region")
@@ -475,8 +474,6 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
     )
     if has(r"\b(?:how much|what|cost|costing|paying|pay|earn|earning|get|bring|bringing|lose|losing|is|are)\b"):
         for key, pattern in _components:
-            if key == "state_charges" and not _war_lever:
-                continue
             if re.search(pattern, norm) and not ours and not has(r"\bwhat (?:does|do) .* (?:do|mean)\b"):
                 if key == "vassal_tribute" and has(r"\bget\b|\bfrom\b|\bowed\b|\bpay us\b|\breceive\b|\bhow much\b"):
                     return q("tribute")
@@ -563,8 +560,7 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
             return q("odds_natural", first_foe, "enemy", marshal=first_marshal)
         if first_place:
             return q("odds_natural", first_place, "region", marshal=first_marshal)
-    from backend.ai.question_desk import THE_DESK_READS_THE_ODDS as _odds_lever
-    if _odds_lever and has(r"\bodds\b|\bchances?\b|\blikely to win\b|\bwould .* win\b|\bwho (?:would|will) win\b|\bcan .* (?:beat|win against|defeat)\b|\bprospects\b"):
+    if has(r"\bodds\b|\bchances?\b|\blikely to win\b|\bwould .* win\b|\bwho (?:would|will) win\b|\bcan .* (?:beat|win against|defeat)\b|\bprospects\b"):
         if first_foe and has(r"\b(?:" + "|".join(re.escape(f) for f in _forms(first_foe)) + r") (?:attacks?|attacking|falls on|strikes|hits|comes at|moves on)\b") and ours:
             return q("what_if_defence", first_foe, "enemy", marshal=first_marshal)
         if first_foe:
@@ -703,13 +699,13 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
         return q("buyoff_price", first_court, "nation")
     if has(r"\bwar score\b|\bscore (?:against|with|versus|vs)\b|\bhow goes the war with\b|\bare we (?:beating|winning against|losing to)\b|\bhow (?:are we|am i) doing against\b") and first_court:
         return q("war_score", first_court, "nation")
-    if first_court and _war_lever and has(r"\bwar (?:weariness|exhaustion)\b|\bweary\b|\bexhausted\b|\btired of (?:the )?war\b|\bhow (?:tired|weary|exhausted) is\b|\bwill .* keep fighting\b|\bstomach for (?:the )?war\b"):
+    if first_court and has(r"\bwar (?:weariness|exhaustion)\b|\bweary\b|\bexhausted\b|\btired of (?:the )?war\b|\bhow (?:tired|weary|exhausted) is\b|\bwill .* keep fighting\b|\bstomach for (?:the )?war\b"):
         return q("weariness_nation", first_court, "nation")
     if first_court and has(r"\bagenda\b|\bdesign\b|\baim\b|\bambition\b|\bgoal\b|\bwant(?:s)? with\b|\bafter\b.*\b(?:province|land|territory)\b|\bcovet"):
         return q("agenda", first_court, "nation", place=first_place)
-    if first_court and _war_lever and has(r"\bwhy (?:are|am) (?:we|i|france) (?:at war|fighting)\b|\bwhy (?:is|are) .* (?:fighting|at war with) (?:us|me|france)\b|\bwhat is the war .* (?:about|for)\b|\bwhat'?s the war .* (?:about|for)\b|\bwhy did .* declare\b|\bcause of the war\b|\bpurpose of the war\b"):
+    if first_court and has(r"\bwhy (?:are|am) (?:we|i|france) (?:at war|fighting)\b|\bwhy (?:is|are) .* (?:fighting|at war with) (?:us|me|france)\b|\bwhat is the war .* (?:about|for)\b|\bwhat'?s the war .* (?:about|for)\b|\bwhy did .* declare\b|\bcause of the war\b|\bpurpose of the war\b"):
         return q("why_war", first_court, "nation")
-    if _war_lever and has(r"\bwho (?:is|'s) winning\b|\bwho'?s winning\b|\bare we winning\b|\bam i winning\b|\bwho is losing\b|\bwho has the upper hand\b|\bhow goes the war\b"):
+    if has(r"\bwho (?:is|'s) winning\b|\bwho'?s winning\b|\bare we winning\b|\bam i winning\b|\bwho is losing\b|\bwho has the upper hand\b|\bhow goes the war\b"):
         return q("winning_war", first_court, "nation" if first_court else "board")
     if first_court and has(r"\baccept\b|\bagree to\b|\bsign\b|\bmake peace\b|\bterms\b|\bsue\b|\bcome to (?:terms|the table)\b|\bsettle\b|\bnegotiate\b|\btalk peace\b|\bopen to peace\b|\bready for peace\b") and has(
             r"\bwould\b|\bwill\b|\bcould\b|\bcan\b|\bis\b|\bare\b|\bwhat\b|\bready\b|\bopen\b|\blikely\b") and not has(
@@ -2440,7 +2436,7 @@ def _answer_unknown_name(world, question: Dict) -> str:
     word = str(question.get("subject") or "")
     nearest = str(question.get("nearest") or "")
     # The classifier is pure and sees only the rosters it was handed; a name
-    # the WORLD knows (a fallen marshal with the fallen lever down, a court
+    # the WORLD knows (a fallen marshal the rosters left out, a court
     # the parser did not list) is not "unknown" — the desk stands aside and
     # the router answers as it did before this slice.
     low = _norm(word)

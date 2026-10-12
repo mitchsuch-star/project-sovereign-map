@@ -35,13 +35,6 @@
   "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestCavalryIsNotParkedAgain::test_a_never_parked_horse_may_still_park_once"
  },
  {
-  "id": "r1_8/a a fortified corps is refused the march",
-  "file": "backend/commands/movement_executor.py",
-  "old": "        if FORTIFIED_CORPS_NEVER_MARCHES and getattr(marshal, 'fortified', False):",
-  "new": "        if False:",
-  "tests": "tests/test_fa_slice4r_the_board_reads_back_2026_09_04.py::TestAFortifiedCorpsNeverMarches::test_an_autonomous_move_of_a_fortified_corps_is_refused"
- },
- {
   "id": "r1_8/b the supply rung reads fortified",
   "file": "backend/ai/enemy_ai.py",
   "old": "                or (_fortified_corps_never_marches()\n                    and getattr(marshal, 'fortified', False)))",

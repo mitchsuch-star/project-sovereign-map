@@ -1,12 +1,5 @@
 [
   {
-    "id": "SR5B-2: never announced",
-    "file": "backend/commands/executor.py",
-    "old": "        if not AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE:\n            return",
-    "new": "        if True:\n            return",
-    "tests": "tests/test_sr5_quick_wins.py::TestTheOverrideNamesWhatItSetsAside"
-  },
-  {
     "id": "SR5B-2: a refusal is announced",
     "file": "backend/commands/executor.py",
     "old": "        if attack_was_refused(result):\n            return\n        world = (game_state or {})",

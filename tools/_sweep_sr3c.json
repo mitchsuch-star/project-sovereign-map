@@ -49,32 +49,11 @@
     "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections::test_the_geography_rides_the_board tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared"
   },
   {
-    "id": "SR-3c/IQ9-X1 the retry lever is down",
-    "file": "backend/commands/parser.py",
-    "old": "THE_RETRY_READS_THE_MARSHAL = True\n",
-    "new": "THE_RETRY_READS_THE_MARSHAL = False\n",
-    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheRetryReadsTheMarshal"
-  },
-  {
     "id": "SR-3c/IQ9-X1 the retry does not trust its reading",
     "file": "backend/commands/parser.py",
     "old": "                        game_state=game_state, trust_marshal_reading=True)\n",
     "new": "                        game_state=game_state)\n",
     "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheRetryReadsTheMarshal"
-  },
-  {
-    "id": "SR-3c/IQ9-X1 the word scan always runs",
-    "file": "backend/commands/parser.py",
-    "old": "            words = ([] if (trust_marshal_reading\n                            and THE_RETRY_READS_THE_MARSHAL)\n",
-    "new": "            words = ([] if (False\n                            and THE_RETRY_READS_THE_MARSHAL)\n",
-    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheRetryReadsTheMarshal"
-  },
-  {
-    "id": "SR-3c/IQ9-X3 the failure lever is down",
-    "file": "backend/commands/parser.py",
-    "old": "A_FAILURE_NAMES_ITS_ROAD = True\n",
-    "new": "A_FAILURE_NAMES_ITS_ROAD = False\n",
-    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestAFailureNamesItsRoad"
   },
   {
     "id": "SR-3c/IQ9-X3 a consulted retry is not named",

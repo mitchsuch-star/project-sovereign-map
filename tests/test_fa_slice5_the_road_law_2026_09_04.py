@@ -36,7 +36,6 @@ import contextlib
 import io
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 import backend.main as M
@@ -148,20 +147,6 @@ class TestIssuancePlotsTheLawfulRoad:
         assert "Westphalia" not in (reply.get("message") or "")
         assert world.actions_remaining == ap - 2
 
-    def test_the_lever_off_arm_reproduces_the_row(self, monkeypatch):
-        """FA-13 as filed: the road through Westphalia, 2 AP charged, Ney
-        standing still."""
-        monkeypatch.setattr(strategic_mod, "ROAD_LAW_AT_ISSUANCE", False)
-        world = _boot()
-        ney = _place(world, "Ney", "Flanders")
-        ap = world.actions_remaining
-        with _served(world) as client:
-            reply = _post(client, "Ney, march to Normandy")
-        assert reply.get("success") is True
-        assert ney.strategic_order.path[0] == "Westphalia"
-        assert ney.location == "Flanders"
-        assert world.actions_remaining == ap - 2
-
     def test_the_cautious_avoid_set_is_the_one_source(self, monkeypatch):
         """The issuance scan used to be an inline copy of the processor's
         fog-aware loop; it now reads `enemy_occupied_regions`, and a visible
@@ -244,17 +229,6 @@ class TestAClosedDestinationIsRefusedAtIssuance:
             assert reply.get("success") is False
             return reply.get("message")
         assert refusal(True) == refusal(False)
-
-    def test_the_lever_off_arm_accepts_and_charges(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "ROAD_LAW_AT_ISSUANCE", False)
-        world = _boot()
-        ney = world.get_marshal("Ney")
-        ap = world.actions_remaining
-        with _served(world) as client:
-            reply = _post(client, "Ney, march to Frankfurt")
-        assert reply.get("success") is True
-        assert ney.strategic_order is not None and ney.strategic_order.target == "Frankfurt"
-        assert world.actions_remaining == ap - 2
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -384,15 +358,6 @@ class TestHoldKeepsItsRoad:
         assert soult.strategic_order is not None
         assert soult.strategic_order.target == "Normandy"
 
-    def test_the_lever_off_arm_reproduces_the_row(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "HOLD_KEEPS_ITS_ROAD", False)
-        world = _boot()
-        soult = _place(world, "Soult", "Flanders")
-        soult.strategic_order = _order("HOLD", "Normandy", LAWFUL_ROAD)
-        report = _tick(world, soult)
-        assert report.get("order_status") == "breaks"
-        assert "Cannot reach Normandy" in report.get("message", "")
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-N12 — HOLD's issuance plots the lawful road and marches it
@@ -413,18 +378,6 @@ class TestHoldIssuanceObeysTheLaw:
         arrival = _tick(world, soult)
         assert soult.location == "Normandy"
         assert "arrives" in arrival.get("message", ""), arrival
-
-    def test_the_lever_off_arm_reproduces_the_row(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "ROAD_LAW_AT_ISSUANCE", False)
-        monkeypatch.setattr(strategic_mod, "HOLD_KEEPS_ITS_ROAD", False)
-        world = _boot()
-        soult = _place(world, "Soult", "Flanders")
-        with _served(world) as client:
-            _post(client, "Soult, hold Normandy")
-        assert soult.strategic_order.path[0] == "Westphalia"
-        report = _tick(world, soult)
-        assert report.get("order_status") == "breaks"
-        assert "Cannot reach Normandy" in report.get("message", "")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -493,19 +446,6 @@ class TestTheSupportStallSpeaks:
         assert "authorization" in message and "Davout's guns" in message
         assert soult.strategic_order is None
 
-    def test_the_lever_off_arm_re_stalls_forever(self, monkeypatch):
-        monkeypatch.setattr(strategic_mod, "SUPPORT_STALL_SPEAKS", False)
-        world = _boot()
-        ney = _place(world, "Ney", "Normandy")
-        _place(world, "Massena", "London")
-        _place(world, "Moore", "East Anglia")
-        self._support(world, "Ney", "Massena")
-        for _ in range(2):
-            report = _tick(world, ney)
-            assert report.get("order_status") == "error"
-            assert "could not move toward" in report.get("message", "")
-            assert ney.strategic_order is not None
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # A stale road never mints a new order
@@ -534,18 +474,6 @@ class TestAStaleRoadNeverMintsAnOrder:
         assert result.get("stale_road") is True
         assert ney.strategic_order is None
         assert ney.location == "Flanders"
-
-    def test_the_lever_off_arm_loses_the_destination(self, monkeypatch):
-        """The measured hazard: the auto-upgrade replaced 'march to Normandy'
-        with an order for Artois."""
-        monkeypatch.setattr(strategic_mod, "STALE_ROAD_REPLOTS", False)
-        monkeypatch.setattr(strategic_mod, "STRATEGIC_STEP_NEVER_UPGRADES", False)
-        world = _boot()
-        ney = _place(world, "Ney", "Flanders")
-        ney.strategic_order = _order("MOVE_TO", "Normandy", ["Artois", "Normandy"])
-        _tick(world, ney)
-        assert ney.strategic_order is not None
-        assert ney.strategic_order.target == "Artois"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -626,32 +554,13 @@ class TestTheReroutesObeyTheLaw:
 
 class TestOneSeam:
 
-    CASES = [("Ney", "Flanders", "Normandy"), ("Davout", "Flanders", "Normandy"),
-             ("Soult", "Lorraine", "Brunswick"), ("Mack", "Swabia", "Paris"),
-             ("Moore", "London", "Paris"), ("Davout", "Rhineland", "Vienna")]
-
-    def test_the_per_turn_helper_is_byte_identical_to_its_inline_copy(self, monkeypatch):
-        world = _boot()
-        proc = StrategicOrderProcessor(CommandExecutor())
-        for who, here, there in self.CASES:
-            marshal = _place(world, who, here)
-            arms = []
-            for lever in (True, False):
-                monkeypatch.setattr(strategic_mod, "ROAD_LAW_ONE_SEAM", lever)
-                arms.append((proc._get_personality_aware_path(marshal, there, world, use_weighted=True),
-                             proc._get_personality_aware_path(marshal, there, world, use_weighted=False)))
-            assert arms[0] == arms[1], (who, here, there, arms)
-            assert arms[0][0], (who, here, there)
-
-    def test_the_fog_scan_is_one_source(self, monkeypatch):
+    def test_the_fog_scan_is_one_source(self):
         world = _boot()
         davout = _place(world, "Davout", "Rhineland")
         _place(world, "Mack", "Brunswick", 5000)
         assert not world.get_visible_enemies_in_region("Brunswick", "France")
         proc = StrategicOrderProcessor(CommandExecutor())
-        monkeypatch.setattr(strategic_mod, "ROAD_LAW_ONE_SEAM", False)
         inline = proc._get_enemy_occupied_regions("France", world, marshal=davout)
-        monkeypatch.setattr(strategic_mod, "ROAD_LAW_ONE_SEAM", True)
         assert enemy_occupied_regions(world, "France", marshal=davout) == inline
         assert "Brunswick" not in inline
         assert "Brunswick" in enemy_occupied_regions(world, "France", fog_aware=False)
@@ -687,15 +596,3 @@ class TestTheSubstitutionNoteRidesTheRefusal:
         assert reply.get("success") is False
         assert "Cannot enter Lisbon" in message
         assert "Our maps read" in message, message
-
-
-@pytest.fixture(autouse=True)
-def _levers_at_default():
-    """Every lever on for every test unless a test flips it itself."""
-    names = ("ROAD_LAW_AT_ISSUANCE", "ROAD_LAW_ON_REPLOT", "ROAD_LAW_ONE_SEAM",
-             "HOLD_KEEPS_ITS_ROAD", "SUPPORT_STALL_SPEAKS", "STALE_ROAD_REPLOTS",
-             "STRATEGIC_STEP_NEVER_UPGRADES")
-    saved = {n: getattr(strategic_mod, n) for n in names}
-    yield
-    for n, v in saved.items():
-        setattr(strategic_mod, n, v)

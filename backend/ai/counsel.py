@@ -66,8 +66,8 @@ from backend.errors import report
 # DESK-2's counsel half: the levy line quoted the ledger's 654g for 10,000
 # where the order raised 3,000 for 647 — it reads `recruit_quote` now.
 # SF7-X3 (Score Finish Step 7 slice 3b): AAR-18's counsel half. The desk has
-# broken ground without a corps since AAR-18
-# (`question_desk.THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS`), but the counsel's
+# broken ground without a corps since AAR-18 (`question_desk`'s build
+# answer), but the counsel's
 # build line still looked only at a province with a corps on it — so with the
 # whole army abroad "what can I do" named nothing to buy against a chest of
 # 51,120 gold (CMD-H turn 30 on the field-read board). The executor's gate

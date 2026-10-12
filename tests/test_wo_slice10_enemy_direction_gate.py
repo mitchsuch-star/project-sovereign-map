@@ -196,18 +196,6 @@ class TestTheEnemySeam:
             f"unexpected survivors: {survivors}")
         del was
 
-    def test_the_lever_down_restores_the_collapse(self, ex, world, monkeypatch):
-        """The attribution lever must genuinely restore the old behaviour -
-        slice 9 shipped a lever whose own comment was false because a second
-        code path sat outside it. This drives the real seam both ways.
-
-        Killed by: freezing `ENEMY_DIRECTION_GATE_ACTIVE` at def time, or
-        by hard-coding `_correction_survives` to return False."""
-        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", False)
-        marshal, _ = ex._fuzzy_match_enemy("Gascony", world, "Austria")
-        assert marshal is not None and marshal.name == "Ney", (
-            "with the lever down the pre-slice collapse must return")
-
 
 # ══════════════════════════════════════════════════════════════════
 # 2. The freeze - the behaviour the seventeen ambient hits produced
@@ -251,25 +239,6 @@ class TestTheFrozenArmy:
         assert ney.location not in message, (
             f"the order was still redirected to Ney at {ney.location}: "
             f"{message}")
-
-    def test_with_the_lever_down_the_order_is_redirected_again(
-            self, monkeypatch):
-        """The measured defect, reproduced: the refusal names the province
-        and prints another man's province beside it.
-
-        Killed by: the same mutation as above (this arm proves the pin is
-        about the gate, not about the fixture)."""
-        world = _fresh_world()
-        with _suppress():
-            ex = CommandExecutor()
-        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", False)
-        marshal = _british_corps_at(world, "Bearn")
-        ney = world.get_marshal("Ney")
-        result = self._order(world, ex, marshal, "Gascony")
-        message = str(result.get("message") or "")
-        assert ney.location in message, (
-            "the pre-slice redirection did not reproduce; the fixture no "
-            f"longer exercises the defect. message={message!r}")
 
     def test_esp_ev_4_never_guarded_this_in_either_direction(self):
         """Why a gate was needed at all - and the claim is stronger than
@@ -365,31 +334,6 @@ class TestTheAbsorber:
         assert world.get_diplomatic_state("Prussia", "France") == "PEACE", (
             "a province name dragged Prussia into war with France")
 
-    def test_with_the_absorber_lever_down_the_war_is_declared_again(
-            self, monkeypatch):
-        """The re-route, demonstrated: gate the FIRST seam only and the
-        absorber takes over and starts the war anyway. This is why slice 10
-        gates both, and it is the eval's "gating :433 re-routes to :370"
-        claim reproduced on the real path.
-
-        Killed by: hard-coding `BROAD_DIPLOMATIC_GATE_ACTIVE` on."""
-        world = _fresh_world()
-        with _suppress():
-            ex = CommandExecutor()
-        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", True)
-        monkeypatch.setattr(EX, "BROAD_DIPLOMATIC_GATE_ACTIVE", False)
-        prussian = world.get_marshal("Brunswick")
-        prussian.location = world.get_marshal("Ney").location
-        with _suppress():
-            ex.execute({"command": {
-                "marshal": prussian.name, "action": "attack",
-                "target": "Gascony", "type": "specific"}},
-                {"world": world, "executor": ex})
-        assert world.get_diplomatic_state("Prussia", "France") == "WAR", (
-            "the re-route did not reproduce - the absorber is no longer "
-            "the path gate A falls into, and the two-gate argument needs "
-            "re-deriving")
-
     def test_a_plausible_typo_still_reaches_the_armistice_block(self):
         """What the absorber is FOR must survive: a mistyped name for a
         marshal the caller is not at war with still produces the
@@ -424,13 +368,6 @@ class TestTheFifthSeam:
         marshal, error = ex._fuzzy_match_marshal("Gascony", world)
         assert marshal is None, "a province still commands an army"
         assert "Did you mean" not in str(error.get("message"))
-
-    def test_the_marshal_seam_lever_restores_the_collapse(
-            self, ex, world, monkeypatch):
-        """Killed by: freezing `MARSHAL_DIRECTION_GATE_ACTIVE`."""
-        monkeypatch.setattr(EX, "MARSHAL_DIRECTION_GATE_ACTIVE", False)
-        marshal, _ = ex._fuzzy_match_marshal("Gascony", world)
-        assert marshal is not None and marshal.name == "Ney"
 
     def test_it_is_reachable_from_a_typed_order(self):
         """Not ceremony: the seam is what turns the marshal slot of a typed
@@ -480,7 +417,7 @@ class TestTheLegitimateCases:
         assert marshal is not None and marshal.name == "Kutuzov"
 
     def test_the_suggest_band_still_asks_about_a_visible_enemy(
-            self, ex, world, monkeypatch):
+            self, ex, world):
         """The medium-confidence arm never went through the WO-13 typo gate
         and must still ask.
 
@@ -500,12 +437,6 @@ class TestTheLegitimateCases:
         assert marshal is None
         assert gated.get("suggestion") == "Mack", gated
         assert "Did you mean 'Mack'?" in gated["message"]
-
-        # And the sharp half: the WO-13 gate touches the AUTO-CORRECT arm
-        # only, so the suggest band is byte-identical with the lever down.
-        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", False)
-        _, ungated = ask()
-        assert ungated == gated, (gated, ungated)
 
     def test_an_exact_armistice_target_still_blocks(self):
         """Killed by: gating `_check_diplomatic_block`'s exact lookup."""
@@ -687,70 +618,29 @@ class TestTheCensus:
         assert code.count("_correction_survives") == 4, (
             "expected one definition plus exactly three call sites")
 
-    def test_each_gate_has_its_own_lever(self):
-        """Three levers, not one, so the attribution can name which seam
-        moved the board.
+    def test_the_predicate_refuses_an_implausible_correction(self):
+        """Behaviour, not text: an implausible correction does not survive,
+        a plausible typo does.
 
-        Killed by: collapsing them into a single flag."""
-        code = _code_norm(_read(EXECUTOR_PY))
-        for lever in ("ENEMY_DIRECTION_GATE_ACTIVE",
-                      "BROAD_DIPLOMATIC_GATE_ACTIVE",
-                      "MARSHAL_DIRECTION_GATE_ACTIVE"):
-            assert f"{lever}=True" in code, f"{lever} is not set True"
-            assert code.count(lever) >= 2, (
-                f"{lever} is declared but never read")
-
-    def test_the_predicate_honours_its_lever(self):
-        """Behaviour, not text: with the lever down every correction
-        survives; with it up an implausible one does not.
-
-        Killed by: ignoring `gate_active` inside `_correction_survives`."""
-        assert EX._correction_survives("Gascony", "Ney", False) is True
-        assert EX._correction_survives("Gascony", "Ney", True) is False
-        assert EX._correction_survives("Kutuzof", "Kutuzov", True) is True
+        Killed by: making `_correction_survives` return a constant."""
+        assert EX._correction_survives("Gascony", "Ney") is False
+        assert EX._correction_survives("Kutuzof", "Kutuzov") is True
 
 
 # ══════════════════════════════════════════════════════════════════
 # 8. The harness - measured in a subprocess, never in-process
 # ══════════════════════════════════════════════════════════════════
 
-LEVER_NAMES = ("ENEMY_DIRECTION_GATE_ACTIVE", "BROAD_DIPLOMATIC_GATE_ACTIVE",
-               "MARSHAL_DIRECTION_GATE_ACTIVE")
+def _spawn(probe, marker):
+    """Run `probe` in a hash-pinned child (the shipped tree; the three WO-13
+    gate levers it once set in the child were retired in CODE-1 batch 6).
 
-_LEVER_PRELUDE = """
-import backend.commands.executor as _EX
-for _name, _flag in zip(
-        ("ENEMY_DIRECTION_GATE_ACTIVE", "BROAD_DIPLOMATIC_GATE_ACTIVE",
-         "MARSHAL_DIRECTION_GATE_ACTIVE"), sys.argv[1]):
-    setattr(_EX, _name, _flag == "1")
-"""
-
-
-def _spawn(probe, levers, marker):
-    """Run `probe` in a hash-pinned child with the three levers set.
-
-    THE LEVERS ARE SET IN THE CHILD, never by editing the source. The first
-    cut of this helper rewrote `backend/commands/executor.py` for each arm
-    and restored it afterwards, and that was wrong twice over:
-
-      * it silently NO-OPPED once the mutation sweep had touched the file,
-        because `pathlib.write_text` re-emits with `os.linesep`, the file
-        became CRLF, and every LF-anchored pattern missed. The "ungated" arm
-        then ran the shipped tree and the assertions compared the wrong
-        world.
-      * worse, and the reason it is gone rather than repaired: a test that
-        writes to a production source file makes the WHOLE SUITE unsafe to
-        run beside anything else. Measured, by accident: a concurrent reader
-        caught the file mid-arm and `test_threat_series_is_the_standing_
-        baseline` failed with the PRE-slice series.
-
-    Slice 9's `_rebellion_turn` had the right idiom already - set the module
-    global in the child - and this is it. It is equivalent because the seams
-    read their lever at CALL time, which the sweep pins directly (the three
-    "frozen at def time" mutations all kill).
-
-    The ATTRIBUTION EXPERIMENT in the landing record is a different thing and
-    did use real source edits, in a scratch driver, one arm at a time.
+    Never by editing the source: the first cut of this helper rewrote
+    `backend/commands/executor.py` for each arm and restored it afterwards,
+    and a test that writes to a production source file makes the WHOLE
+    SUITE unsafe to run beside anything else (a concurrent reader caught the
+    file mid-arm and `test_threat_series_is_the_standing_baseline` failed
+    with the PRE-slice series).
     """
     env = dict(os.environ)
     env.update(PYTHONHASHSEED="0", PYTHONPATH=str(REPO),
@@ -758,27 +648,19 @@ def _spawn(probe, levers, marker):
     env.pop("SOVEREIGN_SCENARIO", None)
     env.pop("SOVEREIGN_MAP", None)
     env.pop("PYTHONIOENCODING", None)
-    # STRICT, and the strictness is the point: the first cut took
-    # ("False", "False", "False") from the call sites and every non-empty
-    # string is truthy, so it set all three levers ON and reported the
-    # gated board as the "ungated" arm. An instrument must refuse to
-    # guess.
-    assert len(levers) == 3 and all(isinstance(v, bool) for v in levers), (
-        f"levers must be three booleans, got {levers!r}")
-    flags = "".join("1" if value else "0" for value in levers)
     proc = subprocess.run(
-        [sys.executable, "-c", "import sys\n" + _LEVER_PRELUDE + probe, flags],
+        [sys.executable, "-c", probe],
         env=env, cwd=str(REPO), capture_output=True, text=True, timeout=900)
     assert proc.returncode == 0, proc.stdout[-2000:] + proc.stderr[-2000:]
     return json.loads(proc.stdout.split(marker)[-1].splitlines()[0])
 
 
-def _run_ambient(levers):
-    """The 40-turn ambient board under a named lever configuration, in a
-    hash-pinned subprocess - the §5 discipline. An in-process run of the same
-    forty turns is not reproducible and is worthless for these claims (slice
-    9 measured turn 25 in-suite against 32 pinned)."""
-    return _spawn(_AMBIENT_PROBE, levers, "WO10=")
+def _run_ambient():
+    """The 40-turn ambient board, in a hash-pinned subprocess - the §5
+    discipline. An in-process run of the same forty turns is not
+    reproducible and is worthless for these claims (slice 9 measured turn 25
+    in-suite against 32 pinned)."""
+    return _spawn(_AMBIENT_PROBE, "WO10=")
 
 
 _AMBIENT_PROBE = r'''
@@ -903,35 +785,6 @@ class TestNoTestWritesToProductionSource:
         assert found and "VICTIM.write_bytes" in found[0], found
 
 
-class TestTheSpawnHelperCannotLie:
-    """The instrument that measures the arms must not be able to quietly
-    measure the wrong one. Both failures below actually happened."""
-
-    def test_it_refuses_string_flags(self):
-        """`("False", "False", "False")` set all three levers ON, because
-        every non-empty string is truthy - and the arms then compared the
-        gated board to itself.
-
-        Killed by: dropping the isinstance check in `_spawn`."""
-        with pytest.raises(AssertionError):
-            _spawn("print('WO10=' + '{}')", ("False",) * 3, "WO10=")
-
-    def test_the_child_actually_receives_the_levers(self):
-        """The prelude sets the module global in the CHILD; the seams read
-        it at call time. Proven by asking the child what it sees, rather
-        than by trusting the mechanism.
-
-        Killed by: deleting the prelude, or passing the flags wrongly."""
-        probe = ("import json\n"
-                 "print('WO10L=' + json.dumps([_EX.ENEMY_DIRECTION_GATE_ACTIVE,"
-                 " _EX.BROAD_DIPLOMATIC_GATE_ACTIVE,"
-                 " _EX.MARSHAL_DIRECTION_GATE_ACTIVE]))")
-        assert _spawn(probe, (False, True, False), "WO10L=") == [
-            False, True, False]
-        assert _spawn(probe, (True, True, True), "WO10L=") == [
-            True, True, True]
-
-
 class TestTheAmbientBoard:
     """The re-measured count the done-when hangs on. Slice 9 moved the
     board (Switzerland now rebels at 32, not 28), so the contract's "17x in
@@ -1030,384 +883,14 @@ class TestTheAmbientBoard:
     from the other side."""
 
     @pytest.fixture(scope="class")
-    def ungated(self):
-        return _run_ambient((False, False, False))
-
-    @pytest.fixture(scope="class")
     def gated(self):
-        return _run_ambient((True, True, True))
-
-    def test_the_ungated_board_collapses_seventeen_times(self, ungated):
-        """Killed by: nothing in this slice - it is the defect's own
-        measurement, and it fails when the board changes under it, which is
-        the warning the next slice needs."""
-        seams = {}
-        for name, _q, _m in ungated["hits"]:
-            seams[name] = seams.get(name, 0) + 1
-        # IQ-7 (September 16, 2026): `{"_fuzzy_match_enemy": 21}` ->
-        # 28 + 7 absorber hits, and every one of the fourteen new hits is
-        # Bavaria's Deroy ordering `attack Bern`, seven orders each recorded
-        # at both seams (see the class docstring). With the four IQ-7 vassal
-        # levers down, this arm reads exactly 21 and nothing else (measured).
-        # NUI-2 (September 24, 2026): 28 -> 40. Paget's turn-16 descent
-        # lands at Provence, not at a Flanders the map draws inland (the
-        # class docstring); Flanders' flag alone moves this arm (measured).
-        # Row EP F4 (September 24, 2026): 40+7 -> 39+6. The deed-keyed reward
-        # curve takes the AI's ambient grants from eight to none (F4's
-        # landing record), which re-times one attack on this UNGATED board;
-        # the gated board — the standing BASELINE_SERIES — is byte-identical.
-        # With the four F4 levers down in the child this arm reads 40+7
-        # again (measured, F4's landing record).
-        # Row EP F5 "Bohemia is not empty" (September 25, 2026): 39+6 -> 63+0.
-        # The walk-in cap re-times the UNGATED board from turn 7 (the
-        # BASELINE_SERIES attribution block): Bavaria's Deroy keeps his corps,
-        # Switzerland's war never reaches the canton, so the six absorber
-        # hits on `Bern` are gone; the collapses are all `Gascony`/
-        # `Champagne`/`Brittany` -> Ney and `Leon` -> Napoleon, off a France
-        # that is overrun earlier (the passive board, FA-D27's caveat). With
-        # the two F5 levers down in the child this arm reads 39+6 again
-        # (measured, `tools/_f5_wo10_attribution.py`).
-        # VP-R1 "The Road to Forty-Five" (September 25, 2026): 63 -> 64.
-        # The coast lever (a raiding party holds no homeland) re-times the
-        # UNGATED board from turn 8 (the BASELINE_SERIES attribution block):
-        # the raids that stripped France's interior are refused, France
-        # keeps more soil, and the AI's collapsing orders shift by one.
-        # With the three VP-R1 levers down in the child this arm reads 63
-        # again (`tools/_vpr1_series_arms.py`, arm 0 byte-identical).
-        # SR-5r RF-3 "The AI enacts" (September 27, 2026): 64 -> 57. The
-        # rival courts' laws re-time the UNGATED board from turn 8 (the
-        # BASELINE_SERIES attribution block), and the AI's orders name
-        # different French provinces on it (the pair split below). With
-        # `reforms.THE_AI_ENACTS` down in the child this arm reads 64 again
-        # (`tools/_rf3_wo_attribution.py`, measured).
-        # The AI drill fix (September 27, 2026): 57 -> 4. The reach gate
-        # re-times the UNGATED board from turn 6 (the BASELINE_SERIES
-        # attribution block); the AI's orders stop naming Champagne and Maine
-        # (the pair split below). With the five drill-fix levers down in the
-        # child this arm reads 57 again (`tools/_drill_fix_wo_attribution.py`, measured).
-        # SR-5a "The chest" (September 28, 2026): 4 -> 11. The ruled balance
-        # package (Britain up, France trimmed) re-times the UNGATED board
-        # from turn 5 (the BASELINE_SERIES attribution block: Britain's half
-        # is the sole mover). With the PRE-SLICE scenario swapped in the
-        # child this arm reads 4 again (`tools/_sr5a_wo_attribution.py`,
-        # measured).
-        # Score Finish Step 3 "Europe acts without France" (October 2, 2026):
-        # 11 -> 22 (+1 on the broad diplomatic seam). The balance block
-        # (RS-3, the AI's odds gate, the dither guard, one stance rule for
-        # drill, the committed split, dispersion, the Armed Peace) re-times
-        # the UNGATED board from turn 13 (the BASELINE_SERIES attribution
-        # block). With the thirteen Step-3 levers down in the child this arm
-        # reads 11 again (`tools/_step3_wo_attribution.py`, measured).
-        # SR-7d "The Doctrines" (October 3, 2026): the five doctrines, in force
-        # from turn 1, re-time the UNGATED board from index 13 (the
-        # BASELINE_SERIES attribution block, `tools/_sr7d_series_arms.py`).
-        # With the eight SR-7d levers down in the child this arm reads the
-        # Step-3 figure again (`tools/_sr7d_wo_attribution.py`, measured).
-        # SF-LB-2 (October 3, 2026): unchanged at 32 — the Prussian campaign
-        # names no province that collapses onto a marshal
-        # (`tools/_sf_lb2_wo_attribution.py`, measured both arms).
-        # SF-LB-2b (October 3, 2026): unchanged at 32 on both arms
-        # (`tools/_sf_lb2b_wo_attribution.py`, measured).
-        # VD-C "The Contingent" (Score Finish Step 5, October 4, 2026):
-        # 32 -> 22. The boot satellites' contingents re-time the UNGATED
-        # board from index 6 (the BASELINE_SERIES attribution block): the
-        # Kingdom of Italy falls at turn 6 and the AI's collapsing orders
-        # name Gascony again. With every VD-C lever down in the child the SF-LB-2b figure returns (`tools/_vdc_wo_attribution.py`, measured).
-        # §6 row 16 "the coordination is read on the field" (Score Finish Step 7, October 4, 2026): 22 -> 7. The field read re-times the UNGATED board from
-        # index 10 (40 / 40 / 47 where the VD-C board read 27 / 24 / 29): the
-        # AI's lone attacks from next door lose the coordination their
-        # friends at the origin lent them, and the orders that collapsed onto
-        # Ney at Gascony are never given. With both field-read levers down in
-        # the child the VD-C figure returns (`tools/_coord_field_wo_attribution.py`, measured).
-        # The economy audit (October 5, 2026): 7 -> 14. The audit's fourteen
-        # levers (the subsidies on the books, trade as a treaty, the System
-        # taxing trade that exists, the satellite's own books, the arrears,
-        # the market's keep, the AI's purse, the league declaring in its own
-        # right) re-time the UNGATED board from index 22: France is pressed
-        # harder late, and the AI's orders name `Leon` and `Champagne` more
-        # often. With every audit lever down in the child the field read's
-        # figure returns (`tools/_econ_audit_wo_attribution.py`, measured).
-        # The economy gate (October 5, 2026): 14 -> 9. The march reading the
-        # lawful road (EAD-7) re-times the UNGATED board from index 10; the
-        # AI's orders stop naming `Champagne`. With every gate lever down in
-        # the child the economy audit's figure returns
-        # (`tools/_econ_gate_wo_attribution.py`, measured).
-        assert seams == {"_fuzzy_match_enemy": 9}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 -> 32 -> 22 -> 7 -> 14 -> 9 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package), Step 3 (the balance block), SR-7d (the doctrines), VD-C (the contingents), §6 row 16 (the field read), the economy audit, the economy gate
-
-    def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
-        """Records WHICH provinces AND the split, so the shape cannot drift
-        back to the overstated one: six `Leon -> Napoleon` and eleven
-        `Gascony -> Ney`, spanning turns 6-27 in two phases.
-
-        Killed by: nothing in this slice - it pins the defect's measured
-        shape, and it fails when the board changes under it, which is the
-        warning the next slice needs."""
-        from collections import Counter
-        pairs = Counter((q, m) for _s, q, m in ungated["hits"])
-        # IQ-7 (September 16, 2026): `Bern -> Bernadotte` joins, 14 = seven
-        # refused Bavarian orders on the canton, each counted at the enemy
-        # seam and at the absorber it delegates to. It is a province collapsing
-        # onto a marshal, the same defect on a fourth name: `Bern` was one of
-        # the twelve boot collisions the WO-13 record names ("`Bern` ->
-        # Bernadotte ... at a full 100"). The ambient board had not pressed
-        # it until IQ-7 put a war on Switzerland. The original three pairs
-        # are unchanged.
-        # NUI-2 (September 24, 2026): the board forks at Paget's turn-16
-        # landing (Provence, not Flanders). `Bern` still collapses fourteen
-        # times, but onto Brunswick: Bernadotte is Austria's prisoner by
-        # turn 25, when the orders start. `Champagne` and `Maine` return.
-        # Reverting Flanders' flag alone restores 3 + 13 + 5 + 14 (measured).
-        # Row EP F4 (September 24, 2026): the ungated board re-times under
-        # the deed-keyed reward curve (no AI grants): `Guyenne -> Ney`'s four
-        # orders are gone, `Gascony -> Ney` 14 -> 18, `Bern -> Brunswick`
-        # 14 -> 12; the other three pairs are unchanged.
-        # Row EP F5 "Bohemia is not empty" (September 25, 2026): the ungated
-        # board re-times under the walk-in cap — `Bern -> Brunswick` and
-        # `Maine -> Ney` are gone, `Champagne -> Ney` 9 -> 31, `Gascony ->
-        # Ney` 18 -> 24, `Leon -> Napoleon` 3 -> 7, and `Brittany -> Ney`
-        # collapses once. Every pair is still a PROVINCE collapsing onto a
-        # marshal — the defect's shape, unchanged. With the two F5 levers
-        # down in the child the EP-F4 split returns (measured,
-        # `tools/_f5_wo10_attribution.py`).
-        # VP-R1 "The Road to Forty-Five" (September 25, 2026): the ungated
-        # board re-times under the coast lever — `Gascony -> Ney` 24 -> 23,
-        # `Champagne -> Ney` 31 -> 33; the other two pairs are unchanged.
-        # Every pair is still a PROVINCE collapsing onto a marshal — the
-        # defect's shape, unchanged. With the three VP-R1 levers down in the
-        # child the EP-F5 split returns (`tools/_vpr1_series_arms.py`).
-        # SR-5r RF-3 "The AI enacts" (September 27, 2026): the ungated board
-        # re-times under the rival courts' laws — `Gascony -> Ney` and
-        # `Brittany -> Ney` are gone, `Maine -> Ney` returns (22),
-        # `Champagne -> Ney` 33 -> 32, `Leon -> Napoleon` 7 -> 3. Every pair
-        # is still a PROVINCE collapsing onto a marshal — the defect's shape,
-        # unchanged. With `reforms.THE_AI_ENACTS` down in the child the
-        # VP-R1 split returns (`tools/_rf3_wo_attribution.py`, measured).
-        # The AI drill fix (September 27, 2026): the ungated board re-times
-        # under the reach gate — `Champagne -> Ney` and `Maine -> Ney` are
-        # gone, `Leon -> Napoleon` 3 -> 4. Every pair is still a PROVINCE
-        # collapsing onto a marshal — the defect's shape, unchanged. With the
-        # five drill-fix levers down in the child the RF-3 split returns
-        # (`tools/_drill_fix_wo_attribution.py`, measured).
-        # SR-5a "The chest" (September 28, 2026): the ungated board re-times
-        # under the ruled balance package — `Champagne -> Ney` returns (8),
-        # `Leon -> Napoleon` 4 -> 3. Every pair is still a PROVINCE
-        # collapsing onto a marshal — the defect's shape, unchanged. With the
-        # pre-slice scenario swapped in the child the drill-fix split returns
-        # (`tools/_sr5a_wo_attribution.py`, measured).
-        # Score Finish Step 3 (October 2, 2026): the ungated board re-times
-        # under the balance block — `Gascony -> Ney` returns (12) and
-        # `Bern -> Brunswick` (2) joins, `Champagne -> Ney` 8 -> 6. Every pair
-        # is still a PROVINCE collapsing onto a marshal — the defect's shape,
-        # unchanged. With the thirteen Step-3 levers down in the child the
-        # SR-5a split returns (`tools/_step3_wo_attribution.py`, measured).
-        # SR-7d "The Doctrines" (October 3, 2026): the five doctrines, in force
-        # from turn 1, re-time the UNGATED board from index 13 (the
-        # BASELINE_SERIES attribution block, `tools/_sr7d_series_arms.py`).
-        # With the eight SR-7d levers down in the child this split returns to the
-        # Step-3 figure again (`tools/_sr7d_wo_attribution.py`, measured).
-        # VD-C "The Contingent" (Score Finish Step 5, October 4, 2026): the
-        # ungated board re-times under the contingents — `Maine -> Ney` is
-        # gone, `Champagne -> Ney` 20 -> 2, `Gascony -> Ney` returns (16) and
-        # `Guyenne -> Ney` (1) joins; `Leon -> Napoleon` holds at 3. Every
-        # pair is still a PROVINCE collapsing onto a marshal — the defect's
-        # shape, unchanged. With every VD-C lever down in the child the SF-LB-2b figure returns (`tools/_vdc_wo_attribution.py`, measured).
-        # §6 row 16 "the coordination is read on the field" (Score Finish Step 7, October 4, 2026): `Gascony -> Ney` and `Guyenne -> Ney` are gone,
-        # `Champagne -> Ney` 2 -> 4, `Leon -> Napoleon` holds at 3 — still
-        # every pair a PROVINCE collapsing onto a marshal, the defect's shape.
-        # With both field-read levers down in the child the VD-C split
-        # returns (`tools/_coord_field_wo_attribution.py`, measured).
-        # The economy audit (October 5, 2026): `Champagne -> Ney` 4 -> 5,
-        # `Leon -> Napoleon` 3 -> 9 — still every pair a PROVINCE collapsing
-        # onto a marshal, the defect's shape. With every audit lever down in
-        # the child the field read's split returns
-        # (`tools/_econ_audit_wo_attribution.py`, measured).
-        # The economy gate (October 5, 2026): `Champagne -> Ney` 5 -> 0,
-        # `Leon -> Napoleon` holds at 9 — still every pair a PROVINCE
-        # collapsing onto a marshal, the defect's shape. With every gate lever
-        # down in the child the economy audit's split returns
-        # (`tools/_econ_gate_wo_attribution.py`, measured).
-        assert dict(pairs) == {("Leon", "Napoleon"): 9}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 -> 2+6+12+3 -> 20+3+9 -> 2+16+1+3 -> 4+3 -> 5+9 -> 9 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a, Step 3, SR-7d, VD-C, §6 row 16, the economy audit, the economy gate
+        return _run_ambient()
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
 
         Killed by: deleting any of the three gates."""
         assert gated["hits"] == [], gated["hits"]
-
-    def test_the_ungated_arm_reproduces_the_prior_series(self, ungated):
-        """Attribution arm 0. The levers are honest: with all three down
-        the board reproduces the series recorded BEFORE this slice,
-        byte-for-byte.
-
-        Killed by: a change to the gates that is not actually behind the
-        levers - the exact shape of slice 9's shipped P2.
-
-        Re-recorded by FA slice 2 (September 4, 2026): that slice's own
-        levers changed the board from index [29] on (its attribution is in
-        `test_ai_intent_threat_migration.py`), so "the series before THIS
-        slice" is now the pre-WO-10 series AS IT RUNS ON THE SLICE-2 BOARD
-        — indices [0]-[28] were byte-identical to the original record.
-
-        Re-recorded again by the slice-2 REVIEW ROUND (September 4, 2026):
-        the braked-corps hold forks this arm at index [28] (68, was 69);
-        indices [0]-[27] were byte-identical to the original record.
-
-        Re-recorded again by FA slice 4 (September 4, 2026): the AI
-        board-reading fixes fork EVERY arm at index [4], so "the series
-        before THIS slice" is now the pre-WO-10 configuration AS IT RUNS ON
-        THE SLICE-4 BOARD, and the byte-identity this pin can still prove
-        against the original record is indices [0]-[3]. What it proves
-        beyond that is the levers' honesty in the other direction: the
-        gated arm (below) equals the standing BASELINE_SERIES exactly.
-
-        Re-recorded again by FA slice 14 part 2d (September 6, 2026):
-        `ELIMINATION_RELIEVES_THE_LORD` grants France a one-off -10 when
-        KingdomOfItaly is eliminated out of its web at world turn 10, which
-        forks BOTH arms at index [10] (here 58 -> 48). The gated arm's own
-        fork is recorded in `test_ai_intent_threat_migration.py` with a
-        six-arm attribution; this list is the same change seen from the
-        ungated side, and indices [0]-[9] are byte-identical to the previous
-        record.
-
-        Re-recorded again by FA slice 17 Phase 2 (September 11, 2026): the
-        engaged-bodies casualty pool and the adjacent-muster price fork EVERY
-        arm at index [5] (68 -> 60), so this list is the pre-WO-10
-        configuration AS IT RUNS ON THE PHASE-2 BOARD; indices [0]-[4] are
-        byte-identical to the original record, and the gated arm below still
-        equals the standing BASELINE_SERIES exactly (its own six-arm
-        attribution is in `test_ai_intent_threat_migration.py`).
-
-        Re-recorded again by FA slice 17 Phase 2b (September 11, 2026): the
-        boot war's purpose (FA-D4) and the enemy's one-turn wait (FA-S2-D1)
-        fork this arm at index [18] (57 -> 58); indices [0]-[17] are
-        byte-identical to the Phase-2 record, and the gated arm below still
-        equals the standing BASELINE_SERIES exactly (seven-arm attribution
-        in `test_ai_intent_threat_migration.py`).
-
-        Re-recorded again by FA slice 17 Phase 3 (September 11, 2026): the
-        AI's contact list is built in MAP order (FA-S17-2 — it was the
-        process hash seed's order), which forks EVERY seeded arm at index
-        [7], the first battle-affected reading; indices [0]-[6] are
-        byte-identical to every prior record, and the gated arm below still
-        equals the standing BASELINE_SERIES exactly.
-
-        Re-recorded again by IQ-7 "The Satellites Have a Position"
-        (September 16, 2026). The unanswered petitions (a lapse is a
-        refusal) bring Switzerland's rebellion forward on this arm too: it
-        goes VASSAL -> WAR at turn 24. With the IQ-7 levers down, it
-        transfers to Austria at turn 31 (event stamp) with no war. Its
-        `vassal_rebellion` -10 forks this list at index [23] (18 -> 8); the
-        tail then meets the floor at [26], three readings earlier.
-        Indices [0]-[22] are byte-identical to the Phase 3 record. With the
-        four IQ-7 vassal levers set down in a hash-pinned child, this arm
-        reproduces the Phase 3 list byte-for-byte (measured). The gated arm
-        below equals the re-recorded BASELINE_SERIES (the four-arm
-        attribution is in `test_ai_intent_threat_migration.py`).
-
-        Re-recorded again by NUI-2 "The Fleet Rides at Anchor" (September
-        24, 2026). Flanders' coastal flag was corrected, and Paget's
-        turn-16 descent on this arm now lands at Provence, not Flanders.
-        The list forks at index [17] (36 -> 35); indices [0]-[16] are
-        byte-identical to the IQ-7 record. Reverting Flanders' flag alone,
-        in a hash-pinned child, reproduces the IQ-7 list byte-for-byte
-        (measured). The other two flags and the three moved dockyards are
-        inert on this arm. The gated arm below still equals the standing
-        BASELINE_SERIES, which NUI-2 did not re-record."""
-        # Phase 3 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
-        #  36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, ...]
-        # IQ-7 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
-        #  36, 33, 30, 27, 24, 21, 8, 5, 2, 0, 0, ...]
-        # NUI-2 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
-        #  35, 32, 29, 26, 23, 20, 7, 0, 0, ...]
-        # Re-recorded by row EP F5 "Bohemia is not empty" (September 25,
-        # 2026): the walk-in cap re-times this arm from index [7] exactly as
-        # it re-times the gated one (the BASELINE_SERIES attribution block) —
-        # the Kingdom of Italy leaves France's web at world turn 8 on both
-        # boards now. With the two F5 levers down in the child the NUI-2 list
-        # returns byte-for-byte (measured, `tools/_f5_wo10_attribution.py`).
-        # EP F5 / VP-R1 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 46, 44, 41, 38, 35, 22, 19, 16, 13, 10,
-        #  7, 4, 1, 0, 0, ...]
-        # Re-recorded by SR-5r RF-3 "The AI enacts" (September 27, 2026): the
-        # rival courts' laws re-time this arm from index [7] exactly as they
-        # re-time the gated one (the BASELINE_SERIES attribution block). With
-        # `reforms.THE_AI_ENACTS` down in the child the EP F5 / VP-R1 list
-        # returns byte-for-byte (measured, `tools/_rf3_wo_attribution.py`).
-        # RF-3 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 49, 46, 43, 40, 27, 24, 21,
-        #  18, 15, 12, 9, 6, 3, 0, 0, ...]
-        # Re-recorded by the AI drill fix (September 27, 2026): the reach gate
-        # re-times this arm from index [5] exactly as it re-times the gated
-        # one (the BASELINE_SERIES attribution block). With the five drill-fix
-        # levers down in the child the RF-3 list returns byte-for-byte
-        # (`tools/_drill_fix_wo_attribution.py`, measured).
-        # Drill-fix record, kept for the diff:
-        # [70, 68, 66, 64, 62, 63, 61, 59, 57, 55, 53, 51, 49, 47, 45, 43, 41,
-        #  29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0, 0, ...]
-        # Re-recorded by SR-5a "The chest" (September 28, 2026): the ruled
-        # balance package re-times this arm from index [5] exactly as it
-        # re-times the gated one (the BASELINE_SERIES attribution block).
-        # With the pre-slice scenario swapped in the child the drill-fix list
-        # returns byte-for-byte (`tools/_sr5a_wo_attribution.py`, measured).
-        # SR-5a record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
-        #  36, 34, 32, 30, 7, 4, 1, 0, 0, ...]
-        # Re-recorded by Score Finish Step 3 (October 2, 2026): the balance
-        # block re-times this arm from index [13] exactly as it re-times the
-        # gated one (the BASELINE_SERIES attribution block). With the thirteen
-        # Step-3 levers down in the child the SR-5a list returns
-        # byte-for-byte (`tools/_step3_wo_attribution.py`, measured).
-        # Step 3 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14,
-        #  11, 8, 5, 2, 0, 0, ...]
-        # Re-recorded by SR-7d "The Doctrines" (October 3, 2026): the five
-        # doctrines re-time this arm from index [13] (the BASELINE_SERIES
-        # attribution block). With the eight SR-7d levers down in the child the
-        # Step-3 list returns byte-for-byte (`tools/_sr7d_wo_attribution.py`).
-        # SR-7d record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): Prussia takes
-        # Hanover (turns 11–14), re-timing the board from index 15 ungated /
-        # 21 gated (the BASELINE_SERIES attribution block). With the five
-        # SF-LB-2 levers down in the child this arm reads the SR-7d figure
-        # again (`tools/_sf_lb2_wo_attribution.py`, measured).
-        # SF-LB-2 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 29, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        # SF-LB-2b "The Chest the Council Can Spend" (October 3, 2026): the
-        # crisis opens on turn 5 (was 9) and the war runs 9–12 (was 11–14),
-        # re-timing this arm from index 15 — on the UNGATED board the earlier
-        # war happens to land the list on the SR-7d figures again (a
-        # coincidence of the alarm's arithmetic, not a reversion: the gated
-        # arm is the BASELINE_SERIES, which moved at [21]). With the SF-LB-2b
-        # lever down in the child the SF-LB-2 record above returns byte for
-        # byte (`tools/_sf_lb2b_wo_attribution.py`, measured).
-        # VD-C "The Contingent" (Score Finish Step 5, October 4, 2026): the
-        # contingents re-time this arm from index 6, as they do the gated one
-        # (the BASELINE_SERIES attribution block). With every VD-C lever down in the child the SF-LB-2b figure returns (`tools/_vdc_wo_attribution.py`, measured).
-        # VD-C record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 27, 24, 29, 34, 31, 28, 25, 22, 19, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        # §6 row 16 "the coordination is read on the field" (Score Finish Step 7, October 4, 2026): the field read re-times this arm from index 10 (the gated
-        # arm, the BASELINE_SERIES, moves from index 6). With both field-read
-        # levers down in the child the VD-C record above returns byte for
-        # byte (`tools/_coord_field_wo_attribution.py`, measured).
-        # §6 row 16 record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 40, 47, 47, 44, 41, 38, 35, 22, 22, 19, 16, 23, 20, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        # The economy audit (October 5, 2026): the audit's fourteen levers
-        # re-time this arm from index 22 (the gated arm, the BASELINE_SERIES,
-        # moves from index 18 — its attribution block). With every audit lever
-        # down in the child the §6 row 16 record above returns byte for byte
-        # (`tools/_econ_audit_wo_attribution.py`, measured).
-        # Economy audit record, kept for the diff:
-        # [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 40, 47, 47, 44, 41, 38, 35, 22, 22, 19, 16, 23, 28, 28, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0]
-        # The economy gate (October 5, 2026): the march reading the lawful
-        # road (EAD-7) re-times this arm from index 10 (the gated arm, the
-        # BASELINE_SERIES, moves from index 18 — its attribution block). With
-        # every gate lever down in the child the economy audit's record above
-        # returns byte for byte (`tools/_econ_gate_wo_attribution.py`, measured).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 37, 34, 31, 28, 30, 27, 14, 16, 13, 10, 12, 9, 6, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1460,21 +943,6 @@ class TestTheContractsThirty:
             if marshal is not None:
                 resolved[name] = marshal.name
         assert resolved == {"Brunswick": "Brunswick"}, resolved
-
-    def test_the_lever_down_restores_the_other_two(
-            self, ex, world, monkeypatch):
-        """Killed by: freezing the lever. Records WHICH two: `Bern` reached
-        Brunswick (Bernadotte is French, so he is not on the player's
-        candidate list and the ladder fell through to the Prussian at 75)
-        and `Rome` reached Armfelt of Sweden."""
-        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", False)
-        resolved = {}
-        for name in sorted(world.regions):
-            marshal, _ = ex._fuzzy_match_enemy(name, world, None)
-            if marshal is not None:
-                resolved[name] = marshal.name
-        assert resolved == {"Bern": "Brunswick", "Brunswick": "Brunswick",
-                            "Rome": "Armfelt"}, resolved
 
     def test_the_suggest_band_clarifies_only_about_what_we_can_see(
             self, ex, world):
@@ -1946,7 +1414,7 @@ class TestTheValidatorRule:
         assert any("'Gascony' is also a province" in w.message
                    for w in result.warnings), [w.message for w in result.warnings]
 
-    def test_the_bench_collapse_is_closed_at_runtime_too(self, monkeypatch):
+    def test_the_bench_collapse_is_closed_at_runtime_too(self):
         """`Oran -> Shrapnel` (75) is the THIRTEENTH collapse, contributed by
         the commissionable bench rather than the board — the case the whole
         validator section exists for.
@@ -1968,9 +1436,6 @@ class TestTheValidatorRule:
             strength=8000, personality="cautious")
         assert ex._fuzzy_match_enemy("Oran", world, "France")[0] is None
         assert ex._fuzzy_match_marshal("Oran", world)[0] is None
-        monkeypatch.setattr(EX, "ENEMY_DIRECTION_GATE_ACTIVE", False)
-        recovered, _ = ex._fuzzy_match_enemy("Oran", world, "France")
-        assert recovered is not None and recovered.name == "Shrapnel"
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1992,17 +1457,9 @@ class TestTheAiIsNotFrozenInstead:
 
     @pytest.fixture(scope="class")
     def cooldowns(self):
-        return {label: _run_ambient_cooldowns(levers)
-                for label, levers in (("ungated", (False,) * 3),
-                                      ("gated", (True,) * 3))}
+        return {"gated": _run_ambient_cooldowns()}
 
-    def test_the_gate_does_not_increase_failed_action_cooldowns(self, cooldowns):
-        """Killed by: a gate that refuses instead of falling through to the
-        region - the fall-through at `combat_executor.py` is what keeps this
-        number down."""
-        assert cooldowns["gated"] <= cooldowns["ungated"], cooldowns
-
-    def test_it_measurably_decreases_them(self, cooldowns):
+    def test_the_gated_count_is_recorded(self, cooldowns):
         """Recorded as a number so a future change that quietly re-freezes
         the AI shows up here: 31 -> 11 on the shipped board.
 
@@ -2134,7 +1591,6 @@ class TestTheAiIsNotFrozenInstead:
         # road re-times the ungated board from index 10; its collapses are
         # again the whole ungated count. With every gate lever down in the
         # child the economy audit's figure returns (`tools/_econ_gate_wo_attribution.py`, measured).
-        assert cooldowns["ungated"] == 10, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 -> 32 -> 22 -> 7 -> 14 -> 10 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; Step 3: the balance block; SR-7d: the doctrines; VD-C: the contingents; §6 row 16: the field read; the economy audit; the economy gate)
         assert cooldowns["gated"] == 1, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit)
 
 
@@ -2163,8 +1619,8 @@ print("WO10C=" + json.dumps({"writes": writes[0]}))
 '''
 
 
-def _run_ambient_cooldowns(levers):
-    return _spawn(_COOLDOWN_PROBE, levers, "WO10C=")["writes"]
+def _run_ambient_cooldowns():
+    return _spawn(_COOLDOWN_PROBE, "WO10C=")["writes"]
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -2349,16 +1805,6 @@ class TestTheTranspositionResidue:
             marshal, error = ex._fuzzy_match_marshal(typo, world)
             assert marshal is None, typo
             assert error.get("suggestion") == real, (typo, error)
-
-    def test_the_gate_is_what_refuses_them(self, ex, world, monkeypatch):
-        """The other half: with the lever down they resolve silently again,
-        so the demotion is answering a real refusal rather than decorating
-        one that never happens.
-
-        Killed by: freezing `MARSHAL_DIRECTION_GATE_ACTIVE`."""
-        monkeypatch.setattr(EX, "MARSHAL_DIRECTION_GATE_ACTIVE", False)
-        marshal, _ = ex._fuzzy_match_marshal("Solut", world)
-        assert marshal is not None and marshal.name == "Soult"
 
 
 # ══════════════════════════════════════════════════════════════════

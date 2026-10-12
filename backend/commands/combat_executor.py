@@ -1760,9 +1760,6 @@ class CombatExecutor:
         the defender's stack only where we see him at FULL. Every figure is
         the single source's own (`get_attack_modifier` /
         `get_defense_modifier`, consume=False). '' when nothing hurts."""
-        from backend.commands.objection_v2 import THE_BAND_WEIGHS_THE_STANDING_MODIFIERS
-        if not THE_BAND_WEIGHS_THE_STANDING_MODIFIERS:
-            return ""
         from backend.display_names import humanize_entity_name
         from backend.models.intel import FULL
         from backend.models.marshal import Stance
@@ -6635,9 +6632,7 @@ class CombatExecutor:
                 # 0 AP, logged the order and then deleted it as "Assault
                 # failed". An order-driven attack that finds its man out of
                 # reach is a refusal, in the refusal's own shape.
-                from backend.commands.strategic import ANSWERED_CONTACT_READS_THE_BOARD
-                if (enemy_by_name and ANSWERED_CONTACT_READS_THE_BOARD
-                        and (command or {}).get("_strategic_execution")):
+                if (enemy_by_name and (command or {}).get("_strategic_execution")):
                     return {
                         "success": False,
                         "out_of_reach": True,
@@ -8693,16 +8688,13 @@ class CombatExecutor:
         # NOW clear strategic orders for arrived reinforcements (A-C2 step 5).
         # Deferred to here so Hostile+SUPPORT marshals participate in
         # relationship checks above (W-1 fix, Session 62 post-review).
-        from backend.commands.strategic import (
-            A_MARCH_KEEPS_ITS_TAIL as _KEEP_TAIL,
-        )
         _kept_order_names = []   # SR-2e AAR-10: the player's, for the reply
         for _side_idx, results_list in enumerate(
                 [attacker_reinforcements, defender_reinforcements]):
             for result in results_list:
                 if result["arrived"]:
                     arriving = world.marshals.get(result["marshal"])
-                    if (arriving and _KEEP_TAIL
+                    if (arriving
                             and arriving.strategic_order is not None):
                         # SR-2e AAR-10: a march keeps its tail. The path was
                         # emptied at arrival and is re-plotted from wherever
@@ -10141,9 +10133,9 @@ class CombatExecutor:
         # minted is read HERE too. `charge` is not in the executor's objection
         # list, so the retreat block that refuses `attack` never ran for it,
         # and a beaten reckless cavalryman charged onto a province and took
-        # it. Same refusal shape as the tactical attack's; same lever.
-        from backend.commands.movement_executor import RECOVERING_CORPS_TAKES_NO_GROUND
-        if RECOVERING_CORPS_TAKES_NO_GROUND and marshal.in_retreat_recovery():
+        # it. Same refusal shape as the tactical attack's; same rule (a
+        # recovering corps takes no ground).
+        if marshal.in_retreat_recovery():
             return {
                 "success": False,
                 "message": (f"{marshal.name} is recovering from retreat and cannot "

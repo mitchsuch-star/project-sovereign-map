@@ -91,13 +91,6 @@ class TestSomebodyElsesRetreatIsNotAnOrderToRetreat:
         objected = "object" in str(data.get("message", "")).lower()
         assert moved or objected, data.get("message")
 
-    def test_the_lever_down_reproduces_the_retreat(self, monkeypatch):
-        monkeypatch.setattr(LC, "THE_RETREAT_NOUN_TAKES_A_POSSESSIVE", False)
-        assert LC._retreat_is_a_noun("lannes, cut off mack's line of retreat") is False
-        assert LC._retreat_is_a_noun("davout, cover ney's retreat") is False
-        # the pre-slice determiners still read as a noun with the lever down
-        assert LC._retreat_is_a_noun("davout, cover the retreat") is True
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SF-CMD-2's head (Score Finish Step 7, October 4, 2026) — CQ-33 and

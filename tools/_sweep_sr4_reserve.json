@@ -42,13 +42,6 @@
     "tests": "tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_insist_road_is_free_and_said tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_ai_takes_its_blow_free_too"
   },
   {
-    "id": "AAR24-X3 lever down (the marshal-only read)",
-    "file": "backend/commands/objection_v2.py",
-    "old": "THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES = True\n",
-    "new": "THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES = False\n",
-    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_good_odds_raise_no_objection"
-  },
-  {
     "id": "AAR24-X3 the garrison's visibility is not read",
     "file": "backend/commands/objection_v2.py",
     "old": "        if kind == \"garrison\":\n            return _get_region_visibility(\n                engaged.name, getattr(marshal, 'nation', 'France'), world)",
@@ -89,13 +82,6 @@
     "old": "                                    marshal, action, command, concern, tone,\n                                    world=world)",
     "new": "                                    marshal, action, command, concern, tone)",
     "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_bad_odds_name_the_price_at_full"
-  },
-  {
-    "id": "AAR32-D1 lever down (the folded 1.0 line)",
-    "file": "backend/commands/objection_v2.py",
-    "old": "THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS = True\n",
-    "new": "THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS = False\n",
-    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine::test_one_folded_ratio_two_verdicts"
   },
   {
     "id": "AAR32-D1 the line at 1.0",

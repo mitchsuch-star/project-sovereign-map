@@ -93,18 +93,6 @@ class TestTheLetterIsAnsweredPlainly:
         assert DR.match_dialogue_answer(LETTER, "accept it, shall we") is None
         assert DR.match_dialogue_answer(LETTER, "accept it, will we") is None
 
-    def test_the_statement_order_rule_stands_without_the_question_guard(self, monkeypatch):
-        """The question guard is sited first and catches every inverted
-        auxiliary, so the closed grammar's own statement-order rule is
-        DEFENCE IN DEPTH (measured INERT with the guard up). With the guard
-        lowered it alone refuses the inversion — and admits the statement."""
-        monkeypatch.setattr(DR, "A_QUESTION_NEVER_ANSWERS", False)
-        for line in ("shall we accept", "will we accept the offer",
-                     "accept it, shall we", "do we accept"):
-            assert DR.match_dialogue_answer(LETTER, line) is None, line
-        for line in ("we shall accept", "we do accept", "do accept"):
-            assert DR.match_dialogue_answer(LETTER, line) == "accept", line
-
     def test_a_negation_is_no_answer_word(self):
         """FA-N2 through the allowlist: `not`, `never`, `no`, `without` are
         admitted only inside a self-negating answer phrase."""
@@ -119,11 +107,6 @@ class TestTheLetterIsAnsweredPlainly:
         for line in ("decline to reject it", "refuse to decline the offer",
                      "decline to refuse it"):
             assert DR.match_dialogue_answer(LETTER, line) is None, line
-
-    @pytest.mark.parametrize("line", DEFERRALS[:5])
-    def test_the_lever_down_signs(self, line, monkeypatch):
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)
-        assert DR.match_dialogue_answer(LETTER, line.lower()) is not None, line
 
 
 class TestEveryFamilyIsReadClosed:
@@ -158,15 +141,10 @@ class TestEveryFamilyIsReadClosed:
         assert DR.match_dialogue_answer(counter, "accept") is not None
         assert DR.match_dialogue_answer(counter, "accept later") is None
 
-    def test_the_client_petition_keeps_its_own_grammar(self):
-        """A client petition is still read by `petition_plain_answer`."""
-        assert DR.AN_ANSWER_IS_READ_CLOSED is True
-        assert DR.A_PETITION_IS_ANSWERED_PLAINLY is True
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # At the wire
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 @pytest.fixture
 def shipped(monkeypatch):
@@ -289,14 +267,10 @@ class TestTheObjectionAnswerIsPlain:
         assert DR.objection_answer_is_plain(
             line.lower(), answer, ["Davout", "Ney", "Mack"]) is plain, line
 
-    def test_the_lever_down_takes_any_line(self, monkeypatch):
-        monkeypatch.setattr(DR, "AN_OBJECTION_ANSWER_IS_READ_CLOSED", False)
-        assert DR.objection_answer_is_plain("trust him tomorrow", "trust") is True
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # What the families taught the grammar (each a pinned positive kept)
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 PICKER = {"type": "proposal_options", "target_nation": "Prussia",
           "options": [{"label": "Prussia", "action": "expand_options",
@@ -347,7 +321,7 @@ class TestWhatTheFamiliesTaughtIt:
             BREAK_CONFIRM, "proceed and break the treaty later") is None
         assert DR.match_dialogue_answer(BREAK_CONFIRM, "reconsider") == "reconsider"
 
-    def test_a_court_the_label_names_is_part_of_the_answer(self, monkeypatch):
+    def test_a_court_the_label_names_is_part_of_the_answer(self):
         """The families census's one loss, caught before landing: the
         commitment paradox's labels NAME the courts, and blanking `with
         Bavaria` as an addressee slot left "Honor alliance with Bavaria"
@@ -357,8 +331,6 @@ class TestWhatTheFamiliesTaughtIt:
         assert DR.match_dialogue_answer(PARADOX, "side with austria") == "side with austria"
         assert DR.match_dialogue_answer(
             PARADOX, "honor the alliance with bavaria later") is None
-        monkeypatch.setattr(DR, "A_LABEL_COURT_IS_THE_ANSWER", False)
-        assert DR.match_dialogue_answer(PARADOX, "honor alliance with bavaria") is None
 
     def test_gibberish_is_not_told_it_deferred(self):
         assert not DR.closed_line_tried_to_answer(LETTER, "xyznonsense")
@@ -378,16 +350,6 @@ class TestTheRouterSeam:
         data = post(client, "if we accept prussia's offer")
         assert world.get_diplomatic_state("France", "Portugal") == before
         assert "would be delivered to" in str(data.get("message") or ""), data.get("message")
-
-    def test_the_lever_down_keeps_the_old_router(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)
-        letter = _deliver_portugal(world)
-        if letter is None:
-            pytest.skip("the delivery road refused the staged letter")
-        before = world.get_diplomatic_state("France", "Portugal")
-        post(client, "accept the offer later")
-        assert world.get_diplomatic_state("France", "Portugal") != before
 
 
 class TestTheObjectionAtTheWire:
@@ -419,8 +381,3 @@ class TestTheObjectionAtTheWire:
         post(client, "I trust him")
         assert world.pending_objection is None
 
-    def test_the_lever_down_answers_the_deferred_line(self, objecting, monkeypatch):
-        client, world = objecting
-        monkeypatch.setattr(DR, "AN_OBJECTION_ANSWER_IS_READ_CLOSED", False)
-        post(client, "trust him tomorrow")
-        assert world.pending_objection is None

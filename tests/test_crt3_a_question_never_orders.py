@@ -210,14 +210,6 @@ class TestACourtsQuestionReachesTheAdvisory:
                 or ordered.get("diplomatic_dialogue")
                 or "mission" in message or "court" in message), ordered.get("message")
 
-    def test_the_lever_down_reproduces_the_chooser(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(LC, "THE_CABINET_READS_THE_SHARED_QUESTION", False)
-        post(client, "why not declare war on Prussia")
-        dtype = (world.pending_diplomatic_dialogue or {}).get("type")
-        assert dtype == "war_purpose_selection", (
-            "the exit's reading: a question staged the war-purpose chooser")
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # CXR1-2 — the tail stands the subject arms down only on an order verb
@@ -257,12 +249,6 @@ class TestTheTailStandsDownOnlyOnAnOrder:
         assert CG.is_question("should Mack advance, fortify the line",
                               _subjects(world)) is False
 
-    def test_the_lever_down_reproduces_the_battle_road(self, shipped, monkeypatch):
-        _, world = shipped
-        monkeypatch.setattr(CG, "THE_TAIL_STANDS_DOWN_ONLY_ON_AN_ORDER", False)
-        assert CG.is_question("can Ney attack Mack, Berthier",
-                              _subjects(world)) is False
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # CXR1-4 — a hedge is a question
@@ -299,11 +285,6 @@ class TestAHedgeIsNotAnOrder:
         _, world = shipped
         assert CG.is_question("Ney, attack Mack, perhaps with Davout in support",
                               _subjects(world)) is False
-
-    def test_the_lever_down_reproduces_the_keel(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(CG, "A_HEDGE_IS_NOT_AN_ORDER", False)
-        assert CG.is_question("perhaps build ships", _subjects(world)) is False
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -373,11 +354,6 @@ class TestALeadingRunHidesNoQuestion:
             assert CG.never_an_address(word) is True, word
             assert CG.address_of(f"{word}, why not defend", ["Ney"]) is None
 
-    def test_the_lever_down_reproduces_the_defend(self, shipped, monkeypatch):
-        _, world = shipped
-        monkeypatch.setattr(CG, "A_LEADING_RUN_HIDES_NO_QUESTION", False)
-        assert CG.is_question("hmm why not defend", _subjects(world)) is False
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # L2-7b — a court is a subject
@@ -417,20 +393,12 @@ class TestACourtIsASubject:
         _, world = shipped
         assert CG.is_question(utterance, _subjects(world)) is True
 
-    def test_the_article_strip_is_load_bearing(self, shipped, monkeypatch):
+    def test_the_article_strip_is_load_bearing(self, shipped):
         _, world = shipped
         subjects = _subjects(world)
         assert CG.is_question("could the Prussians attack Mack", subjects) is True
-        monkeypatch.setattr(CG, "A_COURT_IS_A_SUBJECT", False)
-        assert CG.is_question("could the Prussians attack Mack", subjects) is False
-        assert CG.is_question("can the Austrians hold Vienna", subjects) is False
 
     def test_a_polite_order_to_the_addressee_still_marches(self, shipped):
         """`can you attack Mack` is the polite imperative — unchanged."""
         _, world = shipped
         assert CG.is_question("can you attack Mack", _subjects(world)) is False
-
-    def test_the_lever_down_reproduces_the_battle(self, shipped, monkeypatch):
-        _, world = shipped
-        monkeypatch.setattr(CG, "A_COURT_IS_A_SUBJECT", False)
-        assert CG.is_question("can Bavaria attack Mack", _subjects(world)) is False

@@ -303,29 +303,11 @@ class TestTheDeskIsReachedNotShadowed:
 
 class TestTheLever:
 
-    def test_the_lever_exists_and_is_on(self):
-        assert CG.A_QUESTION_NEVER_ORDERS is True
-
-    def test_the_false_arm_reproduces_the_defect(self):
-        """The house rule: a lever's False arm reproduces today's behaviour.
-
-        Here "today" is the DEFECT, so the arm is asserted by making the
-        predicate read the way it read before the slice.
-        """
-        original = CG.A_QUESTION_NEVER_ORDERS
-        try:
-            CG.A_QUESTION_NEVER_ORDERS = False
-            assert CG.is_question("why not attack Mack") is False
-            assert CG.is_question("what about attack Mack") is False
-            assert CG.is_question("retreat?") is False
-            assert CG.is_question("can Ney attack Mack", ["Ney"]) is False
-            CG.A_QUESTION_NEVER_ORDERS = True
-            assert CG.is_question("why not attack Mack") is True
-            assert CG.is_question("what about attack Mack") is True
-            assert CG.is_question("retreat?") is True
-            assert CG.is_question("can Ney attack Mack", ["Ney"]) is True
-        finally:
-            CG.A_QUESTION_NEVER_ORDERS = original
+    def test_the_rule_reads_the_question(self):
+        assert CG.is_question("why not attack Mack") is True
+        assert CG.is_question("what about attack Mack") is True
+        assert CG.is_question("retreat?") is True
+        assert CG.is_question("can Ney attack Mack", ["Ney"]) is True
 
     def test_the_roster_arm_is_dormant_without_a_roster(self):
         """`subjects` omitted — every caller outside the parse chain — leaves
@@ -368,40 +350,30 @@ class TestTheLever:
 
 
 class TestTheCorpusDoesNotMove:
-    """447 golden-corpus entries over both worlds, under BOTH arms of the
-    lever. The slice claims it moves zero rows; this measures it rather than
-    asserting it."""
+    """447 golden-corpus entries over both worlds. The slice claims it moves
+    zero rows; this measures it rather than asserting it."""
 
-    def test_zero_rows_move_under_either_arm(self):
+    def test_zero_rows_move(self):
         from backend.ai.parser_eval import (
             load_corpus, build_world, build_llm_game_state, worlds_for_entry,
             evaluate_entry)
         from backend.commands.parser import CommandParser
 
         entries = [e for e in load_corpus()["entries"] if not e.get("live_only")]
-        results = {}
-        original = CG.A_QUESTION_NEVER_ORDERS
-        try:
-            for arm in (False, True):
-                CG.A_QUESTION_NEVER_ORDERS = arm
-                with _quiet():
-                    worlds = {k: build_world(k) for k in ("legacy", "1805")}
-                    states = {k: build_llm_game_state(w)
-                              for k, w in worlds.items()}
-                    parser = CommandParser(use_real_llm=False)
-                    failures = set()
-                    for entry in entries:
-                        for world_key in worlds_for_entry(entry):
-                            if evaluate_entry(parser, entry, world_key,
-                                              worlds[world_key],
-                                              states[world_key]):
-                                failures.add((entry["id"], world_key))
-                results[arm] = failures
-        finally:
-            CG.A_QUESTION_NEVER_ORDERS = original
+        with _quiet():
+            worlds = {k: build_world(k) for k in ("legacy", "1805")}
+            states = {k: build_llm_game_state(w)
+                      for k, w in worlds.items()}
+            parser = CommandParser(use_real_llm=False)
+            failures = set()
+            for entry in entries:
+                for world_key in worlds_for_entry(entry):
+                    if evaluate_entry(parser, entry, world_key,
+                                      worlds[world_key],
+                                      states[world_key]):
+                        failures.add((entry["id"], world_key))
 
-        assert results[False] == set(), sorted(results[False])
-        assert results[True] == set(), sorted(results[True])
+        assert failures == set(), sorted(failures)
 
 
 class TestTheSweep:
@@ -746,11 +718,9 @@ class TestTheRetreatIsSometimesANoun:
 
     @pytest.mark.parametrize("utterance", SOMEBODY_ELSES)
     def test_the_noun_rule_is_what_holds_it(self, utterance):
-        """CX5-L5-F6: binds — with the noun rule down every row reads as his
-        own retreat again."""
+        """CX5-L5-F6: binds — the noun rule keeps every row from reading as
+        his own retreat."""
         assert self._verb(utterance) != "retreat", utterance
-        assert self._verb(utterance, A_RETREAT_CAN_BE_A_NOUN=False) == "retreat", (
-            "lever off = the defect reproduces", utterance)
 
     @pytest.mark.parametrize("utterance,guard", HELD_ELSEWHERE)
     def test_a_row_another_guard_holds_names_that_guard(self, utterance, guard):
@@ -761,7 +731,6 @@ class TestTheRetreatIsSometimesANoun:
         from backend.ai.llm_client import _mentions_screening_idiom
         body = utterance.split(", ", 1)[1].lower()
         assert self._verb(utterance) != "retreat", utterance
-        assert self._verb(utterance, A_RETREAT_CAN_BE_A_NOUN=False) != "retreat", utterance
         if guard == "pursuit":
             # the mock chain's pursuit branch reads it as the attack
             assert _re.search(r"\b(pursue|chase|hunt|intercept|harry|hound|shadow)\b", body)
@@ -775,8 +744,6 @@ class TestTheRetreatIsSometimesANoun:
         still keeps him from his own retreat."""
         assert self._verb(self.RIDDEN_DOWN) == "attack"
         assert self._verb(self.RIDDEN_DOWN, A_FOE_IS_RIDDEN_DOWN=False) != "retreat"
-        assert self._verb(self.RIDDEN_DOWN, A_FOE_IS_RIDDEN_DOWN=False,
-                          A_RETREAT_CAN_BE_A_NOUN=False) == "retreat"
 
     @pytest.mark.parametrize("utterance", HIS_OWN)
     def test_a_real_retreat_still_retreats(self, utterance):
@@ -808,9 +775,7 @@ class TestTheRetreatIsSometimesANoun:
         fight!'" — which is the defect reproducing, correctly, in a shape
         the assertion could not recognise. The lever governs the PARSE, and
         the parse is deterministic."""
-        from backend.ai import llm_client as LC
         from backend.commands.parser import CommandParser
-        assert LC.A_RETREAT_CAN_BE_A_NOUN is True
         world, _client = _fresh_board()
         parser = CommandParser(use_real_llm=False)
         utterance = "Ney, cut down the retreat"
@@ -822,17 +787,8 @@ class TestTheRetreatIsSometimesANoun:
                     or result.get("action")
                     or result.get("partial_action"))
 
-        original = LC.A_RETREAT_CAN_BE_A_NOUN
-        try:
-            with _quiet():
-                on = parser.parse(utterance, {"world": world})
-            LC.A_RETREAT_CAN_BE_A_NOUN = False
-            with _quiet():
-                off = parser.parse(utterance, {"world": world})
-        finally:
-            LC.A_RETREAT_CAN_BE_A_NOUN = original
-        assert verb(off) == "retreat", (
-            "lever off = the defect reproduces", verb(off))
+        with _quiet():
+            on = parser.parse(utterance, {"world": world})
         assert verb(on) != "retreat", verb(on)
 
     def test_the_four_screening_verbs_are_still_covered_by_their_own_guard(self):

@@ -1,19 +1,5 @@
 [
   {
-    "id": "CRT1-1 the vocabulary lever down",
-    "file": "backend/ai/clause_guards.py",
-    "old": "WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER = True",
-    "new": "WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER = False",
-    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeIndefiniteIsAProhibition tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeContractionIsANegation tests/test_crt1_what_the_sentence_forbids.py::TestTheNegatedAnswerSignsNothing"
-  },
-  {
-    "id": "CRT1-2 the reason lever down",
-    "file": "backend/ai/clause_guards.py",
-    "old": "THE_REASON_IS_NOT_THE_ORDER = True",
-    "new": "THE_REASON_IS_NOT_THE_ORDER = False",
-    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheReasonIsNotTheOrder tests/test_crt1_what_the_sentence_forbids.py::TestTheThirdPartysRetreatIsNotOurs"
-  },
-  {
     "id": "CRT1-3 the vocative comma is not consumed",
     "file": "backend/ai/clause_guards.py",
     "old": "            if comma and comma.end() > scan_from and \",\" in comma.group(0):",

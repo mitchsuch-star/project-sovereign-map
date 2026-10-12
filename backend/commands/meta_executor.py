@@ -48,8 +48,8 @@ def collapse_turn_end_fields(world) -> Dict:
     event (this one and the executor.py auto-advance twin) — one helper, so
     the two banners cannot disagree. `collapse_line` is the one source's
     summary ("" while the realm stands); `provinces_held` is the realm's
-    count. Sandbox worlds only, and absent with the collapse lever down, so
-    the legacy event dict stays byte-identical."""
+    count. Sandbox worlds only, so the legacy event dict stays
+    byte-identical."""
     from backend.game_logic import collapse
     if not getattr(world, "sandbox_mode", False):
         return {}
@@ -156,14 +156,12 @@ def _resolve_cheat_name(raw_name: str, valid_names) -> str | None:
 
 
 # ── IQ-4 "The Cabinet Is Visible" — the help names the missions ──
-# Flip lever: False = the help without the missions entry (master 7bbf82b8).
 # The entry teaches the DOOR (F1, a court, its mission row) and never a typed
 # mission verb: `main.gd` `_redirect_diplomatic_command` sends those to the
 # Cabinet, so teaching them would teach a dead route. Every figure is read
 # at call time from the tick's own helpers (`mission_effect_text`,
 # `MISSION_DP_COSTS`), so a skill-5 diplomat reads +4 where Talleyrand's 10
 # reads +8.
-MISSION_HELP_BLOCK = True
 _MISSIONS_HELP_ANCHOR = "[Request Terms] to make the enemy name a price.\n"
 
 # PB-2 (the release build, Sept 23 2026): spliced into `help` only when debug
@@ -1180,12 +1178,11 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
 
         # IQ-4 S3g: the missions, spliced after the `war terms` entry of the
         # Cabinet block — every figure the tick's own, read at call time.
-        if MISSION_HELP_BLOCK:
-            _world = game_state.get("world") if isinstance(game_state, dict) else None
-            if _world is not None:
-                help_text = help_text.replace(
-                    _MISSIONS_HELP_ANCHOR,
-                    _MISSIONS_HELP_ANCHOR + _missions_help_block(_world), 1)
+        _world = game_state.get("world") if isinstance(game_state, dict) else None
+        if _world is not None:
+            help_text = help_text.replace(
+                _MISSIONS_HELP_ANCHOR,
+                _MISSIONS_HELP_ANCHOR + _missions_help_block(_world), 1)
 
         return {
             "success": True,

@@ -77,13 +77,6 @@
     "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_manner_is_not_a_place tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_clause_after_the_province_ends_it"
   },
   {
-    "id": "SR-3b/CRT-2 CQ-29 the recruit re-read is skipped",
-    "file": "backend/commands/economy_executor.py",
-    "old": "        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED and not marshal_specified\n",
-    "new": "        if (False and not marshal_specified\n",
-    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced"
-  },
-  {
     "id": "SR-3b/CRT-2 CQ-29 the reading is not disclosed",
     "file": "backend/commands/economy_executor.py",
     "old": "        note = destination_grounding_note(raw_text, region.name)\n",
@@ -96,20 +89,6 @@
     "old": "            result = self._economy._execute_recruit(\n                command, game_state,\n                raw_text=parsed_command.get(\"raw_input\") or \"\")\n",
     "new": "            result = self._economy._execute_recruit(\n                command, game_state,\n                raw_text=\"\")\n",
     "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_read_province_that_succeeds_discloses_the_reading"
-  },
-  {
-    "id": "SR-3b/CRT-2 CQ-29 the build re-read is skipped",
-    "file": "backend/commands/economy_executor.py",
-    "old": "        # the name as typed (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED\n",
-    "new": "        # the name as typed (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (False\n",
-    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround"
-  },
-  {
-    "id": "SR-3b/CRT-2 CQ-29 the repair re-read refuses unknown instead of the matcher",
-    "file": "backend/commands/economy_executor.py",
-    "old": "        # CRT-2 / CQ-29 (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED\n",
-    "new": "        # CRT-2 / CQ-29 (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (False\n",
-    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround"
   },
   {
     "id": "SR-3b/CRT-2 rider a generic hold discloses a reading again",
@@ -130,13 +109,6 @@
     "file": "backend/commands/parser.py",
     "old": "                        result[\"target_placed_by_the_game\"] = bool(\n                            strategic.get(\"target_placed_by_the_game\"))\n",
     "new": "                        result[\"target_placed_by_the_game\"] = False\n",
-    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAHoldTheGamePlacedReadsNoName"
-  },
-  {
-    "id": "SR-3b/CRT-2 rider the executor ignores the mark",
-    "file": "backend/commands/strategic_executor.py",
-    "old": "                   + (\"\" if (THE_DEFAULT_HOLD_READS_NO_NAME\n                             and _hold_placed_by_the_game)\n",
-    "new": "                   + (\"\" if (THE_DEFAULT_HOLD_READS_NO_NAME\n                             and False)\n",
     "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAHoldTheGamePlacedReadsNoName"
   }
 ]

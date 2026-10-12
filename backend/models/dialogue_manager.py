@@ -34,20 +34,17 @@ def _nation_display(source: str) -> str:
     return display_nation(str(source or ""))
 
 
-# FA slice 10 flip levers.
-# FA-17 / FA-N44: a counter-offer and a commitment paradox displace MAIL to
-# reach the player. False restores the plain `push` (queue behind anything).
-MOUNT_OVER_MAIL_ACTIVE = True
-# FA-N44: the commitment paradox survives the stale sweep. False restores the
-# pre-slice-10 behaviour (a crisis the player never saw is deleted silently).
-PARADOX_SURVIVES_THE_STALE_SWEEP = True
+# FA slice 10.
+# FA-17 / FA-N44: a counter-offer and a commitment paradox mount over MAIL to
+# reach the player (a plain `push` queued them behind anything).
+# FA-N44: the commitment paradox survives the stale sweep (before slice 10,
+# a crisis the player never saw was deleted silently).
 PARADOX_DIALOGUE_TYPES = frozenset({"commitment_paradox", "alliance_paradox"})
 
 
-# PC15-10 B3 flip lever (spec §4 F6, W7): `open_flow` keeps a displaced
-# HYBRID dialogue (a vassal rebellion, the sabotage reckoning) in the
-# queue instead of destroying it. False = only mail survives a new flow.
-HYBRIDS_SURVIVE_A_NEW_FLOW = True
+# PC15-10 B3 — hybrids survive a new flow (spec §4 F6, W7): `open_flow`
+# keeps a displaced HYBRID dialogue (a vassal rebellion, the sabotage
+# reckoning) in the queue instead of destroying it, as it keeps mail.
 
 
 # S5-4 (Score Finish Step 7 slice 7, October 4, 2026): at its cap the
@@ -355,8 +352,7 @@ class DialogueManager:
         # record stayed `discovered` forever with no reckoning). It is kept
         # in the queue now, and returns when the new flow resolves.
         displaced_is_hybrid = (
-            HYBRIDS_SURVIVE_A_NEW_FLOW
-            and previous is not None
+            previous is not None
             and previous.get("type", "") in self.HYBRID_SOFT_STOP_TYPES
             and dialogue.get("type", "") not in self.HYBRID_SOFT_STOP_TYPES
         )
@@ -824,8 +820,7 @@ class DialogueManager:
                 # `mount_over_mail` it now reaches the slot on arrival, so
                 # this is defence in depth — the only way to queue is behind
                 # ANOTHER hard stop, which blocks play until answered.
-                if (PARADOX_SURVIVES_THE_STALE_SWEEP
-                        and q_type in PARADOX_DIALOGUE_TYPES):
+                if (q_type in PARADOX_DIALOGUE_TYPES):
                     kept.append(queued)
                     continue
                 q_created = queued.get("turn_created", 0)

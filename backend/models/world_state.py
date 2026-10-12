@@ -12236,13 +12236,7 @@ class WorldState:
                 # it never claimed the slot, never got a popup, and lapsed at
                 # the next end turn with no player-side cooldown: 3 DP a turn,
                 # spent on a question whose answer never arrived as a modal.
-                from backend.models.dialogue_manager import (
-                    MOUNT_OVER_MAIL_ACTIVE,
-                )
-                if MOUNT_OVER_MAIL_ACTIVE:
-                    self.dialogue_manager.mount_over_mail(counter_dialogue)
-                else:
-                    self.dialogue_manager.push(counter_dialogue)
+                self.dialogue_manager.mount_over_mail(counter_dialogue)
                 # Aug 30, 2026 review: the un-rewritten sibling of the IGR-F
                 # conditional write. `push` makes a dialogue current only when
                 # NOTHING is current, so on a turn that already carries a
@@ -14334,14 +14328,13 @@ class WorldState:
         # standing question, the cooldown and non-player nations all return
         # None — so the pass is a census, not a second channel.
         from backend.commands.disobedience import (
-            REDEMPTION_NET_ACTIVE, stage_redemption)
-        if REDEMPTION_NET_ACTIVE:
-            for marshal in self.marshals.values():
-                if marshal.nation != self.player_nation:
-                    continue
-                if not hasattr(marshal, "trust") or marshal.trust.value > 20:
-                    continue
-                stage_redemption(self, marshal, events=warnings)
+            stage_redemption)
+        for marshal in self.marshals.values():
+            if marshal.nation != self.player_nation:
+                continue
+            if not hasattr(marshal, "trust") or marshal.trust.value > 20:
+                continue
+            stage_redemption(self, marshal, events=warnings)
 
         return warnings
 

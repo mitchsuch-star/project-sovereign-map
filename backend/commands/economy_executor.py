@@ -57,9 +57,8 @@ def region_has_friendly_supply(region) -> bool:
 # the ledger's "The depots are open" line and the region panel advertised
 # "10,000 foot cost 450 gold at Paris" while the executor answered "We do not
 # control Paris, Your Majesty. Recruitment is impossible there." One predicate
-# now, read by both. Flip lever: False restores the headroom/pool/recipient
-# gate and the pre-IQ-2 dict (no `capital_held` / `closed_reason` keys).
-LEVY_READS_THE_DEPOT_GATE = True
+# now, read by both: the levy reads the depot gate (and the status carries
+# `capital_held` / `closed_reason`).
 
 # IQ-2 review round (economy lens — pre-existing, found beside the fix): the
 # status prices an INFANTRY levy ("10,000 foot for 450g") but `_execute_recruit`
@@ -68,8 +67,7 @@ LEVY_READS_THE_DEPOT_GATE = True
 # OPEN while the executor refused ("our cavalry reserves are insufficient");
 # with the pool full it would have raised 5,000 horse at the cavalry price.
 # The status is open only when the levy it describes is the one the executor
-# would make. Flip lever: False = the arm-blind gate.
-LEVY_NAMES_ITS_RECIPIENT_ARM = True
+# would make: the levy names its recipient's arm.
 
 RECRUIT_GATE_NOT_CONTROLLED = "not_controlled"
 RECRUIT_GATE_UNREST = "unrest"
@@ -105,23 +103,20 @@ def depot_closed_reason(world, region_name: str, region, gate: Optional[str]) ->
 
 
 # ── IQ-1 SW-1 "The Substitute Market" ───────────────────────────────────
-# Flip lever. False = the verb refuses, the AI rung never fires, and the
-# board is the pre-slice board.
-THE_SUBSTITUTE_MARKET_IS_OPEN = True
+# The market is open: the verb buys, and the AI rung buys too.
 
 # SR-5a (September 28, 2026): `buy substitutes in <province>` means the
 # infantry marshal of ours standing there, and a refusal is a sentence —
-# never the fuzzy matcher's error dict stuffed into `message`. Flip lever.
-THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES = True
+# never the fuzzy matcher's error dict stuffed into `message`.
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# IQ-1 IQ1-3 "The Granary and the Alarm" — flip levers
+# IQ-1 IQ1-3 "The Granary and the Alarm"
 # ═══════════════════════════════════════════════════════════════════════
 
 # IQ1-3A: substitutes are received on soil that FEEDS us, not only on soil
-# we own. False restores the bare `region.controller != acting_nation` at
-# both seams, byte-identical.
+# we own — the levy feeds on ally soil (the bare
+# `region.controller != acting_nation` test was the gate at both seams).
 #
 # WHY: `_execute_purchase_levy` refused on ownership while
 # `world_state._supply_multiplier` — the engine's own supply DECISION, landed
@@ -142,17 +137,16 @@ THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES = True
 # NON_AGGRESSION and OPEN_BORDERS hosts still refuse, for free and by
 # construction: neither state is in ALLY_SUPPLY_STATES. That is the Ansbach
 # line PC15-D2's own comment draws.
-LEVY_FEEDS_ON_ALLY_SOIL = True
 
 # IQ1-3A2: a host's magazines feed your battalion; its TREASURY does not
-# subsidise your recruiting. False restores the foreign capital discount.
+# subsidise your recruiting: the levy pays the host's price, never the
+# foreign capital discount.
 #
 # `_calculate_recruit_cost` never read `region.controller`, so its 25%
 # `region_type == "capital"` discount became newly REACHABLE on an ally's
 # capital the moment IQ1-3A opened the gate. Measured at Munich: a full
 # batch for 4,959 gold = 165 g per 1,000 men, against the same arm's dearest
 # at 1,074. Suppressing it moved receipts 65,916 → 67,572 for identical men.
-LEVY_PAYS_THE_HOSTS_PRICE = True
 
 # AAR-30 (Score Mandate Chunk 2 reserve, Sept 26 2026): the capital
 # discount is OURS only. `region_type == "capital"` is true of every
@@ -162,21 +156,19 @@ LEVY_PAYS_THE_HOSTS_PRICE = True
 # needs the province to be the recruiting nation's OWN authored capital
 # (`get_nation_capital`), for the AI through the same pricer (GR5).
 # `nation=None` (the legacy direct-call sites) keeps the region-type
-# rule. False restores it everywhere.
-THE_CAPITAL_DISCOUNT_IS_OURS_ONLY = True
+# rule.
 
 
 def capital_is_the_nations_own(region, world, nation) -> bool:
     """AAR-30: is this capital-type province `nation`'s own seat?"""
-    if not THE_CAPITAL_DISCOUNT_IS_OURS_ONLY or not nation:
+    if not nation:
         return True
     getter = getattr(world, "get_nation_capital", None)
     own = getter(nation) if callable(getter) else None
     return bool(own) and own == getattr(region, "name", None)
 
-# IQ1-3B: bought men are not punished twice. False writes the bare
-# LEVY_MORALE_BASE and prints no warning; every existing levy pin is
-# byte-identical.
+# IQ1-3B: bought men are not punished twice — the arrival morale mirrors
+# the draft's rung at the premium, and the receipt warns at the rout line.
 #
 # The DESIGNED premium is `LEVY_MORALE_PREMIUM` — 15 points below a draft.
 # But the purchase path wrote a FLAT LEVY_MORALE_BASE while the draft path
@@ -185,11 +177,9 @@ def capital_is_the_nations_own(region, world, nation) -> bool:
 # counterweight a player can already BUY was silently void for substitutes.
 # The rungs are mirrored at the premium, never at an absolute — see
 # `substitute_arrival_morale`.
-THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE = True
 
 # IQ1-3C: the alarm prices the levy — §0.2's own words, "priced by the threat
-# the player's own success creates". False = the bare `levy_substitute_price`,
-# byte-identical on every board.
+# the player's own success creates".
 #
 # ⚠ RULED — FOR USER CONFIRMATION: a new multiplier on a blessed price.
 # Boot-DORMANT by construction on every seed, not by one measurement: the
@@ -203,14 +193,12 @@ THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE = True
 # every recruit price in the game and red blessed pins. So a France that
 # ignores the substitute market pays no alarm — deliberate for this slice,
 # and an honest question left on the row for the econ owner.
-THE_ALARM_PRICES_THE_LEVY = True
 
 # The threat at which the alarm begins. The authored band's own ceiling, so
 # a seeded boot is always exactly ×1.00.
 LEVY_ALARM_ANCHOR = 75
 
 # IQ1-3D rider 1: the levy states its terms on every surface that reads it.
-THE_LEVY_STATES_ITS_TERMS = True
 
 
 def region_feeds_nation(world, nation: str, region) -> bool:
@@ -229,8 +217,6 @@ def region_feeds_nation(world, nation: str, region) -> bool:
         return False
     if region.controller == nation:
         return True
-    if not LEVY_FEEDS_ON_ALLY_SOIL:
-        return False
     if not region.controller:
         return False
     return (world.get_diplomatic_state(nation, region.controller)
@@ -265,8 +251,6 @@ def substitute_arrival_morale(executor, region, marshal) -> int:
     than a bare draft's 40 — destroying the premium this exists to protect.
     The mirror is of the rung, at the premium.
     """
-    if not THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE:
-        return int(LEVY_MORALE_BASE)
     rung = int(executor.RECRUIT_MORALE_BASE)
     if region is not None and region.has_building("training_ground"):
         rung = int(executor.RECRUIT_MORALE_TRAINED)
@@ -319,8 +303,6 @@ def levy_alarm_multiplier(world, nation: str) -> float:
 
     Reads one dict slot (GR8).
     """
-    if not THE_ALARM_PRICES_THE_LEVY:
-        return 1.0
     threat = int((getattr(world, "threat_by_target", None) or {}).get(nation, 0))
     return 1.0 + max(0, threat - int(LEVY_ALARM_ANCHOR)) / 100.0
 
@@ -395,8 +377,7 @@ def _recruit_block_reason_from(blocked: List[str], remedy: str = "") -> str:
 # is choosing the man freely: `recruit cavalry in Rhineland` names no
 # marshal, and the old choice was an arbitrary `(distance, -strength)`
 # tiebreak the player never made. Keying it takes nothing from anyone.
-# Flip lever: False restores the arm-blind choice byte-for-byte.
-THE_ARM_CHOOSES_THE_MAN = True
+# The rule: the arm chooses the man.
 
 # CRT-2 / CQ-29 (Score Mandate Chunk 3, SR-3b, September 26, 2026): A NAMED
 # PROVINCE IS NEVER REPLACED. A recruit / build / repair whose named province
@@ -408,8 +389,7 @@ THE_ARM_CHOOSES_THE_MAN = True
 # capital in its stead. Measured before: `recruit infantry in Swabbia` and
 # `in Atlantis` raised 10,000 men at Paris for 654 gold; `build … in
 # Brittanny` answered "Specify a region". An exact name (every AI order)
-# never reaches the matcher. False restores "Unknown region" and the capital.
-A_NAMED_PROVINCE_IS_NEVER_REPLACED = True
+# never reaches the matcher.
 # SF7-X11 (Score Finish Step 7 slice 5b): a named marshal still levies where he
 # stands (PF-7), but a different province named beside him is refused free
 # rather than silently replaced. False restores the levy at his province.
@@ -483,11 +463,6 @@ def _msg_treasury(cost: int, have: int, who: str = "", arm: str = "") -> str:
         head = f"{humanize_entity_name(who)}'s {arm + ' ' if arm else ''}levy: "
     return (f"{head}Berthier shakes his head. 'The treasury cannot support this, "
             f"Sire. Need {int(cost):,} gold, have {int(have):,}.'")
-
-
-def _msg_subs_closed() -> str:
-    return ("There is no market for substitutes, Sire. The class must "
-            "be called in the ordinary way.")
 
 
 def _msg_subs_wrong_arm(marshal) -> str:
@@ -576,9 +551,6 @@ def substitute_quote(world, region_name: str,
             f"commands: {int(world.actions_remaining)} remaining)"
             + (f" {waits}" if waits else "")),
             "no administrative action left this turn")
-    if not THE_SUBSTITUTE_MARKET_IS_OPEN:
-        return refuse("closed", _msg_subs_closed(),
-                      "there is no market for substitutes")
     if recruit_arm_of(marshal) != "infantry":
         arm = recruit_arm_of(marshal)
         return refuse("wrong_arm", _msg_subs_wrong_arm(marshal),
@@ -851,7 +823,7 @@ def _recruit_quote_core(world, region_name: str, arm: Optional[str],
                                      f"stability {int(region.stability)}/100")
         return quote
     ready, blocked = world.ready_marshals_near(region_name, for_levy=True)
-    if arm is not None and THE_ARM_CHOOSES_THE_MAN:
+    if arm is not None:
         of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]
         if not of_arm:
             quote.update(kind="no_arm_in_range", reason=_msg_no_arm_in_range(
@@ -1348,8 +1320,7 @@ class EconomyExecutor:
         # False, so all nine existing call sites are byte-identical by
         # construction; only the levy's ally-soil arm passes True.
         _capital_discount = (region.region_type == "capital"
-                             and not (foreign_soil
-                                      and LEVY_PAYS_THE_HOSTS_PRICE)
+                             and not (foreign_soil)
                              and capital_is_the_nations_own(region, world, nation))
         terms: List[str] = []
         # Capital discount: 25% off (checked first — always wins)
@@ -1477,19 +1448,16 @@ class EconomyExecutor:
 
         # CN-2: where the game chooses the man (no marshal named), the arm the
         # player asked for is the SELECTION KEY — never an override on a man
-        # the player named (see THE_ARM_CHOOSES_THE_MAN above).
+        # the player named (see "the arm chooses the man", CN-2, above).
         choose_arm = (requested_type
-                      if (THE_ARM_CHOOSES_THE_MAN and not marshal_specified
-                          and requested_type in RECRUIT_ARMS)
+                      if (not marshal_specified and requested_type in RECRUIT_ARMS)
                       else None)
 
         # CRT-2 / CQ-29: a named province that does not resolve is read by
         # the region matcher, never replaced by the capital (see
-        # `A_NAMED_PROVINCE_IS_NEVER_REPLACED`). A named MARSHAL keeps PF-7's
+        # "a named province is never replaced", above). A named MARSHAL keeps PF-7's
         # road: he levies where he stands.
-        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED and not marshal_specified
-                and location_specified
-                and world.get_region(location_specified) is None):
+        if (not marshal_specified and location_specified and world.get_region(location_specified) is None):
             return self._reread_named_province(
                 command, world, location_specified, raw_text,
                 lambda cmd: self._execute_recruit(
@@ -2027,8 +1995,6 @@ class EconomyExecutor:
         if not world:
             return {"success": False, "message": "No world state available"}
 
-        if not THE_SUBSTITUTE_MARKET_IS_OPEN:
-            return {"success": False, "message": _msg_subs_closed()}
 
         marshal_name = command.get("marshal") or command.get("target")
         if not marshal_name:
@@ -2044,8 +2010,7 @@ class EconomyExecutor:
         # A named province now means the marshal of ours who stands there
         # (the delivery is at his location anyway); none there is refused
         # in a sentence that keeps the name (CRT-2).
-        if (THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES
-                and world.get_marshal(marshal_name) is None):
+        if (world.get_marshal(marshal_name) is None):
             ground = world.get_region(marshal_name)
             if ground is not None:
                 acting = command.get("_acting_nation") or world.player_nation
@@ -2066,9 +2031,7 @@ class EconomyExecutor:
 
         marshal, error = self._executor._fuzzy_match_marshal(marshal_name, world)
         if error:
-            if THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES:
-                return error
-            return {"success": False, "message": error}
+            return error
 
         acting_nation = command.get("_acting_nation") or marshal.nation
         if marshal.nation != acting_nation:
@@ -2212,14 +2175,13 @@ class EconomyExecutor:
         # source both forced-retreat copies decide through (Charles sits at 15,
         # so the warning is per-marshal, not a global constant).
         rout_note = ""
-        if THE_SUBSTITUTE_IS_NOT_PUNISHED_TWICE:
-            from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
-            rout_line = int(marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD))
-            if new_morale <= rout_line:
-                rout_note = (
-                    f" ⚠ Berthier: \"At {new_morale}% he stands ON his own "
-                    f"breaking line ({rout_line}%), Sire — one reverse and the "
-                    f"corps routs. Drill them before you march.\"")
+        from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
+        rout_line = int(marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD))
+        if new_morale <= rout_line:
+            rout_note = (
+                f" ⚠ Berthier: \"At {new_morale}% he stands ON his own "
+                f"breaking line ({rout_line}%), Sire — one reverse and the "
+                f"corps routs. Drill them before you march.\"")
         world.log_event({
             "type": "substitutes_purchased",
             "turn": int(world.current_turn),
@@ -3059,9 +3021,8 @@ class EconomyExecutor:
                                 f"depot at {example_region(world)}'")}
 
         # CRT-2 / CQ-29: read before the watchtower branch, which is handed
-        # the name as typed (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).
-        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED
-                and world.get_region(region_name) is None):
+        # the name as typed (see "a named province is never replaced").
+        if (world.get_region(region_name) is None):
             return self._reread_named_province(
                 command, world, region_name, raw_text,
                 lambda cmd: self._execute_build(
@@ -3230,9 +3191,8 @@ class EconomyExecutor:
                     "message": ("Specify a region. Example: "
                                 f"'repair {example_region(world)}'")}
 
-        # CRT-2 / CQ-29 (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).
-        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED
-                and world.get_region(region_name) is None):
+        # CRT-2 / CQ-29 (see "a named province is never replaced").
+        if (world.get_region(region_name) is None):
             return self._reread_named_province(
                 command, world, region_name, raw_text,
                 lambda cmd: self._execute_repair(
@@ -3467,12 +3427,12 @@ def get_levy_status(world, nation: str = None) -> dict:
             "arrival_morale": int(LEVY_MORALE_BASE),
             "open": bool(levy_purchase_ceiling(world, nation) - total
                          >= AI_CORPS_REGEN_CAP),
-        } if THE_LEVY_STATES_ITS_TERMS else None),
+        }),
     }
-    # IQ-2: the depot's own gates (see LEVY_READS_THE_DEPOT_GATE). Europe
+    # IQ-2: the depot's own gates (the levy reads the depot gate). Europe
     # only — `force_limit` 0 is the legacy "do not render" sentinel, and its
     # dict stays byte-identical.
-    if LEVY_READS_THE_DEPOT_GATE and limit:
+    if limit:
         gate = (recruit_location_gate(region, nation) if region is not None
                 else RECRUIT_GATE_NOT_CONTROLLED)
         status["open"] = bool(is_open and gate is None)
@@ -3492,11 +3452,11 @@ def get_levy_status(world, nation: str = None) -> dict:
             reason = (f"No corps stands within reach of the depot at "
                       f"{capital} to receive the recruits.")
         status["closed_reason"] = reason
-    # LEVY_NAMES_ITS_RECIPIENT_ARM: the recipient decides the arm the executor
+    # The levy names its recipient's arm: the recipient decides the arm the executor
     # levies (`_execute_recruit`'s own artillery → cavalry → infantry order),
     # and this status describes foot. A cavalry or artillery recipient is not
     # the levy on offer, so the status does not call it open.
-    if LEVY_NAMES_ITS_RECIPIENT_ARM and limit and recipient:
+    if limit and recipient:
         _rm = recipient[0]
         _arm_word = (("artillery", "guns") if getattr(_rm, "artillery", False)
                      else ("cavalry", "horse") if getattr(_rm, "cavalry", False)

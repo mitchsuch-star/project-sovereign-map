@@ -51,7 +51,8 @@ def _display_defiance_action(action: str) -> str:
     return _DEFIANCE_DISPLAY.get(action, action.replace("_", " "))
 
 
-# FA-S17-16 (slice 17, Phase 4) flip lever: one envoy, one name. The
+# FA-S17-16 (slice 17, Phase 4) — the log names what was proposed: one
+# envoy, one name. The
 # letter-book titles a row from the TERMS the letter carries (PT-D3's landed
 # decision — a `friendly_gift` at relation < 0 is rewritten into an
 # `open_borders` proposal downstream, and titling the row "Gift of
@@ -62,15 +63,14 @@ def _display_defiance_action(action: str) -> str:
 # then "We rejected Hanover's gift of friendship proposal", 174 log rows
 # across the Phase-3 tree). The log now prefers the terms-derived name the
 # player actually answered, and the context label — which the batching
-# predicate keys on — is untouched. False = the prior label.
-THE_LOG_NAMES_WHAT_WAS_PROPOSED = True
+# predicate keys on — is untouched.
 
-# IQ-4 "The Cabinet Is Visible" flip lever: the `diplomatic_mission_started`
+# IQ-4 "The Cabinet Is Visible" — the log names the mission: the
+# `diplomatic_mission_started`
 # one-liner printed the raw type key with its underscores swapped for spaces
 # ("Talleyrand dispatched on COURT NATION to PapalStates") — an R7 leak at
 # both halves. It now names the mission and the court through the display
-# chokepoints. False = the prior one-liner, byte-identical.
-THE_LOG_NAMES_THE_MISSION = True
+# chokepoints.
 
 
 def mission_reason_phrase(reason: str, regions=None, expiry=None) -> str:
@@ -137,8 +137,7 @@ def _proposal_label(event: dict) -> str:
     # FA-S17-16: prefer the type the letter CARRIED (what the player read and
     # answered) over the court's original intent, when the producer knew it.
     raw = ""
-    if THE_LOG_NAMES_WHAT_WAS_PROPOSED:
-        raw = str(event.get("proposal_type_offered") or "").strip()
+    raw = str(event.get("proposal_type_offered") or "").strip()
     raw = raw or str(event.get("proposal_type") or "").strip()
     if not raw:
         return "proposal"
@@ -684,7 +683,8 @@ CATEGORY_MAP = {
 }
 
 
-# IQ-2 (Sept 14, 2026) flip lever — D1. `_is_player_event` read
+# IQ-2 (Sept 14, 2026) — D1, the player's losses are the player's events.
+# `_is_player_event` read
 # `captured_by` and never `captured_from`, so a province WE lost fell to the
 # fog arm below, and the fog arm reads the province's CURRENT intel. A
 # province that is no longer ours decays (`decay_intel`) the moment no French
@@ -693,9 +693,7 @@ CATEGORY_MAP = {
 # turns (28 -> 3 once France held no province), and Le Moniteur reads the
 # same filter. A loss is our own event — fog-safe, it names nothing the map
 # does not already show us. All eight production producers stamp
-# `captured_from` (census: test_wo_slice4_the_capital_speaks). False = the
-# pre-IQ-2 filter byte-for-byte.
-PLAYER_LOSSES_ARE_PLAYER_EVENTS = True
+# `captured_from` (census: test_wo_slice4_the_capital_speaks).
 
 # EAS-2 (SR-6c, Oct 2 2026): the campaign log has an importance tier. The
 # client renders every row at one size, coloured by category and never by
@@ -841,9 +839,7 @@ def _is_player_event(event: dict, player_nation: str) -> bool:
     if event.get("captured_by") == player_nation:
         return True
     # IQ-2 D1: ...and captured_from — the province taken FROM us.
-    if (PLAYER_LOSSES_ARE_PLAYER_EVENTS
-            and event.get("type") == "region_captured"
-            and event.get("captured_from") == player_nation):
+    if (event.get("type") == "region_captured" and event.get("captured_from") == player_nation):
         return True
     # SC-33 recurring settlement payments — the player is a party as payer
     # or recipient (G4F smoke follow-up).
@@ -3031,7 +3027,7 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
             return line + "."
         # IQ-2: the league lapses on low threat and ends no war — the entry
         # now carries the courts still fighting France (`courts_at_war`,
-        # stamped by coalition.dissolve_coalition behind its own lever).
+        # stamped by coalition.dissolve_coalition).
         # An entry without the key renders exactly as before.
         still_at_war = [display_nation(c) for c in (event.get("courts_at_war") or []) if c]
         if still_at_war:
@@ -3223,19 +3219,15 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         return f"Diplomatic mission to {target} cancelled — nation eliminated"
 
     if event_type == "diplomatic_mission_started":
-        if THE_LOG_NAMES_THE_MISSION:
-            # IQ-4 §3.8: the mission and the court through the display
-            # chokepoints — never "COURT NATION", never "PapalStates".
-            from backend.display_names import MISSION_TYPE_DISPLAY
-            raw_type = str(event.get("mission_type") or "")
-            type_display = MISSION_TYPE_DISPLAY.get(
-                raw_type, raw_type.replace("_", " ").title() or "a mission")
-            return (f"Talleyrand sent to "
-                    f"{display_nation(event.get('target') or 'Unknown')}: "
-                    f"{type_display}.")
-        target = event.get("target", "Unknown")
-        mission_type = (event.get("mission_type") or "diplomatic mission").replace("_", " ")
-        return f"Talleyrand dispatched on {mission_type} to {target}"
+        # IQ-4 §3.8: the mission and the court through the display
+        # chokepoints — never "COURT NATION", never "PapalStates".
+        from backend.display_names import MISSION_TYPE_DISPLAY
+        raw_type = str(event.get("mission_type") or "")
+        type_display = MISSION_TYPE_DISPLAY.get(
+            raw_type, raw_type.replace("_", " ").title() or "a mission")
+        return (f"Talleyrand sent to "
+                f"{display_nation(event.get('target') or 'Unknown')}: "
+                f"{type_display}.")
 
     if event_type == "diplomatic_mission_ended":
         # IQ-4 §3.8: how a mission ended — the log had only its start.

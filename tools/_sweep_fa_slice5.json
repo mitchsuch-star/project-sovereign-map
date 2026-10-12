@@ -1,12 +1,5 @@
 [
  {
-  "id": "issuance/a issuance plots by the lawful ladder",
-  "file": "backend/commands/strategic_executor.py",
-  "old": "                if _road.ROAD_LAW_AT_ISSUANCE:\n                    # FA slice 5 (FA-13/FA-46): issuance plots by the ONE",
-  "new": "                if False:\n                    # FA slice 5 (FA-13/FA-46): issuance plots by the ONE",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestIssuancePlotsTheLawfulRoad::test_fa13_the_first_hop_marches_on_the_lawful_road"
- },
- {
   "id": "issuance/b the cautious avoid set is read",
   "file": "backend/commands/strategic_executor.py",
   "old": "                        _avoid = _road.enemy_occupied_regions(\n                            world, marshal.nation, marshal=marshal)",
@@ -84,13 +77,6 @@
   "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestOneSeam::test_the_fog_scan_is_one_source"
  },
  {
-  "id": "hold/a HOLD keeps its road",
-  "file": "backend/commands/strategic.py",
-  "old": "            if HOLD_KEEPS_ITS_ROAD:\n                # FA slice 5 (FA-N11/N12/N49): HOLD used to re-plot its road",
-  "new": "            if False:\n                # FA slice 5 (FA-N11/N12/N49): HOLD used to re-plot its road",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestHoldKeepsItsRoad::test_a_literal_reroute_survives_the_next_tick"
- },
- {
   "id": "hold/b a sound road is kept",
   "file": "backend/commands/strategic.py",
   "old": "                if not path or not region_is_adjacent(world, marshal.location, path[0]):\n                    path = self._get_personality_aware_path(\n                        marshal, hold_position, world, use_weighted=True) or []",
@@ -105,39 +91,11 @@
   "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheHoldStallSpeaks::test_a_closed_hold_position_breaks_with_its_reason"
  },
  {
-  "id": "hold/d the HOLD stall speaks",
-  "file": "backend/commands/strategic.py",
-  "old": "            if HOLD_KEEPS_ITS_ROAD:\n                # FA-N12/N49: a stall at a closed border reroutes once or",
-  "new": "            if False:\n                # FA-N12/N49: a stall at a closed border reroutes once or",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheHoldStallSpeaks::test_a_stored_road_through_closed_land_reroutes_with_the_reason"
- },
- {
-  "id": "support/a the SUPPORT stall speaks",
-  "file": "backend/commands/strategic.py",
-  "old": "        if SUPPORT_STALL_SPEAKS:\n            # FA-N41: PF-8's stall idiom never reached SUPPORT",
-  "new": "        if False:\n            # FA-N41: PF-8's stall idiom never reached SUPPORT",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheSupportStallSpeaks::test_a_covered_strait_breaks_the_support_at_the_waters_edge"
- },
- {
   "id": "support/b the refusal is kept for the verdict",
   "file": "backend/commands/strategic.py",
   "old": "                last_fail = result  # FA slice 5 (FA-N41): keep the reason",
   "new": "                pass  # mutated: the reason is dropped",
   "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheSupportStallSpeaks::test_a_closed_border_breaks_the_support_naming_the_lapse"
- },
- {
-  "id": "stale/a a stale road is re-plotted",
-  "file": "backend/commands/strategic.py",
-  "old": "        if (STALE_ROAD_REPLOTS and order.path\n                and not region_is_adjacent(world, marshal.location, order.path[0])):",
-  "new": "        if (False and order.path\n                and not region_is_adjacent(world, marshal.location, order.path[0])):",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAStaleRoadNeverMintsAnOrder::test_move_to_with_a_stale_first_step_keeps_its_destination"
- },
- {
-  "id": "belt/a a strategic step never mints an order",
-  "file": "backend/commands/movement_executor.py",
-  "old": "            if _road.STRATEGIC_STEP_NEVER_UPGRADES:",
-  "new": "            if False:",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestAStaleRoadNeverMintsAnOrder::test_a_strategic_step_two_provinces_off_is_refused"
  },
  {
   "id": "replot/a the literal reroute is lawful",
@@ -152,20 +110,6 @@
   "old": "                order.path = list(new_path)\n                # Execute one movement step along the new path",
   "new": "                order.path = [r for r in (world.find_weighted_path(marshal.location, destination, avoid_regions=enemy_regions) or []) if r != marshal.location]\n                # Execute one movement step along the new path",
   "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_go_around_prefers_a_lawful_road"
- },
- {
-  "id": "replot/c the first-step reroute is lawful",
-  "file": "backend/commands/strategic_executor.py",
-  "old": "            if _road.ROAD_LAW_ON_REPLOT:\n                # FA slice 5: a reroute prefers a lawful corridor and must",
-  "new": "            if False:\n                # FA slice 5: a reroute prefers a lawful corridor and must",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_the_first_step_reroute_prefers_a_lawful_road"
- },
- {
-  "id": "replot/d the compromise road is lawful",
-  "file": "backend/commands/strategic_executor.py",
-  "old": "                if _road.ROAD_LAW_ON_REPLOT:\n                    # FA slice 5: the compromise route prefers a lawful",
-  "new": "                if False:\n                    # FA slice 5: the compromise route prefers a lawful",
-  "tests": "tests/test_fa_slice5_the_road_law_2026_09_04.py::TestTheReroutesObeyTheLaw::test_the_objection_compromise_prefers_a_lawful_road"
  },
  {
   "id": "note/a the substitution note rides the refusal",

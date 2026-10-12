@@ -75,7 +75,6 @@ def destination_grounding_note(raw_text, resolved_name: str) -> str:
 # unrefused and walked off with its fortification bonus intact (measured:
 # Paris -> Lyon, `fortified=True`, +12% defence, at Lyon). ONE refusal here,
 # for every mover; P6.5 reads `fortified`, the road-home walker unfortifies.
-FORTIFIED_CORPS_NEVER_MARCHES = True
 
 # FA-9 (slice 17, Sept 11 2026, GR5 both sides): a corps in the RETREAT-
 # RECOVERY window holds no ground it walks onto. The PF-3 walk-in capture
@@ -89,7 +88,6 @@ FORTIFIED_CORPS_NEVER_MARCHES = True
 # player is told why. The healthy-corps walk-in (a 7,655-man corps at morale
 # 100 through 25 ungarrisoned provinces) is a different question and is the
 # FA-D27 gate's — this predicate does not touch it, by design.
-RECOVERING_CORPS_TAKES_NO_GROUND = True
 # FA-D8 (slice 17, Phase 2): the movement law's march-capture floor — a
 # province whose garrison stands at or above this (or carries ANY detached
 # garrison) is not open ground: it must be assaulted. Was a bare `5000` at
@@ -123,10 +121,7 @@ MARCH_HALTS_AT_GARRISON = 5000
 # holder's homeland, and a BATTLE won takes the ground whatever the size —
 # only the unopposed walk-in is refused. The march itself stays legal; the
 # corps stands there and is told why it holds nothing (the FA-9 shape).
-#
-# Flip lever for the BASELINE_SERIES attribution: False reproduces the
-# pre-slice board byte-for-byte. Not a config surface.
-RAIDING_PARTY_HOLDS_NO_HOMELAND = True
+# The rule: a raiding party holds no homeland.
 RAIDING_PARTY_FLOOR = MARCH_HALTS_AT_GARRISON
 
 
@@ -134,7 +129,7 @@ def raiding_party_holds_no_ground(marshal, region, world) -> bool:
     """True when `marshal` may stand on `region` but may not annex it by
     walking on: fewer than RAIDING_PARTY_FLOOR men onto a province that
     opened the campaign as its current controller's own homeland."""
-    if not RAIDING_PARTY_HOLDS_NO_HOMELAND or region is None or world is None:
+    if region is None or world is None:
         return False
     if int(getattr(marshal, "strength", 0) or 0) >= RAIDING_PARTY_FLOOR:
         return False
@@ -208,8 +203,6 @@ def move_open(world, marshal) -> list:
 
 def corps_takes_no_ground(marshal) -> bool:
     """True when the mover may march but may not annex: the recovery window."""
-    if not RECOVERING_CORPS_TAKES_NO_GROUND:
-        return False
     in_recovery = getattr(marshal, "in_retreat_recovery", None)
     return bool(in_recovery()) if callable(in_recovery) else False
 
@@ -557,7 +550,7 @@ class MovementExecutor:
                 marshal.drill_complete_turn = -1
                 drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
-        if FORTIFIED_CORPS_NEVER_MARCHES and getattr(marshal, 'fortified', False):
+        if getattr(marshal, 'fortified', False):
             return {
                 "success": False,
                 "message": (f"{marshal.name} is fortified at {marshal.location} and "
@@ -643,19 +636,18 @@ class MovementExecutor:
         # Check if destination is within movement range
         if strategic_execution and distance > 1:
             import backend.commands.strategic as _road
-            if _road.STRATEGIC_STEP_NEVER_UPGRADES:
-                # FA slice 5: a per-hop step of a STANDING order is one
-                # march by construction; a target two provinces off means
-                # the stored road is stale. It used to fall into the
-                # auto-upgrade below and mint a NEW MOVE_TO to that step —
-                # replacing the order and silently losing its destination.
-                return {
-                    "success": False,
-                    "message": (f"{target_name} is not one march from "
-                                f"{marshal.location} — the road is stale and "
-                                f"must be re-plotted."),
-                    "stale_road": True,
-                }
+            # FA slice 5: a per-hop step of a STANDING order is one
+            # march by construction; a target two provinces off means
+            # the stored road is stale. It used to fall into the
+            # auto-upgrade below and mint a NEW MOVE_TO to that step —
+            # replacing the order and silently losing its destination.
+            return {
+                "success": False,
+                "message": (f"{target_name} is not one march from "
+                            f"{marshal.location} — the road is stale and "
+                            f"must be re-plotted."),
+                "stale_road": True,
+            }
         if distance > move_range:
             # (engaged / AP refusals already cleared by move_refusal_probe)
             # Auto-upgrade to strategic MOVE_TO for distant regions
@@ -675,8 +667,7 @@ class MovementExecutor:
             # walked the corps to Normandy and stalled it there (measured).
             # The AI's road is byte-identical: the verdict is player-only.
             import backend.commands.strategic as _road
-            if (_road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED
-                    and marshal.nation == world.player_nation):
+            if (marshal.nation == world.player_nation):
                 # SR-2e CRT-4: `move to <X>` is the march one verb over — it
                 # walks the march's own road (the cautious man's avoid-set,
                 # the closed-frontier refusal) and refuses in its words.

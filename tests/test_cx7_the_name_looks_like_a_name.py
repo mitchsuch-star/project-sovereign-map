@@ -591,17 +591,6 @@ class TestTheSubjectMayHaveTwoNames:
                          "can ArchdukeCharles attack Mack"):
             assert CG.is_question(spelling, roster) is True, spelling
 
-    def test_the_lever(self):
-        assert CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES is True
-        original = CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES
-        try:
-            CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES = False
-            assert CG.is_question("can Archduke Charles attack Mack",
-                                  self.ROSTER) is False,                 "lever off = the defect reproduces"
-            assert CG.is_question("can Ney attack Mack", self.ROSTER) is True
-        finally:
-            CG.THE_SUBJECT_MAY_HAVE_TWO_NAMES = original
-
     def test_it_reaches_the_board_end_to_end(self):
         """The shipped 1805 board prints "Archduke Charles"; driving him is
         the row's own geometry, not a fixture's."""
@@ -616,22 +605,6 @@ class TestTheSubjectMayHaveTwoNames:
 # THE LEVERS — each False arm reproduces exactly what that caller shipped.
 # ═══════════════════════════════════════════════════════════════════════════
 class TestTheLevers:
-
-    def test_the_lever_is_on(self):
-        assert CG.THE_ADDRESS_LOOKS_LIKE_A_NAME is True
-
-    def test_lever_off_reproduces_the_defect(self):
-        original = CG.THE_ADDRESS_LOOKS_LIKE_A_NAME
-        try:
-            CG.THE_ADDRESS_LOOKS_LIKE_A_NAME = False
-            response, _ = _drive("quickly attack Mack")
-            assert _refused_as_unknown(response), \
-                ("lever off = L2-5 reproduces", _message(response))
-            _, footprint = _drive("Ney attack Mack?")
-            assert not footprint["moved"] and not footprint["battle"], \
-                ("lever off = CXR1-1 reproduces", footprint)
-        finally:
-            CG.THE_ADDRESS_LOOKS_LIKE_A_NAME = original
 
     def test_the_older_lever_is_still_live_underneath(self):
         """A lever swallowed by a newer one is not a lever. With CX-1's arm

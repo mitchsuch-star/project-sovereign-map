@@ -1,12 +1,5 @@
 [
  {
-  "id": "redirect/a the order stands while the executor answers",
-  "file": "backend/commands/strategic.py",
-  "old": "                if not CANNON_FIRE_READS_THE_ANSWER:\n                    marshal.strategic_order = None\n                    # [7A-2] Clear holding state",
-  "new": "                if True:\n                    marshal.strategic_order = None\n                    # [7A-2] Clear holding state",
-  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRedirectReadsTheAnswer::test_a_refused_attack_leaves_the_order_standing"
- },
- {
   "id": "redirect/b an unanswered redirect keeps the order",
   "file": "backend/commands/strategic.py",
   "old": "                    if not answered:\n                        # The guns go unanswered; the order STANDS.",
@@ -19,27 +12,6 @@
   "old": "                    if action_taken == \"attack\":\n                        # R2-F3: the fighting redirect carried only\n                        # `action_events` — no report, no tableau.\n                        row.update(_combat_carry(action_result))",
   "new": "                    if False:\n                        # R2-F3: the fighting redirect carried only\n                        # `action_events` — no report, no tableau.\n                        row.update(_combat_carry(action_result))",
   "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheRedirectReadsTheAnswer::test_a_fought_redirect_abandons_the_order_and_carries_the_battle"
- },
- {
-  "id": "investigate/a a refused charge keeps the order",
-  "file": "backend/commands/strategic.py",
-  "old": "                if CANNON_FIRE_READS_THE_ANSWER and attack_was_refused(action_result):",
-  "new": "                if False:",
-  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheInvestigateAnswerReadsTheAnswer::test_a_refused_charge_keeps_the_order"
- },
- {
-  "id": "investigate/b no step made keeps the order",
-  "file": "backend/commands/strategic.py",
-  "old": "                elif CANNON_FIRE_READS_THE_ANSWER:\n                    # No step could be made: the order stands.",
-  "new": "                elif False:\n                    # No step could be made: the order stands.",
-  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheInvestigateAnswerReadsTheAnswer::test_no_step_possible_keeps_the_order"
- },
- {
-  "id": "contact/a the answered contact is re-validated",
-  "file": "backend/commands/strategic.py",
-  "old": "            if ANSWERED_CONTACT_READS_THE_BOARD:\n                live, reason = contact_is_live(marshal, world, pending)\n                if not live:",
-  "new": "            if False:\n                live, reason = contact_is_live(marshal, world, pending)\n                if not live:",
-  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_contact_whose_man_marched_off_is_retired_not_fought tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_contact_after_a_peace_is_retired_not_staged"
  },
  {
   "id": "contact/b a court at peace is not a live contact",
@@ -61,13 +33,6 @@
   "old": "                if victor == \"\":\n                    # A stalemate: the FA-34 ruling — the order stands, one",
   "new": "                if False:\n                    # A stalemate: the FA-34 ruling — the order stands, one",
   "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_a_stalemate_keeps_the_order_and_a_defeat_breaks_it"
- },
- {
-  "id": "executor/a no pursuit minted under strategic execution",
-  "file": "backend/commands/combat_executor.py",
-  "old": "                if (enemy_by_name and ANSWERED_CONTACT_READS_THE_BOARD\n                        and (command or {}).get(\"_strategic_execution\")):",
-  "new": "                if False:",
-  "tests": "tests/test_fa_slice3r_the_redirect_reads_the_answer_2026_09_04.py::TestTheAnsweredContactReadsTheBoard::test_the_executor_never_mints_a_pursuit_under_strategic_execution"
  },
  {
   "id": "arrival/a the thirteenth seam reads the refusal",

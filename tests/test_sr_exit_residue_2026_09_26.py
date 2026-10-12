@@ -51,9 +51,6 @@ driver = importlib.util.module_from_spec(_spec)
 sys.modules.setdefault("playtest_driver", driver)
 _spec.loader.exec_module(driver)
 
-SHRUG = "cannot answer that"
-
-
 @pytest.fixture
 def shipped(monkeypatch):
     """A fresh SHIPPED 1805 world with a mock parser (the CRT-7 idiom)."""
@@ -119,13 +116,6 @@ class TestF1TheSafeAnswerReadsTheHolder:
         assert "Archduke John" not in threats, message
         assert "safe for a turn or two, no longer" not in message, message
 
-    def test_the_lever_down_reproduces_the_finding(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_SAFE_ANSWER_READS_THE_HOLDER", False)
-        message = ask(client, world, "is Vienna safe")
-        assert "Threats we can see: Archduke John of Austria" in message, message
-        assert "It is safe for a turn or two, no longer." in message, message
-
     def test_our_corps_one_march_off_is_the_threat_on_enemy_soil(self, shipped):
         client, world = shipped
         where = stage_beside(world, "Ney", "Vienna")
@@ -145,13 +135,6 @@ class TestF1TheSafeAnswerReadsTheHolder:
         message = ask(client, world, "is Vienna safe")
         assert "No corps at war with Austria stands within two marches of it" in message, message
         assert "it lies beyond our reach today" in message, message
-
-    def test_our_own_soil_reads_exactly_as_before(self, shipped, monkeypatch):
-        client, world = shipped
-        up = ask(client, world, "is Paris safe")
-        monkeypatch.setattr(QD, "THE_SAFE_ANSWER_READS_THE_HOLDER", False)
-        down = ask(client, world, "is Paris safe")
-        assert up == down, (up, down)
 
     def test_an_allys_soil_names_the_allys_enemies(self, shipped):
         client, world = shipped
@@ -176,12 +159,6 @@ class TestF2TheWhatIfNamesItsMarshal:
         client, world = shipped
         message = ask(client, world, "should Davout attack Mack")
         assert "MUSTER — Davout" in message, message
-
-    def test_the_lever_down_weighs_the_nearest_corps_instead(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_WHAT_IF_NAMES_ITS_MARSHAL", False)
-        message = ask(client, world, "should Davout attack Mack")
-        assert "MUSTER — Ney" in message, message
 
     def test_a_named_corps_beyond_reach_is_never_substituted(self, shipped):
         client, world = shipped
@@ -241,12 +218,6 @@ class TestF2TheOdds:
         client, world = shipped
         message = ask(client, world, q)
         assert "MUSTER — " in message, (q, message)
-
-    def test_the_lever_down_shrugs(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_DESK_READS_THE_ODDS", False)
-        message = ask(client, world, "what are Ney's odds against Mack")
-        assert SHRUG in message, message
 
     def test_the_classifier_reads_the_subject_and_the_object(self):
         question = QD.classify_board_question(
@@ -350,18 +321,6 @@ class TestF2AProvinceIsWeighed:
         message = ask(client, world, "should Ney attack Munich")
         assert "Bavaria is our ally" in message and "refused" in message, message
 
-    def test_all_three_levers_down_shrug_on_a_province(self, shipped, monkeypatch):
-        client, world = shipped
-        for lever in ("THE_WHAT_IF_NAMES_ITS_MARSHAL", "THE_DESK_READS_THE_ODDS",
-                      "THE_WHAT_IF_WEIGHS_A_PROVINCE"):
-            monkeypatch.setattr(QD, lever, False)
-        assert SHRUG in ask(client, world, "should Ney attack Vienna")
-
-    def test_the_province_lever_alone_down_shrugs_on_a_province(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(QD, "THE_WHAT_IF_WEIGHS_A_PROVINCE", False)
-        assert SHRUG in ask(client, world, "should Ney attack Vienna")
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # F3 — a quantity "how" and a conjecture "what if" are questions
@@ -378,14 +337,6 @@ class TestF3TheQuestionLeads:
         assert CG.is_question(line) is True
 
     @pytest.mark.parametrize("line", [
-        "how long until the armistice with Russia expires",
-        "what if Lannes attacks Mack",
-    ])
-    def test_the_lever_down_reproduces_the_finding(self, line, monkeypatch):
-        monkeypatch.setattr(CG, "A_QUANTITY_OR_CONJECTURE_ASKS", False)
-        assert CG.is_question(line) is False
-
-    @pytest.mark.parametrize("line", [
         "Ney, attack Mack", "hold until Davout arrives",
         "if Mack advances, fall back", "Ney, march to Paris",
     ])
@@ -398,20 +349,6 @@ class TestF3TheQuestionLeads:
         assert message.startswith("There is no armistice with Russia"), message
         message = ask(client, world, "what if Lannes attacks Mack")
         assert "MUSTER — Lannes" in message, message
-
-    def test_no_corpus_row_changes_its_verdict(self, monkeypatch):
-        """Every row that predates the residue keeps its verdict; the
-        residue's own two F3 rows (`sre-*`) are the ones that move."""
-        corpus = json.loads((REPO_ROOT / "tests" / "data" /
-                             "parser_golden_corpus.json").read_text(encoding="utf-8"))
-        rows = corpus["entries"]
-        lines = [row.get("utterance") or "" for row in rows]
-        up = [CG.is_question(line) for line in lines]
-        monkeypatch.setattr(CG, "A_QUANTITY_OR_CONJECTURE_ASKS", False)
-        down = [CG.is_question(line) for line in lines]
-        moved = {rows[i]["id"] for i in range(len(lines)) if up[i] != down[i]}
-        assert moved == {"sre-how-long-without-the-mark",
-                         "sre-what-if-a-marshal-attacks"}, moved
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -538,10 +475,5 @@ class TestTheExchangeIsOneCopy:
         assert GR.garrison_breaks(Region, garrison) is breaks
 
     def test_the_levers_ship_up(self):
-        assert QD.THE_SAFE_ANSWER_READS_THE_HOLDER is True
-        assert QD.THE_WHAT_IF_NAMES_ITS_MARSHAL is True
-        assert QD.THE_DESK_READS_THE_ODDS is True
-        assert QD.THE_WHAT_IF_WEIGHS_A_PROVINCE is True
-        assert CG.A_QUANTITY_OR_CONJECTURE_ASKS is True
         assert driver.THE_DIGEST_KEEPS_THE_ASSAULT_RESULT is True
         assert driver.THE_DIGEST_READS_PAST_A_LEAD_IN is True

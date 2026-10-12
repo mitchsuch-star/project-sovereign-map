@@ -353,11 +353,6 @@ class TestFAS16D5TheStalemateQuotesItsPrice:
         assert interrupt_option_costs(dict(STALEMATE, interrupt_type="repeated_combat")) == {
             "hold_position": STALEMATE_ABANDON_TRUST, "cancel_order": STALEMATE_ABANDON_TRUST}
 
-    def test_the_lever_down_quotes_nothing(self, monkeypatch):
-        from backend.commands import strategic
-        monkeypatch.setattr(strategic, "THE_STALEMATE_QUOTES_ITS_PRICE", False)
-        assert strategic.interrupt_option_costs(dict(STALEMATE)) == {}
-
     @pytest.mark.parametrize("choice", ["hold_position", "cancel_order"])
     def test_the_price_on_the_button_is_the_price_charged(self, world, choice):
         from backend.commands.executor import CommandExecutor

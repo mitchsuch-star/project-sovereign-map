@@ -21,13 +21,6 @@
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair"
   },
   {
-    "id": "D5/a lever",
-    "file": "backend/commands/disobedience.py",
-    "old": "        if THE_AUDIENCE_NAMES_ITS_CAUSE:\n            from backend.game_logic import dotation as _dot\n",
-    "new": "        if False:\n            from backend.game_logic import dotation as _dot\n",
-    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD5TheAudienceNamesItsCause"
-  },
-  {
     "id": "D5/b offered with no arrears",
     "file": "backend/commands/disobedience.py",
     "old": "                    and _dot.get_shortfall(marshal, world) > 0\n",
@@ -47,13 +40,6 @@
     "old": "                                                 'action': 'grant_pension'}}, _gs)\n",
     "new": "                                                 'action': 'revoke_pension'}}, _gs)\n",
     "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD5TheAudienceNamesItsCause"
-  },
-  {
-    "id": "D6/a lever",
-    "file": "backend/commands/strategic.py",
-    "old": "        if THE_ROAD_HOME_IS_LITERAL:\n            from backend.game_logic.withdrawal import is_road_home_order\n",
-    "new": "        if False:\n            from backend.game_logic.withdrawal import is_road_home_order\n",
-    "tests": "tests/test_fa_slice17_p2b_the_mechanics_rulings_2026_09_11.py::TestD6TheRoadHomeIsLiteral"
   },
   {
     "id": "D6/b inverted",

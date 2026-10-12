@@ -493,13 +493,6 @@ class TestTheLevyNamesItsRecipientArm:
         assert result.get("success") is False, result.get("message")
         assert "cavalry" in str(result.get("message", "")).lower()
 
-    def test_lever_down_restores_the_arm_blind_gate(self, monkeypatch):
-        import backend.commands.economy_executor as EE
-        monkeypatch.setattr(EE, "LEVY_NAMES_ITS_RECIPIENT_ARM", False)
-        w = _levy_board("Murat")
-        w.manpower_pools["France"]["cavalry"] = 0
-        assert EE.get_levy_status(w)["open"] is True
-
     def test_an_infantry_recipient_keeps_the_open_levy(self):
         from backend.commands.economy_executor import get_levy_status
         w = _levy_board("Soult")

@@ -20,7 +20,7 @@ The fix, two parts:
     holds it until its dialogue is current again, and the refusal says the
     crisis will return.
 
-Levers: `dialogue_manager.HYBRIDS_SURVIVE_A_NEW_FLOW`,
+Levers (retired CODE-1 batch 6): `dialogue_manager.HYBRIDS_SURVIVE_A_NEW_FLOW`,
 `diplomatic_executor.THE_HYBRID_MODAL_RETURNS`.
 """
 
@@ -30,9 +30,7 @@ import io
 import pytest
 from fastapi.testclient import TestClient
 
-import backend.commands.diplomatic_executor as DX
 import backend.main as M
-import backend.models.dialogue_manager as DMmod
 from backend.commands import diplomatic_defiance as DD
 from backend.game_logic import vassal as V
 from backend.models.dialogue_manager import DialogueManager
@@ -116,12 +114,6 @@ class TestOpenFlowKeepsWhatThePlayerOwns:
         assert dm.peek()["type"] == "proposal_confirm"
         assert dm.iter_queue() == []
 
-    def test_lever_down_the_hybrid_is_destroyed_as_before(self, monkeypatch):
-        monkeypatch.setattr(DMmod, "HYBRIDS_SURVIVE_A_NEW_FLOW", False)
-        dm = self._dm("vassal_rebellion_imminent")
-        dm.open_flow({"type": "war_purpose_selection"})
-        assert dm.iter_queue() == []
-
 
 # ═══════════════════════ W7 — the rebellion, end to end ═════════════════════
 
@@ -175,19 +167,6 @@ class TestTheRebellionReturns:
                   {"choice": "invest_vassal_rebellion", "dialogue_id": reb_id})
         assert sum(1 for p in world.vassal_rebellion_imminent_popups
                    if p.get("dialogue_id") == reb_id) == 1
-
-    def test_lever_down_the_modal_does_not_return(self, world, monkeypatch):
-        monkeypatch.setattr(DX, "THE_HYBRID_MODAL_RETURNS", False)
-        client = TestClient(M.app)
-        reb_id = _raise_rebellion(world)
-        _post(client, "/command", {"command": "status"})
-        _post(client, "/command", {"command": "declare war on Prussia"})
-        body = _post(client, "/respond_to_diplomatic_dialogue",
-                     {"choice": "invest_vassal_rebellion", "dialogue_id": reb_id})
-        assert body.get("stale_dialogue") is True
-        assert "will return" not in body.get("message", "")
-        assert not any(p.get("dialogue_id") == reb_id
-                       for p in world.vassal_rebellion_imminent_popups)
 
 
 # ═══════════════════════ the sabotage reckoning ═════════════════════════════

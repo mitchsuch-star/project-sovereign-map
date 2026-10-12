@@ -141,23 +141,6 @@ class TestThePeacefulCourtGetsOneAnswer:
         assert res.get("success") is False, msg
         assert "Cannot find target 'Kutz'" in msg, msg
 
-    def test_lever_down_reproduces_all_four_replies(self, monkeypatch):
-        monkeypatch.setattr(ST, "THE_PEACEFUL_COURT_GETS_ONE_ANSWER", False)
-        world, ney, mack = self._board()
-        assert ST.hostile_verb_at_peace(world, ney, mack, "pursue") == ""
-        ex = CommandExecutor()
-        parsed = {
-            "command": {"action": "strategic_command", "marshal": "Ney",
-                        "target": "ArchdukeCharles", "raw_command": "x"},
-            "is_strategic": True, "strategic_type": "PURSUE",
-        }
-        with _quiet():
-            res = ex.execute(parsed, {"world": world, "executor": ex})
-        # NPC-12 (Score Finish Step 7 slice 7, Oct 4 2026) — RE-SEATED
-        # CONSCIOUSLY: the lever-down reply names him as the game prints
-        # him; the humaniser is the name census's, not this lever's.
-        assert "Cannot pursue Archduke Charles" in str(res.get("message", ""))
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-S17-14 — the quote is the player's own
@@ -346,16 +329,6 @@ class TestTheLogNamesWhatWasProposed:
         src = (ROOT / "backend" / "commands" / "diplomatic_executor.py").read_text(
             encoding="utf-8")
         assert '"proposal_type_offered": str(terms.get("type") or "")' in src
-
-    def test_lever_down_reproduces_the_intent_label(self, monkeypatch):
-        monkeypatch.setattr(CL, "THE_LOG_NAMES_WHAT_WAS_PROPOSED", False)
-        line = CL.format_event_oneliner({
-            "type": "ai_proposal_rejected", "turn": 9, "source": "Hanover",
-            "proposal_type": "friendly_gift",
-            "proposal_type_offered": "open_borders",
-        })
-        assert "gift" in line.lower(), line
-        assert "open borders" not in line.lower(), line
 
 
 # ═══════════════════════════════════════════════════════════════════════

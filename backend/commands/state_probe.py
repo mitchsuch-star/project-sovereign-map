@@ -116,10 +116,8 @@ def _broken_turns(marshal) -> int:
 def _standing_reason(world, marshal, strategic_type: str) -> str:
     """The standing-order road's state arms (`strategic_executor.
     _execute_strategic_command`), in its order."""
-    from backend.commands.movement_executor import RECOVERING_CORPS_TAKES_NO_GROUND
     from backend.commands.strategic import THE_STATE_SPEAKS_FIRST
-    recovering = (marshal.in_retreat_recovery() if RECOVERING_CORPS_TAKES_NO_GROUND
-                  else int(getattr(marshal, "retreat_recovery", 0) or 0) > 0)
+    recovering = (marshal.in_retreat_recovery())
     if recovering:
         return "recovering from a retreat — no standing orders"
     if THE_STATE_SPEAKS_FIRST and strategic_type not in ("HOLD", "SUPPORT"):

@@ -112,14 +112,6 @@ class TestTheBandWeighsTheStandingModifiers:
         assert O.inferred_attack_favorable(davout, kutuzov, gs) == (
             O.inferred_attack_effective_ratio(davout, kutuzov, gs) >= 0.7)
 
-    def test_the_lever_down_is_the_men_only_band(self, shipped, monkeypatch):
-        monkeypatch.setattr(O, "THE_BAND_WEIGHS_THE_STANDING_MODIFIERS", False)
-        _client, world = shipped
-        davout, kutuzov = _stage_kutuzov(world)
-        gs = {"world": world}
-        assert (O.inferred_attack_effective_ratio(davout, kutuzov, gs, fold_modifiers=True)
-                == O.inferred_attack_effective_ratio(davout, kutuzov, gs))
-
 
 class TestTheMusterReadsTheFold:
 
@@ -213,12 +205,6 @@ class TestThePostureNoteNamesWhatHurts:
         data = post(client, "Massena, attack Archduke John")
         blob = str(data.get("message") or "") + str(data.get("pending_interrupt") or "")
         assert "Massena attacks from a defensive stance" in blob, blob[:600]
-
-    def test_the_lever_down_names_nothing(self, shipped, monkeypatch):
-        monkeypatch.setattr(O, "THE_BAND_WEIGHS_THE_STANDING_MODIFIERS", False)
-        _client, world = shipped
-        massena, john = self._stage_massena(world)
-        assert M.executor._combat._posture_note(massena, john, world) == ""
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -347,15 +333,6 @@ class TestTheFavorableLine:
         _solve_strength(world, ney, mack, 1.05)
         raw = O.inferred_attack_effective_ratio(ney, mack, gs)
         assert O.inferred_attack_odds_band(ney, mack, gs) == ("favorable" if raw >= 1.0 else "even")
-
-    def test_lever_down_the_line_is_the_folded_one(self, shipped, monkeypatch):
-        monkeypatch.setattr(O, "THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS", False)
-        _client, world = shipped
-        gs = {"world": world}
-        murat, charles = _pair(world, "Murat", "ArchdukeCharles")
-        _solve_strength(world, murat, charles, 1.2)
-        assert O.inferred_attack_odds_band(murat, charles, gs, fold_modifiers=True) == "favorable"
-        assert O.odds_band_note("even", 1.2) == ""
 
     def test_the_resolver_reads_the_named_terms(self):
         """The band weighs the generals with the resolver's OWN arithmetic —

@@ -154,13 +154,6 @@
     "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestThePostureNoteNamesWhatHurts::test_the_muster_prints_the_note"
   },
   {
-    "id": "SR-4a fold lever down",
-    "file": "backend/commands/objection_v2.py",
-    "old": "THE_BAND_WEIGHS_THE_STANDING_MODIFIERS = True\n",
-    "new": "THE_BAND_WEIGHS_THE_STANDING_MODIFIERS = False\n",
-    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheBandWeighsTheStandingModifiers::test_a_defensive_kutuzov_is_no_longer_favorable"
-  },
-  {
     "id": "SR-4a the fold forgets the defender",
     "file": "backend/commands/objection_v2.py",
     "old": "        return (attacker * attack_mod) / (effective_defender * max(0.01, defense_mod))",

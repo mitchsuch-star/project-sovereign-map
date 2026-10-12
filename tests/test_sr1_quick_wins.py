@@ -60,18 +60,6 @@ class TestAAR12TheLastAdminSpendDoesNotEndTheDay:
         assert EX.LAST_ORDER_OF_THE_DAY_NOTICE not in result["message"]
         assert result["action_info"]["turn_advanced"] is False
 
-    def test_the_lever_down_reproduces_the_old_auto_advance(self, europe, monkeypatch):
-        """The pin binds: with the lever down the last administrative spend
-        auto-advances exactly as it did before the row."""
-        monkeypatch.setattr(EX, "AN_ADMIN_SPEND_NEVER_ENDS_THE_DAY", False)
-        europe.actions_remaining = 0
-        europe.admin_actions_remaining = 1
-        turn_before = int(europe.current_turn)
-        result = _build_market(europe)
-        assert result["success"] is True, result.get("message")
-        assert result["action_info"]["turn_advanced"] is True
-        assert int(europe.current_turn) == turn_before + 1
-
     def test_the_typed_end_turn_still_ends_the_dry_day(self, europe):
         """No soft-lock: 0/0 with no auto-advance is the WO-22 state, and the
         exit is the same — `end turn`."""

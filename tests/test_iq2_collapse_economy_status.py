@@ -37,7 +37,6 @@ import backend.commands.meta_executor as ME
 import backend.game_logic.ledger as L
 import backend.game_logic.marshal_overview as MO
 import backend.game_logic.recruitment as R
-import backend.intel_report as IR
 import backend.models.world_state as WS
 from backend.commands.economy_executor import get_levy_status
 from backend.commands.executor import CommandExecutor
@@ -137,16 +136,7 @@ class TestB1LevyReadsTheDepot:
         assert ("We do not control Paris, Your Majesty. Recruitment is "
                 "impossible there.") in res["message"]
 
-    def test_lever_down_reproduces_the_lie(self, europe, monkeypatch):
-        _maul(europe)
-        europe.regions["Paris"].controller = "Austria"
-        europe.invalidate_active_nations_cache()
-        monkeypatch.setattr(EE, "LEVY_READS_THE_DEPOT_GATE", False)
-        levy = get_levy_status(europe)
-        assert levy["open"] is True
-        assert "closed_reason" not in levy and "capital_held" not in levy
-
-    def test_an_unrest_capital_closes_the_levy(self, europe, monkeypatch):
+    def test_an_unrest_capital_closes_the_levy(self, europe):
         """The executor's SECOND location gate (stability <= 50)."""
         _maul(europe)
         europe.regions["Paris"].stability = 40
@@ -157,8 +147,6 @@ class TestB1LevyReadsTheDepot:
         res = _execute(europe, {"action": "recruit"})
         assert res["success"] is False
         assert "stability 40/100" in res["message"]
-        monkeypatch.setattr(EE, "LEVY_READS_THE_DEPOT_GATE", False)
-        assert get_levy_status(europe)["open"] is True
 
     def test_one_predicate_for_the_status_and_the_executor(self, europe, monkeypatch):
         """Single source: both read `recruit_location_gate` at call time."""
@@ -206,11 +194,9 @@ class TestB1LevyReadsTheDepot:
         assert status["open"] is False and status["over_by"] > 0
         assert status["closed_reason"] == ""
 
-    def test_the_legacy_levy_dict_is_byte_identical(self, monkeypatch):
+    def test_the_legacy_levy_dict_is_byte_identical(self):
         legacy = _quiet(WorldState, player_nation="France")
         up = get_levy_status(legacy)
-        monkeypatch.setattr(EE, "LEVY_READS_THE_DEPOT_GATE", False)
-        assert up == get_levy_status(legacy)
         assert "closed_reason" not in up
 
     def test_no_ai_module_reads_the_levy(self):
@@ -364,13 +350,6 @@ class TestB4IntelReport:
         text = generate_intel_report(europe)["report_text"]
         assert "held by Kingdom of Italy" in text
         assert "KingdomOfItaly" not in text.split("PRISONERS:")[1].split("\n\n")[0]
-
-    def test_lever_down_restores_the_silent_report(self, europe, monkeypatch):
-        self._capture(europe, "Ney")
-        monkeypatch.setattr(IR, "THE_REPORT_NAMES_ITS_PRISONERS", False)
-        report = generate_intel_report(europe)
-        assert "PRISONERS" not in report["report_text"]
-        assert "prisoners" not in report
 
     def test_the_typed_status_command_carries_both_blocks(self, europe):
         _collapse(europe)

@@ -91,20 +91,6 @@
     "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN88TheSingleSourceIsCalled"
   },
   {
-    "id": "D5/a the lever is down",
-    "file": "backend/commands/strategic.py",
-    "old": "THE_STALEMATE_QUOTES_ITS_PRICE = True   # False = the buttons carry no figure\n",
-    "new": "THE_STALEMATE_QUOTES_ITS_PRICE = False   # False = the buttons carry no figure\n",
-    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAS16D5TheStalemateQuotesItsPrice"
-  },
-  {
-    "id": "D5/b the quoter prices continue as well",
-    "file": "backend/commands/strategic.py",
-    "old": "        if THE_STALEMATE_QUOTES_ITS_PRICE:\n            for option in (\"hold_position\", \"cancel_order\"):\n                costs[option] = STALEMATE_ABANDON_TRUST\n",
-    "new": "        if THE_STALEMATE_QUOTES_ITS_PRICE:\n            for option in (\"continue_order\", \"hold_position\", \"cancel_order\"):\n                costs[option] = STALEMATE_ABANDON_TRUST\n",
-    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAS16D5TheStalemateQuotesItsPrice"
-  },
-  {
     "id": "D5/c the charge drifts from the quote (a bare literal back on one arm)",
     "file": "backend/commands/strategic.py",
     "old": "            marshal.strategic_order = None\n            # [7A-2] Clear holding state\n            marshal.holding_position = False\n            marshal.hold_region = \"\"\n            trust_change = STALEMATE_ABANDON_TRUST   # FA-S16-D5: the quoted number\n            if hasattr(marshal, 'trust'):\n                trust_change = marshal.trust.modify(trust_change)\n            return self._attach_redemption_if_needed({\n                \"success\": True,\n                \"message\": f\"{marshal.name} abandons the order and awaits new instructions.\",\n",

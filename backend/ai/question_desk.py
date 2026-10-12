@@ -53,17 +53,12 @@ from backend.ai.clause_guards import HONORIFIC
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 from backend.errors import report
 
-# Flip lever: False makes classify_question() return None for everything, so
-# every question falls back to the pre-slice `help` route byte-for-byte.
-QUESTION_DESK_ACTIVE = True
-
 # ═══════════════════════════════════════════════════════════════════════════
 # CRT-7 — "THE DESK ANSWERS WHAT THE ORDER WOULD DO" (Score Mandate Chunk 3,
 # SR-3a part (ii), September 26, 2026). The through-line the CR-6 triage
 # named: every desk answer asks the SEAM that would refuse or charge the
-# order. Each rule below sits behind its own lever whose down arm reproduces
-# the row it closes, measured at the real `POST /command` on the shipped
-# 1805 boot before a line was written.
+# order. Each rule below closes its row, measured at the real
+# `POST /command` on the shipped 1805 boot before a line was written.
 # ═══════════════════════════════════════════════════════════════════════════
 # AAR-17: the first questions a player asks — "who am I fighting and why",
 # "is Vienna safe?", "what does Kutuzov have with him?", "how long until the
@@ -72,17 +67,14 @@ QUESTION_DESK_ACTIVE = True
 # answer that from the dispatches" while the dispatch beside it listed three
 # wars. Seven kinds: `wars`, `allies`, `safe`, `truce_clock`, `war_effort`,
 # `news`, and the fact desk's `how_many` learning "what does X have".
-THE_DESK_ANSWERS_THE_WAR_QUESTION = True
 # DESK-1 (a FOG LEAK, P2): `why not attack Kutuzov` answered "No corps of
 # ours stands within reach of Kutuzov at Podolia" while `where is Kutuzov`
 # answered "no word of Kutuzov's whereabouts" — the what-if named the cell
 # of a corps the player had never seen, and tracked it live.
-THE_WHAT_IF_IS_FOG_HONEST = True
 # DESK-4: the what-if mustered against Deroy (Bavaria, our ALLY) and against
 # Mack under a TRUCE, where the order itself is refused — it asks the order's
 # own refusals first (`friendly_fire_refusal`, the executor's armistice
 # block) and says when the order would first put a declaration to the player.
-THE_WHAT_IF_REFUSES_LIKE_THE_ORDER = True
 # RS-12 (Score Finish Step 7 slice 5b): the what-if also asks the marshal's
 # STATE first — the executor's gates before the range (`state_probe`), so a
 # fortified / drill-locked / wounded / recovering / broken corps, or a spent
@@ -95,27 +87,22 @@ THE_WHAT_IF_READS_THE_ORDERS_STATE = True
 # The price is `economy_executor.recruit_quote`, CN-1's single source — the
 # bare order's ground (the capital) first, then the cheapest levy a standing
 # corps can raise, as the order that raises it.
-THE_PRICE_IS_THE_QUOTE = True
 # DESK-5: "the provinces yield 3,400 and trade 350; the army costs 2,630.
 # Net +1,842" — the named figures summed to 1,120. The sentence is built
 # from `ledger.NET_GOLD_COMPONENTS` with their signs, so it sums by
 # construction.
-THE_INCOME_SENTENCE_SUMS = True
 # DESK-7 (P2): `who is winning` built its list from the courts with MARSHALS
 # on the board, so a war with a court whose army was elsewhere was missing,
 # and a coalition read as three even scores instead of the ONE war-level
 # score the banner shows. It reads the war banner's own rows now
 # (`war_status.build_active_wars`), coalition collapsed as the banner does.
-WHO_IS_WINNING_READS_THE_BANNER = True
 # DESK-15: our own FALLEN marshal could not be asked about — `where is Ney`
 # after his corps was destroyed drew the shrug, because the parser's roster
 # holds only marshals with strength > 0. The player's own tombstones join the
 # desk's roster (no fog on our own dead) and are answered in the first person.
-OUR_OWN_FALLEN_ARE_ANSWERED = True
 # The session exit of September 28, 2026 (its residue): "how many diplomatic
 # points do I have?" / "how many actions do I have left?" — the Emperor's own
 # counts, read off the sources the top bar and the command header print.
-THE_DESK_COUNTS_THE_POINTS = True
 
 _APOS = "['’]"
 _HON = r"(?:" + HONORIFIC + r")?"
@@ -212,7 +199,7 @@ def classify_question(text: str, marshals: Iterable[str] = (),
                       enemies: Iterable[str] = (),
                       regions: Iterable[str] = ()) -> Optional[Dict]:
     """The fact question in `text`, or None (the caller keeps `help`)."""
-    if not QUESTION_DESK_ACTIVE or not text:
+    if not text:
         return None
     for kind, pattern in _KINDS:
         match = pattern.match(text.strip())
@@ -443,7 +430,7 @@ def _answer_enemy(world, kind: str, name: str) -> str:
 def answer_question(world, question: Optional[Dict]) -> Optional[str]:
     """Berthier's one-line answer, or None when the desk cannot answer (the
     caller falls back to the full intelligence report)."""
-    if not question or not QUESTION_DESK_ACTIVE or world is None:
+    if not question or world is None:
         return None
     kind = str(question.get("kind") or "")
     subject = str(question.get("subject") or "")
@@ -464,7 +451,7 @@ def answer_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_region(world, kind, subject)
         if subject_type == "marshal":
             marshal = world.get_marshal(subject)
-            if marshal is None and OUR_OWN_FALLEN_ARE_ANSWERED:
+            if marshal is None:
                 # DESK-15: our own fallen, in the first person.
                 tomb = (getattr(world, "fallen_marshals", None) or {}).get(subject)
                 if tomb and (tomb or {}).get("nation") == world.player_nation:
@@ -501,24 +488,20 @@ def answer_question(world, question: Optional[Dict]) -> Optional[str]:
 # deck, the diplomatic state — so a quoted figure is the applied figure and
 # the two cannot drift. That is the row's central finding stated as code:
 # *the chips are priced and the typed verbs are blind*, and this is where the
-# typed road stops being blind.
-#
-# Flip lever: False returns the desk to its five kinds byte-for-byte.
-THE_DESK_ANSWERS_THE_BOARD = True
+# typed road stops being blind. The rule: the desk answers the board.
 
 # AAR-18 (Score Mandate Chunk 2 reserve, Sept 26 2026): "what can I
 # build" answered "nowhere" whenever no corps stood on our own soil,
 # while `build market at Paris` succeeded — the executor's build gate
 # (`region.can_build`) needs no corps. With no corps to point at, the
 # desk now answers from that same gate: the capital first, then the
-# richest province where something can be raised. False restores the
-# corps-only answer.
-THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS = True
+# richest province where something can be raised. The rule: the desk
+# breaks ground without a corps.
 
 # ═══════════════════════════════════════════════════════════════════════════
 # THE SESSION EXIT'S RESIDUE (Score Mandate, September 26, 2026 — memo
 # `docs/audits/SR_SESSION_EXIT_2026_09_26.md`, findings F1 and F2). Each rule
-# behind its own lever; the down arm reproduces the finding.
+# closes its finding.
 # ═══════════════════════════════════════════════════════════════════════════
 # F1 (P2): "is Vienna safe?" counted the corps at war with FRANCE whoever held
 # the province — so Austria's own Archduke John was named the threat to
@@ -527,20 +510,16 @@ THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS = True
 # invisible to the answer. On soil that is not ours the threats are the corps
 # at war with its HOLDER, and on enemy soil the holder's own corps are its
 # cover, named as such.
-THE_SAFE_ANSWER_READS_THE_HOLDER = True
 # F2 (P2): "should Davout attack Mack" answered with the muster of whichever
 # corps stood nearest (Ney's) — CRT-2's class, inside the desk. The named
 # marshal is the one weighed; beyond his reach the answer says what the order
 # would do and names who IS within reach, and never weighs a substitute.
-THE_WHAT_IF_NAMES_ITS_MARSHAL = True
 # F2: "what are Ney's odds against Vienna" — the Creative AAR player's own
 # turn-5 line — had no desk kind at all.
-THE_DESK_READS_THE_ODDS = True
 # F2: a PROVINCE never reached the what-if ("should Ney attack Vienna", "can
 # Ney take Vienna" shrugged). It is weighed as the order reads it: the corps
 # standing there (the muster), else its works (the resolver's own exchange,
 # `CombatExecutor.garrison_exchange`), else open ground.
-THE_WHAT_IF_WEIGHS_A_PROVINCE = True
 # Who "we" and "I" are in a what-if: the player, weighing the nearest corps.
 _THE_ASKER = frozenset({"i", "we", "us", "our", "my", "the"})
 # A subject the desk cannot place ends the classification: the older what-if
@@ -752,7 +731,7 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
     # subject is captured, so "should Davout attack Mack" weighs Davout, and
     # the verb reads its inflections and the province verbs ("what if Ney
     # attacks Vienna", "can Ney take Vienna"). Sited BEFORE the older entry
-    # below, which stays the lever-down reading byte for byte.
+    # below, which still reads the unnamed what-if.
     ("what_if_named", re.compile(
         _LEAD + r"(?:what\s+(?:happens|would\s+happen)\s+if|what\s+if"
         r"|should|can|could)\s+(?P<who>i|we|" + _HON
@@ -850,8 +829,7 @@ _POINTS_RE = re.compile(
 def classify_points_question(text: str) -> Optional[Dict]:
     """The points question in `text` ("how many diplomatic points do I
     have?"), or None."""
-    if not (QUESTION_DESK_ACTIVE and THE_DESK_ANSWERS_THE_BOARD
-            and THE_DESK_COUNTS_THE_POINTS) or not text:
+    if not text:
         return None
     if _POINTS_RE.match(text.strip()):
         return {"kind": "points", "subject": "", "subject_type": "board"}
@@ -874,8 +852,8 @@ THE_DESK_READS_THE_ALARM = True
 # march and the price to keep each court out — off `coalition.league_forecast`
 # (the alarm's answer names it too). False = the two kinds shrug.
 THE_DESK_READS_THE_LEAGUE = True
-# CRT-7 / AAR-17: the kinds the war-question lever owns, so the lever down
-# returns every one of them to the shrug byte-for-byte.
+# CRT-7 / AAR-17: the kinds the desk's war-question rule owns (the desk
+# answers the war question).
 _WAR_QUESTION_KINDS = frozenset({"wars", "allies", "safe", "truce_clock",
                                  "war_effort", "news"})
 
@@ -891,16 +869,10 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
     on every phrasing they already own, and so a caller with no nation roster
     can still reach the subjectless kinds.
     """
-    if not (QUESTION_DESK_ACTIVE and THE_DESK_ANSWERS_THE_BOARD) or not text:
+    if not text:
         return None
     stripped = text.strip()
     for kind, pattern in _WIDE_KINDS:
-        if kind in _WAR_QUESTION_KINDS and not THE_DESK_ANSWERS_THE_WAR_QUESTION:
-            continue
-        if kind == "what_if_named" and not THE_WHAT_IF_NAMES_ITS_MARSHAL:
-            continue
-        if kind == "what_if_odds" and not THE_DESK_READS_THE_ODDS:
-            continue
         match = pattern.match(stripped)
         if not match:
             continue
@@ -1022,12 +994,11 @@ def _classify_the_weighed(groups, marshals, enemies, regions):
     if foe:
         return {"kind": "what_if", "subject": foe[0], "subject_type": "enemy",
                 "marshal": marshal, "marshal_foreign": foreign}
-    if THE_WHAT_IF_WEIGHS_A_PROVINCE:
-        where = _resolve(phrase, (), (), regions, kind="who_holds")
-        if where:
-            return {"kind": "what_if", "subject": where[0],
-                    "subject_type": "region", "marshal": marshal,
-                    "marshal_foreign": foreign}
+    where = _resolve(phrase, (), (), regions, kind="who_holds")
+    if where:
+        return {"kind": "what_if", "subject": where[0],
+                "subject_type": "region", "marshal": marshal,
+                "marshal_foreign": foreign}
     return None
 
 
@@ -1102,12 +1073,6 @@ def _answer_treasury(world, player: str) -> Optional[str]:
     upkeep = int(economy.get("upkeep") or 0)
     sign = "+" if net >= 0 else ""
     pointer = surface_pointer("economy")
-    if not THE_INCOME_SENTENCE_SUMS:
-        line = (f"The treasury holds {_money(treasury)} gold, Sire. "
-                f"The provinces yield {_money(income)} and trade "
-                f"{_money(trade)}; the army costs {_money(upkeep)}. "
-                f"Net {sign}{_money(net)} a turn.")
-        return f"{line} The full account is in {pointer}." if pointer else line
     # DESK-5: the sentence is the ledger's own identity — every non-zero
     # signed component, in and out, so the figures named SUM to the Net
     # stated (measured before: 3,400 + 350 − 2,630 = 1,120 against a printed
@@ -1188,38 +1153,23 @@ def _answer_winning(world, player: str) -> Optional[str]:
     from backend.game_logic.diplomacy import get_war_score_for
     pointer = surface_pointer("war")
     tail = f" The breakdown is on {pointer}." if pointer else ""
-    if WHO_IS_WINNING_READS_THE_BANNER:
-        rows, coalition = _banner_rows(world)
-        wars = [r for r in rows if str(r.get("status") or "war") == "war"]
-        truces = [r for r in rows if str(r.get("status") or "") == "armistice"]
-        if not wars and not truces:
-            return (f"We are at war with no one, Sire. "
-                    f"{CABINET_LINE_FOR_DESK}")
-        parts = []
-        for row in wars:
-            score = int(row.get("war_score") or 0)
-            parts.append(f"{_row_name(world, row, coalition)} {score:+d} "
-                         f"({_score_word(score)})")
-        text = ("War score, Sire — " + "; ".join(parts) + "." if parts
-                else "No war is being fought today, Sire.")
-        if truces:
-            text += (" Under truce: "
-                     + _join([_row_name(world, r, coalition) for r in truces]) + ".")
-        return text + tail
-    try:
-        foes = sorted({m.nation for m in world.marshals.values()
-                       if m.nation != player and world.is_at_war(player, m.nation)})
-    except Exception as exc:
-        report(exc, "question_desk._answer_winning: sorted / world.marshals.values")
-        foes = []
-    if not foes:
+    rows, coalition = _banner_rows(world)
+    wars = [r for r in rows if str(r.get("status") or "war") == "war"]
+    truces = [r for r in rows if str(r.get("status") or "") == "armistice"]
+    if not wars and not truces:
         return (f"We are at war with no one, Sire. "
                 f"{CABINET_LINE_FOR_DESK}")
     parts = []
-    for foe in foes:
-        score = int(get_war_score_for(world, player, foe) or 0)
-        parts.append(f"{_court(world, foe)} {score:+d} ({_score_word(score)})")
-    return "War score, Sire — " + "; ".join(parts) + "." + tail
+    for row in wars:
+        score = int(row.get("war_score") or 0)
+        parts.append(f"{_row_name(world, row, coalition)} {score:+d} "
+                     f"({_score_word(score)})")
+    text = ("War score, Sire — " + "; ".join(parts) + "." if parts
+            else "No war is being fought today, Sire.")
+    if truces:
+        text += (" Under truce: "
+                 + _join([_row_name(world, r, coalition) for r in truces]) + ".")
+    return text + tail
 
 
 def _answer_at_war(world, player: str, nation: str) -> Optional[str]:
@@ -1495,22 +1445,7 @@ def _answer_reach(world, player: str, marshal_name: str,
     if marshal.location == place:
         return f"{shown} already stands at {place}, Sire."
     import backend.commands.strategic as _road
-    if _road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED:
-        return _answer_reach_by_the_march(world, player, marshal, shown, place)
-    lawful = world.find_path(marshal.location, place, passable_for=player)
-    if lawful:
-        steps = max(0, len(lawful) - 1)
-        turns = "turn" if steps == 1 else "turns"
-        return (f"Yes, Sire — {shown} can reach {place} from "
-                f"{marshal.location} in {steps} {turns}: "
-                + " -> ".join(lawful) + ".")
-    any_road = world.find_path(marshal.location, place)
-    if any_road:
-        return (f"Not lawfully, Sire. A road exists from {marshal.location} "
-                f"to {place}, but it crosses ground we may not enter. "
-                f"{CABINET_LINE_FOR_DESK}")
-    return (f"There is no road from {marshal.location} to {place}, Sire — "
-            f"not by land.")
+    return _answer_reach_by_the_march(world, player, marshal, shown, place)
 
 
 def _answer_reach_by_the_march(world, player: str, marshal, shown: str,
@@ -1578,17 +1513,16 @@ def _answer_what_if(world, player: str, enemy_name: str,
     # player has intelligence on it — the same rule `_answer_enemy` keeps
     # for "where is Kutuzov". A prisoner is answered by the prisoners'
     # module, which names the cell only where it is in view.
-    if THE_WHAT_IF_IS_FOG_HONEST:
-        from backend.models.intel import PARTIAL
-        if getattr(enemy, "captured_by", ""):
-            from backend.commands.prisoners import prisoner_refusal
-            refusal = prisoner_refusal(world, enemy, player) or {}
-            return (str(refusal.get("message") or
-                        f"{shown} leads no army, Sire.")
-                    + " There is no battle to weigh.")
-        if not world.get_region_intel(enemy.location).visibility_at_least(PARTIAL):
-            return (f"We have no word of {shown}'s whereabouts, Sire — there "
-                    f"is no battle to weigh. Scout for him before naming him.")
+    from backend.models.intel import PARTIAL
+    if getattr(enemy, "captured_by", ""):
+        from backend.commands.prisoners import prisoner_refusal
+        refusal = prisoner_refusal(world, enemy, player) or {}
+        return (str(refusal.get("message") or
+                    f"{shown} leads no army, Sire.")
+                + " There is no battle to weigh.")
+    if not world.get_region_intel(enemy.location).visibility_at_least(PARTIAL):
+        return (f"We have no word of {shown}'s whereabouts, Sire — there "
+                f"is no battle to weigh. Scout for him before naming him.")
     candidates = []
     for marshal in world.get_player_marshals():
         if int(getattr(marshal, "strength", 0) or 0) <= 0:
@@ -1608,29 +1542,28 @@ def _answer_what_if(world, player: str, enemy_name: str,
     # PEACE is not a refusal: the order would first put the declaration to
     # the player, and the answer says so before the muster.
     preface = ""
-    if THE_WHAT_IF_REFUSES_LIKE_THE_ORDER:
-        from backend.commands.combat_executor import friendly_fire_refusal
-        probe = candidates[0] if candidates else next(
-            (m for m in world.get_player_marshals()
-             if int(getattr(m, "strength", 0) or 0) > 0
-             and not getattr(m, "captured_by", "")), None)
-        if probe is not None and friendly_fire_refusal(world, probe, enemy.nation):
-            state = world.get_diplomatic_state(player, enemy.nation)
-            bond = ("our vassal" if state == "VASSAL" else "our ally")
-            return (f"{shown} is {court}'s, and {court} is {bond}, Sire — "
-                    f"the order would be refused, and nothing spent. "
-                    f"{CABINET_LINE_FOR_DESK}")
+    from backend.commands.combat_executor import friendly_fire_refusal
+    probe = candidates[0] if candidates else next(
+        (m for m in world.get_player_marshals()
+         if int(getattr(m, "strength", 0) or 0) > 0
+         and not getattr(m, "captured_by", "")), None)
+    if probe is not None and friendly_fire_refusal(world, probe, enemy.nation):
         state = world.get_diplomatic_state(player, enemy.nation)
-        if state == "ARMISTICE":
-            from backend.commands.executor import CommandExecutor
-            block = CommandExecutor()._make_diplomatic_error(world, player, enemy)
-            if block:
-                return (f"{block.get('message')} The order would be refused, "
-                        f"and nothing spent.")
-        elif not world.is_at_war(player, enemy.nation):
-            preface = (f"France is at peace with {court}, Sire — the order "
-                       f"would first put a declaration of war to you.\n")
-    if marshal_name and THE_WHAT_IF_NAMES_ITS_MARSHAL:
+        bond = ("our vassal" if state == "VASSAL" else "our ally")
+        return (f"{shown} is {court}'s, and {court} is {bond}, Sire — "
+                f"the order would be refused, and nothing spent. "
+                f"{CABINET_LINE_FOR_DESK}")
+    state = world.get_diplomatic_state(player, enemy.nation)
+    if state == "ARMISTICE":
+        from backend.commands.executor import CommandExecutor
+        block = CommandExecutor()._make_diplomatic_error(world, player, enemy)
+        if block:
+            return (f"{block.get('message')} The order would be refused, "
+                    f"and nothing spent.")
+    elif not world.is_at_war(player, enemy.nation):
+        preface = (f"France is at peace with {court}, Sire — the order "
+                   f"would first put a declaration of war to you.\n")
+    if marshal_name:
         # F2: the corps the question named, never a substitute.
         chosen = _the_named_corps(world, player, marshal_name, marshal_foreign,
                                   enemy.location, f"{shown} at {enemy.location}",
@@ -1777,7 +1710,7 @@ def _answer_what_if_region(world, player: str, region_name: str,
          <= int(getattr(m, "movement_range", 1) or 1)),
         key=lambda m: (world.get_distance(m.location, region_name),
                        -int(m.strength)))
-    if marshal_name and THE_WHAT_IF_NAMES_ITS_MARSHAL:
+    if marshal_name:
         chosen = _the_named_corps(world, player, marshal_name, marshal_foreign,
                                   region_name, region_name, in_reach,
                                   enemy_target=False)
@@ -2105,7 +2038,7 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
                      f"on what holds it.")
     else:
         parts.append(f"{region_name} is {whose}, Sire, with no corps of ours in it.")
-    if THE_SAFE_ANSWER_READS_THE_HOLDER and not ours:
+    if not ours:
         parts.extend(_safe_for_the_holder(world, player, region, region_name,
                                           adjacent, two_off, garrison, in_view,
                                           bool(own)))
@@ -2349,7 +2282,7 @@ def _answer_news(world, player: str) -> Optional[str]:
 def own_fallen_names(world) -> List[str]:
     """DESK-15: the player's own fallen marshals (the tombstones with our
     nation), so the desk can be asked about them. No fog on our own dead."""
-    if not OUR_OWN_FALLEN_ARE_ANSWERED or world is None:
+    if world is None:
         return []
     player = getattr(world, "player_nation", None)
     return [name for name, tomb in (getattr(world, "fallen_marshals", None) or {}).items()
@@ -2423,22 +2356,7 @@ def _answer_can_build(world, player: str, region_name: str) -> Optional[str]:
 def _answer_price(world, player: str, what: str) -> Optional[str]:
     """The live price, from the pricer that would charge it."""
     if what in ("infantry", "cavalry", "artillery"):
-        if THE_PRICE_IS_THE_QUOTE:
-            return _answer_levy_price(world, player, what)
-        from backend.game_logic.ledger import _build_economy
-        levy = (_build_economy(world, player) or {}).get("levy") or {}
-        price = int(levy.get(f"{what}_price") or levy.get("infantry_price") or 0)
-        amount = int(levy.get(f"{what}_amount") or levy.get("infantry_amount") or 0)
-        where = _first_own_region_with_a_corps(world, player)
-        if not price:
-            return (f"No corps of ours stands where the levy could reach it, "
-                    f"Sire — the price is not quoted until one does.")
-        line = (f"{_money(price)} gold for {_money(amount)} "
-                f"{what}, Sire")
-        if where:
-            line += f", at {where}"
-        line += ". The price rises at war and above the force limit."
-        return line
+        return _answer_levy_price(world, player, what)
     if what == "fleet":
         from backend.game_logic import naval
         cost = int(getattr(naval, "SHIP_COST", 400) or 400)
@@ -2580,8 +2498,6 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
     """Berthier's answer to a CX-2 board question, or None."""
     if not question or world is None:
         return None
-    if not (QUESTION_DESK_ACTIVE and THE_DESK_ANSWERS_THE_BOARD):
-        return None
     kind = str(question.get("kind") or "")
     subject = str(question.get("subject") or "")
     player = world.player_nation
@@ -2628,7 +2544,7 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_what_if(world, player, subject)
         if kind == "can_build":
             where = subject or _first_own_region_with_a_corps(world, player)
-            if not where and THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS:
+            if not where:
                 # AAR-18: the executor's gate needs no corps.
                 where = _first_own_region_that_can_build(world, player)
                 if where:
@@ -2647,11 +2563,9 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_options(world, player)
         if kind == "own_army":
             return _answer_own_army(world, player)
-        if kind == "points" and THE_DESK_COUNTS_THE_POINTS:
+        if kind == "points":
             return _answer_points(world, player)
         # CRT-7 / AAR-17: the war question and its kin.
-        if kind in _WAR_QUESTION_KINDS and not THE_DESK_ANSWERS_THE_WAR_QUESTION:
-            return None
         if kind == "wars":
             return _answer_wars(world, player)
         if kind == "allies":

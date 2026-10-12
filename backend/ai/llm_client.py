@@ -139,15 +139,14 @@ SUPPORT_OBJECT_PREFIX_RE = re.compile(
 CONDITION_CLAUSE_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 
 # ═══════════════════════════════════════════════════════════════════════
-# FA slice 7 (Sept 4, 2026) — "the mock speaks plainly". Flip levers: each
-# False reproduces the pre-slice chain byte-for-byte for its own arm.
+# FA slice 7 (Sept 4, 2026) — "the mock speaks plainly". Six rules:
+#   FA-N8 / FA-N24: lay down / diversion anchor to the fleet;
+#   FA-80: stay put / stand your ground / advance on / pull back / retire;
+#   FA-D20: join / aid / help / protect <marshal> -> SUPPORT;
+#   FA-80: one edit-distance-1 verb repair, re-entering once;
+#   FA-D25: fact questions -> status, not the command reference;
+#   FA-80 (c): the shrug's example enemy is at war with us.
 # ═══════════════════════════════════════════════════════════════════════
-NAVAL_VERBS_NEED_THEIR_OBJECT = True   # FA-N8 / FA-N24: lay down / diversion anchor to the fleet
-PLAIN_SPEECH_ACTIVE = True             # FA-80: stay put / stand your ground / advance on / pull back / retire
-SUPPORT_SPEAKS_PLAINLY = True          # FA-D20: join / aid / help / protect <marshal> -> SUPPORT
-VERB_TYPO_PASS_ACTIVE = True           # FA-80: one edit-distance-1 verb repair, re-entering once
-QUESTION_DESK_ACTIVE = True            # FA-D25: fact questions -> status, not the command reference
-BERTHIER_NAMES_AN_ENEMY = True         # FA-80 (c): the shrug's example enemy is at war with us
 
 _NAVAL_OBJECT_RE = re.compile(
     r"\blay down\b.{0,24}\b(?:ship|ships|keel|keels|hull|hulls|vessel|vessels"
@@ -162,8 +161,6 @@ def _lays_down_a_keel(command_lower: str) -> bool:
     down a pontoon bridge" spent 400g and an admin AP with no confirm. The
     verb now needs its object within 24 characters, as its sibling
     alternative ("build … ships", 20 characters) always did."""
-    if not NAVAL_VERBS_NEED_THEIR_OBJECT:
-        return bool(re.search(r'\blay down\b', command_lower))
     return bool(_NAVAL_OBJECT_RE.search(command_lower))
 
 
@@ -172,8 +169,6 @@ def _orders_the_diversion(command_lower: str) -> bool:
     Grand Diversion — "Murat, mount a diversion on the left" opened the
     Admiralty quote and discarded Murat. The word now needs the instrument
     beside it, or one of the game's own two names for the errand."""
-    if not NAVAL_VERBS_NEED_THEIR_OBJECT:
-        return bool(re.search(r'\bdiversion\b', command_lower))
     if not re.search(r'\bdiversion\b', command_lower):
         return False
     return bool(_DIVERSION_INSTRUMENT_RE.search(command_lower)
@@ -568,8 +563,8 @@ def unique_name_tokens(names) -> Dict[str, str]:
 # answered "Specify a region"), while the march road — whose phrase reaches
 # the executor's region matcher — resolved it. The name matcher reads both
 # sides with their accents folded, one character for one character, so the
-# position-aware scoring below is untouched. False restores the exact read.
-ACCENTS_NEVER_HIDE_A_NAME = True
+# position-aware scoring below is untouched. The rule: accents never hide a
+# name.
 
 
 def fold_accents(text: str) -> str:
@@ -606,8 +601,7 @@ def fold_accents(text: str) -> str:
 # three verbs that take one (recruit / build / repair), exactly as Sweep-5 kept
 # the march's destination, so the executor's region matcher owns the verdict.
 # A manner or a generic place ("at once", "in haste", "in the capital") is not
-# a province and is never kept. False restores the dropped clause.
-A_NAMED_GROUND_IS_KEPT = True
+# a province and is never kept. The rule: a named ground is kept.
 _NAMED_GROUND_VERBS = frozenset({"recruit", "build", "repair"})
 _GROUND_PLACE_AND_TAIL = (
     r"(?:the\s+)?"
@@ -797,7 +791,7 @@ def _match_known_name(command_lower: str, names,
     best_name = None
     # CRT-2 / CQ-29 (a): both sides folded, one character for one, so the
     # positions `_offer` scores are the typed line's own positions.
-    _fold = fold_accents if ACCENTS_NEVER_HIDE_A_NAME else (lambda s: s)
+    _fold = fold_accents
     command_lower = _fold(command_lower)
 
     def _offer(name, pattern, start, is_token):
@@ -923,18 +917,16 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
     # by being both). The courts the parser already knows, with the
     # adjective and its plural ("Prussian", "Prussians") so the demonym
     # reads too. Diplomacy has no fog: naming a court leaks nothing.
-    from .clause_guards import A_COURT_IS_A_SUBJECT
-    if A_COURT_IS_A_SUBJECT:
-        try:
-            from backend.display_names import nation_adjective
-            for court in _known_nation_names(game_state):
-                names.append(court)
-                adjective = str(nation_adjective(court) or "")
-                if adjective and adjective != court:
-                    names.append(adjective)
-                    names.append(adjective + "s")
-        except Exception as exc:
-            report(exc, "llm_client._question_subjects: import backend.display_names")
+    try:
+        from backend.display_names import nation_adjective
+        for court in _known_nation_names(game_state):
+            names.append(court)
+            adjective = str(nation_adjective(court) or "")
+            if adjective and adjective != court:
+                names.append(adjective)
+                names.append(adjective + "s")
+    except Exception as exc:
+        report(exc, "llm_client._question_subjects: import backend.display_names")
     # CX-7. The roster held the KEY and the game prints the DISPLAY form, so
     # the commanders the player can actually see named — "Archduke Charles",
     # printed everywhere, keyed `ArchdukeCharles` — were exactly the ones the
@@ -976,12 +968,8 @@ _SYNTAX_QUESTION_RE = re.compile(
 
 def _routes_to_the_desk(text: str) -> bool:
     """Whether an unanswered question should get the ROUTER rather than the
-    command reference. Gated on the desk's own levers, so turning the desk off
-    restores the pre-CX help route byte-for-byte."""
-    from .question_desk import (QUESTION_DESK_ACTIVE,
-                                THE_DESK_ANSWERS_THE_BOARD)
-    if not (QUESTION_DESK_ACTIVE and THE_DESK_ANSWERS_THE_BOARD):
-        return False
+    command reference: a syntax question ("how do I …") still gets the
+    reference; every other unanswered question reaches the desk."""
     return not _SYNTAX_QUESTION_RE.match((text or "").strip())
 
 
@@ -1263,9 +1251,7 @@ def _mentions_screening_idiom(command_lower: str) -> bool:
 # that would be carried out: it suggested scout / defend, never the retreat
 # and never why — `THE_SHRUG_OFFERS_THE_RETREAT` now says how the line was
 # read and gives both orders (his own retreat; the attack on a foe in sight).
-#
-# Flip lever: False restores the four-verb allowlist byte-for-byte.
-A_RETREAT_CAN_BE_A_NOUN = True
+# The rule: a retreat can be a noun.
 
 # CX5-L5-F5 (Step 7 slice 5a): the addressed shrug offers the retreat and
 # says why when the line named one (lever down: the random scout/defend
@@ -1285,9 +1271,9 @@ _RETREAT_NOUN_RE = re.compile(
 
 # CRT-3 (CX-X1, SR-3a September 26, 2026): the Cabinet's parser reads the
 # SHARED question verdict (`clause_guards.is_question` over the roster)
-# instead of its own weak test. Flip lever: False restores the weak test
-# alone — `why not declare war on Prussia` stages the chooser again.
-THE_CABINET_READS_THE_SHARED_QUESTION = True
+# instead of its own weak test — `why not declare war on Prussia` staged the
+# chooser under the weak test alone. The rule: the Cabinet reads the shared
+# question.
 
 # CRT-6's first pin, CX5-L5-F2 (SR-3a, September 26, 2026): the noun rule
 # above takes only a bare determiner and ONE modifier, so a proper
@@ -1298,8 +1284,7 @@ THE_CABINET_READS_THE_SHARED_QUESTION = True
 # wide rule takes a demonstrative, a proper possessive ("Mack's"), up to two
 # modifiers and the "line / route / path / road / avenue of" bridge. The
 # ORDER verbs ("sound / begin / continue the retreat") still carry it out.
-# Flip lever: False restores the narrow rule byte-for-byte.
-THE_RETREAT_NOUN_TAKES_A_POSSESSIVE = True
+# The rule: the retreat noun takes a possessive.
 _RETREAT_NOUN_WIDE_RE = re.compile(
     r"\b(?:the|our|his|her|their|its|an?|enemy|enemy['’]s"
     r"|this|that|these|those|[a-z]+['’]s)\s+"
@@ -1348,14 +1333,11 @@ def _retreat_is_carried_on(command_lower: str) -> bool:
 
 def _retreat_is_a_noun(command_lower: str) -> bool:
     """True when the sentence acts on SOMEBODY ELSE'S retreat."""
-    if not A_RETREAT_CAN_BE_A_NOUN:
-        return False
     order_re = (_ORDER_THE_RETREAT_WIDE_RE if THE_RETREAT_IS_CARRIED_OUT
                 else _ORDER_THE_RETREAT_RE)
     if order_re.search(command_lower):
         return False
-    noun_re = (_RETREAT_NOUN_WIDE_RE if THE_RETREAT_NOUN_TAKES_A_POSSESSIVE
-               else _RETREAT_NOUN_RE)
+    noun_re = (_RETREAT_NOUN_WIDE_RE)
     return bool(noun_re.search(command_lower))
 
 
@@ -1730,7 +1712,6 @@ def _asks_about_the_laws(command_lower: str) -> bool:
 # The session exit of September 28, 2026 (its residue): the bare word —
 # "laws", like "economy" and "status" — asks for the laws. The exit's laws
 # arm typed it and got Berthier's shrug ("this order eludes me").
-THE_BARE_WORD_ASKS_FOR_THE_LAWS = True
 _LAWS_BARE_RE = re.compile(
     r"^(?:[a-z][\w'’-]*\s*,\s*)?(?:(?:the|our|my)\s+)?(?:laws?|reforms?)"
     r"(?:\s+of\s+(?:the\s+)?state)?[\s.!?]*$")
@@ -1739,8 +1720,7 @@ _LAWS_BARE_RE = re.compile(
 def _names_the_laws(command_lower: str) -> bool:
     """"laws" / "the laws" / "our laws of state" — the whole line, after an
     address and a word of filler (the Congress's head rule)."""
-    return (THE_BARE_WORD_ASKS_FOR_THE_LAWS
-            and bool(_LAWS_BARE_RE.match(_law_rest(command_lower).strip())))
+    return bool(_LAWS_BARE_RE.match(_law_rest(command_lower).strip()))
 
 
 def _marshal_addressed_law(command_lower: str, marshal_names):
@@ -2374,8 +2354,7 @@ class LLMClient:
         enemy_names = list(game_state.get("enemies", {}).keys())
         # FA slice 7 (FA-80 c): never propose attacking a court we are at
         # peace with — see _hostile_first.
-        if BERTHIER_NAMES_AN_ENEMY:
-            enemy_names = _hostile_first(game_state, enemy_names)
+        enemy_names = _hostile_first(game_state, enemy_names)
         first_marshal = marshal_names[0] if marshal_names else "Ney"
         first_enemy = enemy_names[0] if enemy_names else "Wellington"
 
@@ -3201,57 +3180,56 @@ class LLMClient:
             # desk answers fog-honestly. Everything else — feasibility,
             # advice, "how do I…" — keeps the COMMAND REFERENCE, which stays
             # CR-8's advisory desk to replace on its own gate.
-            if QUESTION_DESK_ACTIVE:
-                from .question_desk import (classify_board_question,
-                                             classify_question)
-                _marshals = list(_game_state_dict(game_state, "marshals"))
-                # CRT-7 / DESK-15: our own FALLEN marshals are askable —
-                # the roster above holds only marshals with strength > 0,
-                # so "where is Ney" after his corps was destroyed fell to
-                # the shrug. No fog on our own dead.
-                try:
-                    from .question_desk import own_fallen_names
-                    _marshals += [n for n in own_fallen_names(
-                        (game_state or {}).get("world")) if n not in _marshals]
-                except Exception as exc:
-                    report(exc, "llm_client.LLMClient._chain_question: import question_desk")
-                _enemies = _askable_enemy_names(game_state)
-                _regions = list(_game_state_dict(game_state, "map_data"))
-                _question = classify_question(
+            from .question_desk import (classify_board_question,
+                                         classify_question)
+            _marshals = list(_game_state_dict(game_state, "marshals"))
+            # CRT-7 / DESK-15: our own FALLEN marshals are askable —
+            # the roster above holds only marshals with strength > 0,
+            # so "where is Ney" after his corps was destroyed fell to
+            # the shrug. No fog on our own dead.
+            try:
+                from .question_desk import own_fallen_names
+                _marshals += [n for n in own_fallen_names(
+                    (game_state or {}).get("world")) if n not in _marshals]
+            except Exception as exc:
+                report(exc, "llm_client.LLMClient._chain_question: import question_desk")
+            _enemies = _askable_enemy_names(game_state)
+            _regions = list(_game_state_dict(game_state, "map_data"))
+            _question = classify_question(
+                original_text,
+                marshals=_marshals,
+                enemies=_enemies,
+                regions=_regions)
+            if _question is None:
+                # CX-2: the BOARD questions — the treasury, the war score,
+                # a court's design, whether a corps can reach a province,
+                # what an attack would look like, what may be built and
+                # what it costs. Sited AFTER the five fact kinds so those
+                # keep precedence on every phrasing they already own.
+                _question = classify_board_question(
                     original_text,
                     marshals=_marshals,
                     enemies=_enemies,
-                    regions=_regions)
-                if _question is None:
-                    # CX-2: the BOARD questions — the treasury, the war score,
-                    # a court's design, whether a corps can reach a province,
-                    # what an attack would look like, what may be built and
-                    # what it costs. Sited AFTER the five fact kinds so those
-                    # keep precedence on every phrasing they already own.
-                    _question = classify_board_question(
-                        original_text,
-                        marshals=_marshals,
-                        enemies=_enemies,
-                        regions=_regions,
-                        nations=_known_nation_names(game_state),
-                        bench=_bench_names(game_state))
-                if _question:
-                    return ParseResult(
-                        matched=True,
-                        command_type="tactical",
-                        marshals=[],
-                        action="status",
-                        target=None,
-                        ambiguity=5,
-                        strategic_score=0,
-                        interpretation=(f"Question — {_question['kind']} "
-                                        f"{_question['subject']}"),
-                        confidence=0.9,
-                        mode="mock",
-                        key_source=self.key_source,
-                        raw_command=original_text,
-                        question=_question,
-                    )
+                    regions=_regions,
+                    nations=_known_nation_names(game_state),
+                    bench=_bench_names(game_state))
+            if _question:
+                return ParseResult(
+                    matched=True,
+                    command_type="tactical",
+                    marshals=[],
+                    action="status",
+                    target=None,
+                    ambiguity=5,
+                    strategic_score=0,
+                    interpretation=(f"Question — {_question['kind']} "
+                                    f"{_question['subject']}"),
+                    confidence=0.9,
+                    mode="mock",
+                    key_source=self.key_source,
+                    raw_command=original_text,
+                    question=_question,
+                )
             # CX-2: the question the desk cannot answer. The ACTION stays
             # `help` — four corpus rows pin it and ruling R7 says a question
             # routes there — but it carries a marker so the help executor can
@@ -3447,8 +3425,7 @@ class LLMClient:
         # V2-59: "commands" uses exact match to prevent false positives (e.g. "Ney commands his troops")
         # FA slice 7: "Berthier, status" / "Berthier, help" address the desk
         # itself — the exact-match routes read past a non-name address.
-        _desk_text = (_DESK_ADDRESS_RE.sub("", command_lower).strip()
-                      if PLAIN_SPEECH_ACTIVE else command_lower.strip())
+        _desk_text = (_DESK_ADDRESS_RE.sub("", command_lower).strip())
         # SF-CMD-1 W3 (Oct 3, 2026): "don't move anyone this turn, just end
         # the turn" — the negation guard blanks the forbidden clause and what
         # survives is a bare end-turn phrasing. It is NOT ended here: the
@@ -3613,8 +3590,7 @@ class LLMClient:
         # of our own army — SUPPORT (the strategic parser upgrades), not a
         # 2-AP HOLD "at" him. Sited ABOVE the hold family so its bare
         # "guard"/"protect" keywords cannot claim the sentence first.
-        elif (SUPPORT_SPEAKS_PLAINLY
-              and _guards_a_friendly_marshal(command_lower, player_marshals)):
+        elif (_guards_a_friendly_marshal(command_lower, player_marshals)):
             action = "move"  # Strategic parser upgrades to SUPPORT
         # DD0-4 (October 10, 2026): "drop off a few battalions to hold
         # Franconia" — the garrison idiom, sited ABOVE the hold family so
@@ -3627,8 +3603,7 @@ class LLMClient:
             "hold the line", "stand fast", "stand firm",
             "defend and hold", "fortify and hold", "secure and hold",
             "anchor at", "guard", "protect",
-        ] + (["stand your ground", "stand ground"]
-             if PLAIN_SPEECH_ACTIVE else [])):
+        ] + (["stand your ground", "stand ground"])):
             action = "hold"
         elif "hold" in command_lower:
             action = "hold"  # Alias for defend - will be converted in executor
@@ -3648,7 +3623,7 @@ class LLMClient:
                   and not _retreat_is_a_noun(command_lower))
               # FA slice 7 (FA-80): "pull back" / "retire" without a
               # destination are the retreat verb.
-              or (PLAIN_SPEECH_ACTIVE and _mentions_plain_retreat(command_lower))
+              or (_mentions_plain_retreat(command_lower))
               # CX5-L5-F4: "keep falling back" — the retreat continued (the
               # plain-retreat rule reads only the bare "fall back").
               or _retreat_is_carried_on(command_lower)):
@@ -3669,8 +3644,8 @@ class LLMClient:
             # while "head TO Vienna" marched).
             "head for", "ride for", "ride to", "set off for", "set out for",
             "set off to", "set out to", "make haste to", "make haste for",
-        ] + (_PLAIN_MOVE_FORMS if PLAIN_SPEECH_ACTIVE else [])) or (
-            PLAIN_SPEECH_ACTIVE and _plain_move_lead(command_lower)
+        ] + (_PLAIN_MOVE_FORMS)) or (
+            _plain_move_lead(command_lower)
         ) or (
             # PARSE-NEG evaluation: "Ney, go to Alsace" — about as plain as an
             # order gets — was UNPARSEABLE. The list carried "head to",
@@ -3858,8 +3833,7 @@ class LLMClient:
         elif ("reinforce" in command_lower or re.search(r'\bsupport\b', command_lower)
               # FA slice 7 (FA-D20): join / link up with / aid / assist /
               # bolster / come to the aid of / help <friendly marshal>.
-              or (SUPPORT_SPEAKS_PLAINLY
-                  and _supports_a_friendly_marshal(command_lower, player_marshals))):
+              or (_supports_a_friendly_marshal(command_lower, player_marshals))):
             action = "move"  # Strategic parser upgrades to SUPPORT
         # Tactical state actions (Phase 2.6)
         elif ("unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower
@@ -4066,7 +4040,7 @@ class LLMClient:
         # WAIT only when no order verb above claimed the sentence — above the
         # order verbs, "scout Swabia and remain there" WAITED and "remain at
         # Rhineland and fortify" dropped the fortify.
-        elif PLAIN_SPEECH_ACTIVE and _mentions_stay_put(command_lower):
+        elif _mentions_stay_put(command_lower):
             action = "wait"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
@@ -4313,8 +4287,7 @@ class LLMClient:
         # CRT-2 / CQ-29 (b): the spoken ground of a recruit / build / repair
         # is kept when no known name matched it, so the executor's region
         # matcher answers — never the capital (see `named_ground_phrase`).
-        if (A_NAMED_GROUND_IS_KEPT and target is None
-                and action in _NAMED_GROUND_VERBS):
+        if (target is None and action in _NAMED_GROUND_VERBS):
             _ground = named_ground_phrase(command_lower, action)
             if _ground:
                 target = _ground
@@ -4346,10 +4319,7 @@ class LLMClient:
         questioned line never reaches here."""
         if st.action != "unknown" or st.negation_applied or st.shared_question:
             return None
-        # The slot reader IS the mock speaking plainly: FA slice 7's lever
-        # down restores the pre-slice shrug here too (its sensitivity arm).
-        if not PLAIN_SPEECH_ACTIVE:
-            return None
+        # The slot reader IS the mock speaking plainly (FA slice 7).
         game_state = st.game_state
         friends = list(_game_state_dict(game_state, "marshals"))
         places = list(_game_state_dict(game_state, "map_data"))
@@ -4737,7 +4707,7 @@ class LLMClient:
         is_question = command_text.strip().endswith("?") or any(
             kw in command_lower for kw in ["what about", "who", "how is", "status of"])
         shared_question = bool(
-            THE_CABINET_READS_THE_SHARED_QUESTION and question)
+            question)
         if shared_question:
             is_question = True
 

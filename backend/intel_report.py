@@ -22,9 +22,8 @@ from backend.models.intel import (
 # Emperor simply vanished from Berthier's report, with no word that he was
 # taken or by whom. A PRISONERS section now names each captured marshal of
 # ours and his captor (a prisoner is not a force, so he leaves YOUR FORCES).
-# Our own men are ours to name — fog governs the enemy (R5). Flip lever:
-# False restores the silent report byte-for-byte.
-THE_REPORT_NAMES_ITS_PRISONERS = True
+# Our own men are ours to name — fog governs the enemy (R5). The rule: the
+# report names its prisoners.
 
 
 def generate_intel_report(world) -> Dict[str, Any]:
@@ -50,8 +49,7 @@ def generate_intel_report(world) -> Dict[str, Any]:
     your_forces = []
     prisoners = []
     for name, marshal in world.marshals.items():
-        if (THE_REPORT_NAMES_ITS_PRISONERS and marshal.nation == player_nation
-                and getattr(marshal, "captured_by", "")):
+        if (marshal.nation == player_nation and getattr(marshal, "captured_by", "")):
             from backend.game_logic.formations import formed_display_name
             prisoners.append({
                 "name": marshal.name,
@@ -298,8 +296,8 @@ def generate_intel_report(world) -> Dict[str, Any]:
         "turn": int(world.current_turn),
     }
     # IQ-2: new keys only where they carry something, so a standing realm's
-    # payload (and the lever-down report) is unchanged.
-    if THE_REPORT_NAMES_ITS_PRISONERS and prisoners:
+    # payload is unchanged.
+    if prisoners:
         report["prisoners"] = prisoners
     if collapse_state is not None:
         report["collapse_line"] = _collapse.summary_line(world, collapse_state)

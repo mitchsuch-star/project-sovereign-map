@@ -64,11 +64,10 @@ OBJECTION_FREE_READS = frozenset({
     "status", "help", "economy", "treasury", "finances",
 })
 
-# FA-R3 (slice 14, ruling 5) flip lever: a standing order is priced by the
-# ORDER, not by whether the sentence's base verb happens to be free. False
-# restores the pre-slice rule, in which "Davout, hold Rhineland and wait"
-# attached a two-turn HOLD for nothing while the reply quoted 2 AP.
-STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER = True
+# FA-R3 (slice 14, ruling 5): a standing order is priced by the ORDER, not
+# by whether the sentence's base verb happens to be free. Before the slice,
+# "Davout, hold Rhineland and wait" attached a two-turn HOLD for nothing
+# while the reply quoted 2 AP.
 # CX3-X3 (Score Finish Step 7 slice 5b): a printed region guess keeps the
 # typed word's first letter — "Austerlitz" → Ulster, "Thuringia" →
 # Lithuania, "Wagram" → Karaman were guesses across Europe (scores 62-67, a
@@ -244,19 +243,11 @@ _META_DELEGATED = {
 # resolves it first. That resolution order is documented at each seam and
 # pinned; it is a recorded exception, not an oversight.
 #
-# Three levers rather than one, so the BASELINE_SERIES attribution can
-# name which seam moved the board. False restores the pre-slice
-# RESOLUTION byte-identically (the HOST_RULE_ACTIVE idiom) — which is what
-# the attribution measures, since a refusal message never feeds the series.
-# It does NOT restore the pre-slice MESSAGE: `_display_candidates` (R5) and
-# the own-roster/prisoner filter sit outside all three levers on purpose,
-# because a fog leak must not be switchable. Stated precisely because the
-# first draft of this comment said "the pre-slice behaviour", and a review
-# measured the difference. Not a config surface.
+# The gate stands at all three seams — the enemy direction, the broad
+# diplomatic block and the marshal direction. `_display_candidates` (R5)
+# and the own-roster/prisoner filter are separate from the gate on
+# purpose, because a fog leak must not be switchable.
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 10.
-ENEMY_DIRECTION_GATE_ACTIVE = True
-BROAD_DIPLOMATIC_GATE_ACTIVE = True
-MARSHAL_DIRECTION_GATE_ACTIVE = True
 
 # SR quick win AAR-12 (Score Mandate Chunk 1, September 26, 2026): spending
 # the last ADMINISTRATIVE action used to auto-advance the turn the moment
@@ -266,8 +257,7 @@ MARSHAL_DIRECTION_GATE_ACTIVE = True
 # military road keeps its auto-advance (a last-AP attack still ends the day,
 # WO-22's defer aside); an administrative spend never does. When it empties
 # the second pool the receipt SAYS so, and the turn ends when the player says
-# so. Flip lever, not a config surface.
-AN_ADMIN_SPEND_NEVER_ENDS_THE_DAY = True
+# so.
 LAST_ORDER_OF_THE_DAY_NOTICE = ("That was the last order the day could take, "
                                 "Sire — the turn ends when you say so.")
 
@@ -358,8 +348,6 @@ def spent_day_sentence(world, command, parsed_command) -> str:
 # AP + gold") and every other admin verb (substitutes, keels, laws) read the
 # admin pool. The admin pool is already gated at the head of `execute`
 # (`is_admin_action`), so the objection branch's pre-check now skips it.
-# Flip lever, not a config surface.
-AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL = True
 
 # SR-5b SR5B-1 (found playing the shut-out arm, September 28, 2026): a
 # REFUSED order keeps the standing order it would have replaced. The
@@ -371,25 +359,21 @@ AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL = True
 # standing at Bearn for the rest of the campaign. The override now puts the
 # order aside; `execute` restores it (with its HOLD state and the question it
 # had raised) when the order is refused — no battle, `success is False`.
-# Flip lever, not a config surface.
-A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER = True
 
 # SR5B-2 (the Chunk 5 reserve, September 28, 2026): an order CARRIED OUT over
 # a standing order says so. The override was silent — `Ney, attack Mack`
 # while Ney held Rhineland fought, reported the battle, and the hold simply
 # ended, visible only when the Orders tab no longer listed it. One clause now
 # closes the answer ("Ney's hold at Rhineland is set aside."), the player's
-# marshals only (an AI order's answer is nobody's to read). Flip lever, not a
-# config surface.
-AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE = True
+# marshals only (an AI order's answer is nobody's to read).
 
 
 # SRX-23 (the exit of Sept 28, second): an attack HELD for a declaration was
 # not carried out either — "Choose your war purpose against Austria. Issue the
 # attack again after the declaration is settled." — yet it destroyed the
 # march it never replaced (measured: Lannes's march to Vienna gone, and gone
-# for nothing if the declaration is then cancelled). Flip lever.
-AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER = True
+# for nothing if the declaration is then cancelled). An attack held for a
+# declaration keeps the order.
 
 
 def order_was_not_carried_out(result) -> bool:
@@ -400,9 +384,7 @@ def order_was_not_carried_out(result) -> bool:
     from backend.commands.strategic import attack_was_refused
     if attack_was_refused(result):
         return True
-    if not (AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER
-            and isinstance(result, dict)
-            and result.get("awaiting_diplomatic_response")):
+    if not (isinstance(result, dict) and result.get("awaiting_diplomatic_response")):
         return False
     events = result.get("events") or []
     if isinstance(events, dict):
@@ -432,13 +414,11 @@ def set_aside_clause(marshal, order) -> str:
     return f"{name}'s {what} is set aside."
 
 
-def _correction_survives(query: str, match: Optional[str],
-                         gate_active: bool) -> bool:
+def _correction_survives(query: str, match: Optional[str]) -> bool:
     """WO-13 — True when a fuzzy auto-correct onto a MARSHAL may stand.
 
     ONE predicate behind all three FUZZY seams, so a census can prove no
-    fuzzy seam was missed. `gate_active` is the seam's own flip lever:
-    False restores the ungated behaviour for the attribution experiment.
+    fuzzy seam was missed.
 
     Scope, stated because the first draft of this docstring overclaimed
     and a review caught it: this covers the auto-correct arms ONLY. The
@@ -480,8 +460,6 @@ def _correction_survives(query: str, match: Optional[str],
     closes today's twelve by lexical accident (different first letters,
     large edit distance), not because it knows `Gascony` is a place.
     """
-    if not gate_active:
-        return True
     from backend.commands.parser import _plausible_name_typo
     return _plausible_name_typo(query or "", match or "")
 
@@ -705,8 +683,7 @@ class CommandExecutor:
         if (result["action"] == "exact"
                 or (result["action"] == "auto_correct"
                     and _correction_survives(marshal_name,
-                                             result.get("match"),
-                                             MARSHAL_DIRECTION_GATE_ACTIVE))):
+                                             result.get("match")))):
             # Exact match or plausible-typo correction - use corrected name
             marshal = world.get_marshal(result["match"])
             return (marshal, None)
@@ -1015,8 +992,7 @@ class CommandExecutor:
         if (result["action"] == "exact"
                 or (result["action"] == "auto_correct"
                     and _correction_survives(enemy_name,
-                                             result.get("match"),
-                                             BROAD_DIPLOMATIC_GATE_ACTIVE))):
+                                             result.get("match")))):
             matched = world.get_marshal(result["match"])
             if matched:
                 error = self._make_diplomatic_error(world, from_nation, matched)
@@ -1099,8 +1075,7 @@ class CommandExecutor:
         if (result["action"] == "exact"
                 or (result["action"] == "auto_correct"
                     and _correction_survives(enemy_name,
-                                             result.get("match"),
-                                             ENEMY_DIRECTION_GATE_ACTIVE))):
+                                             result.get("match")))):
             # Exact match or plausible-typo correction - use corrected name
             if attacker_nation:
                 enemy = world.get_enemy_by_name_for_nation(result["match"], attacker_nation)
@@ -1246,17 +1221,6 @@ class CommandExecutor:
         "general_attack", "auto_assign_attack", "general_retreat",
         "auto_assign_scout", "auto_assign_bombardment",
     )
-    # An addressee is only unbound if it is not itself an ORDER. This is what
-    # keeps "attack Bern, then hold your positions" working: its pre-comma
-    # phrase is "attack Bern", which names a verb, so nobody was addressed.
-    _ADDRESSEE_IS_AN_ORDER_RE = re.compile(
-        r"\b(?:attack|assault|engage|storm|charge|bombard|retreat|withdraw"
-        r"|fall\s+back|move|march|advance|scout|reconnoitre|reconnoiter"
-        r"|hold|defend|fortify|entrench|drill|wait|halt|stop|cancel|recruit"
-        r"|raise|build|repair|garrison|blockade|guard|secure|pursue|chase"
-        r"|support|reinforce|declare|propose|demand|end|status|help)\b",
-        re.IGNORECASE,
-    )
 
     def _standing_decision_refusal(self, command: Dict, action: str, world,
                                    *, exempt: bool):
@@ -1305,34 +1269,11 @@ class CommandExecutor:
     # ⚠ CX-7: WHICH runs are claimed is no longer decided here. The rule
     # below failed OPEN on 256 of 261 measured cells; the live rule is
     # `clause_guards.address_of`, shared with the question guard so the two
-    # halves of row CX cannot disagree again, and the body below is what
-    # the lever's False arm reproduces.
+    # halves of row CX cannot disagree again (the address looks like a
+    # name); this flag rides into it as `require_separator`.
     #
     # Flip lever: False restores the comma-only rule byte-for-byte.
     AN_ADDRESS_NEEDS_NO_COMMA = True
-
-    # A leading run that contains any of these is NOT somebody's name, so the
-    # comma-less arm stands down and the sentence keeps whatever reading it
-    # had. Two groups, and both were found by the arm's own first draft
-    # eating them:
-    #
-    #   the COLLECTIVE address — "all marshals attack", "everyone hold" —
-    #     which addresses the army and must keep reaching the marshal-less arm;
-    #   the FUNCTION words — "can you attack Mack" (the polite imperative),
-    #     "do attack Mack" (the emphatic one), "please attack" — where the
-    #     leading run is grammar, not a name. The first cut of this rule
-    #     refused both as an unknown marshal called "can you" and "do".
-    _NOT_AN_ADDRESS_RE = re.compile(
-        r"\b(?:all|every|everyone|everybody|each|both|any|army|armies|corps"
-        r"|marshals|generals|commanders|men|troops|soldiers|forces|everything"
-        r"|the"
-        # function words — a leading run containing one of these is grammar
-        r"|can|could|may|might|will|would|shall|should|must|do|does|did"
-        r"|let|lets|please|kindly|you|your|we|our|us|i|my|me|he|she|they"
-        r"|them|his|her|their|it|its|now|then|and|but|so|if|when|while"
-        r"|first|next|also|just|still|again)\b",
-        re.IGNORECASE,
-    )
 
     # ───────────────────────────────────────────────────────────────────
     # CX-R1 (September 22, 2026) — THE UNBOUND NAME SPENDS NOTHING.
@@ -1410,42 +1351,11 @@ class CommandExecutor:
         raw = str(parsed_command.get("raw_input")
                   or command.get("raw_input") or "")
         # CX-7. One source for "who was addressed", shared with the question
-        # guard so the two halves of row CX cannot disagree again. The old
-        # body is kept verbatim under the lever's False arm.
-        if clause_guards.THE_ADDRESS_LOOKS_LIKE_A_NAME:
-            phrase = clause_guards.address_of(
-                raw, self._roster_names(world),
-                require_separator=not self.AN_ADDRESS_NEEDS_NO_COMMA)
-            if not phrase:
-                return None
-            if self._names_a_player_marshal(phrase, world):
-                return None
-            if widened and self._takes_this_order(phrase, command, world):
-                return None
-            return phrase
-        head, sep, _tail = raw.partition(",")
-        if not sep:
-            if not self.AN_ADDRESS_NEEDS_NO_COMMA:
-                return None
-            verb = self._ADDRESSEE_IS_AN_ORDER_RE.search(raw)
-            if not verb:
-                return None
-            head = raw[:verb.start()]
-            # ⚠ There is deliberately NO empty-head early return here. The
-            # first draft had one, and the mutation sweep showed it INERT:
-            # an empty head falls through to `if not phrase` below, which is
-            # the SAME answer by the same rule. A guard no mutation can kill
-            # is a guard no pin can be about, so it is gone and the one
-            # below is the single source. `attack Mack` — head empty — is
-            # still untouched by construction, and pinned.
-            if self._NOT_AN_ADDRESS_RE.search(head):
-                return None          # a collective, or grammar — not a name
-        phrase = head.strip().strip("'\"").strip()
-        if phrase.lower().startswith("the "):
-            phrase = phrase[4:].strip()
-        if not phrase or len(phrase) > 40:
-            return None
-        if self._ADDRESSEE_IS_AN_ORDER_RE.search(phrase):
+        # guard so the two halves of row CX cannot disagree again.
+        phrase = clause_guards.address_of(
+            raw, self._roster_names(world),
+            require_separator=not self.AN_ADDRESS_NEEDS_NO_COMMA)
+        if not phrase:
             return None
         if self._names_a_player_marshal(phrase, world):
             return None
@@ -1463,7 +1373,8 @@ class CommandExecutor:
           of state; never for a FIELD order, which is FA-22's ruling
           (`Berthier, retreat` ran a whole-army retreat at 0 AP);
         * the admiral, for the fleet's own orders (the parser's
-          `ADMIRAL_IS_AN_ADDRESSEE` rule, read through the same predicate).
+          rule that the admiral is an addressee, read through the same
+          predicate).
         """
         from backend.ai.clause_guards import DESK_ADDRESSEES
         from backend.ai.llm_client import DIPLOMAT_ADDRESS_NAMES
@@ -1590,8 +1501,6 @@ class CommandExecutor:
         project's own predicate recognises (`strategic.attack_was_refused`:
         `success is False` and no battle of any shape) and only while the
         marshal took no new order in the meantime."""
-        if not A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER:
-            return
         if not order_was_not_carried_out(result):
             return
         for marshal, order, holding, hold_region, interrupt in aside:
@@ -1609,8 +1518,6 @@ class CommandExecutor:
         """SR5B-2: an order carried out over a standing order closes its
         answer by naming the order it ended — the player's marshals only,
         and never on a refusal (SR5B-1 restored that order)."""
-        if not AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE:
-            return
         if not isinstance(result, dict):
             return
         if order_was_not_carried_out(result):
@@ -1987,11 +1894,7 @@ class CommandExecutor:
         # own reproduction fleet attacking the fix rather than the finding;
         # no existing pin covers any of the six, which is why it would have
         # shipped.
-        if (STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER
-                and not is_strategic_execution
-                and action != "retreat"
-                and parsed_command.get("is_strategic")
-                and parsed_command.get("strategic_type")):
+        if (not is_strategic_execution and action != "retreat" and parsed_command.get("is_strategic") and parsed_command.get("strategic_type")):
             action_costs_point = True
 
         # Strategic execution is always free (cost paid upfront when order issued)
@@ -2807,10 +2710,7 @@ class CommandExecutor:
                         # London` and Insist bought "Execution failed: the
                         # crossing is barred". The road law answers first.
                         import backend.commands.strategic as _road_law
-                        if (should_check_objection
-                                and _road_law.THE_ROAD_LAW_IS_READ_WHERE_QUOTED
-                                and marshal.nation == world.player_nation
-                                and world.get_distance(
+                        if (should_check_objection and marshal.nation == world.player_nation and world.get_distance(
                                     marshal.location, _mv_region.name)
                                 > getattr(marshal, 'movement_range', 1)):
                             _mv_road, _mv_refusal, _mv_kind = _road_law.march_road(
@@ -2862,8 +2762,7 @@ class CommandExecutor:
                 # ═══════════════════════════════════════════════════════════
                 if (action_costs_point and is_player_action_check
                         and not counter_punch_waiver
-                        and not (AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL
-                                 and is_admin_action)):
+                        and not (is_admin_action)):
                     required_ap = 1  # Default cost
                     if action == 'stance_change':
                         target_stance_raw_ap = (command.get('target_stance') or command.get('target') or '').lower()
@@ -3580,14 +3479,13 @@ class CommandExecutor:
                 # spend is administrative (AAR-12): then the day ends when
                 # the player says so, and the receipt says the pools are dry.
                 both_exhausted = (world.actions_remaining <= 0 and world.admin_actions_remaining <= 0)
-                if AN_ADMIN_SPEND_NEVER_ENDS_THE_DAY:
-                    if both_exhausted:
-                        result["last_order_of_the_day"] = True
-                        if result.get("message"):
-                            result["message"] = f"{result['message']} {LAST_ORDER_OF_THE_DAY_NOTICE}"
-                        else:
-                            result["message"] = LAST_ORDER_OF_THE_DAY_NOTICE
-                    both_exhausted = False
+                if both_exhausted:
+                    result["last_order_of_the_day"] = True
+                    if result.get("message"):
+                        result["message"] = f"{result['message']} {LAST_ORDER_OF_THE_DAY_NOTICE}"
+                    else:
+                        result["message"] = LAST_ORDER_OF_THE_DAY_NOTICE
+                both_exhausted = False
                 action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1, "should_end_turn": both_exhausted}
             else:
                 # Check for variable action cost (stance_change returns this)

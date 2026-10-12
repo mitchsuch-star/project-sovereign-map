@@ -371,15 +371,6 @@ class TestTheDamperIsWired:
             pass
         assert AUTH.damp_objection_trust_gain(Bare(), 8) == 8
 
-    def test_the_lever_is_true_at_rest(self):
-        assert AUTH.OBJECTION_TRUST_DAMPER_ACTIVE is True
-
-    def test_false_is_a_no_op(self, monkeypatch):
-        monkeypatch.setattr(AUTH, "OBJECTION_TRUST_DAMPER_ACTIVE", False)
-        world = _world()
-        _answers(world, PUSHOVER)
-        assert AUTH.damp_objection_trust_gain(world, 8) == 8
-
 
 class TestShownEqualsApplied:
 
@@ -479,34 +470,17 @@ class TestTheDamperOnTheRealPath:
                 world.pending_objection, "trust", world)
         assert davout.trust.value - before == objection["trust_gain"]
 
-    def test_the_lever_down_restores_the_undamped_quote(self):
-        """The attribution arm, behaviourally: with the lever down a
-        pushover is quoted exactly what a clean player is.
+    def test_the_normalisation_loop_quotes_the_damped_gain(self):
+        """The strategic Trust button's label is re-written from the damped
+        figure, so the button reads what the answer pays.
 
-        Killed by: freezing the flag at import time (a module-level
-        `from ... import OBJECTION_TRUST_DAMPER_ACTIVE` would do it) —
-        which no source-text pin can see."""
-        import pytest
-        _, clean = self._raise_objection([])
-        with pytest.MonkeyPatch.context() as mp:
-            mp.setattr(AUTH, "OBJECTION_TRUST_DAMPER_ACTIVE", False)
-            _, pushover = self._raise_objection(PUSHOVER)
-        assert pushover["trust_gain"] == clean["trust_gain"]
-
-    def test_the_normalisation_loop_sits_behind_the_lever(self):
-        """The review's headline: the loop was OUTSIDE the flip lever, so
-        with the lever down the strategic Trust button read +6/+9 where
-        it had read +3 — the lever's own comment promises byte-identical
-        pre-slice behaviour, and it was not.
-
-        Killed by: hoisting the loop back out of the `if _DAMPER_ACTIVE`
-        block."""
+        Killed by: deleting the normalisation loop."""
         code = _code_norm(_read(REPO / "backend" / "commands"
                                 / "strategic_executor.py"))
-        guarded = ('if_DAMPER_ACTIVE:for_optinv1_options:'
-                   'if_opt.get("type")=="preferred":'
-                   '_opt["trust_change"]=trust_gain')
-        assert guarded in code, "the normalisation loop escaped its lever"
+        loop = ('for_optinv1_options:'
+                'if_opt.get("type")=="preferred":'
+                '_opt["trust_change"]=trust_gain')
+        assert loop in code, "the normalisation loop is gone"
 
 
 class TestTheCapRedistributesRatherThanReduces:

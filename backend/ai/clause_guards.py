@@ -171,11 +171,8 @@ _NEGATION_MARKER_SRC = (
 # fortify` as a question and leave him unfortified). Blanked as markers,
 # `ought we to attack Mack` and `have we attacked Mack` leave nothing to
 # execute and refuse, which is the non-executing answer they need.
-#
-# Flip lever: False restores the pre-CRT-1 vocabulary byte-for-byte. The
-# sensitivity arm in `tests/test_crt1_what_the_sentence_forbids.py` flips it
-# and shows the battery going red.
-WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER = True
+# (CRT-1: what the sentence forbids is never the order — pinned by
+# `tests/test_crt1_what_the_sentence_forbids.py`.)
 
 _CRT1_NEGATION_ARMS = (
     # the modal negatives
@@ -226,9 +223,8 @@ _VOCATIVE_COMMA_RE = re.compile(r"\s*,\s*")
 
 
 def _negation_re() -> "re.Pattern":
-    """The ONE negation vocabulary, or (lever down) the one it widened."""
-    return (_NEGATION_MARKER_RE if WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER
-            else _NEGATION_MARKER_RE_LEGACY)
+    """The ONE negation vocabulary (CRT-1's widened one)."""
+    return (_NEGATION_MARKER_RE)
 
 
 # ---------------------------------------------------------------------------
@@ -364,8 +360,7 @@ def strip_negated_clauses(text: str) -> Tuple[str, bool]:
         # vocative comma a player types after it ("Nobody, retreat") is
         # part of the same clause — read past it, or the comma ends the
         # clause at the marker and the retreat stands.
-        if (WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER
-                and _SUBJECT_NEGATION_RE.match(marker.group(0))):
+        if (_SUBJECT_NEGATION_RE.match(marker.group(0))):
             comma = _VOCATIVE_COMMA_RE.match(text, scan_from)
             if comma and comma.end() > scan_from and "," in comma.group(0):
                 scan_from = comma.end()
@@ -579,8 +574,8 @@ _ONCE_ADVERB_RE = re.compile(r"^\s*(?:more|again)\b", re.IGNORECASE)
 # infantry at once in Lorrain` was refused as a contingency ("I have no way to
 # hold a dispatch until 'once in Lorrain' comes to pass"); a trailing "at once"
 # passed only because nothing followed it. The exemption reads the PRECEDING
-# word (the `_PURSUE_AFTER_RE` idiom). False restores the refusal.
-AT_ONCE_IS_NEVER_A_CONDITION = True
+# word (the `_PURSUE_AFTER_RE` idiom). The rule: "at once" is never a
+# condition.
 # SF-V9 (Score Finish Step 7 slice 5b): a trailing "in case …" is a
 # precaution, never a contingency (see the classifier). False restores the
 # refusal ("that is a contingency, not an order").
@@ -653,8 +648,7 @@ def condition_marker_spans(text: str) -> List[Tuple[int, int]]:
             continue
         if collapsed == "once" and _ONCE_ADVERB_RE.match(text[marker.end():]):
             continue
-        if (collapsed == "once" and AT_ONCE_IS_NEVER_A_CONDITION
-                and _AT_ONCE_RE.search(text[:marker.start()])):
+        if (collapsed == "once" and _AT_ONCE_RE.search(text[:marker.start()])):
             continue
         out.append((marker.start(), marker.end()))
     return out
@@ -721,8 +715,7 @@ def strip_condition_clauses_with_handoff(
             continue
         if collapsed == "once" and _ONCE_ADVERB_RE.match(text[marker.end():]):
             continue
-        if (collapsed == "once" and AT_ONCE_IS_NEVER_A_CONDITION
-                and _AT_ONCE_RE.search(text[:marker.start()])):
+        if (collapsed == "once" and _AT_ONCE_RE.search(text[:marker.start()])):
             continue
         marker_count += 1
 
@@ -884,9 +877,7 @@ def strip_condition_clauses(text: str) -> Tuple[str, bool]:
 # retreats` still fights, `Lannes, pursue the retreating enemy` (no clause)
 # still pursues, and a sentence that was ONLY a reason — `as they attack` —
 # leaves nothing and is refused with its clause quoted, not shrugged at.
-#
-# Flip lever: False makes both functions below inert, byte-for-byte.
-THE_REASON_IS_NOT_THE_ORDER = True
+# The rule: the reason is not the order.
 
 _REASON_SUBORDINATOR = r"(?:as|because|since|now\s+that|seeing\s+(?:that|as))"
 _REASON_PRONOUN = r"(?:they|he|she)"
@@ -934,8 +925,8 @@ def reason_clause_spans(text: str,
                         foes: Iterable[str] = ()) -> List[Tuple[int, int]]:
     """Where the third-party reason clauses are, as ``(start, end)`` spans
     over the ORIGINAL string, each running from its lead to the clause end
-    (`negation_marker_spans`'s idiom). Empty with the lever down."""
-    if not text or not THE_REASON_IS_NOT_THE_ORDER:
+    (`negation_marker_spans`'s idiom)."""
+    if not text:
         return []
     pattern = _reason_pattern(foes)
     spans: List[Tuple[int, int]] = []
@@ -1019,8 +1010,7 @@ def mentions_stand_down(command_lower: str) -> bool:
 # `will` / `would` / `shall` join the modal leads. The "?"-or-first-person
 # requirement in is_question() still keeps the polite, unpunctuated ORDER
 # "would you have Ney attack Mack" an order — which was the only reason the
-# three were excluded. Flip lever: False restores the shorter lead set.
-MODAL_LEADS_ARE_QUESTIONS = True
+# three were excluded. The rule: modal leads are questions.
 
 _INTERROGATIVE_LEAD_SRC = (
     r"^\s*(?:so\s+|and\s+|but\s+|ok(?:ay)?\s*,?\s*|well\s*,?\s*)?"
@@ -1077,10 +1067,8 @@ _AUXILIARY_RE = re.compile(
 # refutes the wider rule: `cr2-when-ready-then-retreat-not-split` pins
 # "when ready then retreat" as a RETREAT, and "what"/"where"/"how"/"which"
 # all begin real phrasings the game already accepts. Measured against all 447
-# corpus entries, the four-word rule moves 0 rows.
-#
-# Flip lever: False restores the pre-CX lead rule byte-for-byte.
-A_QUESTION_NEVER_ORDERS = True
+# corpus entries, the four-word rule moves 0 rows. The rule: a question
+# never orders.
 
 # The four leads that cannot open an imperative.
 _SUBJECT_WH_WORDS = frozenset({"who", "whom", "whose", "why"})
@@ -1206,10 +1194,8 @@ _NEVER_IMPERATIVE_LEADS = frozenset({
 # (`zorglub attack mack`) is no longer claimed, so it reaches the
 # marshal-less arm exactly as it did before row CX. That is the pre-row
 # behaviour, not a new loss, and the near-miss that matters (`nay`) is
-# still caught at any case by the keystroke arm.
-#
-# Flip lever: False restores CX-1's blocklist rule byte-for-byte.
-THE_ADDRESS_LOOKS_LIKE_A_NAME = True
+# still caught at any case by the keystroke arm. The rule: the address
+# looks like a name (CX-7).
 
 # TWO lists, because the comma means something. A player who writes a comma
 # has MARKED a run as an address — "the reserve, attack Mack" — and FA-22's
@@ -1367,14 +1353,13 @@ def looks_like_an_address(run: str,
     if not phrase or len(phrase) > 40:
         return False
     tokens = _NAME_TOKEN_RE.findall(phrase)
-    if THE_ADDRESS_IS_ITS_HEAD:
-        # CX-R1: a connective INSIDE a name is part of the name, not grammar
-        # around it — "Prince of Moskowa", "Bravest of the Brave". Only
-        # between two other tokens: a run that opens or closes on "of" is
-        # not a name.
-        tokens = [tok for i, tok in enumerate(tokens)
-                  if not (0 < i < len(tokens) - 1
-                          and tok.lower() in _NAME_CONNECTIVES)]
+    # CX-R1: a connective INSIDE a name is part of the name, not grammar
+    # around it — "Prince of Moskowa", "Bravest of the Brave". Only
+    # between two other tokens: a run that opens or closes on "of" is
+    # not a name.
+    tokens = [tok for i, tok in enumerate(tokens)
+              if not (0 < i < len(tokens) - 1
+                      and tok.lower() in _NAME_CONNECTIVES)]
     if not tokens or len(tokens) > 3:
         return False
     for tok in tokens:
@@ -1433,11 +1418,9 @@ _ORDER_VERB_RE = re.compile(
 # in command_lower` reads "reconnoitre"), so a word of five letters or more
 # matches as a word PREFIX — the router's own reach — while a short word
 # ("go", "dig", "pay", "lay") matches whole, with its inflections, because
-# "be" as a prefix would read Bernadotte and Berthier as orders.
-#
-# Flip lever: False restores the hand-written `_ORDER_VERB_RE` above
-# byte-for-byte.
-ORDER_WORDS_ARE_DERIVED = True
+# "be" as a prefix would read Bernadotte and Berthier as orders. The rule:
+# the order words are derived (the hand-written `_ORDER_VERB_RE` above is
+# the list they replaced).
 
 
 def compile_routed_order_words(words) -> "re.Pattern":
@@ -1460,9 +1443,9 @@ _ROUTED_ORDER_VERB_RE = compile_routed_order_words(ROUTED_ORDER_WORDS)
 
 
 def order_verb_re() -> "re.Pattern":
-    """The verbs a leading run is measured against — derived, or (lever
-    down) the hand-written list it replaced."""
-    return _ROUTED_ORDER_VERB_RE if ORDER_WORDS_ARE_DERIVED else _ORDER_VERB_RE
+    """The verbs a leading run is measured against — derived from the
+    router's own branches (CX-R1)."""
+    return _ROUTED_ORDER_VERB_RE
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -1480,9 +1463,6 @@ def order_verb_re() -> "re.Pattern":
 # "quickly attack Mack" and "can you attack Mack" name nobody, exactly as
 # CX-7 pins them. Unmarked arms of service ("cavalry attack Mack") stay
 # CX-7's deliberate ruling — lowercase and not a name, they are not claimed.
-#
-# Flip lever: False restores the whole-run reading byte-for-byte.
-THE_ADDRESS_IS_ITS_HEAD = True
 
 _NAME_CONNECTIVES = frozenset(
     "of de du des la le von van der den di da the".split())
@@ -1546,9 +1526,6 @@ def address_of(text: str,
     was swallowed as a question, on 86 of 128 ordinary orders measured.
     Whatever answers one must answer the other.
 
-    Lever-free on purpose: each caller branches on its own
-    `THE_ADDRESS_LOOKS_LIKE_A_NAME` so that arm's False position reproduces
-    exactly what that caller shipped, rather than a blend of the two.
     `require_separator` carries the executor's older, still-live
     `AN_ADDRESS_NEEDS_NO_COMMA` down into the shared body, so CX-1's lever
     keeps meaning what it says instead of being swallowed by CX-7's.
@@ -1561,7 +1538,7 @@ def address_of(text: str,
         head, sep, _tail = raw.partition(":")
     verbs = order_verb_re()
     scan = raw
-    if sep and THE_ADDRESS_IS_ITS_HEAD and verbs.search(head):
+    if sep and verbs.search(head):
         # CX-R1: a comma AFTER an order closes a clause, not an address —
         # `Zorglub attack Mack, then hold` read "Zorglub attack Mack" as the
         # addressed run, found a verb in it, and let the name go. The head is
@@ -1576,10 +1553,9 @@ def address_of(text: str,
         if not verb:
             return None
         head = raw[:verb.start()]
-        if THE_ADDRESS_IS_ITS_HEAD:
-            head = _leading_name_run(head, roster)
-            if not head:
-                return None  # the run opens with grammar, not a name
+        head = _leading_name_run(head, roster)
+        if not head:
+            return None  # the run opens with grammar, not a name
     phrase = head.strip().strip("'\"").strip()
     if phrase.lower().startswith(("the ", "a ", "an ")):
         # the refusal names what the player typed, minus the article —
@@ -1591,7 +1567,7 @@ def address_of(text: str,
         return None          # a collective, an interjection, an adverb
     if not sep and not looks_like_an_address(phrase, roster):
         return None          # nothing marked it, and it is not name-shaped
-    if not sep and THE_ADDRESS_IS_ITS_HEAD:
+    if not sep:
         # "Zorglub's corps attack Mack" names Zorglub
         phrase = _POSSESSIVE_RE.sub("", phrase).strip()
     return phrase
@@ -1607,7 +1583,7 @@ def order_after_address(text: str) -> str:
     for sep in (",", ":"):
         head, found, tail = raw.partition(sep)
         if found:
-            if THE_ADDRESS_IS_ITS_HEAD and verbs.search(head):
+            if verbs.search(head):
                 break        # the comma closes a clause (`address_of`)
             return tail.strip()
     verb = verbs.search(raw)
@@ -1627,7 +1603,7 @@ _TRAILING_CLAUSE_RE = re.compile(r",\s*\S")
 # ships` laid a 400-gold keel; `hmm why not defend` DEFENDED the whole army
 # and `Ney why not attack Mack` fought (a leading run hid the deliberative
 # opener); `can Bavaria attack Mack` fought (no court was a subject). Four
-# rules, each behind its own lever whose down arm reproduces the row.
+# rules, each closing its row.
 # ───────────────────────────────────────────────────────────────────────────
 # CXR1-2: the subject arms stand down before a trailing clause ONLY when the
 # clause opens with an order verb — that is the inverted conditional ("Ney,
@@ -1635,21 +1611,17 @@ _TRAILING_CLAUSE_RE = re.compile(r",\s*\S")
 # ("…, tell me") is not an order and the question stands. Measured shape:
 # 18/18 closed, 0 of 22 controls moved. (The filed "tail contains a verb"
 # shape closed 7/10 and is NOT built.)
-THE_TAIL_STANDS_DOWN_ONLY_ON_AN_ORDER = True
 # CXR1-4: a HEDGE is a question, not an order. `time to …` is deliberately
 # not a hedge (the triage's ruling: it would make "time to march on Vienna"
 # a question).
-A_HEDGE_IS_NOT_AN_ORDER = True
 # CXR1-5 / CXR1-N2: a leading run of up to three words that are not order
 # verbs — an interjection, a filler, "just wondering", "tell me", or a name
 # without its comma — hides no DELIBERATIVE question (arms (a)/(b) only;
 # without that condition the shape turns comma-free relative-clause orders
 # into questions, measured).
-A_LEADING_RUN_HIDES_NO_QUESTION = True
 # L2-7b: a COURT is a subject — "can Bavaria attack Mack" asks about
 # Bavaria, exactly as "can Ney attack Mack" asks about Ney; and the subject
 # may take its article ("could the Prussians attack").
-A_COURT_IS_A_SUBJECT = True
 
 _HEDGE_LEAD_RE = re.compile(
     r"^\s*(?:so\s+|and\s+|but\s+|ok(?:ay)?\s*,?\s*|well\s*,?\s*)?"
@@ -1674,11 +1646,9 @@ _LEADING_RUN_MAX = 6
 
 def _trailing_clause_stands_the_arm_down(rest: str) -> bool:
     """CXR1-2: whether the text after the lead carries a trailing clause that
-    stands the subject arms down. Lever down: any comma-and-clause does (the
-    pre-CRT-3 read); lever up: only a clause that OPENS with an order verb —
-    the inverted conditional's second half."""
-    if not THE_TAIL_STANDS_DOWN_ONLY_ON_AN_ORDER:
-        return bool(_TRAILING_CLAUSE_RE.search(rest))
+    stands the subject arms down: only a clause that OPENS with an order
+    verb — the inverted conditional's second half (the pre-CRT-3 read let
+    any comma-and-clause do it)."""
     match = _TRAILING_TAIL_RE.search(rest)
     if not match:
         return False
@@ -1690,8 +1660,6 @@ def _leading_run_hides_a_question(text: str) -> bool:
     """CXR1-5 / CXR1-N2: after up to three leading words that are not order
     verbs (and carry no negation marker), the sentence opens with a
     deliberative opener or a subject-WH lead — a question."""
-    if not A_LEADING_RUN_HIDES_NO_QUESTION:
-        return False
     words = (text or "").split()
     if len(words) < 2:
         return False
@@ -1725,7 +1693,6 @@ def _leading_run_hides_a_question(text: str) -> bool:
 # OPENING of the run and the answer is a boolean, so a shorter name matching
 # first returns the same True. A guard no mutation can kill is a guard no pin
 # can be about, so it is gone.
-THE_SUBJECT_MAY_HAVE_TWO_NAMES = True
 
 
 def _names_a_subject(rest: str, subjects) -> bool:
@@ -1733,13 +1700,11 @@ def _names_a_subject(rest: str, subjects) -> bool:
     opening = rest.strip().lower()
     # CRT-3 (L2-7b): a subject may take its article — "could the Prussians
     # attack", "can the Austrian army retreat".
-    if A_COURT_IS_A_SUBJECT and opening.startswith("the "):
+    if opening.startswith("the "):
         opening = opening[4:].lstrip()
     for name in subjects:
         low = name.strip().lower()
         if not low:
-            continue
-        if not THE_SUBJECT_MAY_HAVE_TWO_NAMES and " " in low:
             continue
         if opening == low or opening.startswith(low + " "):
             return True
@@ -1756,12 +1721,9 @@ def _line_is_addressed(text: str,
     away, fought. Measured on the shipped board: 86 of 128 comma-free
     addressed orders inert, 58 of them state-changing. The comma requirement
     was never stated as deliberate anywhere, and the same commit's other half
-    is titled AN ADDRESS NEEDS NO COMMA.
-
-    Flip lever False restores the comma-only reading byte-for-byte.
+    is titled AN ADDRESS NEEDS NO COMMA. The rule: the address looks like a
+    name, comma or no comma.
     """
-    if not THE_ADDRESS_LOOKS_LIKE_A_NAME:
-        return bool(_ADDRESSED_LINE_RE.match(text))
     return (bool(_ADDRESSED_LINE_RE.match(text))
             or address_of(text, roster) is not None)
 
@@ -1883,9 +1845,7 @@ def is_question(command_text: str,
         text = strip_emphasis(text).strip()
     # CX: an UNADDRESSED line ending in a question mark is a question.
     # `retreat?` marched eight corps; `Ney, attack Mack?` keeps its order.
-    if (A_QUESTION_NEVER_ORDERS and text.endswith("?")
-            and not _line_is_addressed(text, subjects)
-            and not is_bare_end_turn(text)):
+    if (text.endswith("?") and not _line_is_addressed(text, subjects) and not is_bare_end_turn(text)):
         return True
     # SF-CMD-1 W1 / CRT-9 (Oct 3, 2026): three leads the census found
     # falling to the order parser. (i) the contraction typed without its
@@ -1903,7 +1863,7 @@ def is_question(command_text: str,
             return True
     # CRT-3 (CXR1-4): a hedge is a question — "perhaps build ships" laid a
     # keel. Read before the lead: a hedge has none.
-    if A_HEDGE_IS_NOT_AN_ORDER and text and _HEDGE_LEAD_RE.match(text):
+    if text and _HEDGE_LEAD_RE.match(text):
         return True
     # SRX-5 (SR-6a, Oct 2 2026): "remind me what the Russians demanded at
     # the table" / "tell me where Ney is" — an imperative whose object is
@@ -1911,8 +1871,7 @@ def is_question(command_text: str,
     # marshal is ordered by "tell me". Read before the lead (it has none).
     if TELL_ME_IS_A_QUESTION and text and _TELL_ME_RE.match(text):
         return True
-    _lead_re = (_INTERROGATIVE_LEAD_RE if MODAL_LEADS_ARE_QUESTIONS
-                else _INTERROGATIVE_LEAD_RE_LEGACY)
+    _lead_re = (_INTERROGATIVE_LEAD_RE)
     lead = _lead_re.match(text)
     if not text:
         return False
@@ -1934,11 +1893,11 @@ def is_question(command_text: str,
         # Ney attack Mack" (no "?") fight.
         return not _SECOND_PERSON_AFTER_LEAD_RE.match(text[lead.end("lead"):])
     # CX: the four leads no imperative can open are a question on their own.
-    if A_QUESTION_NEVER_ORDERS and lead_word in _SUBJECT_WH_WORDS:
+    if lead_word in _SUBJECT_WH_WORDS:
         return True
     # CX: "what about …", "how about …", "is it time to …" — the deliberative
     # openers, read from the LEAD onward so an address never hides them.
-    if A_QUESTION_NEVER_ORDERS and _DELIBERATIVE_OPENER_RE.match(
+    if _DELIBERATIVE_OPENER_RE.match(
             text[lead.start("lead"):]):
         return True
     if text.endswith("?") or _FIRST_PERSON_RE.search(text):
@@ -1955,11 +1914,9 @@ def is_question(command_text: str,
     # CRT-3 (CXR1-2): the arms stand down only before a clause that OPENS
     # with an order verb — the inverted conditional — never before a
     # vocative ("…, Berthier") or an aside ("…, tell me").
-    if (A_QUESTION_NEVER_ORDERS and lead_word in _NEVER_IMPERATIVE_LEADS
-            and not _trailing_clause_stands_the_arm_down(rest)):
+    if (lead_word in _NEVER_IMPERATIVE_LEADS and not _trailing_clause_stands_the_arm_down(rest)):
         return True
-    if (A_QUESTION_NEVER_ORDERS and lead_word not in _WH_WORDS
-            and not _trailing_clause_stands_the_arm_down(rest)):
+    if (lead_word not in _WH_WORDS and not _trailing_clause_stands_the_arm_down(rest)):
         subj = _SUBJECT_AFTER_LEAD_RE.match(rest)
         if subj:
             word = subj.group("subj").lower()
@@ -1974,7 +1931,7 @@ def is_question(command_text: str,
                         and _PLEASE_AFTER_SUBJECT_RE.search(rest)):
                     return False
                 return True
-    if A_QUESTION_NEVER_ORDERS and lead_word in _WH_WORDS:
+    if lead_word in _WH_WORDS:
         # "where's Ney" — the auxiliary is contracted onto the lead.
         if _CONTRACTED_AUX_RE.match(rest):
             return True
@@ -1982,21 +1939,18 @@ def is_question(command_text: str,
         # last turn" — a WH lead followed by a PAST-TENSE verb has no
         # auxiliary to find, and fell through to Berthier's raw shrug while
         # "what is the news" was routed. No imperative opens this way.
-        if A_PAST_TENSE_WH_IS_A_QUESTION and _PAST_TENSE_AFTER_WH_RE.match(rest):
+        if _PAST_TENSE_AFTER_WH_RE.match(rest):
             return True
     # SR session-exit residue F3 (Sept 26, 2026): "how long until the
     # armistice with Russia expires" and "what if Ney attacks Vienna". A
     # quantity "how" and a conjecture "what if" open no imperative and carry
     # no auxiliary: typed without the mark, the first fell to the order
     # parser's shrug and the second to the contingency refusal, while the same
-    # line with a "?" reached the desk. On its OWN lever, deliberately outside
-    # CX-1's block: CX-1's corpus pin requires every golden row to pass under
-    # both arms of that lever, and this rule is not CX-1's.
-    if (A_QUANTITY_OR_CONJECTURE_ASKS and lead_word == "how"
-            and _QUANTITY_AFTER_HOW_RE.match(rest)):
+    # line with a "?" reached the desk. Its own rule, deliberately outside
+    # CX-1's block: this rule is not CX-1's.
+    if (lead_word == "how" and _QUANTITY_AFTER_HOW_RE.match(rest)):
         return True
-    if (A_QUANTITY_OR_CONJECTURE_ASKS and lead_word == "what"
-            and _CONJECTURE_AFTER_WHAT_RE.match(rest)):
+    if (lead_word == "what" and _CONJECTURE_AFTER_WHAT_RE.match(rest)):
         return True
     return lead_word in _WH_WORDS and bool(_AUXILIARY_RE.search(rest))
 
@@ -2005,7 +1959,6 @@ def is_question(command_text: str,
 # auxiliary follows — "what happened", "what became of Ney", "what went
 # wrong". A closed list: "what took Vienna" is an order-shaped sentence
 # ("take Vienna") one word over and stays out.
-A_PAST_TENSE_WH_IS_A_QUESTION = True
 _PAST_TENSE_AFTER_WH_RE = re.compile(
     r"^\s+(?:happened|occurred|became|befell|transpired|changed"
     r"|went\s+wrong|came\s+of)\b", re.IGNORECASE)
@@ -2014,7 +1967,6 @@ _PAST_TENSE_AFTER_WH_RE = re.compile(
 # "how much", "how far", "how soon", "how often") and the conjecture "what
 # if". A closed list, measured against the whole golden corpus: no row opens
 # with either and expects an order.
-A_QUANTITY_OR_CONJECTURE_ASKS = True
 _QUANTITY_AFTER_HOW_RE = re.compile(
     r"^\s+(?:long|many|much|far|soon|often)\b", re.IGNORECASE)
 _CONJECTURE_AFTER_WHAT_RE = re.compile(r"^\s+if\b", re.IGNORECASE)

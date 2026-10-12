@@ -155,14 +155,13 @@ TRANSIT_GATED_WIZARD_ACTIONS = frozenset({
 })
 TRANSIT_DISABLED_REASON = "Talleyrand in transit"
 
-# ── IQ-4 "The Cabinet Is Visible" flip levers. False reproduces master
-#    7bbf82b8 on that surface. ──
+# ── IQ-4 "The Cabinet Is Visible" — a mission's start is not a rejection,
+#    and a mission's cancel reads the name. ──
 # S3d: a mission's start (and the dialogue cancel) concluded a dialogue with
 # no outcome word, so the PL-14 safety net in `_respond_to_dialogue_sync`
 # built its popup from the message and `_derive_proposal_result_outcome` fell
 # through to "REJECT" — every launch arrived titled "Diplomatic Action
 # Rejected". The rail's `begun` / `recalled` beats say what happened instead.
-MISSION_START_IS_NOT_A_REJECTION = True
 # S3e: the typed recall. The CANCEL check sat BELOW the not-target
 # short-circuit, so the bare "Talleyrand, cancel mission" (a golden-corpus
 # row) fell into a Dismiss-only "where shall I direct my efforts?" dialogue;
@@ -171,14 +170,12 @@ MISSION_START_IS_NOT_A_REJECTION = True
 # (The EC-Q transit gate still refuses a typed recall while a proposal is
 # away — FA-N81 pins that the executor refuses exactly what the wizard
 # greys; `_recall_mission` keeps IN_TRANSIT intact for any other caller.)
-MISSION_CANCEL_READS_THE_NAME = True
 
 
 
-# PC15-10 B3 flip lever (spec §4 F6, W7): a stale answer aimed at a HYBRID
-# that a new flow displaced into the queue re-issues the hybrid's consumed
-# modal. False = the crisis survives in the queue but its modal never returns.
-THE_HYBRID_MODAL_RETURNS = True
+# PC15-10 B3 — the hybrid's modal returns (spec §4 F6, W7): a stale answer
+# aimed at a HYBRID that a new flow displaced into the queue re-issues the
+# hybrid's consumed modal, so the crisis that survives in the queue is seen.
 
 
 def _reissue_displaced_hybrid(world, requested_id) -> str:
@@ -187,7 +184,7 @@ def _reissue_displaced_hybrid(world, requested_id) -> str:
     `build_sabotage_popup` — one builder each, shared with their producers).
     Returns the sentence the refusal adds ("" when nothing was re-issued).
     Never duplicates: a modal already waiting for that dialogue is left."""
-    if not THE_HYBRID_MODAL_RETURNS or requested_id is None:
+    if requested_id is None:
         return ""
     manager = getattr(world, "dialogue_manager", None)
     if manager is None:
@@ -1124,7 +1121,7 @@ class DiplomaticExecutor:
 
         # IQ-4 S3e: the recall is read BEFORE the not-target short-circuit,
         # so a bare "Talleyrand, cancel mission" recalls the live mission.
-        if MISSION_CANCEL_READS_THE_NAME and mission_type == "CANCEL":
+        if mission_type == "CANCEL":
             return self._recall_mission(target_nation, world)
 
         if not target_nation or not mission_type:
@@ -1156,24 +1153,6 @@ class DiplomaticExecutor:
                 "message": _state_refusal,
                 "diplomatic_dialogue": None,
                 "awaiting_diplomatic_response": False,
-            }
-
-        # Cancel mission (the pre-IQ-4 recall — lever down)
-        if mission_type == "CANCEL":
-            existing = getattr(world, 'active_diplomatic_mission', None)
-            if not existing:
-                return {"success": False, "message": "There is no active diplomatic mission to cancel."}
-            from backend.game_logic.diplomatic_dialogue import (
-                mission_is_live as _live, record_mission_end as _record_end,
-            )
-            _was_live = _live(world)
-            world.active_diplomatic_mission = None
-            world.talleyrand_state = "IDLE"
-            if _was_live:   # IQ-4: the log's end row + the rail's recalled beat
-                _record_end(world, dict(existing), "recalled")
-            return {
-                "success": True,
-                "message": f"Talleyrand's mission to {existing.get('target', 'unknown')} has been cancelled.",
             }
 
         # Check DP
@@ -4211,8 +4190,7 @@ class DiplomaticExecutor:
             # ══════════════════════════════════════════════════════════
             if not selected:
                 from backend.commands import dialogue_routing as _routing
-                if (_routing.A_PETITION_IS_ANSWERED_PLAINLY
-                        and _routing._is_client_petition_dialogue(dialogue)):
+                if (_routing._is_client_petition_dialogue(dialogue)):
                     _token = _routing.match_dialogue_answer(
                         dialogue, choice.lower())
                     if not _token:
@@ -4225,9 +4203,7 @@ class DiplomaticExecutor:
                         if str(opt.get("action") or "") == choice:
                             selected = opt
                             break
-                elif (_routing.AN_ANSWER_IS_READ_CLOSED
-                        and not (_routing.A_QUESTION_NEVER_ANSWERS
-                                 and _routing.line_asks_a_question(choice, options))):
+                elif (not (_routing.line_asks_a_question(choice, options))):
                     # SR-2e part (ii) — CRT-5: the button road's free text is
                     # read by the same closed grammar as the typed road (a
                     # button sends an id, a digit or an exact label — all
@@ -4261,8 +4237,7 @@ class DiplomaticExecutor:
             # ══════════════════════════════════════════════════════════
             if not selected:
                 from backend.commands import dialogue_routing as _routing
-                if (_routing.A_QUESTION_NEVER_ANSWERS
-                        and _routing.line_asks_a_question(choice, options)):
+                if (_routing.line_asks_a_question(choice, options)):
                     return _unresolved_choice_failure(
                         "A question is not an answer, Sire — nothing was "
                         "relayed. Answer with one of: "
@@ -5829,14 +5804,13 @@ class DiplomaticExecutor:
                 "success": True,
                 "message": f"Talleyrand begins efforts to {description} {mission_target}. ({int(cost)} DP/turn)",
             }
-            if MISSION_START_IS_NOT_A_REJECTION:
-                # IQ-4 S3d: never "Diplomatic Action Rejected" for a launch —
-                # and the line names the court, never the tag (R7).
-                from backend.display_names import display_nation as _dn
-                _start_result["message"] = (
-                    f"Talleyrand begins efforts to {description} "
-                    f"{_dn(mission_target)}. ({int(cost)} DP/turn)")
-                _start_result["suppress_proposal_result_popup"] = True
+            # IQ-4 S3d: never "Diplomatic Action Rejected" for a launch —
+            # and the line names the court, never the tag (R7).
+            from backend.display_names import display_nation as _dn
+            _start_result["message"] = (
+                f"Talleyrand begins efforts to {description} "
+                f"{_dn(mission_target)}. ({int(cost)} DP/turn)")
+            _start_result["suppress_proposal_result_popup"] = True
             return _start_result
 
         elif action == "cancel_mission":
@@ -5848,7 +5822,7 @@ class DiplomaticExecutor:
                 mission_is_live as _live, record_mission_end as _record_end,
             )
             _was_live = _live(world)
-            if MISSION_CANCEL_READS_THE_NAME and not _was_live:
+            if not _was_live:
                 # IQ-4 §3.5: a completed mission is a record, not a recall.
                 from backend.display_names import display_nation as _dn
                 world.dialogue_manager.pop()
@@ -5861,8 +5835,7 @@ class DiplomaticExecutor:
             old_target = existing.get("target", "unknown")
             _snapshot = dict(existing)
             world.active_diplomatic_mission = None
-            if not (MISSION_CANCEL_READS_THE_NAME
-                    and getattr(world, 'talleyrand_state', '') == "IN_TRANSIT"):
+            if not (getattr(world, 'talleyrand_state', '') == "IN_TRANSIT"):
                 world.talleyrand_state = "IDLE"
             world.dialogue_manager.pop()
             if _was_live:   # IQ-4: the log's end row + the rail's recalled beat
@@ -5871,9 +5844,8 @@ class DiplomaticExecutor:
                 "success": True,
                 "message": f"Talleyrand's mission to {old_target} has been cancelled.",
             }
-            if MISSION_START_IS_NOT_A_REJECTION:
-                # IQ-4 S3d: a recall is not a rejected proposal either.
-                _cancel_result["suppress_proposal_result_popup"] = True
+            # IQ-4 S3d: a recall is not a rejected proposal either.
+            _cancel_result["suppress_proposal_result_popup"] = True
             return _cancel_result
 
         elif action == "accept_ai_proposal":

@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 
 import backend.ai.question_desk as QD
-import backend.commands.economy_executor as EC
 import backend.game_logic.dispatch as D
 from backend.campaign_log import format_event_oneliner
 from backend.commands.executor import CommandExecutor
@@ -220,14 +219,6 @@ class TestAAR30TheCapitalDiscountIsOursOnly:
                                           nation="Austria")
         assert "capital discount" not in terms
 
-    def test_the_lever_down_restores_the_region_type_rule(self, europe, ec, monkeypatch):
-        monkeypatch.setattr(EC, "THE_CAPITAL_DISCOUNT_IS_OURS_ONLY", False)
-        vienna = europe.get_region("Vienna")
-        vienna.controller = "France"
-        _, terms = ec._recruit_cost_terms(vienna, europe, base_cost=200,
-                                          nation="France")
-        assert "capital discount" in terms
-
     def test_a_nation_less_call_keeps_the_region_type_rule(self, europe, ec):
         """The legacy direct-call sites pass no nation and are byte-identical."""
         _, terms = ec._recruit_cost_terms(europe.get_region("Vienna"), europe,
@@ -304,12 +295,6 @@ class TestAAR18TheDeskBreaksGround:
         answer = QD.answer_board_question(europe, _HERE) or ""
         assert "ground is broken without one" not in answer
         assert "we may build:" in answer
-
-    def test_the_lever_down_restores_the_shrug(self, europe, monkeypatch):
-        monkeypatch.setattr(QD, "THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS", False)
-        _send_the_army_abroad(europe)
-        answer = QD.answer_board_question(europe, _HERE) or ""
-        assert "nowhere to break ground" in answer
 
     def test_no_province_at_all_keeps_the_old_line(self, europe):
         _send_the_army_abroad(europe)

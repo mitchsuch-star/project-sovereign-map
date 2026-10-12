@@ -460,27 +460,6 @@ class TestAnOrderIsNotAnAnswer:
     def test_a_line_naming_a_marshal_is_refused(self, line):
         assert match_dialogue_answer(ADVISORY, line, ROSTER) is None
 
-    def test_without_the_guard_it_really_did_hijack(self, monkeypatch):
-        """Falsifiable negative: the same shape, no roster, still matches — so
-        the pin above is testing the guard and not something else.
-
-        Aug 30, 2026: the line was "soult, cancel your march", which a SECOND
-        guard landed that day now refuses on its own — "march" is an order
-        noun, so the answer arms decline it whether or not a marshal is named
-        (an order names the war; an answer names the decision). Keeping the
-        old line would have made this control pass for the wrong reason, so
-        it is narrowed to a line whose ONLY order-ish content is the address
-        itself. The control's meaning is unchanged: with a roster the marshal
-        guard refuses; without one, the line still matches.
-        """
-        # SR-2e part (ii): CRT-5's closed grammar refuses `soult, cancel`
-        # with or without a roster (`soult` is no answer word) — lowered so
-        # the control still isolates the marshal guard on the open arms.
-        import backend.commands.dialogue_routing as _DR
-        monkeypatch.setattr(_DR, "AN_ANSWER_IS_READ_CLOSED", False)
-        assert match_dialogue_answer(ADVISORY, "soult, cancel", None) == "cancel"
-        assert match_dialogue_answer(ADVISORY, "soult, cancel", ROSTER) is None
-
     @pytest.mark.parametrize("dialogue,line,expected", [
         (PROPOSAL, "accept", "accept"),
         (PROPOSAL, "accept prussia's proposal", "accept"),

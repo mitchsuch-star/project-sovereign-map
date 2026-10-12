@@ -242,27 +242,6 @@ class TestSRX23AnAttackHeldForADeclarationKeepsTheOrder:
         assert "set aside" not in (reply.get("message") or "")
         assert lannes.strategic_order is order
 
-    def test_the_lever_down_loses_it(self, board, monkeypatch):
-        monkeypatch.setattr(
-            EX, "AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER", False)
-        lannes, _order = self._stage(board)
-        reply = _post("Lannes, attack Tyrol")
-        assert reply.get("awaiting_diplomatic_response")
-        assert lannes.strategic_order is None
-        assert "Lannes's march to Vienna is set aside." in (
-            reply.get("message") or "")
-
-    def test_the_announcement_reads_the_same_predicate(self, board,
-                                                       monkeypatch):
-        # With SR5B-1's restore off, only the announcement's own reading of
-        # the predicate stands between a held attack and "is set aside".
-        monkeypatch.setattr(EX, "A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER",
-                            False)
-        self._stage(board)
-        reply = _post("Lannes, attack Tyrol")
-        assert reply.get("awaiting_diplomatic_response")
-        assert "set aside" not in (reply.get("message") or "")
-
     def test_a_held_order_that_fought_is_carried_out(self):
         result = {"success": True, "awaiting_diplomatic_response": True,
                   "events": [{"type": "battle"}]}

@@ -1993,18 +1993,10 @@ class TestClientSourcePins:
 # PASS 2 — the verifiers' rulings (P2-1, P3-1..P3-4, P4-1..P4-6)
 # ═══════════════════════════════════════════════════════════════════════════
 
-ROUTING_LEVERS = ("A_PETITION_IS_ANSWERED_PLAINLY", "THE_MATTER_GUARD_READS_THE_TABLE")
 ENVOYS_TAIL = "open Envoys and answer it there."
 SWISS_WAITS = f"Switzerland's petition waits in Envoys — {ENVOYS_TAIL}"
 PORTUGAL_HEAD = ("Sire — that answer would be delivered to Portugal, whose matter is "
                  "the one before you.")
-
-
-@pytest.fixture(autouse=True)
-def _restore_routing_levers(monkeypatch):
-    for name in ROUTING_LEVERS:
-        monkeypatch.setattr(DR, name, getattr(DR, name))
-    yield
 
 
 def _swiss(w):
@@ -2178,58 +2170,6 @@ class TestP21APetitionIsAnsweredPlainly:
         r = _respond(client, choice, pet["dialogue_id"])
         assert r.get("success") is True, r.get("message")
         assert _swiss(w) == answer(before) and not _petitions(w)
-
-    @pytest.mark.parametrize("route,phrase,answer", [
-        ("typed", "grant the petition later", _granted),
-        ("button", "refuse the petition later", _refused),
-    ])
-    def test_lever_down_the_pass_1_router_answers_the_deferred_line_at_price(
-            self, board, monkeypatch, route, phrase, answer):
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, pet = _petition_current(board)
-        before = _swiss(w)
-        r = (_cmd(client, phrase) if route == "typed"
-             else _respond(client, phrase, pet["dialogue_id"]))
-        assert r.get("success") is True, r.get("message")
-        assert _swiss(w) == answer(before) and len(_logged(w)) == 1
-
-    @pytest.mark.parametrize("phrase,answer", [("grant it", _granted), ("refuse", _refused)])
-    def test_lever_down_the_petitions_own_words_still_answer_on_the_pass_1_road(
-            self, board, monkeypatch, phrase, answer):
-        """SWEEP 2: pass 2 made arm 3b the LEVER-DOWN road — with the lever up
-        a client petition never reaches it, so nothing pinned it any more.
-        These two lines are the ones ONLY arm 3b answers on the pass-1 router
-        (no label contains them; `refuse` is a keyword of the ultimatum alone,
-        `grant` of nothing), so "False = the pass-1 router, byte for byte"
-        is falsifiable for the petition's own words too."""
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, pet = _petition_current(board)
-        before = _swiss(w)
-        r = _cmd(client, phrase)
-        assert r.get("success") is True, r.get("message")
-        assert _swiss(w) == answer(before)
-        outcome = "granted" if answer is _granted else "refused"
-        assert [e["outcome"] for e in _logged(w)] == [outcome] and not _petitions(w)
-
-    def test_lever_down_the_button_route_keeps_its_own_pass_1_scan(self, board, monkeypatch):
-        """SWEEP 2: the third copy reads the lever ITSELF. Delegating to
-        `match_dialogue_answer` (which reads it too) is not enough, because on
-        the pass-1 router the two routes DISAGREE: the typed router declines a
-        line that carries an order (None — it falls to the ordinary road),
-        while the button route's own containment arm answers it. Lever down
-        restores THAT, byte for byte — never a refusal pass 1 did not give."""
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, pet = _petition_current(board)
-        line = "grant the petition and attack vienna"
-        assert DR.match_dialogue_answer(pet, line) is None              # the typed router declines it
-        before = _swiss(w)
-        r = _respond(client, line, pet["dialogue_id"])
-        assert r.get("success") is True, r.get("message")
-        assert _swiss(w) == _granted(before)
-        assert [e["outcome"] for e in _logged(w)] == ["granted"] and not _petitions(w)
 
     def test_the_plain_answer_is_the_client_petitions_whole_router(self, board):
         w, _client = board
@@ -2554,13 +2494,6 @@ class TestP33TheRouterSeamRefusesAnswersOnly:
                                         "petition the senate for more men"):
             assert DR._line_is_answer_shaped(line.lower(), w) is False, line
 
-    def test_lever_down_the_noun_alone_eats_the_order(self, board, monkeypatch):
-        monkeypatch.setattr(DR, "THE_MATTER_GUARD_READS_THE_TABLE", False)
-        w, client, top, _ult = self._staged(board)
-        r = _cmd(client, "send ultimatum to Austria")
-        assert r.get("matter_mismatch") is True and r.get("matter_family") == "ultimatum"
-        assert "Prussia's ultimatum waits in Envoys" in str(r.get("message"))
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # P3-4 — a bare `refuse` is the ULTIMATUM's word when the ultimatum is current
@@ -2609,13 +2542,6 @@ class TestP34ABareRefuseDefiesTheUltimatumOnTheTable:
                   "options": [{"label": "Accept", "action": "accept_ai_proposal"},
                               {"label": "Reject", "action": "reject_ai_proposal"}]}
         assert DR._active_dialogue_claims_the_verb(letter, "refuse") is False
-
-    def test_lever_down_the_bare_refuse_is_refused(self, board, monkeypatch):
-        monkeypatch.setattr(DR, "THE_MATTER_GUARD_READS_THE_TABLE", False)
-        w, client, ult = self._staged(board)
-        r = _cmd(client, "refuse")
-        assert r.get("matter_mismatch") is True and SWISS_WAITS in str(r.get("message"))
-        assert w.dialogue_manager.peek() is ult and not w.ultimatum_rejection_pressure
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2779,13 +2705,6 @@ class TestP43TheLetterNounsAreNotPetitionVocabulary:
         r = _cmd(client, "accept the terms")
         assert r.get("success") is True and _swiss(w) == _granted(before)
 
-    def test_lever_down_the_letter_noun_is_filler_again(self, board, monkeypatch):
-        monkeypatch.setattr(DR, "THE_MATTER_GUARD_READS_THE_TABLE", False)
-        assert petition_vocabulary_answer("refuse the offer") == "reject_ai_proposal"
-        w, client, _top = _portugal_on_top(board)
-        r = _cmd(client, "refuse the offer")
-        assert r.get("matter_mismatch") is True and SWISS_WAITS in str(r.get("message"))
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # P4-4 — a courtless dialogue is named once
@@ -2942,13 +2861,6 @@ class TestP46TheAllyPetitionDoesNotOwnTheClientsWords:
         assert ally not in _pending(w)
         assert len(_petitions(w)) == 1 and not _logged(w)
 
-    def test_lever_down_the_line_falls_to_berthiers_shrug(self, board, monkeypatch):
-        monkeypatch.setattr(DR, "THE_MATTER_GUARD_READS_THE_TABLE", False)
-        w, client, ally = self._staged(board)
-        r = _cmd(client, "grant the petition")
-        assert not r.get("matter_mismatch") and "waits in Envoys" not in str(r.get("message"))
-        assert w.dialogue_manager.peek() is ally
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PASS 3 — the second verifier's rulings (September 18, 2026)
@@ -2965,19 +2877,11 @@ class TestP46TheAllyPetitionDoesNotOwnTheClientsWords:
 # ANSWERS` (R3-9) and `THE_BUTTON_ROUTE_READS_THE_COURT` (R3-10).
 # ═══════════════════════════════════════════════════════════════════════════
 
-PASS3_LEVERS = ("A_QUESTION_NEVER_ANSWERS", "THE_BUTTON_ROUTE_READS_THE_COURT")
 REPROMPT = ("The petition takes a plain answer, Sire — nothing was relayed. Answer with one "
             "of: 1=Grant the petition, 2=Refuse the petition.")
 SWISS_HEAD = ("Sire — that answer would be delivered to Switzerland, whose matter is the one "
               "before you.")
 LETTER_BOOK_TAIL = "open the letter-book and answer it there."
-
-
-@pytest.fixture(autouse=True)
-def _restore_pass3_levers(monkeypatch):
-    for name in PASS3_LEVERS:
-        monkeypatch.setattr(DR, name, getattr(DR, name))
-    yield
 
 
 def _koi_state(w):
@@ -3156,20 +3060,6 @@ class TestR31ThePlainAnswerIsAClosedGrammar:
         # …while separators carry no meaning of their own
         assert DR.petition_plain_answer(pet, "Grant it — at once!") == "accept_ai_proposal"
 
-    @pytest.mark.parametrize("phrase,answer", [("grant it by and by", _granted),
-                                               ("if we refuse", _refused)])
-    def test_lever_down_the_pass_1_router_answers_them_at_price(self, board, monkeypatch,
-                                                               phrase, answer):
-        """`A_PETITION_IS_ANSWERED_PLAINLY` gates the grammar (no new lever):
-        down, the keyword arm answers these exactly as the verifier measured."""
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, pet = _petition_current(board)
-        before = _swiss(w)
-        r = _cmd(client, phrase)
-        assert r.get("success") is True, r.get("message")
-        assert _swiss(w) == answer(before) and len(_logged(w)) == 1
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # R3-2 (V2-7, V2-2's second half) — nothing is mounted over a current petition
@@ -3225,7 +3115,7 @@ class TestR32NothingIsMountedOverTheCurrentPetition:
         assert "For a later day, Sire" in str(r.get("message"))
         assert w.dialogue_manager.peek() is pet
 
-    def test_it_is_the_client_petitions_rule_and_the_levers(self, board, monkeypatch):
+    def test_it_is_the_client_petitions_rule_and_the_levers(self, board):
         w, client, pet = _petition_current(board)
         roster = [m.name for m in w.get_player_marshals()]
         assert DR.petition_line_reprompt(pet, "accept, they have earned it", roster)["message"] == REPROMPT
@@ -3239,14 +3129,6 @@ class TestR32NothingIsMountedOverTheCurrentPetition:
                   "options": [{"label": "Accept", "action": "accept_ai_proposal"},
                               {"label": "Reject", "action": "reject_ai_proposal"}]}
         assert DR.petition_line_reprompt(letter, "accept, they have earned it", roster) is None
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        # SR-2e part (ii): with the petition's grammar lowered, CRT-5's closed
-        # grammar would still refuse the line — lowered too for the pass-1 road.
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)
-        assert DR.petition_line_reprompt(pet, "accept, they have earned it", roster) is None
-        before = _swiss(w)
-        r = _cmd(client, "accept, they have earned it")                  # pass 1: the keyword arm
-        assert r.get("success") is True and _swiss(w) == _granted(before)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3310,7 +3192,7 @@ class TestR33TheCourtGuardSpeaksFirst:
             f"one before you. Portugal's matter waits in the letter-book — {LETTER_BOOK_TAIL}")
         assert _state_with(w, "Portugal") == "PEACE" and w.dialogue_manager.peek() is pet
 
-    def test_only_an_answer_shaped_line_and_only_a_client_petition(self, board, monkeypatch):
+    def test_only_an_answer_shaped_line_and_only_a_client_petition(self, board):
         w, client, pet = _petition_current(board)
         guard = DR.court_mismatch_refusal_for_a_petition
         assert guard(w, pet, "accept portugal's offer")["court_mismatch"] is True
@@ -3319,8 +3201,6 @@ class TestR33TheCourtGuardSpeaksFirst:
         portugal = next(d for d in w.dialogue_manager.iter_queue()
                         if d.get("target_nation") == "Portugal")
         assert guard(w, portugal, "accept denmark's offer") is None               # the handler seam's
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        assert guard(w, pet, "accept portugal's offer") is None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3432,16 +3312,13 @@ class TestR35TheShapeGateKnowsTheEmphasis:
         assert not r.get("matter_mismatch")
         assert "already at war with Austria" in str(r.get("message"))
 
-    def test_the_shape_reads_the_phrases_and_the_lever(self, board, monkeypatch):
+    def test_the_shape_reads_the_phrases_and_the_lever(self, board):
         w, _client = board
         for line in EMPHATIC_LINES + ("accept the offer from portugal",):
             assert DR._line_is_answer_shaped(line, w) is True, line
         for line in ("send ultimatum to austria at once", "grant it once", "grant it course",
                      "grant the petition later"):
             assert DR._line_is_answer_shaped(line, w) is False, line
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        for line in EMPHATIC_LINES[:3] + ("accept the offer from portugal",):
-            assert DR._line_is_answer_shaped(line, w) is False, line         # pass 2's gate
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3475,13 +3352,6 @@ class TestR36ACourtNamedLineIsNotOwnedByTheActivePetition:
             assert w.dialogue_manager.peek() is ally
         r = _cmd(client, "decline the petition")                          # pass 2's pin stands
         assert r.get("success") is True and ally not in _pending(w)
-
-    def test_lever_down_the_explicit_line_is_shrugged_at(self, board, monkeypatch):
-        monkeypatch.setattr(DR, "THE_MATTER_GUARD_READS_THE_TABLE", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, ally = self._staged(board)
-        r = _cmd(client, "grant switzerland's petition")
-        assert not r.get("matter_mismatch") and "waits in Envoys" not in str(r.get("message"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3567,26 +3437,13 @@ class TestR39AQuestionIsNeverAnAnswer:
         assert _state_with(w, "Portugal") == "PEACE" and w.dialogue_manager.peek() is top
         assert "You have" not in str(r.get("message"))
 
-    def test_lever_down_the_question_signs_the_treaty(self, board, monkeypatch):
-        monkeypatch.setattr(DR, "A_QUESTION_NEVER_ANSWERS", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, top = _portugal_on_top(board)
-        r = _cmd(client, "should i accept?")
-        assert r.get("success") is True and _state_with(w, "Portugal") == "OPEN_BORDERS"
-
-    def test_the_button_routes_free_text(self, board, monkeypatch):
+    def test_the_button_routes_free_text(self, board):
         w, client, top = _portugal_on_top(board)
         r = _respond(client, "should i accept?", top["dialogue_id"])
         assert r.get("success") is False
         assert r.get("message") == ("A question is not an answer, Sire — nothing was relayed. "
                                     "Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.")
         assert _state_with(w, "Portugal") == "PEACE" and w.dialogue_manager.peek() is top
-        monkeypatch.setattr(DR, "A_QUESTION_NEVER_ANSWERS", False)
-        # SR-2e part (ii): CRT-5 reads the button road's free text closed too
-        # (`should` is no answer word) — lowered with it for the old reading.
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)
-        r = _respond(client, "should i accept?", top["dialogue_id"])
-        assert r.get("success") is True and _state_with(w, "Portugal") == "OPEN_BORDERS"
 
     def test_an_exact_id_a_digit_and_an_exact_label_are_exempt(self):
         asks = {"type": "advisory", "context": {}, "options": [
@@ -3657,13 +3514,6 @@ class TestR310TheButtonRouteReadsTheCourt:
         assert DR.free_text_of_choice(top, "accept Switzerland's petition") == (
             "accept Switzerland's petition")
 
-    def test_lever_down_the_free_text_signs_portugals_letter(self, board, monkeypatch):
-        monkeypatch.setattr(DR, "THE_BUTTON_ROUTE_READS_THE_COURT", False)
-        w, client, top = _portugal_on_top(board)
-        assert DR.free_text_of_choice(top, "accept Switzerland's petition") is None
-        r = _respond(client, "accept Switzerland's petition", top["dialogue_id"])
-        assert r.get("success") is True and _state_with(w, "Portugal") == "OPEN_BORDERS"
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # R3-11 — the hard-stop endpoint pins build their own world
@@ -3717,18 +3567,15 @@ class TestIQ7X7TheDeferralLimitOnOtherFamilies:
     @pytest.mark.parametrize("line", [
         "accept the offer later", "accept it next turn", "yes, later",
         "if we accept", "accept the offer, but not now"])
-    def test_a_deferred_answer_still_answers_an_ordinary_letter(self, line,
-                                                                 monkeypatch):
+    def test_a_deferred_answer_still_answers_an_ordinary_letter(self, line):
         """⚠ CONSCIOUS PIN FLIP, on this class's own instruction ("when that
         row lands these lines must resolve to None and this pin FLIPS"),
         September 26, 2026 — Score Mandate SR-2e part (ii), CRT-5 "an answer
         is read closed" (`dialogue_routing.closed_answer`): every family's
         typed answer is read by a closed grammar that fails closed, so the
-        five deferrals claim NOTHING. The name is kept so the history reads;
-        the lever-down arm reproduces the defect."""
+        five deferrals claim NOTHING. The name is kept so the history reads
+        (the lever was retired in CODE-1 batch 6, October 12, 2026)."""
         assert DR.match_dialogue_answer(self.LETTER, line) is None
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)
-        assert DR.match_dialogue_answer(self.LETTER, line) is not None
 
     def test_a_hedged_answer_is_closed_by_crt3(self):
         """⚠ CONSCIOUS PIN FLIP, on this class's own instruction, September
@@ -3746,19 +3593,6 @@ class TestIQ7X7TheDeferralLimitOnOtherFamilies:
         interrogative lead nor a hedge, and stay CRT-5's."""
         assert DR.match_dialogue_answer(self.LETTER, "maybe accept") is None
         assert DR.match_dialogue_answer(self.LETTER, "perhaps accept") is None
-        from backend.ai import clause_guards as _CG
-        original = _CG.A_HEDGE_IS_NOT_AN_ORDER
-        closed = DR.AN_ANSWER_IS_READ_CLOSED
-        try:
-            _CG.A_HEDGE_IS_NOT_AN_ORDER = False
-            # SR-2e part (ii): CRT-5's closed grammar ALSO refuses `maybe`
-            # (no answer word) — lowered with it to reproduce the old reading.
-            DR.AN_ANSWER_IS_READ_CLOSED = False
-            assert DR.match_dialogue_answer(
-                self.LETTER, "maybe accept") is not None, "lever off = the old reading"
-        finally:
-            _CG.A_HEDGE_IS_NOT_AN_ORDER = original
-            DR.AN_ANSWER_IS_READ_CLOSED = closed
 
     def test_is_that_a_yes_is_closed_by_cx_slice_1(self):
         """⚠ CONSCIOUS PIN FLIP, on this class's own instruction ("when that
@@ -3776,19 +3610,6 @@ class TestIQ7X7TheDeferralLimitOnOtherFamilies:
         stay CR-6 proper's.
         """
         assert DR.match_dialogue_answer(self.LETTER, "is that a yes") is None
-        from backend.ai import clause_guards as _CG
-        original = _CG.A_QUESTION_NEVER_ORDERS
-        closed = DR.AN_ANSWER_IS_READ_CLOSED
-        try:
-            _CG.A_QUESTION_NEVER_ORDERS = False
-            # SR-2e part (ii): CRT-5's closed grammar ALSO refuses `is that`
-            # (no answer words) — lowered with it to reproduce the old reading.
-            DR.AN_ANSWER_IS_READ_CLOSED = False
-            assert DR.match_dialogue_answer(
-                self.LETTER, "is that a yes") is not None, "lever off = the old reading"
-        finally:
-            _CG.A_QUESTION_NEVER_ORDERS = original
-            DR.AN_ANSWER_IS_READ_CLOSED = closed
 
     def test_the_question_half_is_closed_for_every_family(self):
         assert DR.match_dialogue_answer(self.LETTER, "should i accept?") is None
@@ -3906,11 +3727,11 @@ class TestR41AQuestionMadeOfTheGrammarNeverAnswers:
             assert DR.petition_plain_answer(pet, phrase) is None, phrase
         assert DR.petition_plain_answer(pet, "we refuse") == "reject_ai_proposal"
 
-    def test_the_auxiliaries_answer_in_statement_order_only(self, board, monkeypatch):
-        """R4-1b on the function itself, with the question rule's inversion arm
-        DOWN (R4-3's lever) — so only the token-order rule stands between these
-        lines and the price. The third-person lines carry no inversion at all."""
-        monkeypatch.setattr(DR, "A_QUESTION_NEVER_ANSWERS", False)
+    def test_the_auxiliaries_answer_in_statement_order_only(self, board):
+        """R4-1b on the function itself. (Until CODE-1 batch 6, October 12,
+        2026, this ran with the question rule's inversion arm DOWN, R4-3's
+        lever; that lever is retired, so the pin now reads the shipped router.)
+        The third-person lines carry no inversion at all."""
         w, _client = board
         pet = _petition_of(w)
         for phrase in QUESTIONS_MADE_OF_THE_GRAMMAR + (
@@ -3938,16 +3759,6 @@ class TestR41AQuestionMadeOfTheGrammarNeverAnswers:
         assert asked == ["grant the petition"]
         monkeypatch.setattr(DR, "line_asks_a_question", lambda typed, options: True)
         assert DR.petition_plain_answer(pet, "grant the petition") is None
-
-    def test_lever_down_the_pass_1_router_is_back(self, board, monkeypatch):
-        """Same lever, no new one: with `A_PETITION_IS_ANSWERED_PLAINLY` down the
-        verifier's `do the swiss accept` GRANTS again, as it measured."""
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, pet = _petition_current(board)
-        before = _swiss(w)
-        r = _cmd(client, "do the swiss accept")
-        assert r.get("success") is True and _swiss(w) == _granted(before)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -4151,15 +3962,6 @@ class TestR43AnInversionAnywhereIsAQuestion:
         assert not dict(w.ultimatum_rejection_pressure or {})
         assert "You have" not in str(r.get("message"))
 
-    def test_lever_down_the_inversion_signs_as_it_always_did(self, board, monkeypatch):
-        """Pre-existing, and behind the existing lever: False = the prior router."""
-        monkeypatch.setattr(DR, "A_QUESTION_NEVER_ANSWERS", False)
-        monkeypatch.setattr(DR, "AN_ANSWER_IS_READ_CLOSED", False)  # SR-2e part (ii) CRT-5 closes this line too — lowered with it to reproduce the old reading
-        w, client, top = _portugal_on_top(board)
-        assert DR.line_asks_a_question("then shall we accept", LETTER_OPTIONS) is False
-        r = _cmd(client, "then shall we accept")
-        assert r.get("success") is True and _state_with(w, "Portugal") == "OPEN_BORDERS"
-
     def test_the_rule_reads_whole_words_and_statement_order(self):
         from backend.ai.clause_guards import is_question
         for phrase in ("then shall we accept", "sire do we accept", "accept it, shall we",
@@ -4256,13 +4058,6 @@ class TestR44TwoMoreShapesRepromptInPlace:
         # a refusal that names another court is an order about THAT court
         assert reprompted("Talleyrand, tell them no")
         assert not reprompted("Talleyrand, tell austria's envoy no")
-
-    def test_lever_down_the_shapes_are_gone(self, board, monkeypatch):
-        w, _client, pet = _petition_current(board)
-        roster = [m.name for m in w.get_player_marshals()]
-        monkeypatch.setattr(DR, "A_PETITION_IS_ANSWERED_PLAINLY", False)
-        for phrase in STRAY_ADDRESS_LINES + DIPLOMAT_REFUSALS:
-            assert DR.petition_line_reprompt(pet, phrase, roster, world=w) is None, phrase
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -133,13 +133,6 @@
   "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_it_reads_the_marshals_flag_not_the_players"
  },
  {
-  "id": "D2/h the lever stops reproducing prior behaviour",
-  "file": "backend/commands/strategic.py",
-  "old": "    if not CANNON_FIRE_READS_THE_FLAGS:\n        return True",
-  "new": "    if not CANNON_FIRE_READS_THE_FLAGS:\n        return False",
-  "tests": "tests/test_fa_s16_d1_d2_the_cannon_fire_ruling_2026_09_06.py::TestTheGunsMustConcernHim::test_the_lever_reproduces_the_nation_blind_scan"
- },
- {
   "id": "D2/i the fail-open docstring stops stating what it buys",
   "file": "backend/commands/strategic.py",
   "old": "    ⚠ FAIL OPEN on a participant whose nation cannot be resolved. To be exact\n    about what that buys: on the shipped board it buys nothing.",

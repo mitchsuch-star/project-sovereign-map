@@ -63,13 +63,6 @@
     "tests": "tests/test_iq1_sw1_substitute_market.py::TestTheRefusalsAreHonest::test_the_field_caps_the_draft_rather_than_refusing_it"
   },
   {
-    "id": "SW1-10 the lever stops closing the market",
-    "file": "backend/commands/economy_executor.py",
-    "old": "        if not THE_SUBSTITUTE_MARKET_IS_OPEN:",
-    "new": "        if False:",
-    "tests": "tests/test_iq1_sw1_substitute_market.py::TestArmB_TheControl::test_the_lever_closes_the_market"
-  },
-  {
     "id": "SW1-11 the premium is quoted after the men arrive",
     "file": "backend/commands/economy_executor.py",
     "old": "        drafted = self._calculate_recruit_cost(\n            region, world, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE,\n            nation=acting_nation, marshal=marshal)\n\n        old_strength = int(marshal.strength)",

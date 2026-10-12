@@ -4004,11 +4004,10 @@ def execute_command(request: CommandRequest):
                             command_text)
                     if _matter is None:
                         from backend.commands.dialogue_routing import (
-                            AN_ANSWER_IS_READ_CLOSED as _CLOSED,
                             addresses_a_marshal as _addresses,
                             closed_line_tried_to_answer as _tried,
                         )
-                        if (_CLOSED and _tried(
+                        if (_tried(
                                 world.pending_diplomatic_dialogue, command_text)
                                 and not _addresses(
                                     command_text.lower(),

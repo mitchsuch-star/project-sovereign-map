@@ -105,13 +105,6 @@
     "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX22TheProposingCourtByName::test_the_accepted_line_takes_the_name_too"
   },
   {
-    "id": "SRX-23 the lever down",
-    "file": "backend/commands/executor.py",
-    "old": "AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER = True",
-    "new": "AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER = False",
-    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX23AnAttackHeldForADeclarationKeepsTheOrder::test_the_march_stands_through_the_declaration"
-  },
-  {
     "id": "SRX-23 a held attack reads as carried out",
     "file": "backend/commands/executor.py",
     "old": "    return not result.get(\"battle_result\")",

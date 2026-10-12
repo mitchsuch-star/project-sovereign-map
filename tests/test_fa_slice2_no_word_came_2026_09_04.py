@@ -413,25 +413,6 @@ class TestNoOtherOrderReachesACorneredMarshal:
         assert result.get("last_stand_pending") is None
         assert ney.location == "Paris"
 
-    def test_the_lever_reproduces_the_prior_behaviour(self, monkeypatch):
-        """False = the pre-slice world: the move executes over the question
-        and the processor emits nothing for an order-free marshal."""
-        monkeypatch.setattr(strategic_mod,
-                            "STANDALONE_DECISION_LIVENESS_ACTIVE", False)
-        world, ney, _mack, ask = _cornered_ney()
-        with _quiet():
-            result = CommandExecutor().execute(
-                {"command": {"marshal": "Ney", "action": "move",
-                             "target": "Paris"}},
-                {"world": world})
-        assert result["success"] is True
-        assert ney.location == "Paris"
-        assert ney.pending_interrupt is ask
-        proc = StrategicOrderProcessor(CommandExecutor())
-        with _quiet():
-            reports = proc.process_strategic_orders(world, {"world": world})
-        assert not [r for r in reports if r.get("marshal") == "Ney"]
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-N13 — cancel never destroys a parked decision
@@ -993,4 +974,3 @@ class TestTheLeversShipTogether:
     def test_the_remaining_levers_are_up(self):
         from backend.commands.combat_executor import CombatExecutor
         assert CombatExecutor.LAST_STAND_UNANSWERED_RESOLVES is True
-        assert strategic_mod.STANDALONE_DECISION_LIVENESS_ACTIVE is True

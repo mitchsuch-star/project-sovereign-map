@@ -91,13 +91,6 @@
   "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_plain_wait_hold_move_retreat"
  },
  {
-  "id": "plain/c the move forms",
-  "file": "backend/ai/llm_client.py",
-  "old": "        ] + (_PLAIN_MOVE_FORMS if PLAIN_SPEECH_ACTIVE else [])) or (",
-  "new": "        ] + ([] if PLAIN_SPEECH_ACTIVE else [])) or (",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_plain_wait_hold_move_retreat"
- },
- {
   "id": "plain/d the strategic move forms",
   "file": "backend/ai/strategic_parser.py",
   "old": "        \"pull back towards\", \"pull back toward\", \"pull back to\",\n        \"retire towards\", \"retire toward\", \"retire to\",\n        \"advance upon\", \"advance on\", \"onwards to\", \"onward to\", \"forward to\",\n",
@@ -117,13 +110,6 @@
   "old": "                        strategic = None\n                    if strategic:",
   "new": "                        pass\n                    if strategic:",
   "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_a_bare_retreat_is_a_retreat"
- },
- {
-  "id": "plain/g admin verbs never march",
-  "file": "backend/commands/parser.py",
-  "old": "                _never_strategic = (NEVER_STRATEGIC_ACTIONS\n                                    if ADMIN_VERBS_NEVER_MARCH\n                                    else _NON_ORDER_ACTIONS)",
-  "new": "                _never_strategic = _NON_ORDER_ACTIONS",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheMockSpeaksPlainly::test_an_administrative_verb_never_marches"
  },
  {
   "id": "typo/a the repair",
@@ -259,13 +245,6 @@
   "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheQuestionDesk::test_classify_is_pure_and_does_not_guess"
  },
  {
-  "id": "r1-1 the repair is a pre-parse rewrite",
-  "file": "backend/commands/parser.py",
-  "old": "        if getattr(_lc, \"VERB_TYPO_PASS_ACTIVE\", False):\n            repaired, typo_note = repair_leading_verb_typo(command_text, game_state)",
-  "new": "        if False:\n            repaired, typo_note = repair_leading_verb_typo(command_text, game_state)",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheReviewRound::test_a_repaired_verb_is_read_by_every_reader"
- },
- {
   "id": "r1-2 the split gate knows the wait vocabulary",
   "file": "backend/commands/parser.py",
   "old": "_STAND_FAST_FIRST_CLAUSE_RE = re.compile(\n    r'\\b(?:' + STAND_STILL_ALTERNATION + r')\\b', re.IGNORECASE)",
@@ -285,13 +264,6 @@
   "old": "    r\"(?:^|,\\s*then\\s+|\\bthen\\s+|;\\s*|\\band\\s+|\\bplease\\s+)\"",
   "new": "    r\"(?:^|\\s+)\"",
   "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheReviewRound::test_a_real_word_in_verb_position_is_not_repaired"
- },
- {
-  "id": "r1-4 stay-put sits last",
-  "file": "backend/ai/llm_client.py",
-  "old": "                and not PASS_AS_NOUN_RE.search(command_lower)):\n            action = \"wait\"  # Free action - marshal passes turn",
-  "new": "                and not PASS_AS_NOUN_RE.search(command_lower)) or (\n                PLAIN_SPEECH_ACTIVE and _mentions_stay_put(command_lower)):\n            action = \"wait\"  # Free action - marshal passes turn",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheReviewRound::test_stay_put_yields_to_the_order_verbs"
  },
  {
   "id": "r1-5 retire is terminal",

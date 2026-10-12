@@ -64,23 +64,12 @@ class TestCQ37AtOnceIsNeverACondition:
         assert "Lorraine" in reply["message"]
         assert "comes to pass" not in reply["message"]
 
-    def test_the_lever_down_refuses_it_as_a_contingency(self, shipped, monkeypatch):
-        client, world = shipped
-        world.gold = 5000
-        monkeypatch.setattr(CG, "AT_ONCE_IS_NEVER_A_CONDITION", False)
-        reply = _say(client, self.ORDER)
-        assert reply["success"] is False
-        assert "'once in Lorrain' comes to pass" in reply["message"]
-
-    @pytest.mark.parametrize("lever", [True, False])
-    def test_a_trailing_at_once_never_needed_the_rule(self, shipped, monkeypatch,
-                                                      lever):
+    def test_a_trailing_at_once_never_needed_the_rule(self, shipped):
         """Nothing follows a trailing "at once", so the clause is elliptical
         and was always blanked — the control that shows the rule matters only
         when an order follows the adverb."""
         client, world = shipped
         world.gold = 5000
-        monkeypatch.setattr(CG, "AT_ONCE_IS_NEVER_A_CONDITION", lever)
         assert _say(client, "recruit infantry in Lorrain at once")["success"] is True
 
     def test_a_real_once_still_refuses(self, shipped):
@@ -97,20 +86,16 @@ class TestCQ37AtOnceIsNeverACondition:
         assert order is not None and order.command_type == "HOLD"
         assert order.condition.until_marshal_arrives == "Davout"
 
-    def test_the_marker_spans(self, monkeypatch):
+    def test_the_marker_spans(self):
         """`condition_marker_spans` is the condition grammar's reader."""
         assert CG.condition_marker_spans(self.ORDER) == []
         # "at once once Mack moves": the adverb is exempt, the condition is not.
         assert CG.condition_marker_spans("attack at once once Mack moves") == [(15, 19)]
-        monkeypatch.setattr(CG, "AT_ONCE_IS_NEVER_A_CONDITION", False)
-        assert CG.condition_marker_spans(self.ORDER) == [(20, 24)]
 
-    def test_the_guard_verdict(self, monkeypatch):
+    def test_the_guard_verdict(self):
         """`strip_condition_clauses_with_handoff` is the refusing reader."""
         verdict = CG.strip_condition_clauses_with_handoff(self.ORDER)
         assert verdict.refuse is False and verdict.text == self.ORDER
-        monkeypatch.setattr(CG, "AT_ONCE_IS_NEVER_A_CONDITION", False)
-        assert CG.strip_condition_clauses_with_handoff(self.ORDER).refuse is True
 
 
 # ═══════════════════════════════════════════════════════════════════════

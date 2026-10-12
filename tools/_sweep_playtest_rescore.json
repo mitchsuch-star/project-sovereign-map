@@ -19,12 +19,6 @@
  },
  {
   "file": "backend/display_names.py",
-  "old": "        if NATION_ADJECTIVE_REFUSES_TO_COIN and _tag_shape_defeats_derivation(nation):\n            # PR-2c (review round): `display_nation` alone returns an",
-  "new": "        if False:\n            # PR-2c (review round): `display_nation` alone returns an",
-  "tests": "tests/test_playtest_rescore_2026_09_12.py"
- },
- {
-  "file": "backend/display_names.py",
   "old": "    \"poland\": \"polish\",",
   "new": "",
   "tests": "tests/test_playtest_rescore_2026_09_12.py"

@@ -28,13 +28,6 @@
   "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheShrugOffersTheRetreat::test_a_shrug_with_no_retreat_word_is_untouched"
  },
  {
-  "id": "F6 the noun rule pins bind: A_RETREAT_CAN_BE_A_NOUN down",
-  "file": "backend/ai/llm_client.py",
-  "old": "A_RETREAT_CAN_BE_A_NOUN = True",
-  "new": "A_RETREAT_CAN_BE_A_NOUN = False",
-  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_the_noun_rule_is_what_holds_it"
- },
- {
   "id": "N4 lever down: A_PURSUIT_NAMES_THE_MAN",
   "file": "backend/ai/strategic_parser.py",
   "old": "A_PURSUIT_NAMES_THE_MAN = True",
