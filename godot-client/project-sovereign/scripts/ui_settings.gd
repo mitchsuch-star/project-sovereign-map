@@ -124,12 +124,12 @@ const TERMINAL_HEIGHT_FRACTION := 0.32
 const PANEL_LIMITS := {
 	"terminal": [Vector2(MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT), Vector2(MAX_TERMINAL_WIDTH, MAX_TERMINAL_HEIGHT)],
 	"war_status": [Vector2(150, 60), Vector2(800, 1400)],
-	"ledger": [Vector2(640, 360), Vector2(3600, 1400)],
-	"diplomatic_ledger": [Vector2(680, 360), Vector2(3600, 1400)],
-	"generals": [Vector2(560, 360), Vector2(3600, 1400)],
-	"dispatch": [Vector2(480, 320), Vector2(3600, 1400)],
-	"event_log": [Vector2(480, 320), Vector2(3600, 1400)],
-	"gazette": [Vector2(480, 320), Vector2(3600, 1400)],
+	"ledger": [Vector2(640, 360), Vector2(8192, 8192)],
+	"diplomatic_ledger": [Vector2(680, 360), Vector2(8192, 8192)],
+	"generals": [Vector2(560, 360), Vector2(8192, 8192)],
+	"dispatch": [Vector2(480, 320), Vector2(8192, 8192)],
+	"event_log": [Vector2(480, 320), Vector2(8192, 8192)],
+	"gazette": [Vector2(480, 320), Vector2(8192, 8192)],
 }
 
 

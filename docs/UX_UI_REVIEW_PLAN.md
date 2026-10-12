@@ -369,7 +369,7 @@ How it behaves:
 *The census.* `tests/test_uxr2_layout_law.py` puts every top-level Control of every CanvasLayer scene (all 34, not only the 101–122 band) in one class: ANCHORED-FULL, CLAMPED (reached by the refit road), CLAMPED+GRIPPED (every layer-50 screen, with distinct keys `PANEL_LIMITS` knows), FITTED (a named fitter reached by `size_changed` or `refit()`), CHROME, or ALLOWLISTED.
 - **The allowlist** is a ratchet of 2: the war-detail popup and the rail slot, both owned by Slice D.
 - **Code-built surfaces** carry checked proofs.
-- **Seven violation codes** are each shown able to fail. Run on HEAD's Generals scene, the census flags both filigree corners.
+- **All nine violation codes** are each shown able to fail. Run on HEAD's Generals scene, the census flags both filigree corners.
 - **Mechanics pins:** the road, the meta's order in the clamp, the store, a click is not a resize, Reset layout reaching every grip.
 
 *The driven proof — "the screens resize and remember".* `tests/test_uxr2_grips_driven.py` runs `tools/uxr2_grip_harness.gd`: the real `main.tscn` behind an API stub, in a real 1600×900 window parked past the desktop (a headless root viewport is 64×64, where nothing can move), with `UiSettings` in memory and `_persist` false. For each of the six screens it shows:
@@ -380,6 +380,15 @@ How it behaves:
 - a click stores nothing.
 
 Then a ledger grown to 1080 px is refit inside the 1066-px viewport of scale 1.5, and Reset layout forgets every size: **33 pins**.
+
+**The Slice C review** was an adversarial fleet over the committed diff: four lenses (GDScript runtime, player behaviour, persistence and harness safety, the census's soundness), with two refuters per finding. 16 findings; 13 survived; deduplicated, they are **nine defects, all fixed in the review commit:**
+- **UXR-X14 (P2).** The grip harness reached the player's live 8005 backend through the top bar's real client.
+- **UXR-X15 (P2).** The scene parser dropped any node with `groups=[...]` in its header.
+- **UXR-X13, extended.** A jittered click still froze the command window's size. It now has the shared grip's threshold and grab offset.
+- **UXR-X16.** The census was lenient: CHROME, commented calls, three codes never shown failing.
+- **UXR-X17.** Three smaller truths: the tooltip wording, a 3600-px store ceiling that stopped a drag on the 5120 panel, and a "remembers" pin satisfied by the node's meta instead of the store.
+
+Three findings were refuted with reasons.
 
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 

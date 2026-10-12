@@ -68,8 +68,11 @@ def centre_anchored_surfaces():
 
 # ── the full tree ──────────────────────────────────────────────────────────
 
-_HEADER = re.compile(r'^\[node (?P<attrs>[^\]]*)\]\s*$', re.M)
-_ATTR = re.compile(r'(\w+)=("(?:[^"\\]|\\.)*"|\S+)')
+# The whole header line: Godot writes `groups=["g"]` INSIDE it, so a header
+# pattern that stopped at the first `]` dropped a grouped node and folded its
+# properties into the node before it (the UXR-2 review's P2).
+_HEADER = re.compile(r'^\[node (?P<attrs>.*)\]\s*$', re.M)
+_ATTR = re.compile(r'(\w+)=("(?:[^"\\]|\\.)*"|\[[^\]]*\]|[^\s\]]+)')
 
 
 @dataclass

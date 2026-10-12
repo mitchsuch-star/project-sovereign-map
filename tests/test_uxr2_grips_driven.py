@@ -57,7 +57,9 @@ def driven(tmp_path_factory):
         pytest.skip("Godot engine not on this machine — the driven pins skip, "
                     "and a skip is not a pass")
     out = tmp_path_factory.mktemp("uxr2") / "grips.json"
-    env = dict(os.environ, UXR2_OUT=str(out))
+    # A port nothing listens on: the harness stubs the API, and refuses to
+    # run against the player's live 8005 if a request ever slips past it.
+    env = dict(os.environ, UXR2_OUT=str(out), SOVEREIGN_PORT="8993")
     # A REAL window, parked past the desktop as the IQ-10 capture parks it:
     # a headless root viewport is 64x64, where every panel sits at its
     # minimum and no grip has room to move anything.

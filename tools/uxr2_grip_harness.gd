@@ -133,6 +133,15 @@ func _settle():
 		_fatal = "the top bar never resolved"
 		_finish()
 		return
+	# The screens open through the TOP BAR's client, which main.gd handed the
+	# real APIClient in its `_ready` — swap the stub in there too, or every
+	# open sends a real GET to the backend (the review's P2).
+	_top_bar.set_api_client(_api)
+	# Belt and braces: never run against the player's live backend.
+	if Utils.backend_url().ends_with(":8005"):
+		_fatal = "refusing to run against the live 8005 backend: set SOVEREIGN_PORT"
+		_finish()
+		return
 	_out["viewport"] = [root.get_visible_rect().size.x, root.get_visible_rect().size.y]
 	_out["terminal_grip"] = _main.get("resize_grip") != null
 	_phase = "open"
@@ -238,6 +247,9 @@ func _measure_drag():
 
 func _reopen():
 	_rec["closed"] = not _screen().visible
+	# The reopened size must come from the STORE (UiSettings), as it does in
+	# a new session — not from the meta the drag left on this same node.
+	_panel().remove_meta("clamp_user_size")
 	_top_bar.toggle_screen(SCREENS[_i])
 	_phase = "measure_reopen"
 	_wait = 8

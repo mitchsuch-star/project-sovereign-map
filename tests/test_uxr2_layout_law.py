@@ -85,6 +85,21 @@ def rect_of(node) -> dict:
             "extent": (offsets[2] - offsets[0], offsets[3] - offsets[1])}
 
 
+def _is_chrome(node, r: dict) -> bool:
+    """A small FIXED rect: a point on both axes (a stretched axis is a
+    viewport fraction, not chrome), a positive extent within CHROME_MAX, and no
+    content minimum that could grow it past that (offsets read 0 x 0 on a
+    container sized by `custom_minimum_size` alone)."""
+    a = r["anchors"]
+    if a[0] != a[2] or a[1] != a[3]:
+        return False
+    w, h = r["extent"]
+    if not (0 < w <= CHROME_MAX[0] and 0 < h <= CHROME_MAX[1]):
+        return False
+    m = re.search(r"Vector2\(([-\d.]+),\s*([-\d.]+)\)", node.props.get("custom_minimum_size", ""))
+    return not m or (float(m.group(1)) <= CHROME_MAX[0] and float(m.group(2)) <= CHROME_MAX[1])
+
+
 def canvas_scenes(scenes: dict) -> dict:
     out = {}
     for name, text in scenes.items():
@@ -94,12 +109,17 @@ def canvas_scenes(scenes: dict) -> dict:
     return out
 
 
-def classify(stem: str, nodes: list, script: str, main_src: str, panel_keys: set) -> list:
-    """[(node, class, violation-or-'')] for every top-level Control of one scene."""
+def classify(stem: str, nodes: list, script: str, main_src: str, panel_keys: set,
+             fitters: dict | None = None) -> list:
+    """[(node, class, violation-or-'')] for every top-level Control of one scene.
+    The script is read as CODE (comments and docstrings dropped), so a
+    commented-out clamp, grip or fitter call proves nothing."""
+    fitters = FITTERS if fitters is None else fitters
+    script = G.code_lines(script)
     root = nodes[0]
     layer = int(root.props.get("layer", "1"))
     tops = [n for n in nodes if n.parent == "." and n.type not in ("", "Node", "Node2D", "Timer")]
-    registered = f'"res://scenes/{stem}.tscn"' in main_src
+    registered = f'"res://scenes/{stem}.tscn"' in G.code_lines(main_src)
     out = []
     clamped_here = False
     for n in tops:
@@ -132,8 +152,8 @@ def classify(stem: str, nodes: list, script: str, main_src: str, panel_keys: set
             out.append((n, "?", "CLAMP_MISSING"))
             continue
         key = (stem, n.name)
-        if key in FITTERS:
-            fitter, reach, evidence = FITTERS[key]
+        if key in fitters:
+            fitter, reach, evidence = fitters[key]
             ok = f"func {fitter}(" in script and evidence in script
             if reach == "size_changed":
                 handlers = re.findall(r"size_changed\.connect\((\w+)", script)
@@ -147,8 +167,7 @@ def classify(stem: str, nodes: list, script: str, main_src: str, panel_keys: set
         if key in ALLOWLIST:
             out.append((n, "ALLOWLISTED", "MODAL_NOT_FITTED" if layer >= MODAL_BAND else ""))
             continue
-        w, h = r["extent"]
-        if w <= CHROME_MAX[0] and h <= CHROME_MAX[1]:
+        if _is_chrome(n, r):
             out.append((n, "CHROME", "MODAL_NOT_FITTED" if layer >= MODAL_BAND else ""))
             continue
         out.append((n, "?", "UNCOVERED_RECT"))
@@ -195,7 +214,7 @@ class TestTheLaw:
     def test_the_grip_keys_are_distinct(self, tree):
         _scenes, scripts, _main, keys = tree
         found = [m.group(1) for s in scripts.values()
-                 for m in re.finditer(r'ResizeGrip\.attach_centered\(\$\w+, "(\w+)"\)', s)]
+                 for m in re.finditer(r'ResizeGrip\.attach_centered\(\$\w+, "(\w+)"\)', G.code_lines(s))]
         assert len(found) == len(set(found)) == 6, found
         assert set(found) <= keys
 
@@ -207,6 +226,11 @@ class TestTheLaw:
                 if cls in ("CLAMPED", "CLAMPED+GRIPPED") and n.name == "PanelContainer":
                     clamped.add(stem)
         assert clamped == set(G.centre_anchored_surfaces())
+
+    def test_the_parser_sees_every_node(self, tree):
+        scenes, _scripts, _main, _keys = tree
+        for stem, text in scenes.items():
+            assert len(G.parse_tscn(text)) == len(re.findall(r"(?m)^\[node ", text)), stem
 
     def test_the_allowlist_only_falls(self, tree):
         assert len(ALLOWLIST) <= ALLOWLIST_RATCHET
@@ -285,6 +309,19 @@ class TestTheGripMechanics:
         _s, scripts, _m, _k = tree
         assert "get_parent().add_child" in G.func_body(scripts["resize_grip"], "_bind")
 
+    def test_a_stored_size_is_loaded_on_attach_and_on_every_open(self, tree):
+        """The REMEMBER half: a new session's screen opens at the stored size."""
+        _s, scripts, _m, _k = tree
+        grip = scripts["resize_grip"]
+        assert "load_stored_size()" in G.code_lines(G.func_body(grip, "attach_centered"))
+        assert "load_stored_size()" in G.code_lines(G.func_body(grip, "_on_host_visibility_changed"))
+        assert "UiSettings.get_panel_size(store_name" in G.func_body(grip, "load_stored_size")
+
+    def test_the_command_window_grip_has_the_click_threshold(self, tree):
+        _s, scripts, _m, _k = tree
+        body = G.func_body(scripts["main"], "_on_grip_gui_input")
+        assert "ResizeGrip.MOVE_THRESHOLD" in body and "_grip_grab_offset" in body
+
     def test_reset_layout_reaches_every_grip(self, tree):
         _s, scripts, _m, _k = tree
         assert 'call_group(ResizeGrip.GROUP, "reset_to_authored")' in G.func_body(
@@ -330,11 +367,62 @@ class TestTheCensusCanFail:
         assert self._codes(105, child) == {"MODAL_NOT_FITTED"}
 
     def test_a_centred_decoration_beside_a_clamped_panel(self):
+        """The Generals filigree's own shape: a centred rect no clamp reaches."""
         deco = ('[node name="Filigree" type="TextureRect" parent="."]\nanchors_preset = 8\n'
                 "anchor_left = 0.5\nanchor_top = 0.5\nanchor_right = 0.5\nanchor_bottom = 0.5\n"
                 "offset_left = -417.0\noffset_top = 283.0\noffset_right = -390.0\noffset_bottom = 310.0\n")
         codes = self._codes(105, self.CENTRE + "\n" + deco, "Utils.clamp_centered_panel($PanelContainer)")
-        assert "CLAMP_MISSING" in codes  # the decoration itself is a centred rect no clamp reaches
+        assert codes == {"CLAMP_MISSING"}
+
+    def test_a_corner_decoration_beside_a_clamped_panel(self):
+        """A small corner rect would pass as CHROME on its own; beside a clamped
+        panel it is a decoration that stays put when the panel moves."""
+        deco = ('[node name="Corner" type="TextureRect" parent="."]\noffset_right = 27.0\n'
+                "offset_bottom = 27.0\n")
+        alone = self._codes(30, deco)
+        beside = self._codes(30, self.CENTRE + "\n" + deco, "Utils.clamp_centered_panel($PanelContainer)")
+        assert alone == set() and beside == {"SIBLING_DECORATION"}
+
+    def test_an_unknown_grip_key(self):
+        script = ('func _ready():\n\tResizeGrip.attach_centered($PanelContainer, "nope")\n'
+                  "func open():\n\tUtils.clamp_centered_panel($PanelContainer)\n")
+        assert self._codes(50, self.CENTRE, script) == {"UNKNOWN_PANEL_KEY"}
+
+    def test_a_commented_out_grip_is_no_grip(self):
+        script = ('func _ready():\n\t# ResizeGrip.attach_centered($PanelContainer, "ledger")\n\tpass\n'
+                  "func open():\n\tUtils.clamp_centered_panel($PanelContainer)\n")
+        assert self._codes(50, self.CENTRE, script) == {"UNGRIPPED_SCREEN"}
+
+    def test_an_unreached_fitter(self):
+        child = ('[node name="Box" type="PanelContainer" parent="."]\nanchors_preset = 1\n'
+                 "anchor_left = 1.0\nanchor_right = 1.0\noffset_left = -400.0\noffset_bottom = 300.0\n")
+        fitters = {("x", "Box"): ("_fit_box", "size_changed", "EVIDENCE")}
+        script = "const EVIDENCE := 1\nfunc _ready():\n\tpass\nfunc _fit_box():\n\tpass\n"
+        nodes = G.parse_tscn(self._scene(26, child))
+        codes = {v for _n, _c, v in classify("x", nodes, script, '"res://scenes/x.tscn"',
+                                              {"ledger"}, fitters) if v}
+        assert codes == {"FITTER_UNREACHED"}
+        reached = script + "func _ready2():\n\tget_viewport().size_changed.connect(_fit_box)\n"
+        codes = {v for _n, _c, v in classify("x", nodes, reached, '"res://scenes/x.tscn"',
+                                              {"ledger"}, fitters) if v}
+        assert codes == set()
+
+    def test_a_stretched_or_min_sized_rect_is_not_chrome(self):
+        wide = ('[node name="Strip" type="PanelContainer" parent="."]\nanchors_preset = 12\n'
+                "anchor_top = 1.0\nanchor_right = 1.0\nanchor_bottom = 1.0\noffset_top = -150.0\n")
+        big = ('[node name="Big" type="PanelContainer" parent="."]\n'
+               "custom_minimum_size = Vector2(900, 700)\n")
+        assert self._codes(26, wide) == {"UNCOVERED_RECT"}
+        assert self._codes(26, big) == {"UNCOVERED_RECT"}
+
+    def test_a_grouped_node_is_parsed(self):
+        """Godot writes `groups=[...]` inside the header; the parser must keep
+        the node (the review's P2: it had folded it into the node before)."""
+        child = ('[node name="BackgroundOverlay" type="ColorRect" parent="."]\nanchors_preset = 15\n'
+                 "anchor_right = 1.0\nanchor_bottom = 1.0\n\n"
+                 '[node name="Big" type="PanelContainer" parent="." groups=["hud"]]\n'
+                 "offset_right = 900.0\noffset_bottom = 700.0\n")
+        assert self._codes(105, child) == {"UNCOVERED_RECT"}
 
     def test_a_stale_preset(self):
         child = ('[node name="P" type="PanelContainer" parent="."]\nanchors_preset = 8\n'

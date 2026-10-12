@@ -96,7 +96,7 @@ static func attach_centered(panel: Control, panel_name: String) -> Panel:
 	once from the screen's `_ready`; the screen's own open path keeps its
 	`Utils.clamp_centered_panel($PanelContainer)`, which reads the size."""
 	var grip: ResizeGrip = make(Corner.BOTTOM_RIGHT,
-			"Drag to resize · double-click to restore the size it opened at")
+			"Drag to resize · double-click to return to its default size")
 	grip._bind(panel, panel_name, Mode.CENTERED)
 	grip.load_stored_size()
 	return grip
@@ -107,7 +107,7 @@ static func attach_edge(panel: Control, panel_name: String, grip_corner: int) ->
 	`resize_requested` / `resize_committed` / `reset_requested` and lays the
 	panel out itself (its own anchors decide which corner stays put)."""
 	var grip: ResizeGrip = make(grip_corner,
-			"Drag to resize · double-click to restore its size")
+			"Drag to resize · double-click to return to its default size")
 	grip._bind(panel, panel_name, Mode.EDGE)
 	return grip
 

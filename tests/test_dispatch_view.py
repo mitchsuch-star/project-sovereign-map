@@ -103,12 +103,23 @@ def test_dispatch_serialization_backward_compat():
 # TEST: GET /dispatch endpoint
 # ════════════════════════════════════════════════════════════════════════════════
 
+def _endpoint_world():
+    """The world GET /dispatch reads is `backend.main.world` (the module
+    global). A module run earlier on the same xdist worker can leave it and
+    `game_state["world"]` out of step (the world-swap trap: swap all three
+    together), so the test builds on — and re-aligns — the one the endpoint
+    reads (UXR-2 S9: surfaced by a new module order, order-dependent)."""
+    import backend.main as M
+    M.game_state["world"] = M.world
+    return M.world
+
+
 def test_dispatch_endpoint_returns_stored():
     """GET /dispatch returns the stored dispatch when one exists."""
     from fastapi.testclient import TestClient
-    from backend.main import app, game_state
+    from backend.main import app
 
-    world = game_state["world"]
+    world = _endpoint_world()
     build_morning_dispatch(world)
 
     client = TestClient(app)
@@ -125,9 +136,9 @@ def test_dispatch_endpoint_returns_stored():
 def test_dispatch_endpoint_empty_when_no_build():
     """GET /dispatch returns empty dict when no dispatch has been built."""
     from fastapi.testclient import TestClient
-    from backend.main import app, game_state
+    from backend.main import app
 
-    world = game_state["world"]
+    world = _endpoint_world()
     world.last_morning_dispatch = {}
 
     client = TestClient(app)

@@ -189,6 +189,8 @@ var _terminal_height := UiSettings.DEFAULT_TERMINAL_HEIGHT
 var resize_grip: Panel = null
 var _grip_dragging := false
 var _grip_moved := false
+var _grip_press_at := Vector2.ZERO
+var _grip_grab_offset := Vector2.ZERO
 # Top Bar (Session A)
 var top_bar = null
 
@@ -1689,6 +1691,12 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 			else:
 				_grip_dragging = true
 				_grip_moved = false
+				# UXR-2 review: the shared grip's rules — a press-and-release
+				# within ResizeGrip.MOVE_THRESHOLD is a click, and the corner
+				# keeps its offset from the cursor (no jump on grab).
+				_grip_press_at = get_global_mouse_position()
+				var rect: Rect2 = bottom_left_ui.get_global_rect()
+				_grip_grab_offset = Vector2(rect.end.x, rect.position.y) - _grip_press_at
 		else:
 			if _grip_dragging:
 				_grip_dragging = false
@@ -1700,8 +1708,11 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 					_terminal_uses_default = false
 					UiSettings.set_terminal_size(_terminal_width, _terminal_height)
 	elif event is InputEventMouseMotion and _grip_dragging:
+		var mouse := get_global_mouse_position()
+		if not _grip_moved and mouse.distance_to(_grip_press_at) <= ResizeGrip.MOVE_THRESHOLD:
+			return  # a click's jitter is not a resize
 		_grip_moved = true
-		_resize_terminal_from_mouse(get_global_mouse_position())
+		_resize_terminal_from_mouse(mouse + _grip_grab_offset)
 
 func _resize_terminal_from_mouse(mouse_pos: Vector2) -> void:
 	# The panel's fixed corner is bottom-left; the grip drags the top-right one.
