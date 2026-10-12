@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 12, 2026).** The three most recent landed rows:
+- **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (`tests/test_uxr2_layout_law.py`, allowlist 0); six screens + the war HUD gripped and remembered (`ResizeGrip`, driven); font overrides 72 → 18; whole client 0 RED / 0 P1 (§111). **NEXT = S9b**.
 - **S8b (October 12, 2026) — CODE-2a + CODE-1 batch 6 — LANDED.** `_execute_attack` = twenty `_attack_*` stages behind one `AttackContext`. **Functions over 500 lines 34 → 33; levers 358 → 231; the series byte-identical** (`CODE_HEALTH_PLAN.md` §CODE-2; pins `tests/test_code2a_the_attack_is_staged.py`). **NEXT = S9, UXR-2**.
 - **S7b (October 12, 2026) — CODE-3 + DD-C + CODE-1 batch 5 — LANDED.** `errors.report(exc, site)`; the save path's typed `SaveError`. **Silent handlers 367 → 6; levers 429 → 358; 40 / 40 injected faults reached the player** (§110; pins `tests/test_dd_c_nothing_fails_silently.py`).
-- **S8 (October 12, 2026) — DD-1 STEP 3 "THE VERBS" + CODE-1 batch 4 — LANDED.** `ask <ally> to return <province>` (SFR-D42: ONE gate `treaty.can_ask_return`, ONE answer `ask_return_score`), `bid for <court>` (SFR-D40: `place_allegiance_bid`), the truce's followers announced (SFR-D28). **All three FIXED; levers 496 → 429** (§109; pins `tests/test_dd1_s8_the_verbs.py`).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 

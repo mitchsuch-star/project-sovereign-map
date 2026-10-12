@@ -1,39 +1,63 @@
-# NEXT SESSION PROMPT — Pre-Deploy S9: UXR-2 "The layout law"
+# NEXT SESSION PROMPT — Pre-Deploy S9b: UXR-2's adjustability extras
 
 > Overwritten each time a session hands off. Current hand-off: **October 12,
-> 2026, after S8b landed CODE-2a with CODE-1 batch 6 at its head** —
-> `CombatExecutor._execute_attack` is a driver of twenty `_attack_*` stages
-> behind one `AttackContext` (slots, no defaults past the six parameters, so an
-> unassigned read raises as the local did; the old `locals()` reads are
-> `getattr(ctx, …)` / `hasattr(ctx, …)`; a falling-through stage returns
-> `_NEXT_STAGE`), cut mechanically at top-level statement boundaries with
-> `BASELINE_SERIES` + M1–M7 byte-identical and no re-record; **functions over
-> 500 lines 34 → 33**; the source-text pins read "the attack" through
-> `tests/_attack_stages.py`; the shape pinned in
-> `tests/test_code2a_the_attack_is_staged.py`. Batch 6 retired all 126
-> pre-October levers no batch had named, **levers 358 → 231**. Landing records
-> `docs/CODE_HEALTH_PLAN.md` §CODE-1 BATCH 6 + §CODE-2 "CODE-2a landing
-> record"; `docs/PRE_DEPLOY_PLAN.md` §2 (S8b STRUCK; **S9 = UXR-2 is NEXT**);
-> no `SYSTEMS_REFERENCE.md` section (a pure refactor moves no rule).
-> Routing authority: `docs/PRE_DEPLOY_PLAN.md` §2 → `docs/UX_UI_REVIEW_PLAN.md`
-> §UXR-2; `docs/STATUS.md` ▶ NEXT UP and the `CLAUDE.md` LIVE STATE line point
-> there. The Score Finish residue (`SCORE_FINISH_SPEC.md` §3 Step 9) stays
-> PAUSED until S14.
+> 2026, after S9 landed UXR-2 "the layout law"** in six commits on master: A
+> `77172273` the routed families (UXR-X5/X6), B `5a62690e` the named sizes +
+> scroll, C `af7f1e79` the grips + the refit road, the review fixes
+> `95b3a1b5`, D `7ce88863` the anchors, then E the landing re-shoot.
+> - **The law** holds for every CanvasLayer, checked by `tests/test_uxr2_layout_law.py` with an empty allowlist.
+> - **Seven surfaces resize and remember:** the six top-bar screens and the war HUD, each with a shared `ResizeGrip`, proven driven by `tests/test_uxr2_grips_driven.py`.
+> - **Raw font-size overrides fell 72 → 18.**
+> - **The whole client reads 0 RED / 0 P1** at five resolutions.
+>
+> Records: `docs/UX_UI_REVIEW_PLAN.md` §UXR-2 landing record; rules `SYSTEMS_REFERENCE.md` §111; rows `BUG_FIXES.md` §UXR-2 (UXR-X5 … X20).
+> Routing authority: `docs/PRE_DEPLOY_PLAN.md` §2 (S9 STRUCK; **S9b is NEXT**), with `docs/STATUS.md` ▶ NEXT UP and the `CLAUDE.md` LIVE STATE line pointing there. The Score Finish residue (`SCORE_FINISH_SPEC.md` §3 Step 9) stays PAUSED until S14.
 >
 > Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-**Pre-Deploy S9 — UXR-2: the layout law.** Routing authority = `docs/PRE_DEPLOY_PLAN.md` §2 → `docs/UX_UI_REVIEW_PLAN.md` §UXR-2 (the rule, the five parts, the done-when). Work directly on master per `CLAUDE.md`'s workflow; commit and push at each clean slice. `git fetch origin` first and read `git log -3 --stat` before touching anything. Plan Mode first (the user's standing preference for a non-trivial session); land the first low-risk slice, then pause for review before the large one.
+**Pre-Deploy S9b — UXR-2's adjustability extras.** Routing authority is `docs/PRE_DEPLOY_PLAN.md` §2, row S9b, which the user re-homed from S9 on October 12, 2026. Work directly on master per `CLAUDE.md`'s workflow, and commit and push at each clean slice. Run `git fetch origin` first and read `git log -5 --stat` before touching anything. Use Plan Mode first (the user's standing preference for a non-trivial session). Land the first low-risk slice, then pause for review.
 
-**The rule** (`UX_UI_REVIEW_PLAN.md` §UXR-2): a surface is either ANCHORED (its rect a fraction of the viewport, with min and max in logical px) or CLAMPED-AND-GRIPPED (a fixed authored rect `clamp_centered_panel` shrinks, a grip resizes it, the size remembered in `ui_settings.cfg`). No surface is a bare fixed rect. The five parts: (1) grips on the Strategic Ledger, the Generals screen, the dispatch view, the campaign log and the Gazette — the terminal's grip (`main.gd`, U2 Part 1) becomes a shared `ResizeGrip` node, persistence in `ui_settings.gd` (`get/set_panel_size(name)`); (2) anchors for the HUD family (top bar, war-status panel, notification rail, region panel, tutorial card); (3) a clamp-coverage census over every `CanvasLayer` popup (layers 100–122), a pin failing on an uncovered fixed rect; (4) the override diet — the 268 font-size overrides to named theme sizes, ratcheted; (5) scroll where content is unbounded, enforced by a scene census. **Done when:** every surface anchored or clamped-and-gripped by the census; the five screens resize and remember; UXR-0 reads 0 RED rows on every surface at every resolution — which takes UXR-X5 (the diorama's tableau labels) and UXR-X6 (the war-detail bar tags), both routed here (`UX_UI_REVIEW_PLAN.md` §"Landing record — S1b").
+**The four rows.** Each row carries its done-when and its test.
+- **UXR-D1** (`DESIGN_REFINEMENT.md` §UXR) — a *Text size* slider in Settings → INTERFACE that scales the theme's named sizes alone. It works on the ladder S9's diet built in `ui/main_theme.tres` (Caption 14 · Body 16 · BodyLarge 17 · Lead 18 · ScreenTitle 20 · DialogTitle 22 · DialogTitleLarge 24 · DisplayTitle 28 · DisplayTitleLarge 30 · HeadingLabel 22) and moves no panel rect. Test: the census at text size 1.5 and scale 1.0 reads 0 RED on the five named surfaces. Remember the 18 named raw overrides (`tests/test_uxr2_override_diet.py`'s `EXEMPT`) do not ride the theme.
+- **UXR-D2** — *High contrast*: every `UI_TEXT_DIM`-class text raised one token. Test: contrast measured off the frames, ≥ 4.5 : 1 for body and ≥ 3 : 1 for captions on the five named surfaces.
+- **UXR-D3** — *HUD width: Full · Centred*: the HUD (command window, rail, top bar clusters, war HUD) confined to a central band of about 2560 logical px on a wider viewport, plus a ⌂ Fit Europe button. Test: the driven grip harness at 5120×1440 with Centred reads every HUD rect inside the band, and the layout-law census still passes. S9's anchors are its foundation: `Utils.TOP_BAR_HEIGHT`, `fraction_px`, the HUD's `_fit_*`.
+- **UXR-X4** (`BUG_FIXES.md` §UXR-0) — the map's own furniture (name stacks, garrison chips, sail counts, and the map tooltip's 11-px `draw_string` text, which no census sees) follows the Interface Scale. Completion: the five raw sizes leave `map_renderer_base.gd`'s exemption, and the physical census's `map_small` count reads 0 at the derived scale.
 
-**Read first, in this order:** `UX_UI_REVIEW_PLAN.md` §UXR-0 / §UXR-1 and both landing records (the instrument, the derivation, what S1a/S1b already moved); `godot-client/project-sovereign/scripts/utils.gd` (`clamp_centered_panel` and its docstring's scroll rule); `ui_settings.gd`; the terminal grip in `main.gd`; `tests/test_uxr0_readability.py` (the ratchet with the routed-families invariant) and `tests/test_uxr1b_settings_additions.py`; `docs/PLAYTESTING.md` Mode C (the client capture harness). The user's monitor is ONE 5120×1440 panel — every reading includes it.
+**Read first, in this order:**
+- `UX_UI_REVIEW_PLAN.md` §UXR-2's landing record (what S9 built and measured), then `SYSTEMS_REFERENCE.md` §111 (the law, the grip, the store, the clamps, the refit road, the ladder).
+- `scripts/ui_settings.gd` (the store, `reset_layout`), `scripts/settings_panel.gd` (DISPLAY / INTERFACE) and `scripts/utils.gd` (`apply_body_font` — the model for a theme swap; `fraction_px`, `clamp_anchored_panel`).
+- `tests/test_uxr0_readability.py` (the ratchet now at 0 / 0 — keep it there) and `docs/PLAYTESTING.md` Mode C.
 
-**Traps.** Any `.gd` edit needs the Godot parse harness re-run (run it via `Start-Process`, read its exit code) and `tools/godot_parse_report.json` re-committed (a stale-report guard pins it). Confirm Godot is frontmost before any synthetic input. EP-F2's census forbids "(s)" hedges in client strings — use `Utils.plural`. A Bash heredoc halves backslashes, turns `\b` into a BACKSPACE byte and aborts on a `'` inside `python - <<EOF` — write every script and every doc insertion with the Write tool. `git add -A` never; stage by name. The hook runs ruff + the full parallel suite (~7 min): commit with `run_in_background: true` from Bash, a message file, never `--no-verify`, no tracked edit while it runs (the suite reads the WORKING TREE). Read the hook log's `[pre-commit]` and `EXIT=` lines before believing a commit. `ruff` is not on Bash's PATH — `".venv/Scripts/python.exe" -m ruff check backend/`. The console is cp1252 (a script that prints `▶` dies AFTER its writes — check the files, not the traceback). `-n 8` without `--dist loadgroup` fakes order failures. `core.autocrlf=true`: keep each file's own newline. Never kill a `-m backend.main` process; run a test pair beside the user's 8005 with `SOVEREIGN_PORT=8006`. `CLAUDE.md` is at 61,983 B of its 62,000 cap — pay for a new LIVE STATE row by cutting the oldest.
+The user's monitor is ONE 5120×1440 panel; every reading includes it.
 
-**Code-health rules now in force:** a new lever lives one session after its attribution, then retires at the next slice's head (`tools/retire_lever.py`; the October levers + `THE_LEAGUE_TREATS_WHEN_SPENT`'s staging bundle are CODE-1's November batch, at a head once October 2026 closes). The attack is staged: a combat fix lands in the `_attack_<stage>` that owns it (the driver's docstring is the index; a shared local is `ctx.<name>` and must be a field of `AttackContext`); a pin about "the attack's source" reads `tests/_attack_stages.attack_source()`.
+**Traps — S9 paid for each of these:**
+- **Godot edits.** Any `.gd` edit needs the parse harness re-run (via `Start-Process`; read its exit code) and `tools/godot_parse_report.json` re-committed. A new `class_name` needs a `--headless --import` pass first.
+- **Driven harnesses.** A headless root viewport is 64×64. A driven harness that needs room must open a real window (`--windowed --resolution 1600x900 --position 5200,20`) and set `root.mode/size` on its first tick, not in `_init` (the project's maximize lands after `_init`).
+  - **Stub every API client.** A harness must stub the top bar's client too (`top_bar.set_api_client`); swapping `main.api_client` alone sent real GETs to the user's 8005. Set `SOVEREIGN_PORT` in the test env and refuse `:8005`.
+  - **Clear leftover state.** A driven "remembers" pin must clear the node's leftover state, or it proves the meta and not the store.
+- **Capture runs.** Never edit a `.gd` while an IQ-10 capture shoots this repo's project (scripts load lazily). A BEFORE comes from a worktree (`git worktree add --detach`, `--headless --import` it, `--project <wt>/godot-client/project-sovereign`).
+  - `iq10_capture_payloads.py --only X` rewrites the manifest with X alone; run the full capture before a full shoot.
+  - `uxr0_readability_report.py` must run under `python -X utf8` (cp1252 dies on `→`).
+  - A run's per-frame flags are in `<run>/result.json` → `results[].frames[]` (`clipped_text`, `buttons_offscreen`).
+- **Font tests.** `tests/test_uxr1_scale_fix.py` runs `tools/uxr1_font_floor_sweep.py` for real, which can rewrite sources: never run it during a capture. A literal 14 in an override kills it; use a variation.
+- **Pytest.** `-n N` without `--dist loadgroup` fakes order failures. An order-dependent world-swap leak (a module that swaps `M.world` without `M.game_state["world"]`) can surface when new modules shift the distribution; fix the test to read the world the endpoint reads.
+- **Shell.** A Bash heredoc halves backslashes, turns `\b` into a BACKSPACE byte and aborts on a `'` inside `python - <<EOF`; write scripts with the Write tool.
+- **Git.** Never `git add -A`; stage by name.
+- **The hook** runs ruff and the full parallel suite (~7.5 min). Commit with `run_in_background: true` from Bash, using a message file and never `--no-verify`, and make no tracked edit while it runs. Read the hook log's `[pre-commit]` and `EXIT=` lines before believing a commit.
+- **Running things.** `ruff` is not on Bash's PATH: use `".venv/Scripts/python.exe" -m ruff check backend/`. Never kill a `-m backend.main` process; run a test pair beside the user's 8005 with `SOVEREIGN_PORT=8006`.
+- **Docs caps.** `CLAUDE.md` sits near its 62,000 B cap: pay for a new LIVE STATE row by cutting the oldest. `STATUS.md` keeps seven ▶ blocks at most; the oldest goes to `docs/archive/STATUS_2026_Q4.md`, newest first.
 
-**Records the commits carry:** `UX_UI_REVIEW_PLAN.md` §UXR-2 landing record, `PRE_DEPLOY_PLAN.md` §2 (the S9 row struck), `STATUS.md` ▶ NEXT UP (seven ▶ blocks at most — the oldest to `docs/archive/STATUS_2026_Q4.md`, newest first), the `CLAUDE.md` LIVE STATE line, `SYSTEMS_REFERENCE.md` §111 for the layout rule, `BUG_FIXES.md` rows for anything found, this file rewritten for the next row (`PRE_DEPLOY_PLAN.md` §2).
+**Code-health rules in force:** a new lever lives one session past its attribution and then retires at the next slice's head (`tools/retire_lever.py`); CODE-1's November batch takes its head once October closes. A combat fix lands in the `_attack_<stage>` that owns it. The layout law is a census now: a new CanvasLayer surface must be CLAMPED (with a grip at layer 50) or FITTED by a named fitter reached by `size_changed` or `refit()`, and a new font size is a theme step, not an override (`RAW_RATCHET` 18).
 
-**Do not:** change balance, re-score, touch the Score Finish residue, add a lever, weaken a gate or a readability ratchet, edit a committed blind file, tune an instrument to a fix.
+**The records each commit carries:**
+- `UX_UI_REVIEW_PLAN.md`: an S9b landing record under §UXR-2's.
+- `PRE_DEPLOY_PLAN.md` §2: the S9b row struck.
+- `STATUS.md` ▶ NEXT UP.
+- The `CLAUDE.md` LIVE STATE line.
+- `SYSTEMS_REFERENCE.md` §112 for the three settings and the map's scale term.
+- `DESIGN_REFINEMENT.md`: D1–D3 BUILT. `BUG_FIXES.md`: X4 FIXED, plus rows for anything found.
+- This file, rewritten for S10 (CODE-2b).
+
+**Do not:** change balance, re-score, touch the Score Finish residue, add a lever, weaken a gate or a readability ratchet, edit a committed blind file, or tune an instrument to a fix.

@@ -10086,3 +10086,106 @@ order words unchanged (no router keyword moved); no lever.
 - **The residue is six,** named file by file in `tests/test_code_health_ratchet.py::TestEveryBroadExceptSpeaks`: `runtime_log.py`'s console tee (5 — logging writes to stderr, which is the tee) and the reporter's own guard (1). A new broad handler that does not report fails that pin by its file and line; a report without a site in words, or a site two handlers share, fails beside it.
 - **Narrowing** (`except KeyError`, the SDK's typed errors) is a deliberate later act, never the conversion's: a too-narrow handler is a crash the replay pins do not walk.
 - **The tally in normal play is empty** — five played campaigns (the default policy, the commanded campaign, the peace road, the naval descent, the commanded campaign accepting every letter): 0 sites. A site that appears in a played run's `/debug errors` is news.
+
+## 111. THE LAYOUT LAW — every surface anchored or clamped-and-gripped — UXR-2 (October 12, 2026)
+
+*Pre-Deploy S9, `docs/UX_UI_REVIEW_PLAN.md` §UXR-2 and its landing record. Client-only (Golden Rule 6: nothing here touches game state). Pins `tests/test_uxr2_layout_law.py`, `tests/test_uxr2_grips_driven.py`, `tests/test_uxr2_override_diet.py`, `tests/test_uxr2_scroll_where_unbounded.py`, `tests/test_uxr2_the_routed_families.py`, `tests/test_uxr0_readability.py`.*
+
+### 111.1 The law
+
+A surface is **ANCHORED** — its rect a fraction of the logical viewport with a min and a max in logical px — or **CLAMPED-AND-GRIPPED** — an authored rect `Utils.clamp_centered_panel` shrinks to the viewport and a grip resizes, the size remembered in `ui_settings.cfg`. No surface is a bare fixed rect. `tests/test_uxr2_layout_law.py` classes every top-level Control of every CanvasLayer scene (all 34, not only the 101–122 modal band) as ANCHORED-FULL, CLAMPED, CLAMPED+GRIPPED, FITTED or CHROME; the allowlist is empty.
+
+- **Every layer-50 screen is gripped:** the Strategic Ledger, the Generals, the dispatch, the campaign log, the Gazette, the Diplomatic Ledger.
+- **A centred panel is CLAMPED** only when its script calls `Utils.clamp_centered_panel($<it>)` in code and `main.gd` registers its scene. Registration is what puts it on the refit road.
+- **An edge-anchored or stretched rect is FITTED** by a named function, reached by the viewport's `size_changed` or by a `refit()` the road calls: the top bar's `_fit_bar` and `_fit_rail`, the war HUD's `_fit_panel_to_content`, the region panel's `_fit_width`, the tutor card's `_fit_card_width`, the war-detail popup's `refit`.
+- **CHROME** is a small fixed point rect (≤ 296×152, no larger content minimum) outside the modal band.
+- **A centred decoration beside a clamped panel is forbidden.** It stays where the authored rect was when the clamp or a grip moves the panel.
+
+### 111.2 The grip (`scripts/resize_grip.gd`, `class_name ResizeGrip`)
+
+There are three ways to host a grip:
+- `make(corner, tooltip)` gives the look alone. The command window keeps its own fixed-corner geometry in `main.gd`.
+- `attach_centered(panel, name)` serves a clamped screen. The grip sits on the bottom-right corner and the panel grows about its centre.
+- `attach_edge(panel, name, corner)` serves an edge-anchored HUD panel; the host lays it out from `resize_requested`. The war HUD uses its top-left corner.
+
+How a grip behaves:
+- **It never closes the screen it sits on.** It is the panel's last sibling (above the close-on-click overlay) and accepts every left-button event.
+- **A click is not a resize.** A press-and-release within `MOVE_THRESHOLD` (2 logical px) commits nothing. The corner keeps its offset from the cursor, so it does not jump on grab. The command window follows the same rules.
+- **A double-click returns the default size** and forgets the stored one.
+- **Reset layout reaches every grip** through the `resize_grips` group.
+
+### 111.3 The store (`scripts/ui_settings.gd`)
+
+- **`PANEL_LIMITS`** is a closed table of name → [min, max] in LOGICAL px, so a panel and its text scale together with the Interface Scale. It covers terminal, war_status and the six screens' keys (the top bar's screen names). The max only guards a hand-edited file; the clamp caps every panel to the live viewport.
+- **`has / get / set / clear_panel_size(name)` and `clear_all_panel_sizes()`** — one section per surface, `width` / `height` keys, one save per write. The command window's `[terminal] width/height` is byte-identical to its pre-UXR-2 format; `get/set/has/clear_terminal_size` are wrappers.
+- **`reset_layout()`** clears every panel.
+
+### 111.4 The clamps
+
+- **`clamp_centered_panel(panel)`** reads a `clamp_user_size` meta (the grip's) in place of the authored rect, larger or smaller. It is read after the `design_size` cache and before `clamp_ceiling_override`'s `maxf` and the viewport caps. The centre guard and the call string are unchanged.
+- **`clamp_anchored_panel(panel)`** is its edge-anchored twin:
+  - each point axis is capped to the band under the top bar, x in [8, view.x − 8] and y in [44, view.y − 8], keeping the edge its grow direction holds;
+  - the descendant height minimums relax to that height;
+  - the rect is placed by the size it will really draw at (its combined minimum, within the band) and slid back inside the band.
+- **`fraction_px(view, frac, min, max, reserve)`** is an anchored extent, never wider than the room the viewport leaves.
+- **`TOP_BAR_HEIGHT` (36) and `HUD_MARGIN` (8)** are the one source. The census pins each derived number to them: the command window's reserve 36, the region dock 48, the tutor top 44, the rail slot 42, the centre clamp's 88.
+
+### 111.5 The one live-refit road
+
+- **Entry point.** `main._on_root_resized` (a window resize, and every scale change: Ctrl+= / −, the pause slider, the sizing card, Reset layout) calls `DialogManager.refit_visible()`, `top_bar.refit_active_screen()` and re-clamps the sizing card.
+- **Each step is `Utils.refit_surface(host)`.** It runs the host's own `refit()` when it has one (the wizard, the diorama, the interrupt and petition popups, the war-detail popup); otherwise it re-clamps the host's `PanelContainer`, and the clamp's anchor guard leaves an edge-anchored panel to its own fit.
+- **Elsewhere.** The main menu refits its open panels on `resized`. The anchored HUD keeps its own `size_changed` connections.
+
+### 111.6 The HUD family (anchored)
+
+| Surface | Width rule | Notes |
+|---|---|---|
+| The notice rail's slot | `fraction_px(vw, .12, 360, 520)` | Under the bar; the rail fills it. Its detail body is bounded by the viewport and scrolls (111.8). |
+| The war HUD | `fraction_px(vw, .12, 192, 440)`, until the player drags its top-left grip | Bottom-right. Its height shrink-wraps the cards under 45 % of the screen; a stored height is a cap. The hidden 6-px edge band it had is gone. |
+| The region panel | `fraction_px(vw, .15, 344, 560)` | Its height fits above the command window as before. |
+| The tutor card | 22 % of the width, 396–560, capped to the screen | Sits beside the notice rail, or below it when there is no room beside it in the right half; it never covers the rail its lessons point at. |
+| The war-detail popup | 20 % × 55 % (330–600 × 440–720) | Docked 40 px left of the war HUD's live edge, centred in the band under the bar, fitted by `clamp_anchored_panel` on every show and on the road, then once more after layout (its button row's wrapped height). |
+
+### 111.7 Type sizes are the theme's (`ui/main_theme.tres`)
+
+A size-only ladder, one named step per size in use:
+
+| Step | Size |
+|---|---|
+| Caption / CaptionButton / CaptionRich | 14 |
+| (the theme's own Body) | 16 |
+| BodyLarge / BodyLargeRich | 17 |
+| Lead / LeadRich | 18 |
+| ScreenTitle | 20 |
+| DialogTitle | 22 |
+| DialogTitleLarge | 24 |
+| DisplayTitle | 28 |
+| DisplayTitleLarge | 30 |
+| HeadingLabel (the one styled step) | 22 |
+
+- **A rich step** defines exactly the sizes the overrides it replaced had set.
+- **Raw overrides fell from 72 to 18,** each a named exemption with an exact count: the map's world-space furniture 7, the dev smoke scene 1, the title screen's display type 5, the diorama's engraved display 5.
+- **The diet census counts every override, literal or computed,** plus the `set()` / string-call forms: a size passed through a parameter is how UXR-X5 and X6 escaped the floor.
+- **Every caption-sized step is in the instrument's `_CAPTION_VARIATIONS`.**
+- **The two diorama and war-detail families:**
+  - the diorama's TEXT reads at the theme's sizes at every depth; only its ART recedes (`1 − 0.12·depth`);
+  - the status line sits under the feet beside the faith caption;
+  - the war bar's text is Caption in a 22-px bar.
+
+### 111.8 Scroll where unbounded
+
+A `fit_content` RichTextLabel outside every ScrollContainer cannot be clamped. `tests/test_uxr2_scroll_where_unbounded.py` holds the rule:
+- **The scene arm** walks a label's whole ancestor chain.
+- **The script arm** resolves a code-built label through its parents.
+- **The toggle arm** requires a label switched to `fit_content` to switch back to a bounded scroll.
+
+What stands outside a scroll is named, with a proof: the tutor body and the rail's detail body bound themselves through `Utils.bound_rich_body`, the suggestion row is count-capped, and the verdict is free-positioned (UXR-X9). Floorless ScrollContainers are a ratchet.
+
+### 111.9 The proof
+
+- **The driven harness** (`tools/uxr2_grip_harness.gd`) is the real `main.tscn` behind an API stub. It runs in a real 1600×900 window parked past the desktop and refuses the live 8005; `UiSettings` is in memory.
+  - Each screen's grip resizes about the centre without closing the screen, is stored, and returns on reopen *from the store*. A double-click restores the default; a click stores nothing.
+  - The war HUD's grip widens it and remembers.
+  - A grown ledger is refit inside a smaller viewport, and Reset layout forgets every size.
+- **The readability instrument (UXR-0)** reads the whole client at the five resolutions with the derived scale: RED / P1 per `tests/test_uxr0_readability.py` (the landing record has the numbers).
+- **Not seen by any census:** the map tooltip's 11-px `draw_string` text, now UXR-X4's (S9b).

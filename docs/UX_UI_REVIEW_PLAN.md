@@ -227,7 +227,7 @@ harness EXIT=0.
 > rect that `clamp_centered_panel` shrinks and a grip lets the player resize,
 > the size remembered in `ui_settings.cfg`). No surface is a bare fixed rect.
 
-1. **Grips** on the five big screens that lack one: the Strategic Ledger, the
+1. **Grips** on the ~~five~~ **six** *(the user's ruling, S9: the Diplomatic Ledger too)* big screens that lack one: the Strategic Ledger, the
    Generals screen, the dispatch view, the campaign log, the Gazette — the
    terminal's grip (`main.gd`, U2 Part 1) becomes a shared `ResizeGrip` node
    with its persistence in `ui_settings.gd` (`get/set_panel_size(name)`).
@@ -238,7 +238,7 @@ harness EXIT=0.
    either calls `clamp_centered_panel` on open or is anchored; a pin walks the
    `.tscn` files and fails on an uncovered fixed rect (today 31 of ~45 call
    it).
-4. **The override diet.** The 268 font-size overrides become named theme-size
+4. **The override diet.** The ~~268~~ **72** *(at S9's start — UXR-1's sweep had removed 196)* font-size overrides become named theme-size
    references (`theme_type_variation = "Caption"` and kin); the census from
    UXR-1 pins that no raw number under 14 survives and that the count of raw
    overrides falls (ratchet).
@@ -406,6 +406,21 @@ The HUD family is anchored:
 | War-detail popup (UXR-X20) | A fixed 330×440 rect | A fraction docked beside the war HUD's live edge, under `clamp_anchored_panel` |
 
 The census's allowlist is **empty** (ratchet 0), and every HUD surface is FITTED by a named function its `size_changed` or `refit()` reaches. The driven harness gained the war HUD's grip: **36 pins**.
+
+The frames found one more thing: the war-detail popup's button row is an HFlowContainer whose wrapped height is known only after layout. The popup therefore re-fits once more a frame later, and `clamp_anchored_panel` places it by its real minimum size. At 800×450 the header had sat under the top bar; at 533×300 the header's width pushed it off the left edge.
+
+**Slice E — the landing re-shoot.** The whole client was re-shot from the committed tree (`7ce88863`) at the five physical resolutions with the derived scale: **142 surfaces × 5 = 710 readings, 7,555 text rows: RED 0 / P1 0**. The record is `readability_after_all_2026_10_12.json`. On Oct 9 it read 137 surfaces, RED 32 / P1 92, every flag on UXR-X5 / X6. The map's own furniture is its own tier: 336 small rows, unchanged, which are UXR-X4's (S9b).
+- **The named set**, read off the same shoot: 11 surfaces, RED 0 / P1 0 (`readability_after_named_2026_10_12.json`).
+- **The run:** 0 SCRIPT ERROR, 0 clipped text, 0 buttons off-screen.
+- **`tests/test_uxr0_readability.py`:** the ratchet went to 0 / 0. Its routed-families exemption retired into `test_no_flagged_reading_anywhere`, plus a pin that the five boards UXR-2 added are shot at every resolution.
+- **Frames at 5120×1440:** `UXR2_AFTER_WAR_ROOM_TUTORIAL_*`, `UXR2_AFTER_LEDGER_GRIPPED_*` and `UXR2_DIORAMA_FOUR_RANKS_BEFORE_AFTER_*` in `docs/audits/uxr0/`.
+
+**The done-when is MET on the instrument:**
+- The census reads every surface as anchored or clamped-and-gripped, with an empty allowlist.
+- The six screens and the war HUD resize and remember (driven).
+- UXR-0 reads 0 RED, and 0 P1, on every surface at every resolution.
+
+⚠ The user's half — the screens feel right in the hand at 5120×1440 — is UXR-4's eyes. **S9b is next** (UXR-D1 Text size, D2 High contrast, D3 HUD Centred + ⌂ Fit Europe, X4 the map follows the scale).
 
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 

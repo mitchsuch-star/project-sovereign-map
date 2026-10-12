@@ -19,18 +19,24 @@ import pytest
 REPO = pathlib.Path(__file__).resolve().parents[1]
 RECORDS = REPO / "docs" / "audits" / "uxr0"
 BEFORE = RECORDS / "readability_before_named_2026_10_09.json"
-AFTER = RECORDS / "readability_after_named_2026_10_09.json"
+# UXR-2 (Pre-Deploy S9, October 12, 2026): the AFTER records are re-shot on the
+# layout law's committed tree (7ce88863) — the named set read off the same
+# whole-client shoot.
+AFTER = RECORDS / "readability_after_named_2026_10_12.json"
 # The whole client (every IQ-10 surface × the five resolutions): UXR-0's "exists
 # for all 127 surfaces" (137 at the time of shooting). Counts + the worst two
 # rows per reading; the BEFORE from the pristine worktree at 05bbee2c.
 BEFORE_ALL = RECORDS / "readability_before_all_2026_10_09.json"
-AFTER_ALL = RECORDS / "readability_after_all_2026_10_09.json"
-# The whole-client ratchet after S1b (October 9, 2026): every remaining flag sits
-# on the two ROUTED families — the diorama's tableau labels (UXR-X5) and the
-# war-detail popup's computed bar tags (UXR-X6). Lower these when they fall.
-ALL_RED_RATCHET = 32
-ALL_P1_RATCHET = 92
-ROUTED_FAMILIES = ("diorama_", "war_detail_")
+AFTER_ALL = RECORDS / "readability_after_all_2026_10_12.json"
+# The whole-client ratchet. After S1b (October 9, 2026) it stood at 32 / 92,
+# every flag on the two families routed to UXR-2 — the diorama's tableau
+# labels (UXR-X5) and the war-detail popup's computed bar tags (UXR-X6).
+# UXR-2 fixed both: 0 / 0 over 142 surfaces x five resolutions. It stays 0.
+ALL_RED_RATCHET = 0
+ALL_P1_RATCHET = 0
+# The states UXR-2 added to the instrument (no board had shot them before).
+UXR2_BOARDS = ("diorama_rout_conquest", "diorama_four_contingents", "diorama_naval",
+               "war_detail_coalition_boot", "war_detail_coalition_t20")
 
 sys.path.insert(0, str(REPO / "tools"))
 from uxr0_readability_report import PHYSICAL_RESOLUTIONS, classify, derive_ui_scale, totals  # noqa: E402
@@ -153,14 +159,26 @@ class TestTheWholeClient:
         assert ta["red"] <= ALL_RED_RATCHET, (ta, "the RED count may fall, never rise")
         assert ta["p1"] <= ALL_P1_RATCHET, (ta, "the P1 count may fall, never rise")
 
-    def test_every_remaining_flag_is_a_routed_family(self, after_all):
-        """UXR-X5 / UXR-X6 own what is left; anything else is a regression."""
-        strays = []
+    def test_no_flagged_reading_anywhere(self, after_all):
+        """UXR-2's done-when: 0 RED on every surface at every resolution —
+        and 0 P1. Any flag is a regression (the routed-families exemption
+        retired with UXR-X5 / UXR-X6)."""
+        flagged = []
         for sid, surf in after_all["surfaces"].items():
-            flagged = sum(r["counts"]["red"] + r["counts"]["p1"] for r in surf["readings"].values())
-            if flagged and not sid.startswith(ROUTED_FAMILIES):
-                strays.append((sid, flagged))
-        assert strays == [], strays
+            for key, r in surf["readings"].items():
+                if r["counts"]["red"] or r["counts"]["p1"] or r["flagged"]:
+                    flagged.append((sid, key, r["counts"]["red"], r["counts"]["p1"]))
+        assert flagged == [], flagged
+
+    def test_the_unshot_states_are_shot(self, after_all):
+        assert len(after_all["surfaces"]) >= 142, len(after_all["surfaces"])
+        for sid in UXR2_BOARDS:
+            assert sid in after_all["surfaces"], sid
+            assert len(after_all["surfaces"][sid]["readings"]) == len(PHYSICAL_RESOLUTIONS), sid
+
+    def test_the_after_names_the_layout_laws_client(self, after_all):
+        assert after_all.get("client_commit") == "7ce88863"
+        assert after_all.get("physical_scale") == "auto"
 
 
 class TestTheFloorIsOneRule:
