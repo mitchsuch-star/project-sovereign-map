@@ -142,6 +142,12 @@ func _fit_body() -> void:
 	Utils.clamp_centered_panel($PanelContainer)
 
 
+func refit() -> void:
+	"""UXR-2: the live-refit road's hook — the body re-sizes to its content
+	and the clamp re-fits the panel (`_fit_body` does both)."""
+	_fit_body()
+
+
 func _add_option(option: Dictionary):
 	var btn = Button.new()
 	var label = str(option.get("label", "?"))

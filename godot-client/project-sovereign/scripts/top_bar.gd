@@ -280,6 +280,13 @@ func close_all_screens():
 		_close_screen(active_screen)
 
 
+func refit_active_screen() -> void:
+	"""UXR-2: the open screen re-fits the logical viewport (and keeps its
+	grip on its corner) — called by `main._on_root_resized`."""
+	if active_screen != "" and screens.get(active_screen) != null:
+		Utils.refit_surface(screens[active_screen])
+
+
 func is_screen_open() -> bool:
 	"""True when any top bar screen is visible."""
 	return active_screen != ""

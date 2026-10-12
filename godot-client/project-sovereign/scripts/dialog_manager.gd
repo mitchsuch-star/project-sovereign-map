@@ -81,3 +81,12 @@ func hide_all():
 	for entry in _dialogs.values():
 		if entry.node:
 			entry.node.hide()
+
+
+func refit_visible() -> void:
+	"""UXR-2: every OPEN registered surface re-fits the logical viewport —
+	called by `main._on_root_resized` on a window resize or a scale change
+	(each surface used to fit only when it opened)."""
+	for entry in _dialogs.values():
+		if entry.node != null and is_instance_valid(entry.node) and entry.node.visible:
+			Utils.refit_surface(entry.node)

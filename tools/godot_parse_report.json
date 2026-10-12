@@ -57,6 +57,48 @@
       "instantiate_ok": true,
       "load_ok": true,
       "path": "res://scenes/diplomatic_ledger.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/strategic_ledger.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/marshal_management.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/dispatch_view.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/campaign_log.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/war_status_panel.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/war_detail_popup.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/region_panel.tscn"
     }
   ],
   "scripts": [
@@ -316,6 +358,12 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/resize_grip.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -461,7 +509,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/mode_c_driven_session.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/uxr2_grip_harness.gd"
     }
   ],
-  "timestamp": "2026-10-12T18:46:11Z"
+  "timestamp": "2026-10-12T19:14:03Z"
 }

@@ -342,6 +342,45 @@ Floorless ScrollContainers are a ratchet at 8. The census was shown to fail on a
 
 `tests/_godot_scenes.py` is now the one scene parser: the clamp pins' helpers moved there verbatim, `test_ui_visual_foundation.py` re-imports them under its old names, and the full-tree parser was added.
 
+**Slice C — the grips and the refit (parts 1 + 3).**
+
+*The grip.* `scripts/resize_grip.gd` (`class_name ResizeGrip`) is the command window's grip made shared, with three ways to host it:
+- `make()` gives the look alone. The command window keeps its own fixed-corner geometry in `main.gd`, every pinned line kept.
+- `attach_centered(panel, name)` serves a clamped screen.
+- `attach_edge(panel, name, corner)` serves an edge-anchored HUD panel (Slice D's war-status panel).
+
+How it behaves:
+- It is the panel's last sibling and accepts every left-button event, so a press never reaches the close-on-click overlay.
+- A drag grows the panel about its centre. A click that does not move commits nothing; this was UXR-X13 on the command window. A double-click restores the authored size.
+- It joins the `resize_grips` group, which Reset layout calls.
+
+*The store.* `ui_settings.gd` holds `PANEL_LIMITS` (terminal, war status, the six screens), `has / get / set / clear_panel_size` and `clear_all_panel_sizes`, in logical px. `[terminal] width/height` is byte-identical on disk; the terminal functions are one-line wrappers. Reset layout clears every panel.
+
+*The clamp.* `clamp_centered_panel` reads a `clamp_user_size` meta in place of the authored rect, larger or smaller. It is read after the `design_size` cache and before the `clamp_ceiling_override` and the viewport caps. The guard and the call string are unchanged, so the player's size is still fitted to any viewport, display-only.
+
+*The six screens* are clamped and gripped: the ledger, the Generals, the dispatch, the log, the Gazette and the Diplomatic Ledger. Each calls `ResizeGrip.attach_centered($PanelContainer, "<key>")` in `_ready`. The Generals filigree now rides inside its panel (UXR-X11).
+
+*The one live-refit road* (UXR-X10):
+- `main._on_root_resized` → `DialogManager.refit_visible()` + `top_bar.refit_active_screen()` + the sizing card.
+- Each step runs `Utils.refit_surface`, which takes a surface's own `refit()` first; the diorama, the interrupt and petition popups gained one.
+- The main menu refits on `resized`, and the war-status panel on `size_changed`.
+- The sizing card lost a width floor that defeated its clamp (UXR-X12).
+
+*The census.* `tests/test_uxr2_layout_law.py` puts every top-level Control of every CanvasLayer scene (all 34, not only the 101–122 band) in one class: ANCHORED-FULL, CLAMPED (reached by the refit road), CLAMPED+GRIPPED (every layer-50 screen, with distinct keys `PANEL_LIMITS` knows), FITTED (a named fitter reached by `size_changed` or `refit()`), CHROME, or ALLOWLISTED.
+- **The allowlist** is a ratchet of 2: the war-detail popup and the rail slot, both owned by Slice D.
+- **Code-built surfaces** carry checked proofs.
+- **Seven violation codes** are each shown able to fail. Run on HEAD's Generals scene, the census flags both filigree corners.
+- **Mechanics pins:** the road, the meta's order in the clamp, the store, a click is not a resize, Reset layout reaching every grip.
+
+*The driven proof — "the screens resize and remember".* `tests/test_uxr2_grips_driven.py` runs `tools/uxr2_grip_harness.gd`: the real `main.tscn` behind an API stub, in a real 1600×900 window parked past the desktop (a headless root viewport is 64×64, where nothing can move), with `UiSettings` in memory and `_persist` false. For each of the six screens it shows:
+- the grip sits on the corner;
+- a drag of (+80, −60) gives +160 / −120 about the centre, and the screen stays open;
+- the size is stored and returns on the next open;
+- a double-click restores the authored size and forgets the stored one;
+- a click stores nothing.
+
+Then a ledger grown to 1080 px is refit inside the 1066-px viewport of scale 1.5, and Reset layout forgets every size: **33 pins**.
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed

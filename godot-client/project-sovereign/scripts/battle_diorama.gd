@@ -224,6 +224,12 @@ func _fit_tray_to_viewport() -> void:
 	_tray.pivot_offset = Vector2(TRAY_W / 2.0, TRAY_H / 2.0)
 	_tray.scale = Vector2(fit, fit)
 
+
+func refit() -> void:
+	"""UXR-2: the live-refit road's hook (`Utils.refit_surface`) — the
+	tableau re-scales to the new logical viewport, as it does on open."""
+	_fit_tray_to_viewport()
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Chrome — built once
 # ─────────────────────────────────────────────────────────────────────────────

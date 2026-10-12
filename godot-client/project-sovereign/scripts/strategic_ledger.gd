@@ -51,6 +51,8 @@ func _ready():
 	close_button.pressed.connect(close_view)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# UXR-2: clamped AND gripped — the player's size is remembered.
+	ResizeGrip.attach_centered($PanelContainer, "ledger")
 
 	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab, orders_tab, admiralty_tab, laws_tab]
 	for i in range(tab_buttons.size()):

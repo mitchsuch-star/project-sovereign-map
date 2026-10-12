@@ -1,0 +1,380 @@
+# UXR-2 Slice C — the grips, DRIVEN (Pre-Deploy S9, October 12, 2026).
+#
+# The layout law's done-when says the big screens "resize and remember". A
+# source pin cannot show that, so this harness boots the REAL `main.tscn`
+# headlessly (the CX-7 shape: an API stub swapped in before `_ready` can
+# fetch, a `process_frame` tick with a hard frame cap) and, for each of the
+# six top-bar screens, presses real mouse events onto its grip:
+#
+#   open → the grip sits on the panel's bottom-right corner
+#   press + drag (+80, −60) + release → the panel is 160 wider and 120 lower
+#     (it grows about its centre), the screen stayed open (the press never
+#     reached the close-on-click overlay), the size is stored
+#   close → reopen → the stored size returns
+#   double-click → the authored size returns, the stored one is forgotten
+#
+# then, with a screen grown wide, raises the Interface Scale and checks the
+# open panel was refit inside the new logical viewport (the clamp ran on open
+# only before UXR-2), and runs Reset layout.
+#
+# `UiSettings` is an in-memory ConfigFile with `_persist = false` (set
+# through a Variant), so no grip commit ever writes the player's file.
+#
+#   Godot --headless --path godot-client/project-sovereign \
+#         --script ../../tools/uxr2_grip_harness.gd
+#
+# Writes one JSON object to $UXR2_OUT (default user://uxr2_grips.json). Read
+# by `tests/test_uxr2_grips_driven.py`, which SKIPS without the engine.
+extends SceneTree
+
+const HARD_FRAME_LIMIT := 3000
+const SCREENS := ["ledger", "generals", "dispatch", "event_log", "gazette", "diplomatic_ledger"]
+const DRAG := Vector2(80.0, -60.0)
+
+
+class ApiStub extends Node:
+	var calls: Array = []
+
+	func _answer(method: String, cb):
+		calls.append(method)
+		if cb is Callable:
+			cb.call({"success": false, "message": "uxr2 stub"})
+
+	func test_connection(cb = null): _answer("test_connection", cb)
+	func get_map_topology(_cb = null): calls.append("get_map_topology")
+	func get_ledger(cb = null): _answer("get_ledger", cb)
+	func get_diplomatic_ledger(cb = null): _answer("get_diplomatic_ledger", cb)
+	func get_marshal_overview(cb = null): _answer("get_marshal_overview", cb)
+	func get_dispatch(cb = null): _answer("get_dispatch", cb)
+	func get_gazette(cb = null): _answer("get_gazette", cb)
+	func get_campaign_log(cb = null): _answer("get_campaign_log", cb)
+	func get_mailbox(cb = null): _answer("get_mailbox", cb)
+	func get_pending_envoy(cb = null): _answer("get_pending_envoy", cb)
+	func send_command(_c, _cb = null): calls.append("send_command")
+	func cancel_strategic_order(_m, _cb = null): calls.append("cancel_strategic_order")
+	func dismiss_notification(_i, _cb = null): calls.append("dismiss_notification")
+	func dismiss_all_notifications(_cb = null): calls.append("dismiss_all_notifications")
+
+
+var _frames := 0
+var _phase := "window"
+var _wait := 0
+var _main: Node = null
+var _api: ApiStub = null
+var _top_bar = null
+var _i := 0
+var _rec := {}
+var _out := {"screens": {}}
+var _fatal := ""
+
+
+func _init():
+	UiSettings._cfg = ConfigFile.new()
+	var settings_class: Variant = UiSettings
+	settings_class.set("_persist", false)
+	# no tutor card or first-run aside over the screens' corners
+	UiSettings._cfg.set_value("tutorial", "done", true)
+	UiSettings._cfg.set_value("parser", "hint_seen", true)
+	UiSettings._cfg.set_value("display", "scale_acknowledged", true)
+	UiSettings._cfg.set_value("display", "ui_scale", 1.0)
+	UiSettings._cfg.set_value("display", "ui_scale_auto", false)
+	process_frame.connect(_tick)
+
+
+func _tick():
+	_frames += 1
+	if _frames > HARD_FRAME_LIMIT:
+		_fatal = "frame limit hit in phase %s (screen %d)" % [_phase, _i]
+		_finish()
+		return
+	if _wait > 0:
+		_wait -= 1
+		return
+	call("_" + _phase)
+
+
+func _window():
+	# The project boots maximized; the IQ-10 capture's own rail (set on the
+	# first tick — in `_init` the project's maximize lands after it): a
+	# windowed 1600x900, parked past the desktop, never on the player's screen.
+	root.mode = Window.MODE_WINDOWED
+	root.position = Vector2i(5200, 20)
+	root.size = Vector2i(1600, 900)
+	_phase = "boot"
+	_wait = 10
+
+
+func _boot():
+	var packed: PackedScene = load("res://scenes/main.tscn")
+	if packed == null:
+		_fatal = "main.tscn did not load"
+		_finish()
+		return
+	_main = packed.instantiate()
+	_api = ApiStub.new()
+	_api.name = "APIClient"
+	var real = _main.get_node_or_null("APIClient")
+	if real != null:
+		_main.remove_child(real)
+		real.queue_free()
+	_main.add_child(_api)
+	root.add_child(_main)
+	if "api_client" in _main:
+		_main.set("api_client", _api)
+	_phase = "settle"
+	_wait = 40
+
+
+func _settle():
+	if "api_client" in _main:
+		_main.set("api_client", _api)
+	_top_bar = _main.get("top_bar")
+	if _top_bar == null:
+		_fatal = "the top bar never resolved"
+		_finish()
+		return
+	_out["viewport"] = [root.get_visible_rect().size.x, root.get_visible_rect().size.y]
+	_out["terminal_grip"] = _main.get("resize_grip") != null
+	_phase = "open"
+
+
+# ── per screen ────────────────────────────────────────────────────────────
+
+func _screen() -> Node:
+	return _top_bar.screens.get(SCREENS[_i])
+
+
+func _panel() -> Control:
+	var s := _screen()
+	return s.get_node_or_null("PanelContainer") if s != null else null
+
+
+func _grip() -> Control:
+	var s := _screen()
+	return s.get_node_or_null("ResizeGrip") if s != null else null
+
+
+func _mouse(pos: Vector2, pressed: bool, double: bool = false) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = pressed
+	ev.double_click = double
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+	ev.position = pos
+	ev.global_position = pos
+	root.push_input(ev)
+
+
+func _motion(pos: Vector2, rel: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT
+	ev.position = pos
+	ev.global_position = pos
+	ev.relative = rel
+	root.push_input(ev)
+
+
+func _grip_center() -> Vector2:
+	var g := _grip()
+	return g.position + g.size * 0.5
+
+
+func _open():
+	_rec = {"name": SCREENS[_i]}
+	if _screen() == null:
+		_rec["error"] = "screen not registered"
+		_next_screen()
+		return
+	_top_bar.toggle_screen(SCREENS[_i])
+	_phase = "measure_open"
+	_wait = 8
+
+
+func _measure_open():
+	var panel := _panel()
+	var grip := _grip()
+	_rec["open"] = _screen().visible
+	_rec["grip"] = grip != null
+	if panel == null or grip == null:
+		_rec["error"] = "no panel or no grip"
+		_next_screen()
+		return
+	_rec["grip_visible"] = grip.visible
+	_rec["authored"] = [panel.size.x, panel.size.y]
+	var corner := panel.get_global_rect().end
+	_rec["grip_gap"] = (_grip_center() - corner).length()
+	_mouse(_grip_center(), true)
+	_phase = "drag"
+	_wait = 2
+
+
+func _drag():
+	var start := _grip_center()
+	_motion(start + DRAG * 0.5, DRAG * 0.5)
+	_motion(start + DRAG, DRAG * 0.5)
+	_phase = "release"
+	_wait = 3
+
+
+func _release():
+	_mouse(_grip_center(), false)
+	_phase = "measure_drag"
+	_wait = 4
+
+
+func _measure_drag():
+	var panel := _panel()
+	_rec["after_drag"] = [panel.size.x, panel.size.y]
+	_rec["open_after_drag"] = _screen().visible
+	var key: String = SCREENS[_i]
+	_rec["stored"] = UiSettings.has_panel_size(key)
+	var stored := UiSettings.get_panel_size(key, Vector2.ZERO)
+	_rec["stored_size"] = [stored.x, stored.y]
+	_rec["grip_gap_after"] = (_grip_center() - panel.get_global_rect().end).length()
+	_top_bar.toggle_screen(key)
+	_phase = "reopen"
+	_wait = 4
+
+
+func _reopen():
+	_rec["closed"] = not _screen().visible
+	_top_bar.toggle_screen(SCREENS[_i])
+	_phase = "measure_reopen"
+	_wait = 8
+
+
+func _measure_reopen():
+	var panel := _panel()
+	_rec["reopened"] = [panel.size.x, panel.size.y]
+	# a double-click on the grip: the authored size, the stored one forgotten
+	_mouse(_grip_center(), true, true)
+	_phase = "dbl_release"
+	_wait = 2
+
+
+func _dbl_release():
+	_mouse(_grip_center(), false)
+	_phase = "measure_reset"
+	_wait = 4
+
+
+func _measure_reset():
+	var panel := _panel()
+	_rec["after_double_click"] = [panel.size.x, panel.size.y]
+	_rec["stored_after_double_click"] = UiSettings.has_panel_size(SCREENS[_i])
+	_rec["open_after_double_click"] = _screen().visible
+	# a click that does not move stores nothing
+	_mouse(_grip_center(), true)
+	_phase = "click_release"
+	_wait = 2
+
+
+func _click_release():
+	_mouse(_grip_center(), false)
+	_phase = "measure_click"
+	_wait = 3
+
+
+func _measure_click():
+	_rec["stored_after_click"] = UiSettings.has_panel_size(SCREENS[_i])
+	_top_bar.toggle_screen(SCREENS[_i])
+	_out["screens"][SCREENS[_i]] = _rec
+	_next_screen()
+
+
+func _next_screen():
+	if _rec.has("name") and not _out["screens"].has(_rec["name"]):
+		_out["screens"][_rec["name"]] = _rec
+	_i += 1
+	if _i < SCREENS.size():
+		_phase = "open"
+		_wait = 4
+	else:
+		_i = 0
+		_phase = "scale_open"
+		_wait = 4
+
+
+# ── the refit road and Reset layout ───────────────────────────────────────
+
+func _scale_open():
+	_top_bar.toggle_screen("ledger")
+	_phase = "scale_grow"
+	_wait = 8
+
+
+func _scale_grow():
+	# grow the ledger wide (stored), then raise the Interface Scale under it
+	_mouse(_grip_center(), true)
+	_phase = "scale_drag"
+	_wait = 2
+
+
+func _scale_drag():
+	var start := _grip_center()
+	_motion(start + Vector2(140.0, 0.0), Vector2(140.0, 0.0))
+	_phase = "scale_release"
+	_wait = 3
+
+
+func _scale_release():
+	_mouse(_grip_center(), false)
+	_phase = "scale_apply"
+	_wait = 4
+
+
+func _scale_apply():
+	_out["refit_before"] = [_panel().size.x, _panel().size.y]
+	_main.call("_apply_ui_scale", 1.5, false)
+	_phase = "scale_measure"
+	_wait = 10
+
+
+func _scale_measure():
+	var view := root.get_visible_rect().size
+	var r := _panel().get_global_rect()
+	_out["refit_view"] = [view.x, view.y]
+	_out["refit_rect"] = [r.position.x, r.position.y, r.end.x, r.end.y]
+	_out["refit_inside"] = (r.position.x >= -0.5 and r.position.y >= -0.5
+			and r.end.x <= view.x + 0.5 and r.end.y <= view.y + 0.5)
+	_out["refit_grip_gap"] = (_grip_center() - r.end).length()
+	_main.call("_apply_ui_scale", 1.0, false)
+	_phase = "reset_layout"
+	_wait = 10
+
+
+func _reset_layout():
+	_out["stored_before_reset"] = UiSettings.has_panel_size("ledger")
+	UiSettings.reset_layout()
+	_main.call("_on_layout_reset")
+	_phase = "reset_measure"
+	_wait = 10
+
+
+func _reset_measure():
+	var any := false
+	for key in SCREENS:
+		any = any or UiSettings.has_panel_size(key)
+	_out["stored_after_reset"] = any
+	_out["ledger_after_reset"] = [_panel().size.x, _panel().size.y]
+	# Reset layout returns the scale to the DERIVATION too, so the authored
+	# rect is clamped to the logical viewport that scale leaves.
+	var view := root.get_visible_rect().size
+	_out["reset_view"] = [view.x, view.y]
+	_out["ledger_authored"] = _out["screens"]["ledger"].get("authored", [])
+	_finish()
+
+
+func _finish():
+	_out["fatal"] = _fatal
+	_out["frames"] = _frames
+	var text := JSON.stringify(_out)
+	var path := OS.get_environment("UXR2_OUT")
+	if path == "":
+		path = "user://uxr2_grips.json"
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f != null:
+		f.store_string(text)
+		f.close()
+	print("[uxr2] " + text)
+	quit(0)

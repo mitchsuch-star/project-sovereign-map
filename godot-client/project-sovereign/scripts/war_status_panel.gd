@@ -52,6 +52,15 @@ const DRAG_MARGIN = 6  # Pixels from edge to trigger resize cursor
 func _ready():
 	hide()
 	_add_panel_grain()
+	# UXR-2 (the layout law): the panel re-fits when the window or the
+	# Interface Scale changes the logical viewport under it — it fit only on
+	# `update_wars`, so a scale step left its height cap stale.
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
+
+
+func _on_viewport_size_changed() -> void:
+	if visible:
+		_fit_panel_to_content()
 
 
 func _add_panel_grain() -> void:

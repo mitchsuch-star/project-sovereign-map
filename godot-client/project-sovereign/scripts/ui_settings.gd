@@ -112,9 +112,80 @@ const TERMINAL_WIDTH_FRACTION := 0.28
 const TERMINAL_HEIGHT_FRACTION := 0.32
 
 
+# --- Panel sizes (UXR-2 "the layout law", October 12, 2026) ---
+# Every gripped surface's remembered size, in LOGICAL px (like the terminal's,
+# so a panel and its text scale together with the Interface Scale), one
+# section per surface with `width` / `height` keys — `[terminal]` is the
+# command window's own section, byte-identical to its pre-UXR-2 format. A
+# closed table: name → [min, max]. The min is the floor a grip cannot drag
+# under (the panel's own content minimum floors it further at drag time);
+# the max only guards a hand-edited file — the clamp caps every panel to the
+# live viewport anyway. The keys are the top bar's screen names.
+const PANEL_LIMITS := {
+	"terminal": [Vector2(MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT), Vector2(MAX_TERMINAL_WIDTH, MAX_TERMINAL_HEIGHT)],
+	"war_status": [Vector2(150, 60), Vector2(800, 1400)],
+	"ledger": [Vector2(640, 360), Vector2(3600, 1400)],
+	"diplomatic_ledger": [Vector2(680, 360), Vector2(3600, 1400)],
+	"generals": [Vector2(560, 360), Vector2(3600, 1400)],
+	"dispatch": [Vector2(480, 320), Vector2(3600, 1400)],
+	"event_log": [Vector2(480, 320), Vector2(3600, 1400)],
+	"gazette": [Vector2(480, 320), Vector2(3600, 1400)],
+}
+
+
+static func panel_min(panel_name: String) -> Vector2:
+	return (PANEL_LIMITS[panel_name][0] if PANEL_LIMITS.has(panel_name) else Vector2.ZERO)
+
+
+static func panel_max(panel_name: String) -> Vector2:
+	return (PANEL_LIMITS[panel_name][1] if PANEL_LIMITS.has(panel_name) else Vector2(4096, 4096))
+
+
+static func has_panel_size(panel_name: String) -> bool:
+	return PANEL_LIMITS.has(panel_name) \
+			and _config().has_section_key(panel_name, "width") \
+			and _config().has_section_key(panel_name, "height")
+
+
+static func get_panel_size(panel_name: String, fallback: Vector2) -> Vector2:
+	"""The stored size clamped to the table's range, or `fallback` when none."""
+	if not has_panel_size(panel_name):
+		return fallback
+	var lo := panel_min(panel_name)
+	var hi := panel_max(panel_name)
+	return Vector2(
+		clampf(_read_num(panel_name, "width", fallback.x), lo.x, hi.x),
+		clampf(_read_num(panel_name, "height", fallback.y), lo.y, hi.y))
+
+
+static func set_panel_size(panel_name: String, panel_size: Vector2) -> void:
+	if not PANEL_LIMITS.has(panel_name):
+		return
+	var lo := panel_min(panel_name)
+	var hi := panel_max(panel_name)
+	_config().set_value(panel_name, "width", clampf(panel_size.x, lo.x, hi.x))
+	_config().set_value(panel_name, "height", clampf(panel_size.y, lo.y, hi.y))
+	_save()
+
+
+static func clear_panel_size(panel_name: String) -> void:
+	for key in ["width", "height"]:
+		if _config().has_section_key(panel_name, key):
+			_config().erase_section_key(panel_name, key)
+	_save()
+
+
+static func clear_all_panel_sizes() -> void:
+	"""Reset layout: every gripped surface back to its authored / fractional size."""
+	for panel_name in PANEL_LIMITS:
+		for key in ["width", "height"]:
+			if _config().has_section_key(panel_name, key):
+				_config().erase_section_key(panel_name, key)
+	_save()
+
+
 static func has_terminal_size() -> bool:
-	return _config().has_section_key("terminal", "width") \
-			and _config().has_section_key("terminal", "height")
+	return has_panel_size("terminal")
 
 
 static func get_terminal_width() -> float:
@@ -128,17 +199,14 @@ static func get_terminal_height() -> float:
 
 
 static func set_terminal_size(width: float, height: float) -> void:
-	_write_num("terminal", "width", clampf(width, MIN_TERMINAL_WIDTH, MAX_TERMINAL_WIDTH))
-	_write_num("terminal", "height", clampf(height, MIN_TERMINAL_HEIGHT, MAX_TERMINAL_HEIGHT))
+	# UXR-2: the command window is one row of the panel store (same keys,
+	# same clampf to MIN/MAX_TERMINAL_* via PANEL_LIMITS, one save not two).
+	set_panel_size("terminal", Vector2(width, height))
 
 
 static func clear_terminal_size() -> void:
 	"""Back to the viewport-fraction default (Reset layout / the grip's double-click)."""
-	if _config().has_section_key("terminal", "width"):
-		_config().erase_section_key("terminal", "width")
-	if _config().has_section_key("terminal", "height"):
-		_config().erase_section_key("terminal", "height")
-	_save()
+	clear_panel_size("terminal")
 
 
 static func default_terminal_size(viewport: Vector2) -> Vector2:
@@ -205,6 +273,8 @@ static func reset_layout() -> void:
 	maximized boot. Sound, the key, the School's latch stay."""
 	set_ui_scale_auto()
 	clear_terminal_size()
+	# UXR-2: every gripped screen's remembered size too.
+	clear_all_panel_sizes()
 	set_window_mode(DEFAULT_WINDOW_MODE)
 	set_window_size(DEFAULT_WINDOW_SIZE)
 

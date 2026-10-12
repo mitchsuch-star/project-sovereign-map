@@ -55,6 +55,10 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     # DD-C (Pre-Deploy S7b, October 12, 2026): the Load menu's damaged rows —
     # extended in the slice that touched it, as §7 asks.
     "load_dialog.gd",
+    # UXR-2 (Pre-Deploy S9, October 12, 2026): the shared grip and the
+    # settings store it writes through — extended in the slice that added them.
+    "resize_grip.gd",
+    "ui_settings.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"

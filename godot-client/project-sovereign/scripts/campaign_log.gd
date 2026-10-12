@@ -64,6 +64,8 @@ var turn_data: Dictionary = {}
 func _ready():
 	close_button.pressed.connect(close_log)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# UXR-2: clamped AND gripped — the player's size is remembered.
+	ResizeGrip.attach_centered($PanelContainer, "event_log")
 	hide()
 
 

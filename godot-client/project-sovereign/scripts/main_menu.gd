@@ -344,6 +344,7 @@ func _build_menu_column() -> void:
 	# buttons fell off the bottom. Re-fit whenever the viewport or the column
 	# (the confirm row) changes height.
 	resized.connect(_fit_menu_column)
+	resized.connect(_refit_open_panels)
 	_menu_column.resized.connect(func(): _fit_menu_column.call_deferred())
 	_fit_menu_column.call_deferred()
 
@@ -528,6 +529,13 @@ func _on_ui_scale_changed(value: float, persist: bool) -> void:
 		if _settings_panel != null:
 			_settings_panel.refresh()
 	# The logical viewport just changed — every clamped panel re-fits.
+	_refit_open_panels()
+
+
+func _refit_open_panels() -> void:
+	"""UXR-2: the menu's open panels re-fit the logical viewport — on a scale
+	change (above) and on a window resize (`resized`; the menu used to re-fit
+	only on a scale change)."""
 	if _settings_view != null and _settings_view.visible:
 		Utils.clamp_centered_panel(_settings_view)
 	if _scale_card != null and _scale_card.visible:

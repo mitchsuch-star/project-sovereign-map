@@ -90,6 +90,9 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# IGR-E gap class) and the API client it fetches the record through.
 	"res://scripts/campaign_end.gd",
 	"res://scripts/api_client.gd",
+	# UXR-2 (Pre-Deploy S9): the one shared resize grip (class_name — run a
+	# `--headless --import` pass first after a fresh clone).
+	"res://scripts/resize_grip.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -132,6 +135,16 @@ const SCENE_INSTANTIATION_CHECKS = [
 	# Row EP GE-3: the Diplomatic Ledger gained its CONGRESS tab node
 	# (top_bar-registered at runtime).
 	"res://scenes/diplomatic_ledger.tscn",
+	# UXR-2 (Pre-Deploy S9): the gripped screens and the HUD the layout law
+	# touched — every one registered at runtime, so a broken grip or fit in
+	# them would surface only at a live boot (the IGR-E gap class).
+	"res://scenes/strategic_ledger.tscn",
+	"res://scenes/marshal_management.tscn",
+	"res://scenes/dispatch_view.tscn",
+	"res://scenes/campaign_log.tscn",
+	"res://scenes/war_status_panel.tscn",
+	"res://scenes/war_detail_popup.tscn",
+	"res://scenes/region_panel.tscn",
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
@@ -182,6 +195,9 @@ const TOOL_SCRIPTS = [
 	# The economy gate (Oct 5, 2026): the driven client session — UI/UX C6's
 	# delegate evidence, run by the reading's client arm
 	"res://../../tools/mode_c_driven_session.gd",
+	# UXR-2 (Pre-Deploy S9): the six screens' grips, driven
+	# (tests/test_uxr2_grips_driven.py)
+	"res://../../tools/uxr2_grip_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

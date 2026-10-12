@@ -29,6 +29,8 @@ func _ready():
 	close_button.pressed.connect(close_view)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# UXR-2: clamped AND gripped — the player's size is remembered.
+	ResizeGrip.attach_centered($PanelContainer, "gazette")
 	prev_button.pressed.connect(_on_prev)
 	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel

@@ -754,6 +754,13 @@ static func clamp_centered_panel(panel: Control) -> void:
 			authored.y = maxf(floor_size.y, 240.0)
 		panel.set_meta("design_size", authored)
 	var design: Vector2 = panel.get_meta("design_size")
+	# UXR-2 (October 12, 2026): the player's remembered size — set by a
+	# ResizeGrip, larger or smaller than authored — REPLACES the authored
+	# rect; the per-state override below may still raise it and the viewport
+	# caps below still fit it. `design_size` stays the authored rect (the
+	# size a double-click or Reset layout returns to).
+	if panel.has_meta("clamp_user_size"):
+		design = panel.get_meta("clamp_user_size")
 	# IGR-G1: a caller may raise the ceiling for ONE surface without touching
 	# the authored rect every other dialogue type shares. The settlement
 	# authoring screen (proposal_confirm_popup, dtype settlement_confirm) sets
@@ -774,6 +781,25 @@ static func clamp_centered_panel(panel: Control) -> void:
 	panel.offset_bottom = h / 2.0
 	_relax_child_minimums(panel, h)
 
+
+
+static func refit_surface(host: Node) -> void:
+	"""UXR-2: the one live-refit road's per-surface step. Every clamped
+	surface used to fit the viewport ON OPEN only, so raising the Interface
+	Scale (Ctrl+=, the pause slider) or resizing the window under an open
+	ledger or popup left it at the old size — its header could leave the
+	screen. `main._on_root_resized` now refits every OPEN surface: a surface
+	with its own fit (`refit()`: the wizard, the diorama, the interrupt and
+	petition popups) runs it; any other re-clamps its PanelContainer (the
+	clamp's anchor guard leaves an edge-anchored panel to its own fit)."""
+	if host == null or not is_instance_valid(host):
+		return
+	if host.has_method("refit"):
+		host.refit()
+		return
+	var panel := host.get_node_or_null("PanelContainer") as Control
+	if panel != null:
+		clamp_centered_panel(panel)
 
 
 static func bound_rich_body(body: RichTextLabel, room: float, min_height: float) -> void:

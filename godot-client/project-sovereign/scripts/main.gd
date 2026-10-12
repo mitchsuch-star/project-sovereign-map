@@ -174,7 +174,6 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 # slider — so one control enlarges the command window AND every ledger/pop-up
 # uniformly (the map stays crisp via the renderer's native-res compensation).
 # The old terminal-only font scale was retired: it never reached the pop-ups.
-const GRIP_SIZE := 20.0
 # UXR-1b: true while the command window's footprint is the viewport fraction
 # (nothing stored) — the grip's release stores a size and clears it.
 var _terminal_uses_default := true
@@ -189,6 +188,7 @@ var _terminal_width := UiSettings.DEFAULT_TERMINAL_WIDTH
 var _terminal_height := UiSettings.DEFAULT_TERMINAL_HEIGHT
 var resize_grip: Panel = null
 var _grip_dragging := false
+var _grip_moved := false
 # Top Bar (Session A)
 var top_bar = null
 
@@ -1606,33 +1606,14 @@ func _update_text_size_readout() -> void:
 func _create_resize_grip() -> void:
 	if resize_grip and is_instance_valid(resize_grip):
 		return
-	resize_grip = Panel.new()
+	# UXR-2 (October 12, 2026): the grip's look is the shared ResizeGrip
+	# (moved there verbatim — the six top-bar screens carry the same one).
+	# The command window keeps its OWN geometry: the HOST-mode grip has no
+	# input of its own, and the fixed bottom-left corner, the desired /
+	# displayed split and the viewport-fraction default stay below.
+	resize_grip = ResizeGrip.make(ResizeGrip.Corner.TOP_RIGHT,
+			"Drag to resize the command window · double-click to reset")
 	resize_grip.name = "TerminalResizeGrip"
-	resize_grip.custom_minimum_size = Vector2(GRIP_SIZE, GRIP_SIZE)
-	resize_grip.size = Vector2(GRIP_SIZE, GRIP_SIZE)
-	resize_grip.mouse_filter = Control.MOUSE_FILTER_STOP
-	resize_grip.mouse_default_cursor_shape = Control.CURSOR_BDIAGSIZE
-	resize_grip.tooltip_text = "Drag to resize the command window · double-click to reset"
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.1, 0.15, 0.92)
-	sb.border_color = Utils.UI_GOLD  # gold, matches the terminal accent
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(3)
-	resize_grip.add_theme_stylebox_override("panel", sb)
-	# UI-3: the grip's ⤢ glyph becomes the arrows-out icon (white silhouette
-	# tinted gold via modulate; EXPAND_IGNORE_SIZE lets the 256px SVG fit the grip).
-	var glyph := TextureRect.new()
-	glyph.texture = load(Utils.ICON_PHOSPHOR + "arrows-out.svg")
-	glyph.modulate = Utils.UI_GOLD
-	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
-	glyph.offset_left = 4.0
-	glyph.offset_top = 4.0
-	glyph.offset_right = -4.0
-	glyph.offset_bottom = -4.0
-	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	resize_grip.add_child(glyph)
 	add_child(resize_grip)
 	resize_grip.gui_input.connect(_on_grip_gui_input)
 	_position_resize_grip()
@@ -1707,14 +1688,19 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 				_reset_terminal_size()
 			else:
 				_grip_dragging = true
+				_grip_moved = false
 		else:
 			if _grip_dragging:
 				_grip_dragging = false
-				# UXR-1b: a dragged size is the player's — the viewport
-				# fraction stops following the screen from here.
-				_terminal_uses_default = false
-				UiSettings.set_terminal_size(_terminal_width, _terminal_height)
+				# UXR-2: a click that does not move is not a resize — it used
+				# to freeze the viewport-fraction default into a stored size.
+				if _grip_moved:
+					# UXR-1b: a dragged size is the player's — the viewport
+					# fraction stops following the screen from here.
+					_terminal_uses_default = false
+					UiSettings.set_terminal_size(_terminal_width, _terminal_height)
 	elif event is InputEventMouseMotion and _grip_dragging:
+		_grip_moved = true
 		_resize_terminal_from_mouse(get_global_mouse_position())
 
 func _resize_terminal_from_mouse(mouse_pos: Vector2) -> void:
@@ -1743,6 +1729,18 @@ func _on_root_resized() -> void:
 		_terminal_width = clampf(default_size.x, UiSettings.MIN_TERMINAL_WIDTH, UiSettings.MAX_TERMINAL_WIDTH)
 		_terminal_height = clampf(default_size.y, UiSettings.MIN_TERMINAL_HEIGHT, UiSettings.MAX_TERMINAL_HEIGHT)
 	_relayout_terminal()
+	# UXR-2 (October 12, 2026): the one live-refit road. Every clamped
+	# surface fitted the viewport only when it OPENED, so a scale change
+	# (Ctrl+=, the pause slider, the sizing card) or a window resize under an
+	# open ledger or popup stranded it — its header could leave the screen.
+	# Every OPEN surface re-fits here: the registered dialogs, the open
+	# top-bar screen (its grip follows its corner), and the sizing card.
+	if dialog_manager != null:
+		dialog_manager.refit_visible()
+	if top_bar != null and top_bar.has_method("refit_active_screen"):
+		top_bar.refit_active_screen()
+	if _scale_card != null and is_instance_valid(_scale_card) and _scale_card.visible:
+		Utils.clamp_centered_panel(_scale_card)
 
 func _apply_ui_scale(scale: float, persist: bool = true) -> void:
 	"""Global interface scale via content_scale_factor (UI-2 / DEF-13 fold).
@@ -1797,6 +1795,9 @@ func _on_layout_reset() -> void:
 	command window's viewport-fraction footprint."""
 	_apply_ui_scale(UiSettings.get_ui_scale(), false)
 	_reset_terminal_size()
+	# UXR-2: every gripped screen back to its authored size (the store is
+	# already cleared; an OPEN screen re-fits at once).
+	get_tree().call_group(ResizeGrip.GROUP, "reset_to_authored")
 
 
 func _ctrl_scale_key(keycode: int) -> bool:

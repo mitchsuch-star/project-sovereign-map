@@ -43,7 +43,8 @@ func _build() -> void:
 	_built = true
 	name = "ScaleCard"
 	set_anchors_preset(Control.PRESET_CENTER)
-	custom_minimum_size = Vector2(560, 0)
+	# UXR-2: the 560 is the authored offsets below — no width FLOOR, which
+	# had defeated the clamp under a 584-px logical width (1600 wide at 3.0).
 	offset_left = -280
 	offset_right = 280
 	offset_top = -230

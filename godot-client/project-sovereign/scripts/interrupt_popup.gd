@@ -131,6 +131,15 @@ func _fit_to_content() -> void:
 		panel.offset_top = -need / 2.0
 		panel.offset_bottom = need / 2.0
 
+func refit() -> void:
+	"""UXR-2: the live-refit road's hook (`Utils.refit_surface`). A generic
+	re-clamp would regrow the panel to its authored 360 — the clamp, then
+	the shrink-to-content, exactly as on open."""
+	Utils.clamp_centered_panel($PanelContainer)
+	if THE_QUESTION_FITS_ITS_BOX:
+		call_deferred("_fit_to_content")
+
+
 func _on_option_pressed(option_id: String):
 	"""Handle player selecting an interrupt response option."""
 	close_popup()
