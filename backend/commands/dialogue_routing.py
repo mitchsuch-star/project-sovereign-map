@@ -668,7 +668,7 @@ _CLOSED_PRONOUNS = _PLAIN_PRONOUNS | frozenset({"that", "him", "her", "his"})
 # The nouns that name the matter itself: the letter nouns and each family's
 # own (a petition, a claim, a bargain, an ultimatum and its demands, a
 # settlement, the peace, a counter, an alliance, a mission, the risk).
-_CLOSED_MATTER_NOUNS = frozenset({
+_CLOSED_MATTER_NOUNS_AUTHORED = frozenset({
     "offer", "offers", "terms", "proposal", "letter", "treaty", "petition",
     "petitions", "request", "plea", "claim", "bargain", "ultimatum", "demand",
     "demands", "settlement", "peace", "counter", "alliance", "mission", "risk",
@@ -677,6 +677,32 @@ _CLOSED_MATTER_NOUNS = frozenset({
     "gold", "money", "land", "territory", "matter", "question", "idea",
     "advice", "suggestion", "counsel", "plan",
 })
+
+
+def _matter_nouns_from_the_display_map() -> frozenset:
+    """DD1-9 (DD-1 S7, October 11, 2026): the nouns a letter is CALLED come
+    off `PROPOSAL_TYPE_DISPLAY` — ONE list. `decline Denmark's pact` fell to
+    the order desk (the shuffle's one misbind class, 4 of 312 rows) because
+    `pact` was no matter noun while the popup called that very letter a
+    Non-Aggression Pact. Every word of every display name except the stop
+    words (articles, qualifiers, and the command words `order` / `open` /
+    `borders` / `purchase`), each with its plural beside it."""
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
+    stop = {"of", "the", "a", "an", "full", "open", "harsh", "non", "defensive",
+            "brokered", "client's", "clients", "order", "borders", "purchase"}
+    out = set()
+    for shown in PROPOSAL_TYPE_DISPLAY.values():
+        for word in re.split(r"[\s\-]+", str(shown or "").lower()):
+            word = word.strip("'’")
+            if not word or word in stop or len(word) < 3:
+                continue
+            out.add(word)
+            if not word.endswith("s"):
+                out.add(word + "s")
+    return frozenset(out)
+
+
+_CLOSED_MATTER_NOUNS = _CLOSED_MATTER_NOUNS_AUTHORED | _matter_nouns_from_the_display_map()
 # `never mind the petition, accept Portugal's proposal` (IQ-7 R9's pinned
 # positive): when THIS dialogue offers no dismissal, `never mind <the matter>`
 # dismisses ANOTHER matter and is no second answer.

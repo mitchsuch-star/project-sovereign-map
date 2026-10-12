@@ -724,6 +724,14 @@ def _resolve_pair_state_transitions(
     resolved_pairs: List[Dict[str, Any]] = []
     state_clauses_applied: List[Dict[str, Any]] = []
 
+    # DD1-8 (DD-1 S7): the plan's own rows are resolved below under the
+    # settlement's reason — a vassal created mid-walk must not peace them
+    # first as a "vassalage_entry" (the entry rule in
+    # `vassal._reconcile_vassal_diplomacy` skips them).
+    plan_pairs = {
+        world._make_diplo_key(str(e.get("proposer_member") or ""), str(e.get("covered_enemy") or ""))
+        for e in plan if isinstance(e, dict)
+    }
     for entry in plan:
         proposer_member = entry["proposer_member"]
         covered_enemy = entry["covered_enemy"]
@@ -756,12 +764,14 @@ def _resolve_pair_state_transitions(
                         world, vassal_lord, vassal_target,
                         garrison_size=int(term.get("garrison_size", 0) or 0),
                         by_treaty=True,  # GE-V: the court signed the clause
+                        skip_pairs=plan_pairs,
                     )
                 else:
                     vassal_result = create_vassal_treaty(
                         world, vassal_lord, vassal_target,
                         generosity_bonus=int(term.get("generosity_bonus", 0) or 0),
                         terms=list(settlement_terms or []),
+                        skip_pairs=plan_pairs,
                     )
                 if vassal_result.get("success"):
                     assimilated_marshals = assimilate_vassal_marshals(

@@ -1,7 +1,7 @@
 {
  "seed": "dd1-fuzz-8",
  "steps": 1000,
- "seconds": 53.7,
+ "seconds": 53.5,
  "final_turn": 38,
  "verbs": {
   "propose": 142,
@@ -31,7 +31,7 @@
   "make_vassal: Cannot vassalize Russia: Russia is too powerful to vassalize (power: N% of France).": 2,
   "make_vassal: Cannot vassalize Britain: Britain is too powerful to vassalize (power: N% of France).": 2,
   "make_vassal: Cannot vassalize Denmark: Denmark is too powerful to vassalize (power: N% of France).": 2,
-  "declare_war: Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_N' but the proposed (attacker='Fr": 1,
+  "declare_war: Holland fights beside us in the war with Britain — end that war first.": 1,
   "make_vassal: Russia still stands — Vilna is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 1,
   "propose: Cannot vassalize Britain: Britain is too powerful to vassalize (power: N% of France).": 1,
   "propose: We already have Peace with Ottoman. Talleyrand sees no purpose in proposing what we already possess.": 1,
@@ -61,229 +61,8 @@
   "ALLIANCE→PEACE (nation_eliminated)": 1
  },
  "writers_outside_setter": {},
- "violation_classes": {
-  "I6_round_trip": 3
- },
- "violations": [
-  {
-   "seed": "dd1-fuzz-8",
-   "step": 7,
-   "verb": "answer",
-   "cls": "I6_round_trip",
-   "detail": "/incoming_proposal_popup: \"{'from_nation': 'Prussia', 'from_nation_display': 'Prussia',\" vs 'None'",
-   "persisted": 20,
-   "sequence": [
-    {
-     "i": 1,
-     "verb": "propose",
-     "detail": "vassalage → Hesse (execute_proposal)",
-     "ok": true
-    },
-    {
-     "i": 2,
-     "verb": "break",
-     "detail": "",
-     "ok": false,
-     "skipped": "no treaty of ours"
-    },
-    {
-     "i": 3,
-     "verb": "end_turn",
-     "detail": "turn 2",
-     "ok": true
-    },
-    {
-     "i": 4,
-     "verb": "release_vassal",
-     "detail": "Holland",
-     "ok": true
-    },
-    {
-     "i": 5,
-     "verb": "declare_war",
-     "detail": "Prussia (conquest)",
-     "ok": true
-    },
-    {
-     "i": 6,
-     "verb": "summon",
-     "detail": "",
-     "ok": false,
-     "refused": "The Congress cannot be summoned on 31 titled provinces — 45 are needed (14 more to win and settle)."
-    },
-    {
-     "i": 7,
-     "verb": "answer",
-     "detail": "incoming_proposal → reject_ai_proposal",
-     "ok": true
-    }
-   ]
-  },
-  {
-   "seed": "dd1-fuzz-8",
-   "step": 61,
-   "verb": "end_turn",
-   "cls": "I6_round_trip",
-   "detail": "/notifications length 21 vs 20",
-   "persisted": 1,
-   "sequence": [
-    {
-     "i": 50,
-     "verb": "end_turn",
-     "detail": "turn 16",
-     "ok": true
-    },
-    {
-     "i": 51,
-     "verb": "end_turn",
-     "detail": "turn 17",
-     "ok": true
-    },
-    {
-     "i": 52,
-     "verb": "white_peace",
-     "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
-     "ok": true
-    },
-    {
-     "i": 53,
-     "verb": "end_turn",
-     "detail": "turn 18",
-     "ok": true
-    },
-    {
-     "i": 54,
-     "verb": "end_turn",
-     "detail": "turn 19",
-     "ok": true
-    },
-    {
-     "i": 55,
-     "verb": "white_peace",
-     "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
-     "ok": true
-    },
-    {
-     "i": 56,
-     "verb": "white_peace",
-     "detail": "white peace Britain (back_out_settlement: no Ratify offered)",
-     "ok": true
-    },
-    {
-     "i": 57,
-     "verb": "end_turn",
-     "detail": "turn 20",
-     "ok": true
-    },
-    {
-     "i": 58,
-     "verb": "common_peace",
-     "detail": "common peace Britain (confirm)",
-     "ok": true
-    },
-    {
-     "i": 59,
-     "verb": "end_turn",
-     "detail": "turn 21",
-     "ok": true
-    },
-    {
-     "i": 60,
-     "verb": "end_turn",
-     "detail": "turn 22",
-     "ok": true
-    },
-    {
-     "i": 61,
-     "verb": "end_turn",
-     "detail": "turn 23",
-     "ok": true
-    }
-   ]
-  },
-  {
-   "seed": "dd1-fuzz-8",
-   "step": 67,
-   "verb": "answer",
-   "cls": "I6_round_trip",
-   "detail": "/incoming_settlement_offer_popup: \"{'type': 'incoming_settlement_offer', 'dialogue_type': 'inco\" vs 'None'",
-   "persisted": 22,
-   "sequence": [
-    {
-     "i": 56,
-     "verb": "white_peace",
-     "detail": "white peace Britain (back_out_settlement: no Ratify offered)",
-     "ok": true
-    },
-    {
-     "i": 57,
-     "verb": "end_turn",
-     "detail": "turn 20",
-     "ok": true
-    },
-    {
-     "i": 58,
-     "verb": "common_peace",
-     "detail": "common peace Britain (confirm)",
-     "ok": true
-    },
-    {
-     "i": 59,
-     "verb": "end_turn",
-     "detail": "turn 21",
-     "ok": true
-    },
-    {
-     "i": 60,
-     "verb": "end_turn",
-     "detail": "turn 22",
-     "ok": true
-    },
-    {
-     "i": 61,
-     "verb": "end_turn",
-     "detail": "turn 23",
-     "ok": true
-    },
-    {
-     "i": 62,
-     "verb": "end_turn",
-     "detail": "turn 24",
-     "ok": true
-    },
-    {
-     "i": 63,
-     "verb": "propose",
-     "detail": "open_borders → Austria (execute_proposal)",
-     "ok": true
-    },
-    {
-     "i": 64,
-     "verb": "end_turn",
-     "detail": "turn 25",
-     "ok": true
-    },
-    {
-     "i": 65,
-     "verb": "break",
-     "detail": "Saxony",
-     "ok": true
-    },
-    {
-     "i": 66,
-     "verb": "end_turn",
-     "detail": "turn 26",
-     "ok": true
-    },
-    {
-     "i": 67,
-     "verb": "answer",
-     "detail": "incoming_settlement_offer → reject_settlement_offer",
-     "ok": true
-    }
-   ]
-  }
- ],
+ "violation_classes": {},
+ "violations": [],
  "sequence": [
   {
    "i": 1,
@@ -396,7 +175,7 @@
    "verb": "declare_war",
    "detail": "Holland (forced_alliance)",
    "ok": false,
-   "refused": "Cannot declare war: war_instance_side_conflict (both nations live in war_instance 'war_1' but the proposed (attacker='France', defender='Holland') sides do not match)"
+   "refused": "Holland fights beside us in the war with Britain — end that war first."
   },
   {
    "i": 19,

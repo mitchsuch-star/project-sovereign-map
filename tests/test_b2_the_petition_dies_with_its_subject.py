@@ -376,9 +376,20 @@ class TestTheLoadAsksToo:
         assert lines and "Atlantis" in lines[-1]["message"]
 
     def test_a_letter_whose_dialogue_is_gone(self, world):
+        # DD1-7 (DD-1 S7, October 11, 2026): the LIVE world reads a slot whose
+        # dialogue the manager no longer holds as None already — so a fresh
+        # save never carries one. The stale slot a PRE-S7 save carries is
+        # planted in the save dict itself, and the load still retires it with
+        # its receipt.
         world.incoming_proposal_popup = {"from_nation": "Prussia",
                                          "dialogue_id": 9999}
-        loaded = _reload(world)
+        assert world.incoming_proposal_popup is None
+        data = world.to_dict()
+        assert data["incoming_proposal_popup"] is None
+        data["incoming_proposal_popup"] = {"from_nation": "Prussia",
+                                           "dialogue_id": 9999}
+        with _quiet():
+            loaded = WorldState.from_dict(data)
         assert loaded.incoming_proposal_popup is None
         assert [e for e in loaded._pending_jealousy_turn_events
                 if e.get("slot") == "incoming_proposal_popup"]

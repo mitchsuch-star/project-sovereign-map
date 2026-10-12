@@ -2944,9 +2944,9 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             old = set_diplomatic_state(world, player, nation, state, "cheat_command")
             if old in ("WAR", "ARMISTICE") and state != "WAR":
                 diplo_key = world._make_diplo_key(player, nation)
-                if state == "ARMISTICE":
-                    from backend.game_logic.settlement_helpers import mark_pair_armistice
-                    mark_pair_armistice(world, diplo_key)
+                # DD1-5 (DD-1 S7): the one exit (`cleanup_war_end`) restamps
+                # the instance from the state just written — the cheat's own
+                # `mark_pair_armistice` call was the only one in production.
                 cleanup_war_end(
                     world,
                     diplo_key,

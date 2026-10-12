@@ -407,7 +407,7 @@
    "named": "Denmark",
    "current": "Prussia",
    "expect": "named",
-   "reply": "\"Sire, I must confess this order eludes me,\" Berthier admits. \"Shall I relay an order to Ney? Valid actions include: attack, move, scout, defend, fortify, recruit. Type 'what can I do' for the orders ",
+   "reply": "Sire — that answer would be delivered to Prussia, whose matter is the one before you. Denmark's matter waits in the letter-book — open the letter-book and answer it there.",
    "success": false,
    "moved": {
     "gone": [],
@@ -417,8 +417,8 @@
     "current_before": 1,
     "current_after": 1
    },
-   "verdict": "misbind",
-   "why": "refusal names neither court (the line fell to the order desk)"
+   "verdict": "bound",
+   "why": "refused naming the queued court"
   },
   {
    "order": [
@@ -869,18 +869,25 @@
    "named": "Denmark",
    "current": "Denmark",
    "expect": "named",
-   "reply": "A deferral, a condition or a second matter is not an answer, Sire — nothing was relayed. Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.",
-   "success": false,
+   "reply": "You have rejected Denmark's proposal. Talleyrand will convey your decision.",
+   "success": true,
    "moved": {
-    "gone": [],
-    "courts_gone": [],
+    "gone": [
+     2
+    ],
+    "courts_gone": [
+     "Denmark"
+    ],
     "states_moved": [],
-    "cooldowns_moved": [],
+    "cooldowns_moved": [
+     "Denmark|nation",
+     "Denmark|non_aggression"
+    ],
     "current_before": 2,
-    "current_after": 2
+    "current_after": 1
    },
    "verdict": "bound",
-   "why": "refused, nothing moved"
+   "why": "the named (current) letter answered"
   },
   {
    "order": [
@@ -1876,7 +1883,7 @@
    "named": "Denmark",
    "current": "Prussia",
    "expect": "named",
-   "reply": "\"Sire, I must confess this order eludes me,\" Berthier admits. \"Shall I relay an order to Ney? Valid actions include: attack, move, scout, defend, fortify, recruit. Type 'what can I do' for the orders ",
+   "reply": "Sire — that answer would be delivered to Prussia, whose matter is the one before you. Denmark's matter waits in the letter-book — open the letter-book and answer it there.",
    "success": false,
    "moved": {
     "gone": [],
@@ -1886,8 +1893,8 @@
     "current_before": 1,
     "current_after": 1
    },
-   "verdict": "misbind",
-   "why": "refusal names neither court (the line fell to the order desk)"
+   "verdict": "bound",
+   "why": "refused naming the queued court"
   },
   {
    "order": [
@@ -2345,18 +2352,25 @@
    "named": "Denmark",
    "current": "Denmark",
    "expect": "named",
-   "reply": "A deferral, a condition or a second matter is not an answer, Sire — nothing was relayed. Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.",
-   "success": false,
+   "reply": "You have rejected Denmark's proposal. Talleyrand will convey your decision.",
+   "success": true,
    "moved": {
-    "gone": [],
-    "courts_gone": [],
+    "gone": [
+     3
+    ],
+    "courts_gone": [
+     "Denmark"
+    ],
     "states_moved": [],
-    "cooldowns_moved": [],
+    "cooldowns_moved": [
+     "Denmark|nation",
+     "Denmark|non_aggression"
+    ],
     "current_before": 3,
-    "current_after": 3
+    "current_after": 1
    },
    "verdict": "bound",
-   "why": "refused, nothing moved"
+   "why": "the named (current) letter answered"
   },
   {
    "order": [
@@ -3266,18 +3280,25 @@
    "named": "Denmark",
    "current": "Denmark",
    "expect": "named",
-   "reply": "A deferral, a condition or a second matter is not an answer, Sire — nothing was relayed. Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.",
-   "success": false,
+   "reply": "You have rejected Denmark's proposal. Talleyrand will convey your decision.",
+   "success": true,
    "moved": {
-    "gone": [],
-    "courts_gone": [],
+    "gone": [
+     1
+    ],
+    "courts_gone": [
+     "Denmark"
+    ],
     "states_moved": [],
-    "cooldowns_moved": [],
+    "cooldowns_moved": [
+     "Denmark|nation",
+     "Denmark|non_aggression"
+    ],
     "current_before": 1,
-    "current_after": 1
+    "current_after": 2
    },
    "verdict": "bound",
-   "why": "refused, nothing moved"
+   "why": "the named (current) letter answered"
   },
   {
    "order": [
@@ -4711,18 +4732,25 @@
    "named": "Denmark",
    "current": "Denmark",
    "expect": "named",
-   "reply": "A deferral, a condition or a second matter is not an answer, Sire — nothing was relayed. Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.",
-   "success": false,
+   "reply": "You have rejected Denmark's proposal. Talleyrand will convey your decision.",
+   "success": true,
    "moved": {
-    "gone": [],
-    "courts_gone": [],
+    "gone": [
+     1
+    ],
+    "courts_gone": [
+     "Denmark"
+    ],
     "states_moved": [],
-    "cooldowns_moved": [],
+    "cooldowns_moved": [
+     "Denmark|nation",
+     "Denmark|non_aggression"
+    ],
     "current_before": 1,
-    "current_after": 1
+    "current_after": 2
    },
    "verdict": "bound",
-   "why": "refused, nothing moved"
+   "why": "the named (current) letter answered"
   },
   {
    "order": [
@@ -6211,7 +6239,7 @@
    "named": "Denmark",
    "current": "Saxony",
    "expect": "named",
-   "reply": "Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret that order. Our marshals (Ney, Davout, Soult) await clear commands — 'Ney, attack Mack', perhaps? Type 'what can I do' for the ord",
+   "reply": "Sire — that answer would be delivered to Saxony, whose matter is the one before you. Denmark's matter waits in the letter-book — open the letter-book and answer it there.",
    "success": false,
    "moved": {
     "gone": [],
@@ -6221,8 +6249,8 @@
     "current_before": 1,
     "current_after": 1
    },
-   "verdict": "misbind",
-   "why": "refusal names neither court (the line fell to the order desk)"
+   "verdict": "bound",
+   "why": "refused naming the queued court"
   },
   {
    "order": [
@@ -6680,18 +6708,25 @@
    "named": "Denmark",
    "current": "Denmark",
    "expect": "named",
-   "reply": "A deferral, a condition or a second matter is not an answer, Sire — nothing was relayed. Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.",
-   "success": false,
+   "reply": "You have rejected Denmark's proposal. Talleyrand will convey your decision.",
+   "success": true,
    "moved": {
-    "gone": [],
-    "courts_gone": [],
+    "gone": [
+     3
+    ],
+    "courts_gone": [
+     "Denmark"
+    ],
     "states_moved": [],
-    "cooldowns_moved": [],
+    "cooldowns_moved": [
+     "Denmark|nation",
+     "Denmark|non_aggression"
+    ],
     "current_before": 3,
-    "current_after": 3
+    "current_after": 1
    },
    "verdict": "bound",
-   "why": "refused, nothing moved"
+   "why": "the named (current) letter answered"
   },
   {
    "order": [
@@ -7632,7 +7667,7 @@
    "named": "Denmark",
    "current": "Saxony",
    "expect": "named",
-   "reply": "\"Sire, I must confess this order eludes me,\" Berthier admits. \"Shall I relay an order to Ney? Valid actions include: attack, move, scout, defend, fortify, recruit. Type 'what can I do' for the orders ",
+   "reply": "Sire — that answer would be delivered to Saxony, whose matter is the one before you. Denmark's matter waits in the letter-book — open the letter-book and answer it there.",
    "success": false,
    "moved": {
     "gone": [],
@@ -7642,8 +7677,8 @@
     "current_before": 1,
     "current_after": 1
    },
-   "verdict": "misbind",
-   "why": "refusal names neither court (the line fell to the order desk)"
+   "verdict": "bound",
+   "why": "refused naming the queued court"
   },
   {
    "order": [
@@ -8094,18 +8129,25 @@
    "named": "Denmark",
    "current": "Denmark",
    "expect": "named",
-   "reply": "A deferral, a condition or a second matter is not an answer, Sire — nothing was relayed. Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.",
-   "success": false,
+   "reply": "You have rejected Denmark's proposal. Talleyrand will convey your decision.",
+   "success": true,
    "moved": {
-    "gone": [],
-    "courts_gone": [],
+    "gone": [
+     2
+    ],
+    "courts_gone": [
+     "Denmark"
+    ],
     "states_moved": [],
-    "cooldowns_moved": [],
+    "cooldowns_moved": [
+     "Denmark|nation",
+     "Denmark|non_aggression"
+    ],
     "current_before": 2,
-    "current_after": 2
+    "current_after": 1
    },
    "verdict": "bound",
-   "why": "refused, nothing moved"
+   "why": "the named (current) letter answered"
   },
   {
    "order": [
@@ -8672,10 +8714,8 @@
   }
  ],
  "count": 312,
- "misbinds": 4,
- "misbind_classes": {
-  "top:decline <court>'s pact: refusal names neither court (the line fell to the order desk": 4
- },
+ "misbinds": 0,
+ "misbind_classes": {},
  "letters": [
   [
    "Prussia",

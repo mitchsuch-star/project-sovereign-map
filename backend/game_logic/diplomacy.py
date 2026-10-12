@@ -4213,11 +4213,23 @@ def give_the_war_its_purpose(world, nation_a: str, nation_b: str) -> bool:
     if getattr(world, "sovereign_map", "legacy") != "europe":
         return False
     key = world._make_diplo_key(nation_a, nation_b)
-    if (getattr(world, "war_objectives", None) or {}).get(key):
+    entry = (getattr(world, "war_objectives", None) or {}).get(key) or {}
+
+    # DD1-6 (DD-1 S7, October 11, 2026): a CONCLUDED purpose is a record,
+    # not a live one. A pair back at war inside the ten-turn prune window (a
+    # cascade entry, an ally's re-entry, a vassal's auto-join) found the old
+    # entry here and was left purposeless until a load backfilled it — the
+    # fuzzer's "WAR pair with no purpose", five distinct pairs. Live = present
+    # and not concluded; a concluded entry is overwritten in place, as
+    # `declare_war_objective` already does.
+    def _live(side: str) -> bool:
+        obj = entry.get(side)
+        return isinstance(obj, dict) and bool(obj) and obj.get("concluded_turn") is None
+
+    if any(_live(side) for side in (nation_a, nation_b)):
         return False
     for side, other in ((nation_a, nation_b), (nation_b, nation_a)):
-        if side not in (world.war_objectives.get(key) or {}):
-            _auto_assign_defense_objective(world, side, other, key)
+        _auto_assign_defense_objective(world, side, other, key)
     return True
 
 
@@ -5436,7 +5448,23 @@ def cleanup_war_end(world, diplo_key: str, *,
     # (`_process_armistice_expiration` runs `resolve_pair_to_resolved`
     # before `cleanup_war_end`); the second invocation no-ops with
     # ``error="pair_not_owned"``.
-    if conclude_objectives:
+    #
+    # DD1-5 (DD-1 S7, October 11, 2026) — THE ONE EXIT. Whatever road ended
+    # the war (the bilateral treaty, the typed conquest, the settlement, the
+    # client cascade, the truce's expiry, a break, a defection), the pair's
+    # instance is restamped HERE from the state the setter just wrote: a
+    # truce keeps the pair active and paused (`pair_status="armistice"`),
+    # any other peace resolves it. The fuzzer read 14 instances claiming a
+    # truced or subjugated pair "at war" for up to 330 steps, because the
+    # ratifier and the conquest road each wrote the state and left the
+    # instance to a helper only the settlement called. Every peace road
+    # passes `conclude_objectives=True` and every truce road `False` with
+    # ARMISTICE written, so the two arms below are the whole rule; a
+    # synthetic fixture whose states table disagrees with its instance
+    # keeps the old behaviour.
+    if world.diplomatic_states.get(diplo_key) == "ARMISTICE":
+        mark_pair_armistice(world, diplo_key)
+    elif conclude_objectives:
         resolve_pair_to_resolved(world, diplo_key)
 
 
@@ -8872,12 +8900,16 @@ def declare_war(
     )
     if not war_instance_result.get("ok"):
         _flush_hegemony_signal_defer(world, "declare_war_validation_failed")
+        # DD1-11 (DD-1 S7, October 11, 2026): the clause in the player's
+        # words — "Portugal fights beside us in the war with Britain" — never
+        # the engine's code (`war_instance_side_conflict`, 36 times over the
+        # fuzzer's seeds). The code and its details still ride the result
+        # for the log and the tests.
+        from backend.game_logic.treaty import declaration_refusal_words
         return {
             "success": False,
-            "message": (
-                f"Cannot declare war: {war_instance_result.get('error')} "
-                f"({war_instance_result.get('details', {}).get('reason', '')})"
-            ),
+            "message": declaration_refusal_words(
+                world, aggressor, target, war_instance_result),
             "error": war_instance_result.get("error"),
             "error_details": war_instance_result.get("details", {}),
         }

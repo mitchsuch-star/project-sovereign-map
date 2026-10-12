@@ -1218,8 +1218,15 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
             stale = _pending_confrontation_for_pair(world, marshal.name, target.name)
             if stale is not None:
                 _retire_pending_petition(world, stale)
-                already = False
-                _replacing = True
+            # DD1-7 (DD-1 S7, October 11, 2026): the cooled card now retires
+            # the moment the quarrel cools (`clear_jealousy`), so by the
+            # re-fire the stale card is usually gone already — the bypass
+            # keys on the SETTLEMENT RECORD (settled by action within the
+            # last turn), not on a card still standing: the next rung's card
+            # is the same audience re-worded, whether or not its predecessor
+            # still sat in the slot when the rival's laurels reopened it.
+            already = False
+            _replacing = True
         # SR-4c (AAR-D3): a man who asked for an audience lately does not ask
         # again yet. A card that REPLACES his own stale one is the same
         # audience, re-worded — it never waits (F6's replacement would
@@ -1489,7 +1496,8 @@ def _action_resolution_event(record: Dict) -> Dict:
 
 def clear_jealousy(world, marshal, resolved_by_action: bool,
                    events: Optional[List[Dict]] = None,
-                   reason: str = "", where: str = "") -> Optional[Dict]:
+                   reason: str = "", where: str = "",
+                   retire_standing_card: bool = True) -> Optional[Dict]:
     """Clear the grievance. Action resolutions grant the 1-turn surge
     (spec §4); timer expiry grants nothing. The derived -1 restores
     itself the moment jealous_of clears.
@@ -1509,6 +1517,23 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
     marshal.jealousy_autonomous_warned = False
     if resolved_by_action:
         marshal.jealousy_surge_turns = 1
+    # DD1-7 (DD-1 S7, October 11, 2026): the standing card about THIS quarrel
+    # retires the moment the quarrel cools — the same predicate the delivery
+    # seam and the load-time pass ask (`petition_retirement_reason` →
+    # "cooled"), asked here so the live world and a save of it agree (the
+    # fuzzer's I6 read the loaded world one rail row short twelve times: the
+    # load retired a card the live world still held). The answer handler
+    # passes `retire_standing_card=False` — an ANSWERED card is not a cooled one.
+    if retire_standing_card:
+        _standing = getattr(world, "pending_marshal_petition", None)
+        if (isinstance(_standing, dict)
+                and str(_standing.get("kind") or "") == "jealousy_confrontation"):
+            _ctx = _standing.get("context") or {}
+            _who = str(_ctx.get("marshal") or _standing.get("marshal")
+                       or _standing.get("speaker") or "")
+            _about = str(_ctx.get("target") or _standing.get("target") or "")
+            if _who == marshal.name and _about == str(target_name or ""):
+                retire_petition(world, _standing, "cooled")
     is_player = marshal.nation == world.player_nation
     world.log_event({
         "type": "jealousy_resolved",
@@ -3759,7 +3784,8 @@ def _apply_confrontation_choice(world, choice: str, context: Dict,
         if marshal.jealousy_turns_remaining == 0 and marshal.jealous_of:
             clear_jealousy(world, marshal, resolved_by_action=False,
                            events=_pending_events(world),
-                           reason="the Emperor's promise")
+                           reason="the Emperor's promise",
+                           retire_standing_card=False)
         message = (f"{marshal.name} bows. \"I will hold you to it, Sire.\" "
                    f"His grievance shortens, and while your word stands the "
                    f"quarrel will go no further.")
@@ -3775,7 +3801,8 @@ def _apply_confrontation_choice(world, choice: str, context: Dict,
         if marshal.jealousy_turns_remaining == 0 and marshal.jealous_of:
             clear_jealousy(world, marshal, resolved_by_action=False,
                            events=_pending_events(world),
-                           reason="the Emperor's rebuke")
+                           reason="the Emperor's rebuke",
+                           retire_standing_card=False)
         message = (f"{marshal.name} stiffens under the rebuke "
                    f"({CONFRONT_REBUKE_TRUST} trust).")
     else:
@@ -3842,7 +3869,8 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
         for a, b in ((marshal, other), (other, marshal)):
             if getattr(a, "jealous_of", None) == b.name:
                 clear_jealousy(world, a, resolved_by_action=False,
-                               events=_pending_events(world), reason=reason)
+                               events=_pending_events(world), reason=reason,
+                               retire_standing_card=False)
 
     outcome: str
     if new_value == -1:

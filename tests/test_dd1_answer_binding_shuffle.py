@@ -33,8 +33,8 @@ sys.path.insert(0, str(REPO_ROOT / "tools"))
 RECORD = REPO_ROOT / "docs" / "audits" / "dd1" / "answer_binding.json"
 LEDGER = REPO_ROOT / "tests" / "data" / "answer_binding_known_misbinds.json"
 
-MISBIND_CAP = 4          # October 11, 2026 — lower-only
-LEDGER_CLASS_CAP = 2     # the one shape, two reply heads
+MISBIND_CAP = 0          # October 11, 2026: 4 at S6 — 0 since DD-1 S7 (DD1-9); lower-only
+LEDGER_CLASS_CAP = 0     # the one shape (two reply heads) struck by S7
 
 
 @pytest.fixture(scope="module")
@@ -78,17 +78,18 @@ class TestTheCommittedRecord:
         assert set(committed["misbind_classes"]) <= set(ledger), (
             set(committed["misbind_classes"]) - set(ledger))
 
-    def test_the_done_when_is_read_and_not_met(self, committed):
+    def test_the_done_when_is_read_and_met(self, committed):
         """§3.1: 'the answer-binding shuffle reads 0 misbinds'. NOT met on the
-        first reading (4, one class). Re-seat when it is."""
-        assert committed["misbinds"] > 0, "the done-when is met — re-seat this pin"
+        first reading (S6: 4, one class — `decline <court>'s pact`); MET since
+        DD-1 S7 (October 11, 2026), when the matter nouns were read off
+        `PROPOSAL_TYPE_DISPLAY` (DD1-9). Held at 0 from here."""
+        assert committed["misbinds"] == 0, committed["misbind_classes"]
 
 
 class TestTheLedgerIsARatchet:
     def test_the_ledger_only_shrinks(self, ledger):
+        # Emptied by DD-1 S7; a class landing here again is a regression.
         assert len(ledger) <= LEDGER_CLASS_CAP, sorted(ledger)
-        for cls in ledger:
-            assert "decline <court>'s pact" in cls, cls
 
 
 class TestTheInstrumentLive:
@@ -110,16 +111,12 @@ class TestTheInstrumentLive:
                 assert row["moved"]["courts_gone"] in ([], [row["current"]]), row
 
     def test_a_named_queued_court_is_refused_naming_it_and_nothing_moves(self, live, ledger):
-        """Every named answer for a queued court: nothing moved, ever; and —
-        outside the ledger's one form (`decline <court>'s pact`, which the
-        grammar does not read as an answer at all, DD1-9) — refused NAMING
-        the court."""
+        """Every named answer for a queued court: nothing moved, ever, and
+        refused NAMING the court — `decline <court>'s pact` included since
+        DD-1 S7 (DD1-9: `pact` is a matter noun read off the display map)."""
         for row in live["rows"]:
             if row["expect"] == "named" and row["named"] != row["current"] and row["position"] == "top":
                 assert not row["moved"]["gone"] and not row["moved"]["states_moved"], row
-                if row["verdict"] == "misbind":
-                    assert "'s pact" in row["form"], row
-                    continue
                 assert row["verdict"] == "bound", row
                 assert row["named"] in row["reply"], row
 

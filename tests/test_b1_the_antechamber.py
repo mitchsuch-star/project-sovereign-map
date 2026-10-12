@@ -167,13 +167,31 @@ class TestAnAudienceWaitsInTheAntechamber:
 
     def test_get_retires_a_stale_card_and_says_so(self, world):
         _fire(world, "Massena", "Davout")
-        J.clear_jealousy(world, world.marshals["Massena"], resolved_by_action=False)
+        # A quarrel cooled behind every seam's back (a direct write, as a
+        # pre-S7 save might carry): the GET still asks, retires and says so.
+        world.marshals["Massena"].jealous_of = None
         client = TestClient(M.app)
         with _quiet():
             got = client.get("/marshal_petition").json()
         assert got.get("petition") is None
         assert "no longer presses the matter" in got.get("message", "")
         assert world.pending_marshal_petition is None
+
+    def test_a_cooled_quarrel_retires_its_card_at_once(self, world):
+        """DD1-7 (DD-1 S7, October 11, 2026): `clear_jealousy` retires the
+        standing card the moment the quarrel cools, with the same receipt the
+        GET used to write when it found the card stale — so the live world
+        and a save of it agree, and the GET then finds nothing waiting."""
+        _fire(world, "Massena", "Davout")
+        J.clear_jealousy(world, world.marshals["Massena"], resolved_by_action=False)
+        assert world.pending_marshal_petition is None
+        receipts = [e for e in getattr(world, "_pending_jealousy_turn_events", [])
+                    if e.get("type") == "petition_retired"]
+        assert receipts and "no longer presses the matter" in receipts[-1]["message"], receipts
+        client = TestClient(M.app)
+        with _quiet():
+            got = client.get("/marshal_petition").json()
+        assert got.get("petition") is None
 
     def test_the_rail_row_opens_the_card(self):
         """Source join: the rail's review target is routed to the opener."""

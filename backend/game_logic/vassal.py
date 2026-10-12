@@ -428,7 +428,7 @@ ASSIMILATION_TRUST = 40  # Starting trust for assimilated marshals
 
 def create_vassal_treaty(
     world, lord: str, vassal: str, generosity_bonus: int = 0,
-    terms: list = None,
+    terms: list = None, *, skip_pairs=None,
 ) -> dict:
     """
     Create a vassal via treaty path.
@@ -508,8 +508,8 @@ def create_vassal_treaty(
         from backend.game_logic.coalition import add_threat
         add_threat(world, 5, "treaty_vassalization", target=lord)
 
-    # R48: Reconcile diplomatic conflicts
-    _reconcile_vassal_diplomacy(world, lord, vassal)
+    # R48: Reconcile diplomatic conflicts (+ DD1-8: the client's wars follow the lord's)
+    _reconcile_vassal_diplomacy(world, lord, vassal, skip_pairs=skip_pairs)
 
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event
@@ -575,7 +575,7 @@ def subjugation_refusal(world, lord: str, vassal: str) -> str:
 
 
 def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0,
-                           *, by_treaty: bool = False) -> dict:
+                           *, by_treaty: bool = False, skip_pairs=None) -> dict:
     """
     Create a vassal via conquest path.
 
@@ -654,7 +654,19 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
 
     # Set diplomatic state to VASSAL (R2: centralized setter)
     from backend.game_logic.diplomacy import set_diplomatic_state
-    set_diplomatic_state(world, lord, vassal, "VASSAL", "conquest_vassalization")
+    old_state = set_diplomatic_state(world, lord, vassal, "VASSAL", "conquest_vassalization")
+
+    # DD1-5 (DD-1 S7, October 11, 2026): the typed conquest is an EXIT from
+    # the war, through the one seam every exit uses — the instance restamped
+    # (`cleanup_war_end`), the client pairs that follow the lord's peace
+    # moved with it (`follow_the_lord`). This road never reached either: the
+    # fuzzer read the instance claiming a subjugated pair "at war" for
+    # hundreds of steps. The settlement's ratifier (`by_treaty`) runs both
+    # itself once its whole plan has moved, under its own reason.
+    if not by_treaty and old_state in ("WAR", "ARMISTICE"):
+        from backend.game_logic.diplomacy import cleanup_war_end, follow_the_lord
+        cleanup_war_end(world, world._make_diplo_key(lord, vassal), conclude_objectives=True)
+        follow_the_lord(world, lord, vassal, "PEACE", "conquest_vassalization")
 
     # Coalition threat: +25 for conquest vassalization (§2a). AI-4a step 5:
     # the conquering lord's own slot, whoever wears the crown.
@@ -662,8 +674,8 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
         from backend.game_logic.coalition import add_threat
         add_threat(world, 25, "conquest_vassalization", target=lord)
 
-    # R48: Reconcile diplomatic conflicts
-    _reconcile_vassal_diplomacy(world, lord, vassal)
+    # R48: Reconcile diplomatic conflicts (+ DD1-8: the client's wars follow the lord's)
+    _reconcile_vassal_diplomacy(world, lord, vassal, skip_pairs=skip_pairs)
 
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event
@@ -677,12 +689,28 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     }
 
 
-def _reconcile_vassal_diplomacy(world, lord: str, vassal: str) -> None:
+def _reconcile_vassal_diplomacy(world, lord: str, vassal: str, *,
+                                skip_pairs=None) -> None:
     """R48: Reconcile diplomatic conflicts after vassalization.
 
     - If vassal is at WAR with lord's allies → auto-armistice
     - If vassal is allied with lord's enemies → auto-break to PEACE
+    - DD1-8 (DD-1 S7, October 11, 2026): §70.2's rule read on ENTRY — a
+      client's war is the lord's war. A court taken as a client keeps the
+      wars its lord fights and FOLLOWS him out of the ones he does not: a
+      WAR pair against a court the lord is not at war with goes to the
+      lord's own footing (a truce where the lord stands in one or is that
+      court's ally — the R48 arm above — else peace) through the one exit,
+      unless the client or that court LEADS the instance, which is the
+      client's own war (the fuzzer's I2 reads the same exemption). The
+      rule used to be read only at the lord's treaty roads, so a client
+      taken by an AI lord kept wars the lord never fought. `skip_pairs` are
+      the settlement's own plan rows, which it resolves under its reason.
     """
+    from backend.game_logic.diplomacy import cleanup_war_end, set_diplomatic_state
+    from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
+    skip = set(skip_pairs or ())
+    instances = getattr(world, "war_instances", {}) or {}
     all_nations = world.get_active_nations()  # DLF-11
 
     for other in all_nations:
@@ -691,15 +719,25 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str) -> None:
 
         lord_state = world.get_diplomatic_state(lord, other)
         vassal_state = world.get_diplomatic_state(vassal, other)
+        key = world._make_diplo_key(vassal, other)
 
-        # Vassal at WAR with lord's ally → force ARMISTICE
-        if vassal_state == "WAR" and lord_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
-            from backend.game_logic.diplomacy import set_diplomatic_state
-            set_diplomatic_state(world, vassal, other, "ARMISTICE", "vassal_reconcile")
+        if vassal_state == "WAR" and lord_state != "WAR" and key not in skip:
+            war_id = _find_active_war_instance_for_pair(world, key)
+            instance = instances.get(war_id) if war_id else None
+            leaders = {str((instance or {}).get("attacker_leader") or ""),
+                       str((instance or {}).get("defender_leader") or "")}
+            if vassal in leaders or other in leaders:
+                continue  # the client's own war — it leads it, or is led against
+            followed = ("ARMISTICE"
+                        if lord_state in ("ARMISTICE", "DEFENSIVE_ALLIANCE", "ALLIANCE")
+                        else "PEACE")
+            set_diplomatic_state(world, vassal, other, followed, "vassalage_entry")
+            if followed == "ARMISTICE":
+                world.armistice_cooldowns[key] = 5
+            cleanup_war_end(world, key, conclude_objectives=(followed != "ARMISTICE"))
 
         # Vassal allied with lord's enemy → break to PEACE
         if vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and lord_state == "WAR":
-            from backend.game_logic.diplomacy import set_diplomatic_state
             set_diplomatic_state(world, vassal, other, "PEACE", "vassal_reconcile")
 
 

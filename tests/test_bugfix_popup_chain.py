@@ -661,8 +661,13 @@ class TestCounterOfferFullFlow:
         assert world.pending_diplomatic_dialogue is not None, "Dialogue must be set"
         assert world.incoming_proposal_popup is not None, "Popup must be set"
 
-        # Dialogue should be blocking
-        assert world.pending_diplomatic_dialogue["blocking"] is True
+        # DD1-7 (DD-1 S7, October 11, 2026): a counter is a CURRENT-TURN offer
+        # — it lapses with the turn by type (`lapse_pending_offers`), its popup
+        # says so, and `blocking` has no reader (`is_blocking()` is called by
+        # nothing; it is the stale sweep's keep-across-turns flag). The
+        # producer wrote True and the load migration flipped it to False, so a
+        # save of a counter differed from its load on nothing the player saw.
+        assert world.pending_diplomatic_dialogue["blocking"] is False
 
         # Popup should have correct data shape
         popup = world.incoming_proposal_popup

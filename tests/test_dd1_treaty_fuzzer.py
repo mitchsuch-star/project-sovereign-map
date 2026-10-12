@@ -107,17 +107,21 @@ class TestTheCommittedRecords:
         found = {v["cls"] for rec in records.values() for v in rec["violations"]}
         assert found <= set(ledger), found - set(ledger)
 
-    def test_the_done_when_is_read_and_not_met(self, records):
+    def test_the_done_when_is_read_and_met(self, records):
         """§3.1: 'the fuzzer holds its invariants for 10 seeds x 1,000 steps'.
-        Read here; NOT met on the first reading. Re-seat when Step 2 lands."""
+        NOT met on the first reading (S6: 81 distinct violations in 7
+        classes); MET since DD-1 S7 Slice A (October 11, 2026 — the one exit
+        for a pair, `SYSTEMS_REFERENCE.md` §107). Held at 0 from here."""
         total = sum(len(rec["violations"]) for rec in records.values())
-        assert total > 0, "the done-when is met — re-seat this pin"
+        assert total == 0, {seed: [v["cls"] for v in rec["violations"]]
+                            for seed, rec in records.items() if rec["violations"]}
 
 
 class TestTheLedgerIsARatchet:
     def test_the_ledger_only_shrinks(self, ledger):
-        # The count of classes at the landing (October 11, 2026) — lower-only.
-        assert len(ledger) <= 9, sorted(ledger)
+        # 7 classes at S6's landing, 0 since S7 Slice A (October 11, 2026) —
+        # lower-only: a class landing here again is a regression.
+        assert len(ledger) == 0, sorted(ledger)
         for cls, row in ledger.items():
             assert cls in CLASSES, cls
             assert row["count"] >= 1 and row["examples"], cls

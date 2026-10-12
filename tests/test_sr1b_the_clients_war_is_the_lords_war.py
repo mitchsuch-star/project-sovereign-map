@@ -164,7 +164,10 @@ class TestTheTruce:
         assert _state(w, KOI, "Austria") == "ARMISTICE"
         assert w.armistice_cooldowns[w._make_diplo_key(KOI, "Austria")] == 5
         _, meta = _pair_meta(w, KOI, "Austria")
-        assert meta["pair_status"] == "war"   # a truce resolves nothing yet
+        # DD1-5 (DD-1 S7, October 11, 2026): a truce resolves nothing, and the
+        # instance now SAYS so — the pair stays active, paused. (Pinned "war"
+        # until S7: the bilateral truce never restamped the instance.)
+        assert meta["pair_status"] == "armistice"
 
     def test_the_clients_truce_thaws_with_the_lords(self):
         w = _boot()

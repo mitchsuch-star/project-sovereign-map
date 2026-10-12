@@ -864,15 +864,7 @@ def attach_pair_to_war_instance(
     for nation, side in ((attacker, a_side), (defender, d_side)):
         if nation not in active_participants:
             active_participants.append(nation)
-        participant_meta.setdefault(
-            nation,
-            {
-                "side": side,
-                "joined_turn": turn,
-                "exited_turn": None,
-                "entry_path": entry_path,
-            },
-        )
+        _rejoin_participant_meta(participant_meta, nation, side, turn, entry_path)
         # Slice B3: open contribution episode for this participant. The
         # helper is idempotent on an already-active episode and re-opens a
         # fresh episode at the CURRENT attach turn after a prior exit
@@ -896,6 +888,12 @@ def attach_pair_to_war_instance(
     # is carried across the restamp (declare_war re-stamps it right after).
     _reopened = (int(turn) if str(existing_meta.get("pair_status") or "") == "resolved"
                  else existing_meta.get("reopened_turn"))
+    if str(existing_meta.get("pair_status") or "") == "resolved":
+        # DD1-10 (DD-1 S7): a reopened pair is active again — it leaves the
+        # resolved list it sat on (the fuzzer's I5 read it on both).
+        _resolved = instance.setdefault("resolved_diplo_keys", [])
+        while pair in _resolved:
+            _resolved.remove(pair)
     meta[pair] = {
         "attacker": attacker,
         "defender": defender,
@@ -968,15 +966,7 @@ def attach_participant_to_war_instance(
         target_list.append(nation)
     if nation not in active_participants:
         active_participants.append(nation)
-    participant_meta.setdefault(
-        nation,
-        {
-            "side": side,
-            "joined_turn": turn,
-            "exited_turn": None,
-            "entry_path": entry_path,
-        },
-    )
+    _rejoin_participant_meta(participant_meta, nation, side, turn, entry_path)
     # Slice B3: open contribution episode for the new participant. Idempotent
     # on re-attach; a previously-exited participant gets a fresh episode at
     # the CURRENT attach turn (spec §7.5 re-entry shape).
@@ -990,6 +980,32 @@ def attach_participant_to_war_instance(
     if hasattr(world, "invalidate_war_instance_indexes"):
         world.invalidate_war_instance_indexes()
     return {"ok": True, "war_id": war_id, "instance": instance}
+
+
+def _rejoin_participant_meta(participant_meta: Dict[str, Any], nation: str,
+                             side: str, turn: int, entry_path: str) -> None:
+    """DD1-10 (DD-1 S7, October 11, 2026): the participant row on attach.
+    A new participant gets a fresh row; a court that LEFT this war and
+    returns (a re-declaration on a pair the instance had resolved) is back
+    on a side — its exit stamps go, its first `joined_turn` is kept (the
+    pair meta keeps its first entry the same way), and the contribution
+    store, untouched here, keeps the closed episode and opens a fresh one.
+    The old `setdefault` left a returning court reading as both active and
+    exited (the fuzzer's I5 `active_but_exited`)."""
+    row = participant_meta.get(nation)
+    if isinstance(row, dict):
+        row["side"] = side
+        row["exited_turn"] = None
+        row.pop("exit_path", None)
+        row.setdefault("joined_turn", turn)
+        row.setdefault("entry_path", entry_path)
+        return
+    participant_meta[nation] = {
+        "side": side,
+        "joined_turn": turn,
+        "exited_turn": None,
+        "entry_path": entry_path,
+    }
 
 
 def _pair_nations(pair: str) -> Tuple[Optional[str], Optional[str]]:

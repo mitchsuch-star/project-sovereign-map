@@ -69,7 +69,8 @@ three resolutions. The head of every session from S2 on takes one lever batch
 | ~~S2~~ ✅ **LANDED October 9, 2026** | **CODE-4** (record `CODE_HEALTH_PLAN.md` §CODE-4) + **CODE-1 batch 1** (record §CODE-1; 20 of the batch's 46 levers retired — the 26 that landed in October keep their session; `tools/retire_lever.py` + the ratchet pin) | The docs diet (CLAUDE.md → rules + a one-screen state; STATUS/BUG_FIXES history to archives, the census tool reading both) + the lever-retirement tool and its first 100 levers | 1.0 | Pays back every session after it. The tool is proven on small modules before the monsters. |
 | ~~S3~~ ~~S4~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; **S3b the same day: the findings fixed — the ledger 161 → 30, the blind set 162 / 170 of 300, 0 executed-other-than-meant**; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 IN PROGRESS: part 1 ✅ LANDED October 10, 2026** (the Reading + the exit predicate + the vocabulary — §3.0 "S4 landing record, part 1": the ledger 30 → 0, the third set re-read 162 → 177, the sixteen command rows struck); the HOLD arm re-read 12 → 18 of 20; **part 2 ✅ the measurement, the same day: the FRESH fourth-author set reads keyless 119 of 300 (39.7 %) / keyed 134 — the ≥ 85 % done-when NOT met, the worklist DD0-11 … DD0-17 filed; part 3 ✅ the same day: both spines split byte-identical, the slot reader, DD0-11 … DD0-17 fixed, the fourth set re-read 119 → 145 / 141 (two runs, the dice); the FIFTH fresh author reads 125 of 300 as meant (41.7 %) / 241 read right by hand (80.3 %) — the done-when NOT met a second time; **RULED October 11, 2026: the instrument is RE-BASED — the done-when reads READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set, `as_meant` beside (§3.0 the ruling line); part 4 ✅ LANDED October 11, 2026 — the instrument (`unrehearsed_census.py --by-hand`, a hand file beside each record), DD0-18 and DD0-19 fixed (the fifth and sixth sets re-read 289 and 290 of 300 by hand, 0 executions), and the SEVENTH fresh author reads 255 of 300 by hand (85.0 %) with 0 executed-other-than-meant — MET at the floor; DD0-20 (its register) OPEN, owned by S5's head. S4 STRUCK.** | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
 | S5–S6 (▶ IN PROGRESS: **the head, CODE-1 batch 3, ✅ LANDED October 11, 2026** — 66 of the four files' 78 levers retired, 12 October ones kept; levers 562 → 496; record `CODE_HEALTH_PLAN.md` §CODE-1 BATCH 3, which also files batch 5 for the 116 levers in the game_logic modules over 3,000 lines the plan had left unnamed; **DD0-20 ✅ LANDED the same day** — the seventh set re-read 255 → 294 of 300 by hand keyless (98.0 %), keyed 281 → 296, 0 executed-other-than-meant (§3.0 "DD-0 S5 landing record"); **DD-1 S6 THE INSTRUMENT ✅ LANDED October 11, 2026** — the sign-ability sweep (A = 11, B = 2), the treaty fuzzer (81 distinct violations in 7 classes over 10 × 1,000) and the answer-binding shuffle (4 misbinds, one class) built and read, DD1-1 … DD1-12 filed (§3.1 "DD-1 S6 landing record"); **Step 2 the structural fix ▶ NEXT**) | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
-| S7 | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
+| S7 (▶ IN PROGRESS: **Slice A ✅ LANDED October 11, 2026** — one exit for a pair: DD1-5 … DD1-11 fixed at their seams, the fuzzer **81 → 0** over 10 × 1,000 + the smoke seed, the shuffle **4 → 0** over 312 rows, both ledgers emptied, `BASELINE_SERIES` byte-identical; §3.1 "DD-1 S7 landing record, Slice A"; rules `SYSTEMS_REFERENCE.md` §107. **Slice B `can_sign` ▶ NEXT** — the review pause is before it, it rewrites the ratifier's spine) | **DD-1 Step 2 THE STRUCTURAL FIX** | Slice A: `cleanup_war_end` the one exit (every road restamps the instance), the client rule on ENTRY, the re-entry's stamps, the purpose on re-war, the round trip's three producers, the declaration's words, the display map's nouns. Slice B: `treaty.can_sign(world, letter) → Verdict` read by every surface AND the ratifier; DD1-1 … DD1-4 + DD1-12 + SFR-B1 / B2 / B5 / D34; the sweep 11 / 2 → 0 / 0 | 1.0 | DD-1 was sized 1.5 sessions; Step 2 takes this slot and the rows below move one down. |
+| S7b | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
 | S8 | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
 | S9 | **UXR-2** | The layout law: every panel anchors to a viewport fraction or clamps; a grip on the five big screens; the tutorial card resizable and theme-sized; the 268 font-size overrides reduced to named theme sizes | 1.0 | "Only some boxes are adjustable." |
 | S10 | **CODE-2b** | The monster functions the two deep dives did not absorb: `execute_command`, `format_event_oneliner`, `_execute_strategic_command` (one each, as S8) | 1.0 each | DD-0 takes `_parse_with_mock_chain` + `_execute_one`; DD-1 takes `_process_dialogue_choice` + `_ratify_treaty`. |
@@ -673,6 +674,75 @@ re-score.*
   step; `settlement_actions` imports `ratify_settlement_confirm` by name, so
   both bindings are patched; the console's cp1252 chokes on the arrows in the
   engine's own messages — every tool reconfigures stdout to UTF-8.
+
+#### DD-1 S7 landing record, Slice A — one exit for a pair (October 11, 2026)
+
+*Step 2b and the fuzzer's and shuffle's rows, fixed at their seams and read
+back by the instruments as they stand; Slice B (`can_sign`, Step 2a) follows
+the review pause. Rules `SYSTEMS_REFERENCE.md` §107; rows DD1-5 … DD1-11
+FIXED in `BUG_FIXES.md` §DD-1 S6 (each with its re-read as evidence); pins
+`tests/test_dd1_s7_one_exit.py` (nine); the instruments' own pins re-seated
+to 0 (`tests/test_dd1_treaty_fuzzer.py`, `tests/test_dd1_answer_binding_shuffle.py`);
+one older pin re-seated (`test_sr1b…::test_the_lords_truce_is_the_clients_truce`,
+"war" → "armistice"). No lever, no `.gd`, no re-score; `BASELINE_SERIES`
+byte-identical. The §2 table: DD-1 was sized 1.5 sessions, so Step 2 takes
+the S7 slot and CODE-3 + DD-C move to S7b.*
+
+- **The reading.** `tools/treaty_fuzzer.py`: **81 → 0** distinct violations
+  over 10 × 1,000 + the 120-step smoke seed (every record re-run, the ledger
+  `tests/data/treaty_fuzzer_known_violations.json` emptied); I3 still 0
+  writes outside the setter; the refusal tally no longer carries a raw code.
+  `tools/answer_binding_shuffle.py`: **4 → 0** misbinds over 312 rows (the
+  record re-run, the ledger emptied). The sweep untouched (A = 11 / B = 2 —
+  Slice B's rows).
+- **The one exit** (§107.1): `cleanup_war_end` restamps the pair's instance
+  from the state the setter wrote — ARMISTICE pauses the pair
+  (`mark_pair_armistice`), a peace resolves it — on every road that already
+  passed through it; the typed conquest and the forced-alliance arm (its
+  setter now first) join it; the cheat's own mark retired (DD1-5, I1
+  ownership 14 → 0).
+- **The client rule on ENTRY** (§107.2): `_reconcile_vassal_diplomacy` reads
+  §70.2 when a court becomes a client — its wars with courts the lord does not
+  fight follow the lord's footing through the exit, its own war (it or that
+  court leads) excepted, the settlement's plan rows skipped; reason
+  `vassalage_entry` is a signed peace (DD1-8, I2 4 → 0).
+- **The re-entry** (§107.3): a reopened pair leaves the resolved list; a
+  returning court's row is merged, exit stamps cleared, first `joined_turn`
+  kept (DD1-10, I5 3 → 0). **The purpose** (§107.4): live = not concluded;
+  the load migration stays dormant for pre-S7 saves — the user's call, the
+  default taken (DD1-6, I1 purpose 5 → 0).
+- **The round trip** (§107.5, DD1-7): the row's popup diagnosis was wrong —
+  `from_dict` restored the slots; the load pass retired what the live world
+  kept stale. Three producers fixed, no load change: the letter-popup slots
+  read against the manager; the counter producers write `blocking: False` (a
+  current-turn offer by type; `blocking` has no reader); a cooled quarrel
+  retires its standing card on the live world (I6 55 → 0). Nothing re-homed
+  to DD-C. The hook's first run caught four older pins that held the OLD
+  behaviour (the counter's `blocking` True; the GET as the first seam to
+  retire a cooled card; a stale letter slot survivable on the live world;
+  F6 / SR-4c's replacement bypass keyed on a stale card still standing) —
+  each re-seated with its rule, the bypass keyed on the settlement record
+  instead, and the load pass reading the raw slot so a pre-S7 save keeps its
+  receipt.
+- **The words** (§107.6, DD1-11): `backend/game_logic/treaty.py` born with
+  `declaration_refusal_words` — "Bavaria fights beside us in the war with
+  Austria — end that war first". **The nouns** (§107.7, DD1-9):
+  `_CLOSED_MATTER_NOUNS` ∪ the words of `PROPOSAL_TYPE_DISPLAY`.
+- **Found fixing, kept:** `_ratify_treaty` is `WorldState._ratify_treaty`
+  (`world_state.py`), not the executor's; its refusal dict is prose only. A
+  synthetic fixture whose states table disagrees with its instance must keep
+  the old behaviour — the exit trusts only an ARMISTICE written or
+  `conclude_objectives`, nothing defensive beyond that. A re-war on a
+  resolved pair opens a FRESH instance unless the pair is re-attached to the
+  old one (`attach_pair_to_war_instance` is the reopening, the fuzzer's
+  road). The fuzzer's I2 exempts a war the client OR the court leads — the
+  entry rule mirrors it verbatim. The ally petition speaks `available` and
+  the client petition `enabled`, and the sweep reads `enabled` — Slice B's
+  `stamp_option` writes both from one verdict.
+- **Slice B's worklist, unchanged:** DD1-1 … DD1-4, DD1-12; SFR-B1 / B2 /
+  B5 / D34 closed by it; SFR-B3 / B4 / D43 already homed (ending /
+  ai_aliveness / narration); Step 3's verbs (SFR-D28 announce half, D40, D42)
+  for S8's head.
 
 ### DD-A — "Can a new player read it?" (= UXR-0 + UXR-1, S1)
 

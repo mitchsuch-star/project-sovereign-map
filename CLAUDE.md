@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 11, 2026).** The three most recent landed rows:
-- **S6 (October 11, 2026) — DD-1 THE INSTRUMENT BEFORE THE FIX — LANDED, nothing fixed.** The sign-ability sweep (`tools/sign_ability_sweep.py`: 2,830 promises dry-run through the real ratifier — A = 11, all letters; B = 2), the treaty fuzzer (`tools/treaty_fuzzer.py`: 10 × 1,000 steps, 81 violations in 7 classes) and the answer-binding shuffle (`tools/answer_binding_shuffle.py`: 312 rows, 4 misbinds); **DD1-1 … DD1-12 filed** (`BUG_FIXES.md` §DD-1 S6; `SYSTEMS_REFERENCE.md` §106). **NEXT = DD-1 Step 2 `can_sign`** (`PRE_DEPLOY_PLAN.md` §3.1).
-- **S5 head (October 11, 2026) — CODE-1 batch 3 + DD0-20 LANDED.** 66 of 78 levers retired (562 → 496; batch 5 filed); the seventh set re-read 255 → 294 of 300 by hand keyless (98.0 %), 0 executions (`SYSTEMS_REFERENCE.md` §105).
-- **S4 — DD-0 THE COMMAND ROAD — ✅ STRUCK October 11, 2026** (`SYSTEMS_REFERENCE.md` §100–§104). **RULED: the done-when = READ RIGHT BY HAND ≥ 85 % keyless + 0 executed-other-than-meant on a FRESH set**; the seventh author 255 of 300, 0 — MET (`PRE_DEPLOY_PLAN.md` §3.0).
+- **S7 Slice A (October 11, 2026) — DD-1 STEP 2 "ONE EXIT FOR A PAIR" — LANDED.** `cleanup_war_end` restamps the instance from the state the setter wrote (ARMISTICE pauses, a peace resolves) on every exit road; the client rule read on ENTRY; the re-entry's stamps; the purpose on re-war; DD1-7's three producers; the declaration's words (`treaty.py`); the display map's nouns. **DD1-5 … DD1-11 FIXED; the fuzzer 81 → 0, the shuffle 4 → 0** (`SYSTEMS_REFERENCE.md` §107; pins `tests/test_dd1_s7_one_exit.py`). **NEXT = Slice B `treaty.can_sign`** — the review pause is before it (`PRE_DEPLOY_PLAN.md` §3.1).
+- **S6 (October 11, 2026) — DD-1 THE INSTRUMENT BEFORE THE FIX — LANDED, nothing fixed.** The sweep A = 11 / B = 2, the fuzzer 81 in 7 classes, the shuffle 4; DD1-1 … DD1-12 filed (§106).
+- **S5 head (October 11, 2026) — CODE-1 batch 3 + DD0-20 LANDED.** 66 of 78 levers retired (562 → 496); the seventh set 294 of 300 by hand, 0 executions (§105). **S4 DD-0 STRUCK** (§100–§104; the ruling in `PRE_DEPLOY_PLAN.md` §3.0).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 

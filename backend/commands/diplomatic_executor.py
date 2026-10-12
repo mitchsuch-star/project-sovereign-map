@@ -7705,7 +7705,9 @@ class DiplomaticExecutor:
                 "proposal_type": context.get("proposal_type", ""),
             },
             "turn_created": int(world.current_turn),
-            "blocking": True,
+            # DD1-7 (DD-1 S7): a current-turn offer, non-blocking by type —
+            # see the sibling producer in `WorldState._process_proposal_in_transit`.
+            "blocking": False,
             "popup_payload": popup_payload,
         })
         world.incoming_proposal_popup = copy.deepcopy(popup_payload)

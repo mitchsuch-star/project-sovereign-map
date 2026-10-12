@@ -2894,9 +2894,33 @@ class WorldState:
     # Aug 2026 health-check audit: this was the ONE PopupQueue slot with no
     # serialization pair — an unopened settlement offer's auto-show card was
     # dropped on save/load (the offer itself survived in the mailbox).
+    def _letter_popup_slot(self, slot: str) -> Optional[Dict]:
+        """DD1-7 (DD-1 S7, October 11, 2026): a letter's modal is shown only
+        while the dialogue manager still holds its dialogue. The slot is
+        written when a letter becomes current and was never cleared when
+        the letter was answered or lapsed — fifty-nine pop sites, none of
+        which owns the slot — so a save carried the modal of an answered
+        letter and the load-time pass retired it with a receipt the live
+        world never saw (the fuzzer's I6, 32 rows). Read right here: a slot
+        whose `dialogue_id` the manager no longer holds is stale, cleared
+        on the read, and reads None on both sides of the round trip. A
+        payload without an id (a legacy save) is served as it stands."""
+        popup = self._popup_queue.get(slot)
+        if not isinstance(popup, dict):
+            return popup
+        did = popup.get("dialogue_id")
+        manager = getattr(self, "_dialogue_manager", None)
+        if did is None or manager is None:
+            return popup
+        for dialogue in [manager.peek()] + list(manager.iter_queue()):
+            if isinstance(dialogue, dict) and str(dialogue.get("dialogue_id")) == str(did):
+                return popup
+        self._popup_queue.set(slot, None)
+        return None
+
     @property
     def incoming_settlement_offer_popup(self) -> Optional[Dict]:
-        return self._popup_queue.get("incoming_settlement_offer_popup")
+        return self._letter_popup_slot("incoming_settlement_offer_popup")
 
     @incoming_settlement_offer_popup.setter
     def incoming_settlement_offer_popup(self, value: Optional[Dict]):
@@ -2912,7 +2936,7 @@ class WorldState:
 
     @property
     def incoming_proposal_popup(self) -> Optional[Dict]:
-        return self._popup_queue.get("incoming_proposal_popup")
+        return self._letter_popup_slot("incoming_proposal_popup")
 
     @incoming_proposal_popup.setter
     def incoming_proposal_popup(self, value: Optional[Dict]):
@@ -9924,7 +9948,11 @@ class WorldState:
                 ("incoming_proposal_popup", "from_nation", "the envoy"),
                 ("incoming_settlement_offer_popup", "proposer_nation",
                  "the settlement offer")):
-            popup = getattr(self, attr, None)
+            # DD1-7 (DD-1 S7): the RAW slot, not the property — the property
+            # reads a stale slot as None (and clears it) before this pass
+            # could write its receipt. A fresh save never carries a stale
+            # slot now; a pre-S7 save still gets its receipt here.
+            popup = self._popup_queue.get(attr)
             if not isinstance(popup, dict):
                 continue
             court = str(popup.get(court_key) or "")
@@ -12210,7 +12238,15 @@ class WorldState:
                         "decision_reason": decision_reason,
                     },
                     "turn_created": int(self.current_turn),
-                    "blocking": True,
+                    # DD1-7 (DD-1 S7): a counter is a CURRENT-TURN offer —
+                    # it lapses with the turn by type
+                    # (`lapse_pending_offers`), its popup says so, and the
+                    # load migration normalises every such item to
+                    # `blocking: False`. `True` here made a save of it
+                    # differ from its load on nothing the player could see
+                    # (`is_blocking()` has no reader; `blocking` is the
+                    # stale sweep's keep-across-turns flag).
+                    "blocking": False,
                     "popup_payload": popup_payload,
                 }
                 # FA-17 (slice 10): the answer to the player's OWN 3-DP
@@ -13108,13 +13144,14 @@ class WorldState:
                     continue
                 fa_key = self._make_diplo_key(fa_imposer, fa_target)
                 fa_state = self.get_diplomatic_state(fa_imposer, fa_target)
-                if fa_key != diplo_key and fa_state in ("WAR", "ARMISTICE"):
-                    _cleanup_war_end(
-                        self,
-                        fa_key,
-                        conclude_objectives=(fa_state != "ARMISTICE"),
-                    )
+                # DD1-5 (DD-1 S7): the setter FIRST, the exit after it — the
+                # one exit reads the state the setter wrote (ALLIANCE) and
+                # resolves the pair on its instance; this arm used to clean
+                # up while the pair still read WAR, and a forced alliance
+                # out of a truce left the instance claiming the pair paused.
                 _set_ds(self, fa_imposer, fa_target, "ALLIANCE", "forced_alliance")
+                if fa_key != diplo_key and fa_state in ("WAR", "ARMISTICE"):
+                    _cleanup_war_end(self, fa_key, conclude_objectives=True)
                 self.nation_relations[fa_key] = 0
                 includes_cs = bool(
                     fa_clause.get("includes_continental_system", True)

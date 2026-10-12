@@ -112,6 +112,7 @@ SIGNED_PEACE_REASONS = frozenset({
     "mutual_exhaustion",            # the exhausted-pair exit (an AI white peace)
     "treaty_vassalization",         # a court submitting by signed clause
     "conquest_vassalization",       # a beaten court subjugated (GEV-1's gate)
+    "vassalage_entry",              # DD1-8: a new client's wars follow its lord's peace
 })
 
 # ── Defaults (the scenario's block overrides; `cfg`) ──────────────────────
