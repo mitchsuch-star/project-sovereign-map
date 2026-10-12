@@ -52,6 +52,9 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     # card's "Hear him" chip and the on-demand fetch of the waiting card.
     "marshal_management.gd",
     "api_client.gd",
+    # DD-C (Pre-Deploy S7b, October 12, 2026): the Load menu's damaged rows —
+    # extended in the slice that touched it, as §7 asks.
+    "load_dialog.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"

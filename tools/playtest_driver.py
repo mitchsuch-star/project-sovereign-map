@@ -3930,6 +3930,8 @@ def run(args):
         # the attribution REPRO_L's "archive a fresh set" step exists for.
         "driver_revision": driver_revision(),
         "reload_every": int(getattr(args, "reload_every", 0) or 0),
+        # DD-C: recorded only when on, so no existing run's record changes.
+        **({"save_faults": True} if getattr(args, "save_faults", False) else {}),
         **provenance_meta,
     })
     answerer = Answerer(transport, digest, policy, args.strict)
@@ -4006,6 +4008,10 @@ def run(args):
     expeditions = ExpeditionTracker()          # FA-85
     advisor = MissionAdvisor()                 # IQ-4 S4 (`--missions advisor`)
     reload_every = int(getattr(args, "reload_every", 0) or 0)
+    # DD-C (Pre-Deploy S7b): `getattr`, because tests build this Namespace by
+    # hand; in-process only (the probes patch the backend's own modules).
+    save_faults_on = bool(getattr(args, "save_faults", False)) and not args.http
+    fault_rows: list = []
     # GE-1 review round: endings already on the record when the run starts
     # (a `--from-save` past the Verdict) are not this run's news.
     try:
@@ -4331,6 +4337,20 @@ def run(args):
             reload_round_trip(transport, digest, answerer, args.name,
                               current_turn, args.strict)
 
+        # DD-C (Pre-Deploy S7b): one save/load fault at the same boundary —
+        # injected, checked to reach the player and the log, reverted inside
+        # the probe, then a clean autosave and its round trip.
+        if save_faults_on:
+            from tools import save_faults as _save_faults
+            _fault = _save_faults.probe(transport, current_turn, len(fault_rows))
+            fault_rows.append(_fault)
+            digest.note(_save_faults.digest_line(_fault))
+
+    if save_faults_on:
+        from tools import save_faults as _save_faults
+        (out_dir / "save_faults.json").write_text(json.dumps(
+            {"rows": fault_rows, "summary": _save_faults.summary(fault_rows)},
+            indent=1, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
     expeditions.report(digest)                 # FA-85
     if THE_DIGEST_RECORDS_THE_LIVE_PARSER and args.llm != "mock":
         # SF-R (Step 8): which parser a live run actually reached — the key's
@@ -4937,6 +4957,12 @@ def main():
     ap.add_argument("--reload-every", dest="reload_every", type=int, default=0,
                     help="FA-102: save+load every N turns at the turn boundary "
                          "(Mode A only); the re-raised questions are digested")
+    ap.add_argument("--save-faults", dest="save_faults", action="store_true",
+                    help="DD-C (Pre-Deploy S7b): one save/load fault a turn at "
+                         "the turn boundary — a full disk, an unserializable "
+                         "marshal field, a truncated file — each checked to "
+                         "reach the player and the log; writes save_faults.json "
+                         "(Mode A only; tools/save_faults.py)")
     ap.add_argument("--cheats", action="store_true",
                     help="arm DEBUG_MODE for the run (cheat commands work)")
     ap.add_argument("--strict", action="store_true",

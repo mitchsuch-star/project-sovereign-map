@@ -29,6 +29,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field  # noqa: F401
 
+from backend import errors as _errors  # CODE-3: `report` is a local name below
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
 from backend.commands.dialogue_routing import (
@@ -40,7 +41,7 @@ from backend.nation_config import DEFAULT_PLAYER_NATION, get_player_nation
 from backend.models.intel import FULL  # noqa: E402, F811 — used by _filter_enemy_phase_by_visibility
 from backend.commands.meta_executor import _filter_tactical_events_by_fog
 import backend.save_manager as save_manager
-from backend.save_manager import autosave, save_game, load_game, list_saves, delete_save
+from backend.save_manager import autosave, save_game, load_game, list_saves, delete_save, scan_saves
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # ════════════════════════════════════════════════════════════
@@ -538,7 +539,8 @@ def _displayed_threat(world) -> int:
     try:
         from backend.game_logic.coalition import displayed_threat
         return int(displayed_threat(world))
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "main._displayed_threat: import backend.game_logic.coalition")
         return int(getattr(world, 'threat_level', 0) or 0)
 
 
@@ -598,8 +600,8 @@ def _pending_notifications(world) -> list:
     try:
         from backend.game_logic.dispatch import restate_counter_punch_notices
         restate_counter_punch_notices(world)
-    except Exception:  # pragma: no cover - the rail is display
-        pass
+    except Exception as exc:  # pragma: no cover - the rail is display
+        _errors.report(exc, "main._pending_notifications: import backend.game_logic.dispatch")
     return world.notifications.get_pending()
 
 
@@ -1009,7 +1011,8 @@ def _marshal_audience(world):
     try:
         from backend.game_logic.jealousy import audience_summary
         return audience_summary(world)
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "main._marshal_audience: import backend.game_logic.jealousy")
         return None
 
 
@@ -1021,7 +1024,8 @@ def _pending_marshal_decisions(world) -> list:
     from backend.commands.strategic import pending_marshal_decisions
     try:
         return list(pending_marshal_decisions(world))
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "main._pending_marshal_decisions: list / pending_marshal_decisions")
         return []
 
 
@@ -1039,7 +1043,8 @@ def _pending_lapsing_petitions(world) -> list:
     from backend.game_logic.mailbox_payloads import lapsing_petitions
     try:
         rows = lapsing_petitions(world, str(getattr(world, "player_nation", "France")))
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "main._pending_lapsing_petitions: lapsing_petitions / str")
         return []
     out = []
     for row in rows or []:
@@ -1167,8 +1172,8 @@ def _forced_march_entry(chain: list[dict], world) -> dict:
         if world.get_region_intel(origin).visibility == FULL:
             forced["from"] = origin
             route = [origin] + route
-    except Exception:
-        pass
+    except Exception as exc:
+        _errors.report(exc, "main._forced_march_entry: world.get_region_intel")
     merged["forced_march"] = forced
     loss_note = f", {losses:,} lost on the march" if losses > 0 else ""
     merged["message"] = (
@@ -1496,7 +1501,8 @@ def _addressed_lost_marshal_refusal(command_text: str, world):
                 )
                 bench = first_affordable_commission(
                     world, world.player_nation)
-            except Exception:
+            except Exception as exc:
+                _errors.report(exc, "main._addressed_lost_marshal_refusal: import backend.game_logic.recruitment")
                 bench = None
             if bench is not None:
                 line += (f" The Marshalate holds men yet — "
@@ -2043,8 +2049,8 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
         _dm = world.dialogue_manager
         if _dm.is_hard_stop() and world.pending_diplomatic_dialogue:
             response["deferred_dialogue"] = world.pending_diplomatic_dialogue
-    except Exception:
-        pass
+    except Exception as exc:
+        _errors.report(exc, "main._apply_command_popup_contract: world.dialogue_manager")
     # FA slice 6 (FA-5, P1): the end-turn response never carried the
     # marshal petition — the deferral above skipped `_include_popup_
     # passthroughs`, so an end-turn-only stretch never delivered the card,
@@ -2074,8 +2080,8 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
                 retire_petition(world, _petition,
                                 petition_retirement_reason(_petition, world))
             world._popup_queue.clear_type("pending_marshal_petition")
-    except Exception:
-        pass
+    except Exception as exc:
+        _errors.report(exc, "main._apply_command_popup_contract: world._popup_queue.get")
 
 
 def _finalize_command_notifications(response: dict, world) -> None:
@@ -4748,12 +4754,13 @@ def execute_command(request: CommandRequest):
         _apply_command_result_layers(response, result, world)
         return response
     except Exception as e:
-        print(f"[ERROR]: {e}")
+        _errors.report(e, "main.execute_command: the route", every=True)
         import traceback
         traceback.print_exc()
         return build_base_response(
             world, success=False, message=f"Error: {str(e)}",
-            action_info={"remaining": int(world.actions_remaining)})
+            action_info={"remaining": int(world.actions_remaining)},
+            **_errors.debug_fields(e, "main.execute_command: the route", DEBUG_MODE))
 
 
 @app.get("/status")
@@ -4884,11 +4891,12 @@ def marshal_petition_response(request: MarshalPetitionResponse):
         response = _build_result_response(result, world)
         return response
     except Exception as e:
-        print(f"[ERROR] handling marshal petition response: {e}")
+        _errors.report(e, "main.marshal_petition_response: the route", every=True)
         import traceback
         traceback.print_exc()
         return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+            world, success=False, message=f"Error: {str(e)}",
+            **_errors.debug_fields(e, "main.marshal_petition_response: the route", DEBUG_MODE))
 
 
 @app.post("/respond_to_objection")
@@ -4911,11 +4919,12 @@ def respond_to_objection(request: ObjectionResponse):
                 game_over=True, victory=world.victory)
         return _respond_to_objection_sync(request.choice)
     except Exception as e:
-        print(f"[ERROR] handling objection response: {e}")
+        _errors.report(e, "main.respond_to_objection: the route", every=True)
         import traceback
         traceback.print_exc()
         _resp = build_base_response(
-            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False)
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main.respond_to_objection: the route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 
@@ -5021,11 +5030,12 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
 
         return response
     except Exception as e:
-        print(f"[ERROR] handling objection response: {e}")
+        _errors.report(e, "main._respond_to_objection_sync: the route", every=True)
         import traceback
         traceback.print_exc()
         _resp = build_base_response(
-            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False)
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main._respond_to_objection_sync: the route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 
@@ -5051,11 +5061,12 @@ async def respond_to_diplomatic_dialogue(request: dict):
             dialogue_id=request.get("dialogue_id"),
         )
     except Exception as e:
-        print(f"[ERROR] handling diplomatic dialogue response: {e}")
+        _errors.report(e, "main.respond_to_diplomatic_dialogue: the route", every=True)
         import traceback
         traceback.print_exc()
         return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+            world, success=False, message=f"Error: {str(e)}",
+            **_errors.debug_fields(e, "main.respond_to_diplomatic_dialogue: the route", DEBUG_MODE))
 
 
 def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
@@ -5222,11 +5233,12 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
             response["error_display"] = result["error_display"]
         return response
     except Exception as e:
-        print(f"[ERROR] handling diplomatic dialogue response: {e}")
+        _errors.report(e, "main._respond_to_dialogue_sync: the route", every=True)
         import traceback
         traceback.print_exc()
         return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+            world, success=False, message=f"Error: {str(e)}",
+            **_errors.debug_fields(e, "main._respond_to_dialogue_sync: the route", DEBUG_MODE))
 
 
 @app.post("/respond_to_diplomatic_objection")
@@ -5257,11 +5269,12 @@ def respond_to_diplomatic_objection(request: DiplomaticObjectionResponse):
             response["awaiting_diplomatic_response"] = True
         return response
     except Exception as e:
-        print(f"[ERROR] handling diplomatic objection response: {e}")
+        _errors.report(e, "main.respond_to_diplomatic_objection: the route", every=True)
         import traceback
         traceback.print_exc()
         return build_base_response(
-            world, success=False, message=f"Error: {str(e)}")
+            world, success=False, message=f"Error: {str(e)}",
+            **_errors.debug_fields(e, "main.respond_to_diplomatic_objection: the route", DEBUG_MODE))
 
 
 @app.post("/capture_choice")
@@ -5303,11 +5316,12 @@ def capture_choice(request: CaptureChoiceResponse):
         _fill_popup_keys_without_draining(response)
         return response
     except Exception as e:
-        print(f"ERROR handling capture choice: {e}")
+        _errors.report(e, "main.capture_choice: the route", every=True)
         import traceback
         traceback.print_exc()
         _resp = build_base_response(
-            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False)
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main.capture_choice: the route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 
@@ -5392,11 +5406,12 @@ def respond_to_redemption(request: RedemptionResponse):
         _fill_popup_keys_without_draining(response)
         return response
     except Exception as e:
-        print(f"[ERROR] handling redemption response: {e}")
+        _errors.report(e, "main.respond_to_redemption: the route", every=True)
         import traceback
         traceback.print_exc()
         _resp = build_base_response(
-            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False)
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main.respond_to_redemption: the route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 
@@ -5481,11 +5496,12 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         _carry_combat_fields(response, result)
         return response
     except Exception as e:
-        print(f"[ERROR] handling Glorious Charge response: {e}")
+        _errors.report(e, "main.respond_to_glorious_charge: the route", every=True)
         import traceback
         traceback.print_exc()
         _resp = build_base_response(
-            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False)
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main.respond_to_glorious_charge: the route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 
@@ -5567,11 +5583,12 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         _attach_answered_relay(response, result, _relay.pop(world))
         return response
     except Exception as e:
-        print(f"[ERROR] handling strategic response: {e}")
+        _errors.report(e, "main.handle_strategic_response: the route", every=True)
         import traceback
         traceback.print_exc()
         _resp = build_base_response(
-            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False)
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main.handle_strategic_response: the route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 
@@ -5815,10 +5832,17 @@ async def save_endpoint(request: SaveRequest):
         _fill_popup_keys_without_draining(response)
         return response
     except Exception as e:
-        print(f"[ERROR] handling save: {e}")
+        _errors.report(e, "main.save_endpoint: the save route", every=True)
+        # The stack stays on the console too: a route that fails is a crash,
+        # and the score instrument's F2 reads "Traceback" in an arm's log.
         import traceback
         traceback.print_exc()
-        _resp = build_base_response(world, success=False, message=f"Save failed: {str(e)}", include_popup_passthroughs=False)
+        _resp = build_base_response(
+            world, success=False,
+            message=(f"Save failed — an unexpected error stopped it "
+                     f"({type(e).__name__}). The server log has the details."),
+            include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main.save_endpoint: the save route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 
@@ -5872,10 +5896,11 @@ async def new_game_endpoint(request: Optional[NewGameRequest] = None):
             morning_dispatch=_readable_dispatch(new_world),
         )
     except Exception as e:
-        print(f"[ERROR] handling new_game: {e}")
+        _errors.report(e, "main.new_game_endpoint: the route", every=True)
         import traceback
         traceback.print_exc()
-        return build_base_response(world, success=False, message=f"New game failed: {str(e)}")
+        return build_base_response(world, success=False, message=f"New game failed: {str(e)}",
+            **_errors.debug_fields(e, "main.new_game_endpoint: the route", DEBUG_MODE))
 
 
 @app.post("/load")
@@ -6005,9 +6030,11 @@ async def get_campaign_end():
 
 @app.get("/saves")
 async def list_saves_endpoint():
-    """List all available save files."""
-    saves = list_saves()
-    return {"saves": saves}
+    """List all available save files — and, beside them (DD-C), the files
+    that cannot be read, which the Load menu shows instead of dropping
+    without a word. No `success` key: the clients gate on the shape."""
+    saves, damaged = scan_saves()
+    return {"saves": saves, "damaged": damaged}
 
 
 # ════════════════════════════════════════════════════════════
@@ -6223,7 +6250,8 @@ def _player_marshal_names(world) -> list:
     try:
         return [mm.name for mm in world.get_player_marshals()
                 if not getattr(mm, "captured_by", "")]
-    except Exception:
+    except Exception as exc:
+        _errors.report(exc, "main._player_marshal_names: world.get_player_marshals / getattr")
         return []
 
 
@@ -6737,7 +6765,8 @@ def get_diplomatic_preview_endpoint(
                 density=density,
             )
         except Exception as e:
-            return {"success": False, "error": str(e), "mode": "settlement", "war_id": war_id}
+            _errors.report(e, "main.get_diplomatic_preview_endpoint: the route", every=True)
+            return {"success": False, "error": str(e), "mode": "settlement", "war_id": war_id, **_errors.debug_fields(e, "main.get_diplomatic_preview_endpoint: the route", DEBUG_MODE)}
     if not nation or not nation.strip():
         # Step 1: Return categorized nation list for the wizard
         try:
@@ -6821,7 +6850,8 @@ def get_diplomatic_preview_endpoint(
                 "congress": _wizard_congress(world),
             }
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            _errors.report(e, "main.get_diplomatic_preview_endpoint: the route #2", every=True)
+            return {"success": False, "error": str(e), **_errors.debug_fields(e, "main.get_diplomatic_preview_endpoint: the route #2", DEBUG_MODE)}
     try:
         from backend.game_logic.diplomacy import get_diplomatic_preview
         nation = nation.strip()
@@ -6851,7 +6881,8 @@ def get_diplomatic_preview_endpoint(
             **preview,
         }
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        _errors.report(e, "main.get_diplomatic_preview_endpoint: the route #3", every=True)
+        return {"success": False, "error": str(e), **_errors.debug_fields(e, "main.get_diplomatic_preview_endpoint: the route #3", DEBUG_MODE)}
 
 
 @app.post("/diplomatic_preview")
@@ -6912,12 +6943,13 @@ def post_diplomatic_preview_endpoint(request: dict):
             density=str(request.get("density") or "medium"),
         )
     except Exception as e:
+        _errors.report(e, "main.post_diplomatic_preview_endpoint: the route", every=True)
         return {
             "success": False,
             "error": str(e),
             "mode": "settlement",
             "war_id": request.get("war_id"),
-        }
+         **_errors.debug_fields(e, "main.post_diplomatic_preview_endpoint: the route", DEBUG_MODE)}
 
 
 @app.get("/diplomatic_ledger")
@@ -6932,7 +6964,8 @@ def get_diplomatic_ledger():
         _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
         return payload
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        _errors.report(e, "main.get_diplomatic_ledger: the route", every=True)
+        return {"success": False, "error": str(e), **_errors.debug_fields(e, "main.get_diplomatic_ledger: the route", DEBUG_MODE)}
 
 
 @app.post("/cancel_order")
@@ -6980,11 +7013,12 @@ async def cancel_order(request: Request):
         # so a draining build here destroyed any queued choice popup.
         return _build_result_response(result, world, drain_popups=False)
     except Exception as e:
-        print(f"[ERROR] handling cancel_order: {e}")
+        _errors.report(e, "main.cancel_order: the route", every=True)
         import traceback
         traceback.print_exc()
         _resp = build_base_response(
-            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False)
+            world, success=False, message=f"Error: {str(e)}", include_popup_passthroughs=False,
+            **_errors.debug_fields(e, "main.cancel_order: the route", DEBUG_MODE))
         _fill_popup_keys_without_draining(_resp)
         return _resp
 

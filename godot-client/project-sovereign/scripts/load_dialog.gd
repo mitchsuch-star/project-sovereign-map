@@ -21,13 +21,15 @@ func _ready():
 		cancel_button.pressed.connect(_on_cancel)
 	hide()
 
-func show_saves(saves: Array):
-	"""Display load dialog with available saves."""
+func show_saves(saves: Array, damaged: Array = []):
+	"""Display load dialog with available saves — and, below them, the files
+	the backend could not read (DD-C, Pre-Deploy S7b: a corrupt save used to
+	vanish from this list without a word), disabled, with the reason."""
 	# Clear old buttons
 	for child in saves_container.get_children():
 		child.queue_free()
 
-	if saves.is_empty():
+	if saves.is_empty() and damaged.is_empty():
 		var label = Label.new()
 		label.text = "No saves found."
 		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
@@ -47,6 +49,15 @@ func show_saves(saves: Array):
 			btn.custom_minimum_size = Vector2(0, 40)
 			btn.pressed.connect(_on_save_chosen.bind(filename_val))
 			saves_container.add_child(btn)
+		for bad in damaged:
+			if not (bad is Dictionary):
+				continue
+			var row = Button.new()
+			row.text = "%s — corrupt, cannot be loaded" % str(bad.get("filename", "?"))
+			row.tooltip_text = str(bad.get("message", ""))
+			row.disabled = true
+			row.custom_minimum_size = Vector2(0, 40)
+			saves_container.add_child(row)
 
 	# Ensure visibility
 	if panel_container:

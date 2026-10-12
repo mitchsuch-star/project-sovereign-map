@@ -303,19 +303,15 @@ class TestSaveGameHonoursItsOwnContract:
         assert body.get("success") is False
         assert "Save failed" in str(body.get("message"))
 
-    def test_the_lever_restores_the_raise(self, monkeypatch, tmp_path):
-        """L1's False arm must reproduce HEAD exactly, or the attribution
-        experiment is unavailable."""
+    def test_save_game_never_raises_on_a_directory_failure(self, monkeypatch, tmp_path):
+        """L1 itself. (Its lever-down arm went with the lever, CODE-1's
+        batch-5 session: DD-C rewrote the door that read it.)"""
         world = _quiet(WorldState.from_scenario, SCENARIO)
 
         def boom():
             raise PermissionError(5, "Access is denied")
 
         monkeypatch.setattr(save_manager, "ensure_save_dir", boom)
-        monkeypatch.setattr(save_manager, "SAVE_DIR_FAILURE_IS_CAUGHT", False)
-        with pytest.raises(PermissionError):
-            save_manager.save_game(world, "x", tmp_path / "x.json")
-        monkeypatch.setattr(save_manager, "SAVE_DIR_FAILURE_IS_CAUGHT", True)
         res = save_manager.save_game(world, "x", tmp_path / "x.json")
         assert res["success"] is False
 
@@ -472,16 +468,6 @@ class TestOneDoorCoversBothRoads:
         assert res.get("skipped") == "tutorial"
         assert not (tmp_path / "saves" /
                     save_manager.AUTOSAVE_FILENAME).exists()
-        assert [n for n in world.notifications.to_list()
-                if n.get("type") == notifications.SAVE_FAILED] == []
-
-    def test_the_announcement_lever_restores_the_silence(self, monkeypatch,
-                                                         tmp_path):
-        monkeypatch.setattr(save_manager, "SAVE_DIR", tmp_path / "saves")
-        monkeypatch.setattr(save_manager, "SAVE_FAILURE_IS_ANNOUNCED", False)
-        monkeypatch.setattr(save_manager, "json", _BoomJson)
-        world = _quiet(WorldState.from_scenario, SCENARIO)
-        _quiet(save_manager.autosave, world)
         assert [n for n in world.notifications.to_list()
                 if n.get("type") == notifications.SAVE_FAILED] == []
 

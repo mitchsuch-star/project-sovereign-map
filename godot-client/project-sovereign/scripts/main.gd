@@ -1000,11 +1000,32 @@ func _on_continue_saves_listed(response) -> void:
 	NOTE: /saves carries NO `success` field (it returns {"saves": [...]}
 	bare), so gate on the payload shape, never on response.success."""
 	var saves = response.get("saves", []) if response is Dictionary else []
+	# DD-C: a damaged file used to vanish from the list, and Continue silently
+	# resumed whatever older save came next. It still resumes the newest save
+	# that can be read — and says which newer file it could not.
+	var damaged = response.get("damaged", []) if response is Dictionary else []
+	if not (damaged is Array):
+		damaged = []
 	if saves is Array and saves.size() > 0:
+		var meta = saves[0].get("metadata", {})
+		var resumed_at = str(meta.get("saved_at", "")) if meta is Dictionary else ""
+		var newer = []
+		for bad in damaged:
+			if bad is Dictionary and str(bad.get("saved_at", "")) > resumed_at:
+				newer.append(str(bad.get("filename", "?")))
+		if not newer.is_empty():
+			var resumed_name = str(meta.get("save_name", saves[0].get("filename", ""))) if meta is Dictionary else str(saves[0].get("filename", ""))
+			var be = "is" if newer.size() == 1 else "are"
+			add_output("[color=#" + Utils.COLOR_WARNING + "]" + ", ".join(newer) + " " + be + " corrupt and cannot be read — continuing from " + resumed_name + ", the newest save that can be.[/color]")
 		api_client.load_game(str(saves[0].get("filename", "")), _on_load_result)
 	else:
 		set_input_enabled(true)
-		add_output("[color=#" + Utils.COLOR_ERROR + "]No save found to continue — the current campaign stands.[/color]")
+		if not damaged.is_empty():
+			var corrupt_files = Utils.plural(damaged.size(), "file")
+			var verb = "is" if damaged.size() == 1 else "are"
+			add_output("[color=#" + Utils.COLOR_ERROR + "]No save can be read — " + corrupt_files + " in the saves folder " + verb + " corrupt. The current campaign stands.[/color]")
+		else:
+			add_output("[color=#" + Utils.COLOR_ERROR + "]No save found to continue — the current campaign stands.[/color]")
 
 
 func _on_pause_main_menu_requested() -> void:
@@ -6024,7 +6045,9 @@ func _on_saves_listed(response):
 	key)."""
 	var saves = response.get("saves") if response is Dictionary else null
 	if saves is Array:
-		load_dialog.show_saves(saves)
+		# DD-C: a save the backend cannot read is listed, not dropped.
+		var damaged = response.get("damaged", [])
+		load_dialog.show_saves(saves, damaged if damaged is Array else [])
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]Failed to list saves.[/color]")
 		set_input_enabled(true)
@@ -6207,7 +6230,7 @@ func _on_load_result(response):
 		_apply_world_swap_response(response, "Game loaded successfully.")
 	else:
 		set_input_enabled(true)
-		add_output("[color=#" + Utils.COLOR_ERROR + "]Load failed: " + response.get("message", "Unknown error") + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + _failure_line(response, "Load failed") + "[/color]")
 		add_output("")
 		command_input.grab_focus()
 
@@ -7916,8 +7939,25 @@ func _on_pause_save_result(response):
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]Game saved successfully.[/color]")
 	else:
 		AudioManager.play("error")
-		add_output("[color=#" + Utils.COLOR_ERROR + "]Save failed: " + str(response.get("message", "Unknown error")) + "[/color]")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + _failure_line(response, "Save failed") + "[/color]")
 	add_output("")
+
+
+func _failure_line(response, head: String) -> String:
+	"""DD-C (Pre-Deploy S7b): the backend's own sentence for a failed save or
+	load ("Save failed — the disk is full. Free some space and save again."),
+	with `head` added only when the sentence does not already carry it — the
+	route's refusals ("Invalid save name") and the version messages do not.
+	The old arm prefixed every message, so the player read "Save failed: Save
+	failed: [Errno 28] …" with a filesystem path in it."""
+	var why = ""
+	if response is Dictionary:
+		why = str(response.get("message", "")).strip_edges()
+	if why == "":
+		why = "Unknown error"
+	if why.begins_with(head):
+		return why
+	return head + ": " + why
 
 func _on_pause_load_requested():
 	"""Handle Load Game from pause menu."""

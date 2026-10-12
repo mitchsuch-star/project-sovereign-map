@@ -68,8 +68,11 @@ class TestALoadedWorldKeepsWhatFromDictRestored:
         return out["world"] if isinstance(out, dict) else out
 
     def test_the_three_wipes_are_gone(self):
+        # DD-C (Pre-Deploy S7b, October 12, 2026) moved the load's rebuild —
+        # `from_dict`, the backfills, this block, the fog — into its own
+        # stage, `_rebuild_world`, so a failure there is a typed `SaveError`.
         from backend import save_manager
-        src = inspect.getsource(save_manager.load_game)
+        src = inspect.getsource(save_manager._rebuild_world)
         block = src[src.index("Clear transient per-turn data"):]
         block = _code(block[:block.index("# Fog of War: recalculate visibility")])
         for name in ("mild_concerns_this_turn", "gold_spent_this_turn",
@@ -107,7 +110,7 @@ class TestALoadedWorldKeepsWhatFromDictRestored:
 
     def test_the_block_states_the_reason_for_all_eight(self):
         from backend import save_manager
-        src = inspect.getsource(save_manager.load_game)
+        src = inspect.getsource(save_manager._rebuild_world)   # DD-C's stage
         block = src[src.index("Clear transient per-turn data"):]
         block = block[:block.index("# Fog of War: recalculate visibility")]
         for name in ("diplomatic_trust_applied", "attacks_this_turn",

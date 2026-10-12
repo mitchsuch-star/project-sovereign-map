@@ -1014,6 +1014,116 @@ regenerated). The session's head was CODE-1 batch 4
   holds the silent-handler count at zero in `save_manager.py`,
   `world_state.py`'s serialization and `main.py`'s save routes.
 
+#### DD-C landing record — nothing fails silently: the save path (October 12, 2026)
+
+*Pre-Deploy S7b, the session's second commit (after CODE-1 batch 5 at its
+head); CODE-3 slice 1 lands beside it (`CODE_HEALTH_PLAN.md` §CODE-3, part
+1). Rules `SYSTEMS_REFERENCE.md` §110; pins
+`tests/test_dd_c_nothing_fails_silently.py` (33).*
+
+- **What was still silent, measured on `91c85e43`** (FA-S15-2 had already put
+  the AUTOSAVE's failure on the rail): a manual save's and a load's failure
+  reached the player as the raw OS error — filesystem path included — and
+  reached no log at all; a corrupt save **vanished from the Load menu without
+  a word**, so Continue silently resumed whatever older save came next; a
+  failed **Final save** said nothing on either of its roads, and
+  `write_final_save` could raise before its own `try`; `list_saves`' `except
+  (json.JSONDecodeError, Exception)` swallowed as broadly as any bare handler
+  and the census could not see it (a tuple); the client printed "Save failed:
+  Save failed: [Errno 28] …".
+- **The reading of "the save path raises `SaveError`"** (a deviation from the
+  plan's words, recorded): the STAGES raise a typed
+  `save_manager.SaveError(message, kind, site, reason, detail)` — the folder,
+  the world's own `to_dict` (FA-S15-1's `delattr` failed there), the write,
+  the read, the parse, the version, the rebuild — and the DOORS (`save_game`,
+  `load_game`, `autosave`, `write_final_save`, `delete_save`, `list_saves`)
+  convert it: `report(err, err.site, every=True)` and the sentence. The doors
+  keep FA-S15-2's contract and ruling — none raises, a save never aborts the
+  turn — because `executor.py`'s typed `save <name>`, the routes and the
+  fixture tools consume the dict, and a raising door is the one-of-several
+  shape FA-S15-2 refused. One conversion per door; no caller remembers anything.
+- **The sentences** (a filename at most, never a path; every pinned fragment
+  kept): "Save failed — the disk is full. Free some space and save again." /
+  "…the saves folder cannot be written to (permission denied)." / "…part of
+  the campaign could not be written down. This is a bug; the server log names
+  the part." / "Load failed — the save file is corrupt and cannot be read; it
+  may have been cut short while it was written." / "…save file not found:
+  x.json" / "…the campaign in this save could not be rebuilt (KeyError). This
+  is a bug; the server log has the details. Your current campaign is
+  untouched." The log names the first value JSON cannot write by its path
+  (`world_state.marshals.Ney.original_nation (object)`). The write keeps
+  `json.dump` streaming into the temp file (FA-S15-2's forcing shim fails the
+  save there), and a failed write removes the half-written temp file and
+  leaves the previous save whole.
+- **The surfaces.** The autosave's rail row (still its one producer, now
+  behind `save_manager._announce_failure`) carries the reason sentence in
+  `details.detail` instead of the OS text; a failed Final save raises its own
+  title ("The campaign's Final save could not be written") on both roads;
+  `GET /saves` carries `damaged: [{filename, saved_at, message}]` beside
+  `saves` (no `success` key — the clients gate on shape; `list_saves()` keeps
+  its contract); `load_dialog.gd` lists the damaged files disabled with the
+  reason; Continue in `main.gd` resumes the newest READABLE save and names any
+  newer file it could not read; `_failure_line` prints the backend's sentence
+  once (the prefix only where a route's own refusal lacks it).
+  `load_dialog.gd` joined the parse harness and its stale-guard list; the
+  harness reads 67 scripts, 0 failures.
+- **The routes** (`main.py`, CODE-3 item 4): the 14 crash handlers report at
+  WARNING with their site (`every=True`) and carry `debug_error {class, site}`
+  under `DEBUG_MODE` only; their `traceback.print_exc()` STAYS — the score
+  instrument's `ai_aliveness.F2` reads "Traceback" in an arm's log as a crash,
+  and a route that fails is one (the design review's catch). The five silent
+  preview / ledger routes speak the same way. `main.py` reads 0 silent.
+- **The instrument:** `tools/save_faults.py`, driven by the driver's new
+  `--save-faults` at FA-102's turn boundary (in-process only; `getattr`, the
+  hand-built `Namespace`s; in `meta.json` only when on): one fault a turn,
+  rotating a full disk (the write raises `OSError(ENOSPC)` after a partial
+  write), a non-JSON value planted in a serialized Marshal field alternating
+  with FA-S15-1's own `delattr`, and a save cut to half its bytes; each probe
+  checks the sentence reached the player (the `/save` / `/load` reply, the
+  rail row, the `/saves` damaged list), a WARNING named the stage's site (and
+  the planted field's path), the world was untouched (measured around direct
+  `save_manager` calls — the HTTP envelope mutates the world on its own), the
+  next clean autosave recovered and retired the row, and the round trip
+  `to_dict(from_dict(x)) == x` held on the file it wrote.
+- **The reading** (`commanded_full40.json`, 40 turns, 32 s): **40 of 40
+  faults reached the player and the log** — disk full 14, unserializable 13
+  (planted 7, `delattr` 6), truncated 13; **40 of 40 round trips equal**; the
+  world untouched every time. **The instrument is transparent:** the probed
+  run's digest equals the plain run's line for line. *Found reaching that:*
+  the round trip's scratch world passes `WorldState.__init__`, which empties
+  Berthier's display-only line rotation (IQ-8 item 8's chokepoint for "a
+  campaign begins") — twelve battle lines took other words, casualties
+  identical; the instrument restores the counter around its check. (The
+  default driver policy's passive France falls at turn 34 — The Eclipse — so
+  the forty-turn reading rides the commanded script.)
+- **The design review** (a read-only Plan agent before slice 1) is folded in
+  throughout: the `report` binding in five modules (`turn_manager` keeps a
+  local `report = []` beside a silent handler — the conversion uses an
+  `_errors` alias there), the F2 "Traceback" gate, the tuple handler, the
+  identifier-only site hints, `debug_error` read from main's own
+  `DEBUG_MODE` (the dev `.env` sets it, conftest does not pin it), the Final
+  save, and the envelope's pollution of a diff taken across a route.
+- **Retired with the rewrite:** FA-S15-2's two levers
+  (`SAVE_DIR_FAILURE_IS_CAUGHT`, `SAVE_FAILURE_IS_ANNOUNCED`, Sept 6) and
+  their two lever-down tests; L1's live half is re-pinned
+  (`test_save_game_never_raises_on_a_directory_failure`).
+- **Found by the hook, not by the slice's own family run** (the first commit
+  attempt aborted on three): two FA-16c source pins read the load's
+  "Clear transient per-turn data" block through
+  `inspect.getsource(load_game)` — the block moved into `_rebuild_world` with
+  the rebuild stage, so both re-seat onto that stage, their intent unchanged;
+  and EP-F2's plural-hedge census caught the Continue line's "file(s)" (now
+  `Utils.plural` with its verb agreeing).
+- **Gate:** the DD-C pins 33, FA-S15-2 + `test_save_load` + the endpoint,
+  restart, tutorial, menu, GE-1 and health-check families (383 together);
+  `BASELINE_SERIES` + M1–M7 byte-identical with no re-record, the CR-1 corpus
+  harness, the driver's own pins (1,224 together); `ruff` clean; the Godot
+  parse harness 0 failures; the full suite on the hook.
+- **Done-when:** every injected fault reaches the player as a sentence on the
+  rail or the save dialog and the log at WARNING with the site — **MET** (40
+  of 40); 0 silent handlers in `save_manager.py` and `main.py` — **MET**;
+  `world_state.py`'s — CODE-3's conversion, the session's next commit.
+
 ## 4. What is deliberately NOT in this plan
 
 - **No balance or mechanics change.** A code-health slice that moves

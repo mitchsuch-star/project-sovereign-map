@@ -10048,3 +10048,34 @@ order words unchanged (no router keyword moved); no lever.
 ### 109.4 The reading
 
 - The sweep's chip poll widened to both chips (`VERB_CHIPS`, dry-run through their own act on the clone); the committed records unchanged (no arm shows either); A 0 / B 0. The fuzzer and the shuffle 0. `BASELINE_SERIES` + M1–M7 byte-identical. Corpus 685 rows; `routed_order_words.py` +7; the seventeen parser cassettes re-stamped keylessly (the prompt's action list is `VALID_ACTIONS`; `tests/data/l1_prompt_restamp.json` and the manifest with them, the responses untouched).
+
+## 110. NOTHING FAILS SILENTLY — `backend/errors.py` and the save path that speaks — CODE-3 + DD-C (October 12, 2026)
+
+*Pre-Deploy S7b, `docs/CODE_HEALTH_PLAN.md` §CODE-3 and `docs/PRE_DEPLOY_PLAN.md` §3 DD-C. A failure is a sentence for the player and a line in the log, never neither. Pins `tests/test_dd_c_nothing_fails_silently.py`, `tests/test_code_health_ratchet.py`.*
+
+### 110.1 The reporter (`backend/errors.py`)
+
+- **`report(exc, site, *, every=False)`** — the one way a handler that keeps going speaks. WARNING on the `sovereign.errors` logger: `"<site> -- <Class>: <text>"` then the stack ("stack (most recent call last):", each cause "caused by …"), formatted in the reporter into one string — never Python's "Traceback" header (the score instrument's `ai_aliveness.F2` reads that word in an arm's log as a crash) and never `exc_info` (a captured record keeps no frames, so no world stays alive in it). ONCE per site per process — a per-turn loop logs once; `every=True` for the rare sites a player's own act reaches (the save path, the routes). Every call counts into the process tally (display-only, never serialized). `report` never raises.
+- **`site`** is words: `"<module>.<function>: <what>"` — the dedupe key and the tally's row. A literal or an f-string at the call (a `SaveError`'s own `.site` inside the save path's doors).
+- **`swallow(site, *, notify=None, every=False)`** — `with swallow(site):` reports and drops an `Exception` (never a `BaseException`); `notify(exc)` afterwards for a class the player must see, itself reported if it raises. **`debug_fields(exc, site, enabled)`** — `{"debug_error": {"class", "site"}}` when the caller's own debug switch is on (`main.DEBUG_MODE`), `{}` otherwise.
+- **`/debug errors`** (`meta_executor._execute_debug`) lists the tally, most frequent first, with each site's first exception.
+
+### 110.2 The census rule (`tools/_code_health_census.py`)
+
+- A handler is BROAD when its type is `Exception` or `BaseException`, alone or inside a tuple. A broad handler is **reraise** (a `raise` in it), **reports** (a call to `backend.errors.report` — resolved through the module's own imports, so a namesake does not count — with a site in words), **logs** (the old `log`/`print`/`warn` regex) or **silent**. The ratchet holds the silent count; `except Exception` is allowed only through the reporter.
+
+### 110.3 The save path (`backend/save_manager.py`)
+
+- **`SaveError(message, *, kind, site, reason, detail)`** is RAISED by the stage that met the failure — `_ensure_folder` (`folder` when a file stands where the folder should be, else the OS classes), `_save_data` (anything out of `world.to_dict()` is `unserializable`), `_write` (an `OSError`: `disk_full` on ENOSPC / EDQUOT, `permission` on EACCES / EPERM / EROFS, else `write` with the OS's own words; `TypeError` / `ValueError` / `RecursionError` from `json.dump` is `unserializable`, `detail` = `first_unserializable(...)`, the first value JSON cannot write by its path), `_read` (`missing`, `corrupt` on a JSON or UTF-8 decode error, `not_a_save`, else the OS classes), `_check_version` (`version`, the DEF-2 messages verbatim), `_rebuild` (`rebuild`: anything out of `from_dict`, the backfills, the reconciles or the fog).
+- **The doors convert, and never raise** (FA-S15-2's contract and ruling — a save never aborts the turn): `save_game`, `load_game`, `autosave`, `write_final_save`, `delete_save`, `list_saves` / `scan_saves`. `_failed(err)` = `report(err, err.site, every=True)` + `{"success": False, "message": err.message, …}`. Each door's own `except Exception` belt reports with a literal site and returns `kind="unexpected"` ("…an unexpected error stopped it (RuntimeError). The server log has the details.").
+- **The words.** `message` = "Save failed — <reason>" / "Load failed — <reason>" (a filename at most, never a path); `reason` alone feeds the rail. The write streams through `json.dump` into the temp file and a failed write removes the half-written temp file; the previous save stays whole.
+- **The rail.** `_announce_failure(world, result, final=False)` is the ONE producer of the `save_failed` row (`notifications.report_save_failure`): the autosave's ("The campaign is not being saved", the stale-slot copy, `details.detail` = the reason sentence) and the Final save's ("The campaign's Final save could not be written") on both of its roads. A successful autosave retires it; the tutorial's skip retires it.
+- **The Load menu.** `scan_saves()` → `(saves, damaged)`; `list_saves()` returns the first (its contract); `GET /saves` returns both (`damaged: [{filename, saved_at (the file's own time), message}]`, no `success` key). The client lists the damaged files disabled with the reason (`load_dialog.gd`); Continue resumes the newest READABLE save and names any newer file it could not read (`main.gd _on_continue_saves_listed`); `_failure_line` prints the backend's sentence once.
+
+### 110.4 The routes (`backend/main.py`)
+
+- A route's crash handler reports with its site (`"main.<route>: the route"`, `every=True`), keeps its `traceback.print_exc()` (a route that fails is a crash — F2 must still see it), and adds `debug_fields(e, site, DEBUG_MODE)` to its failure response. The diplomatic preview and ledger routes, silent before, speak the same way. `main.py` imports the reporter as `_errors` (it binds `report` as a local).
+
+### 110.5 The instrument (`tools/save_faults.py`, the driver's `--save-faults`)
+
+- One fault a turn at FA-102's turn boundary (in-process only): a full disk, a non-JSON value planted in a serialized Marshal field (alternating with FA-S15-1's `delattr`), a save cut to half its bytes. Each probe asks: the sentence reached the player (reply, rail row, damaged list); a WARNING named the stage's site (and the planted field's path); the world was untouched (around direct `save_manager` calls — the HTTP envelope mutates the world on its own); the next clean autosave recovered; and `to_dict(from_dict(x)) == x` on the file it wrote. The round trip's scratch world passes `WorldState.__init__`, which resets Berthier's display rotation (IQ-8 item 8) — the instrument puts the counter back, so a probed run's digest equals the plain run's. `save_faults.json` in the run directory; `meta.json` names the flag only when it is on.

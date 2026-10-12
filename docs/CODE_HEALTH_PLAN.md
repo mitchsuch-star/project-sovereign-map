@@ -580,6 +580,57 @@ autosave, the export, the LLM key**.
 under 60 elsewhere, each with a `report` site string; DD-C's injected faults
 all reach the player.
 
+**✅ LANDING RECORD, part 1 — October 12, 2026 (Pre-Deploy S7b, the
+session's second commit, beside DD-C — `PRE_DEPLOY_PLAN.md` §3 "DD-C landing
+record"; rules `SYSTEMS_REFERENCE.md` §110).**
+
+- **`backend/errors.py`** (stdlib only, so any module imports it without a
+  cycle): `report(exc, site, *, every=False)` — WARNING on the
+  `sovereign.errors` logger once per site per process (each call with
+  `every`), the stack formatted HERE into the record's string (no
+  `exc_info`, so a captured record never keeps a world alive) and printed
+  WITHOUT Python's "Traceback" header — the score instrument's
+  `ai_aliveness.F2` reads that word in an arm's log as a crash and the
+  in-process driver sends this logger's stderr into that log (the design
+  review's catch); every call counts into a locked process tally,
+  display-only and never serialized, that `/debug errors` lists most
+  frequent first; `report` never raises (its own guard is the one handler
+  that cannot report). `swallow(site, *, notify=None, every=False)` is a
+  class-based context manager — the work is in `__exit__`, so it holds no
+  bare handler; `notify` is a callable for a rail push. `debug_fields(exc,
+  site, enabled)` gives `{"debug_error": {class, site}}` only when the
+  CALLER's switch says debug (`main.DEBUG_MODE`; not the environment — the
+  dev `.env` sets it and conftest does not pin it).
+- **The census** (`tools/_code_health_census.py`): the class **reports** — a
+  handler that calls `backend.errors.report`, resolved through the module's
+  own imports (a function that merely shares the name does not count), with
+  a site in words (a non-empty literal or an f-string); classified before
+  the `logs` regex. A broad handler now includes a TUPLE holding `Exception`
+  (`list_saves`' `except (json.JSONDecodeError, Exception)` swallowed and was
+  invisible). New keys `silent_sites` and `report_calls`.
+- **The ratchet** (`tests/test_code_health_ratchet.py`): the key set admits
+  `reports`; a namesake arm and a site-in-words arm; `SILENT_HANDLERS_CAP`
+  **367 → 345**.
+- **The conversion tool, `tools/speak_handlers.py`** (AST; a dry run, then
+  `--apply`): `except Exception:` → `as exc` (`_exc`, `_exc2`, … when the
+  name appears anywhere in the OUTERMOST enclosing function — Python deletes
+  an `as` target at the handler's end); `report(exc, "<module>.<function>:
+  <hint>")` before the handler's first statement, a lone `pass` replaced; the
+  import added, or an `_errors` alias in a module that binds `report` itself
+  (`turn_manager`'s local `report = []`, `combat_executor`, `strategic`,
+  `naval`, `main`); identifier-only hints (no quotes, no parentheses — a
+  copied literal could meet a test's substring pin); every site unique. **The
+  proof, per file:** the insertions taken back out must give the original's
+  `ast.dump`, or the file is not written. Run on `main.py` this commit (its
+  ten silent helpers; the routes by a script — DD-C's record). Rehearsed on a
+  copy of `backend/`: 342 handlers in 67 files, every proof equal, `ruff`
+  clean, all 149 modules import.
+- **The reading:** silent **367 → 345** (`save_manager.py` 5 + the tuple → 0,
+  `main.py` 15 → 0, `notifications.py` 3 → 0, the reporter's own guard +1);
+  reports 0 → 39; logs 28 → 14 (`main.py`'s crash handlers report now).
+- **Next (this session):** the conversion of the remaining 339 by file, the
+  normal-play reading, the residue pin — part 2.
+
 ## CODE-4 — The docs diet (0.5 session)
 
 Every session reads `CLAUDE.md` (524 KB ≈ 130k tokens) before its first tool

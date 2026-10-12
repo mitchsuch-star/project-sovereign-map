@@ -75,6 +75,8 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/main_menu.gd",
 	"res://scripts/settings_panel.gd",
 	"res://scripts/menu_boot.gd",
+	# DD-C (Pre-Deploy S7b): the Load menu lists the saves it cannot read.
+	"res://scripts/load_dialog.gd",
 	# POSITION 7: the School of War tutor card — runtime-registered via
 	# dialog_manager (the IGR-E gap class: covered by neither main.tscn nor
 	# the script list unless named here).

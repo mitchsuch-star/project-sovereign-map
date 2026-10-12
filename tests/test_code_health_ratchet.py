@@ -23,10 +23,10 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 from tools import _code_health_census as census_tool  # noqa: E402
 
-# ── the caps: the reading after CODE-1 batch 5 (October 12, 2026); lower-only ──
+# ── the caps: the reading after CODE-3 slice 1 + DD-C (October 12, 2026); lower-only ──
 LEVERS_CAP = 358
 FUNCTIONS_OVER_500_CAP = 34
-SILENT_HANDLERS_CAP = 367
+SILENT_HANDLERS_CAP = 345
 CLAUDE_MD_BYTES_CAP = 62_000
 STATUS_MD_BYTES_CAP = 200_000
 
@@ -89,6 +89,33 @@ class TestTheInstrumentSeesWhatItCaps:
 
     def test_the_reading_carries_every_key_the_caps_read(self, reading):
         for key in ("functions", "levers", "except", "silent_by_file",
+                    "silent_sites", "report_calls",
                     "claude_md_bytes", "status_md_bytes"):
             assert key in reading, key
-        assert set(reading["except"]) <= {"silent", "logs", "reraise"}
+        assert set(reading["except"]) <= {"silent", "reports", "logs", "reraise"}
+
+    def test_a_handler_that_reports_is_spoken_and_a_namesake_is_not(self, tmp_path):
+        """CODE-3: the census resolves `report` through the module's own
+        imports — a function that merely shares the name does not count."""
+        import ast
+        spoken = ast.parse(
+            "from backend.errors import report\n"
+            "def f():\n    try:\n        g()\n    except Exception as exc:\n"
+            "        report(exc, 'm.f: g')\n")
+        fake = ast.parse(
+            "def report(*a):\n    pass\n"
+            "def f():\n    try:\n        g()\n    except Exception as exc:\n"
+            "        report(exc, 'm.f: g')\n")
+        path = tmp_path / "m.py"
+        for tree, expect in ((spoken, 1), (fake, 0)):
+            funcs, mods = census_tool.reporter_names(tree, path)
+            handler = next(n for n in ast.walk(tree) if isinstance(n, ast.ExceptHandler))
+            calls = census_tool.report_calls(handler, funcs, mods)
+            assert sum(census_tool.is_site_string(census_tool.site_of(c)) for c in calls) == expect
+
+    def test_a_site_must_be_words(self):
+        import ast
+        call = ast.parse("report(exc, '')").body[0].value
+        assert not census_tool.is_site_string(census_tool.site_of(call))
+        call = ast.parse("report(exc, f'{a}.b: c')").body[0].value
+        assert census_tool.is_site_string(census_tool.site_of(call))

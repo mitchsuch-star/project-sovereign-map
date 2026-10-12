@@ -13,6 +13,8 @@ import uuid
 from enum import IntEnum
 from typing import Dict, List, Optional, Any
 
+from backend.errors import report
+
 
 class NotificationPriority(IntEnum):
     """Priority levels for notifications. Higher value = more urgent."""
@@ -516,11 +518,12 @@ def dismiss_marshal_ask(world, marshal_name: str) -> int:
         return int(collector.dismiss_by_type(
             MARSHAL_LAST_STAND,
             lambda n: (n.get("details") or {}).get("marshal") == marshal_name))
-    except Exception:
+    except Exception as exc:
+        report(exc, "notifications.dismiss_marshal_ask: retiring the ask's row")
         return 0
 
 
-def report_save_failure(world, detail: str, turn) -> bool:
+def report_save_failure(world, detail: str, turn, *, final: bool = False) -> bool:
     """Put the failed autosave on the rail, once, until it saves again.
 
     FA-S15-2. A failed autosave reached the SERVER CONSOLE and nobody else:
@@ -539,24 +542,38 @@ def report_save_failure(world, detail: str, turn) -> bool:
     saving broke. No new serialized field: the collector IS the latch, and
     because it rides the save, a reload from an older good file correctly
     re-warns.
+
+    DD-C (Pre-Deploy S7b, October 12, 2026): `detail` is the save path's own
+    sentence for the reason (`save_manager.SaveError.reason` — "The disk is
+    full. Free some space and save again."), never the raw OS error with its
+    filesystem path that rode every later save. `final=True` is the Final
+    save of a fallen campaign — the record the end screen promises — which
+    failed without a word on both of its roads until DD-C.
     """
     try:
         collector = getattr(world, "notifications", None)
         if collector is None:
             return False
+        if final:
+            title = "The campaign's Final save could not be written"
+            message = ("The record of this campaign — its Final save — could "
+                       f"not be written. {detail}")
+        else:
+            title = "The campaign is not being saved"
+            message = ("The autosave could not be written. The slot in the Load "
+                       "menu is now STALE — resuming from it would put you back at "
+                       f"an earlier turn. {detail}")
         collector.refresh(create_notification(
             notification_type=SAVE_FAILED,
             priority=NotificationPriority.CRITICAL,
-            title="The campaign is not being saved",
-            message=(
-                "The autosave could not be written. The slot in the Load "
-                "menu is now STALE — resuming from it would put you back at "
-                f"an earlier turn. {detail}"),
+            title=title,
+            message=message,
             turn_created=int(turn or 0),
             details={"detail": str(detail)},
         ))
         return True
-    except Exception:
+    except Exception as exc:
+        report(exc, "notifications.report_save_failure: the rail row", every=True)
         return False
 
 
@@ -571,5 +588,6 @@ def clear_save_failure(world) -> int:
         if collector is None:
             return 0
         return int(collector.dismiss_by_type(SAVE_FAILED))
-    except Exception:
+    except Exception as exc:
+        report(exc, "notifications.clear_save_failure: retiring the row")
         return 0

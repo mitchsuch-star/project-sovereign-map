@@ -1280,10 +1280,31 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                           "  • add_building <region> <type> - Add building (supply_depot/fortification/training_ground/market/watchtower/stables)\n"
                           "\n== Info ==\n"
                           "  • list_marshals - Show all marshals and locations\n"
-                          "  • list_regions - Show all regions and who's there"
+                          "  • list_regions - Show all regions and who's there\n"
+                          "  • errors - Every exception reported this session (CODE-3)"
             }
 
         ability = parts[0].lower()
+
+        # === CODE-3: the process's reported exceptions (backend/errors.py) ===
+        # The tally every `report` counts into: display-only, never
+        # serialized, most frequent first, with the first exception each
+        # site saw.
+        if ability == "errors":
+            from backend.errors import tally
+            rows = tally()
+            if not rows:
+                return {"success": True,
+                        "message": "No exception has been reported this session."}
+            shown = rows[:40]
+            lines = [f"  {row['count']:>5}×  {row['site']}  —  {row['first']}"
+                     for row in shown]
+            more = (f"\n  … and {len(rows) - len(shown)} more sites"
+                    if len(rows) > len(shown) else "")
+            return {"success": True,
+                    "message": (f"Reported exceptions this session ({len(rows)} "
+                                "sites, most frequent first):\n"
+                                + "\n".join(lines) + more)}
 
         # === AI TESTING COMMANDS (don't require marshal) ===
 

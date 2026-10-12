@@ -21,26 +21,29 @@ Save format:
 The hard part (serialization) is already done — WorldState.to_dict()/from_dict()
 handle all nested objects (marshals, regions, trust, strategic orders, etc.)
 with .get(key, default) for backward compatibility.
+
+DD-C "Nothing fails silently" (Pre-Deploy S7b, October 12, 2026): every way
+a save or a load can fail is a typed `SaveError` RAISED by the stage that
+met it — the folder, the world's own `to_dict`, the write, the read, the
+parse, the rebuild — and CONVERTED at the door the caller used (`save_game`,
+`load_game`, `autosave`, `write_final_save`, `delete_save`, `list_saves`):
+logged at WARNING with its site (`backend/errors.py`) and handed back as a
+sentence the player can act on, a filename at most and never a path. The
+doors keep FA-S15-2's contract — none of them raises, because a save is never
+allowed to break the turn it rides — so no caller has anything to remember.
 """
 
+import errno
 import json
 import os  # noqa: E402 - used in atomic save write
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Any, Optional, List, Dict, Tuple
 
 from backend.models.world_state import WorldState
 from backend import notifications
-
-# ⚠ TWO FLIP LEVERS, deliberately separate (FA-S15-2). They are two
-# INDEPENDENT behaviour changes and the attribution experiment needs to
-# take them apart: with L1 False the raise escapes exactly as at HEAD;
-# with L2 False the console print is the only trace, exactly as at HEAD.
-# One combined lever could not reproduce prior behaviour for the root
-# half — slice 14's "both levers or neither" discipline, applied.
-SAVE_DIR_FAILURE_IS_CAUGHT = True
-SAVE_FAILURE_IS_ANNOUNCED = True
+from backend.errors import report
 
 
 def _resolve_save_dir() -> Path:
@@ -90,34 +93,126 @@ def ensure_save_dir():
     SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optional[Path] = None) -> Dict:
-    """
-    Save game state to JSON file.
+class SaveError(Exception):
+    """A save or a load that failed, in the player's words (DD-C).
 
-    Args:
-        world: Current WorldState
-        save_name: Display name for the save
-        filepath: Optional explicit path. If None, auto-generates in SAVE_DIR.
+    `message` is the sentence the player reads; `reason` is its clause alone
+    (the autosave's rail row reads it); `kind` names the class (`disk_full`,
+    `permission`, `folder`, `unserializable`, `write`, `missing`, `read`,
+    `corrupt`, `not_a_save`, `version`, `rebuild`, `delete`, `unexpected`);
+    `site` is the report's; `detail` reaches the log only (which part of the
+    state could not be written down)."""
 
-    Returns:
-        {"success": True/False, "message": str, "filepath": str}
-    """
-    if not SAVE_DIR_FAILURE_IS_CAUGHT:
-        ensure_save_dir()
+    def __init__(self, message: str, *, kind: str, site: str, reason: str = "",
+                 detail: str = "") -> None:
+        super().__init__(message)
+        self.message = message
+        self.kind = kind
+        self.site = site
+        self.reason = reason or message
+        self.detail = detail
 
+    def __str__(self) -> str:
+        return f"{self.message} [{self.detail}]" if self.detail else self.message
+
+
+SAVE_FAILED_HEAD = "Save failed — "
+LOAD_FAILED_HEAD = "Load failed — "
+UNSERIALIZABLE_REASON = ("Part of the campaign could not be written down. This is "
+                         "a bug; the server log names the part.")
+
+
+def _sentence(head: str, reason: str) -> str:
+    return head + reason[:1].lower() + reason[1:]
+
+
+def _os_words(exc: OSError) -> str:
+    """What the OS said, never the path it said it about."""
+    if exc.strerror:
+        return str(exc.strerror)
+    if exc.args and isinstance(exc.args[0], str):
+        return exc.args[0]
+    return type(exc).__name__
+
+
+def _os_failure(exc: OSError, head: str, site: str, verb: str) -> SaveError:
+    """A full disk, a refused folder, or the OS's own words for anything else."""
+    code = getattr(exc, "errno", None)
+    if code in (errno.ENOSPC, getattr(errno, "EDQUOT", errno.ENOSPC)):
+        kind, reason = "disk_full", "The disk is full. Free some space and save again."
+    elif isinstance(exc, PermissionError) or code in (
+            errno.EACCES, errno.EPERM, getattr(errno, "EROFS", errno.EACCES)):
+        kind, reason = "permission", (
+            "The saves folder cannot be written to (permission denied).")
+    else:
+        kind, reason = ("write" if verb == "written" else "read"), (
+            f"The file could not be {verb} ({_os_words(exc)}).")
+    return SaveError(_sentence(head, reason), kind=kind, site=site, reason=reason)
+
+
+def _unexpected(exc: BaseException, head: str, site: str) -> SaveError:
+    reason = (f"An unexpected error stopped it ({type(exc).__name__}). The "
+              "server log has the details.")
+    return SaveError(_sentence(head, reason), kind="unexpected", site=site, reason=reason)
+
+
+def first_unserializable(value: Any, path: str = "world_state", _seen=None) -> str:
+    """The first value JSON cannot write, named by its path —
+    `world_state.marshals.Ney.original_nation (object)` — or "" (the log's
+    `detail`, so a P1 like FA-S15-1 names its own field)."""
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return ""
+    seen = _seen if _seen is not None else set()
+    if id(value) in seen:
+        return f"{path} (a circular reference)"
+    if isinstance(value, dict):
+        seen.add(id(value))
+        for key, item in value.items():
+            if not (key is None or isinstance(key, (str, bool, int, float))):
+                return f"{path}[{key!r}] (a {type(key).__name__} key)"
+            found = first_unserializable(item, f"{path}.{key}", seen)
+            if found:
+                return found
+        seen.discard(id(value))
+        return ""
+    if isinstance(value, (list, tuple)):
+        seen.add(id(value))
+        for i, item in enumerate(value):
+            found = first_unserializable(item, f"{path}[{i}]", seen)
+            if found:
+                return found
+        seen.discard(id(value))
+        return ""
+    return f"{path} ({type(value).__name__})"
+
+
+def _failed(err: SaveError, *, reported: bool = False, **extra) -> Dict:
+    """A door's failure: reported at WARNING with its site (every time — a
+    save is a player's own act), handed back as the sentence."""
+    if not reported:
+        report(err, err.site, every=True)
+    return {"success": False, "message": err.message, **extra}
+
+
+def _ensure_folder() -> None:
+    """Stage 1: the saves folder (FA-S15-2's two measured triggers — a locked
+    directory, and a FILE where the folder should be)."""
+    site = "save_manager.save_game: the saves folder"
     try:
-        # ⚠ FA-S15-2 (L1). `ensure_save_dir()` used to sit OUTSIDE this try,
-        # so `save_game` could RAISE despite a docstring promising a
-        # success/failure dict — and the raise destroyed four keys of the
-        # end-turn response (`enemy_phase`, `morning_dispatch`,
-        # `tactical_events`, `turn_ended`) on both turn roads. Measured
-        # triggers: PermissionError on a locked directory, and
-        # FileExistsError when `mkdir(parents=True, exist_ok=True)` meets a
-        # FILE at that path. It also reaches the TYPED `save <name>` command,
-        # which returns this dict straight to the player.
-        if SAVE_DIR_FAILURE_IS_CAUGHT:
-            ensure_save_dir()
-        save_data = {
+        ensure_save_dir()
+    except (FileExistsError, NotADirectoryError) as exc:
+        reason = "The saves folder could not be created: a file stands where it should be."
+        raise SaveError(_sentence(SAVE_FAILED_HEAD, reason), kind="folder",
+                        site=site, reason=reason) from exc
+    except OSError as exc:
+        raise _os_failure(exc, SAVE_FAILED_HEAD, site, "written") from exc
+
+
+def _save_data(world: WorldState, save_name: str) -> Dict:
+    """Stage 2: the dict — FA-S15-1's `delattr` failed HERE, in the world's
+    own `to_dict`, on every save for the rest of the campaign."""
+    try:
+        return {
             "metadata": {
                 "format_version": FORMAT_VERSION,
                 "save_name": save_name,
@@ -139,28 +234,75 @@ def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optiona
             },
             "world_state": world.to_dict()
         }
+    except Exception as exc:
+        raise SaveError(_sentence(SAVE_FAILED_HEAD, UNSERIALIZABLE_REASON),
+                        kind="unserializable",
+                        site="save_manager.save_game: reading the world",
+                        reason=UNSERIALIZABLE_REASON) from exc
 
+
+def _write(filepath: Path, save_data: Dict) -> None:
+    """Stage 3: the atomic write — a temp file, then the rename, so a failure
+    never leaves the slot half-written (the previous save stays whole).
+    `json.dump` streams into the file: a value JSON cannot write fails here."""
+    site = "save_manager.save_game: writing the file"
+    tmp_path = filepath.with_suffix('.tmp')
+    try:
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(save_data, f, indent=2)
+        os.replace(str(tmp_path), str(filepath))
+    except Exception as exc:
+        _discard(tmp_path)
+        if isinstance(exc, OSError):
+            raise _os_failure(exc, SAVE_FAILED_HEAD, site, "written") from exc
+        if isinstance(exc, (TypeError, ValueError, RecursionError)):
+            raise SaveError(_sentence(SAVE_FAILED_HEAD, UNSERIALIZABLE_REASON),
+                            kind="unserializable", site=site,
+                            reason=UNSERIALIZABLE_REASON,
+                            detail=first_unserializable(save_data.get("world_state"))) from exc
+        raise
+
+
+def _discard(tmp_path: Path) -> None:
+    try:
+        if tmp_path.exists():
+            tmp_path.unlink()
+    except OSError as exc:
+        report(exc, "save_manager.save_game: removing the half-written file")
+
+
+def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optional[Path] = None) -> Dict:
+    """
+    Save game state to JSON file.
+
+    Args:
+        world: Current WorldState
+        save_name: Display name for the save
+        filepath: Optional explicit path. If None, auto-generates in SAVE_DIR.
+
+    Returns:
+        {"success": True/False, "message": str, "filepath": str} — and NEVER
+        raises (FA-S15-2: a raise here destroyed four keys of the end-turn
+        response on both turn roads, and the typed `save <name>` command
+        returns this dict straight to the player). A failure is a
+        `SaveError` from one of the three stages, reported and turned into
+        its sentence here.
+    """
+    try:
+        _ensure_folder()
+        save_data = _save_data(world, save_name)
         if filepath is None:
             # Auto-generate filename from save name
             safe_name = "".join(c if c.isalnum() or c in "- _" else "_" for c in save_name)
             filepath = SAVE_DIR / f"{safe_name}.json"
-
-        # Atomic write: write to temp file, then rename
-        tmp_path = filepath.with_suffix('.tmp')
-        try:
-            with open(tmp_path, 'w', encoding='utf-8') as f:
-                json.dump(save_data, f, indent=2)
-            os.replace(str(tmp_path), str(filepath))
-        except Exception:
-            # Clean up temp file on failure
-            if tmp_path.exists():
-                tmp_path.unlink()
-            raise
-
-        return {"success": True, "message": f"Game saved: {save_name}", "filepath": str(filepath)}
-
-    except Exception as e:
-        return {"success": False, "message": f"Save failed: {str(e)}", "filepath": ""}
+        _write(filepath, save_data)
+    except SaveError as err:
+        return _failed(err, filepath="")
+    except Exception as exc:    # the door never raises (FA-S15-2)
+        report(exc, "save_manager.save_game: an unexpected failure", every=True)
+        site = "save_manager.save_game: an unexpected failure"
+        return _failed(_unexpected(exc, SAVE_FAILED_HEAD, site), reported=True, filepath="")
+    return {"success": True, "message": f"Game saved: {save_name}", "filepath": str(filepath)}
 
 
 def load_game(filepath: Path) -> Dict:
@@ -168,195 +310,242 @@ def load_game(filepath: Path) -> Dict:
     Load game state from JSON file.
 
     Returns:
-        {"success": True/False, "message": str, "world": WorldState or None, "metadata": dict}
+        {"success": True/False, "message": str, "world": WorldState or None,
+        "metadata": dict} — and NEVER raises: a failure is a `SaveError` from
+        one of the stages (the read, the parse, the version, the rebuild),
+        reported and turned into its sentence here. The caller's running
+        campaign is untouched by a failed load (the route swaps the world
+        only on success).
     """
+    metadata: Dict = {}
     try:
-        if not filepath.exists():
-            return {"success": False, "message": f"Save file not found: {filepath}", "world": None, "metadata": {}}
-
-        with open(filepath, 'r', encoding='utf-8') as f:
-            save_data = json.load(f)
-
+        save_data = _read(filepath)
         metadata = save_data.get("metadata", {})
         world_data = save_data.get("world_state")
-
-        # Hard break: reject saves that predate the current map (DEF-2).
-        # v1 = 13-region map, v2 = 19-region map; the 126-province Europe
-        # cutover (format v3) changed every region key, so older saves
-        # cannot load — fail with a clear versioned message, never crash.
-        # Aug 2026 health-check audit: coerce defensively (a null/string
-        # format_version used to raise TypeError into the generic "Load
-        # failed: '<' not supported…" handler) and reject NEWER saves too —
-        # feeding a future-format save to from_dict mis-loads silently.
-        try:
-            save_version = int(metadata.get("format_version") or 1)
-        except (TypeError, ValueError):
-            save_version = 0
-        if save_version < FORMAT_VERSION:
-            return {"success": False,
-                    "message": (
-                        f"This save (format v{save_version}) predates the "
-                        f"126-province Europe map (format v{FORMAT_VERSION}) "
-                        "and is incompatible with the current version."
-                    ),
-                    "world": None, "metadata": metadata}
-        if save_version > FORMAT_VERSION:
-            return {"success": False,
-                    "message": (
-                        f"This save (format v{save_version}) was written by a "
-                        f"NEWER version of the game (this build reads "
-                        f"v{FORMAT_VERSION}). Update the game to load it."
-                    ),
-                    "world": None, "metadata": metadata}
-
+        _check_version(metadata)
         if world_data is None:
-            return {"success": False, "message": "Invalid save file: no world_state", "world": None, "metadata": metadata}
+            raise SaveError("Invalid save file: no world_state", kind="not_a_save",
+                            site="save_manager.load_game: reading the file")
+        world = _rebuild(world_data, filepath)
+    except SaveError as err:
+        keep = metadata if err.kind in ("version", "not_a_save") else {}
+        return _failed(err, world=None, metadata=keep)
+    except Exception as exc:    # the door never raises
+        report(exc, "save_manager.load_game: an unexpected failure", every=True)
+        site = "save_manager.load_game: an unexpected failure"
+        return _failed(_unexpected(exc, LOAD_FAILED_HEAD, site), reported=True,
+                       world=None, metadata={})
+    return {"success": True, "message": f"Loaded: {metadata.get('save_name', 'Unknown')}", "world": world, "metadata": metadata}
 
-        # DEF-14 (Sept 24, 2026): nine provinces were renamed to where the
-        # art paints them. A save written before carries the old names, so
-        # it is renamed on the RAW dict, before `from_dict`: the registry
-        # reconciles below (and inside `from_dict`) only run on a world whose
-        # every province the registry knows.
-        from backend.models.world_state import rename_provinces_in_save_data
-        rename_provinces_in_save_data(world_data)
 
-        world = WorldState.from_dict(world_data)
+def _read(filepath: Path) -> Dict:
+    """Stage 1: the file, as JSON. A truncated or damaged file is `corrupt`
+    — the word the Load menu and the client both say."""
+    site = "save_manager.load_game: reading the file"
+    if not filepath.exists():
+        reason = f"Save file not found: {filepath.name}"
+        raise SaveError(_sentence(LOAD_FAILED_HEAD, reason), kind="missing",
+                        site=site, reason=reason)
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            save_data = json.load(f)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        reason = ("The save file is corrupt and cannot be read; it may have been "
+                  "cut short while it was written.")
+        raise SaveError(_sentence(LOAD_FAILED_HEAD, reason), kind="corrupt",
+                        site=site, reason=reason) from exc
+    except OSError as exc:
+        raise _os_failure(exc, LOAD_FAILED_HEAD, site, "read") from exc
+    if not isinstance(save_data, dict):
+        reason = "This file is not a campaign save."
+        raise SaveError(_sentence(LOAD_FAILED_HEAD, reason), kind="not_a_save",
+                        site=site, reason=reason)
+    return save_data
 
-        # GE-1 R7: a save written before GE-1 carries no `campaign_end`, so
-        # an in-flight 1805 campaign would load with its endings unarmed and
-        # never end. Backfilled from the AUTHORED block of the scenario the
-        # save names (the IGR-E / EB-2 backfill precedent) — never a copy of
-        # the numbers here. A scenario that authors no block stays unarmed.
-        _backfill_campaign_end(world)
-        # SR-5r RF-0 (REFORMS_SPEC §10): a save written before the laws
-        # carries no `reforms` store; an in-flight 1805 campaign is armed
-        # with the scenario's authored decks, nothing in force.
-        _backfill_reforms(world)
-        _backfill_doctrines(world)
-        # VD-C (Step 5): a pre-VD-C save carries no authored contingent
-        # commanders; an in-flight 1805 campaign is armed with the
-        # scenario's table (a raised contingent would otherwise take the
-        # generic "<Adjective> Contingent" name).
-        _backfill_contingent_commanders(world)
 
-        # GE-1 verification round: a fallen campaign's save that does not
-        # name its own Final file — written by 975f1f13, which stamped
-        # `final_save` only AFTER the write — ADOPTS the file it was loaded
-        # from, so the response seam's Final-save write does not mint
-        # "(2)", "(3)", "(4)" on every load.
-        from backend.game_logic.game_end import terminal_ending as _terminal
-        _fallen = _terminal(world)
-        if _fallen is not None and not _fallen.get("final_save"):
-            _fallen["final_save"] = str(filepath)
+def _check_version(metadata: Dict) -> None:
+    """Stage 2 — the hard break: reject saves that predate the current map
+    (DEF-2). v1 = 13-region map, v2 = 19-region map; the 126-province Europe
+    cutover (format v3) changed every region key, so older saves cannot load
+    — fail with a clear versioned message, never crash. Aug 2026
+    health-check audit: coerce defensively (a null/string format_version used
+    to raise TypeError into the generic "Load failed: '<' not supported…"
+    handler) and reject NEWER saves too — feeding a future-format save to
+    from_dict mis-loads silently."""
+    site = "save_manager.load_game: the format version"
+    try:
+        save_version = int(metadata.get("format_version") or 1)
+    except (TypeError, ValueError):
+        save_version = 0
+    if save_version < FORMAT_VERSION:
+        raise SaveError(
+            f"This save (format v{save_version}) predates the "
+            f"126-province Europe map (format v{FORMAT_VERSION}) "
+            "and is incompatible with the current version.",
+            kind="version", site=site)
+    if save_version > FORMAT_VERSION:
+        raise SaveError(
+            f"This save (format v{save_version}) was written by a "
+            f"NEWER version of the game (this build reads "
+            f"v{FORMAT_VERSION}). Update the game to load it.",
+            kind="version", site=site)
 
-        # NUI-2 (Sept 24, 2026): a save written before the coast audit
-        # carries the old coastal flags and the three inland dockyards
-        # (Amsterdam, Flanders, Estonia) in its fleet records. Registry
-        # worlds only; a no-op on every save written since.
-        from backend.models.world_state import reconcile_saved_registry_corrections
-        reconcile_saved_registry_corrections(world)
 
-        # Clear transient per-turn data that shouldn't persist across save/load
-        #
-        # REV-F1 (Aug 31, 2026) — a FIFTH deliberate non-clear, and the reason
-        # the fourth is documented two lines down. `battles_this_turn` was
-        # wiped here, and the glorious charge's V2-2 engagement gate
-        # (`combat_executor._execute_glorious_charge`) reads exactly that list
-        # to refuse a second engagement of the same pair in one turn. MEASURED
-        # through the typed command path on five seeds: Ney (recklessness
-        # carried from an earlier turn) attacks Wellington to a stalemate,
-        # then `charge` — refused, "has already engaged". Save mid-turn,
-        # reload, charge again — the full 2x-damage GLORIOUS CHARGE lands.
-        # Every other gate on that path (cavalry, aggressive, recklessness,
-        # AP, range, terrain, the naval crossing) survives the round trip, so
-        # nothing masked it. The list is serialized under `to_dict`'s
-        # mid-turn-save contract, restored by `from_dict`, and cleared at the
-        # real turn boundary by `clear_turn_battles` — the same contract the
-        # other four non-clears cite. It also feeds cannon-fire detection,
-        # vassal loyalty and the war-score reader, all of which were reading
-        # an empty list after a mid-turn load.
-        #
-        # Aug 30, 2026 review — a FOURTH deliberate non-clear, for the reason
-        # the first three were added. `in_combat_this_turn` was wiped here,
-        # and the turn-end idle pass reads it as one of its only two
-        # exemptions, so a mid-turn save/load marked every marshal who had
-        # fought that turn as IDLE. `idle_turns` drives real mechanics: the
-        # jealousy grievance threshold drops to hair-trigger at >= 3, the
-        # hostile-pair triggers REQUIRE >= 2, and vindication decays on it.
-        # The flag is serialized, restored by `from_dict`, and cleared at the
-        # real turn boundary by `clear_turn_battles` — which is precisely the
-        # contract the other three non-clears cite.
-        #
-        # FA-100 (half a), Sept 6, 2026 — THREE MORE, and the block's own
-        # comment was already the argument against them:
-        #
-        #   * `mild_concerns_this_turn` is a per-marshal DEDUPE list, so the
-        #     wipe was not cosmetic — a mid-turn save/load let a marshal who
-        #     had already raised a mild concern raise it again. That is the
-        #     WO-23 budget-refresh shape exactly.
-        #   * `gold_spent_this_turn` is SNAPSHOT (one-way, `.copy()`) inside the
-        #     end-turn banner builders, and it is DISPLAY ONLY.
-        #     ⚠ SYNTHESIS-ROUND CORRECTION: this clause used to read "is
-        #     saved/restored around post-objection", which is false twice over
-        #     and contradicted the correction four lines below it. There is no
-        #     RESTORE — the only writers are `world_state.from_dict` and
-        #     `_advance_turn_internal`'s clear, and all four `saved_gold_spent`
-        #     sites (`executor.py` x2, `meta_executor.py` x2) are one-way
-        #     `.copy()` then `.get(nation, 0)`, never assigned back. And the
-        #     siting is TURN ADVANCE, not post-objection: the enclosing
-        #     functions are `_execute_one`'s auto-end-turn block and
-        #     `_execute_end_turn`, and `handle_objection_response`'s own PT-F5
-        #     comment records that that path never re-enters
-        #     `CommandExecutor.execute`. Inherited verbatim from slice 16c.
-        #     ⚠ IQ1-2 CORRECTION: this used to say it "is read by the recruit
-        #     pricing". It is not, and the same claim was in IQ-1 SW-0's own
-        #     commit body. An AST census of its readers: `ledger._build_economy`,
-        #     `economy_executor`'s typed economy report, and the two end-turn
-        #     banner snapshots. `_calculate_recruit_cost` does NOT read it —
-        #     which is what makes it display-only, and is the basis for IQ1-2
-        #     being byte-identical to the series by construction.
-        #   * `threat_sources_this_turn` is the coalition's own record of WHY
-        #     the alarm rose. Measured: 4 sources live, 4 after `from_dict`,
-        #     **0 after `load_game`** — and the diplomatic ledger's "why" rows
-        #     went with them, 2 to 0.
-        #
-        # All three are serialized, all three are restored by `from_dict`,
-        # and all three are cleared at the real boundary by
-        # `_advance_turn_internal`. That is the same contract the five
-        # non-clears below cite, so they are not cleared here either.
-        # Aug 2026 health-check audit — deliberate NON-clears:
-        # `diplomatic_trust_applied` is the ±5/turn diplomatic trust cap
-        # ("survives save/load" is its in-code contract; wiping it here let
-        # a mid-turn save/load refresh every marshal's budget), and
-        # `attacks_this_turn` is serialized under an explicit "for mid-turn
-        # saves" contract (wiping it cost the player the flanking bonus).
-        #
-        # WO-23 (Aug 21, 2026) adds a THIRD, for the identical reason the
-        # first was added: `objection_popups_this_turn` is the ONLY live
-        # limiter on the objection trust channel — max one MODERATE+
-        # objection popup per marshal per turn (`world_state`, read by
-        # `executor` and `strategic_executor`) — and wiping it here let a
-        # mid-turn save/load refresh every marshal's budget. The trigger is
-        # trust-INDEPENDENT (`objection_v2._evaluate_relationship_support`
-        # reads personality and relationship only), so nothing self-limits
-        # the loop as trust climbs: it runs to the 100 clamp. Three of the
-        # four non-literal French marshals sit on authored -2 pairs at the
-        # 1805 boot, so the vehicle ships with the game.
-        #
-        # All three are restored by from_dict and cleared at the real turn
-        # boundary by _advance_turn_internal / reset_attack_tracking.
+def _rebuild(world_data: Dict, filepath: Path) -> WorldState:
+    """Stage 3: the campaign, rebuilt — `from_dict`, the backfills, the
+    reconciles, the fog. Any failure in here is a bug in the save or the
+    loader, never the player's, and the sentence says so."""
+    try:
+        return _rebuild_world(world_data, filepath)
+    except Exception as exc:
+        reason = (f"The campaign in this save could not be rebuilt "
+                  f"({type(exc).__name__}). This is a bug; the server log has the "
+                  "details. Your current campaign is untouched.")
+        raise SaveError(_sentence(LOAD_FAILED_HEAD, reason), kind="rebuild",
+                        site="save_manager.load_game: rebuilding the campaign",
+                        reason=reason) from exc
 
-        # Fog of War: recalculate visibility after load (Phase 6 Session 33)
-        # Handles backward compat for old saves that have no intel data —
-        # calculate_visibility() populates from current game state.
-        world.calculate_visibility()
 
-        return {"success": True, "message": f"Loaded: {metadata.get('save_name', 'Unknown')}", "world": world, "metadata": metadata}
+def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
+    # DEF-14 (Sept 24, 2026): nine provinces were renamed to where the
+    # art paints them. A save written before carries the old names, so
+    # it is renamed on the RAW dict, before `from_dict`: the registry
+    # reconciles below (and inside `from_dict`) only run on a world whose
+    # every province the registry knows.
+    from backend.models.world_state import rename_provinces_in_save_data
+    rename_provinces_in_save_data(world_data)
 
-    except json.JSONDecodeError as e:
-        return {"success": False, "message": f"Corrupt save file: {str(e)}", "world": None, "metadata": {}}
-    except Exception as e:
-        return {"success": False, "message": f"Load failed: {str(e)}", "world": None, "metadata": {}}
+    world = WorldState.from_dict(world_data)
+
+    # GE-1 R7: a save written before GE-1 carries no `campaign_end`, so
+    # an in-flight 1805 campaign would load with its endings unarmed and
+    # never end. Backfilled from the AUTHORED block of the scenario the
+    # save names (the IGR-E / EB-2 backfill precedent) — never a copy of
+    # the numbers here. A scenario that authors no block stays unarmed.
+    _backfill_campaign_end(world)
+    # SR-5r RF-0 (REFORMS_SPEC §10): a save written before the laws
+    # carries no `reforms` store; an in-flight 1805 campaign is armed
+    # with the scenario's authored decks, nothing in force.
+    _backfill_reforms(world)
+    _backfill_doctrines(world)
+    # VD-C (Step 5): a pre-VD-C save carries no authored contingent
+    # commanders; an in-flight 1805 campaign is armed with the
+    # scenario's table (a raised contingent would otherwise take the
+    # generic "<Adjective> Contingent" name).
+    _backfill_contingent_commanders(world)
+
+    # GE-1 verification round: a fallen campaign's save that does not
+    # name its own Final file — written by 975f1f13, which stamped
+    # `final_save` only AFTER the write — ADOPTS the file it was loaded
+    # from, so the response seam's Final-save write does not mint
+    # "(2)", "(3)", "(4)" on every load.
+    from backend.game_logic.game_end import terminal_ending as _terminal
+    _fallen = _terminal(world)
+    if _fallen is not None and not _fallen.get("final_save"):
+        _fallen["final_save"] = str(filepath)
+
+    # NUI-2 (Sept 24, 2026): a save written before the coast audit
+    # carries the old coastal flags and the three inland dockyards
+    # (Amsterdam, Flanders, Estonia) in its fleet records. Registry
+    # worlds only; a no-op on every save written since.
+    from backend.models.world_state import reconcile_saved_registry_corrections
+    reconcile_saved_registry_corrections(world)
+
+    # Clear transient per-turn data that shouldn't persist across save/load
+    #
+    # REV-F1 (Aug 31, 2026) — a FIFTH deliberate non-clear, and the reason
+    # the fourth is documented two lines down. `battles_this_turn` was
+    # wiped here, and the glorious charge's V2-2 engagement gate
+    # (`combat_executor._execute_glorious_charge`) reads exactly that list
+    # to refuse a second engagement of the same pair in one turn. MEASURED
+    # through the typed command path on five seeds: Ney (recklessness
+    # carried from an earlier turn) attacks Wellington to a stalemate,
+    # then `charge` — refused, "has already engaged". Save mid-turn,
+    # reload, charge again — the full 2x-damage GLORIOUS CHARGE lands.
+    # Every other gate on that path (cavalry, aggressive, recklessness,
+    # AP, range, terrain, the naval crossing) survives the round trip, so
+    # nothing masked it. The list is serialized under `to_dict`'s
+    # mid-turn-save contract, restored by `from_dict`, and cleared at the
+    # real turn boundary by `clear_turn_battles` — the same contract the
+    # other four non-clears cite. It also feeds cannon-fire detection,
+    # vassal loyalty and the war-score reader, all of which were reading
+    # an empty list after a mid-turn load.
+    #
+    # Aug 30, 2026 review — a FOURTH deliberate non-clear, for the reason
+    # the first three were added. `in_combat_this_turn` was wiped here,
+    # and the turn-end idle pass reads it as one of its only two
+    # exemptions, so a mid-turn save/load marked every marshal who had
+    # fought that turn as IDLE. `idle_turns` drives real mechanics: the
+    # jealousy grievance threshold drops to hair-trigger at >= 3, the
+    # hostile-pair triggers REQUIRE >= 2, and vindication decays on it.
+    # The flag is serialized, restored by `from_dict`, and cleared at the
+    # real turn boundary by `clear_turn_battles` — which is precisely the
+    # contract the other three non-clears cite.
+    #
+    # FA-100 (half a), Sept 6, 2026 — THREE MORE, and the block's own
+    # comment was already the argument against them:
+    #
+    #   * `mild_concerns_this_turn` is a per-marshal DEDUPE list, so the
+    #     wipe was not cosmetic — a mid-turn save/load let a marshal who
+    #     had already raised a mild concern raise it again. That is the
+    #     WO-23 budget-refresh shape exactly.
+    #   * `gold_spent_this_turn` is SNAPSHOT (one-way, `.copy()`) inside the
+    #     end-turn banner builders, and it is DISPLAY ONLY.
+    #     ⚠ SYNTHESIS-ROUND CORRECTION: this clause used to read "is
+    #     saved/restored around post-objection", which is false twice over
+    #     and contradicted the correction four lines below it. There is no
+    #     RESTORE — the only writers are `world_state.from_dict` and
+    #     `_advance_turn_internal`'s clear, and all four `saved_gold_spent`
+    #     sites (`executor.py` x2, `meta_executor.py` x2) are one-way
+    #     `.copy()` then `.get(nation, 0)`, never assigned back. And the
+    #     siting is TURN ADVANCE, not post-objection: the enclosing
+    #     functions are `_execute_one`'s auto-end-turn block and
+    #     `_execute_end_turn`, and `handle_objection_response`'s own PT-F5
+    #     comment records that that path never re-enters
+    #     `CommandExecutor.execute`. Inherited verbatim from slice 16c.
+    #     ⚠ IQ1-2 CORRECTION: this used to say it "is read by the recruit
+    #     pricing". It is not, and the same claim was in IQ-1 SW-0's own
+    #     commit body. An AST census of its readers: `ledger._build_economy`,
+    #     `economy_executor`'s typed economy report, and the two end-turn
+    #     banner snapshots. `_calculate_recruit_cost` does NOT read it —
+    #     which is what makes it display-only, and is the basis for IQ1-2
+    #     being byte-identical to the series by construction.
+    #   * `threat_sources_this_turn` is the coalition's own record of WHY
+    #     the alarm rose. Measured: 4 sources live, 4 after `from_dict`,
+    #     **0 after `load_game`** — and the diplomatic ledger's "why" rows
+    #     went with them, 2 to 0.
+    #
+    # All three are serialized, all three are restored by `from_dict`,
+    # and all three are cleared at the real boundary by
+    # `_advance_turn_internal`. That is the same contract the five
+    # non-clears below cite, so they are not cleared here either.
+    # Aug 2026 health-check audit — deliberate NON-clears:
+    # `diplomatic_trust_applied` is the ±5/turn diplomatic trust cap
+    # ("survives save/load" is its in-code contract; wiping it here let
+    # a mid-turn save/load refresh every marshal's budget), and
+    # `attacks_this_turn` is serialized under an explicit "for mid-turn
+    # saves" contract (wiping it cost the player the flanking bonus).
+    #
+    # WO-23 (Aug 21, 2026) adds a THIRD, for the identical reason the
+    # first was added: `objection_popups_this_turn` is the ONLY live
+    # limiter on the objection trust channel — max one MODERATE+
+    # objection popup per marshal per turn (`world_state`, read by
+    # `executor` and `strategic_executor`) — and wiping it here let a
+    # mid-turn save/load refresh every marshal's budget. The trigger is
+    # trust-INDEPENDENT (`objection_v2._evaluate_relationship_support`
+    # reads personality and relationship only), so nothing self-limits
+    # the loop as trust climbs: it runs to the 100 clamp. Three of the
+    # four non-literal French marshals sit on authored -2 pairs at the
+    # 1805 boot, so the vehicle ships with the game.
+    #
+    # All three are restored by from_dict and cleared at the real turn
+    # boundary by _advance_turn_internal / reset_attack_tracking.
+
+    # Fog of War: recalculate visibility after load (Phase 6 Session 33)
+    # Handles backward compat for old saves that have no intel data —
+    # calculate_visibility() populates from current game state.
+    world.calculate_visibility()
+    return world
 
 
 def _slot_ending(world: WorldState) -> Optional[Dict]:
@@ -365,42 +554,66 @@ def _slot_ending(world: WorldState) -> Optional[Dict]:
     return compact(terminal_ending(world) or latest_ending(world))
 
 
+def _reason_of(message: str) -> str:
+    """The clause of a save sentence, for the rail row that already says
+    the save failed."""
+    if message.startswith(SAVE_FAILED_HEAD):
+        rest = message[len(SAVE_FAILED_HEAD):]
+        return rest[:1].upper() + rest[1:]
+    return message
+
+
+def _announce_failure(world: WorldState, result: Dict, *, final: bool = False) -> None:
+    """The ONE producer of the save-failure rail row (FA-S15-2 pins a single
+    call node): the autosave's, and — DD-C — the Final save's, which the
+    review found failing without a word on both of its roads."""
+    notifications.report_save_failure(
+        world, _reason_of(str(result.get("message") or "")),
+        getattr(world, "current_turn", 0), final=final)
+
+
 def write_final_save(world: WorldState) -> Dict:
     """GE-1 R6: the "Final — <calendar date>" save of a fallen campaign —
     written ONCE (the terminal ending remembers its file). Called from the
     autosave door (both end-turn roads) and from the /command response when
-    the Emperor fell in the player's own attack. Never raises."""
+    the Emperor fell in the player's own attack. Never raises — the ending is
+    never broken by its record — and a failure reaches the rail (DD-C)."""
     from backend.game_logic.game_end import close_campaign, terminal_ending
-    record = close_campaign(world) or terminal_ending(world)
-    if record is None:
-        return {"success": False, "message": "No ending to record", "filepath": ""}
-    if record.get("final_save"):
-        return {"success": True, "message": "Final save already written",
-                "filepath": str(record.get("final_save"))}
-    label = record.get("calendar_label") or f"Turn {int(record.get('turn', 0) or 0)}"
-    save_name = f"Final — {label}"
-    # Review round (Sept 25): every 1805 campaign shares the authored start
-    # date, so two campaigns that fell on the same turn wrote ONE file and
-    # the earlier record was lost without a word. A Final save is written
-    # once per campaign, so any file already at the name belongs to another
-    # campaign: the new one takes the next free name. And the record names
-    # its own file BEFORE the write, so the Final save itself remembers it
-    # (a load of that file never writes a second one); rolled back on a
-    # failure.
-    safe = "".join(c if c.isalnum() or c in "- _" else "_" for c in save_name)
-    target = SAVE_DIR / f"{safe}.json"
-    n = 2
-    while target.exists():
-        target = SAVE_DIR / f"{safe} ({n}).json"
-        n += 1
-    record["final_save"] = str(target)
+    record = None
     try:
+        record = close_campaign(world) or terminal_ending(world)
+        if record is None:
+            return {"success": False, "message": "No ending to record", "filepath": ""}
+        if record.get("final_save"):
+            return {"success": True, "message": "Final save already written",
+                    "filepath": str(record.get("final_save"))}
+        label = record.get("calendar_label") or f"Turn {int(record.get('turn', 0) or 0)}"
+        save_name = f"Final — {label}"
+        # Review round (Sept 25): every 1805 campaign shares the authored start
+        # date, so two campaigns that fell on the same turn wrote ONE file and
+        # the earlier record was lost without a word. A Final save is written
+        # once per campaign, so any file already at the name belongs to another
+        # campaign: the new one takes the next free name. And the record names
+        # its own file BEFORE the write, so the Final save itself remembers it
+        # (a load of that file never writes a second one); rolled back on a
+        # failure.
+        safe = "".join(c if c.isalnum() or c in "- _" else "_" for c in save_name)
+        target = SAVE_DIR / f"{safe}.json"
+        n = 2
+        while target.exists():
+            target = SAVE_DIR / f"{safe} ({n}).json"
+            n += 1
+        record["final_save"] = str(target)
         result = save_game(world, save_name=save_name, filepath=target)
     except Exception as exc:  # never let a save break the ending
-        result = {"success": False, "message": f"Final save failed: {exc}",
-                  "filepath": ""}
+        report(exc, "save_manager.write_final_save: an unexpected failure", every=True)
+        site = "save_manager.write_final_save: an unexpected failure"
+        result = _failed(_unexpected(exc, SAVE_FAILED_HEAD, site), reported=True,
+                         filepath="")
     if not result.get("success"):
-        record["final_save"] = None
+        if record is not None:
+            record["final_save"] = None
+        _announce_failure(world, result, final=True)
     return result
 
 
@@ -543,10 +756,30 @@ def autosave(world: WorldState) -> Dict:
     resuming the school instead of the war. Manual, player-named saves of the
     tutorial stay allowed (scenario_name rides the save, so the overlay
     re-arms on load). Position-8 session fix, Aug 8 2026.
+
+    ⚠ FA-S15-2 (L2). The announcement lives HERE, in the one door all three
+    callers already use — not in a new `autosave_and_report` they would each
+    have to remember. A second door beside this one is the defect class this
+    build keeps shipping: a fourth caller reaches the un-announced one.
+    Notifying here covers BOTH turn roads (the typed `end turn` and the
+    last-AP auto-advance) with zero call-site edits. Never raises: a save is
+    never allowed to break the turn (the FA-S15-2 ruling), so the whole door
+    sits inside one belt.
     """
+    try:
+        return _autosave(world)
+    except Exception as exc:            # never let a save break the turn
+        report(exc, "save_manager.autosave: an unexpected failure", every=True)
+        site = "save_manager.autosave: an unexpected failure"
+        result = _failed(_unexpected(exc, SAVE_FAILED_HEAD, site), reported=True,
+                         filepath="")
+        _announce_failure(world, result)
+        return result
+
+
+def _autosave(world: WorldState) -> Dict:
     if str(getattr(world, "scenario_name", "")) == "tutorial":
-        if SAVE_FAILURE_IS_ANNOUNCED:
-            notifications.clear_save_failure(world)
+        notifications.clear_save_failure(world)
         return {
             "success": True,
             "skipped": "tutorial",
@@ -557,70 +790,66 @@ def autosave(world: WorldState) -> Dict:
     # GE-1 R6: after the Fall the autosave is NOT overwritten — it keeps the
     # turn before the fall, so the campaign can be taken up again from the
     # last turn it could still be saved — and a named "Final — <date>" save
-    # records the ending instead (written once).
+    # records the ending instead (written once; it announces its own failure).
     from backend.game_logic.game_end import terminal_ending
     if terminal_ending(world) is not None:
         result = write_final_save(world)
         result["skipped"] = "fall"
         return result
 
-    # ⚠ FA-S15-2 (L2). The announcement lives HERE, in the one door all
-    # three callers already use — not in a new `autosave_and_report` they
-    # would each have to remember. A second door beside this one is the
-    # defect class this build keeps shipping: a fourth caller reaches the
-    # un-announced one. Measured: notifying here covers BOTH turn roads
-    # (the typed `end turn` and the last-AP auto-advance) with zero
-    # call-site edits, and the two `print("Autosave warning: ...")` blocks
-    # at those call sites are DELETED rather than joined by a third.
-    if not SAVE_FAILURE_IS_ANNOUNCED:
-        return save_game(
-            world,
-            save_name=f"Autosave - Turn {world.current_turn}",
-            filepath=SAVE_DIR / AUTOSAVE_FILENAME
-        )
-    try:
-        result = save_game(
-            world,
-            save_name=f"Autosave - Turn {world.current_turn}",
-            filepath=SAVE_DIR / AUTOSAVE_FILENAME
-        )
-    except Exception as exc:            # never let a save break the turn
-        result = {"success": False,
-                  "message": f"Autosave failed: {exc}", "filepath": ""}
+    result = save_game(
+        world,
+        save_name=f"Autosave - Turn {world.current_turn}",
+        filepath=SAVE_DIR / AUTOSAVE_FILENAME
+    )
     if result.get("success"):
         notifications.clear_save_failure(world)
     else:
-        print(f"Autosave warning: {result.get('message')}")
-        notifications.report_save_failure(
-            world, str(result.get("message") or ""),
-            getattr(world, "current_turn", 0))
+        # `save_game` already reported it at WARNING with its stage's site;
+        # the player's half is the rail row.
+        _announce_failure(world, result)
     return result
 
 
-def list_saves() -> List[Dict]:
-    """
-    List all save files with metadata.
+DAMAGED_SAVE_MESSAGE = "This save file is corrupt and cannot be read."
 
-    Returns:
-        List of {"filename": str, "filepath": str, "metadata": dict}
-        Sorted by saved_at descending (newest first).
-    """
+
+def _modified_at(path: Path) -> str:
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
+    except OSError:
+        return ""
+
+
+def scan_saves() -> Tuple[List[Dict], List[Dict]]:
+    """Every file in the saves folder, split: the saves that can be loaded
+    (`list_saves`' rows, sorted as it sorts them) and the files that cannot.
+
+    DD-C: a damaged file used to be skipped without a word — gone from the
+    Load menu, and Continue silently resumed whatever older save came next.
+    It is now reported at WARNING and listed beside the saves
+    (`{"filename", "saved_at" (the file's own time), "message"}`, newest
+    first), for `GET /saves` to carry as `damaged`."""
     ensure_save_dir()
     saves = []
+    damaged = []
 
     for f in SAVE_DIR.glob("*.json"):
         try:
             with open(f, 'r', encoding='utf-8') as fh:
                 data = json.load(fh)
             metadata = data.get("metadata", {})
+            if not isinstance(metadata, dict):
+                raise ValueError("the save's metadata is not a table")
             saves.append({
                 "filename": f.name,
                 "filepath": str(f),
                 "metadata": metadata
             })
-        except (json.JSONDecodeError, Exception):
-            # Skip corrupt files
-            continue
+        except Exception as exc:
+            report(exc, "save_manager.list_saves: a save that cannot be read")
+            damaged.append({"filename": f.name, "saved_at": _modified_at(f),
+                            "message": DAMAGED_SAVE_MESSAGE})
 
     # Sort: newest first — except that a campaign's FINAL save (GE-1 R6: a
     # record of a fallen Empire, which loads onto the end screen) sorts after
@@ -632,7 +861,20 @@ def list_saves() -> List[Dict]:
         playable = 0 if (isinstance(ending, dict) and ending.get("terminal")) else 1
         return (playable, s["metadata"].get("saved_at", ""))
     saves.sort(key=_key, reverse=True)
-    return saves
+    damaged.sort(key=lambda row: row["saved_at"], reverse=True)
+    return saves, damaged
+
+
+def list_saves() -> List[Dict]:
+    """
+    List all save files with metadata.
+
+    Returns:
+        List of {"filename": str, "filepath": str, "metadata": dict}
+        Sorted by saved_at descending (newest first). A file that cannot be
+        read is not in it — `scan_saves` lists those beside it.
+    """
+    return scan_saves()[0]
 
 
 def delete_save(filepath: Path) -> Dict:
@@ -645,4 +887,7 @@ def delete_save(filepath: Path) -> Dict:
             return {"success": True, "message": f"Deleted: {filepath.name}"}
         return {"success": False, "message": "File not found"}
     except Exception as e:
-        return {"success": False, "message": f"Delete failed: {str(e)}"}
+        report(e, "save_manager.delete_save: removing the file", every=True)
+        words = _os_words(e) if isinstance(e, OSError) else type(e).__name__
+        return {"success": False,
+                "message": f"Delete failed — the file could not be removed ({words})."}
