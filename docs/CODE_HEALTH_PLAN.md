@@ -827,6 +827,98 @@ removed (`scratchpad` tool `stage_fn.py`).
 No rule moved, so `SYSTEMS_REFERENCE.md` gains no section. **Next in CODE-2b:**
 slice 2 `format_event_oneliner`, then slice 3 `_execute_strategic_command`.
 
+**CODE-2b LANDING RECORD, SLICE 2 — `format_event_oneliner` (Pre-Deploy S10,
+October 13, 2026).** *The stage list, written before the cut (recipe step 1).*
+The function (`backend/campaign_log.py`, line 1847 on `b135a7d0`, 1,538 lines)
+is a head and then 160-odd `if event_type == …:` arms, every one of which
+returns, and the `Event: …` fall-through. The cut runs at the body's top-level
+statement boundaries, at the file's own banners. The one unbannered run
+("battle" to "defiance", 587 lines) is cut into three families, and the order
+is unchanged. Each stage is a module-level `_oneliner_<stage>(ctx)`:
+
+| # | Stage | Its header in the old body | What it holds |
+|---|---|---|---|
+| 1 | `_oneliner_head` | `event_type = event.get("type", "")` | the type read, the commitments route, a war that shatters a treaty |
+| 2 | `_oneliner_the_field` | `if event_type == "battle":` | battles, bombardments, escalades, retreats, broken and recovered, a province captured |
+| 3 | `_oneliner_purse_and_court` | `if event_type == "recruitment":` | levies, works, bankruptcy, desertion; jealousy and glory; petitions, rentes, commissions, substitutes; voided orders, agendas, new nations; dotations and estates |
+| 4 | `_oneliner_orders_and_fates` | `if event_type == "objection":` | objections, the campaign's end, the congress, literal fidelity; a marshal captured … released; standing orders, defiance |
+| 5 | `_oneliner_diplomacy` | "── Diplomacy events (Session 8D)" | treaties, war aims, settlements, the ally's entry, AI-AI treaties, the D5 counter-instruments, crises, designs |
+| 6 | `_oneliner_laws` | "── SR-5r "The Laws"" | a law enacted, repealed or lapsed |
+| 7 | `_oneliner_the_sea` | "── DEF-5 naval (NV-0..NV-3)" | fleets, blockades, the Continental System, the straits, the Descent, the expeditions; the flip in play |
+| 8 | `_oneliner_allegiance` | "DD-1 S8 Step 3 — the verbs" | the allegiance bid, a province returned, the auction resolved |
+| 9 | `_oneliner_cascades_and_coalitions` | "Deep audit fix: new event types" | a war declared, the cascades, a coalition declared or dissolved |
+| 10 | `_oneliner_the_fallen_and_the_clients` | "V3 Session 8: new event types" | a nation eliminated, the vassals' moves, the client's petition, a member leaving |
+| 11 | `_oneliner_proposals_and_ultimatums` | "── R8 Session 6" | AI proposals and ultimatums, counter-offers, missions, the proposal queue, garrisons, relationships, the peace ratified |
+| 12 | `_oneliner_unknown` | `return f"Event: {event_type}"` | the fall-through: an unknown type is named, never dropped |
+
+**The tool needed more than a config entry.** It is slice 1's `stage_fn.py`
+(scratchpad), and slices 2–3 found four things in it:
+- **A missing import road.** `campaign_log.py` has no `typing` line to
+  extend, so the tool now adds its imports after the module's first one. By
+  hand, the file then takes `import dataclasses` rather than `from
+  dataclasses import dataclass, field`, because `_player_marshal_involved`'s loop
+  variable is called `field` (ruff F402).
+- **A false refusal.** The `{x=}` refusal read the AST, which cannot tell
+  `f"{path=}"` from a literal `path=` followed by `{path}`. It now reads the
+  f-string's own text (slice 3, `_execute_strategic_command`'s order print).
+- **An honest proof difference.** `world: WorldState = …` becomes
+  `ctx.world: WorldState = …`, whose `simple` flag is 0. A function scope
+  evaluates neither annotation, and the proof's expected tree now says so.
+- **Two new rules (`confine=True`).** Under slice 1's rule, any name used in
+  two stages rode the context. Here that would have put 36 fields on it, 33
+  of them arm temporaries that only share a spelling (`nation`, `target`,
+  `marshal`). Slice 3 refused outright on `_road`, a module alias in one
+  stage and an unrelated string in another. A name now stays a plain local
+  of each stage that uses it when either rule holds:
+  - **confine:** every binding sits in a branch that always ends in
+    `return` or `raise`, so no value can leave the statement that bound it;
+  - **split:** a conservative definite-assignment pass shows that no stage
+    ever reads it before binding it on every path.
+
+  Neither rule applies to a name read in a closure, deleted, named by
+  `nonlocal`, or bound by a walrus. A wrong call cannot pass silently either:
+  a stage that read such a name unbound would read it as a global, which the
+  symtable proof refuses.
+
+*The outcome (✅ LANDED October 13, 2026).*
+- **The context.** Of the old body's 195 locals, **4 ride `OnelinerContext`**
+  (`event`, `player_nation`, `world`, `event_type`), the first three of them
+  the parameters. 32 more names appear in two or more stages but are
+  confined, and the rest are local to one stage.
+- **Unchanged.** No import is repeated, no nested def or `nonlocal` exists,
+  and every stage is AST-equal to the old statements once the four names
+  read `ctx.<name>`.
+- **Sizes.** Stages run 4–357 lines (the fall-through 4, the head 21, the
+  diplomacy family 357), and the driver is 74. **Functions over 500 lines
+  32 → 31**, and `FUNCTIONS_OVER_500_CAP` is lowered to match.
+- **The F2 class is empty.** Six local imports remain, none binding a
+  module-level name of `campaign_log.py`.
+
+**The net:**
+- `score_run.py check` against `2026_10_05_sfr` gives stdout identical to the
+  same check on `b135a7d0`.
+- A before/after sweep (scratchpad, not committed): 178 event types (every
+  literal the arms test, the commitments routes, and one unknown), each
+  rendered from a bare event and from three populated ones, with and without
+  a world. All 1,424 calls are identical, including the 140 that raise on
+  synthetic garbage, with the same exception and the same message.
+- The 106 test files that name the function or the module (6,220 tests)
+  pass. No pin needed re-pointing: none read the function's own text, and
+  no test literal stopped matching the file.
+
+**The shape is pinned** in `tests/test_code2b_the_oneliner_is_staged.py`
+(23):
+- the twelve stages in order, and the driver's body `[Assign, For, Return]`
+  with the fall-through last;
+- the identity test, and the signature unchanged;
+- no stage over 500 lines;
+- an unknown type passes every stage to the fall-through (driven);
+- the context's slots and no-default contract, and a line is a `str`;
+- no stage-local import shadowing a module name.
+
+The generic `tests/_staged_functions.py` reads any staged driver, a module
+function or a method.
+
 ## CODE-3 — Every broad except speaks (1 session, with DD-C)
 
 **The rule.** `except Exception` is allowed only through

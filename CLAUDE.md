@@ -34,7 +34,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 13, 2026).** The three most recent landed rows:
-- **S10 slice 1 (October 13, 2026) — CODE-2b `execute_command` — LANDED.** The `/command` route = fifteen `_command_*` stages behind one `CommandContext`. **Functions over 500 lines 33 → 32; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b; pins `tests/test_code2b_the_command_is_staged.py`). **NEXT = slice 2 `format_event_oneliner`**.
+- **S10 slices 1–2 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages (`CommandContext`); `format_event_oneliner` = 12 `_oneliner_*`. **Funcs over 500 lines 33 → 31; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b; pins `tests/test_code2b_*`). **NEXT = slice 3 `_execute_strategic_command`**.
 - **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112). **NEXT = S10, CODE-2b**.
 - **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (`tests/test_uxr2_layout_law.py`, allowlist 0); six screens + the war HUD gripped and remembered (`ResizeGrip`, driven); font overrides 72 → 18; whole client 0 RED / 0 P1 (§111).
 
@@ -84,7 +84,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `backend/models/cooldown_manager.py` | CooldownManager (5 auto-decrement cooldowns) + PopupQueue (7 priority-ordered popups) (R6) |
 | `backend/models/dialogue_manager.py` | DialogueManager (push/pop/peek, priority queue, clear_stale timeout, promote_if_empty) (R12) |
 | `backend/display_names.py` | Single source of truth for all internal→display name translations (R7) |
-| `backend/campaign_log.py` | Campaign log fog filter + one-liner formatter |
+| `backend/campaign_log.py` | Campaign log fog filter + one-liner formatter (12 `_oneliner_*` stages) |
 | `backend/game_logic/combat.py` | Combat resolution, messages |
 | `backend/game_logic/battle_report.py` | Post-battle modifier snapshots, report generation, Berthier observations |
 | `backend/game_logic/relationship.py` | Win/Loss Relationship Formula (severity, ordered pairs, cooldown) |

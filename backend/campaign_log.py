@@ -11,6 +11,8 @@ Design decisions:
 """
 
 from collections import Counter
+import dataclasses
+from typing import Any
 
 from backend.models.intel import FULL, PARTIAL
 
@@ -1844,6 +1846,22 @@ def _possessive_court(tag) -> str:
     return f"{name}'" if name.endswith("s") else f"{name}'s"
 
 
+# CODE-2b (October 2026): what the stages of `format_event_oneliner`
+# share. Built once at the driver's head, never on the wire. The parameters
+# are init fields; every other field is set by the stage that first assigns
+# it — `slots` with no default, so a read before any assignment raises as
+# the local it replaced did.
+_NEXT_STAGE = object()
+
+
+@dataclasses.dataclass(slots=True, repr=False, eq=False)
+class OnelinerContext:
+    event: Any
+    player_nation: Any
+    world: Any
+    event_type: Any = dataclasses.field(init=False)
+
+
 def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> str:
     """
     Produce a human-readable one-liner for a campaign log event.
@@ -1862,15 +1880,75 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
 
     Returns:
         Human-readable one-liner string
-    """
-    event_type = event.get("type", "")
-    if event_type in COMMITMENTS_ROUTES and event_type != "witness_strike_recorded":
-        return format_commitments_notice(event_type, event)
 
-    if event_type in ("diplomatic_war_declared", "war_declaration") and event.get("breached_treaty"):
-        aggressor = event.get("aggressor") or event.get("nation", "Unknown")
-        target = event.get("target", "Unknown")
-        return f"War declared: {aggressor} -> {target} (shattering {event.get('breached_treaty')})"
+    CODE-2b (October 2026): a driver of named stages behind one
+    `OnelinerContext`. A stage returns `_NEXT_STAGE` to continue or the
+    result to stop; nothing on the context reaches the wire.
+
+     1. `_oneliner_head` — The type read; a commitments notice goes to its own
+        formatter; a war that shatters a treaty names it.
+     2. `_oneliner_the_field` — Battles, bombardments, escalades, retreats, the
+        broken and the recovered, a province captured.
+     3. `_oneliner_purse_and_court` — Levies, works, bankruptcy and desertion;
+        jealousy and glory; petitions, rentes, commissions, substitutes; voided
+        orders, agendas, new nations; dotations and estates.
+     4. `_oneliner_orders_and_fates` — Objections, the campaign's end, the
+        congress, literal fidelity; a marshal captured, evacuated, wounded,
+        destroyed, standing last or released; standing orders and defiance.
+     5. `_oneliner_diplomacy` — Treaties, war aims, settlements, the ally's
+        entry, AI-AI treaties and the D5 counter-instruments, crises and
+        designs (Session 8D).
+     6. `_oneliner_laws` — A law enacted, repealed or lapsed (SR-5r).
+     7. `_oneliner_the_sea` — Fleets, blockades, the Continental System, the
+        straits, the Descent and the expeditions (DEF-5); the flip in play.
+     8. `_oneliner_allegiance` — The allegiance bid, a province returned, the
+        auction resolved (DD-1).
+     9. `_oneliner_cascades_and_coalitions` — A war declared, the cascades, a
+        coalition declared or dissolved.
+    10. `_oneliner_the_fallen_and_the_clients` — A nation eliminated; vassals
+        joining, refusing, transferred, defecting; the client's petition; a
+        member leaving the coalition.
+    11. `_oneliner_proposals_and_ultimatums` — AI proposals and ultimatums, the
+        brewing coalition, counter-offers, missions, the proposal queue,
+        garrisons, relationships, the peace ratified (R8, PL-14, PL-27, BPH).
+    12. `_oneliner_unknown` — The fall-through: an unknown type is named, never
+        dropped.
+    """
+    ctx = OnelinerContext(
+        event=event,
+        player_nation=player_nation,
+        world=world,
+    )
+    for stage in (
+            _oneliner_head,
+            _oneliner_the_field,
+            _oneliner_purse_and_court,
+            _oneliner_orders_and_fates,
+            _oneliner_diplomacy,
+            _oneliner_laws,
+            _oneliner_the_sea,
+            _oneliner_allegiance,
+            _oneliner_cascades_and_coalitions,
+            _oneliner_the_fallen_and_the_clients,
+            _oneliner_proposals_and_ultimatums,
+    ):
+        result = stage(ctx)
+        if result is not _NEXT_STAGE:
+            return result
+    return _oneliner_unknown(ctx)
+
+
+def _oneliner_head(ctx: OnelinerContext):
+    """Stage 1 of `format_event_oneliner`: The type read; a commitments notice
+    goes to its own formatter; a war that shatters a treaty names it."""
+    ctx.event_type = ctx.event.get("type", "")
+    if ctx.event_type in COMMITMENTS_ROUTES and ctx.event_type != "witness_strike_recorded":
+        return format_commitments_notice(ctx.event_type, ctx.event)
+
+    if ctx.event_type in ("diplomatic_war_declared", "war_declaration") and ctx.event.get("breached_treaty"):
+        aggressor = ctx.event.get("aggressor") or ctx.event.get("nation", "Unknown")
+        target = ctx.event.get("target", "Unknown")
+        return f"War declared: {aggressor} -> {target} (shattering {ctx.event.get('breached_treaty')})"
 
     # NOTE (Aug 2026 health-check audit): every event type in
     # COMMITMENTS_ROUTES (except witness_strike_recorded) is formatted by the
@@ -1880,30 +1958,35 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
     # bargain_* route types, amends_offered, the three call_to_arms_* types,
     # both hard_reject_posture_* types). Pinned by
     # tests/test_health_check_audit_2026_08_14.py.
+    return _NEXT_STAGE
 
-    if event_type == "battle":
+
+def _oneliner_the_field(ctx: OnelinerContext):
+    """Stage 2 of `format_event_oneliner`: Battles, bombardments, escalades,
+    retreats, the broken and the recovered, a province captured."""
+    if ctx.event_type == "battle":
         # Humanized at binding, not only at _name_tag: the outcome clause
         # ("ArchdukeCharles tactical victory") interpolates these directly and
         # leaked the raw key past the tag chokepoint (creative audit July 19
         # 2026). _name_tag is idempotent on an already-spaced name.
-        attacker = humanize_entity_name(event.get("attacker", "Unknown"))
-        atk_nation = event.get("attacker_nation", "")
-        defender = humanize_entity_name(event.get("defender", "Unknown"))
-        def_nation = event.get("defender_nation", "")
-        location = event.get("location", "unknown location")
-        outcome = event.get("outcome", "")
-        atk_cas = event.get("attacker_casualties", 0)
-        def_cas = event.get("defender_casualties", 0)
+        attacker = humanize_entity_name(ctx.event.get("attacker", "Unknown"))
+        atk_nation = ctx.event.get("attacker_nation", "")
+        defender = humanize_entity_name(ctx.event.get("defender", "Unknown"))
+        def_nation = ctx.event.get("defender_nation", "")
+        location = ctx.event.get("location", "unknown location")
+        outcome = ctx.event.get("outcome", "")
+        atk_cas = ctx.event.get("attacker_casualties", 0)
+        def_cas = ctx.event.get("defender_casualties", 0)
         # IQ-5 review (F): a LONE side the rubble rule (or the overkill cap)
         # destroyed lost its whole corps — "Ney 25" for a 60-man corps that
         # went to 0 was the raw figure, not the loss. The executor stamps a
         # display-only `*_applied_casualties` on exactly that side (never an
         # army side, never with BOTH_SIDES_NAME_THEIR_SCOPE down); prefer
         # it. The mechanical `*_casualties` above is untouched (R2).
-        _atk_applied = event.get("attacker_applied_casualties")
+        _atk_applied = ctx.event.get("attacker_applied_casualties")
         if _atk_applied is not None:
             atk_cas = _atk_applied
-        _def_applied = event.get("defender_applied_casualties")
+        _def_applied = ctx.event.get("defender_applied_casualties")
         if _def_applied is not None:
             def_cas = _def_applied
         # PT-D6: an army cannot lose more men than it had. Casualties are
@@ -1921,12 +2004,12 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         # coordinated branch stamps `*_field_before` (every participant's
         # strength at resolve); read it first. Absent — a solo battle, the
         # IQ-5 lever down, an old save — and the lead's figure stands.
-        _atk_before = event.get("attacker_field_before")
+        _atk_before = ctx.event.get("attacker_field_before")
         if _atk_before is None:
-            _atk_before = event.get("attacker_strength_before")
-        _def_before = event.get("defender_field_before")
+            _atk_before = ctx.event.get("attacker_strength_before")
+        _def_before = ctx.event.get("defender_field_before")
         if _def_before is None:
-            _def_before = event.get("defender_strength_before")
+            _def_before = ctx.event.get("defender_strength_before")
         if _atk_before is not None:
             atk_cas = min(int(atk_cas), int(_atk_before))
         if _def_before is not None:
@@ -1952,7 +2035,7 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         # W6-2 Dynamic Battle Naming: lead with the composed name when the
         # event carries one ("Second Battle of Swabia: ..."); events without
         # a name (legacy saves, garrison assaults) keep the classic form.
-        battle_name = event.get("battle_name", "")
+        battle_name = ctx.event.get("battle_name", "")
         if battle_name:
             line = (f"{battle_name}: {_name_tag(attacker, atk_nation)} attacked "
                     f"{_name_tag(defender, def_nation)} — "
@@ -1965,23 +2048,23 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         # player's verbatim phrase when this battle came from a delegation the
         # marshal INTERPRETED. Present only on inferred/delegation orders — an
         # explicitly-typed attack carries no phrase, so it is never quoted back.
-        deleg_phrase = event.get("delegation_phrase")
+        deleg_phrase = ctx.event.get("delegation_phrase")
         if deleg_phrase:
             line += f' — on your word: "{deleg_phrase}"'
         # W6-6: the enemy commander's one-line register rides as a flavor
         # suffix (already humanized + quoted at composition).
-        enemy_voice = event.get("enemy_voice")
+        enemy_voice = ctx.event.get("enemy_voice")
         if enemy_voice:
             line += f" — {enemy_voice}"
         return line
 
-    if event_type == "bombardment":
-        attacker = event.get("attacker", "Unknown")
-        atk_nation = event.get("attacker_nation", "")
-        location = (event.get("defender_location")
-                    or event.get("attacker_location")
+    if ctx.event_type == "bombardment":
+        attacker = ctx.event.get("attacker", "Unknown")
+        atk_nation = ctx.event.get("attacker_nation", "")
+        location = (ctx.event.get("defender_location")
+                    or ctx.event.get("attacker_location")
                     or "unknown location")
-        defender_casualties = event.get("defender_casualties", 0)
+        defender_casualties = ctx.event.get("defender_casualties", 0)
         return (f"{_name_tag(attacker, atk_nation)} bombarded {location} — "
                 f"{defender_casualties:,} casualties")
 
@@ -1989,72 +2072,78 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
     # structured fields the producer stamps and the client's slice-11 arm
     # reads, so the log and the enemy-phase dialog cannot tell different
     # stories about one assault.
-    if event_type == "garrison_assault":
-        marshal = event.get("marshal", "Unknown")
-        atk_nation = event.get("attacker_nation", "")
-        region = event.get("region", "unknown location")
-        gar_lost = int(event.get("garrison_losses", 0) or 0)
-        remaining = int(event.get("garrison_remaining", 0) or 0)
-        atk_lost = int(event.get("attacker_losses", 0) or 0)
+    if ctx.event_type == "garrison_assault":
+        marshal = ctx.event.get("marshal", "Unknown")
+        atk_nation = ctx.event.get("attacker_nation", "")
+        region = ctx.event.get("region", "unknown location")
+        gar_lost = int(ctx.event.get("garrison_losses", 0) or 0)
+        remaining = int(ctx.event.get("garrison_remaining", 0) or 0)
+        atk_lost = int(ctx.event.get("attacker_losses", 0) or 0)
         tag = _name_tag(marshal, atk_nation)
-        if event.get("held"):
+        if ctx.event.get("held"):
             return (f"{tag} assaulted the {region} garrison — {gar_lost:,} "
                     f"lost, {remaining:,} still under arms "
                     f"({humanize_entity_name(marshal)} loses {atk_lost:,})")
         return (f"{tag} stormed the {region} garrison — it is destroyed "
                 f"({humanize_entity_name(marshal)} loses {atk_lost:,})")
 
-    if event_type == "retreat":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        from_loc = event.get("from", "unknown")
-        to_loc = event.get("to", "")
+    if ctx.event_type == "retreat":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        from_loc = ctx.event.get("from", "unknown")
+        to_loc = ctx.event.get("to", "")
         tag = _name_tag(marshal, nation)
         if to_loc:
             return f"{tag} retreated from {from_loc} to {to_loc}"
         return f"{tag} retreated from {from_loc}"
 
-    if event_type == "marshal_broken":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        location = event.get("location", "unknown location")
+    if ctx.event_type == "marshal_broken":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        location = ctx.event.get("location", "unknown location")
         return f"{_name_tag(marshal, nation)} was broken at {location}"
 
-    if event_type == "marshal_recovered":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        location = event.get("location", "")
+    if ctx.event_type == "marshal_recovered":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        location = ctx.event.get("location", "")
         tag = _name_tag(marshal, nation)
         if location:
             return f"{tag} recovered at {location}"
         return f"{tag} recovered"
 
-    if event_type == "region_captured":
-        captured_by = event.get("captured_by", "Unknown")
-        region = event.get("region", "unknown region")
-        method = event.get("method", "")
+    if ctx.event_type == "region_captured":
+        captured_by = ctx.event.get("captured_by", "Unknown")
+        region = ctx.event.get("region", "unknown region")
+        method = ctx.event.get("method", "")
         if method:
             return (f"{region} captured by {captured_by} ({method})"
-                    + _holdings_left_clause(event))
-        return f"{region} captured by {captured_by}" + _holdings_left_clause(event)
+                    + _holdings_left_clause(ctx.event))
+        return f"{region} captured by {captured_by}" + _holdings_left_clause(ctx.event)
+    return _NEXT_STAGE
 
-    if event_type == "recruitment":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        amount = event.get("amount", 0)
-        recruit_type = event.get("recruit_type", "infantry")
+
+def _oneliner_purse_and_court(ctx: OnelinerContext):
+    """Stage 3 of `format_event_oneliner`: Levies, works, bankruptcy and
+    desertion; jealousy and glory; petitions, rentes, commissions, substitutes;
+    voided orders, agendas, new nations; dotations and estates."""
+    if ctx.event_type == "recruitment":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        amount = ctx.event.get("amount", 0)
+        recruit_type = ctx.event.get("recruit_type", "infantry")
         return f"{_name_tag(marshal, nation)} recruited {amount:,} {recruit_type}"
 
-    if event_type == "building_started":
-        building = (event.get("building") or "building").replace("_", " ").title()
-        region = event.get("region", "unknown region")
+    if ctx.event_type == "building_started":
+        building = (ctx.event.get("building") or "building").replace("_", " ").title()
+        region = ctx.event.get("region", "unknown region")
         return f"Construction started: {building} in {region}"
 
-    if event_type == "building_completed":
-        building = (event.get("building") or "building").replace("_", " ").title()
-        region = event.get("region", "unknown region")
-        owner = str(event.get("nation") or "")
-        if player_nation and owner and owner != player_nation:
+    if ctx.event_type == "building_completed":
+        building = (ctx.event.get("building") or "building").replace("_", " ").title()
+        region = ctx.event.get("region", "unknown region")
+        owner = str(ctx.event.get("nation") or "")
+        if ctx.player_nation and owner and owner != ctx.player_nation:
             # AAR-16: a foreign court's work names its owner in the log
             # too; the player's own row is byte-identical.
             article = "" if building.endswith("s") else "a "
@@ -2062,37 +2151,37 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
                     f"{building.lower()} in {region}")
         return f"Construction complete: {building} in {region}"
 
-    if event_type == "building_damaged":
-        building = (event.get("building") or "building").replace("_", " ").title()
-        region = event.get("region", "unknown region")
+    if ctx.event_type == "building_damaged":
+        building = (ctx.event.get("building") or "building").replace("_", " ").title()
+        region = ctx.event.get("region", "unknown region")
         return f"Building damaged: {building} in {region}"
 
-    if event_type == "bankruptcy":
-        nation = event.get("nation", "Unknown")
+    if ctx.event_type == "bankruptcy":
+        nation = ctx.event.get("nation", "Unknown")
         return f"{nation} treasury bankrupt — desertion imminent"
 
-    if event_type == "desertion":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        amount = event.get("amount", 0)
+    if ctx.event_type == "desertion":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        amount = ctx.event.get("amount", 0)
         return f"Desertion: {_name_tag(marshal, nation)} lost {amount:,} troops"
 
-    if event_type == "jealousy_fired":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
+    if ctx.event_type == "jealousy_fired":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
         # CA8 sweep 4: `marshal` reaches the player through `_name_tag`
         # (which humanises the camelCase key) and `target` — a marshal name
         # in the SAME sentence — did not: "envious of ArchdukeCharles's
         # victories". Unreachable for the player today (every French roster
         # and bench name is single-token, and the fog filter shows him only
         # his own nation's jealousy rows), so this is symmetry, not urgency.
-        target = humanize_entity_name(event.get("target", "a rival"))
-        personality = event.get("personality", "")
+        target = humanize_entity_name(ctx.event.get("target", "a rival"))
+        personality = ctx.event.get("personality", "")
         # CA8-8: this channel composes its own sentence and had the same
         # three-string monoculture as the dispatch. A recurrence reads
         # differently from a first quarrel; `fires` is absent on pre-CA8-8
         # saves, which falls through to the first-time wording.
-        if int(event.get("fires", 1) or 1) >= 2:
+        if int(ctx.event.get("fires", 1) or 1) >= 2:
             return (f"{_name_tag(marshal, nation)} takes up his grievance "
                     f"against {target} again")
         if personality == "aggressive":
@@ -2106,18 +2195,18 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
                     f"post with obsessive diligence")
         return f"{_name_tag(marshal, nation)} nurses a grievance against {target}"
 
-    if event_type == "jealousy_resolved":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        if event.get("by_action"):
+    if ctx.event_type == "jealousy_resolved":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        if ctx.event.get("by_action"):
             return (f"{_name_tag(marshal, nation)}'s grievance is settled — "
                     f"he fights with renewed vigor")
         return f"{_name_tag(marshal, nation)}'s resentment cools with time"
 
-    if event_type == "jealousy_escalation":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        target = humanize_entity_name(event.get("target", "a rival"))
+    if ctx.event_type == "jealousy_escalation":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        target = humanize_entity_name(ctx.event.get("target", "a rival"))
         # CA8-8: the payload carries `level` and this formatter
         # ignored it, so a tier-1 escalation the dispatch describes as "a
         # matter of concern" was logged as "entrenched" — the same event
@@ -2130,7 +2219,7 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         # ESCALATION_MUTUAL_LEVEL — inlined rather than imported, because
         # this is a display module and jealousy.py imports the log's own
         # helpers (a cycle for two integers is a poor trade).
-        level = int(event.get("level", 2) or 2)
+        level = int(ctx.event.get("level", 2) or 2)
         if level <= 1:
             return (f"The rivalry between {_name_tag(marshal, nation)} and "
                     f"{target} is now a matter of concern among the staff")
@@ -2140,23 +2229,23 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         # asserted a mutual feud against a marshal with no grievance at all.
         # `mutual` is absent on pre-fix saves, which falls through to the
         # entrenched wording rather than to the stronger claim.
-        if level >= 3 and event.get("mutual"):
+        if level >= 3 and ctx.event.get("mutual"):
             return (f"The feud between {_name_tag(marshal, nation)} and "
                     f"{target} is mutual — each schemes against the other")
         return (f"The rivalry between {_name_tag(marshal, nation)} and "
                 f"{target} has become entrenched")
 
-    if event_type == "jealousy_autonomous":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        target = humanize_entity_name(event.get("target", "the enemy"))
+    if ctx.event_type == "jealousy_autonomous":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        target = humanize_entity_name(ctx.event.get("target", "the enemy"))
         return (f"{_name_tag(marshal, nation)} attacked {target} on his own "
                 f"initiative, hungry for glory")
 
-    if event_type == "jealousy_confrontation":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        choice = event.get("choice", "acknowledge")
+    if ctx.event_type == "jealousy_confrontation":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        choice = ctx.event.get("choice", "acknowledge")
         # Q2(a) (CA9 row 3): the `command` arm needs its own row, or a
         # player who gave a marshal an army reads that he "was heard".
         choice_str = {"promise": "was promised glory",
@@ -2165,26 +2254,26 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
                       "acknowledge": "was heard"}.get(choice, "was heard")
         return f"{_name_tag(marshal, nation)} aired his grievance and {choice_str}"
 
-    if event_type == "rivalry_confrontation":
-        marshal = event.get("marshal", "Unknown")
-        other = event.get("other", "a rival")
-        nation = event.get("nation", "")
+    if ctx.event_type == "rivalry_confrontation":
+        marshal = ctx.event.get("marshal", "Unknown")
+        other = ctx.event.get("other", "a rival")
+        nation = ctx.event.get("nation", "")
         return (f"Harsh words between {_name_tag(marshal, nation)} and "
                 f"{other} — the Emperor intervened")
 
-    if event_type == "glory_crowned":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
+    if ctx.event_type == "glory_crowned":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
         return (f"{_name_tag(marshal, nation)} stands crowned with glory — "
                 f"the army's most celebrated commander")
 
-    if event_type == "glory_crown_lost":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
+    if ctx.event_type == "glory_crown_lost":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
         # SR-4c (AAR-D3): the row carries where the laurels went; a pre-SR-4c
         # row (no `why`) keeps its old sentence byte for byte.
-        why = event.get("why")
-        successor = event.get("successor") or ""
+        why = ctx.event.get("why")
+        successor = ctx.event.get("successor") or ""
         if why == "passed" and successor:
             return (f"{_name_tag(marshal, nation)} is no longer the army's most "
                     f"celebrated commander — the laurels have passed to "
@@ -2198,10 +2287,10 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         return (f"{_name_tag(marshal, nation)} is no longer the army's most "
                 f"celebrated commander — the laurels have passed")
 
-    if event_type == "fontainebleau_petition":
-        marshals = event.get("marshals", []) or []
+    if ctx.event_type == "fontainebleau_petition":
+        marshals = ctx.event.get("marshals", []) or []
         roll = ", ".join(marshals) if marshals else "The marshals"
-        choice = event.get("choice", "")
+        choice = ctx.event.get("choice", "")
         if choice == "concede":
             return f"The marshals' petition was answered with rentes: {roll}"
         if choice == "refuse":
@@ -2210,162 +2299,168 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
             return f"The marshals were promised the next conquest: {roll}"
         return f"The marshals petitioned the Emperor: {roll}"
 
-    if event_type == "rente_defaulted":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        face = int(event.get("face", 0))
+    if ctx.event_type == "rente_defaulted":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        face = int(ctx.event.get("face", 0))
         return (f"The treasury defaulted on {_name_tag(marshal, nation)}'s "
                 f"rente of {face}g/turn")
 
-    if event_type == "marshal_commissioned":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        location = event.get("location", "the capital")
+    if ctx.event_type == "marshal_commissioned":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        location = ctx.event.get("location", "the capital")
         return (f"{_name_tag(marshal, nation)} commissioned to the "
                 f"marshalate — raises his corps at {location}")
 
-    if event_type == "substitutes_purchased":
+    if ctx.event_type == "substitutes_purchased":
         # IQ-1 SW-1. Names the price, because the price IS the mechanic —
         # a substitute costs four times the drafted man at a full class and
         # sixteen times at an empty one.
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        men = int(event.get("men", 0))
-        gold = int(event.get("gold", 0))
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        men = int(ctx.event.get("men", 0))
+        gold = int(ctx.event.get("gold", 0))
         return (f"{_name_tag(marshal, nation)} takes {men:,} substitutes "
                 f"into the line — {gold:,} gold, and not a man off the rolls")
 
-    if event_type == "order_voided_by_battle":
+    if ctx.event_type == "order_voided_by_battle":
         # CA9-F13: the standing order the marshal lost by answering a
         # battle he did not choose. Murat's march on Vienna went this way
         # in the played campaign and nothing said so.
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        region = event.get("region", "the field")
-        verb = str(event.get("order", "") or "march").replace("_", " ").lower()
-        target = humanize_entity_name(str(event.get("order_target", "") or ""))
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        region = ctx.event.get("region", "the field")
+        verb = str(ctx.event.get("order", "") or "march").replace("_", " ").lower()
+        target = humanize_entity_name(str(ctx.event.get("order_target", "") or ""))
         tail = f" to {verb} {target}".rstrip() if target else ""
         return (f"{_name_tag(marshal, nation)} marched to the guns at "
                 f"{region} — his standing order{tail} is void")
 
-    if event_type == "agenda_shift":
-        nation = display_nation(event.get("nation", "Unknown"))
-        focus = event.get("focus", "new ambitions")
+    if ctx.event_type == "agenda_shift":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        focus = ctx.event.get("focus", "new ambitions")
         return f"The court of {nation} takes up a new design: {focus}"
 
-    if event_type == "agenda_violation":
-        violator = display_nation(event.get("violator", "Unknown"))
-        holder = display_nation(event.get("guard_holder", "Unknown"))
-        region = event.get("region", "its guarded lands")
+    if ctx.event_type == "agenda_violation":
+        violator = display_nation(ctx.event.get("violator", "Unknown"))
+        holder = display_nation(ctx.event.get("guard_holder", "Unknown"))
+        region = ctx.event.get("region", "its guarded lands")
         return (f"{holder} seethes: {violator}'s columns cross {region} "
                 f"in defiance of its neutrality")
 
-    if event_type == "nation_formed":
-        formed = event.get("display_name") or display_nation(
-            event.get("nation", "Unknown"))
-        old = event.get("old_display_name") or ""
+    if ctx.event_type == "nation_formed":
+        formed = ctx.event.get("display_name") or display_nation(
+            ctx.event.get("nation", "Unknown"))
+        old = ctx.event.get("old_display_name") or ""
         if old and old != formed:
             return f"{old} is no more — {formed} is proclaimed"
         return f"{formed} is proclaimed"
 
-    if event_type == "dotation_granted":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        region = event.get("region", "an estate")
-        title = event.get("title", "")
+    if ctx.event_type == "dotation_granted":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        region = ctx.event.get("region", "an estate")
+        title = ctx.event.get("title", "")
         title_str = f" — styled {title}" if title else ""
         return f"{_name_tag(marshal, nation)} endowed with {region}{title_str}"
 
-    if event_type == "estate_lost":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        region = event.get("region", "his estate")
+    if ctx.event_type == "estate_lost":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        region = ctx.event.get("region", "his estate")
         return f"{_name_tag(marshal, nation)} stripped of his estate at {region}"
 
-    if event_type == "rente_granted":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        face = int(event.get("face", 0))
+    if ctx.event_type == "rente_granted":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        face = int(ctx.event.get("face", 0))
         return f"{_name_tag(marshal, nation)} granted a rente of {face}g/turn"
 
-    if event_type == "rente_revoked":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        face = int(event.get("face", 0))
+    if ctx.event_type == "rente_revoked":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        face = int(ctx.event.get("face", 0))
         return f"{_name_tag(marshal, nation)}'s rente of {face}g/turn withdrawn"
 
-    if event_type == "estate_confiscated":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        region = event.get("region", "the estate")
-        captor = event.get("confiscated_by", "the conqueror")
+    if ctx.event_type == "estate_confiscated":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        region = ctx.event.get("region", "the estate")
+        captor = ctx.event.get("confiscated_by", "the conqueror")
         return (f"{captor} confiscated {_name_tag(marshal, nation)}'s "
                 f"estate at {region}")
 
-    if event_type == "estate_respected":
-        marshal = event.get("marshal", "Unknown")
-        nation = event.get("nation", "")
-        region = event.get("region", "the estate")
-        respecter = event.get("respected_by", "the conqueror")
+    if ctx.event_type == "estate_respected":
+        marshal = ctx.event.get("marshal", "Unknown")
+        nation = ctx.event.get("nation", "")
+        region = ctx.event.get("region", "the estate")
+        respecter = ctx.event.get("respected_by", "the conqueror")
         return (f"{respecter} honored {_name_tag(marshal, nation)}'s "
                 f"title at {region}")
+    return _NEXT_STAGE
 
-    if event_type == "objection":
-        marshal = event.get("marshal", "Unknown")
-        action = _display_action(event.get("action", ""))
-        resolution = event.get("resolution", "")
+
+def _oneliner_orders_and_fates(ctx: OnelinerContext):
+    """Stage 4 of `format_event_oneliner`: Objections, the campaign's end, the
+    congress, literal fidelity; a marshal captured, evacuated, wounded,
+    destroyed, standing last or released; standing orders and defiance."""
+    if ctx.event_type == "objection":
+        marshal = ctx.event.get("marshal", "Unknown")
+        action = _display_action(ctx.event.get("action", ""))
+        resolution = ctx.event.get("resolution", "")
         if action and resolution:
             return f"{marshal} objected to {action} ({resolution})"
         if action:
             return f"{marshal} objected to {action}"
         return f"{marshal} objected to order"
 
-    if event_type == "campaign_ending":
+    if ctx.event_type == "campaign_ending":
         # GE-1: "THE VERDICT OF HISTORY — The reign, unfinished, is judged
         # as it stands. (An Empire Contested)"
-        title = str(event.get("title") or "THE END OF THE CAMPAIGN")
-        line = str(event.get("cause_line") or "")
-        tier = str(event.get("tier_title") or "")
+        title = str(ctx.event.get("title") or "THE END OF THE CAMPAIGN")
+        line = str(ctx.event.get("cause_line") or "")
+        tier = str(ctx.event.get("tier_title") or "")
         tail = f" ({tier.title()})" if tier else ""
         return f"{title} — {line}{tail}" if line else f"{title}{tail}"
 
-    if event_type == "congress":
+    if ctx.event_type == "congress":
         # GE-3: one arm per phase (`_format_congress_event`).
-        return _format_congress_event(event)
+        return _format_congress_event(ctx.event)
 
-    if event_type == "literal_fidelity":
+    if ctx.event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).
-        return event.get("message", "A literal marshal held to his orders.")
+        return ctx.event.get("message", "A literal marshal held to his orders.")
 
-    if event_type == "marshal_captured":
-        marshal = event.get("marshal", "Unknown")
-        captor = event.get("captor", "the enemy")
-        location = event.get("location", "the field")
+    if ctx.event_type == "marshal_captured":
+        marshal = ctx.event.get("marshal", "Unknown")
+        captor = ctx.event.get("captor", "the enemy")
+        location = ctx.event.get("location", "the field")
         # NP-V: the chronicle must not demote a sovereign to a marshal —
         # "Marshal Napoleon CAPTURED" printed in the same Gazette issue
         # whose masthead read THE EMPEROR TAKEN. This formatter takes no
         # `world`, so it branches on the event's own `sovereign` key
         # (stamped by WorldState.capture_marshal / release).
-        if event.get("sovereign"):
+        if ctx.event.get("sovereign"):
             return f"THE EMPEROR {marshal} TAKEN by {captor} at {location}"
-        return f"{marshal_title(world, marshal, start=True)} CAPTURED by {captor} at {location}"
+        return f"{marshal_title(ctx.world, marshal, start=True)} CAPTURED by {captor} at {location}"
 
-    if event_type == "evacuation_granted":
-        a = event.get("nation_a", "")
-        b = event.get("nation_b", "")
-        names = event.get("marshals") or []
-        turns = int(event.get("turns") or 0)
-        cut = event.get("cut_off") or []
-        if event.get("mid_treaty"):
+    if ctx.event_type == "evacuation_granted":
+        a = ctx.event.get("nation_a", "")
+        b = ctx.event.get("nation_b", "")
+        names = ctx.event.get("marshals") or []
+        turns = int(ctx.event.get("turns") or 0)
+        cut = ctx.event.get("cut_off") or []
+        if ctx.event.get("mid_treaty"):
             # FA-N61 (slice 12): the same type, a different moment. The peace
             # was signed turns ago; this corps was stranded after it, and the
             # standing treaty put him on the road. Rendering it with the
             # sentence above would announce the peace a second time.
             who = ", ".join(names) or "A corps"
-            dest = (event.get("destinations") or {}).get(
+            dest = (ctx.event.get("destinations") or {}).get(
                 names[0] if names else "", "")
             return (f"{who} put on the road home from "
-                    f"{event.get('region', 'the field')}"
+                    f"{ctx.event.get('region', 'the field')}"
                     + (f" to {dest}" if dest else "")
                     + f" under the peace with {b} — {turns} turns")
         if not names and cut:
@@ -2375,283 +2470,289 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
                 f"{b} — {len(names)} corps, {turns} turns")
         return head + (f"; {', '.join(cut)} cut off" if cut else "")
 
-    if event_type == "evacuation_lapsing":
-        marshal = event.get("marshal", "Unknown")
-        location = event.get("location", "the field")
-        left = int(event.get("turns_left") or 0)
-        return (f"{marshal_title(world, marshal, start=True)}'s safe passage is LAPSING at {location} "
+    if ctx.event_type == "evacuation_lapsing":
+        marshal = ctx.event.get("marshal", "Unknown")
+        location = ctx.event.get("location", "the field")
+        left = int(ctx.event.get("turns_left") or 0)
+        return (f"{marshal_title(ctx.world, marshal, start=True)}'s safe passage is LAPSING at {location} "
                 f"— {_plural(left, 'turn')} before internment")
 
-    if event_type == "marshal_wounded":
+    if ctx.event_type == "marshal_wounded":
         # VP-M1 "The Fortunes of War": the man, not the corps.
-        marshal = event.get("marshal", "Unknown")
-        location = event.get("location", "the field")
-        until = int(event.get("until_turn") or 0)
+        marshal = ctx.event.get("marshal", "Unknown")
+        location = ctx.event.get("location", "the field")
+        until = int(ctx.event.get("until_turn") or 0)
         tail = f" — out until turn {until}" if until else ""
-        return f"{marshal_title(world, marshal, start=True)} WOUNDED at {location}{tail}; the corps stands"
+        return f"{marshal_title(ctx.world, marshal, start=True)} WOUNDED at {location}{tail}; the corps stands"
 
-    if event_type == "marshal_destroyed":
-        marshal = event.get("marshal", "Unknown")
-        location = event.get("location", "the field")
-        victor = event.get("victor") or ""
-        cause = event.get("cause") or ""
+    if ctx.event_type == "marshal_destroyed":
+        marshal = ctx.event.get("marshal", "Unknown")
+        location = ctx.event.get("location", "the field")
+        victor = ctx.event.get("victor") or ""
+        cause = ctx.event.get("cause") or ""
         if cause == "killed_in_action":
             # VP-M1: struck down at the head of his corps — the corps lives.
-            return (f"{marshal_title(world, marshal, start=True)} KILLED at {location}"
+            return (f"{marshal_title(ctx.world, marshal, start=True)} KILLED at {location}"
                     + (f" — struck down by {victor}'s guns" if victor else "")
                     + "; the corps passes to another hand")
         # GE-1 "The Eagle Falls": the sovereign killed with his corps is a
         # man, not a corps — the event carries `sovereign` because the
         # formatter has no world to look him up in.
-        if event.get("sovereign"):
+        if ctx.event.get("sovereign"):
             return (f"THE EMPEROR {marshal} FALLS at {location}"
                     + (f" — his corps annihilated by {victor}" if victor else ""))
         if cause == "attrition":
-            return (f"{marshal_title(world, marshal, start=True)}'s corps DESTROYED at {location} — "
+            return (f"{marshal_title(ctx.world, marshal, start=True)}'s corps DESTROYED at {location} — "
                     f"starved out by supply attrition")
         # WIN-D3: internment is not annihilation. The corps is off the board
         # by the same seam, but it was disarmed, not destroyed.
         if cause == "interned":
             if victor:
-                return (f"{marshal_title(world, marshal, start=True)}'s corps INTERNED at {location} "
+                return (f"{marshal_title(ctx.world, marshal, start=True)}'s corps INTERNED at {location} "
                         f"by {victor} — its safe passage had expired")
-            return (f"{marshal_title(world, marshal, start=True)}'s corps INTERNED at {location} — "
+            return (f"{marshal_title(ctx.world, marshal, start=True)}'s corps INTERNED at {location} — "
                     f"its safe passage had expired")
         if victor:
-            return (f"{marshal_title(world, marshal, start=True)}'s corps DESTROYED at {location} "
+            return (f"{marshal_title(ctx.world, marshal, start=True)}'s corps DESTROYED at {location} "
                     f"by {victor}")
-        return f"{marshal_title(world, marshal, start=True)}'s corps DESTROYED at {location}"
+        return f"{marshal_title(ctx.world, marshal, start=True)}'s corps DESTROYED at {location}"
 
-    if event_type == "last_stand":
-        marshal = event.get("marshal", "Unknown")
-        location = event.get("location", "the field")
-        inflicted = int(event.get("casualties_inflicted", 0) or 0)
+    if ctx.event_type == "last_stand":
+        marshal = ctx.event.get("marshal", "Unknown")
+        location = ctx.event.get("location", "the field")
+        inflicted = int(ctx.event.get("casualties_inflicted", 0) or 0)
         return (f"{humanize_entity_name(marshal)}'s last stand at {location} — "
                 f"{inflicted:,} enemy casualties before the end")
 
-    if event_type == "marshal_released":
-        marshal = event.get("marshal", "Unknown")
-        captor = event.get("captor", "captivity")
-        reason = (event.get("reason") or "release").replace("_", " ")
+    if ctx.event_type == "marshal_released":
+        marshal = ctx.event.get("marshal", "Unknown")
+        captor = ctx.event.get("captor", "captivity")
+        reason = (ctx.event.get("reason") or "release").replace("_", " ")
         # GE-1 verification round: two sovereign "releases" are not the end
         # of a captivity, and the chronicle said they were.
-        if event.get("reason") == "escorted_home":
-            lost = int(event.get("corps_interned", 0) or 0)
-            where = str(event.get("interned_at") or "the frontier")
+        if ctx.event.get("reason") == "escorted_home":
+            lost = int(ctx.event.get("corps_interned", 0) or 0)
+            where = str(ctx.event.get("interned_at") or "the frontier")
             return (f"THE EMPEROR {marshal}'s corps INTERNED at {where} by "
                     f"{display_nation(captor)}"
                     + (f" ({lost:,} men)" if lost else "")
                     + " — the Emperor himself escorted home")
-        if event.get("reason") == "set_down_at_home":
+        if ctx.event.get("reason") == "set_down_at_home":
             return (f"THE EMPEROR {marshal}'s corps is gone, with no court at "
                     f"war to take him — he returns home with an escort")
-        if event.get("sovereign"):  # NP-V: see marshal_captured above
+        if ctx.event.get("sovereign"):  # NP-V: see marshal_captured above
             return (f"THE EMPEROR {marshal} is restored to France by "
                     f"{captor} ({reason})")
-        return f"{marshal_title(world, marshal, start=True)} released by {captor} ({reason})"
+        return f"{marshal_title(ctx.world, marshal, start=True)} released by {captor} ({reason})"
 
-    if event_type == "strategic_order":
-        marshal = event.get("marshal", "Unknown")
-        order_type = event.get("order_type", "UNKNOWN")
+    if ctx.event_type == "strategic_order":
+        marshal = ctx.event.get("marshal", "Unknown")
+        order_type = ctx.event.get("order_type", "UNKNOWN")
         # Human-readable order type (MOVE_TO → "move to", HOLD → "hold", etc.)
         display_order = {
             "MOVE_TO": "move to", "HOLD": "hold",
             "SUPPORT": "support", "PURSUE": "pursue",
         }.get(order_type, order_type.lower().replace("_", " "))
         from backend.display_names import order_target_display
-        destination = order_target_display(event.get("destination", ""))  # EG-X1
+        destination = order_target_display(ctx.event.get("destination", ""))  # EG-X1
         if destination:
             return f"{marshal} ordered to {display_order} {destination}"
         return f"{marshal} ordered to {display_order}"
 
-    if event_type == "defiance":
-        marshal = event.get("marshal", "Unknown")
-        defiance_action = _display_defiance_action(event.get("defiance_action", "acted independently"))
+    if ctx.event_type == "defiance":
+        marshal = ctx.event.get("marshal", "Unknown")
+        defiance_action = _display_defiance_action(ctx.event.get("defiance_action", "acted independently"))
         return f"{marshal} defied orders and {defiance_action} instead"
+    return _NEXT_STAGE
 
+
+def _oneliner_diplomacy(ctx: OnelinerContext):
+    """Stage 5 of `format_event_oneliner`: Treaties, war aims, settlements, the
+    ally's entry, AI-AI treaties and the D5 counter-instruments, crises and
+    designs (Session 8D)."""
     # ── Diplomacy events (Session 8D) ──
-    if event_type == "diplomatic_treaty_signed":
-        nation_a = event.get("nation_a") or (event.get("nations", [None, None])[0] or "Unknown")
-        nation_b = event.get("nation_b") or (event.get("nations", [None, None])[1] if len(event.get("nations", [])) > 1 else "Unknown")
-        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+    if ctx.event_type == "diplomatic_treaty_signed":
+        nation_a = ctx.event.get("nation_a") or (ctx.event.get("nations", [None, None])[0] or "Unknown")
+        nation_b = ctx.event.get("nation_b") or (ctx.event.get("nations", [None, None])[1] if len(ctx.event.get("nations", [])) > 1 else "Unknown")
+        treaty_type = (ctx.event.get("treaty_type") or "treaty").replace("_", " ")
         return f"Treaty signed: {nation_a} and {nation_b} ({treaty_type})"
 
-    if event_type == "diplomatic_war_declared":
-        aggressor = event.get("aggressor") or event.get("nation", "Unknown")
-        target = event.get("target", "Unknown")
-        breached_treaty = event.get("breached_treaty", "")
+    if ctx.event_type == "diplomatic_war_declared":
+        aggressor = ctx.event.get("aggressor") or ctx.event.get("nation", "Unknown")
+        target = ctx.event.get("target", "Unknown")
+        breached_treaty = ctx.event.get("breached_treaty", "")
         if breached_treaty:
             return f"War declared: {aggressor} → {target} (shattering {breached_treaty})"
         return f"War declared: {aggressor} → {target}"
 
-    if event_type == "war_objective_declared":
-        declaring = event.get("declaring_nation", "Unknown")
-        target = event.get("target_nation", "Unknown")
-        obj_type = (event.get("objective_type") or "unknown").replace("_", " ").title()
-        regions = event.get("target_regions", [])
+    if ctx.event_type == "war_objective_declared":
+        declaring = ctx.event.get("declaring_nation", "Unknown")
+        target = ctx.event.get("target_nation", "Unknown")
+        obj_type = (ctx.event.get("objective_type") or "unknown").replace("_", " ").title()
+        regions = ctx.event.get("target_regions", [])
         region_str = f" (target: {', '.join(regions)})" if regions else ""
         return f"{declaring} declares {obj_type} against {target}{region_str}"
 
-    if event_type == "war_objective_ticking_started":
-        declaring = event.get("declaring_nation", "Unknown")
-        region = event.get("target_region", "unknown")
-        rate = event.get("rate", 0)
+    if ctx.event_type == "war_objective_ticking_started":
+        declaring = ctx.event.get("declaring_nation", "Unknown")
+        region = ctx.event.get("target_region", "unknown")
+        rate = ctx.event.get("rate", 0)
         return f"{declaring} holds {region} — ticking war score (+{rate}/turn)"
 
-    if event_type == "forced_alliance_imposed":
-        imposer = event.get("imposing_nation") or event.get("imposer", "Unknown")
-        target = event.get("forced_nation") or event.get("target", "Unknown")
+    if ctx.event_type == "forced_alliance_imposed":
+        imposer = ctx.event.get("imposing_nation") or ctx.event.get("imposer", "Unknown")
+        target = ctx.event.get("forced_nation") or ctx.event.get("target", "Unknown")
         return f"Forced alliance: {target} enters alliance with {imposer} under duress"
 
-    if event_type == "vassal_liberated":
-        vassal = event.get("vassal_nation", "Unknown")
-        former_lord = event.get("former_lord", "")
-        liberator = event.get("liberator_nation") or event.get("liberator", "Unknown")
+    if ctx.event_type == "vassal_liberated":
+        vassal = ctx.event.get("vassal_nation", "Unknown")
+        former_lord = ctx.event.get("former_lord", "")
+        liberator = ctx.event.get("liberator_nation") or ctx.event.get("liberator", "Unknown")
         if former_lord:
             return f"Liberation: {vassal} freed from {former_lord} by {liberator}"
         return f"Liberation: {vassal} freed from vassalage by {liberator}"
 
-    if event_type == "settlement_summary":
+    if ctx.event_type == "settlement_summary":
         from backend.game_logic.settlement_presentation import (
             compose_summary_oneliner,
         )
 
-        return compose_summary_oneliner(event)
+        return compose_summary_oneliner(ctx.event)
 
-    if event_type == "settlement_digest":
+    if ctx.event_type == "settlement_digest":
         from backend.game_logic.settlement_presentation import (
             compose_digest_oneliner,
         )
 
-        return compose_digest_oneliner(event)
+        return compose_digest_oneliner(ctx.event)
 
     # SC-33 recurring settlement gold (G4F smoke follow-up): the payments
     # fired in the morning dispatch but vanished from the campaign log
     # history entirely (type-filtered out).
     # SC-30 / Slice G1: the Request Terms lifecycle beats.
-    if event_type == "settlement_terms_requested":
+    if ctx.event_type == "settlement_terms_requested":
         return (
-            f"Terms requested from {event.get('answering_leader', 'the enemy court')} "
-            f"on {event.get('war_label', 'the war')}."
+            f"Terms requested from {ctx.event.get('answering_leader', 'the enemy court')} "
+            f"on {ctx.event.get('war_label', 'the war')}."
         )
 
-    if event_type == "settlement_terms_request_granted":
+    if ctx.event_type == "settlement_terms_request_granted":
         return (
-            f"{event.get('answering_leader', 'The enemy court')} answered our "
-            f"request with settlement terms for {event.get('war_label', 'the war')}."
+            f"{ctx.event.get('answering_leader', 'The enemy court')} answered our "
+            f"request with settlement terms for {ctx.event.get('war_label', 'the war')}."
         )
 
-    if event_type == "settlement_terms_request_refused":
+    if ctx.event_type == "settlement_terms_request_refused":
         return (
-            f"{event.get('answering_leader', 'The enemy court')} refused to name "
-            f"terms for {event.get('war_label', 'the war')}."
+            f"{ctx.event.get('answering_leader', 'The enemy court')} refused to name "
+            f"terms for {ctx.event.get('war_label', 'the war')}."
         )
 
     # Slice H: full-agency ally petition beats.
-    if event_type == "settlement_ally_petition_granted":
+    if ctx.event_type == "settlement_ally_petition_granted":
         return (
-            f"Granted {event.get('ally_nation', 'an ally')}'s settlement "
-            f"petition over {event.get('claim_region', 'its claim')} on "
-            f"{event.get('war_label', 'the war')}."
+            f"Granted {ctx.event.get('ally_nation', 'an ally')}'s settlement "
+            f"petition over {ctx.event.get('claim_region', 'its claim')} on "
+            f"{ctx.event.get('war_label', 'the war')}."
         )
 
-    if event_type == "settlement_ally_petition_declined":
+    if ctx.event_type == "settlement_ally_petition_declined":
         return (
-            f"Declined {event.get('ally_nation', 'an ally')}'s settlement "
-            f"petition over {event.get('claim_region', 'its claim')} on "
-            f"{event.get('war_label', 'the war')}."
+            f"Declined {ctx.event.get('ally_nation', 'an ally')}'s settlement "
+            f"petition over {ctx.event.get('claim_region', 'its claim')} on "
+            f"{ctx.event.get('war_label', 'the war')}."
         )
 
-    if event_type == "settlement_bargain_honored":
+    if ctx.event_type == "settlement_bargain_honored":
         return (
-            f"Honored the pledge on {event.get('claim_region', 'the claim')} "
-            f"to {event.get('ally_nation', 'an ally')} in the settlement "
-            f"draft of {event.get('war_label', 'the war')}."
+            f"Honored the pledge on {ctx.event.get('claim_region', 'the claim')} "
+            f"to {ctx.event.get('ally_nation', 'an ally')} in the settlement "
+            f"draft of {ctx.event.get('war_label', 'the war')}."
         )
 
-    if event_type == "settlement_recurring_gold_paid":
+    if ctx.event_type == "settlement_recurring_gold_paid":
         return (
-            f"{event.get('from_nation', 'Unknown')} paid "
-            f"{event.get('amount_paid', '?')} gold to "
-            f"{event.get('to_nation', 'Unknown')} on the settlement of "
-            f"{event.get('war_label', 'the war')} "
-            f"({event.get('turns_remaining', '?')} turns remaining)."
+            f"{ctx.event.get('from_nation', 'Unknown')} paid "
+            f"{ctx.event.get('amount_paid', '?')} gold to "
+            f"{ctx.event.get('to_nation', 'Unknown')} on the settlement of "
+            f"{ctx.event.get('war_label', 'the war')} "
+            f"({ctx.event.get('turns_remaining', '?')} turns remaining)."
         )
 
-    if event_type == "settlement_recurring_gold_partial":
+    if ctx.event_type == "settlement_recurring_gold_partial":
         return (
-            f"{event.get('from_nation', 'Unknown')} could only pay "
-            f"{event.get('amount_paid', '?')}/{event.get('amount_due', '?')} "
-            f"gold to {event.get('to_nation', 'Unknown')} on the settlement "
-            f"of {event.get('war_label', 'the war')}."
+            f"{ctx.event.get('from_nation', 'Unknown')} could only pay "
+            f"{ctx.event.get('amount_paid', '?')}/{ctx.event.get('amount_due', '?')} "
+            f"gold to {ctx.event.get('to_nation', 'Unknown')} on the settlement "
+            f"of {ctx.event.get('war_label', 'the war')}."
         )
 
-    if event_type == "settlement_recurring_gold_completed":
+    if ctx.event_type == "settlement_recurring_gold_completed":
         return (
-            f"Settlement obligation fulfilled: {event.get('total_amount', '?')} "
-            f"gold from {event.get('from_nation', 'Unknown')} to "
-            f"{event.get('to_nation', 'Unknown')} "
-            f"({event.get('war_label', 'the war')})."
+            f"Settlement obligation fulfilled: {ctx.event.get('total_amount', '?')} "
+            f"gold from {ctx.event.get('from_nation', 'Unknown')} to "
+            f"{ctx.event.get('to_nation', 'Unknown')} "
+            f"({ctx.event.get('war_label', 'the war')})."
         )
 
-    if event_type == "settlement_recurring_gold_cancelled":
-        reason = str(event.get("reason", "circumstances")).replace("_", " ")
+    if ctx.event_type == "settlement_recurring_gold_cancelled":
+        reason = str(ctx.event.get("reason", "circumstances")).replace("_", " ")
         return (
             f"Recurring settlement payment from "
-            f"{event.get('from_nation', 'Unknown')} to "
-            f"{event.get('to_nation', 'Unknown')} cancelled ({reason})."
+            f"{ctx.event.get('from_nation', 'Unknown')} to "
+            f"{ctx.event.get('to_nation', 'Unknown')} cancelled ({reason})."
         )
 
-    if event_type == "hard_block_surfaced":
+    if ctx.event_type == "hard_block_surfaced":
         # IGR-A1: was `reason.replace("_", " ")` — i.e. "no participation
         # path" straight to the chronicle. The raw key still rides the event
         # (old saves included); only the rendering changed.
-        beneficiary = event.get("beneficiary", "Unknown")
-        target_enemy = event.get("target_enemy") or event.get("named_enemy", "Unknown")
+        beneficiary = ctx.event.get("beneficiary", "Unknown")
+        target_enemy = ctx.event.get("target_enemy") or ctx.event.get("named_enemy", "Unknown")
         return ally_entry_block_line(
-            str(event.get("hard_block_reason", "")),
+            str(ctx.event.get("hard_block_reason", "")),
             beneficiary,
             target_enemy,
-            str(event.get("promiser", "") or ""),
+            str(ctx.event.get("promiser", "") or ""),
         )
 
-    if event_type == "ally_refused_free_join":
-        beneficiary = event.get("beneficiary", "Unknown")
-        target_enemy = event.get("target_enemy") or event.get("named_enemy", "Unknown")
+    if ctx.event_type == "ally_refused_free_join":
+        beneficiary = ctx.event.get("beneficiary", "Unknown")
+        target_enemy = ctx.event.get("target_enemy") or ctx.event.get("named_enemy", "Unknown")
         return f"{beneficiary} declined to join against {target_enemy} without terms."
 
-    if event_type == "declaration_backed_out":
-        named_enemy = event.get("named_enemy") or event.get("target_enemy", "Unknown")
+    if ctx.event_type == "declaration_backed_out":
+        named_enemy = ctx.event.get("named_enemy") or ctx.event.get("target_enemy", "Unknown")
         return f"War declaration against {named_enemy} cancelled."
 
-    if event_type == "bargain_repudiated":
-        beneficiary = event.get("beneficiary", "Unknown")
-        claim_region = event.get("claim_region", "Unknown")
+    if ctx.event_type == "bargain_repudiated":
+        beneficiary = ctx.event.get("beneficiary", "Unknown")
+        claim_region = ctx.event.get("claim_region", "Unknown")
         return f"France repudiated the bargain with {beneficiary} over {claim_region}."
 
-    if event_type == "ally_entry_accepted":
-        beneficiary = event.get("beneficiary", "Unknown")
-        named_enemy = event.get("named_enemy", "Unknown")
+    if ctx.event_type == "ally_entry_accepted":
+        beneficiary = ctx.event.get("beneficiary", "Unknown")
+        named_enemy = ctx.event.get("named_enemy", "Unknown")
         return f"{beneficiary} joins the war against {named_enemy}."
 
-    if event_type == "ally_entry_refused":
-        beneficiary = event.get("beneficiary", "Unknown")
-        named_enemy = event.get("named_enemy", "Unknown")
+    if ctx.event_type == "ally_entry_refused":
+        beneficiary = ctx.event.get("beneficiary", "Unknown")
+        named_enemy = ctx.event.get("named_enemy", "Unknown")
         return f"{beneficiary} refuses to join against {named_enemy}."
 
-    if event_type == "counter_bargain_accepted":
-        beneficiary = event.get("beneficiary", "Unknown")
-        claim_region = event.get("demanded_region") or event.get("claim_region", "Unknown")
+    if ctx.event_type == "counter_bargain_accepted":
+        beneficiary = ctx.event.get("beneficiary", "Unknown")
+        claim_region = ctx.event.get("demanded_region") or ctx.event.get("claim_region", "Unknown")
         return f"Counter-bargain accepted: {beneficiary} claims {claim_region}."
 
-    if event_type == "counter_bargain_rejected":
-        beneficiary = event.get("beneficiary", "Unknown")
+    if ctx.event_type == "counter_bargain_rejected":
+        beneficiary = ctx.event.get("beneficiary", "Unknown")
         return f"Counter-bargain from {beneficiary} rejected."
 
-    if event_type == "vassal_broke_free":
-        nation = event.get("vassal") or event.get("nation", "Unknown")
-        lord = event.get("lord") or "its lord"
-        exit_path = str(event.get("exit") or "")
+    if ctx.event_type == "vassal_broke_free":
+        nation = ctx.event.get("vassal") or ctx.event.get("nation", "Unknown")
+        lord = ctx.event.get("lord") or "its lord"
+        exit_path = str(ctx.event.get("exit") or "")
         if exit_path == "vassal_rebellion_armistice":
             return (f"Vassal rebellion: {nation} breaks free of {lord} "
                     f"— the armistice holds.")
@@ -2669,19 +2770,19 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         return f"Vassal rebellion: {nation} has broken free of {lord}. War."
 
 
-    if event_type == "diplomatic_alliance_cascade":
-        nation = event.get("defender") or event.get("nation", "Unknown")
-        ally = event.get("ally", "Unknown")
+    if ctx.event_type == "diplomatic_alliance_cascade":
+        nation = ctx.event.get("defender") or ctx.event.get("nation", "Unknown")
+        ally = ctx.event.get("ally", "Unknown")
         # SR-6a RS-23: the enemy named where the event carries it.
-        against = event.get("against")
+        against = ctx.event.get("against")
         if against:
             return f"Alliance cascade: {nation} enters war against {against} via {ally}"
         return f"Alliance cascade: {nation} enters war via {ally}"
 
-    if event_type == "diplomatic_ai_ai_treaty":
-        nation_a = event.get("nation_a", "Unknown")
-        nation_b = event.get("nation_b", "Unknown")
-        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+    if ctx.event_type == "diplomatic_ai_ai_treaty":
+        nation_a = ctx.event.get("nation_a", "Unknown")
+        nation_b = ctx.event.get("nation_b", "Unknown")
+        treaty_type = (ctx.event.get("treaty_type") or "treaty").replace("_", " ")
         if THE_COURTS_TREATIES_READ_AS_PROSE:
             # SF-LB-3 rider (Score Finish Step 7b): two courts' treaty as a
             # sentence of the chronicle, the courts by name.
@@ -2690,78 +2791,78 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
                     f"a {treaty_type}")
         return f"AI-AI treaty: {nation_a} and {nation_b} ({treaty_type})"
 
-    if event_type == "ai_ai_proposal_refused":
+    if ctx.event_type == "ai_ai_proposal_refused":
         # AI-2a: the court-to-court refusal — the ask happened, was
         # rebuffed, and the balance of power is WITNESSED (§3.4).
-        proposer = event.get("proposer", "Unknown")
-        refused_by = event.get("refused_by") or event.get("recipient",
+        proposer = ctx.event.get("proposer", "Unknown")
+        refused_by = ctx.event.get("refused_by") or ctx.event.get("recipient",
                                                           "Unknown")
-        ptype = _proposal_label(event)
+        ptype = _proposal_label(ctx.event)
         # IGR-B: a burst of these arrives collapsed into one row.
-        count = int(event.get("collapsed_count") or 0)
+        count = int(ctx.event.get("collapsed_count") or 0)
         if count > 1:
-            return _collapsed_refusal_line(event, ptype, count)
+            return _collapsed_refusal_line(ctx.event, ptype, count)
         return f"{refused_by} rebuffs {proposer} ({ptype})"
 
     # AI-2b: the D5 counter-instruments.
-    if event_type == "sponsorship_granted":
-        payer = display_nation(event.get("payer", "Unknown"))
-        recipient = display_nation(event.get("recipient", "Unknown"))
-        aim = display_nation(event.get("aim", "")) if event.get("aim") else ""
-        if event.get("kind") == "neutrality":
+    if ctx.event_type == "sponsorship_granted":
+        payer = display_nation(ctx.event.get("payer", "Unknown"))
+        recipient = display_nation(ctx.event.get("recipient", "Unknown"))
+        aim = display_nation(ctx.event.get("aim", "")) if ctx.event.get("aim") else ""
+        if ctx.event.get("kind") == "neutrality":
             return (f"{payer} buys {recipient}'s neutrality"
                     + (f" in the war over {aim}" if aim else ""))
-        if event.get("licence"):
+        if ctx.event.get("licence"):
             return f"{payer} licences {recipient}'s design against {aim}"
         return (f"{payer} sponsors {recipient}"
                 + (f" against {aim}" if aim else "")
-                + f" ({int(event.get('amount', 0))}g/turn)")
+                + f" ({int(ctx.event.get('amount', 0))}g/turn)")
 
-    if event_type == "sponsorship_reneged":
-        breaker = display_nation(event.get("breaker", "Unknown"))
-        victim = display_nation(event.get("victim", "Unknown"))
-        noun = ("licence" if event.get("licence")
+    if ctx.event_type == "sponsorship_reneged":
+        breaker = display_nation(ctx.event.get("breaker", "Unknown"))
+        victim = display_nation(ctx.event.get("victim", "Unknown"))
+        noun = ("licence" if ctx.event.get("licence")
                 else "neutrality compact"
-                if event.get("kind") == "neutrality" else "sponsorship")
+                if ctx.event.get("kind") == "neutrality" else "sponsorship")
         return f"THE BROKEN BARGAIN: {breaker} tears up its {noun} with {victim}"
 
-    if event_type == "sponsorship_expired":
-        payer = display_nation(event.get("payer", "Unknown"))
-        recipient = display_nation(event.get("recipient", "Unknown"))
+    if ctx.event_type == "sponsorship_expired":
+        payer = display_nation(ctx.event.get("payer", "Unknown"))
+        recipient = display_nation(ctx.event.get("recipient", "Unknown"))
         return f"The compact between {payer} and {recipient} lapses"
 
-    if event_type == "design_bought_off":
-        payer = display_nation(event.get("payer", "Unknown"))
-        recipient = display_nation(event.get("recipient", "Unknown"))
+    if ctx.event_type == "design_bought_off":
+        payer = display_nation(ctx.event.get("payer", "Unknown"))
+        recipient = display_nation(ctx.event.get("recipient", "Unknown"))
         return f"{payer} buys off {recipient}'s design — the want sleeps"
 
-    if event_type == "bargain_reneged":
-        breaker = display_nation(event.get("breaker", "Unknown"))
-        victim = display_nation(event.get("victim", "Unknown"))
+    if ctx.event_type == "bargain_reneged":
+        breaker = display_nation(ctx.event.get("breaker", "Unknown"))
+        victim = display_nation(ctx.event.get("victim", "Unknown"))
         return (f"THE BROKEN BARGAIN: {breaker} reneges on its compact "
                 f"with {victim} — the design returns")
 
-    if event_type == "guarantee_pledged":
-        guarantor = display_nation(event.get("guarantor", "Unknown"))
-        protected = display_nation(event.get("protected", "Unknown"))
+    if ctx.event_type == "guarantee_pledged":
+        guarantor = display_nation(ctx.event.get("guarantor", "Unknown"))
+        protected = display_nation(ctx.event.get("protected", "Unknown"))
         return f"{guarantor} guarantees {protected}"
 
-    if event_type == "guarantee_abandoned":
-        breaker = display_nation(event.get("breaker", "Unknown"))
-        victim = display_nation(event.get("victim", "Unknown"))
+    if ctx.event_type == "guarantee_abandoned":
+        breaker = display_nation(ctx.event.get("breaker", "Unknown"))
+        victim = display_nation(ctx.event.get("victim", "Unknown"))
         return (f"A guarantee proves paper: {breaker} abandons "
                 f"{victim} to its attackers")
 
-    if event_type == "british_subsidy":
-        payer = display_nation(event.get("payer", "Unknown"))
-        recipient = display_nation(event.get("recipient", "Unknown"))
-        amount = int(event.get("amount", 0))
+    if ctx.event_type == "british_subsidy":
+        payer = display_nation(ctx.event.get("payer", "Unknown"))
+        recipient = display_nation(ctx.event.get("recipient", "Unknown"))
+        amount = int(ctx.event.get("amount", 0))
         return f"{payer}'s gold: {amount}g reaches {recipient}"
 
-    if event_type == "instrument_lapsed":
-        payer = display_nation(event.get("payer", "Unknown"))
-        recipient = display_nation(event.get("recipient", "Unknown"))
-        reason = event.get("reason", "")
+    if ctx.event_type == "instrument_lapsed":
+        payer = display_nation(ctx.event.get("payer", "Unknown"))
+        recipient = display_nation(ctx.event.get("recipient", "Unknown"))
+        reason = ctx.event.get("reason", "")
         if reason == "term_served":
             return (f"The bargain between {payer} and {recipient} is "
                     f"served in full — the design wakes")
@@ -2771,240 +2872,261 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         return (f"War overtakes the compact between {payer} and "
                 f"{recipient} — it lapses, no breaker named")
 
-    if event_type == "crisis_brewing":
-        nation = display_nation(event.get("nation", "Unknown"))
-        target = display_nation(event.get("target", "Unknown"))
+    if ctx.event_type == "crisis_brewing":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        target = display_nation(ctx.event.get("target", "Unknown"))
         return f"THE BREWING CRISIS: {nation} will move on {target}"
 
-    if event_type == "coercive_demand":
-        nation = display_nation(event.get("nation", "Unknown"))
-        target = display_nation(event.get("target", "Unknown"))
+    if ctx.event_type == "coercive_demand":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        target = display_nation(ctx.event.get("target", "Unknown"))
         return f"{nation} delivers a final demand to {target} — refused"
 
-    if event_type == "crisis_passed":
-        nation = display_nation(event.get("nation", "Unknown"))
-        target = display_nation(event.get("target", "Unknown"))
-        cause = str(event.get("cause", "starved"))
+    if ctx.event_type == "crisis_passed":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        target = display_nation(ctx.event.get("target", "Unknown"))
+        cause = str(ctx.event.get("cause", "starved"))
         # Single source: war_council owns the beat-7 cause taxonomy, incl.
         # AI-3r's exposed / outmatched / penniless (July 25, 2026 review).
         from backend.game_logic.war_council import crisis_cause_phrase
         cause_copy = crisis_cause_phrase(cause)
         return f"THE CRISIS PASSES: {nation} stands down over {target} ({cause_copy})"
 
-    if event_type == "guarantee_honored":
-        guarantor = display_nation(event.get("guarantor", "Unknown"))
-        ward = display_nation(event.get("ward", "Unknown"))
-        aggressor = display_nation(event.get("aggressor", "Unknown"))
+    if ctx.event_type == "guarantee_honored":
+        guarantor = display_nation(ctx.event.get("guarantor", "Unknown"))
+        ward = display_nation(ctx.event.get("ward", "Unknown"))
+        aggressor = display_nation(ctx.event.get("aggressor", "Unknown"))
         return f"{guarantor} honours its guarantee of {ward} — war on {aggressor}"
 
-    if event_type == "third_party_peace":
-        a = display_nation(event.get("proposer", "Unknown"))
-        b = display_nation(event.get("accepter", "Unknown"))
+    if ctx.event_type == "third_party_peace":
+        a = display_nation(ctx.event.get("proposer", "Unknown"))
+        b = display_nation(ctx.event.get("accepter", "Unknown"))
         return f"THE CONGRESS: {a} and {b} make peace without France"
 
-    if event_type == "coalition_dissolved_for_france":
-        prev = display_nation(event.get("previous_target", "Unknown"))
+    if ctx.event_type == "coalition_dissolved_for_france":
+        prev = display_nation(ctx.event.get("previous_target", "Unknown"))
         return (f"The coalition against {prev} dissolves — Europe "
                 f"remembers who the real danger is")
 
-    if event_type == "design_promoted":
-        nation = display_nation(event.get("nation", "Unknown"))
-        author = display_nation(event.get("author", "Unknown"))
-        regions = list(event.get("regions") or [])
+    if ctx.event_type == "design_promoted":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        author = display_nation(ctx.event.get("author", "Unknown"))
+        regions = list(ctx.event.get("regions") or [])
         first = regions[0] if regions else "its provinces"
         tail = f" and {len(regions) - 1} more" if len(regions) > 1 else ""
         return (f"REVANCHE: {nation} swears to retake {first}{tail} — "
                 f"{author} is not forgiven")
 
-    if event_type == "volte_face":
-        nation = display_nation(event.get("nation", "Unknown"))
-        partner = display_nation(event.get("partner", "Unknown"))
+    if ctx.event_type == "volte_face":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        partner = display_nation(ctx.event.get("partner", "Unknown"))
         return (f"THE VOLTE-FACE: {nation}, beaten and then courted, "
                 f"takes {partner}'s hand")
+    return _NEXT_STAGE
 
+
+def _oneliner_laws(ctx: OnelinerContext):
+    """Stage 6 of `format_event_oneliner`: A law enacted, repealed or lapsed
+    (SR-5r)."""
     # ── SR-5r "The Laws" (REFORMS_SPEC §8) ────────────────────────────
-    if event_type in ("law_enacted", "law_repealed", "law_lapsed"):
-        nation = display_nation(event.get("nation", "Unknown"))
-        name = str(event.get("name") or event.get("law") or "a law")
+    if ctx.event_type in ("law_enacted", "law_repealed", "law_lapsed"):
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        name = str(ctx.event.get("name") or ctx.event.get("law") or "a law")
         if name.startswith("The "):
             name = "the " + name[4:]
-        upkeep = int(event.get("upkeep", 0) or 0)
-        if event_type == "law_repealed":
+        upkeep = int(ctx.event.get("upkeep", 0) or 0)
+        if ctx.event_type == "law_repealed":
             return f"{nation} repeals {name}"
-        if event_type == "law_lapsed":
+        if ctx.event_type == "law_lapsed":
             return (f"{nation} cannot pay for {name} ({upkeep:,}g a turn) — "
                     f"the law lapses")
-        verb = "restores" if event.get("restored") else "enacts"
+        verb = "restores" if ctx.event.get("restored") else "enacts"
         return f"{nation} {verb} {name} ({upkeep:,}g a turn)"
+    return _NEXT_STAGE
 
+
+def _oneliner_the_sea(ctx: OnelinerContext):
+    """Stage 7 of `format_event_oneliner`: Fleets, blockades, the Continental
+    System, the straits, the Descent and the expeditions (DEF-5); the flip in
+    play."""
     # ── DEF-5 naval (NV-0..NV-3) ──────────────────────────────────────
-    if event_type == "fleet_laid_down":
-        nation = display_nation(event.get("nation", "Unknown"))
+    if ctx.event_type == "fleet_laid_down":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
         return (f"{nation} lays down a ship of the line "
-                f"({int(event.get('ships', 0))} sail, readiness "
-                f"{int(event.get('readiness', 0))})")
+                f"({int(ctx.event.get('ships', 0))} sail, readiness "
+                f"{int(ctx.event.get('readiness', 0))})")
 
-    if event_type == "fleet_posture":
-        nation = display_nation(event.get("nation", "Unknown"))
-        posture = event.get("posture", "guard")
+    if ctx.event_type == "fleet_posture":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        posture = ctx.event.get("posture", "guard")
         return (f"{nation}'s fleet stands out on blockade" if posture == "blockade"
                 else f"{nation}'s fleet returns to guard home waters")
 
-    if event_type == "blockade_begins":
-        nation = display_nation(event.get("nation", "Unknown"))
-        blockader = display_nation(event.get("blockader", "Unknown"))
-        trade = str(event.get("trade_words") or "halved")
+    if ctx.event_type == "blockade_begins":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        blockader = display_nation(ctx.event.get("blockader", "Unknown"))
+        trade = str(ctx.event.get("trade_words") or "halved")
         return f"BLOCKADE: {blockader} closes {nation}'s ports — trade {trade}, crews rot at anchor"
 
-    if event_type == "blockade_broken":
-        nation = display_nation(event.get("nation", "Unknown"))
+    if ctx.event_type == "blockade_broken":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
         return f"The blockade of {nation} is broken — her ports breathe again"
 
-    if event_type == "continental_system_membership":
-        nation = display_nation(event.get("nation", "Unknown"))
-        tail = str(event.get("tail") or "")
-        if event.get("action") == "left":
+    if ctx.event_type == "continental_system_membership":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        tail = str(ctx.event.get("tail") or "")
+        if ctx.event.get("action") == "left":
             return f"{nation} leaves the Continental System{tail}"
         return f"{nation} joins the Continental System{tail}"
 
-    if event_type == "cs_tier_shift":
-        target = display_nation(event.get("target", "Unknown"))
-        pct = int(event.get("closure_pct", 0))
-        tier = int(event.get("tier", 0))
+    if ctx.event_type == "cs_tier_shift":
+        target = display_nation(ctx.event.get("target", "Unknown"))
+        pct = int(ctx.event.get("closure_pct", 0))
+        tier = int(ctx.event.get("tier", 0))
         if tier > 0:
             return (f"THE CONTINENTAL SYSTEM: {pct}% of the Continent's ports "
                     f"closed — {target}'s war-weariness rises +{tier}/turn")
         return (f"The Continental System loosens — {pct}% of the Continent's "
                 f"ports closed, {target} breathes")
 
-    if event_type == "strait_open":
-        a, b = event.get("link_a"), event.get("link_b")
+    if ctx.event_type == "strait_open":
+        a, b = ctx.event.get("link_a"), ctx.event.get("link_b")
         if a and b:
             return f"THE STRAIT LIES OPEN: the {a}–{b} crossing can be forced"
-        nation = display_nation(event.get("nation", "Unknown"))
-        against = display_nation(event.get("against", "Unknown"))
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        against = display_nation(ctx.event.get("against", "Unknown"))
         return (f"THE STRAIT LIES OPEN: {nation}'s diversion draws the "
                 f"{against} fleet off station")
 
-    if event_type == "strait_shut":
-        a = event.get("link_a", "?")
-        b = event.get("link_b", "?")
-        coverer = display_nation(event.get("coverer", "")) if event.get("coverer") else ""
+    if ctx.event_type == "strait_shut":
+        a = ctx.event.get("link_a", "?")
+        b = ctx.event.get("link_b", "?")
+        coverer = display_nation(ctx.event.get("coverer", "")) if ctx.event.get("coverer") else ""
         tail = f" — {coverer} commands the water" if coverer else ""
         return f"The {a}–{b} crossing is shut{tail}"
 
-    if event_type == "boulogne_camp":
-        nation = display_nation(event.get("nation", "Unknown"))
-        against = display_nation(event.get("against", "Unknown"))
-        return (f"THE CAMP: {nation} masses {event.get('strength', 0):,} men "
+    if ctx.event_type == "boulogne_camp":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        against = display_nation(ctx.event.get("against", "Unknown"))
+        return (f"THE CAMP: {nation} masses {ctx.event.get('strength', 0):,} men "
                 f"on the invasion coast — {against} watches the water")
 
-    if event_type in ("trafalgar", "fleet_action"):
-        winner = display_nation(event.get("winner", "Unknown"))
-        loser = display_nation(event.get("loser", "Unknown"))
-        if event.get("decisive"):
+    if ctx.event_type in ("trafalgar", "fleet_action"):
+        winner = display_nation(ctx.event.get("winner", "Unknown"))
+        loser = display_nation(ctx.event.get("loser", "Unknown"))
+        if ctx.event.get("decisive"):
             return (f"TRAFALGAR: {winner}'s line shatters {loser}'s fleet — "
                     f"a decisive action at sea")
         return f"Action at sea: {winner}'s squadrons get the better of {loser}"
 
-    if event_type == "expedition_landed":
-        marshal = event.get("marshal", "The expedition")
-        target = event.get("target", "?")
-        return (f"THE LANDING: {marshal} puts {int(event.get('troops', 0)):,} "
+    if ctx.event_type == "expedition_landed":
+        marshal = ctx.event.get("marshal", "The expedition")
+        target = ctx.event.get("target", "?")
+        return (f"THE LANDING: {marshal} puts {int(ctx.event.get('troops', 0)):,} "
                 f"men ashore at {target}")
 
-    if event_type == "expedition_intercepted":
-        marshal = event.get("marshal", "The expedition")
-        coverer = display_nation(event.get("coverer", "the enemy"))
+    if ctx.event_type == "expedition_intercepted":
+        marshal = ctx.event.get("marshal", "The expedition")
+        coverer = display_nation(ctx.event.get("coverer", "the enemy"))
         return (f"INTERCEPTED: {coverer}'s squadrons catch {marshal}'s "
-                f"transports at sea — {int(event.get('troops_lost', 0)):,} men lost")
+                f"transports at sea — {int(ctx.event.get('troops_lost', 0)):,} men lost")
 
-    if event_type == "expedition_turned_back":
-        marshal = event.get("marshal", "The expedition")
-        target = event.get("target", "?")
+    if ctx.event_type == "expedition_turned_back":
+        marshal = ctx.event.get("marshal", "The expedition")
+        target = ctx.event.get("target", "?")
         return f"{marshal}'s expedition to {target} is turned back at sea"
 
-    if event_type == "naval_turnback":
-        marshal = event.get("marshal", "An army")
-        nation = display_nation(event.get("nation", ""))
-        a, b = event.get("link_a", "?"), event.get("link_b", "?")
+    if ctx.event_type == "naval_turnback":
+        marshal = ctx.event.get("marshal", "An army")
+        nation = display_nation(ctx.event.get("nation", ""))
+        a, b = ctx.event.get("link_a", "?"), ctx.event.get("link_b", "?")
         prefix = f"{nation}'s {marshal}" if nation else marshal
         return f"{prefix} halts at the {a}–{b} crossing — hostile sail command the water"
 
-    if event_type == "allegiance_auction_opened":
-        nation = display_nation(event.get("nation", "Unknown"))
+    if ctx.event_type == "allegiance_auction_opened":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
         return f"THE FLIP IS IN PLAY: {nation} weighs its allegiance"
+    return _NEXT_STAGE
 
+
+def _oneliner_allegiance(ctx: OnelinerContext):
+    """Stage 8 of `format_event_oneliner`: The allegiance bid, a province
+    returned, the auction resolved (DD-1)."""
     # DD-1 S8 Step 3 — the verbs (October 12, 2026)
-    if event_type == "allegiance_bid":
-        suitor = display_nation(event.get("nation", "Unknown"))
-        court = display_nation(event.get("target_nation", "Unknown"))
-        return (f"{suitor} lays {int(event.get('gold', 0) or 0)} gold before the court of "
-                f"{court} — the bid stands at {int(event.get('total', 0) or 0)}; the flip "
-                f"resolves on turn {int(event.get('resolves_turn', 0) or 0)}")
+    if ctx.event_type == "allegiance_bid":
+        suitor = display_nation(ctx.event.get("nation", "Unknown"))
+        court = display_nation(ctx.event.get("target_nation", "Unknown"))
+        return (f"{suitor} lays {int(ctx.event.get('gold', 0) or 0)} gold before the court of "
+                f"{court} — the bid stands at {int(ctx.event.get('total', 0) or 0)}; the flip "
+                f"resolves on turn {int(ctx.event.get('resolves_turn', 0) or 0)}")
 
-    if event_type == "province_returned":
-        asker = display_nation(event.get("nation", "Unknown"))
-        holder = display_nation(event.get("target_nation", "Unknown"))
-        region = event.get("region", "a province")
-        if event.get("outcome") == "returned":
+    if ctx.event_type == "province_returned":
+        asker = display_nation(ctx.event.get("nation", "Unknown"))
+        holder = display_nation(ctx.event.get("target_nation", "Unknown"))
+        region = ctx.event.get("region", "a province")
+        if ctx.event.get("outcome") == "returned":
             return f"{holder} hands {region} back to {asker} — the liberated soil comes home"
         return (f"{holder} declines to return {region} to {asker} "
-                f"({int(event.get('shortfall', 0) or 0)} more standing wanted)")
+                f"({int(ctx.event.get('shortfall', 0) or 0)} more standing wanted)")
 
-    if event_type == "allegiance_auction_resolved":
-        nation = display_nation(event.get("nation", "Unknown"))
-        outcome = event.get("outcome", "")
+    if ctx.event_type == "allegiance_auction_resolved":
+        nation = display_nation(ctx.event.get("nation", "Unknown"))
+        outcome = ctx.event.get("outcome", "")
         if outcome == "lapsed":
             return f"The moment passes — {nation} keeps its own counsel"
         if outcome == "no_suitor":
             return f"No court bids for {nation}; the flip dissolves"
-        winner = display_nation(event.get("winner") or "Unknown")
+        winner = display_nation(ctx.event.get("winner") or "Unknown")
         if outcome == "player_offer":
             return (f"{nation} chooses France — their envoy carries "
                     f"the pact")
         return f"THE FLIP: {nation} signs with {winner}"
+    return _NEXT_STAGE
 
+
+def _oneliner_cascades_and_coalitions(ctx: OnelinerContext):
+    """Stage 9 of `format_event_oneliner`: A war declared, the cascades, a
+    coalition declared or dissolved."""
     # Deep audit fix: new event types
-    if event_type == "war_declaration":
-        aggressor = event.get("aggressor") or event.get("nation", "Unknown")
-        target = event.get("target", "Unknown")
+    if ctx.event_type == "war_declaration":
+        aggressor = ctx.event.get("aggressor") or ctx.event.get("nation", "Unknown")
+        target = ctx.event.get("target", "Unknown")
         return f"War declared: {aggressor} → {target}"
 
-    if event_type == "defensive_cascade":
+    if ctx.event_type == "defensive_cascade":
         # FA-S17-8 (Phase 3): the producer writes `defender`; this read
         # `nation` and printed "Unknown joins war via …" twenty times across
         # seventeen Phase-3 runs.
-        nation = event.get("defender") or event.get("nation", "Unknown")
-        ally = event.get("ally", "Unknown")
+        nation = ctx.event.get("defender") or ctx.event.get("nation", "Unknown")
+        ally = ctx.event.get("ally", "Unknown")
         return f"Defensive cascade: {nation} joins war via {ally}"
 
-    if event_type == "offensive_cascade":
-        nation = event.get("nation", "Unknown")
-        aggressor = event.get("aggressor", "Unknown")
+    if ctx.event_type == "offensive_cascade":
+        nation = ctx.event.get("nation", "Unknown")
+        aggressor = ctx.event.get("aggressor", "Unknown")
         return f"Offensive cascade: {nation} joins {aggressor}'s war"
 
-    if event_type == "coalition_declared":
-        members = event.get("members", [])
+    if ctx.event_type == "coalition_declared":
+        members = ctx.event.get("members", [])
         members_str = ', '.join(members) if members else 'Unknown'
         # Stage D review fix [r6]: an ECLIPSE coalition names its own
         # target — never dressed as a coalition against France.
-        target = event.get("target_nation") or "France"
+        target = ctx.event.get("target_nation") or "France"
         # Slice 17 review round (L2-5): the paper names the coalition the
         # notification names ("The Fourth Austria Coalition") — FA-N85's
         # ordinal reached every surface but this one.
-        name = str(event.get("coalition_name") or "")
+        name = str(ctx.event.get("coalition_name") or "")
         prefix = f"{name} — " if name else ""
         if target != "France":
             return (f"{prefix}Coalition formed against {display_nation(target)}! "
                     f"Members: {members_str}")
         return f"{prefix}Coalition formed against France! Members: {members_str}"
 
-    if event_type == "coalition_dissolved":
-        target = event.get("target_nation") or "France"
+    if ctx.event_type == "coalition_dissolved":
+        target = ctx.event.get("target_nation") or "France"
         # IQ-3: a treaty-dissolved league stamps `alarm_spent`; the entry
         # says the league is spent and by how much. No key = as before.
-        spent = event.get("alarm_spent") or None
+        spent = ctx.event.get("alarm_spent") or None
         if target != "France":
             if spent:
                 return (f"Coalition against {display_nation(target)} has "
@@ -3018,7 +3140,7 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
                     f"is spent; {moved}")
             # IQ-3 review: a court genuinely still at war (the separate-peace
             # road) is named; courts signing in the same action never are.
-            still = [display_nation(c) for c in (event.get("courts_at_war") or []) if c]
+            still = [display_nation(c) for c in (ctx.event.get("courts_at_war") or []) if c]
             if still:
                 joined = (still[0] if len(still) == 1
                           else ", ".join(still[:-1]) + f" and {still[-1]}")
@@ -3029,7 +3151,7 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         # now carries the courts still fighting France (`courts_at_war`,
         # stamped by coalition.dissolve_coalition).
         # An entry without the key renders exactly as before.
-        still_at_war = [display_nation(c) for c in (event.get("courts_at_war") or []) if c]
+        still_at_war = [display_nation(c) for c in (ctx.event.get("courts_at_war") or []) if c]
         if still_at_war:
             joined = (still_at_war[0] if len(still_at_war) == 1
                       else ", ".join(still_at_war[:-1]) + f" and {still_at_war[-1]}")
@@ -3037,19 +3159,25 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
             return (f"Coalition against France has dissolved — {joined} "
                     f"{verb} at war with us.")
         return "Coalition against France has dissolved."
+    return _NEXT_STAGE
 
+
+def _oneliner_the_fallen_and_the_clients(ctx: OnelinerContext):
+    """Stage 10 of `format_event_oneliner`: A nation eliminated; vassals
+    joining, refusing, transferred, defecting; the client's petition; a member
+    leaving the coalition."""
     # V3 Session 8: new event types
-    if event_type == "nation_eliminated":
+    if ctx.event_type == "nation_eliminated":
         # SRX-21: the court by its name, never its tag.
         nation = with_definite_article(
-            display_nation(event.get("nation", "Unknown")), capitalize=True)
+            display_nation(ctx.event.get("nation", "Unknown")), capitalize=True)
         return f"{nation} has been eliminated from the war."
 
-    if event_type == "vassal_auto_join_war":
-        vassal = event.get("vassal") or event.get("nation", "Unknown")
+    if ctx.event_type == "vassal_auto_join_war":
+        vassal = ctx.event.get("vassal") or ctx.event.get("nation", "Unknown")
         # Drive-by (VS-4 build): the emitter passes "lord"; the old read of
         # only "overlord" rendered every one-liner as "Unknown's war".
-        overlord = event.get("overlord") or event.get("lord", "Unknown")
+        overlord = ctx.event.get("overlord") or ctx.event.get("lord", "Unknown")
         # PR-2: measured, "Vassal KingdomOfItaly joined France's war."
         # NB: no local import here — `display_nation` is module-level, and a
         # function-scoped `from ... import` would shadow it for EVERY other
@@ -3058,52 +3186,52 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         return (f"Vassal {display_nation(vassal)} joined "
                 f"{display_nation(overlord)}'s war.")
 
-    if event_type == "vassal_refuses_call":
+    if ctx.event_type == "vassal_refuses_call":
         # VS-4: a disaffected satellite declines the call-to-arms
-        vassal = event.get("vassal", "Unknown")
-        lord = event.get("lord", "Unknown")
-        loyalty = event.get("loyalty", "?")
+        vassal = ctx.event.get("vassal", "Unknown")
+        lord = ctx.event.get("lord", "Unknown")
+        loyalty = ctx.event.get("loyalty", "?")
         return (f"{vassal} refuses {lord}'s call to arms "
                 f"(loyalty {loyalty}).")
 
-    if event_type == "vassal_contingent":
+    if ctx.event_type == "vassal_contingent":
         # VD-C: the beat's own sentence, composed through display_nation at
         # the producer (`contingent._beat`) — the message IS the one-liner.
-        return str(event.get("message") or
-                   f"{display_nation(event.get('vassal', 'Unknown'))}'s contingent.")
+        return str(ctx.event.get("message") or
+                   f"{display_nation(ctx.event.get('vassal', 'Unknown'))}'s contingent.")
 
-    if event_type == "vassal_transferred":
+    if ctx.event_type == "vassal_transferred":
         # VS-5: peace-table lord re-homing
         # Slice 17 review round (L2-4): raw nation keys reached Le Moniteur
         # ("KingdomOfItaly passes from…") — the R7 chokepoint, like the rows
         # around it.
-        vassal = display_nation(event.get("vassal", "Unknown"))
-        from_lord = display_nation(event.get("from_lord", "Unknown"))
-        to_lord = display_nation(event.get("to_lord", "Unknown"))
+        vassal = display_nation(ctx.event.get("vassal", "Unknown"))
+        from_lord = display_nation(ctx.event.get("from_lord", "Unknown"))
+        to_lord = display_nation(ctx.event.get("to_lord", "Unknown"))
         return (f"{vassal} passes from {from_lord}'s suzerainty "
                 f"to {to_lord}'s.")
 
-    if event_type == "vassal_defected":
+    if ctx.event_type == "vassal_defected":
         # VS-6: the bribed coalition-flip
-        vassal = event.get("vassal", "Unknown")
-        lord = event.get("lord", "Unknown")
-        briber = event.get("briber", "Unknown")
-        outcome = event.get("outcome", "")
+        vassal = ctx.event.get("vassal", "Unknown")
+        lord = ctx.event.get("lord", "Unknown")
+        briber = ctx.event.get("briber", "Unknown")
+        outcome = ctx.event.get("outcome", "")
         if outcome == "transfer":
             return (f"THE DEFECTION: {briber}'s gold buys {vassal} away "
                     f"from {lord} — it serves a new master.")
         return (f"THE DEFECTION: {briber}'s gold turns {vassal} against "
                 f"{lord} — the freed satellite takes the field.")
 
-    if event_type == "client_petition_answered":
+    if ctx.event_type == "client_petition_answered":
         # IQ-7: a client's petition — answered by its lord, or by silence.
         # "The Kingdom of Italy's petition for Tyrol — granted."
         vassal = with_definite_article(
-            display_nation(str(event.get("vassal") or "Unknown")),
+            display_nation(str(ctx.event.get("vassal") or "Unknown")),
             capitalize=True)
-        subject = str(event.get("subject") or "")
-        region = str(event.get("region") or "")
-        outcome = str(event.get("outcome") or "")
+        subject = str(ctx.event.get("subject") or "")
+        region = str(ctx.event.get("region") or "")
+        outcome = str(ctx.event.get("outcome") or "")
         ask = (f"for {region}" if subject == "province" and region
                else "for relief from tribute")
         if outcome == "granted":
@@ -3117,188 +3245,194 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
             return f"{vassal}'s petition {ask} — withdrawn, nothing charged."
         elif outcome == "unanswered":
             verdict = ("left unanswered, refused"
-                       if event.get("penalty", True) else "left unanswered")
+                       if ctx.event.get("penalty", True) else "left unanswered")
         else:
             verdict = "refused"
         # IQ-7 review R8(e): a refusal (spoken or by silence) quotes the
         # applied price its own event already carries.
         tail = ""
-        if (event.get("penalty") and verdict.endswith("refused")
-                and event.get("loyalty_before") is not None):
-            tail = (f": loyalty {event.get('loyalty_before')} → "
-                    f"{event.get('loyalty_after')}, bond "
-                    f"{event.get('relation_before')} → {event.get('relation_after')}")
+        if (ctx.event.get("penalty") and verdict.endswith("refused")
+                and ctx.event.get("loyalty_before") is not None):
+            tail = (f": loyalty {ctx.event.get('loyalty_before')} → "
+                    f"{ctx.event.get('loyalty_after')}, bond "
+                    f"{ctx.event.get('relation_before')} → {ctx.event.get('relation_after')}")
         return f"{vassal}'s petition {ask} — {verdict}{tail}."
 
-    if event_type == "coalition_member_left":
-        nation = event.get("nation", "Unknown")
+    if ctx.event_type == "coalition_member_left":
+        nation = ctx.event.get("nation", "Unknown")
         return f"{nation} has left the coalition."
+    return _NEXT_STAGE
 
+
+def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
+    """Stage 11 of `format_event_oneliner`: AI proposals and ultimatums, the
+    brewing coalition, counter-offers, missions, the proposal queue, garrisons,
+    relationships, the peace ratified (R8, PL-14, PL-27, BPH)."""
     # ── R8 Session 6: format strings for 16 previously-silent types ──
 
     # W6-0 (BUG-CA-7 log half): these two events fire when the PLAYER answers
     # an incoming AI proposal — `source` is the nation that PROPOSED, and we
     # are the side that answered. The old copy reversed the direction
     # ("Saxony rejected our open borders proposal" when we rejected Saxony's).
-    if event_type == "ai_proposal_accepted":
+    if ctx.event_type == "ai_proposal_accepted":
         # SRX-22: the court by its name ("the Papal States'", not
         # "PapalStates's").
-        source = _possessive_court(event.get("source", "Unknown"))
-        proposal_type = _proposal_label(event)
-        return f"We accepted {source} {proposal_type} proposal{_decision_reason_suffix(event)}"
+        source = _possessive_court(ctx.event.get("source", "Unknown"))
+        proposal_type = _proposal_label(ctx.event)
+        return f"We accepted {source} {proposal_type} proposal{_decision_reason_suffix(ctx.event)}"
 
-    if event_type == "ai_proposal_rejected":
-        source = _possessive_court(event.get("source", "Unknown"))
-        proposal_type = _proposal_label(event)
-        return f"We rejected {source} {proposal_type} proposal{_decision_reason_suffix(event)}"
+    if ctx.event_type == "ai_proposal_rejected":
+        source = _possessive_court(ctx.event.get("source", "Unknown"))
+        proposal_type = _proposal_label(ctx.event)
+        return f"We rejected {source} {proposal_type} proposal{_decision_reason_suffix(ctx.event)}"
 
-    if event_type == "ai_proposal_counter_failed":
-        source = event.get("source", "Unknown")
-        return f"{source} rejected our counter-offer{_decision_reason_suffix(event)}"
+    if ctx.event_type == "ai_proposal_counter_failed":
+        source = ctx.event.get("source", "Unknown")
+        return f"{source} rejected our counter-offer{_decision_reason_suffix(ctx.event)}"
 
     # NA-5 §8: incoming AI ultimatum resolution (same direction rule as the
     # ai_proposal pair — `source` issued the demand, WE answered it).
-    if event_type == "ai_ultimatum_accepted":
-        source = event.get("source", "Unknown")
+    if ctx.event_type == "ai_ultimatum_accepted":
+        source = ctx.event.get("source", "Unknown")
         return f"We yielded to {source}'s ultimatum — their demands conceded"
 
-    if event_type == "ai_ultimatum_rejected":
-        source = event.get("source", "Unknown")
+    if ctx.event_type == "ai_ultimatum_rejected":
+        source = ctx.event.get("source", "Unknown")
         return f"We defied {source}'s ultimatum — their court will not forget"
 
-    if event_type == "ai_ultimatum_void":
-        source = event.get("source", "Unknown")
-        if event.get("reason") == "gone":
+    if ctx.event_type == "ai_ultimatum_void":
+        source = ctx.event.get("source", "Unknown")
+        if ctx.event.get("reason") == "gone":
             return f"{source}'s ultimatum died with their court"
         return f"{source}'s ultimatum was overtaken by war — the demand is void"
 
-    if event_type == "auto_downgrade":
-        nation_a = event.get("nation_a", "Unknown")
-        nation_b = event.get("nation_b", "Unknown")
-        from_state = (event.get("from_state") or "treaty").replace("_", " ")
-        to_state = (event.get("to_state") or "peace").replace("_", " ")
+    if ctx.event_type == "auto_downgrade":
+        nation_a = ctx.event.get("nation_a", "Unknown")
+        nation_b = ctx.event.get("nation_b", "Unknown")
+        from_state = (ctx.event.get("from_state") or "treaty").replace("_", " ")
+        to_state = (ctx.event.get("to_state") or "peace").replace("_", " ")
         return f"Relations auto-downgraded: {nation_a}–{nation_b} ({from_state} → {to_state})"
 
-    if event_type == "coalition_brewing_started":
-        threat = event.get("threat_level", 0)
-        qualifying = event.get("qualifying_nations", [])
+    if ctx.event_type == "coalition_brewing_started":
+        threat = ctx.event.get("threat_level", 0)
+        qualifying = ctx.event.get("qualifying_nations", [])
         nations_str = ", ".join(qualifying) if qualifying else "several nations"
         # Stage D review fix [r1]: name a non-France target explicitly.
-        brew_target = event.get("target_nation") or "France"
+        brew_target = ctx.event.get("target_nation") or "France"
         if brew_target != "France":
             return (f"Coalition brewing against {display_nation(brew_target)} "
                     f"— {nations_str} consulting (their alarm: {threat})")
         return f"Coalition brewing — {nations_str} alarmed (threat: {threat})"
 
-    if event_type == "coalition_brewing_cancelled":
+    if ctx.event_type == "coalition_brewing_cancelled":
         return "Coalition threat has subsided"
 
-    if event_type == "counter_offer_accepted":
-        source = event.get("source", "Unknown")
-        proposal_type = _proposal_label(event)
-        return f"{source} accepted our counter-offer ({proposal_type}){_decision_reason_suffix(event)}"
+    if ctx.event_type == "counter_offer_accepted":
+        source = ctx.event.get("source", "Unknown")
+        proposal_type = _proposal_label(ctx.event)
+        return f"{source} accepted our counter-offer ({proposal_type}){_decision_reason_suffix(ctx.event)}"
 
-    if event_type == "counter_offer_rejected":
-        source = event.get("source", "Unknown")
-        proposal_type = _proposal_label(event)
-        return f"{source} rejected our counter-offer ({proposal_type}){_decision_reason_suffix(event)}"
+    if ctx.event_type == "counter_offer_rejected":
+        source = ctx.event.get("source", "Unknown")
+        proposal_type = _proposal_label(ctx.event)
+        return f"{source} rejected our counter-offer ({proposal_type}){_decision_reason_suffix(ctx.event)}"
 
-    if event_type == "diplomatic_discrepancy":
-        message = event.get("message", "Talleyrand altered your proposal")
+    if ctx.event_type == "diplomatic_discrepancy":
+        message = ctx.event.get("message", "Talleyrand altered your proposal")
         return message
 
-    if event_type == "diplomatic_downgrade":
-        nation_a = event.get("nation_a", "Unknown")
-        nation_b = event.get("nation_b", "Unknown")
-        from_state = (event.get("from_state") or "treaty").replace("_", " ")
-        to_state = (event.get("to_state") or "peace").replace("_", " ")
+    if ctx.event_type == "diplomatic_downgrade":
+        nation_a = ctx.event.get("nation_a", "Unknown")
+        nation_b = ctx.event.get("nation_b", "Unknown")
+        from_state = (ctx.event.get("from_state") or "treaty").replace("_", " ")
+        to_state = (ctx.event.get("to_state") or "peace").replace("_", " ")
         return f"Relations downgraded: {nation_a}–{nation_b} ({from_state} → {to_state})"
 
-    if event_type == "diplomatic_mission_cancelled_eliminated":
-        target = event.get("target", "Unknown")
+    if ctx.event_type == "diplomatic_mission_cancelled_eliminated":
+        target = ctx.event.get("target", "Unknown")
         return f"Diplomatic mission to {target} cancelled — nation eliminated"
 
-    if event_type == "diplomatic_mission_started":
+    if ctx.event_type == "diplomatic_mission_started":
         # IQ-4 §3.8: the mission and the court through the display
         # chokepoints — never "COURT NATION", never "PapalStates".
         from backend.display_names import MISSION_TYPE_DISPLAY
-        raw_type = str(event.get("mission_type") or "")
+        raw_type = str(ctx.event.get("mission_type") or "")
         type_display = MISSION_TYPE_DISPLAY.get(
             raw_type, raw_type.replace("_", " ").title() or "a mission")
         return (f"Talleyrand sent to "
-                f"{display_nation(event.get('target') or 'Unknown')}: "
+                f"{display_nation(ctx.event.get('target') or 'Unknown')}: "
                 f"{type_display}.")
 
-    if event_type == "diplomatic_mission_ended":
+    if ctx.event_type == "diplomatic_mission_ended":
         # IQ-4 §3.8: how a mission ended — the log had only its start.
-        turns = int(event.get("turns_active") or 0)
-        dp_spent = int(event.get("dp_spent") or 0)
-        expiry = event.get("expiry")
-        if expiry is None and event.get("reason") == "duration" and event.get("turn"):
+        turns = int(ctx.event.get("turns_active") or 0)
+        dp_spent = int(ctx.event.get("dp_spent") or 0)
+        expiry = ctx.event.get("expiry")
+        if expiry is None and ctx.event.get("reason") == "duration" and ctx.event.get("turn"):
             # The intel grant runs five turns from the completing tick
             # (`_process_mission_effects`: `current_turn + 5`).
-            expiry = int(event.get("turn")) + 5
+            expiry = int(ctx.event.get("turn")) + 5
         phrase = mission_reason_phrase(
-            str(event.get("reason") or ""), event.get("regions_revealed"), expiry)
+            str(ctx.event.get("reason") or ""), ctx.event.get("regions_revealed"), expiry)
         return (f"Talleyrand's mission to "
-                f"{display_nation(event.get('target') or 'Unknown')} ended: "
+                f"{display_nation(ctx.event.get('target') or 'Unknown')} ended: "
                 f"{phrase} ({turns} turn{'' if turns == 1 else 's'}, "
                 f"{dp_spent} DP).")
 
-    if event_type == "diplomatic_proposal_sent":
-        target = event.get("target", "Unknown")
-        proposal_type = _proposal_label(event)
+    if ctx.event_type == "diplomatic_proposal_sent":
+        target = ctx.event.get("target", "Unknown")
+        proposal_type = _proposal_label(ctx.event)
         return f"Proposal sent to {target} ({proposal_type})"
 
     # PL-27/PL-34: Proposal queue visibility events
-    if event_type == "proposal_arrived":
+    if ctx.event_type == "proposal_arrived":
         from backend.display_names import with_indefinite_article
-        source = event.get("source", "Unknown")
+        source = ctx.event.get("source", "Unknown")
         # IQ-7 review [14]/[31] (R10): a client's petition is a petition,
         # not "an a client's petition proposal (Client Petition)".
-        if str(event.get("proposal_type") or "") == "client_petition":
+        if str(ctx.event.get("proposal_type") or "") == "client_petition":
             court = with_definite_article(display_nation(str(source)))
             return f"An envoy from {court} has arrived with a petition"
-        proposal_type = _proposal_label(event)
+        proposal_type = _proposal_label(ctx.event)
         return (f"An envoy from {source} has arrived with "
-                f"{with_indefinite_article(proposal_type)} proposal{_decision_reason_suffix(event)}")
+                f"{with_indefinite_article(proposal_type)} proposal{_decision_reason_suffix(ctx.event)}")
 
-    if event_type == "oathbreaker_posture_triggered":
-        nation = event.get("nation", "Unknown")
+    if ctx.event_type == "oathbreaker_posture_triggered":
+        nation = ctx.event.get("nation", "Unknown")
         return f"{nation} is marked as an oathbreaker after repeated refusals"
 
-    if event_type == "oathbreaker_posture_cleared":
-        nation = event.get("nation", "Unknown")
+    if ctx.event_type == "oathbreaker_posture_cleared":
+        nation = ctx.event.get("nation", "Unknown")
         return f"{nation}'s oathbreaker posture has cleared"
 
-    if event_type == "war_entry_ledger":
-        aggressor = event.get("aggressor", "Unknown")
-        target = event.get("target", "Unknown")
-        entries = event.get("entries", []) or []
+    if ctx.event_type == "war_entry_ledger":
+        aggressor = ctx.event.get("aggressor", "Unknown")
+        target = ctx.event.get("target", "Unknown")
+        entries = ctx.event.get("entries", []) or []
         return (
             f"War-entry ledger recorded for {aggressor} against {target} "
             f"({len(entries)} call path{'' if len(entries) == 1 else 's'})"
         )
 
 
-    if event_type == "proposal_expired_unseen":
-        source = event.get("source", "Unknown")
-        proposal_type = _proposal_label(event)
+    if ctx.event_type == "proposal_expired_unseen":
+        source = ctx.event.get("source", "Unknown")
+        proposal_type = _proposal_label(ctx.event)
         return f"{source}'s {proposal_type} envoy departed — proposal expired unanswered"
 
-    if event_type == "proposal_dropped_overflow":
-        source = event.get("source", "Unknown")
-        proposal_type = _proposal_label(event)
+    if ctx.event_type == "proposal_dropped_overflow":
+        source = ctx.event.get("source", "Unknown")
+        proposal_type = _proposal_label(ctx.event)
         return f"{source}'s {proposal_type} envoy turned away — too many waiting"
 
-    if event_type == "offer_lapsed":
-        nation = event.get("nation", "Unknown")
+    if ctx.event_type == "offer_lapsed":
+        nation = ctx.event.get("nation", "Unknown")
         # IQ-7 review R8(e)/[31]: a lapsed petition carries the price the
         # lapse hook stamped on this row (`turn_manager`), never the generic
         # "offer lapsed unanswered" that every free lapse gets.
-        if str(event.get("proposal_type") or "") == "client_petition":
+        if str(ctx.event.get("proposal_type") or "") == "client_petition":
             court = with_definite_article(display_nation(str(nation)), capitalize=True)
-            petition = event.get("petition") if isinstance(event.get("petition"), dict) else {}
+            petition = ctx.event.get("petition") if isinstance(ctx.event.get("petition"), dict) else {}
             outcome = str(petition.get("outcome") or "")
             if outcome == "withdrawn":
                 return f"{court}'s petition lapsed unanswered — moot, nothing charged"
@@ -3311,52 +3445,52 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
             if petition:
                 return f"{court}'s petition lapsed unanswered — nothing charged"
             return f"{court}'s petition lapsed unanswered"
-        proposal_type = _proposal_label(event)
+        proposal_type = _proposal_label(ctx.event)
         return f"{nation}'s {proposal_type} offer lapsed unanswered"
 
-    if event_type == "garrison_placed":
-        marshal = event.get("marshal", "Unknown")
-        region = event.get("region", "unknown region")
-        troops = event.get("troops", 0)
+    if ctx.event_type == "garrison_placed":
+        marshal = ctx.event.get("marshal", "Unknown")
+        region = ctx.event.get("region", "unknown region")
+        troops = ctx.event.get("troops", 0)
         # NPC-12: "ArchdukeCharles garrisoned Franche-Comte" (measured).
         return f"{humanize_entity_name(marshal)} garrisoned {region} ({troops:,} troops)"
 
-    if event_type == "proposal_voided_by_coalition":
-        target = event.get("target", "Unknown")
+    if ctx.event_type == "proposal_voided_by_coalition":
+        target = ctx.event.get("target", "Unknown")
         return f"Envoy to {target} recalled — they joined the coalition"
 
-    if event_type == "relationship_change":
-        marshal = event.get("marshal", "Unknown")
-        toward = event.get("toward", "Unknown")
-        change = event.get("change", 0)
-        new_label = event.get("new_label", "")
+    if ctx.event_type == "relationship_change":
+        marshal = ctx.event.get("marshal", "Unknown")
+        toward = ctx.event.get("toward", "Unknown")
+        change = ctx.event.get("change", 0)
+        new_label = ctx.event.get("new_label", "")
         sign = "+" if change > 0 else ""
         label_str = f" ({new_label})" if new_label else ""
         return f"{marshal} → {toward}: {sign}{change}{label_str}"
 
     # PL-14: Ultimatum events
-    if event_type == "ultimatum_issued":
-        target = event.get("target", "Unknown")
+    if ctx.event_type == "ultimatum_issued":
+        target = ctx.event.get("target", "Unknown")
         return f"Ultimatum delivered to {target}"
 
-    if event_type == "ultimatum_accepted":
-        target = event.get("target", "Unknown")
+    if ctx.event_type == "ultimatum_accepted":
+        target = ctx.event.get("target", "Unknown")
         return f"{target} accepted our ultimatum — concessions extracted"
 
-    if event_type == "ultimatum_rejected":
-        target = event.get("target", "Unknown")
+    if ctx.event_type == "ultimatum_rejected":
+        target = ctx.event.get("target", "Unknown")
         return f"{target} rejected our ultimatum — casus belli granted"
 
     # Peace Deals BPH-A + BPH-D
-    if event_type == "peace_ratified":
-        proposer = event.get("proposer_nation", "Unknown")
-        target = event.get("target_nation", "Unknown")
-        transition = event.get("state_transition", "")
+    if ctx.event_type == "peace_ratified":
+        proposer = ctx.event.get("proposer_nation", "Unknown")
+        target = ctx.event.get("target_nation", "Unknown")
+        transition = ctx.event.get("state_transition", "")
         if transition.endswith("_TO_ARMISTICE"):
-            term_count = len(event.get("annotated_terms", []))
+            term_count = len(ctx.event.get("annotated_terms", []))
             suffix = f" ({term_count} term{'s' if term_count != 1 else ''})" if term_count else ""
             return f"Armistice ratified: {proposer} and {target}{suffix}"
-        outcome = event.get("war_outcome", "")
+        outcome = ctx.event.get("war_outcome", "")
         outcome_labels = {
             "french_victory": "French victory",
             "enemy_victory": "enemy victory",
@@ -3365,20 +3499,25 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         }
         outcome_label = outcome_labels.get(outcome, "")
         parts = []
-        gained = event.get("territory_gained", [])
+        gained = ctx.event.get("territory_gained", [])
         if gained:
             parts.append(f"gained {', '.join(gained)}")
-        lost = event.get("territory_lost", [])
+        lost = ctx.event.get("territory_lost", [])
         if lost:
             parts.append(f"lost {', '.join(lost)}")
-        gold_in = event.get("gold_received", 0)
+        gold_in = ctx.event.get("gold_received", 0)
         if gold_in:
             parts.append(f"+{gold_in} gold")
-        gold_out = event.get("gold_paid", 0)
+        gold_out = ctx.event.get("gold_paid", 0)
         if gold_out:
             parts.append(f"-{gold_out} gold")
         detail = " — " + ", ".join(parts) if parts else ""
         label = f" ({outcome_label})" if outcome_label else ""
         return f"Peace with {target}{label}{detail}"
+    return _NEXT_STAGE
 
-    return f"Event: {event_type}"
+
+def _oneliner_unknown(ctx: OnelinerContext):
+    """Stage 12 of `format_event_oneliner`: The fall-through: an unknown type
+    is named, never dropped."""
+    return f"Event: {ctx.event_type}"
