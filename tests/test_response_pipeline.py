@@ -357,12 +357,14 @@ class TestX7CaptureRoutesDoNotDrainPopups:
     def test_command_capture_early_return_site_is_wired(self, main_module):
         """Source pin: the /command capture early-return passes
         drain_popups=False (an end-to-end drive of that arm needs a live
-        combat capture; the mechanism itself is covered above)."""
+        combat capture; the mechanism itself is covered above).
+        CODE-2b (October 13, 2026): the route is staged — its result is
+        `ctx.result` in `_command_question_returns`."""
         src = inspect.getsource(main_module)
         marker = src.index(
             "PLUNDER/SECURE CHOICE PENDING - Returning full result")
         window = src[marker:marker + 400]
-        assert "_build_result_response(result, world, drain_popups=False)" in window
+        assert "_build_result_response(ctx.result, world, drain_popups=False)" in window
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -393,10 +395,12 @@ class TestCommandEndpointDiplomaticFields:
         )
 
     def test_command_endpoint_delegates_tail_layering_to_helper(self, main_module):
-        """Session 6 follow-up: keep /command tail work centralized in one helper."""
-        source = inspect.getsource(main_module.execute_command)
+        """Session 6 follow-up: keep /command tail work centralized in one helper.
+        CODE-2b (October 13, 2026): the route is the driver plus its stages."""
+        from tests._command_stages import command_source
+        source = command_source()
 
-        assert "_apply_command_result_layers(response, result, world)" in source
+        assert "_apply_command_result_layers(response, ctx.result, world)" in source
         assert 'response["bombardment_result"] = result["bombardment_result"]' not in source
         assert 'response["notifications"] = world.notifications.get_pending()' not in source
 

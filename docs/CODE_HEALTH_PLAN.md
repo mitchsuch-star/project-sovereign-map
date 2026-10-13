@@ -741,6 +741,92 @@ in CODE-2: **CODE-2b** at `PRE_DEPLOY_PLAN.md` §2's S10 (the monster
 functions the deep dives did not absorb — DD-1 took `_process_dialogue_choice`
 and `_ratify_treaty`); S9 (UXR-2) comes first.
 
+**CODE-2b LANDING RECORD, SLICE 1 — `execute_command` (Pre-Deploy S10,
+October 13, 2026).** *A correction first:* the S10 hand-off placed
+`execute_command` in `backend/commands/executor.py`. It is the `/command`
+route in **`backend/main.py`** (line 3136 on `e6aa24db`, 1,627 lines), under
+`@app.post("/command")` and `@_records_transcript`. *The stage list, written
+before the cut (recipe step 1).* The function is a 45-line prelude, then ONE
+`try:` of 1,581 lines whose `except Exception as e:` is the route's error
+reply. So the cut runs at the top-level statement boundaries of the `try`'s
+body. The prelude becomes a stage the driver calls BEFORE the `try`, exactly
+where it ran, so an exception there still escapes the route's own handler.
+The handler stays in the driver verbatim. Each stage is a module-level
+`_command_<stage>(ctx)` in `main.py`, so `world`, `parser` and `executor`
+stay the module globals the suite's world swaps replace:
+
+| # | Stage | Its header in the old body | What it holds |
+|---|---|---|---|
+| 0 | `_command_open` | "CR-7-3 rule 5" (the prelude, outside the `try`) | the relay stash popped, the DD-0 trace opened, the CR-7-9 let-go, `_relay_question` |
+| 1 | `_command_guards` | "GAME-OVER GUARD" | the war is over, a blank line, the typed `why` |
+| 2 | `_command_clarification_answer` | "CR-2: PENDING COMMAND CLARIFICATION" | the clarification and delegation imports, a typed answer to the pending question |
+| 3 | `_command_interrupt_answer` | "PENDING STRATEGIC INTERRUPT CHECK" | a typed answer to a marshal's interrupt (SF5-X1/X2, PC15-2) |
+| 4 | `_command_pending_answers` | "W6-0 (BUG-CA-1): PENDING-QUESTION ROUTER" | the objection's words (CA9-N5), the capture answer, a dialogue's own option |
+| 5 | `_command_carryover_and_lost_name` | "CR-4: CONTEXT CARRYOVER" | shorthand resolved against the history; PC15-4 the fallen or captured name |
+| 6 | `_command_parse` | "Parse command" | the SF-CMD-1 premise, `parser.parse`, FA-39 provenance, the request's own fields |
+| 7 | `_command_history` | "COMMAND HISTORY" | the history entry, never for a line a dialogue consumed |
+| 8 | `_command_delegation` | "CR-5: PERSONALITY-BIASED DISAMBIGUATION" | a delegation verb routed by character: cautious, aggressive or ask |
+| 9 | `_command_dialogue_routing` | "DIPLOMATIC DIALOGUE RESPONSE ROUTING" | a pending dialogue takes the line only when it claims it (CA9, PT-A3, WO-7, IQ-7) |
+| 10 | `_command_ordinary_road` | `if not _dialogue_took_the_line:` | dialogue-only words, WO-1, CR-2 did-you-mean, PARSE-NEG, Berthier's parse recovery, `executor.execute` |
+| 11 | `_command_riders` | "CR-2: parser warnings" | warnings and the typo note, CR-7-3 `_stamp_relay`, CR-5's notes and first-use hint |
+| 12 | `_command_executor_recovery` | "BERTHIER EXECUTOR RECOVERY" | no marshal named: the CR-4 focus reissue, CX3-X2, CR-2 marshal choice, Berthier |
+| 13 | `_command_question_returns` | "CHECK FOR OBJECTION" | a result carrying a question or popup returns whole |
+| 14 | `_command_respond` | "FEEDBACK GENERATION (Phase 5)" | live-mode feedback and the response |
+
+**Three things the attack's cut did not meet.** (1) `_stamp_relay`, a nested
+def, declares `nonlocal _relay_obj` and is re-called by a later stage
+(stage 12, after the focus reissue rebinds `parsed` and `result`). The name
+rides the context, so the `nonlocal` line goes: `ctx._relay_obj = …` is the
+same write to the same shared cell. It is the one line the cut deletes rather
+than moves. (2) The `try`-body stages lose four columns of indentation. A line
+inside a multi-line string is never re-indented, except a nested function's
+docstring. (3) The proof is stronger than S8b's. On top of its symbol-table
+check, every stage's statements must dump AST-equal to the old body's, once
+the shared names are rewritten to `ctx.<name>` and the dropped `nonlocal` is
+removed (`scratchpad` tool `stage_fn.py`).
+
+*The outcome (✅ LANDED October 13, 2026).*
+- **The context.** Of the old body's 171 locals, **18 ride `CommandContext`**
+  (1 of them `request`), and the other 153 stayed local to one stage.
+- **What else moved.** Two nested defs ride the context (`_relay_question`,
+  `_stamp_relay`). One `nonlocal` line was dropped. Ten import statements are
+  repeated at the heads of stages 8 and 10–13, grouped per original statement.
+- **Unchanged.** The handler is byte-for-byte the old one, AST-checked.
+- **Sizes.** Stages run 41–372 lines (the door 48, the driver 73).
+  **Functions over 500 lines 33 → 32**, and `FUNCTIONS_OVER_500_CAP` is
+  lowered to match.
+- **The F2 class is empty.** No local import in the route binds a name
+  `main.py` binds at module level, and now a pin keeps it that way.
+
+**The net:**
+- `score_run.py check` against `2026_10_05_sfr` gives stdout identical to the
+  same check on `e6aa24db`.
+- The full parallel suite: 30,647 passed, 7 failed.
+  - **Five** failures were source pins in four files that read the route as
+    one function's text, or named a now-`ctx.` local. Each is re-pointed
+    through the new `tests/_command_stages.py` (`command_stage_names()` read
+    off the driver, `command_source()`, `stage_source()`). The rule is the
+    same assertion where the code now lives; none was weakened.
+  - **Two** (`test_fa_slice8_…::TestAMutationIsNeverMaskedByStaleBytecode`)
+    fail on the unchanged tree whenever the shell carries
+    `PYTHONDONTWRITEBYTECODE=1`, as this session's did. They pass with it
+    unset. The commit runs without it, as the hook always had.
+
+**The shape is pinned** in `tests/test_code2b_the_command_is_staged.py`:
+- the fifteen stages in order;
+- the driver's body is `[Assign, Expr, Try]`, the door called before the
+  `try`, and the `try` holding only the loop and the last stage;
+- the identity test;
+- the handler is still the route's one error reply, and a stage that raises
+  gets it (driven);
+- no stage over 500 lines;
+- the context's slots and no-default contract;
+- no context or sentinel on the wire;
+- no stage-local import shadowing a module name.
+
+No rule moved, so `SYSTEMS_REFERENCE.md` gains no section. **Next in CODE-2b:**
+slice 2 `format_event_oneliner`, then slice 3 `_execute_strategic_command`.
+
 ## CODE-3 — Every broad except speaks (1 session, with DD-C)
 
 **The rule.** `except Exception` is allowed only through

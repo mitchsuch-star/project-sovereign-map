@@ -10,7 +10,8 @@ import contextvars  # noqa: E402 - FA-39: per-request parse provenance
 import weakref  # noqa: E402 - 3A-1: per-event-loop state locks
 from pathlib import Path
 import functools
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 
@@ -3116,8 +3117,9 @@ def _records_transcript(fn):
     records it in the transcript — a no-op unless logging is on.
 
     A decorator, not a wrapper function around a renamed body: `execute_command`
-    keeps its whole pipeline under its own name (three source pins read it,
-    and the suite's direct in-process calls go through it), and
+    keeps its whole pipeline under its own name (since CODE-2b, October 2026,
+    the driver of the `_command_*` stages, which `tests/_command_stages.py`
+    reads as one; the suite's direct in-process calls go through it), and
     `functools.wraps` lets FastAPI read the original signature. The
     provenance key is read HERE, in main.py — the FA slice-15b census allows
     no other reader of it (GR6: display only)."""
@@ -3131,10 +3133,117 @@ def _records_transcript(fn):
     return _recorded
 
 
+# CODE-2b (October 2026): what the stages of `execute_command`
+# share. Built once at the driver's head, never on the wire. The parameters
+# are init fields; every other field is set by the stage that first assigns
+# it — `slots` with no default, so a read before any assignment raises as
+# the local it replaced did.
+_NEXT_STAGE = object()
+
+
+@dataclass(slots=True, repr=False, eq=False)
+class CommandContext:
+    request: Any
+    _carried_relay: Any = field(init=False)
+    command_text: Any = field(init=False)
+    result: Any = field(init=False)
+    llm_game_state: Any = field(init=False)
+    parsed: Any = field(init=False)
+    _parsed_command: Any = field(init=False)
+    _consumed_as_dialogue_answer: Any = field(init=False)
+    _cautious_note: Any = field(init=False)
+    _delegation_arm_ran: Any = field(init=False)
+    _aggressive_flavor: Any = field(init=False)
+    _cautious_flavor_prefix: Any = field(init=False)
+    _dialogue_took_the_line: Any = field(init=False)
+    _court: Any = field(init=False)
+    _relay_question: Any = field(init=False)
+    berthier_msg: Any = field(init=False)
+    _relay_obj: Any = field(init=False)
+    _stamp_relay: Any = field(init=False)
+
+
 @app.post("/command")
 @_records_transcript
 def execute_command(request: CommandRequest):
-    """Execute a game command and return result; every road returns a response dict."""
+    """Execute a game command and return result; every road returns a response dict.
+
+    CODE-2b (October 2026): a driver of named stages behind one
+    `CommandContext`. Stage 0 runs before the `try`, where the prelude always
+    ran; inside it, a stage returns `_NEXT_STAGE` to continue or the
+    response to stop, and the `except` is still the route's one error
+    reply. Nothing on the context reaches the wire.
+
+     0. `_command_open` — Run before the `try`, where the prelude always ran:
+        the relay's one-command stash popped, the DD-0 trace opened, the CR-7-9
+        let-go, `_relay_question` (CR-7-3 rule 5).
+     1. `_command_guards` — The war is over, a blank line, the typed `why`
+        (DD-0 S3).
+     2. `_command_clarification_answer` — CR-2: a typed answer to the pending
+        clarification resolves, or the question is let go.
+     3. `_command_interrupt_answer` — Phase 5.2-D: a typed answer to a
+        marshal's pending interrupt (SF5-X1/X2, PC15-2).
+     4. `_command_pending_answers` — W6-0: the objection's words (CA9-N5), the
+        capture answer, a dialogue's own option.
+     5. `_command_carryover_and_lost_name` — CR-4 shorthand resolved against
+        the history; PC15-4 the fallen or captured name refused.
+     6. `_command_parse` — SF-CMD-1 W2 the premise, the parse, FA-39
+        provenance, the request's own fields.
+     7. `_command_history` — The command history (CR-4), never for a line a
+        dialogue consumed.
+     8. `_command_delegation` — CR-5: a delegation verb routed by the marshal's
+        character — cautious, aggressive or ask.
+     9. `_command_dialogue_routing` — A pending dialogue takes the line only
+        when it claims it (CA9, PT-A3, WO-7, IQ-7).
+    10. `_command_ordinary_road` — The ordinary road: dialogue-only words,
+        WO-1, CR-2 did-you-mean, PARSE-NEG, Berthier's parse recovery, then the
+        executor.
+    11. `_command_riders` — What rides the result: parser warnings and the typo
+        note, the CR-7-3 relay, CR-5's notes and first-use hint.
+    12. `_command_executor_recovery` — No marshal named: the CR-4 focus
+        reissue, CX3-X2, the CR-2 marshal choice, Berthier.
+    13. `_command_question_returns` — A result carrying a question or a popup
+        returns whole.
+    14. `_command_respond` — Live-mode feedback (Phase 5) and the response.
+    """
+    ctx = CommandContext(
+        request=request,
+    )
+    _command_open(ctx)
+    try:
+        for stage in (
+                _command_guards,
+                _command_clarification_answer,
+                _command_interrupt_answer,
+                _command_pending_answers,
+                _command_carryover_and_lost_name,
+                _command_parse,
+                _command_history,
+                _command_delegation,
+                _command_dialogue_routing,
+                _command_ordinary_road,
+                _command_riders,
+                _command_executor_recovery,
+                _command_question_returns,
+        ):
+            result = stage(ctx)
+            if result is not _NEXT_STAGE:
+                return result
+        return _command_respond(ctx)
+    except Exception as e:
+        _errors.report(e, "main.execute_command: the route", every=True)
+        import traceback
+        traceback.print_exc()
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}",
+            action_info={"remaining": int(world.actions_remaining)},
+            **_errors.debug_fields(e, "main.execute_command: the route", DEBUG_MODE))
+
+
+def _command_open(ctx: CommandContext):
+    """Stage 0 of `execute_command`, the door: Run before the `try`, where the
+    prelude always ran: the relay's one-command stash popped, the DD-0 trace
+    opened, the CR-7-9 let-go, `_relay_question` (CR-7-3 rule 5)."""
     # print(f"\n{'=' * 60}")
     # print(f"📨 COMMAND RECEIVED: '{request.command}'")
     # print(f"   Current turn: {world.current_turn}")
@@ -3148,17 +3257,17 @@ def execute_command(request: CommandRequest):
     from backend.commands import relay as _relay
     # DD-0 S3: one request, one trace — opened at the door, closed by
     # `build_base_response` on whatever reply goes out.
-    _ptrace.open_trace(str(getattr(request, "command", "") or ""),
-                       wire=_ptrace.wanted(getattr(request, "trace", False)))
-    _carried_relay = _relay.pop(world)
+    _ptrace.open_trace(str(getattr(ctx.request, "command", "") or ""),
+                       wire=_ptrace.wanted(getattr(ctx.request, "trace", False)))
+    ctx._carried_relay = _relay.pop(world)
     # CR-7-9: a stash this command neither answers nor re-types is LET GO
     # with a word — the consuming routes below clear this, and
     # `build_base_response` speaks it on whatever reply goes out.
-    if _carried_relay:
-        _tail_l = str(_carried_relay.get("tail") or "").strip().lower()
-        _typed_l = str(getattr(request, "command", "") or "").strip().lower()
+    if ctx._carried_relay:
+        _tail_l = str(ctx._carried_relay.get("tail") or "").strip().lower()
+        _typed_l = str(getattr(ctx.request, "command", "") or "").strip().lower()
         if _tail_l and _tail_l not in _typed_l:
-            world._relay_let_go = _carried_relay
+            world._relay_let_go = ctx._carried_relay
 
     def _relay_question(question_dict, source_parsed):
         """CR-7-3 rule 5 for a question raised OUTSIDE the executor result —
@@ -3178,1588 +3287,1676 @@ def execute_command(request: CommandRequest):
         _relay.attach(question_dict, _q)
         _relay.append_note(question_dict, _q, standalone=True)
         _relay.stash(world, _q, _cmd.get("marshal"), _cmd.get("action"))
+    ctx._relay_question = _relay_question
 
-    try:
-        # ════════════════════════════════════════════════════════════
-        # GAME-OVER GUARD — No actions after the war ends
-        # ════════════════════════════════════════════════════════════
-        if world.game_over:
-            return build_base_response(
-                world, success=False, message="The war is over.",
-                game_over=True, victory=world.victory)
 
-        # ════════════════════════════════════════════════════════════
-        # EMPTY COMMAND CHECK — Reject blank input
-        # ════════════════════════════════════════════════════════════
-        if not request.command or not request.command.strip():
-            return build_base_response(
-                world, success=False, message="No command given, Sire.",
-                action_info={"remaining": int(world.actions_remaining)})
+def _command_guards(ctx: CommandContext):
+    """Stage 1 of `execute_command`: The war is over, a blank line, the typed
+    `why` (DD-0 S3)."""
+    # ════════════════════════════════════════════════════════════
+    # GAME-OVER GUARD — No actions after the war ends
+    # ════════════════════════════════════════════════════════════
+    if world.game_over:
+        return build_base_response(
+            world, success=False, message="The war is over.",
+            game_over=True, victory=world.victory)
 
-        # ════════════════════════════════════════════════════════════
-        # DD-0 S3: THE TYPED `why` — the last line's reading, printed.
-        # Free, a question, no history entry; it reads the stored trace
-        # and leaves it standing (so `why` twice prints the same order).
-        # Sits before every pending router so it is never eaten as an
-        # answer; a `why` WITH a subject is the state desk's and falls
-        # through (`_WHY_RX` is the bare forms only).
-        # ════════════════════════════════════════════════════════════
-        if _WHY_RX.match(request.command):
-            _t = _ptrace.current()
-            if _t is not None:
-                _t.preserve_last = True
+    # ════════════════════════════════════════════════════════════
+    # EMPTY COMMAND CHECK — Reject blank input
+    # ════════════════════════════════════════════════════════════
+    if not ctx.request.command or not ctx.request.command.strip():
+        return build_base_response(
+            world, success=False, message="No command given, Sire.",
+            action_info={"remaining": int(world.actions_remaining)})
+
+    # ════════════════════════════════════════════════════════════
+    # DD-0 S3: THE TYPED `why` — the last line's reading, printed.
+    # Free, a question, no history entry; it reads the stored trace
+    # and leaves it standing (so `why` twice prints the same order).
+    # Sits before every pending router so it is never eaten as an
+    # answer; a `why` WITH a subject is the state desk's and falls
+    # through (`_WHY_RX` is the bare forms only).
+    # ════════════════════════════════════════════════════════════
+    if _WHY_RX.match(ctx.request.command):
+        _t = _ptrace.current()
+        if _t is not None:
+            _t.preserve_last = True
+        return build_base_response(
+            world, success=True, message=_ptrace.why_text(world),
+            parse_trace_explained=True,
+            action_info={
+                "cost": 0,
+                "remaining": int(world.actions_remaining),
+                "turn_advanced": False,
+                "new_turn": None,
+            })
+    return _NEXT_STAGE
+
+
+def _command_clarification_answer(ctx: CommandContext):
+    """Stage 2 of `execute_command`: CR-2: a typed answer to the pending
+    clarification resolves, or the question is let go."""
+    # ════════════════════════════════════════════════════════════
+    # CR-2: PENDING COMMAND CLARIFICATION — one question, one answer.
+    # Typed answers ("Davout", "2", "yes", "cancel") resolve against
+    # the stored options into a full deterministic reissue command;
+    # anything else clears the question and parses normally
+    # (LOCAL_PLANNING never blocks). Consumed either way — the player
+    # gets exactly one question per command, never a dialogue loop.
+    # Adversarial-review fix: this MUST run before the strategic
+    # interrupt loop — the clarification is the most recent question
+    # asked, and the interrupt keyword matcher would otherwise hijack
+    # answers like "cancel" and leave the dialogue lingering.
+    # ════════════════════════════════════════════════════════════
+    from backend.commands.clarification import (
+        CLARIFICATION_DIALOGUE_TYPE,
+        build_marshal_choice_clarification,
+        destination_refusal,
+        build_unknown_name_clarification,
+        interpret_clarification_answer,
+        register_pending_clarification,
+    )
+    from backend.commands.delegation import (
+        build_delegation_clarification,
+        delegation_witness,
+        describe_cautious_delegation,
+        detect_delegation,
+        maybe_delegation_hint,
+        resolve_delegation_flavor,
+        resolve_live_cautious_prefix,
+        route_arm,
+    )
+
+    ctx.command_text = ctx.request.command
+    pending_clarification = world.dialogue_manager.peek()
+    if (pending_clarification is not None
+            and pending_clarification.get("type") == CLARIFICATION_DIALOGUE_TYPE
+            and not ctx.command_text.lower().strip().startswith("cheat ")):
+        resolution = interpret_clarification_answer(
+            pending_clarification, ctx.command_text)
+        world.dialogue_manager.pop()
+        _ptrace.decide("main", "clarification_answer",
+                       {"kind": resolution["kind"],
+                        "command": resolution.get("command")})
+        if resolution["kind"] == "cancel":
             return build_base_response(
-                world, success=True, message=_ptrace.why_text(world),
-                parse_trace_explained=True,
+                world, success=True,
+                message="Berthier nods. \"Very well, Sire — the order is withdrawn.\"",
                 action_info={
                     "cost": 0,
                     "remaining": int(world.actions_remaining),
                     "turn_advanced": False,
                     "new_turn": None,
                 })
+        if resolution["kind"] == "command":
+            print(f"[CLARIFICATION] Resolved answer '{ctx.request.command}' "
+                  f"-> '{resolution['command']}'")
+            ctx.command_text = resolution["command"]
+    return _NEXT_STAGE
 
-        # ════════════════════════════════════════════════════════════
-        # CR-2: PENDING COMMAND CLARIFICATION — one question, one answer.
-        # Typed answers ("Davout", "2", "yes", "cancel") resolve against
-        # the stored options into a full deterministic reissue command;
-        # anything else clears the question and parses normally
-        # (LOCAL_PLANNING never blocks). Consumed either way — the player
-        # gets exactly one question per command, never a dialogue loop.
-        # Adversarial-review fix: this MUST run before the strategic
-        # interrupt loop — the clarification is the most recent question
-        # asked, and the interrupt keyword matcher would otherwise hijack
-        # answers like "cancel" and leave the dialogue lingering.
-        # ════════════════════════════════════════════════════════════
-        from backend.commands.clarification import (
-            CLARIFICATION_DIALOGUE_TYPE,
-            build_marshal_choice_clarification,
-            destination_refusal,
-            build_unknown_name_clarification,
-            interpret_clarification_answer,
-            register_pending_clarification,
-        )
-        from backend.commands.delegation import (
-            build_delegation_clarification,
-            delegation_witness,
-            describe_cautious_delegation,
-            detect_delegation,
-            maybe_delegation_hint,
-            resolve_delegation_flavor,
-            resolve_live_cautious_prefix,
-            route_arm,
-        )
 
-        command_text = request.command
-        pending_clarification = world.dialogue_manager.peek()
-        if (pending_clarification is not None
-                and pending_clarification.get("type") == CLARIFICATION_DIALOGUE_TYPE
-                and not command_text.lower().strip().startswith("cheat ")):
-            resolution = interpret_clarification_answer(
-                pending_clarification, command_text)
-            world.dialogue_manager.pop()
-            _ptrace.decide("main", "clarification_answer",
-                           {"kind": resolution["kind"],
-                            "command": resolution.get("command")})
-            if resolution["kind"] == "cancel":
-                return build_base_response(
-                    world, success=True,
-                    message="Berthier nods. \"Very well, Sire — the order is withdrawn.\"",
-                    action_info={
+def _command_interrupt_answer(ctx: CommandContext):
+    """Stage 3 of `execute_command`: Phase 5.2-D: a typed answer to a marshal's
+    pending interrupt (SF5-X1/X2, PC15-2)."""
+    # ════════════════════════════════════════════════════════════
+    # PENDING STRATEGIC INTERRUPT CHECK (Phase 5.2-D)
+    # If a marshal has a pending interrupt (cannon fire, blocked path),
+    # try to map the player's text input to a response choice.
+    # This prevents the command from being parsed as a new order.
+    #
+    # SF5-X2 (Score Finish Step 5, October 3, 2026 — found in passing): a
+    # standing HARD STOP outranks this route. It ran first, so a typed
+    # answer reached the interrupt while the war's purpose waited: an
+    # "attack anyway" was refused downstream by the hard stop's own
+    # diplomacy gate, and the refusal DESTROYED the interrupt and the
+    # standing order with nothing done (measured: Ney's pursuit of Mack,
+    # interrupt and order both gone, the question still on the desk).
+    # Now the line falls through to the hard-stop gate, which names the
+    # question; the interrupt waits for its own answer after it.
+    # ════════════════════════════════════════════════════════════
+    _interrupt_route_open = not (
+        A_HARD_STOP_OUTRANKS_AN_INTERRUPT
+        and world.dialogue_manager.is_hard_stop())
+    for m in (world.get_player_marshals() if _interrupt_route_open else []):
+        pending = getattr(m, 'pending_interrupt', None)
+        if pending:
+            cmd_lower = ctx.command_text.strip().lower()
+
+            # ── Guard: if command addresses a DIFFERENT marshal, skip ──
+            # "grouchy march to brittany" should NOT be routed as
+            # Davout's interrupt response just because "march to" matches.
+            #
+            # PC15-2: the check was ROSTER-BOUND, so a command
+            # addressing a name no longer on the roster ('Murat, attack
+            # Buxhowden' with Murat destroyed) read as un-addressed and
+            # was consumed as Soult's destination_blocked answer. The
+            # leading address token is now honoured whether or not the
+            # name still lives — any explicit address that is not THIS
+            # marshal falls through to the parser (where the CR-2 /
+            # PC15-4 guards own the unknown/fallen-name reply).
+            known_marshal_names = [
+                pm.name.lower() for pm in world.get_player_marshals()
+            ]
+            addressed_other = any(
+                name in cmd_lower
+                for name in known_marshal_names
+                if name != m.name.lower()
+            )
+            if not addressed_other:
+                from backend.ai.validation import _marshal_mentioned
+                from backend.commands.parser import (
+                    _leading_addressed_token,
+                )
+                _addr_token = _leading_addressed_token(ctx.command_text)
+                if _addr_token and not _marshal_mentioned(
+                        _addr_token, m.name):
+                    addressed_other = True
+            # PC15-2(b): the command explicitly addresses the
+            # interrupt's OWN marshal but names ground the interrupt is
+            # not about — a fresh ORDER, not an answer ('Davout, march
+            # to London' was consumed as a cannon-fire "investigate").
+            # Bare un-addressed answers ("press on") keep the current
+            # behaviour.
+            if not addressed_other and _addressed_fresh_order_elsewhere(
+                    ctx.command_text, cmd_lower, pending, world):
+                addressed_other = True
+            if addressed_other:
+                # Command is for a different marshal — let it parse
+                # normally. Clear a STALE informational interrupt, but
+                # never silently discard a real pending DECISION the player
+                # hasn't answered: a cornered marshal's last stand or an
+                # unconfirmed muster. Dropping those would strand the
+                # marshal (un-retreated forever / attack abandoned).
+                #
+                # Creative audit July 19 2026: the exemption list was an
+                # allow-list of two, so EVERY contact/blocked-path decision
+                # was silently discarded the moment the player addressed a
+                # different marshal — ordering "Davout, support Ney" threw
+                # away the question Ney had just asked. Those are decisions
+                # by the comment's own definition. The rule is now derived
+                # rather than a hand-kept name list (which is what drifted):
+                # an interrupt that OFFERS THE PLAYER OPTIONS is a pending
+                # decision and is preserved; one with no options is pure
+                # information and may be dropped. New interrupt types get
+                # the right behaviour without touching this seam.
+                if not pending.get("options"):
+                    m.pending_interrupt = None
+                continue
+
+            options = pending.get("options", [])
+            interrupt_type = pending.get("interrupt_type", "")
+
+            choice = _interrupt_choice_from_text(cmd_lower, options)
+
+            # SF5-X1 (Score Finish Step 5, October 3, 2026 — found in
+            # passing; CRT-3's "a question never orders", one road over):
+            # a QUESTION never answers an interrupt. The keyword map read
+            # "should we attack?" as `attack_anyway` and FOUGHT the battle
+            # the player had only asked about (measured on the shipped
+            # boot: Ney's bad-odds interrupt on Mack, four phrasings, four
+            # battles). A question that names one of the interrupt's own
+            # answers is ABOUT it: nothing is ordered, the interrupt's
+            # question is restated with its answers and re-carried, so
+            # the popup stands again. A question naming none of them was
+            # never this route's (the desk answers it). An exact option
+            # id still answers (`dialogue_routing`'s rule).
+            if choice and A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:
+                from backend.commands.dialogue_routing import (
+                    line_asks_a_question,
+                )
+                if line_asks_a_question(
+                        ctx.command_text,
+                        [{"action": o, "label": o} for o in options]):
+                    # SF5-RV9 (the Step 5 quick check): a restated question
+                    # consumes nothing. It rides the NON-draining refusal
+                    # builder (the interrupt route renders only its own
+                    # table, so a popup drained onto it was lost), the
+                    # interrupt goes in as an EXTRA so the builder stamps
+                    # its FA-49 option costs, and a relayed tail waiting
+                    # behind the interrupt waits on (CR-7-3 rule 5).
+                    if A_QUESTION_REPROMPT_CONSUMES_NOTHING and ctx._carried_relay:
+                        world._pending_relay = ctx._carried_relay
+                        world._relay_let_go = None
+                    _info = {
                         "cost": 0,
                         "remaining": int(world.actions_remaining),
                         "turn_advanced": False,
                         "new_turn": None,
-                    })
-            if resolution["kind"] == "command":
-                print(f"[CLARIFICATION] Resolved answer '{request.command}' "
-                      f"-> '{resolution['command']}'")
-                command_text = resolution["command"]
-
-        # ════════════════════════════════════════════════════════════
-        # PENDING STRATEGIC INTERRUPT CHECK (Phase 5.2-D)
-        # If a marshal has a pending interrupt (cannon fire, blocked path),
-        # try to map the player's text input to a response choice.
-        # This prevents the command from being parsed as a new order.
-        #
-        # SF5-X2 (Score Finish Step 5, October 3, 2026 — found in passing): a
-        # standing HARD STOP outranks this route. It ran first, so a typed
-        # answer reached the interrupt while the war's purpose waited: an
-        # "attack anyway" was refused downstream by the hard stop's own
-        # diplomacy gate, and the refusal DESTROYED the interrupt and the
-        # standing order with nothing done (measured: Ney's pursuit of Mack,
-        # interrupt and order both gone, the question still on the desk).
-        # Now the line falls through to the hard-stop gate, which names the
-        # question; the interrupt waits for its own answer after it.
-        # ════════════════════════════════════════════════════════════
-        _interrupt_route_open = not (
-            A_HARD_STOP_OUTRANKS_AN_INTERRUPT
-            and world.dialogue_manager.is_hard_stop())
-        for m in (world.get_player_marshals() if _interrupt_route_open else []):
-            pending = getattr(m, 'pending_interrupt', None)
-            if pending:
-                cmd_lower = command_text.strip().lower()
-
-                # ── Guard: if command addresses a DIFFERENT marshal, skip ──
-                # "grouchy march to brittany" should NOT be routed as
-                # Davout's interrupt response just because "march to" matches.
-                #
-                # PC15-2: the check was ROSTER-BOUND, so a command
-                # addressing a name no longer on the roster ('Murat, attack
-                # Buxhowden' with Murat destroyed) read as un-addressed and
-                # was consumed as Soult's destination_blocked answer. The
-                # leading address token is now honoured whether or not the
-                # name still lives — any explicit address that is not THIS
-                # marshal falls through to the parser (where the CR-2 /
-                # PC15-4 guards own the unknown/fallen-name reply).
-                known_marshal_names = [
-                    pm.name.lower() for pm in world.get_player_marshals()
-                ]
-                addressed_other = any(
-                    name in cmd_lower
-                    for name in known_marshal_names
-                    if name != m.name.lower()
-                )
-                if not addressed_other:
-                    from backend.ai.validation import _marshal_mentioned
-                    from backend.commands.parser import (
-                        _leading_addressed_token,
-                    )
-                    _addr_token = _leading_addressed_token(command_text)
-                    if _addr_token and not _marshal_mentioned(
-                            _addr_token, m.name):
-                        addressed_other = True
-                # PC15-2(b): the command explicitly addresses the
-                # interrupt's OWN marshal but names ground the interrupt is
-                # not about — a fresh ORDER, not an answer ('Davout, march
-                # to London' was consumed as a cannon-fire "investigate").
-                # Bare un-addressed answers ("press on") keep the current
-                # behaviour.
-                if not addressed_other and _addressed_fresh_order_elsewhere(
-                        command_text, cmd_lower, pending, world):
-                    addressed_other = True
-                if addressed_other:
-                    # Command is for a different marshal — let it parse
-                    # normally. Clear a STALE informational interrupt, but
-                    # never silently discard a real pending DECISION the player
-                    # hasn't answered: a cornered marshal's last stand or an
-                    # unconfirmed muster. Dropping those would strand the
-                    # marshal (un-retreated forever / attack abandoned).
-                    #
-                    # Creative audit July 19 2026: the exemption list was an
-                    # allow-list of two, so EVERY contact/blocked-path decision
-                    # was silently discarded the moment the player addressed a
-                    # different marshal — ordering "Davout, support Ney" threw
-                    # away the question Ney had just asked. Those are decisions
-                    # by the comment's own definition. The rule is now derived
-                    # rather than a hand-kept name list (which is what drifted):
-                    # an interrupt that OFFERS THE PLAYER OPTIONS is a pending
-                    # decision and is preserved; one with no options is pure
-                    # information and may be dropped. New interrupt types get
-                    # the right behaviour without touching this seam.
-                    if not pending.get("options"):
-                        m.pending_interrupt = None
-                    continue
-
-                options = pending.get("options", [])
-                interrupt_type = pending.get("interrupt_type", "")
-
-                choice = _interrupt_choice_from_text(cmd_lower, options)
-
-                # SF5-X1 (Score Finish Step 5, October 3, 2026 — found in
-                # passing; CRT-3's "a question never orders", one road over):
-                # a QUESTION never answers an interrupt. The keyword map read
-                # "should we attack?" as `attack_anyway` and FOUGHT the battle
-                # the player had only asked about (measured on the shipped
-                # boot: Ney's bad-odds interrupt on Mack, four phrasings, four
-                # battles). A question that names one of the interrupt's own
-                # answers is ABOUT it: nothing is ordered, the interrupt's
-                # question is restated with its answers and re-carried, so
-                # the popup stands again. A question naming none of them was
-                # never this route's (the desk answers it). An exact option
-                # id still answers (`dialogue_routing`'s rule).
-                if choice and A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:
-                    from backend.commands.dialogue_routing import (
-                        line_asks_a_question,
-                    )
-                    if line_asks_a_question(
-                            command_text,
-                            [{"action": o, "label": o} for o in options]):
-                        # SF5-RV9 (the Step 5 quick check): a restated question
-                        # consumes nothing. It rides the NON-draining refusal
-                        # builder (the interrupt route renders only its own
-                        # table, so a popup drained onto it was lost), the
-                        # interrupt goes in as an EXTRA so the builder stamps
-                        # its FA-49 option costs, and a relayed tail waiting
-                        # behind the interrupt waits on (CR-7-3 rule 5).
-                        if A_QUESTION_REPROMPT_CONSUMES_NOTHING and _carried_relay:
-                            world._pending_relay = _carried_relay
-                            world._relay_let_go = None
-                        _info = {
-                            "cost": 0,
-                            "remaining": int(world.actions_remaining),
-                            "turn_advanced": False,
-                            "new_turn": None,
-                        }
-                        if A_QUESTION_REPROMPT_CONSUMES_NOTHING:
-                            return _refusal_response(
-                                world,
-                                message=_interrupt_question_reprompt(m, pending),
-                                action_info=_info,
-                                pending_interrupt=dict(pending))
-                        _reprompt = build_base_response(
-                            world, success=False,
+                    }
+                    if A_QUESTION_REPROMPT_CONSUMES_NOTHING:
+                        return _refusal_response(
+                            world,
                             message=_interrupt_question_reprompt(m, pending),
-                            action_info=_info)
-                        _reprompt["pending_interrupt"] = dict(pending)
-                        return _reprompt
-
-                if choice:
-                    print(f"[INTERRUPT ROUTE] Routing '{request.command}' -> "
-                          f"{m.name} {interrupt_type} response: {choice}")
-                    _ptrace.decide("main", "interrupt_answer",
-                                   {"marshal": m.name, "interrupt": interrupt_type,
-                                    "choice": choice})
-                    from backend.commands.strategic import StrategicOrderProcessor
-                    strategic_exec = StrategicOrderProcessor(executor)
-                    result = strategic_exec.handle_response(
-                        m.name, interrupt_type, choice, world, game_state)
-                    # CR-7-9: the tail that waited behind THIS interrupt comes
-                    # back re-judged on the typed answer too — the popup route
-                    # always did; the typed road had let it go in silence.
-                    if getattr(world, "_relay_let_go", None) is _carried_relay:
-                        world._relay_let_go = None
-                    _resp = _build_result_response(result, world)
-                    _attach_answered_relay(_resp, result, _carried_relay)
-                    return _resp
-
-        # ════════════════════════════════════════════════════════════
-        # W6-0 (BUG-CA-1): PENDING-QUESTION ROUTER — when the game itself
-        # just asked a question, the exact answer tokens IT offered must
-        # resolve that question instead of falling into the parser (live
-        # audit: with an objection pending, typed "trust" reached the LLM
-        # parser bewildered and "insist" hit the diplomatic handler).
-        # Deterministic (Golden Rule 6), exact-token only, and each token
-        # reroutes ONLY while its matching state is pending — anything else
-        # falls through to the normal pipeline untouched (no keyword
-        # ownership changes; the fast-parser contract and golden corpus are
-        # unaffected). Runs after the clarification/interrupt steps (the
-        # most recent questions win) and before CR-4 carryover/parsing.
-        # ════════════════════════════════════════════════════════════
-        _pending_answer_token = command_text.strip().lower()
-        _objection_pending = (
-            world.pending_objection is not None
-            or getattr(world, "pending_strategic_objection", None) is not None)
-        if _pending_answer_token in ("trust", "insist", "compromise") \
-                and _objection_pending:
-            print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
-                  f"-> objection response")
-            _ptrace.decide("main", "objection_answer", _pending_answer_token)
-            return _respond_to_objection_sync(_pending_answer_token,
-                                              carried_relay=_carried_relay)
-        # CA9-N5: the exact-token gate above rejected plain English meaning
-        # one of its own words — "I trust him", "insist on it", "trust
-        # Davout" all fell through to the parser and then died on the
-        # objection block, which (before this row) did not name the words
-        # either. Nothing else can execute while an objection stands, so a
-        # line naming exactly ONE answer word as a whole word is
-        # unambiguous; two words is ambiguous and gets the question back.
-        if _objection_pending and _pending_answer_token:
-            # CA9 review round: this sits BEFORE the parser, which is where
-            # PARSE-NEG's `strip_negated_clauses` lives — so "I don't trust
-            # him", "do not insist" and "no compromise" each matched
-            # exactly one word and executed its OPPOSITE. Blank the negated
-            # clauses first, with the same guard the parser uses; if the
-            # answer word only survives inside the negation, nothing routes
-            # and the block re-prompts.
-            from backend.ai.clause_guards import strip_negated_clauses
-            _answer_text, _ = strip_negated_clauses(_pending_answer_token)
-            # `strip_negated_clauses` owns "not"/"don't"/"never" and is the
-            # single source for them. It does not treat a BARE "no" as a
-            # marker — widening it would move the whole parser — so this
-            # router adds the one shape it needs: a refusal immediately
-            # before the answer word ("no compromise").
-            _answer_text = re.sub(
-                r"(?<![a-z])no\s+(trust|insist|compromise)(?![a-z])",
-                " ", _answer_text)
-            _spoken = [
-                w for w in ("trust", "insist", "compromise")
-                if re.search(rf"(?<![a-z]){w}(?![a-z])", _answer_text)
-            ]
-            # SR-2e part (ii) — CRT-5 (S4): the answer word must stand with
-            # plain words only — `trust him tomorrow` and `insist once Mack
-            # moves` carried out an order; now they claim nothing and the
-            # objection block names the words.
-            from backend.commands.dialogue_routing import (
-                objection_answer_is_plain,
-            )
-            if len(_spoken) == 1 and objection_answer_is_plain(
-                    _answer_text, _spoken[0], _player_marshal_names(world)):
-                print(f"[PENDING-QUESTION] Plain-English objection answer "
-                      f"'{command_text}' -> {_spoken[0]}")
-                _ptrace.decide("main", "objection_answer_plain", _spoken[0])
-                return _respond_to_objection_sync(_spoken[0],
-                                                  carried_relay=_carried_relay)
-        _capture_answer = _typed_capture_answer(world, _pending_answer_token)
-        if _capture_answer is not None:
-            # W6-8: all four capture-pipeline tokens route here; the handler
-            # itself is stage-aware (a wrong-stage token is refused with the
-            # question restated, never misapplied).
-            _cap_token, _cap_region = _capture_answer
-            print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
-                  f"-> capture choice")
-            _ptrace.decide("main", "capture_answer",
-                           {"token": _cap_token, "region": _cap_region})
-            result = executor.handle_capture_choice(
-                _cap_token, game_state, region=_cap_region)
-            # IGR-X7: the capture route must not eat a queued popup.
-            return _build_result_response(result, world, drain_popups=False)
-        if world.pending_diplomatic_dialogue is not None:
-            _pending_dlg = world.pending_diplomatic_dialogue
-            _dlg_options = _pending_dlg.get("options", []) or []
-            if not _dlg_options and isinstance(
-                    _pending_dlg.get("popup_payload"), dict):
-                _dlg_options = _pending_dlg["popup_payload"].get("options") or []
-            _dlg_action_ids = {
-                str(opt.get("action") or "").strip().lower()
-                for opt in _dlg_options if opt.get("action")
-            }
-            _is_option_digit = (
-                _pending_answer_token.isdigit()
-                and 1 <= int(_pending_answer_token) <= len(_dlg_options))
-            if _is_option_digit or (
-                    _pending_answer_token
-                    and _pending_answer_token in _dlg_action_ids):
-                _dlg_choice = (int(_pending_answer_token) if _is_option_digit
-                               else _pending_answer_token)
-                print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
-                      f"-> diplomatic dialogue response")
-                _ptrace.decide("main", "dialogue_answer", _dlg_choice)
-                return _respond_to_dialogue_sync(_dlg_choice)
-
-        # ════════════════════════════════════════════════════════════
-        # CR-4: CONTEXT CARRYOVER — resolve shorthand references ("again",
-        # "same target", "him"/"there", "not you, Davout") against the
-        # command history BEFORE the parser sees them (Golden Rule 6: the
-        # rewrite is fully deterministic). A reference with nothing to
-        # resolve against gets a helpful in-character reply rather than a
-        # confusing parse failure. Runs after the clarification-answer and
-        # interrupt steps so those terse answers are never treated as
-        # references.
-        # ════════════════════════════════════════════════════════════
-        from backend.commands.context_carryover import (
-            resolve_context_references,
-            try_focus_reissue,
-        )
-        # Safe during a pending diplomatic dialogue too: a terse decline
-        # ("no"/"nope"/"not you") with no resolvable marshal falls through as
-        # a pass, so it still reaches the dialogue routing; only an explicit
-        # reference ("again", "not you, Davout") rewrites — and the resolved
-        # military command is then blocked by any hard-stop just as the raw
-        # input would be. (Objection answers use /respond_to_objection.)
-        carryover = resolve_context_references(command_text, world)
-        if carryover["kind"] == "error":
-            _ptrace.decide("carryover", "unresolved_reference",
-                           str(carryover.get("message") or "")[:120])
-            return build_base_response(
-                world, success=False, message=carryover["message"],
-                action_info={
-                    "cost": 0,
-                    "remaining": int(world.actions_remaining),
-                    "turn_advanced": False,
-                    "new_turn": None,
-                })
-        if carryover["kind"] == "rewrite":
-            print(f"[CARRYOVER] '{command_text}' -> '{carryover['command']}'")
-            _ptrace.note("carryover", str(carryover.get("rule") or "rewrite"),
-                         command_text, carryover["command"])
-            command_text = carryover["command"]
-
-        # ════════════════════════════════════════════════════════════
-        # PC15-4: FALLEN/CAPTURED NAME GUARD — an order addressed to a
-        # marshal who is dead or a prisoner refuses BY NAME before any
-        # parser can substitute the nearest living man. Runs on the FINAL
-        # command text (after carryover rewrites), before the parse.
-        # ════════════════════════════════════════════════════════════
-        _lost_refusal = _addressed_lost_marshal_refusal(command_text, world)
-        if _lost_refusal:
-            print(f"[LOST-MARSHAL GUARD] refused: {command_text!r}")
-            _ptrace.decide("main", "lost_marshal_refusal", _lost_refusal[:120])
-            return build_base_response(
-                world, success=False, message=_lost_refusal,
-                action_info={
-                    "cost": 0,
-                    "remaining": int(world.actions_remaining),
-                    "turn_advanced": False,
-                    "new_turn": None,
-                })
-
-        # Parse command
-        # Build LLM-compatible game state for command parsing
-        llm_game_state = get_llm_game_state()
-        # SF-CMD-1 W2 (Oct 3, 2026): A PREMISE IS CHECKED AT ISSUANCE. "if Mack
-        # is still in Swabia, attack him" is an order about the present board,
-        # not a contingency: the premise is read off the sentence (pure), then
-        # checked here against what the player can SEE — true, the rest runs
-        # now; false or unseen, the order is refused free by name.
-        _premise = None
-        try:
-            from backend.ai.condition_grammar import (A_PREMISE_IS_CHECKED_AT_ISSUANCE,
-                                                      premise_refusal, split_premise)
-            if A_PREMISE_IS_CHECKED_AT_ISSUANCE:
-                _enemy_names = [m.name for m in world.marshals.values()
-                                if m.nation != world.player_nation]
-                _before_premise = command_text
-                command_text, _premise = split_premise(
-                    command_text, _enemy_names, list(world.regions.keys()),
-                    [m.name for m in world.marshals.values()
-                     if m.nation == world.player_nation])
-                if _premise:
-                    _ptrace.note("premise", "split_premise", _before_premise,
-                                 command_text, premise=_premise)
-                    _premise_block = premise_refusal(world, _premise)
-                    if _premise_block:
-                        _ptrace.decide("premise", "refused", _premise_block[:120])
-                        return build_base_response(
-                            world, success=False, message=_premise_block,
-                            refusal="premise", free_action=True)
-        except Exception as _exc:
-            print(f"[PREMISE] {_exc}")
-        parsed = parser.parse(command_text, llm_game_state, world=world)
-        # FA-39: record the PLAYER's own parse. Deliberately NOT the CR-5
-        # delegation re-issues further down — those re-parse a sentence the
-        # ENGINE composed and clobber `parsed`, so stamping them would
-        # attribute the engine's line to the player. Written down because it
-        # is a choice, not an oversight.
-        # ⚠ `confidence` lives on the nested `command`, not on the envelope —
-        # the envelope carries `mode`, `strategic_score` and `ambiguity`. A
-        # first cut read `parsed.get("confidence")` and stamped None on every
-        # response, which is a stamp that says nothing.
-        _parsed_command = parsed.get("command")
-        _PARSE_PROVENANCE.set((
-            str(parsed.get("mode") or "mock"),
-            (_parsed_command or {}).get("confidence")
-            if isinstance(_parsed_command, dict) else None))
-        _ptrace.decide("parse", "result", _ptrace.parse_summary(parsed))
-        # ⚠ Under HTTP each request gets its own context and this is
-        # discarded with it. A DIRECT in-process call to `execute_command`
-        # (which the test suite and any future in-process tool make) runs in
-        # the CALLER's context, so without a reset the stamp would outlive
-        # the command and mark every later response in that context — a
-        # `status` GET attributed to a parse that happened three calls ago.
-        # `build_base_response` CONSUMES it, so it is spent by the response
-        # it belongs to and never outlives it.
-        if parsed.get("success") and isinstance(parsed.get("command"), dict):
-            _before_fields = _ptrace.command_summary(parsed["command"])
-            if request.action:
-                parsed["command"]["action"] = request.action
-            if request.target_nation:
-                parsed["command"]["target_nation"] = request.target_nation
-            if request.war_id:
-                parsed["command"]["war_id"] = request.war_id
-            if request.region:
-                parsed["command"]["region"] = request.region
-            _ptrace.note("main", "request_fields_override", _before_fields,
-                         _ptrace.command_summary(parsed["command"]))
-        print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
-
-        # ════════════════════════════════════════════════════════════
-        # COMMAND HISTORY: Track parsed commands for LLM repetition detection
-        # (live-mode prompt) AND CR-4 context carryover ("again"/"same
-        # target"/"him"/"there"/"not you, X"). CR-4 decision: record in BOTH
-        # mock and live modes — carryover must resolve with the fast/mock
-        # parser too, and the live-only repetition prompt is unaffected.
-        # ``target`` is recorded (CR-4) so "same target"/"him"/"there" and
-        # "not you, X" reconstruction have an objective to reference. Recorded
-        # only when the command will execute as a REAL field order — NOT when
-        # it is consumed as a dialogue answer (a response that happens to
-        # parse as a valid action must not be recorded as a phantom order).
-        # A soft-stop mailbox dialogue (incoming proposal / settlement offer)
-        # does not block ordinary orders, so an order typed while one is
-        # pending still executes (soft-stop pass-through) and MUST be recorded;
-        # only inputs matching the dialogue's own options are answers.
-        # ════════════════════════════════════════════════════════════
-        _consumed_as_dialogue_answer = False
-        if world.pending_diplomatic_dialogue is not None:
-            if world.dialogue_manager.is_hard_stop():
-                _consumed_as_dialogue_answer = True
-            else:
-                # CA9: the third copy of the option-match rule, now the
-                # same call the routing gate below makes.
-                _consumed_as_dialogue_answer = bool(match_dialogue_answer(
-                    world.pending_diplomatic_dialogue, command_text.lower(),
-                    _player_marshal_names(world),
-                    world_regions=list(world.regions.keys())))
-                # IQ-7 review pass 3 (R3-2): a line the router will re-prompt
-                # IN PLACE at the current client petition was aimed at the
-                # petition, not at the field — never a phantom order in the
-                # history, never a delegation.
-                if not _consumed_as_dialogue_answer:
-                    from backend.commands.dialogue_routing import (
-                        petition_line_reprompt as _petition_line_reprompt,
-                    )
-                    _consumed_as_dialogue_answer = _petition_line_reprompt(
-                        world.pending_diplomatic_dialogue, command_text,
-                        _player_marshal_names(world), world=world) is not None
-        if parsed.get("success") and not _consumed_as_dialogue_answer:
-            _parsed_command = parsed.get("command", {})
-            _history_entry = {
-                "raw_input": command_text,
-                "marshal": _parsed_command.get("marshal"),
-                "action": _parsed_command.get("action"),
-                "target": _parsed_command.get("target"),
-                "turn": int(world.current_turn),
-            }
-            if getattr(request, "relayed", False):
-                _history_entry["relayed"] = True  # CR-7-8 re-open instrument
-            world.add_to_command_history(_history_entry)
-
-        # ════════════════════════════════════════════════════════════
-        # CR-5: PERSONALITY-BIASED DISAMBIGUATION (COMMAND_ROBUSTNESS_SPEC §6).
-        # A delegation verb ("Soult, deal with Mack") cedes the method to the
-        # marshal; the concrete action is inferred from his CHARACTER, and the
-        # routing here is DETERMINISTIC (Golden Rule 6 — the executor is never
-        # LLM-driven):
-        #   - literal / neutral / mock  -> ASK the Emperor (attack or observe?),
-        #     overriding whatever the live LLM guessed for a literal marshal.
-        #   - cautious                  -> observe first; a battle action the
-        #     live LLM produced is CLAMPED to scout (he never assaults on a
-        #     vague order, §6.3c) + a soft note that names his character.
-        #   - aggressive                -> ENABLED (Phase 4). Re-issue a
-        #     delegation-INFERRED strategic PURSUE; every auto-attack seam it can
-        #     reach is covered by the Phase-3/4 fortification-aware bad-odds gate,
-        #     so a dug-in superior force still routes through the one-modal
-        #     confirm. Reached on a LIVE resolution or, since L-D, on a
-        #     keyless DelegationMatch (`delegation_witness`); the incidental
-        #     mock resolution still degrades to ASK (guardrail e).
-        # Guarded by _consumed_as_dialogue_answer so a hard-stop dialogue answer
-        # is never hijacked; runs AFTER CR-4 carryover + history recording.
-        # ════════════════════════════════════════════════════════════
-        _cautious_note = None
-        _delegation_arm_ran = False
-        # CR-5b Flavor Echoing (§6.4): the marshal's spoken reaction at the
-        # RESPONSE seam. _aggressive_flavor rides the pursue-order response;
-        # _cautious_flavor_prefix rides IN FRONT of the cautious deed-note.
-        _aggressive_flavor = None
-        _cautious_flavor_prefix = None
-        if not _consumed_as_dialogue_answer:
-            _deleg = detect_delegation(world, command_text,
-                                       parsed.get("command"))
-            if _deleg is not None:
-                # CR-5 audit fix (F2): in LIVE mode the delegation was already
-                # recorded to command_history (main.py above) with the LLM's
-                # DISTRUSTED target. The arms below re-parse against the
-                # authoritative deterministic target, so after they run we
-                # overwrite that history entry's marshal/target with the values
-                # the marshal actually acted on — otherwise a later "same
-                # target"/"him"/"again" carryover reissues against the wrong
-                # place. No-op in mock mode (no entry was recorded there); the
-                # raw_input guard prevents clobbering a prior command's entry.
-                _orig_delegation_text = command_text
-                # CR-5b: capture the LIVE flavor line NOW — both executed arms
-                # re-parse the explicit reissue below, which returns flavor=null
-                # and CLOBBERS `parsed`. Read it off the ORIGINAL delegation
-                # parse (the only parse the player's raw words rode on).
-                _delegation_flavor = (parsed.get("command") or {}).get("flavor")
-
-                def _correct_delegation_carryover_target():
-                    hist = getattr(world, "command_history", None)
-                    if hist and hist[-1].get("raw_input") == _orig_delegation_text:
-                        hist[-1]["marshal"] = _deleg.marshal
-                        hist[-1]["target"] = _deleg.target
-
-                # L-D (the boolean road): the witness is the deterministic
-                # DelegationMatch, not the parse's mode — a keyless player's
-                # delegation takes the marshal's own arm; the incidental
-                # parse (`deal with the attack on Mack`) still asks.
-                _arm = route_arm(_deleg.personality,
-                                 delegation_witness(parsed, _deleg))
-                if _arm == "cautious":
-                    # Deterministic: a cautious marshal observes first (§6.2).
-                    # Re-issue an explicit scout at the OBSERVE target (the
-                    # enemy's location) — a plain re-parse, no LLM (Golden Rule
-                    # 6). This also corrects the live LLM's unreliable target
-                    # resolution (playtest: "deal with Kutuzov" mis-scouted
-                    # Algarve); the detector's target is authoritative.
-                    _reissue = f"{_deleg.marshal} scout {_deleg.scout_target}"
-                    _ptrace.note("delegation", "cautious_reissue", command_text, _reissue)
-                    parsed = parser.parse(_reissue, llm_game_state, world=world)
-                    command_text = _reissue
-                    _cautious_note = describe_cautious_delegation(
-                        _deleg, "scout")
-                    # CR-5b: a live-only, register-gated spoken PREFIX in front
-                    # of the note (None when the live line is absent/violating —
-                    # then only the shipped note shows, no double-narration).
-                    _cautious_flavor_prefix = resolve_live_cautious_prefix(
-                        _deleg, _delegation_flavor)
-                    _delegation_arm_ran = True
-                    _correct_delegation_carryover_target()
-                    print(f"[CR-5] Delegation CAUTIOUS ({_deleg.marshal}) "
-                          f"-> scout {_deleg.scout_target}")
-                elif _arm == "aggressive":
-                    # Deterministic (Golden Rule 6 — the live LLM proved too
-                    # flaky for delegation, so mirror the cautious re-parse
-                    # pattern): an aggressive marshal gives battle. Re-issue a
-                    # strategic PURSUE ("pursue <enemy>" — the strategic parser
-                    # upgrades it to a tracking order that engages on contact)
-                    # and TAG it delegation_inferred so the Phase-3 fortification-
-                    # aware bad-odds gate fires at every auto-attack seam: the
-                    # marshal never NAMED the attack, his CHARACTER inferred it.
-                    # A bare one-shot "attack" would be ungated AND could not
-                    # march him to a non-adjacent enemy. The player's verbatim
-                    # words become the order record (rider d, §6.4). Reached
-                    # live or keyless (L-D, `delegation_witness`); the
-                    # incidental mock resolution degrades to ASK (guardrail e).
-                    _delegation_phrase = command_text
-                    _reissue = f"{_deleg.marshal} pursue {_deleg.target}"
-                    _ptrace.note("delegation", "aggressive_reissue", command_text, _reissue)
-                    parsed = parser.parse(_reissue, llm_game_state, world=world)
-                    parsed["delegation_inferred"] = True
-                    parsed["delegation_phrase"] = _delegation_phrase
-                    command_text = _reissue
-                    # CR-5b: the register-passing live line, else the
-                    # deterministic aggressive floor (attached only on the
-                    # non-modal success path in the attach block below).
-                    _aggressive_flavor = resolve_delegation_flavor(
-                        _deleg, "aggressive", _delegation_flavor)
-                    _delegation_arm_ran = True
-                    _correct_delegation_carryover_target()
-                    print(f"[CR-5] Delegation AGGRESSIVE ({_deleg.marshal}) "
-                          f"-> pursue {_deleg.target} (inferred, gated)")
-                elif _arm == "ask":
-                    _ptrace.decide("delegation", "ask",
-                                   {"marshal": _deleg.marshal, "target": _deleg.target})
-                    _deleg_clar = build_delegation_clarification(
-                        world, _deleg, command_text)
-                    # §6.7 first-use hint — the ASK always surfaces, so latch it
-                    # here (maybe_delegation_hint sets the flag only when it hands
-                    # back the copy, once per campaign).
-                    _ask_hint = maybe_delegation_hint(world)
-                    if _ask_hint:
-                        _deleg_clar["message"] = (
-                            f"{_deleg_clar['message']}\n\n{_ask_hint}")
-                    _deleg_clar["clarification_registered"] = (
-                        register_pending_clarification(
-                            world, _deleg_clar, command_text))
-                    print(f"[CR-5] Delegation ASK "
-                          f"({_deleg.marshal}/{_deleg.personality or 'unset'}) "
-                          f"-> frontend")
-                    return _build_result_response(_deleg_clar, world)
-
-        # ════════════════════════════════════════════════════════════
-        # DIPLOMATIC DIALOGUE RESPONSE ROUTING (Audit fix)
-        # Must run BEFORE Berthier parse recovery — dialogue keywords
-        # like "accept"/"reject" fail parsing and would trigger
-        # Berthier recovery early return, preventing dialogue routing.
-        # ════════════════════════════════════════════════════════════
-        # Cheat commands bypass dialogue guard
-        is_cheat = parsed.get("success") and parsed.get("command", {}).get("action") == "cheat"
-
-        # WO-7 (row WO slice 11): a pending SOFT-STOP dialogue must not wall
-        # off the ordinary road. The soft-stop pass-through used to call
-        # `executor.execute(parsed, …)` directly — skipping every recovery
-        # arm below (the enemy-addressee refusal, CR-2's did-you-mean,
-        # PARSE-NEG's honest refusal, Berthier's recovery) AND the CR-2
-        # marshal-choice question — so with an envoy's letter waiting, a
-        # typed `Ney, never attack Blucher` got the executor's generic shrug
-        # and a bare `move to Belgium` MARCHED DAVOUT without asking. The
-        # dialogue takes the line only when it claims it (an answer to its
-        # own options, or a hard stop); otherwise the sentence goes exactly
-        # where it goes when nothing is pending.
-        _dialogue_took_the_line = False
-        if world.pending_diplomatic_dialogue is not None and not is_cheat:
-            raw_lower = command_text.lower()
-            is_hard_stop = world.dialogue_manager.is_hard_stop()
-
-            # CA9: ONE matcher for both stop kinds — only a dialogue's own
-            # options may claim a typed line (`dialogue_routing`).
-            #
-            # The hard-stop arm used to scan a fixed keyword list for BARE
-            # SUBSTRINGS, and that list held ordinary game words: "no",
-            # "send", "garrison", "start", "more", "side", "continue". So
-            # `Ney, move north` answered "no" (→ back_out / reconsider) and
-            # `send Ney to Bavaria` answered "send" (→ send_override) on
-            # whatever hard stop happened to be staged — and the answer was
-            # applied to that dialogue regardless of what the sentence was
-            # about. The list is gone; a verb now has to resolve onto an
-            # action the live dialogue actually offers, as a whole word.
-            matched_keyword = match_dialogue_answer(
-                world.pending_diplomatic_dialogue, raw_lower,
-                _player_marshal_names(world),
-                world_regions=list(world.regions.keys()))
-
-            if matched_keyword:
-                print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")
-                _dialogue_took_the_line = True
-                result = executor.handle_diplomatic_dialogue_response(
-                    matched_keyword, game_state, raw_text=command_text)
-            elif is_hard_stop:
-                _dialogue_took_the_line = True
-                # ══════════════════════════════════════════════════════
-                # PT-A3 — A HARD STOP MUST NOT SWALLOW AN UNRELATED ORDER.
-                #
-                # This arm used to hand the player's WHOLE SENTENCE to the
-                # choice resolver as if it were an answer. Measured live:
-                # `Davout, march to Munich and relieve the Bavarians` came
-                # back "I don't understand that choice, Sire." — the game
-                # claiming it misunderstood a sentence that was never
-                # about the dialogue, and never saying what was blocking.
-                #
-                # The escape hatch below it was DEAD. It gated on the
-                # literal "Please choose an option", which
-                # `_enumerated_choice_prompt` emits only for a non-str or
-                # out-of-range-int choice; `main.py` always passes a `str`
-                # here, and an unresolved `str` returns "I don't
-                # understand that choice" instead. So no typed string
-                # could ever reach `executor.execute`. CA9-N5 rewrote that
-                # failure string and killed the fall-through with it.
-                #
-                # Answer the way the OBJECTION block answers (`executor.py
-                # :531-562`): never feed the sentence to a resolver, name
-                # the blocker, say nothing was relayed, and quote the exact
-                # words that clear it — read off the live dialogue, so
-                # shown == accepted.
-                # ══════════════════════════════════════════════════════
-                print(f"[DIPLOMATIC] Hard-stop refusal (unrelated): {raw_lower}")
-                from backend.commands.dialogue_routing import (
-                    format_numbered_options, hard_stop_subject)
-                _dlg = world.pending_diplomatic_dialogue
-                _numbered = format_numbered_options(_dlg)
-                _waiting = hard_stop_subject(_dlg)
-                _msg = f"{_waiting} awaits your answer, Sire"
-                if _numbered:
-                    _msg += (f" — nothing was relayed. Answer with one of: "
-                             f"{_numbered}.")
-                else:
-                    _msg += " — nothing was relayed."
-                result = {
-                    "success": False,
-                    "message": _msg,
-                    "awaiting_response": True,
-                    "diplomatic_dialogue": _dlg,
-                }
-            else:
-                # IQ-7 review R9 ([09]/[13]): the matter noun is an
-                # addressee. A line that names a family noun ("the
-                # petition", "grant it") the ACTIVE letter does not speak
-                # of, while a dialogue of that family waits in the queue,
-                # is refused here — naming the court and where it waits —
-                # rather than falling to Berthier's shrug. The seam the
-                # court guard sits at inside the handler is the sibling
-                # for the lines the active letter DID claim.
-                #
-                # Pass 2 (P3-3): `answers_only` — at THIS seam no answer
-                # keyword matched the letter on top, so what arrives is
-                # either a stray answer or an ORDER that merely carries a
-                # family noun. Measured: with a Prussian ultimatum queued,
-                # `send ultimatum to Austria` was refused as "Prussia's
-                # ultimatum waits in Envoys" and never reached the
-                # executor's own ultimatum route. Only an ANSWER-SHAPED
-                # line is refused here; an order takes the ordinary road.
-                #
-                # Pass 3, with a CLIENT petition current (it is answered by
-                # the closed plain grammar, so far more lines arrive here):
-                #   * R3-3 — the COURT guard speaks first. Measured:
-                #     `accept portugal's offer` / `grant the kingdom of
-                #     italy's petition` got Berthier's shrug, because the
-                #     court guard sits at the handler seam and the plain
-                #     router never hands such a line on;
-                #   * R3-2 — a line that was TRYING to answer the petition
-                #     (`accept, they have earned it`; `Talleyrand, grant the
-                #     petition later`) is re-prompted IN PLACE. The ordinary
-                #     road mounted a marshal-choice question or the diplomat
-                #     route's nation picker OVER the petition, and the next
-                #     plain answer was refused.
-                from backend.commands.dialogue_routing import (
-                    court_mismatch_refusal_for_a_line,
-                    court_mismatch_refusal_for_a_petition,
-                    dialogue_line_reprompt,
-                    matter_mismatch_refusal,
-                    petition_line_reprompt,
-                )
-                _matter = matter_mismatch_refusal(
-                    world, world.pending_diplomatic_dialogue, command_text,
-                    answers_only=True)
-                # (All three reads are pure; the court guard's refusal
-                # OUTRANKS the matter guard's, which outranks the re-prompt.)
-                _court = court_mismatch_refusal_for_a_petition(
-                    world, world.pending_diplomatic_dialogue, command_text)
-                if _court is not None:
-                    _matter = _court
-                elif _matter is None:
-                    # Pass 4 (R4-4): `world` lets shape (c) tell the player's
-                    # own ORDER about another court from a stray answer.
-                    _matter = petition_line_reprompt(
-                        world.pending_diplomatic_dialogue, command_text,
-                        _player_marshal_names(world), world=world)
-                    # SR-2e part (ii) — CRT-5, for every other family, in the
-                    # petition's own order AFTER the matter guard: the court
-                    # guard; then, for a line that carries one of THIS
-                    # letter's answer words, the matter guard read whole (a
-                    # line aimed at a waiting matter gets its Envoys
-                    # pointer); then the in-place re-prompt — never an order
-                    # read over the letter.
-                    if _matter is None:
-                        _matter = court_mismatch_refusal_for_a_line(
-                            world, world.pending_diplomatic_dialogue,
-                            command_text)
-                    if _matter is None:
-                        from backend.commands.dialogue_routing import (
-                            addresses_a_marshal as _addresses,
-                            closed_line_tried_to_answer as _tried,
-                        )
-                        if (_tried(
-                                world.pending_diplomatic_dialogue, command_text)
-                                and not _addresses(
-                                    command_text.lower(),
-                                    _player_marshal_names(world))):
-                            _matter = matter_mismatch_refusal(
-                                world, world.pending_diplomatic_dialogue,
-                                command_text)
-                    if _matter is None:
-                        _matter = dialogue_line_reprompt(
-                            world.pending_diplomatic_dialogue, command_text,
-                            _player_marshal_names(world), world=world,
-                            world_regions=list(world.regions.keys()))
-                if _matter is not None:
-                    print(f"[DIPLOMATIC] Matter-noun refusal: {raw_lower}")
-                    _dialogue_took_the_line = True
-                    result = _matter
-                else:
-                    # PL-27: Soft-stop — no dialogue keyword match. WO-7:
-                    # the line falls through to the ORDINARY road below
-                    # (recovery arms, marshal-choice question, then the
-                    # executor) instead of a bare `executor.execute`.
-                    print(f"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}")
-        if not _dialogue_took_the_line:
-            # m1: Dialogue keywords typed with no active dialogue — clear
-            # message. WO-7: only when NO dialogue is pending — with a
-            # soft-stop letter waiting, an unmatched dialogue word is not
-            # "no pending diplomatic matter" and takes the recovery road.
-            raw_lower_check = (command_text.lower().strip()
-                               if world.pending_diplomatic_dialogue is None
-                               else "")
-            # Only keywords that are NEVER valid game commands.
-            # Excludes: cancel (strategic order cancel), garrison, more, execute, start, yes, no
-            _DIALOGUE_ONLY_KEYWORDS = [
-                "accept", "reject", "decline", "counter",
-                "proceed", "confront", "overlook",
-                "apologize", "replace", "reconsider", "modify",
-                "honor", "side", "dismiss",
-                "harsh", "generous", "adjust",
-                "nudge", "insist",  # PL-23: Drafting pushback
-                "elaborate", "review", "consider",
-                "begin",
-                "agree", "never mind",
-            ]
-            if raw_lower_check in _DIALOGUE_ONLY_KEYWORDS:
-                # Live playthrough: with Massena's tactical OBJECTION pending,
-                # "proceed" fell through here and Berthier denied any pending
-                # matter — while every real order stayed blocked on the
-                # objection ("settle the objection before issuing new
-                # orders"). A dialogue-ish word typed while an objection
-                # waits must reprompt THAT objection's own choices, not
-                # gaslight the player about the diplomatic channel.
-                if world.pending_objection is not None:
-                    _objecting = world.pending_objection.get(
-                        "marshal", "A marshal")
-                    # CA9 review round: same missing key as the
-                    # executor block — see `OBJECTION_FREE_READS`'s
-                    # neighbour there. Read the validator's own predicate.
-                    _obj_choices = ["trust", "insist"]
-                    if (world.pending_objection.get("suggested_alternative")
-                            or world.pending_objection.get("compromise")
-                            or world.pending_objection.get("alternative")):
-                        _obj_choices.append("compromise")
-                    return build_base_response(
+                            action_info=_info,
+                            pending_interrupt=dict(pending))
+                    _reprompt = build_base_response(
                         world, success=False,
-                        message=(
-                            f"{_objecting} awaits your answer, Sire — reply "
-                            f"{format_answer_words(_obj_choices)}."),
-                        objection=world.pending_objection,
-                        choices=_obj_choices,
-                        action_info={
-                            "cost": 0,
-                            "remaining": int(world.actions_remaining),
-                            "turn_advanced": False,
-                            "new_turn": None,
-                        })
+                        message=_interrupt_question_reprompt(m, pending),
+                        action_info=_info)
+                    _reprompt["pending_interrupt"] = dict(pending)
+                    return _reprompt
+
+            if choice:
+                print(f"[INTERRUPT ROUTE] Routing '{ctx.request.command}' -> "
+                      f"{m.name} {interrupt_type} response: {choice}")
+                _ptrace.decide("main", "interrupt_answer",
+                               {"marshal": m.name, "interrupt": interrupt_type,
+                                "choice": choice})
+                from backend.commands.strategic import StrategicOrderProcessor
+                strategic_exec = StrategicOrderProcessor(executor)
+                ctx.result = strategic_exec.handle_response(
+                    m.name, interrupt_type, choice, world, game_state)
+                # CR-7-9: the tail that waited behind THIS interrupt comes
+                # back re-judged on the typed answer too — the popup route
+                # always did; the typed road had let it go in silence.
+                if getattr(world, "_relay_let_go", None) is ctx._carried_relay:
+                    world._relay_let_go = None
+                _resp = _build_result_response(ctx.result, world)
+                _attach_answered_relay(_resp, ctx.result, ctx._carried_relay)
+                return _resp
+    return _NEXT_STAGE
+
+
+def _command_pending_answers(ctx: CommandContext):
+    """Stage 4 of `execute_command`: W6-0: the objection's words (CA9-N5), the
+    capture answer, a dialogue's own option."""
+    # ════════════════════════════════════════════════════════════
+    # W6-0 (BUG-CA-1): PENDING-QUESTION ROUTER — when the game itself
+    # just asked a question, the exact answer tokens IT offered must
+    # resolve that question instead of falling into the parser (live
+    # audit: with an objection pending, typed "trust" reached the LLM
+    # parser bewildered and "insist" hit the diplomatic handler).
+    # Deterministic (Golden Rule 6), exact-token only, and each token
+    # reroutes ONLY while its matching state is pending — anything else
+    # falls through to the normal pipeline untouched (no keyword
+    # ownership changes; the fast-parser contract and golden corpus are
+    # unaffected). Runs after the clarification/interrupt steps (the
+    # most recent questions win) and before CR-4 carryover/parsing.
+    # ════════════════════════════════════════════════════════════
+    _pending_answer_token = ctx.command_text.strip().lower()
+    _objection_pending = (
+        world.pending_objection is not None
+        or getattr(world, "pending_strategic_objection", None) is not None)
+    if _pending_answer_token in ("trust", "insist", "compromise") \
+            and _objection_pending:
+        print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
+              f"-> objection response")
+        _ptrace.decide("main", "objection_answer", _pending_answer_token)
+        return _respond_to_objection_sync(_pending_answer_token,
+                                          carried_relay=ctx._carried_relay)
+    # CA9-N5: the exact-token gate above rejected plain English meaning
+    # one of its own words — "I trust him", "insist on it", "trust
+    # Davout" all fell through to the parser and then died on the
+    # objection block, which (before this row) did not name the words
+    # either. Nothing else can execute while an objection stands, so a
+    # line naming exactly ONE answer word as a whole word is
+    # unambiguous; two words is ambiguous and gets the question back.
+    if _objection_pending and _pending_answer_token:
+        # CA9 review round: this sits BEFORE the parser, which is where
+        # PARSE-NEG's `strip_negated_clauses` lives — so "I don't trust
+        # him", "do not insist" and "no compromise" each matched
+        # exactly one word and executed its OPPOSITE. Blank the negated
+        # clauses first, with the same guard the parser uses; if the
+        # answer word only survives inside the negation, nothing routes
+        # and the block re-prompts.
+        from backend.ai.clause_guards import strip_negated_clauses
+        _answer_text, _ = strip_negated_clauses(_pending_answer_token)
+        # `strip_negated_clauses` owns "not"/"don't"/"never" and is the
+        # single source for them. It does not treat a BARE "no" as a
+        # marker — widening it would move the whole parser — so this
+        # router adds the one shape it needs: a refusal immediately
+        # before the answer word ("no compromise").
+        _answer_text = re.sub(
+            r"(?<![a-z])no\s+(trust|insist|compromise)(?![a-z])",
+            " ", _answer_text)
+        _spoken = [
+            w for w in ("trust", "insist", "compromise")
+            if re.search(rf"(?<![a-z]){w}(?![a-z])", _answer_text)
+        ]
+        # SR-2e part (ii) — CRT-5 (S4): the answer word must stand with
+        # plain words only — `trust him tomorrow` and `insist once Mack
+        # moves` carried out an order; now they claim nothing and the
+        # objection block names the words.
+        from backend.commands.dialogue_routing import (
+            objection_answer_is_plain,
+        )
+        if len(_spoken) == 1 and objection_answer_is_plain(
+                _answer_text, _spoken[0], _player_marshal_names(world)):
+            print(f"[PENDING-QUESTION] Plain-English objection answer "
+                  f"'{ctx.command_text}' -> {_spoken[0]}")
+            _ptrace.decide("main", "objection_answer_plain", _spoken[0])
+            return _respond_to_objection_sync(_spoken[0],
+                                              carried_relay=ctx._carried_relay)
+    _capture_answer = _typed_capture_answer(world, _pending_answer_token)
+    if _capture_answer is not None:
+        # W6-8: all four capture-pipeline tokens route here; the handler
+        # itself is stage-aware (a wrong-stage token is refused with the
+        # question restated, never misapplied).
+        _cap_token, _cap_region = _capture_answer
+        print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
+              f"-> capture choice")
+        _ptrace.decide("main", "capture_answer",
+                       {"token": _cap_token, "region": _cap_region})
+        ctx.result = executor.handle_capture_choice(
+            _cap_token, game_state, region=_cap_region)
+        # IGR-X7: the capture route must not eat a queued popup.
+        return _build_result_response(ctx.result, world, drain_popups=False)
+    if world.pending_diplomatic_dialogue is not None:
+        _pending_dlg = world.pending_diplomatic_dialogue
+        _dlg_options = _pending_dlg.get("options", []) or []
+        if not _dlg_options and isinstance(
+                _pending_dlg.get("popup_payload"), dict):
+            _dlg_options = _pending_dlg["popup_payload"].get("options") or []
+        _dlg_action_ids = {
+            str(opt.get("action") or "").strip().lower()
+            for opt in _dlg_options if opt.get("action")
+        }
+        _is_option_digit = (
+            _pending_answer_token.isdigit()
+            and 1 <= int(_pending_answer_token) <= len(_dlg_options))
+        if _is_option_digit or (
+                _pending_answer_token
+                and _pending_answer_token in _dlg_action_ids):
+            _dlg_choice = (int(_pending_answer_token) if _is_option_digit
+                           else _pending_answer_token)
+            print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
+                  f"-> diplomatic dialogue response")
+            _ptrace.decide("main", "dialogue_answer", _dlg_choice)
+            return _respond_to_dialogue_sync(_dlg_choice)
+    return _NEXT_STAGE
+
+
+def _command_carryover_and_lost_name(ctx: CommandContext):
+    """Stage 5 of `execute_command`: CR-4 shorthand resolved against the
+    history; PC15-4 the fallen or captured name refused."""
+    # ════════════════════════════════════════════════════════════
+    # CR-4: CONTEXT CARRYOVER — resolve shorthand references ("again",
+    # "same target", "him"/"there", "not you, Davout") against the
+    # command history BEFORE the parser sees them (Golden Rule 6: the
+    # rewrite is fully deterministic). A reference with nothing to
+    # resolve against gets a helpful in-character reply rather than a
+    # confusing parse failure. Runs after the clarification-answer and
+    # interrupt steps so those terse answers are never treated as
+    # references.
+    # ════════════════════════════════════════════════════════════
+    from backend.commands.context_carryover import (
+        resolve_context_references,
+        try_focus_reissue,
+    )
+    # Safe during a pending diplomatic dialogue too: a terse decline
+    # ("no"/"nope"/"not you") with no resolvable marshal falls through as
+    # a pass, so it still reaches the dialogue routing; only an explicit
+    # reference ("again", "not you, Davout") rewrites — and the resolved
+    # military command is then blocked by any hard-stop just as the raw
+    # input would be. (Objection answers use /respond_to_objection.)
+    carryover = resolve_context_references(ctx.command_text, world)
+    if carryover["kind"] == "error":
+        _ptrace.decide("carryover", "unresolved_reference",
+                       str(carryover.get("message") or "")[:120])
+        return build_base_response(
+            world, success=False, message=carryover["message"],
+            action_info={
+                "cost": 0,
+                "remaining": int(world.actions_remaining),
+                "turn_advanced": False,
+                "new_turn": None,
+            })
+    if carryover["kind"] == "rewrite":
+        print(f"[CARRYOVER] '{ctx.command_text}' -> '{carryover['command']}'")
+        _ptrace.note("carryover", str(carryover.get("rule") or "rewrite"),
+                     ctx.command_text, carryover["command"])
+        ctx.command_text = carryover["command"]
+
+    # ════════════════════════════════════════════════════════════
+    # PC15-4: FALLEN/CAPTURED NAME GUARD — an order addressed to a
+    # marshal who is dead or a prisoner refuses BY NAME before any
+    # parser can substitute the nearest living man. Runs on the FINAL
+    # command text (after carryover rewrites), before the parse.
+    # ════════════════════════════════════════════════════════════
+    _lost_refusal = _addressed_lost_marshal_refusal(ctx.command_text, world)
+    if _lost_refusal:
+        print(f"[LOST-MARSHAL GUARD] refused: {ctx.command_text!r}")
+        _ptrace.decide("main", "lost_marshal_refusal", _lost_refusal[:120])
+        return build_base_response(
+            world, success=False, message=_lost_refusal,
+            action_info={
+                "cost": 0,
+                "remaining": int(world.actions_remaining),
+                "turn_advanced": False,
+                "new_turn": None,
+            })
+    return _NEXT_STAGE
+
+
+def _command_parse(ctx: CommandContext):
+    """Stage 6 of `execute_command`: SF-CMD-1 W2 the premise, the parse, FA-39
+    provenance, the request's own fields."""
+    # Parse command
+    # Build LLM-compatible game state for command parsing
+    ctx.llm_game_state = get_llm_game_state()
+    # SF-CMD-1 W2 (Oct 3, 2026): A PREMISE IS CHECKED AT ISSUANCE. "if Mack
+    # is still in Swabia, attack him" is an order about the present board,
+    # not a contingency: the premise is read off the sentence (pure), then
+    # checked here against what the player can SEE — true, the rest runs
+    # now; false or unseen, the order is refused free by name.
+    _premise = None
+    try:
+        from backend.ai.condition_grammar import (A_PREMISE_IS_CHECKED_AT_ISSUANCE,
+                                                  premise_refusal, split_premise)
+        if A_PREMISE_IS_CHECKED_AT_ISSUANCE:
+            _enemy_names = [m.name for m in world.marshals.values()
+                            if m.nation != world.player_nation]
+            _before_premise = ctx.command_text
+            ctx.command_text, _premise = split_premise(
+                ctx.command_text, _enemy_names, list(world.regions.keys()),
+                [m.name for m in world.marshals.values()
+                 if m.nation == world.player_nation])
+            if _premise:
+                _ptrace.note("premise", "split_premise", _before_premise,
+                             ctx.command_text, premise=_premise)
+                _premise_block = premise_refusal(world, _premise)
+                if _premise_block:
+                    _ptrace.decide("premise", "refused", _premise_block[:120])
+                    return build_base_response(
+                        world, success=False, message=_premise_block,
+                        refusal="premise", free_action=True)
+    except Exception as _exc:
+        print(f"[PREMISE] {_exc}")
+    ctx.parsed = parser.parse(ctx.command_text, ctx.llm_game_state, world=world)
+    # FA-39: record the PLAYER's own parse. Deliberately NOT the CR-5
+    # delegation re-issues further down — those re-parse a sentence the
+    # ENGINE composed and clobber `parsed`, so stamping them would
+    # attribute the engine's line to the player. Written down because it
+    # is a choice, not an oversight.
+    # ⚠ `confidence` lives on the nested `command`, not on the envelope —
+    # the envelope carries `mode`, `strategic_score` and `ambiguity`. A
+    # first cut read `parsed.get("confidence")` and stamped None on every
+    # response, which is a stamp that says nothing.
+    ctx._parsed_command = ctx.parsed.get("command")
+    _PARSE_PROVENANCE.set((
+        str(ctx.parsed.get("mode") or "mock"),
+        (ctx._parsed_command or {}).get("confidence")
+        if isinstance(ctx._parsed_command, dict) else None))
+    _ptrace.decide("parse", "result", _ptrace.parse_summary(ctx.parsed))
+    # ⚠ Under HTTP each request gets its own context and this is
+    # discarded with it. A DIRECT in-process call to `execute_command`
+    # (which the test suite and any future in-process tool make) runs in
+    # the CALLER's context, so without a reset the stamp would outlive
+    # the command and mark every later response in that context — a
+    # `status` GET attributed to a parse that happened three calls ago.
+    # `build_base_response` CONSUMES it, so it is spent by the response
+    # it belongs to and never outlives it.
+    if ctx.parsed.get("success") and isinstance(ctx.parsed.get("command"), dict):
+        _before_fields = _ptrace.command_summary(ctx.parsed["command"])
+        if ctx.request.action:
+            ctx.parsed["command"]["action"] = ctx.request.action
+        if ctx.request.target_nation:
+            ctx.parsed["command"]["target_nation"] = ctx.request.target_nation
+        if ctx.request.war_id:
+            ctx.parsed["command"]["war_id"] = ctx.request.war_id
+        if ctx.request.region:
+            ctx.parsed["command"]["region"] = ctx.request.region
+        _ptrace.note("main", "request_fields_override", _before_fields,
+                     _ptrace.command_summary(ctx.parsed["command"]))
+    print(f"[OK] Parsed: {ctx.parsed.get('command', {}).get('action', 'unknown')}")
+    return _NEXT_STAGE
+
+
+def _command_history(ctx: CommandContext):
+    """Stage 7 of `execute_command`: The command history (CR-4), never for a
+    line a dialogue consumed."""
+    # ════════════════════════════════════════════════════════════
+    # COMMAND HISTORY: Track parsed commands for LLM repetition detection
+    # (live-mode prompt) AND CR-4 context carryover ("again"/"same
+    # target"/"him"/"there"/"not you, X"). CR-4 decision: record in BOTH
+    # mock and live modes — carryover must resolve with the fast/mock
+    # parser too, and the live-only repetition prompt is unaffected.
+    # ``target`` is recorded (CR-4) so "same target"/"him"/"there" and
+    # "not you, X" reconstruction have an objective to reference. Recorded
+    # only when the command will execute as a REAL field order — NOT when
+    # it is consumed as a dialogue answer (a response that happens to
+    # parse as a valid action must not be recorded as a phantom order).
+    # A soft-stop mailbox dialogue (incoming proposal / settlement offer)
+    # does not block ordinary orders, so an order typed while one is
+    # pending still executes (soft-stop pass-through) and MUST be recorded;
+    # only inputs matching the dialogue's own options are answers.
+    # ════════════════════════════════════════════════════════════
+    ctx._consumed_as_dialogue_answer = False
+    if world.pending_diplomatic_dialogue is not None:
+        if world.dialogue_manager.is_hard_stop():
+            ctx._consumed_as_dialogue_answer = True
+        else:
+            # CA9: the third copy of the option-match rule, now the
+            # same call the routing gate below makes.
+            ctx._consumed_as_dialogue_answer = bool(match_dialogue_answer(
+                world.pending_diplomatic_dialogue, ctx.command_text.lower(),
+                _player_marshal_names(world),
+                world_regions=list(world.regions.keys())))
+            # IQ-7 review pass 3 (R3-2): a line the router will re-prompt
+            # IN PLACE at the current client petition was aimed at the
+            # petition, not at the field — never a phantom order in the
+            # history, never a delegation.
+            if not ctx._consumed_as_dialogue_answer:
+                from backend.commands.dialogue_routing import (
+                    petition_line_reprompt as _petition_line_reprompt,
+                )
+                ctx._consumed_as_dialogue_answer = _petition_line_reprompt(
+                    world.pending_diplomatic_dialogue, ctx.command_text,
+                    _player_marshal_names(world), world=world) is not None
+    if ctx.parsed.get("success") and not ctx._consumed_as_dialogue_answer:
+        ctx._parsed_command = ctx.parsed.get("command", {})
+        _history_entry = {
+            "raw_input": ctx.command_text,
+            "marshal": ctx._parsed_command.get("marshal"),
+            "action": ctx._parsed_command.get("action"),
+            "target": ctx._parsed_command.get("target"),
+            "turn": int(world.current_turn),
+        }
+        if getattr(ctx.request, "relayed", False):
+            _history_entry["relayed"] = True  # CR-7-8 re-open instrument
+        world.add_to_command_history(_history_entry)
+    return _NEXT_STAGE
+
+
+def _command_delegation(ctx: CommandContext):
+    """Stage 8 of `execute_command`: CR-5: a delegation verb routed by the
+    marshal's character — cautious, aggressive or ask."""
+    from backend.commands.clarification import register_pending_clarification
+    from backend.commands.delegation import (
+        build_delegation_clarification,
+        delegation_witness,
+        describe_cautious_delegation,
+        detect_delegation,
+        maybe_delegation_hint,
+        resolve_delegation_flavor,
+        resolve_live_cautious_prefix,
+        route_arm,
+    )
+    # ════════════════════════════════════════════════════════════
+    # CR-5: PERSONALITY-BIASED DISAMBIGUATION (COMMAND_ROBUSTNESS_SPEC §6).
+    # A delegation verb ("Soult, deal with Mack") cedes the method to the
+    # marshal; the concrete action is inferred from his CHARACTER, and the
+    # routing here is DETERMINISTIC (Golden Rule 6 — the executor is never
+    # LLM-driven):
+    #   - literal / neutral / mock  -> ASK the Emperor (attack or observe?),
+    #     overriding whatever the live LLM guessed for a literal marshal.
+    #   - cautious                  -> observe first; a battle action the
+    #     live LLM produced is CLAMPED to scout (he never assaults on a
+    #     vague order, §6.3c) + a soft note that names his character.
+    #   - aggressive                -> ENABLED (Phase 4). Re-issue a
+    #     delegation-INFERRED strategic PURSUE; every auto-attack seam it can
+    #     reach is covered by the Phase-3/4 fortification-aware bad-odds gate,
+    #     so a dug-in superior force still routes through the one-modal
+    #     confirm. Reached on a LIVE resolution or, since L-D, on a
+    #     keyless DelegationMatch (`delegation_witness`); the incidental
+    #     mock resolution still degrades to ASK (guardrail e).
+    # Guarded by _consumed_as_dialogue_answer so a hard-stop dialogue answer
+    # is never hijacked; runs AFTER CR-4 carryover + history recording.
+    # ════════════════════════════════════════════════════════════
+    ctx._cautious_note = None
+    ctx._delegation_arm_ran = False
+    # CR-5b Flavor Echoing (§6.4): the marshal's spoken reaction at the
+    # RESPONSE seam. _aggressive_flavor rides the pursue-order response;
+    # _cautious_flavor_prefix rides IN FRONT of the cautious deed-note.
+    ctx._aggressive_flavor = None
+    ctx._cautious_flavor_prefix = None
+    if not ctx._consumed_as_dialogue_answer:
+        _deleg = detect_delegation(world, ctx.command_text,
+                                   ctx.parsed.get("command"))
+        if _deleg is not None:
+            # CR-5 audit fix (F2): in LIVE mode the delegation was already
+            # recorded to command_history (main.py above) with the LLM's
+            # DISTRUSTED target. The arms below re-parse against the
+            # authoritative deterministic target, so after they run we
+            # overwrite that history entry's marshal/target with the values
+            # the marshal actually acted on — otherwise a later "same
+            # target"/"him"/"again" carryover reissues against the wrong
+            # place. No-op in mock mode (no entry was recorded there); the
+            # raw_input guard prevents clobbering a prior command's entry.
+            _orig_delegation_text = ctx.command_text
+            # CR-5b: capture the LIVE flavor line NOW — both executed arms
+            # re-parse the explicit reissue below, which returns flavor=null
+            # and CLOBBERS `parsed`. Read it off the ORIGINAL delegation
+            # parse (the only parse the player's raw words rode on).
+            _delegation_flavor = (ctx.parsed.get("command") or {}).get("flavor")
+
+            def _correct_delegation_carryover_target():
+                hist = getattr(world, "command_history", None)
+                if hist and hist[-1].get("raw_input") == _orig_delegation_text:
+                    hist[-1]["marshal"] = _deleg.marshal
+                    hist[-1]["target"] = _deleg.target
+
+            # L-D (the boolean road): the witness is the deterministic
+            # DelegationMatch, not the parse's mode — a keyless player's
+            # delegation takes the marshal's own arm; the incidental
+            # parse (`deal with the attack on Mack`) still asks.
+            _arm = route_arm(_deleg.personality,
+                             delegation_witness(ctx.parsed, _deleg))
+            if _arm == "cautious":
+                # Deterministic: a cautious marshal observes first (§6.2).
+                # Re-issue an explicit scout at the OBSERVE target (the
+                # enemy's location) — a plain re-parse, no LLM (Golden Rule
+                # 6). This also corrects the live LLM's unreliable target
+                # resolution (playtest: "deal with Kutuzov" mis-scouted
+                # Algarve); the detector's target is authoritative.
+                _reissue = f"{_deleg.marshal} scout {_deleg.scout_target}"
+                _ptrace.note("delegation", "cautious_reissue", ctx.command_text, _reissue)
+                ctx.parsed = parser.parse(_reissue, ctx.llm_game_state, world=world)
+                ctx.command_text = _reissue
+                ctx._cautious_note = describe_cautious_delegation(
+                    _deleg, "scout")
+                # CR-5b: a live-only, register-gated spoken PREFIX in front
+                # of the note (None when the live line is absent/violating —
+                # then only the shipped note shows, no double-narration).
+                ctx._cautious_flavor_prefix = resolve_live_cautious_prefix(
+                    _deleg, _delegation_flavor)
+                ctx._delegation_arm_ran = True
+                _correct_delegation_carryover_target()
+                print(f"[CR-5] Delegation CAUTIOUS ({_deleg.marshal}) "
+                      f"-> scout {_deleg.scout_target}")
+            elif _arm == "aggressive":
+                # Deterministic (Golden Rule 6 — the live LLM proved too
+                # flaky for delegation, so mirror the cautious re-parse
+                # pattern): an aggressive marshal gives battle. Re-issue a
+                # strategic PURSUE ("pursue <enemy>" — the strategic parser
+                # upgrades it to a tracking order that engages on contact)
+                # and TAG it delegation_inferred so the Phase-3 fortification-
+                # aware bad-odds gate fires at every auto-attack seam: the
+                # marshal never NAMED the attack, his CHARACTER inferred it.
+                # A bare one-shot "attack" would be ungated AND could not
+                # march him to a non-adjacent enemy. The player's verbatim
+                # words become the order record (rider d, §6.4). Reached
+                # live or keyless (L-D, `delegation_witness`); the
+                # incidental mock resolution degrades to ASK (guardrail e).
+                _delegation_phrase = ctx.command_text
+                _reissue = f"{_deleg.marshal} pursue {_deleg.target}"
+                _ptrace.note("delegation", "aggressive_reissue", ctx.command_text, _reissue)
+                ctx.parsed = parser.parse(_reissue, ctx.llm_game_state, world=world)
+                ctx.parsed["delegation_inferred"] = True
+                ctx.parsed["delegation_phrase"] = _delegation_phrase
+                ctx.command_text = _reissue
+                # CR-5b: the register-passing live line, else the
+                # deterministic aggressive floor (attached only on the
+                # non-modal success path in the attach block below).
+                ctx._aggressive_flavor = resolve_delegation_flavor(
+                    _deleg, "aggressive", _delegation_flavor)
+                ctx._delegation_arm_ran = True
+                _correct_delegation_carryover_target()
+                print(f"[CR-5] Delegation AGGRESSIVE ({_deleg.marshal}) "
+                      f"-> pursue {_deleg.target} (inferred, gated)")
+            elif _arm == "ask":
+                _ptrace.decide("delegation", "ask",
+                               {"marshal": _deleg.marshal, "target": _deleg.target})
+                _deleg_clar = build_delegation_clarification(
+                    world, _deleg, ctx.command_text)
+                # §6.7 first-use hint — the ASK always surfaces, so latch it
+                # here (maybe_delegation_hint sets the flag only when it hands
+                # back the copy, once per campaign).
+                _ask_hint = maybe_delegation_hint(world)
+                if _ask_hint:
+                    _deleg_clar["message"] = (
+                        f"{_deleg_clar['message']}\n\n{_ask_hint}")
+                _deleg_clar["clarification_registered"] = (
+                    register_pending_clarification(
+                        world, _deleg_clar, ctx.command_text))
+                print(f"[CR-5] Delegation ASK "
+                      f"({_deleg.marshal}/{_deleg.personality or 'unset'}) "
+                      f"-> frontend")
+                return _build_result_response(_deleg_clar, world)
+    return _NEXT_STAGE
+
+
+def _command_dialogue_routing(ctx: CommandContext):
+    """Stage 9 of `execute_command`: A pending dialogue takes the line only
+    when it claims it (CA9, PT-A3, WO-7, IQ-7)."""
+    # ════════════════════════════════════════════════════════════
+    # DIPLOMATIC DIALOGUE RESPONSE ROUTING (Audit fix)
+    # Must run BEFORE Berthier parse recovery — dialogue keywords
+    # like "accept"/"reject" fail parsing and would trigger
+    # Berthier recovery early return, preventing dialogue routing.
+    # ════════════════════════════════════════════════════════════
+    # Cheat commands bypass dialogue guard
+    is_cheat = ctx.parsed.get("success") and ctx.parsed.get("command", {}).get("action") == "cheat"
+
+    # WO-7 (row WO slice 11): a pending SOFT-STOP dialogue must not wall
+    # off the ordinary road. The soft-stop pass-through used to call
+    # `executor.execute(parsed, …)` directly — skipping every recovery
+    # arm below (the enemy-addressee refusal, CR-2's did-you-mean,
+    # PARSE-NEG's honest refusal, Berthier's recovery) AND the CR-2
+    # marshal-choice question — so with an envoy's letter waiting, a
+    # typed `Ney, never attack Blucher` got the executor's generic shrug
+    # and a bare `move to Belgium` MARCHED DAVOUT without asking. The
+    # dialogue takes the line only when it claims it (an answer to its
+    # own options, or a hard stop); otherwise the sentence goes exactly
+    # where it goes when nothing is pending.
+    ctx._dialogue_took_the_line = False
+    if world.pending_diplomatic_dialogue is not None and not is_cheat:
+        raw_lower = ctx.command_text.lower()
+        is_hard_stop = world.dialogue_manager.is_hard_stop()
+
+        # CA9: ONE matcher for both stop kinds — only a dialogue's own
+        # options may claim a typed line (`dialogue_routing`).
+        #
+        # The hard-stop arm used to scan a fixed keyword list for BARE
+        # SUBSTRINGS, and that list held ordinary game words: "no",
+        # "send", "garrison", "start", "more", "side", "continue". So
+        # `Ney, move north` answered "no" (→ back_out / reconsider) and
+        # `send Ney to Bavaria` answered "send" (→ send_override) on
+        # whatever hard stop happened to be staged — and the answer was
+        # applied to that dialogue regardless of what the sentence was
+        # about. The list is gone; a verb now has to resolve onto an
+        # action the live dialogue actually offers, as a whole word.
+        matched_keyword = match_dialogue_answer(
+            world.pending_diplomatic_dialogue, raw_lower,
+            _player_marshal_names(world),
+            world_regions=list(world.regions.keys()))
+
+        if matched_keyword:
+            print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")
+            ctx._dialogue_took_the_line = True
+            ctx.result = executor.handle_diplomatic_dialogue_response(
+                matched_keyword, game_state, raw_text=ctx.command_text)
+        elif is_hard_stop:
+            ctx._dialogue_took_the_line = True
+            # ══════════════════════════════════════════════════════
+            # PT-A3 — A HARD STOP MUST NOT SWALLOW AN UNRELATED ORDER.
+            #
+            # This arm used to hand the player's WHOLE SENTENCE to the
+            # choice resolver as if it were an answer. Measured live:
+            # `Davout, march to Munich and relieve the Bavarians` came
+            # back "I don't understand that choice, Sire." — the game
+            # claiming it misunderstood a sentence that was never
+            # about the dialogue, and never saying what was blocking.
+            #
+            # The escape hatch below it was DEAD. It gated on the
+            # literal "Please choose an option", which
+            # `_enumerated_choice_prompt` emits only for a non-str or
+            # out-of-range-int choice; `main.py` always passes a `str`
+            # here, and an unresolved `str` returns "I don't
+            # understand that choice" instead. So no typed string
+            # could ever reach `executor.execute`. CA9-N5 rewrote that
+            # failure string and killed the fall-through with it.
+            #
+            # Answer the way the OBJECTION block answers (`executor.py
+            # :531-562`): never feed the sentence to a resolver, name
+            # the blocker, say nothing was relayed, and quote the exact
+            # words that clear it — read off the live dialogue, so
+            # shown == accepted.
+            # ══════════════════════════════════════════════════════
+            print(f"[DIPLOMATIC] Hard-stop refusal (unrelated): {raw_lower}")
+            from backend.commands.dialogue_routing import (
+                format_numbered_options, hard_stop_subject)
+            _dlg = world.pending_diplomatic_dialogue
+            _numbered = format_numbered_options(_dlg)
+            _waiting = hard_stop_subject(_dlg)
+            _msg = f"{_waiting} awaits your answer, Sire"
+            if _numbered:
+                _msg += (f" — nothing was relayed. Answer with one of: "
+                         f"{_numbered}.")
+            else:
+                _msg += " — nothing was relayed."
+            ctx.result = {
+                "success": False,
+                "message": _msg,
+                "awaiting_response": True,
+                "diplomatic_dialogue": _dlg,
+            }
+        else:
+            # IQ-7 review R9 ([09]/[13]): the matter noun is an
+            # addressee. A line that names a family noun ("the
+            # petition", "grant it") the ACTIVE letter does not speak
+            # of, while a dialogue of that family waits in the queue,
+            # is refused here — naming the court and where it waits —
+            # rather than falling to Berthier's shrug. The seam the
+            # court guard sits at inside the handler is the sibling
+            # for the lines the active letter DID claim.
+            #
+            # Pass 2 (P3-3): `answers_only` — at THIS seam no answer
+            # keyword matched the letter on top, so what arrives is
+            # either a stray answer or an ORDER that merely carries a
+            # family noun. Measured: with a Prussian ultimatum queued,
+            # `send ultimatum to Austria` was refused as "Prussia's
+            # ultimatum waits in Envoys" and never reached the
+            # executor's own ultimatum route. Only an ANSWER-SHAPED
+            # line is refused here; an order takes the ordinary road.
+            #
+            # Pass 3, with a CLIENT petition current (it is answered by
+            # the closed plain grammar, so far more lines arrive here):
+            #   * R3-3 — the COURT guard speaks first. Measured:
+            #     `accept portugal's offer` / `grant the kingdom of
+            #     italy's petition` got Berthier's shrug, because the
+            #     court guard sits at the handler seam and the plain
+            #     router never hands such a line on;
+            #   * R3-2 — a line that was TRYING to answer the petition
+            #     (`accept, they have earned it`; `Talleyrand, grant the
+            #     petition later`) is re-prompted IN PLACE. The ordinary
+            #     road mounted a marshal-choice question or the diplomat
+            #     route's nation picker OVER the petition, and the next
+            #     plain answer was refused.
+            from backend.commands.dialogue_routing import (
+                court_mismatch_refusal_for_a_line,
+                court_mismatch_refusal_for_a_petition,
+                dialogue_line_reprompt,
+                matter_mismatch_refusal,
+                petition_line_reprompt,
+            )
+            _matter = matter_mismatch_refusal(
+                world, world.pending_diplomatic_dialogue, ctx.command_text,
+                answers_only=True)
+            # (All three reads are pure; the court guard's refusal
+            # OUTRANKS the matter guard's, which outranks the re-prompt.)
+            ctx._court = court_mismatch_refusal_for_a_petition(
+                world, world.pending_diplomatic_dialogue, ctx.command_text)
+            if ctx._court is not None:
+                _matter = ctx._court
+            elif _matter is None:
+                # Pass 4 (R4-4): `world` lets shape (c) tell the player's
+                # own ORDER about another court from a stray answer.
+                _matter = petition_line_reprompt(
+                    world.pending_diplomatic_dialogue, ctx.command_text,
+                    _player_marshal_names(world), world=world)
+                # SR-2e part (ii) — CRT-5, for every other family, in the
+                # petition's own order AFTER the matter guard: the court
+                # guard; then, for a line that carries one of THIS
+                # letter's answer words, the matter guard read whole (a
+                # line aimed at a waiting matter gets its Envoys
+                # pointer); then the in-place re-prompt — never an order
+                # read over the letter.
+                if _matter is None:
+                    _matter = court_mismatch_refusal_for_a_line(
+                        world, world.pending_diplomatic_dialogue,
+                        ctx.command_text)
+                if _matter is None:
+                    from backend.commands.dialogue_routing import (
+                        addresses_a_marshal as _addresses,
+                        closed_line_tried_to_answer as _tried,
+                    )
+                    if (_tried(
+                            world.pending_diplomatic_dialogue, ctx.command_text)
+                            and not _addresses(
+                                ctx.command_text.lower(),
+                                _player_marshal_names(world))):
+                        _matter = matter_mismatch_refusal(
+                            world, world.pending_diplomatic_dialogue,
+                            ctx.command_text)
+                if _matter is None:
+                    _matter = dialogue_line_reprompt(
+                        world.pending_diplomatic_dialogue, ctx.command_text,
+                        _player_marshal_names(world), world=world,
+                        world_regions=list(world.regions.keys()))
+            if _matter is not None:
+                print(f"[DIPLOMATIC] Matter-noun refusal: {raw_lower}")
+                ctx._dialogue_took_the_line = True
+                ctx.result = _matter
+            else:
+                # PL-27: Soft-stop — no dialogue keyword match. WO-7:
+                # the line falls through to the ORDINARY road below
+                # (recovery arms, marshal-choice question, then the
+                # executor) instead of a bare `executor.execute`.
+                print(f"[DIPLOMATIC] Soft-stop pass-through: {raw_lower}")
+    return _NEXT_STAGE
+
+
+def _command_ordinary_road(ctx: CommandContext):
+    """Stage 10 of `execute_command`: The ordinary road: dialogue-only words,
+    WO-1, CR-2 did-you-mean, PARSE-NEG, Berthier's parse recovery, then the
+    executor."""
+    from backend.commands import relay as _relay
+    from backend.commands.clarification import (
+        build_unknown_name_clarification,
+        register_pending_clarification,
+    )
+    if not ctx._dialogue_took_the_line:
+        # m1: Dialogue keywords typed with no active dialogue — clear
+        # message. WO-7: only when NO dialogue is pending — with a
+        # soft-stop letter waiting, an unmatched dialogue word is not
+        # "no pending diplomatic matter" and takes the recovery road.
+        raw_lower_check = (ctx.command_text.lower().strip()
+                           if world.pending_diplomatic_dialogue is None
+                           else "")
+        # Only keywords that are NEVER valid game commands.
+        # Excludes: cancel (strategic order cancel), garrison, more, execute, start, yes, no
+        _DIALOGUE_ONLY_KEYWORDS = [
+            "accept", "reject", "decline", "counter",
+            "proceed", "confront", "overlook",
+            "apologize", "replace", "reconsider", "modify",
+            "honor", "side", "dismiss",
+            "harsh", "generous", "adjust",
+            "nudge", "insist",  # PL-23: Drafting pushback
+            "elaborate", "review", "consider",
+            "begin",
+            "agree", "never mind",
+        ]
+        if raw_lower_check in _DIALOGUE_ONLY_KEYWORDS:
+            # Live playthrough: with Massena's tactical OBJECTION pending,
+            # "proceed" fell through here and Berthier denied any pending
+            # matter — while every real order stayed blocked on the
+            # objection ("settle the objection before issuing new
+            # orders"). A dialogue-ish word typed while an objection
+            # waits must reprompt THAT objection's own choices, not
+            # gaslight the player about the diplomatic channel.
+            if world.pending_objection is not None:
+                _objecting = world.pending_objection.get(
+                    "marshal", "A marshal")
+                # CA9 review round: same missing key as the
+                # executor block — see `OBJECTION_FREE_READS`'s
+                # neighbour there. Read the validator's own predicate.
+                _obj_choices = ["trust", "insist"]
+                if (world.pending_objection.get("suggested_alternative")
+                        or world.pending_objection.get("compromise")
+                        or world.pending_objection.get("alternative")):
+                    _obj_choices.append("compromise")
                 return build_base_response(
                     world, success=False,
-                    message="Berthier: \"There is no pending diplomatic matter to respond to, Sire.\"",
+                    message=(
+                        f"{_objecting} awaits your answer, Sire — reply "
+                        f"{format_answer_words(_obj_choices)}."),
+                    objection=world.pending_objection,
+                    choices=_obj_choices,
                     action_info={
                         "cost": 0,
                         "remaining": int(world.actions_remaining),
                         "turn_advanced": False,
                         "new_turn": None,
                     })
+            return build_base_response(
+                world, success=False,
+                message="Berthier: \"There is no pending diplomatic matter to respond to, Sire.\"",
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
 
-            # ════════════════════════════════════════════════════════════
-            # WO-1: THE ENEMY ADDRESSEE. The parser refused by name and in
-            # voice ("Marshal Kutuzov commands for Russia, Sire — he does
-            # not answer to us"); the refusal must reach the player
-            # VERBATIM. Without this arm it carried candidates=[] so the
-            # CR-2 clarification below skipped it and it fell through to
-            # the generic Berthier recovery — the by-name refusal was
-            # production-dead on the wire (review finding, Aug 21 2026).
-            # ════════════════════════════════════════════════════════════
-            if (not parsed.get("success")
-                    and parsed.get("kind") in VERBATIM_PARSE_REFUSAL_KINDS):
-                refusal_message = parsed.get("error") or (
-                    "That commander serves the enemy, Sire — he does not "
-                    "answer to us.")
-                if parsed.get("suggestion"):
-                    refusal_message += f" {parsed['suggestion']}"
-                return build_base_response(
-                    world, success=False, message=refusal_message,
-                    action_info={
-                        "cost": 0,
-                        "remaining": int(world.actions_remaining),
-                        "turn_advanced": False,
-                        "new_turn": None,
-                    })
+        # ════════════════════════════════════════════════════════════
+        # WO-1: THE ENEMY ADDRESSEE. The parser refused by name and in
+        # voice ("Marshal Kutuzov commands for Russia, Sire — he does
+        # not answer to us"); the refusal must reach the player
+        # VERBATIM. Without this arm it carried candidates=[] so the
+        # CR-2 clarification below skipped it and it fell through to
+        # the generic Berthier recovery — the by-name refusal was
+        # production-dead on the wire (review finding, Aug 21 2026).
+        # ════════════════════════════════════════════════════════════
+        if (not ctx.parsed.get("success")
+                and ctx.parsed.get("kind") in VERBATIM_PARSE_REFUSAL_KINDS):
+            refusal_message = ctx.parsed.get("error") or (
+                "That commander serves the enemy, Sire — he does not "
+                "answer to us.")
+            if ctx.parsed.get("suggestion"):
+                refusal_message += f" {ctx.parsed['suggestion']}"
+            return build_base_response(
+                world, success=False, message=refusal_message,
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
 
-            # ════════════════════════════════════════════════════════════
-            # CR-2: UNKNOWN-NAME CLARIFICATION — a parse failure that
-            # carries structured candidates ("Murat, charge" on a world
-            # without Murat; "Davut, attack") becomes a one-question
-            # did-you-mean instead of a dead-end error. Before CR-2 these
-            # errors fell through the executor into the generic Berthier
-            # shrug and the computed suggestions were dropped entirely.
-            # ════════════════════════════════════════════════════════════
-            if not parsed.get("success") and parsed.get("candidates"):
-                name_clarification = build_unknown_name_clarification(
-                    world,
-                    parsed.get("unknown_name") or "",
-                    parsed["candidates"],
-                    command_text,
-                    parsed.get("kind") or "marshal_not_found",
-                    partial_action=parsed.get("partial_action"),
+        # ════════════════════════════════════════════════════════════
+        # CR-2: UNKNOWN-NAME CLARIFICATION — a parse failure that
+        # carries structured candidates ("Murat, charge" on a world
+        # without Murat; "Davut, attack") becomes a one-question
+        # did-you-mean instead of a dead-end error. Before CR-2 these
+        # errors fell through the executor into the generic Berthier
+        # shrug and the computed suggestions were dropped entirely.
+        # ════════════════════════════════════════════════════════════
+        if not ctx.parsed.get("success") and ctx.parsed.get("candidates"):
+            name_clarification = build_unknown_name_clarification(
+                world,
+                ctx.parsed.get("unknown_name") or "",
+                ctx.parsed["candidates"],
+                ctx.command_text,
+                ctx.parsed.get("kind") or "marshal_not_found",
+                partial_action=ctx.parsed.get("partial_action"),
+            )
+            if name_clarification is not None:
+                name_clarification["clarification_registered"] = (
+                    register_pending_clarification(
+                        world, name_clarification, ctx.command_text))
+                print("[CLARIFICATION] Unknown-name question -> frontend")
+                ctx._relay_question(name_clarification, ctx.parsed)  # CR-7-3
+                return _build_result_response(name_clarification, world)
+
+        # ════════════════════════════════════════════════════════════
+        # PARSE-NEG: A DELIBERATE NO-ORDER. The parser understood the
+        # sentence perfectly — "Ney, never attack Mack" is an instruction
+        # NOT to act, and "if Mack advances, fall back" is a condition the
+        # engine cannot hold open. Both used to execute the affirmative at
+        # confidence 0.9+. Answering with the generic "I cannot interpret
+        # that order" would be a second, smaller lie: Berthier says what he
+        # read and what he did about it.
+        # ════════════════════════════════════════════════════════════
+        if not ctx.parsed.get("success") and ctx.parsed.get("refusal"):
+            _detail = ctx.parsed.get("refusal_detail") or {}
+            if ctx.parsed["refusal"] == "conditional":
+                # CR-7-4 (CQ-6): the refusal is split by CAUSE. One
+                # hardcoded string used to blame the enemy for every
+                # refusing marker — including a sentence about one of
+                # our own marshals arriving — and offered as its
+                # paraphrase a form the engine honours.
+                _clause = str(_detail.get("clause") or "").strip()
+                _friend = _detail.get("friendly_arrival")
+                _addressee = ctx.parsed.get("partial_marshal") or "the marshal"
+                if _friend:
+                    refusal_msg = (
+                        f"Berthier sets down his pen. \"Sire, I cannot hold "
+                        f"an order until {_friend} arrives — I keep no drawer "
+                        f"for it, and nothing has been relayed. Give the "
+                        f"order when he stands beside {_addressee}, or have "
+                        f"{_addressee} hold the ground until then: 'hold "
+                        f"until {_friend} arrives' is a standing order I "
+                        f"can carry at once.\"")
+                else:
+                    _named = (f" until '{_clause}' comes to pass"
+                              if _clause else " until the enemy moves")
+                    # SF-CMD-1 W2 (Oct 3, 2026): a condition on the
+                    # ENEMY's movement ("if he moves", "should Mack
+                    # advance") is answered with the road that follows
+                    # him — pursue — not with a hold on a friend's
+                    # arrival.
+                    _foe_named = ctx.parsed.get("partial_target") or ""
+                    if not _foe_named:
+                        # the enemy the sentence NAMES, by the printed form
+                        from backend.ai.llm_client import name_match_patterns as _nmp
+                        _low = (ctx.command_text or "").lower()
+                        for _m in world.marshals.values():
+                            if _m.nation == world.player_nation:
+                                continue
+                            if any(re.search(r"\b" + re.escape(p.lower()) + r"\b", _low)
+                                   for p in _nmp(_m.name)):
+                                from backend.display_names import humanize_entity_name as _hn
+                                _foe_named = _hn(_m.name)
+                                break
+                    _enemy_moves = bool(re.search(
+                        r"\b(?:he|she|they|it|the\s+enemy|[A-Z][\w'’-]+)\s+"
+                        r"(?:moves?|advances?|marches|comes|turns|attacks?|"
+                        r"retreats?|withdraws?|leaves?|stirs?|shifts?)\b",
+                        _clause or ""))
+                    _road = "'hold until Davout arrives'"
+                    if _enemy_moves:
+                        _road += (f"; the road that follows him is 'pursue {_foe_named}' — "
+                                  f"the pursuit follows him wherever he goes and attacks on contact"
+                                  if _foe_named else
+                                  "; the road that follows an enemy is 'pursue <him>' — "
+                                  "the pursuit attacks on contact wherever he goes")
+                    refusal_msg = (
+                        f"Berthier sets down his pen. \"Sire, that is a "
+                        f"contingency, not an order — I have no way to hold a "
+                        f"dispatch{_named}. Nothing has been "
+                        f"relayed. Give me the order for THIS turn and I shall "
+                        f"carry it at once; a standing order I can hold is "
+                        f"{_road}.\"")
+            elif ctx.parsed["refusal"] == "condition":
+                # CR-7-4: a condition the engine READ and cannot meet —
+                # an unmet referent, a hold of no turns, a turn behind
+                # us — refused by name at 0 AP, never minted.
+                from backend.ai.condition_grammar import refusal_copy
+                refusal_msg = refusal_copy(
+                    _detail, ctx.parsed.get("partial_marshal"), world,
+                    target=ctx.parsed.get("partial_target"))
+            elif ctx.parsed["refusal"] == "reason":
+                # CRT-1 (CQ-32): the sentence reported the enemy's
+                # movements and gave no order of ours — "as they
+                # attack", "the Austrians are storming the bridge". The
+                # old answer was to read THEIR verb as OUR order and
+                # fight; the honest one names what was heard and asks
+                # for the order that was not.
+                _clause = str(_detail.get("clause") or "").strip()
+                _addressee = ctx.parsed.get("partial_marshal") or "the marshal"
+                _heard = f" — '{_clause}' —" if _clause else ""
+                refusal_msg = (
+                    f"Berthier waits, pen raised. \"You have told me what "
+                    f"the enemy is about, Sire{_heard} but not what "
+                    f"{_addressee} is to do about it. Nothing has been "
+                    f"relayed; give me his order and I shall carry it at "
+                    f"once.\"")
+            elif ctx.parsed["refusal"] == "fleet_is_no_corps":
+                # DD0-19 (S4 part 4, October 11, 2026): "Send the fleet
+                # to attack Swabia" — the fleet is the Admiralty's and
+                # no corps; a province is attacked by a marshal.
+                refusal_msg = (
+                    "Berthier sets the dispatch aside. \"The fleet is not a "
+                    "corps, Sire — it cannot attack a province, and I have "
+                    "relayed nothing. A fleet sails on a posture ('fleet, "
+                    "blockade', 'guard home waters'), lands men ('land in "
+                    "Ireland') or makes a diversion; a province is attacked "
+                    "by a marshal — 'Ney, attack Swabia'.\"")
+            elif ctx.parsed["refusal"] == "no_letter_asks_for_men":
+                # DD0-20 (S5, October 11, 2026): "ask Bavaria for more
+                # troops" — a court's men are not asked for by letter.
+                from backend.display_names import humanize_entity_name as _hname
+                ctx._court = _hname(str(_detail.get("court") or "the court"))
+                refusal_msg = (
+                    f"Berthier sets the dispatch aside. \"A court's regiments "
+                    f"march under its own colours, Sire — a loyal satellite's "
+                    f"contingent takes the field of its own accord in a war it "
+                    f"shares with us, and no letter asks for men. I have "
+                    f"relayed nothing. Shall I have Talleyrand court {ctx._court} "
+                    f"to raise its loyalty instead?\"")
+            elif ctx.parsed["refusal"] == "contradiction":
+                # DD0-7 (October 10, 2026): the sentence ordered X and
+                # forbade X — a question, never the order.
+                _clause = str(_detail.get("clause") or "").strip()
+                _heard = f" — '{_clause}' —" if _clause else ""
+                refusal_msg = (
+                    f"Berthier reads the dispatch twice. \"Sire, it orders "
+                    f"the thing and forbids it in the same breath{_heard} "
+                    f"so I have relayed nothing. Which is it to be?\"")
+            elif ctx.parsed["refusal"] == "deferral":
+                # FA-7. A DIFFERENT failure from a prohibition and it must
+                # not wear the same words: the player did not forbid the
+                # order, they named a turn the engine cannot hold a
+                # dispatch until. Answering "then no order goes out" would
+                # be true and useless; this says what to do instead, and
+                # names the one thing the player might actually have meant
+                # by "next turn".
+                refusal_msg = (
+                    "Berthier holds the dispatch unsealed. \"For a later "
+                    "day, Sire — but I keep no drawer for tomorrow's "
+                    "orders, so nothing has gone out and nothing is "
+                    "owed. Give me the order on the morning you want it "
+                    "carried, or 'end turn' and I shall bring it to you "
+                    "again. If the marshal is to sit still meanwhile, "
+                    "say 'hold'.\"")
+            else:
+                refusal_msg = (
+                    "Berthier lowers the dispatch. \"Then no order goes "
+                    "out, Sire — I have relayed nothing. If a standing "
+                    "order is to be stood down, say 'cancel his order'; "
+                    "otherwise tell me what the marshal IS to do.\"")
+            # ══════════════════════════════════════════════════════
+            # PT-H5: this path bypassed CA9-N5's option-naming helper.
+            #
+            # It returns BEFORE `executor.execute`, so the block at
+            # `executor.py:531-562` — the one that names the objecting
+            # marshal and quotes "'trust', 'insist' or 'compromise'" —
+            # is never reached. With an objection pending, a
+            # clause-guard-refused sentence got "Then no order goes
+            # out, Sire…" while every real order stayed blocked, and
+            # the words that clear the block were stated nowhere in
+            # the response. Same shape as the bug the `:2175` comment
+            # calls gaslighting, one branch over.
+            # ══════════════════════════════════════════════════════
+            _pending_obj = getattr(world, "pending_objection", None)
+            if _pending_obj:
+                # ALIASED deliberately: a bare local import here binds
+                # the name for the WHOLE function, and the objection
+                # re-prompt at `:2347` already uses the module-level
+                # `format_answer_words` — which a local import turns
+                # into an UnboundLocalError at a line that had not
+                # changed.
+                from backend.commands.dialogue_routing import (
+                    format_answer_words as _answer_words,
                 )
-                if name_clarification is not None:
-                    name_clarification["clarification_registered"] = (
-                        register_pending_clarification(
-                            world, name_clarification, command_text))
-                    print("[CLARIFICATION] Unknown-name question -> frontend")
-                    _relay_question(name_clarification, parsed)  # CR-7-3
-                    return _build_result_response(name_clarification, world)
-
-            # ════════════════════════════════════════════════════════════
-            # PARSE-NEG: A DELIBERATE NO-ORDER. The parser understood the
-            # sentence perfectly — "Ney, never attack Mack" is an instruction
-            # NOT to act, and "if Mack advances, fall back" is a condition the
-            # engine cannot hold open. Both used to execute the affirmative at
-            # confidence 0.9+. Answering with the generic "I cannot interpret
-            # that order" would be a second, smaller lie: Berthier says what he
-            # read and what he did about it.
-            # ════════════════════════════════════════════════════════════
-            if not parsed.get("success") and parsed.get("refusal"):
-                _detail = parsed.get("refusal_detail") or {}
-                if parsed["refusal"] == "conditional":
-                    # CR-7-4 (CQ-6): the refusal is split by CAUSE. One
-                    # hardcoded string used to blame the enemy for every
-                    # refusing marker — including a sentence about one of
-                    # our own marshals arriving — and offered as its
-                    # paraphrase a form the engine honours.
-                    _clause = str(_detail.get("clause") or "").strip()
-                    _friend = _detail.get("friendly_arrival")
-                    _addressee = parsed.get("partial_marshal") or "the marshal"
-                    if _friend:
-                        refusal_msg = (
-                            f"Berthier sets down his pen. \"Sire, I cannot hold "
-                            f"an order until {_friend} arrives — I keep no drawer "
-                            f"for it, and nothing has been relayed. Give the "
-                            f"order when he stands beside {_addressee}, or have "
-                            f"{_addressee} hold the ground until then: 'hold "
-                            f"until {_friend} arrives' is a standing order I "
-                            f"can carry at once.\"")
-                    else:
-                        _named = (f" until '{_clause}' comes to pass"
-                                  if _clause else " until the enemy moves")
-                        # SF-CMD-1 W2 (Oct 3, 2026): a condition on the
-                        # ENEMY's movement ("if he moves", "should Mack
-                        # advance") is answered with the road that follows
-                        # him — pursue — not with a hold on a friend's
-                        # arrival.
-                        _foe_named = parsed.get("partial_target") or ""
-                        if not _foe_named:
-                            # the enemy the sentence NAMES, by the printed form
-                            from backend.ai.llm_client import name_match_patterns as _nmp
-                            _low = (command_text or "").lower()
-                            for _m in world.marshals.values():
-                                if _m.nation == world.player_nation:
-                                    continue
-                                if any(re.search(r"\b" + re.escape(p.lower()) + r"\b", _low)
-                                       for p in _nmp(_m.name)):
-                                    from backend.display_names import humanize_entity_name as _hn
-                                    _foe_named = _hn(_m.name)
-                                    break
-                        _enemy_moves = bool(re.search(
-                            r"\b(?:he|she|they|it|the\s+enemy|[A-Z][\w'’-]+)\s+"
-                            r"(?:moves?|advances?|marches|comes|turns|attacks?|"
-                            r"retreats?|withdraws?|leaves?|stirs?|shifts?)\b",
-                            _clause or ""))
-                        _road = "'hold until Davout arrives'"
-                        if _enemy_moves:
-                            _road += (f"; the road that follows him is 'pursue {_foe_named}' — "
-                                      f"the pursuit follows him wherever he goes and attacks on contact"
-                                      if _foe_named else
-                                      "; the road that follows an enemy is 'pursue <him>' — "
-                                      "the pursuit attacks on contact wherever he goes")
-                        refusal_msg = (
-                            f"Berthier sets down his pen. \"Sire, that is a "
-                            f"contingency, not an order — I have no way to hold a "
-                            f"dispatch{_named}. Nothing has been "
-                            f"relayed. Give me the order for THIS turn and I shall "
-                            f"carry it at once; a standing order I can hold is "
-                            f"{_road}.\"")
-                elif parsed["refusal"] == "condition":
-                    # CR-7-4: a condition the engine READ and cannot meet —
-                    # an unmet referent, a hold of no turns, a turn behind
-                    # us — refused by name at 0 AP, never minted.
-                    from backend.ai.condition_grammar import refusal_copy
-                    refusal_msg = refusal_copy(
-                        _detail, parsed.get("partial_marshal"), world,
-                        target=parsed.get("partial_target"))
-                elif parsed["refusal"] == "reason":
-                    # CRT-1 (CQ-32): the sentence reported the enemy's
-                    # movements and gave no order of ours — "as they
-                    # attack", "the Austrians are storming the bridge". The
-                    # old answer was to read THEIR verb as OUR order and
-                    # fight; the honest one names what was heard and asks
-                    # for the order that was not.
-                    _clause = str(_detail.get("clause") or "").strip()
-                    _addressee = parsed.get("partial_marshal") or "the marshal"
-                    _heard = f" — '{_clause}' —" if _clause else ""
-                    refusal_msg = (
-                        f"Berthier waits, pen raised. \"You have told me what "
-                        f"the enemy is about, Sire{_heard} but not what "
-                        f"{_addressee} is to do about it. Nothing has been "
-                        f"relayed; give me his order and I shall carry it at "
-                        f"once.\"")
-                elif parsed["refusal"] == "fleet_is_no_corps":
-                    # DD0-19 (S4 part 4, October 11, 2026): "Send the fleet
-                    # to attack Swabia" — the fleet is the Admiralty's and
-                    # no corps; a province is attacked by a marshal.
-                    refusal_msg = (
-                        "Berthier sets the dispatch aside. \"The fleet is not a "
-                        "corps, Sire — it cannot attack a province, and I have "
-                        "relayed nothing. A fleet sails on a posture ('fleet, "
-                        "blockade', 'guard home waters'), lands men ('land in "
-                        "Ireland') or makes a diversion; a province is attacked "
-                        "by a marshal — 'Ney, attack Swabia'.\"")
-                elif parsed["refusal"] == "no_letter_asks_for_men":
-                    # DD0-20 (S5, October 11, 2026): "ask Bavaria for more
-                    # troops" — a court's men are not asked for by letter.
-                    from backend.display_names import humanize_entity_name as _hname
-                    _court = _hname(str(_detail.get("court") or "the court"))
-                    refusal_msg = (
-                        f"Berthier sets the dispatch aside. \"A court's regiments "
-                        f"march under its own colours, Sire — a loyal satellite's "
-                        f"contingent takes the field of its own accord in a war it "
-                        f"shares with us, and no letter asks for men. I have "
-                        f"relayed nothing. Shall I have Talleyrand court {_court} "
-                        f"to raise its loyalty instead?\"")
-                elif parsed["refusal"] == "contradiction":
-                    # DD0-7 (October 10, 2026): the sentence ordered X and
-                    # forbade X — a question, never the order.
-                    _clause = str(_detail.get("clause") or "").strip()
-                    _heard = f" — '{_clause}' —" if _clause else ""
-                    refusal_msg = (
-                        f"Berthier reads the dispatch twice. \"Sire, it orders "
-                        f"the thing and forbids it in the same breath{_heard} "
-                        f"so I have relayed nothing. Which is it to be?\"")
-                elif parsed["refusal"] == "deferral":
-                    # FA-7. A DIFFERENT failure from a prohibition and it must
-                    # not wear the same words: the player did not forbid the
-                    # order, they named a turn the engine cannot hold a
-                    # dispatch until. Answering "then no order goes out" would
-                    # be true and useless; this says what to do instead, and
-                    # names the one thing the player might actually have meant
-                    # by "next turn".
-                    refusal_msg = (
-                        "Berthier holds the dispatch unsealed. \"For a later "
-                        "day, Sire — but I keep no drawer for tomorrow's "
-                        "orders, so nothing has gone out and nothing is "
-                        "owed. Give me the order on the morning you want it "
-                        "carried, or 'end turn' and I shall bring it to you "
-                        "again. If the marshal is to sit still meanwhile, "
-                        "say 'hold'.\"")
-                else:
-                    refusal_msg = (
-                        "Berthier lowers the dispatch. \"Then no order goes "
-                        "out, Sire — I have relayed nothing. If a standing "
-                        "order is to be stood down, say 'cancel his order'; "
-                        "otherwise tell me what the marshal IS to do.\"")
-                # ══════════════════════════════════════════════════════
-                # PT-H5: this path bypassed CA9-N5's option-naming helper.
-                #
-                # It returns BEFORE `executor.execute`, so the block at
-                # `executor.py:531-562` — the one that names the objecting
-                # marshal and quotes "'trust', 'insist' or 'compromise'" —
-                # is never reached. With an objection pending, a
-                # clause-guard-refused sentence got "Then no order goes
-                # out, Sire…" while every real order stayed blocked, and
-                # the words that clear the block were stated nowhere in
-                # the response. Same shape as the bug the `:2175` comment
-                # calls gaslighting, one branch over.
-                # ══════════════════════════════════════════════════════
-                _pending_obj = getattr(world, "pending_objection", None)
-                if _pending_obj:
-                    # ALIASED deliberately: a bare local import here binds
-                    # the name for the WHOLE function, and the objection
-                    # re-prompt at `:2347` already uses the module-level
-                    # `format_answer_words` — which a local import turns
-                    # into an UnboundLocalError at a line that had not
-                    # changed.
-                    from backend.commands.dialogue_routing import (
-                        format_answer_words as _answer_words,
-                    )
-                    _choices = ["trust", "insist"]
-                    if (_pending_obj.get("suggested_alternative")
-                            or _pending_obj.get("compromise")
-                            or _pending_obj.get("alternative")):
-                        _choices.append("compromise")
-                    _objector = _pending_obj.get("marshal", "A marshal")
-                    refusal_msg += (
-                        f"\n\n{_objector} still awaits your answer, Sire. "
-                        f"Reply {_answer_words(_choices)}.")
-                # CR-7-3 rule 4: a refused HEAD cancels the tail it carried,
-                # and says so.
-                _refused_relay = None
-                if parsed.get("dropped_sequel"):
-                    _refused_relay = _relay.build_relay(
-                        world, parser, llm_game_state,
-                        tail=parsed["dropped_sequel"],
-                        marshal_name=parsed.get("partial_marshal"),
-                        head_action=None, result={"success": False},
-                        question=False)
-                _refusal_response_dict = build_base_response(
-                    world, success=False, message=refusal_msg,
-                    objection=_pending_obj if _pending_obj else None,
-                    action_info={
-                        "cost": 0,
-                        "remaining": int(world.actions_remaining),
-                        "turn_advanced": False,
-                        "new_turn": None,
-                    })
-                _relay.attach(_refusal_response_dict, _refused_relay)
-                _relay.append_note(_refusal_response_dict, _refused_relay, standalone=True)
-                return _refusal_response_dict
-
-            # ════════════════════════════════════════════════════════════
-            # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
-            # with in-character Berthier clarification. Only fires for
-            # type-1 parse failures; marshal typos & validation errors
-            # pass through unchanged.
-            # ════════════════════════════════════════════════════════════
-            if not parsed.get("success") and (parsed.get("error") or "").startswith("Unknown action"):
-                # FA-16 review round (R2-F7): "Massena, cut your way out" is
-                # not an order Berthier can suggest alternatives FOR — the
-                # addressed marshal owes an answer, and the recovery line
-                # offered "scout" and "defend", both of which the gate then
-                # refuses. Name the two words instead.
-                from backend.commands.strategic import standing_last_stand_refusal
-                _held = world.get_marshal(parsed.get("partial_marshal") or "")
-                _held_refusal = (
-                    standing_last_stand_refusal(_held)
-                    if _held is not None and _held.nation == world.player_nation
-                    else None)
-                if _held_refusal is not None:
-                    berthier_msg = _held_refusal["message"]
-                else:
-                    berthier_msg = parser.llm.generate_berthier_recovery(
-                        raw_command=command_text,
-                        game_state=llm_game_state,
-                        partial_parse={
-                            "recognized_marshal": parsed.get("partial_marshal"),
-                            "recognized_target": parsed.get("partial_target"),
-                            "raw_input": parsed.get("raw_input", command_text),
-                        },
-                        # CR-3(c): the parse-stage LLM call already failed —
-                        # don't stack a second blocking call on this request
-                        skip_llm=bool(parsed.get("llm_error")),
-                    )
-                return build_base_response(
-                    world, success=False, message=berthier_msg,
-                    last_stand_pending=bool(_held_refusal),
-                    action_info={
-                        "cost": 0,
-                        "remaining": int(world.actions_remaining),
-                        "turn_advanced": False,
-                        "new_turn": None,
-                    })
-
-            # Execute command
-            result = executor.execute(parsed, game_state)
-            _ptrace.decide("executor", "result", _ptrace.result_summary(result))
+                _choices = ["trust", "insist"]
+                if (_pending_obj.get("suggested_alternative")
+                        or _pending_obj.get("compromise")
+                        or _pending_obj.get("alternative")):
+                    _choices.append("compromise")
+                _objector = _pending_obj.get("marshal", "A marshal")
+                refusal_msg += (
+                    f"\n\n{_objector} still awaits your answer, Sire. "
+                    f"Reply {_answer_words(_choices)}.")
+            # CR-7-3 rule 4: a refused HEAD cancels the tail it carried,
+            # and says so.
+            _refused_relay = None
+            if ctx.parsed.get("dropped_sequel"):
+                _refused_relay = _relay.build_relay(
+                    world, parser, ctx.llm_game_state,
+                    tail=ctx.parsed["dropped_sequel"],
+                    marshal_name=ctx.parsed.get("partial_marshal"),
+                    head_action=None, result={"success": False},
+                    question=False)
+            _refusal_response_dict = build_base_response(
+                world, success=False, message=refusal_msg,
+                objection=_pending_obj if _pending_obj else None,
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
+            _relay.attach(_refusal_response_dict, _refused_relay)
+            _relay.append_note(_refusal_response_dict, _refused_relay, standalone=True)
+            return _refusal_response_dict
 
         # ════════════════════════════════════════════════════════════
-        # CR-2: parser warnings (sequential-order drop note, non-standard
-        # marshal note) were computed and then never surfaced — append them
-        # to the player-visible message ("every input gets a response").
-        # Sits BEFORE the early-return checks so diplomatic dialogues and
-        # popup paths carry the note too. (Until CR-7-3 this comment claimed
-        # the sequel note "re-surfaces if the reissued/proceeded command
-        # re-parses" — measured FALSE on all three objection answers; the
-        # relay below stashes the tail and re-judges it when the answer lands.)
+        # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
+        # with in-character Berthier clarification. Only fires for
+        # type-1 parse failures; marshal typos & validation errors
+        # pass through unchanged.
         # ════════════════════════════════════════════════════════════
-        if result.get("success") and parsed.get("warning"):
-            result["message"] = (
-                f"{result.get('message') or ''}\n\n"
-                f"Berthier: \"{parsed['warning']}\""
-            ).strip()
-
-        # FA slice 7 review round (R1-10 / R3-6): a REFUSED repaired order
-        # still says what was assumed — "Ney, atack Lorraine" was refused
-        # about a word the player never typed. Question-bearing results
-        # (objections, clarifications) keep their own voice.
-        elif (not result.get("success") and parsed.get("typo_note")
-                and not _result_carries_question(result)):
-            result["message"] = (
-                f"{result.get('message') or ''}\n\n"
-                f"Berthier: \"{parsed['typo_note']}\""
-            ).strip()
-
-        # ════════════════════════════════════════════════════════════
-        # CR-7-3 — THE RELAY (backend/commands/relay.py). A dropped tail
-        # rides EVERY arm of this response as `dropped_sequel` +
-        # `relay_kind` + `relay_note`, and is handed back for the player's
-        # seal (`relay_command`) only when sending it now is coherent. On a
-        # question arm (objection / clarification / interrupt) it is
-        # stashed for exactly one command's life and re-judged against the
-        # LIVE state when the answer lands — the production comment that
-        # used to sit at the `warning` block above claimed the note
-        # "re-surfaces if the reissued/proceeded command re-parses";
-        # measured false on all three objection answers (`insist` /
-        # `trust` / `compromise` is a different utterance and never
-        # re-parses the compound). Computed here, and again after a CR-4
-        # focus reissue below, because the reissue rebinds both `parsed`
-        # and `result`.
-        # ════════════════════════════════════════════════════════════
-        _relay_obj = None
-
-        def _stamp_relay():
-            nonlocal _relay_obj
-            _tail = parsed.get("dropped_sequel") if isinstance(parsed, dict) else None
-            if not _tail:
-                _relay_obj = None
-                return
-            _cmd = parsed.get("command") or {}
-            # CQ-8 / CQ-38 (Score Finish Step 7 slice 5a): THE SECOND NAME IS
-            # HEARD. The parser's own sentence ends "<second>'s own waits behind
-            # it."; what became of him is said in its place, so the player reads
-            # ONE remark: a man the muster already counts as marching (or whose
-            # rente would change nothing) is acknowledged in one clause and NOT
-            # relayed (the rule BUG_FIXES CQ-8 decided); otherwise his own order
-            # rides the relay below for the player's seal, priced.
-            _second_man = (parsed.get("second_marshal")
-                           if parsed.get("dropped_sequel_kind") == "second_name" else None)
-            _second_lead = parsed.get("second_marshal_lead") or _cmd.get("marshal") or ""
-            _others = _relay.second_name_others_clause(
-                result, parsed.get("second_marshal_others") if _second_man else None)
-            if _second_man:
-                _unneeded = _relay.second_name_unneeded(
-                    world, _second_man,
-                    _relay._tail_reading(parser, _tail, llm_game_state)["action"],
-                    result, _second_lead)
-                if _unneeded:
-                    _relay.splice_second_name(result, _second_man, _unneeded + _others)
-                    _relay_obj = None
-                    return
-            _question = (_result_carries_question(result)
-                         or bool(result.get("pending_objection"))
-                         or bool(result.get("pending_interrupt")))
-            # A marshal-less head ("scout Swabia, then fortify") is executed
-            # by whoever the executor chose; the relayed tail is re-addressed
-            # to THAT man, never left bare for a second "which marshal?".
-            _who = _cmd.get("marshal") or (result.get("marshal")
-                                           if isinstance(result.get("marshal"), str)
-                                           else None)
-            if not _who:
-                # An auto-assigned order carries the actor on its first event
-                # (measured: a marshal-less `scout Swabia` returns no `marshal`
-                # key and `events[0]["marshal"] == "Soult"`).
-                _first = (result.get("events") or [None])[0]
-                if isinstance(_first, dict) and isinstance(_first.get("marshal"), str):
-                    _who = _first["marshal"]
-            _supports = bool(_second_man and parsed.get("second_marshal_supports"))
-            _relay_obj = _relay.build_relay(
-                world, parser, llm_game_state, tail=_tail,
-                marshal_name=_who, head_action=_cmd.get("action"),
-                result=result, question=_question,
-                # CQ-8 / CQ-38: the second man's own order (not his support of
-                # the first) stands on its own — the first's refusal does not
-                # cancel it.
-                independent=bool(_second_man) and not _supports)
-            # CQ-8: the second man's own order says what it is and its price.
-            if _second_man and _relay_obj.get("relay_kind") == "ready":
-                _relay_obj["relay_note"] = _relay.second_name_relay_note(
-                    world, _second_man, _relay_obj.get("relay_command") or _tail,
-                    spliced=bool(result.get("success"))) + _others
-            elif _second_man and _relay_obj.get("relay_kind") == "refused_head":
-                _relay_obj["relay_note"] = _relay_obj["relay_line"] = (
-                    _relay.second_name_refused_note(
-                        _second_lead or (_who or "the first"), _second_man, _tail))
-            elif _second_man and _others:
-                _relay_obj["relay_note"] = _relay_obj["relay_note"] + _others
-            _relay.attach(result, _relay_obj)
-            _relay.append_note(result, _relay_obj, standalone=False)
-            if _relay_obj["relay_kind"] == "question":
-                _relay.stash(world, _relay_obj, _who, _cmd.get("action"))
-
-        _stamp_relay()
-
-        # CR-5: a cautious delegation executed as an observe-first order —
-        # append the character-naming soft note (§6.3c legibility) so the
-        # player sees WHY the marshal scouted and can press the assault. Note
-        # only on a SUCCESSFUL scout (a failed reissue makes "will reconnoiter"
-        # false).
-        if _cautious_note and isinstance(result, dict) and result.get("success"):
-            # CR-5b: a live-only, register-passed spoken flavor PREFIX leads the
-            # deed-note ("the game heard me" -> then WHY he scouted). When the
-            # prefix is None (mock / absent / register-dropped) only the shipped
-            # note shows — no double-narration (delegation.resolve_live_cautious_
-            # prefix owns that decision; there is no deterministic cautious floor).
-            _cautious_tail = (
-                f"{_cautious_flavor_prefix}\n\n{_cautious_note}"
-                if _cautious_flavor_prefix else _cautious_note)
-            result["message"] = (
-                f"{(result.get('message') or '').strip()}\n\n{_cautious_tail}"
-            ).strip()
-
-        # CR-5b: the AGGRESSIVE arm's spoken flavor (register-passed live line
-        # or the deterministic floor) rides the pursue-order response. Attach
-        # ONLY on the non-modal success path: SKIP every modal shape the reissued
-        # PURSUE can raise — the bad-odds confirm (requires_input /
-        # pending_interrupt) AND a strategic/tactical objection (pending_objection
-        # / awaiting_response, e.g. a fog-driven MILD->MODERATE on the PURSUE) —
-        # so guardrail (c)'s ONE-modal legibility surface stays uncluttered
-        # (§6.3), and skip failures. Purely cosmetic — never touches the resolved
-        # order (Golden Rule 6).
-        if (_aggressive_flavor and isinstance(result, dict)
-                and result.get("success")
-                and not result.get("requires_input")
-                and not result.get("pending_interrupt")
-                and not result.get("pending_objection")
-                and not result.get("awaiting_response")):
-            result["message"] = (
-                f"{(result.get('message') or '').strip()}\n\n{_aggressive_flavor}"
-            ).strip()
-
-        # CR-5 §6.7 first-use hint — surfaced (and latched) at the point it
-        # actually rides a response, for BOTH the cautious and aggressive arms,
-        # on success OR failure. LATCH-ON-SURFACE (audit fix): maybe_delegation_
-        # hint() sets the once-per-campaign flag only here where it hands back the
-        # copy, so a first-ever delegation whose reissued order is REJECTED (not
-        # at war / no AP / marshal broken) still teaches the affordance instead of
-        # silently consuming the flag. The ASK arm surfaced its own hint and
-        # returned early, so it never reaches here.
-        if _delegation_arm_ran and isinstance(result, dict):
-            _tail_hint = maybe_delegation_hint(world)
-            if _tail_hint:
-                result["message"] = (
-                    f"{(result.get('message') or '').strip()}\n\n{_tail_hint}"
-                ).strip()
-
-        # ════════════════════════════════════════════════════════════
-        # BERTHIER EXECUTOR RECOVERY: Catch "Marshal 'None' not found"
-        # This happens when a valid action is parsed but no marshal was
-        # identified (e.g., "move to Belgium" without naming a marshal).
-        # CR-2: upgraded to the one-question marshal-choice clarification
-        # ("Which marshal shall march to Belgium, Sire?") with reissue
-        # options; Berthier prose remains the no-candidate fallback.
-        # ════════════════════════════════════════════════════════════
-        if not result.get("success") and "Marshal 'None' not found" in (result.get("message") or ""):
-            # CR-4: PERSISTENT COMMAND FOCUS — a bare specific order ("hold",
-            # "move to Vienna") defaults to the marshal the player is already
-            # commanding instead of re-asking. Only fires at this seam (the
-            # missing-executor case), so it never overrides an explicitly-
-            # addressed marshal or a general/auto-assign order; falls through
-            # to the CR-2 clarification when no eligible focus exists.
-            focus_handled = False
-            if parsed.get("success"):
-                focus_outcome = try_focus_reissue(
-                    world, parser, executor, parsed, command_text,
-                    game_state, llm_game_state)
-                if focus_outcome is not None:
-                    _before_focus = command_text
-                    parsed, command_text, result = focus_outcome
-                    print(f"[FOCUS] Reissued bare order to "
-                          f"{parsed.get('command', {}).get('marshal')}")
-                    _ptrace.note("carryover", "focus_reissue", _before_focus,
-                                 command_text,
-                                 marshal=parsed.get("command", {}).get("marshal"))
-                    _ptrace.decide("executor", "result", _ptrace.result_summary(result))
-                    focus_handled = True
-                    # CR-4 (audit): the parser-warning surfacing block ran
-                    # above on the OLD (failed) result, so the reissued
-                    # command's own warning (e.g. the sequential-clause drop
-                    # note) would be lost — re-surface it here so a focus
-                    # reissue matches an explicitly-addressed order.
-                    if result.get("success") and parsed.get("warning"):
-                        result["message"] = (
-                            f"{result.get('message') or ''}\n\n"
-                            f"Berthier: \"{parsed['warning']}\""
-                        ).strip()
-                    _stamp_relay()  # CR-7-3: the reissue rebound parsed + result
-
-            if not focus_handled:
-                # CX3-X2: never ask "Which marshal?" about a place the map
-                # lacks — the order's own refusal, free, no question staged.
-                _no_such_place = (destination_refusal(world, parsed, executor)
-                                  if parsed.get("success") else None)
-                if _no_such_place:
-                    _refused = build_base_response(
-                        world, success=False, message=_no_such_place,
-                        action_info={
-                            "cost": 0,
-                            "remaining": int(world.actions_remaining),
-                            "turn_advanced": False,
-                            "new_turn": None,
-                        })
-                    _relay.attach(_refused, _relay_obj)
-                    _relay.append_note(_refused, _relay_obj, standalone=True)
-                    return _refused
-                if parsed.get("success"):
-                    marshal_clarification = build_marshal_choice_clarification(
-                        world, parsed, command_text)
-                    if marshal_clarification is not None:
-                        marshal_clarification["clarification_registered"] = (
-                            register_pending_clarification(
-                                world, marshal_clarification, command_text))
-                        print("[CLARIFICATION] Marshal-choice question -> frontend")
-                        _relay_question(marshal_clarification, parsed)  # CR-7-3
-                        return _build_result_response(marshal_clarification, world)
-                berthier_msg = parser.llm.generate_berthier_recovery(
-                    raw_command=command_text,
-                    game_state=llm_game_state,
+        if not ctx.parsed.get("success") and (ctx.parsed.get("error") or "").startswith("Unknown action"):
+            # FA-16 review round (R2-F7): "Massena, cut your way out" is
+            # not an order Berthier can suggest alternatives FOR — the
+            # addressed marshal owes an answer, and the recovery line
+            # offered "scout" and "defend", both of which the gate then
+            # refuses. Name the two words instead.
+            from backend.commands.strategic import standing_last_stand_refusal
+            _held = world.get_marshal(ctx.parsed.get("partial_marshal") or "")
+            _held_refusal = (
+                standing_last_stand_refusal(_held)
+                if _held is not None and _held.nation == world.player_nation
+                else None)
+            if _held_refusal is not None:
+                ctx.berthier_msg = _held_refusal["message"]
+            else:
+                ctx.berthier_msg = parser.llm.generate_berthier_recovery(
+                    raw_command=ctx.command_text,
+                    game_state=ctx.llm_game_state,
                     partial_parse={
-                        "recognized_marshal": None,
-                        "recognized_target": parsed.get("command", {}).get("target"),
-                        "raw_input": command_text,
+                        "recognized_marshal": ctx.parsed.get("partial_marshal"),
+                        "recognized_target": ctx.parsed.get("partial_target"),
+                        "raw_input": ctx.parsed.get("raw_input", ctx.command_text),
                     },
-                    skip_llm=bool(parsed.get("llm_error")),  # CR-3(c)
+                    # CR-3(c): the parse-stage LLM call already failed —
+                    # don't stack a second blocking call on this request
+                    skip_llm=bool(ctx.parsed.get("llm_error")),
                 )
-                _recovery = build_base_response(
-                    world, success=False, message=berthier_msg,
+            return build_base_response(
+                world, success=False, message=ctx.berthier_msg,
+                last_stand_pending=bool(_held_refusal),
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
+
+        # Execute command
+        ctx.result = executor.execute(ctx.parsed, game_state)
+        _ptrace.decide("executor", "result", _ptrace.result_summary(ctx.result))
+    return _NEXT_STAGE
+
+
+def _command_riders(ctx: CommandContext):
+    """Stage 11 of `execute_command`: What rides the result: parser warnings
+    and the typo note, the CR-7-3 relay, CR-5's notes and first-use hint."""
+    from backend.commands import relay as _relay
+    from backend.commands.delegation import maybe_delegation_hint
+    # ════════════════════════════════════════════════════════════
+    # CR-2: parser warnings (sequential-order drop note, non-standard
+    # marshal note) were computed and then never surfaced — append them
+    # to the player-visible message ("every input gets a response").
+    # Sits BEFORE the early-return checks so diplomatic dialogues and
+    # popup paths carry the note too. (Until CR-7-3 this comment claimed
+    # the sequel note "re-surfaces if the reissued/proceeded command
+    # re-parses" — measured FALSE on all three objection answers; the
+    # relay below stashes the tail and re-judges it when the answer lands.)
+    # ════════════════════════════════════════════════════════════
+    if ctx.result.get("success") and ctx.parsed.get("warning"):
+        ctx.result["message"] = (
+            f"{ctx.result.get('message') or ''}\n\n"
+            f"Berthier: \"{ctx.parsed['warning']}\""
+        ).strip()
+
+    # FA slice 7 review round (R1-10 / R3-6): a REFUSED repaired order
+    # still says what was assumed — "Ney, atack Lorraine" was refused
+    # about a word the player never typed. Question-bearing results
+    # (objections, clarifications) keep their own voice.
+    elif (not ctx.result.get("success") and ctx.parsed.get("typo_note")
+            and not _result_carries_question(ctx.result)):
+        ctx.result["message"] = (
+            f"{ctx.result.get('message') or ''}\n\n"
+            f"Berthier: \"{ctx.parsed['typo_note']}\""
+        ).strip()
+
+    # ════════════════════════════════════════════════════════════
+    # CR-7-3 — THE RELAY (backend/commands/relay.py). A dropped tail
+    # rides EVERY arm of this response as `dropped_sequel` +
+    # `relay_kind` + `relay_note`, and is handed back for the player's
+    # seal (`relay_command`) only when sending it now is coherent. On a
+    # question arm (objection / clarification / interrupt) it is
+    # stashed for exactly one command's life and re-judged against the
+    # LIVE state when the answer lands — the production comment that
+    # used to sit at the `warning` block above claimed the note
+    # "re-surfaces if the reissued/proceeded command re-parses";
+    # measured false on all three objection answers (`insist` /
+    # `trust` / `compromise` is a different utterance and never
+    # re-parses the compound). Computed here, and again after a CR-4
+    # focus reissue below, because the reissue rebinds both `parsed`
+    # and `result`.
+    # ════════════════════════════════════════════════════════════
+    ctx._relay_obj = None
+
+    def _stamp_relay():
+        _tail = ctx.parsed.get("dropped_sequel") if isinstance(ctx.parsed, dict) else None
+        if not _tail:
+            ctx._relay_obj = None
+            return
+        _cmd = ctx.parsed.get("command") or {}
+        # CQ-8 / CQ-38 (Score Finish Step 7 slice 5a): THE SECOND NAME IS
+        # HEARD. The parser's own sentence ends "<second>'s own waits behind
+        # it."; what became of him is said in its place, so the player reads
+        # ONE remark: a man the muster already counts as marching (or whose
+        # rente would change nothing) is acknowledged in one clause and NOT
+        # relayed (the rule BUG_FIXES CQ-8 decided); otherwise his own order
+        # rides the relay below for the player's seal, priced.
+        _second_man = (ctx.parsed.get("second_marshal")
+                       if ctx.parsed.get("dropped_sequel_kind") == "second_name" else None)
+        _second_lead = ctx.parsed.get("second_marshal_lead") or _cmd.get("marshal") or ""
+        _others = _relay.second_name_others_clause(
+            ctx.result, ctx.parsed.get("second_marshal_others") if _second_man else None)
+        if _second_man:
+            _unneeded = _relay.second_name_unneeded(
+                world, _second_man,
+                _relay._tail_reading(parser, _tail, ctx.llm_game_state)["action"],
+                ctx.result, _second_lead)
+            if _unneeded:
+                _relay.splice_second_name(ctx.result, _second_man, _unneeded + _others)
+                ctx._relay_obj = None
+                return
+        _question = (_result_carries_question(ctx.result)
+                     or bool(ctx.result.get("pending_objection"))
+                     or bool(ctx.result.get("pending_interrupt")))
+        # A marshal-less head ("scout Swabia, then fortify") is executed
+        # by whoever the executor chose; the relayed tail is re-addressed
+        # to THAT man, never left bare for a second "which marshal?".
+        _who = _cmd.get("marshal") or (ctx.result.get("marshal")
+                                       if isinstance(ctx.result.get("marshal"), str)
+                                       else None)
+        if not _who:
+            # An auto-assigned order carries the actor on its first event
+            # (measured: a marshal-less `scout Swabia` returns no `marshal`
+            # key and `events[0]["marshal"] == "Soult"`).
+            _first = (ctx.result.get("events") or [None])[0]
+            if isinstance(_first, dict) and isinstance(_first.get("marshal"), str):
+                _who = _first["marshal"]
+        _supports = bool(_second_man and ctx.parsed.get("second_marshal_supports"))
+        ctx._relay_obj = _relay.build_relay(
+            world, parser, ctx.llm_game_state, tail=_tail,
+            marshal_name=_who, head_action=_cmd.get("action"),
+            result=ctx.result, question=_question,
+            # CQ-8 / CQ-38: the second man's own order (not his support of
+            # the first) stands on its own — the first's refusal does not
+            # cancel it.
+            independent=bool(_second_man) and not _supports)
+        # CQ-8: the second man's own order says what it is and its price.
+        if _second_man and ctx._relay_obj.get("relay_kind") == "ready":
+            ctx._relay_obj["relay_note"] = _relay.second_name_relay_note(
+                world, _second_man, ctx._relay_obj.get("relay_command") or _tail,
+                spliced=bool(ctx.result.get("success"))) + _others
+        elif _second_man and ctx._relay_obj.get("relay_kind") == "refused_head":
+            ctx._relay_obj["relay_note"] = ctx._relay_obj["relay_line"] = (
+                _relay.second_name_refused_note(
+                    _second_lead or (_who or "the first"), _second_man, _tail))
+        elif _second_man and _others:
+            ctx._relay_obj["relay_note"] = ctx._relay_obj["relay_note"] + _others
+        _relay.attach(ctx.result, ctx._relay_obj)
+        _relay.append_note(ctx.result, ctx._relay_obj, standalone=False)
+        if ctx._relay_obj["relay_kind"] == "question":
+            _relay.stash(world, ctx._relay_obj, _who, _cmd.get("action"))
+    ctx._stamp_relay = _stamp_relay
+
+    ctx._stamp_relay()
+
+    # CR-5: a cautious delegation executed as an observe-first order —
+    # append the character-naming soft note (§6.3c legibility) so the
+    # player sees WHY the marshal scouted and can press the assault. Note
+    # only on a SUCCESSFUL scout (a failed reissue makes "will reconnoiter"
+    # false).
+    if ctx._cautious_note and isinstance(ctx.result, dict) and ctx.result.get("success"):
+        # CR-5b: a live-only, register-passed spoken flavor PREFIX leads the
+        # deed-note ("the game heard me" -> then WHY he scouted). When the
+        # prefix is None (mock / absent / register-dropped) only the shipped
+        # note shows — no double-narration (delegation.resolve_live_cautious_
+        # prefix owns that decision; there is no deterministic cautious floor).
+        _cautious_tail = (
+            f"{ctx._cautious_flavor_prefix}\n\n{ctx._cautious_note}"
+            if ctx._cautious_flavor_prefix else ctx._cautious_note)
+        ctx.result["message"] = (
+            f"{(ctx.result.get('message') or '').strip()}\n\n{_cautious_tail}"
+        ).strip()
+
+    # CR-5b: the AGGRESSIVE arm's spoken flavor (register-passed live line
+    # or the deterministic floor) rides the pursue-order response. Attach
+    # ONLY on the non-modal success path: SKIP every modal shape the reissued
+    # PURSUE can raise — the bad-odds confirm (requires_input /
+    # pending_interrupt) AND a strategic/tactical objection (pending_objection
+    # / awaiting_response, e.g. a fog-driven MILD->MODERATE on the PURSUE) —
+    # so guardrail (c)'s ONE-modal legibility surface stays uncluttered
+    # (§6.3), and skip failures. Purely cosmetic — never touches the resolved
+    # order (Golden Rule 6).
+    if (ctx._aggressive_flavor and isinstance(ctx.result, dict)
+            and ctx.result.get("success")
+            and not ctx.result.get("requires_input")
+            and not ctx.result.get("pending_interrupt")
+            and not ctx.result.get("pending_objection")
+            and not ctx.result.get("awaiting_response")):
+        ctx.result["message"] = (
+            f"{(ctx.result.get('message') or '').strip()}\n\n{ctx._aggressive_flavor}"
+        ).strip()
+
+    # CR-5 §6.7 first-use hint — surfaced (and latched) at the point it
+    # actually rides a response, for BOTH the cautious and aggressive arms,
+    # on success OR failure. LATCH-ON-SURFACE (audit fix): maybe_delegation_
+    # hint() sets the once-per-campaign flag only here where it hands back the
+    # copy, so a first-ever delegation whose reissued order is REJECTED (not
+    # at war / no AP / marshal broken) still teaches the affordance instead of
+    # silently consuming the flag. The ASK arm surfaced its own hint and
+    # returned early, so it never reaches here.
+    if ctx._delegation_arm_ran and isinstance(ctx.result, dict):
+        _tail_hint = maybe_delegation_hint(world)
+        if _tail_hint:
+            ctx.result["message"] = (
+                f"{(ctx.result.get('message') or '').strip()}\n\n{_tail_hint}"
+            ).strip()
+    return _NEXT_STAGE
+
+
+def _command_executor_recovery(ctx: CommandContext):
+    """Stage 12 of `execute_command`: No marshal named: the CR-4 focus reissue,
+    CX3-X2, the CR-2 marshal choice, Berthier."""
+    from backend.commands import relay as _relay
+    from backend.commands.clarification import (
+        build_marshal_choice_clarification,
+        destination_refusal,
+        register_pending_clarification,
+    )
+    from backend.commands.context_carryover import try_focus_reissue
+    # ════════════════════════════════════════════════════════════
+    # BERTHIER EXECUTOR RECOVERY: Catch "Marshal 'None' not found"
+    # This happens when a valid action is parsed but no marshal was
+    # identified (e.g., "move to Belgium" without naming a marshal).
+    # CR-2: upgraded to the one-question marshal-choice clarification
+    # ("Which marshal shall march to Belgium, Sire?") with reissue
+    # options; Berthier prose remains the no-candidate fallback.
+    # ════════════════════════════════════════════════════════════
+    if not ctx.result.get("success") and "Marshal 'None' not found" in (ctx.result.get("message") or ""):
+        # CR-4: PERSISTENT COMMAND FOCUS — a bare specific order ("hold",
+        # "move to Vienna") defaults to the marshal the player is already
+        # commanding instead of re-asking. Only fires at this seam (the
+        # missing-executor case), so it never overrides an explicitly-
+        # addressed marshal or a general/auto-assign order; falls through
+        # to the CR-2 clarification when no eligible focus exists.
+        focus_handled = False
+        if ctx.parsed.get("success"):
+            focus_outcome = try_focus_reissue(
+                world, parser, executor, ctx.parsed, ctx.command_text,
+                game_state, ctx.llm_game_state)
+            if focus_outcome is not None:
+                _before_focus = ctx.command_text
+                ctx.parsed, ctx.command_text, ctx.result = focus_outcome
+                print(f"[FOCUS] Reissued bare order to "
+                      f"{ctx.parsed.get('command', {}).get('marshal')}")
+                _ptrace.note("carryover", "focus_reissue", _before_focus,
+                             ctx.command_text,
+                             marshal=ctx.parsed.get("command", {}).get("marshal"))
+                _ptrace.decide("executor", "result", _ptrace.result_summary(ctx.result))
+                focus_handled = True
+                # CR-4 (audit): the parser-warning surfacing block ran
+                # above on the OLD (failed) result, so the reissued
+                # command's own warning (e.g. the sequential-clause drop
+                # note) would be lost — re-surface it here so a focus
+                # reissue matches an explicitly-addressed order.
+                if ctx.result.get("success") and ctx.parsed.get("warning"):
+                    ctx.result["message"] = (
+                        f"{ctx.result.get('message') or ''}\n\n"
+                        f"Berthier: \"{ctx.parsed['warning']}\""
+                    ).strip()
+                ctx._stamp_relay()  # CR-7-3: the reissue rebound parsed + result
+
+        if not focus_handled:
+            # CX3-X2: never ask "Which marshal?" about a place the map
+            # lacks — the order's own refusal, free, no question staged.
+            _no_such_place = (destination_refusal(world, ctx.parsed, executor)
+                              if ctx.parsed.get("success") else None)
+            if _no_such_place:
+                _refused = build_base_response(
+                    world, success=False, message=_no_such_place,
                     action_info={
                         "cost": 0,
                         "remaining": int(world.actions_remaining),
                         "turn_advanced": False,
                         "new_turn": None,
                     })
-                # CR-7-3 rule 4: the head found no marshal — the tail it
-                # carried is named as not relayed, never lost in silence.
-                _relay.attach(_recovery, _relay_obj)
-                _relay.append_note(_recovery, _relay_obj, standalone=True)
-                return _recovery
-
-        # ════════════════════════════════════════════════════════════
-        # CHECK FOR OBJECTION: If awaiting player choice, return full result
-        # Tactical objections: state == "awaiting_player_choice"
-        # Strategic objections (Phase M): pending_objection == True
-        # ════════════════════════════════════════════════════════════
-        if result.get("state") == "awaiting_player_choice":
-            print("[OBJECTION] TACTICAL OBJECTION - Returning full result to frontend")
-            return _build_result_response(result, world)
-
-        if result.get("pending_objection"):
-            print("[OBJECTION] STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
-            return _build_result_response(result, world)
-
-        # ════════════════════════════════════════════════════════════
-        # CHECK FOR CLARIFICATION: If awaiting clarification, return full result
-        # CR-2: also register the question on the DialogueManager so the
-        # player's next typed input can answer it (player path only — AI
-        # commands never flow through this endpoint).
-        # ════════════════════════════════════════════════════════════
-        if result.get("state") == "awaiting_clarification":
-            result["clarification_registered"] = (
-                register_pending_clarification(world, result, command_text))
-            print("[CLARIFICATION] Returning clarification popup to frontend")
-            return _build_result_response(result, world)
-
-        # ════════════════════════════════════════════════════════════
-        # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
-        # ════════════════════════════════════════════════════════════
-        if result.get("pending_glorious_charge"):
-            print("GLORIOUS CHARGE PENDING - Returning full result to frontend")
-            return _build_result_response(result, world)
-
-        # ════════════════════════════════════════════════════════════
-        # CHECK FOR STRATEGIC INTERRUPT: Blocked path, cannon fire popup
-        # (Session 39: was missing — pending_interrupt dropped at response build)
-        # ════════════════════════════════════════════════════════════
-        if result.get("pending_interrupt"):
-            print("[INTERRUPT] STRATEGIC INTERRUPT - Returning full result to frontend")
-            return _build_result_response(result, world)
-
-        # ════════════════════════════════════════════════════════════
-        # CHECK FOR CAPTURE CHOICE (Phase 6.2.E): Plunder or Secure popup
-        # ════════════════════════════════════════════════════════════
-        if result.get("pending_capture_choice"):
-            print("[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
-            # IGR-X7: this early-return's client route reads only the capture
-            # keys — popping a queued popup here would discard it.
-            return _build_result_response(result, world, drain_popups=False)
-
-        # ════════════════════════════════════════════════════════════
-        # CHECK FOR DIPLOMATIC DIALOGUE (Phase 8 Session 3)
-        # ════════════════════════════════════════════════════════════
-        if result.get("diplomatic_dialogue") or result.get("awaiting_diplomatic_response"):
-            print("[DIPLOMATIC] Diplomatic dialogue - Returning full result to frontend")
-            return _build_result_response(result, world)
+                _relay.attach(_refused, ctx._relay_obj)
+                _relay.append_note(_refused, ctx._relay_obj, standalone=True)
+                return _refused
+            if ctx.parsed.get("success"):
+                marshal_clarification = build_marshal_choice_clarification(
+                    world, ctx.parsed, ctx.command_text)
+                if marshal_clarification is not None:
+                    marshal_clarification["clarification_registered"] = (
+                        register_pending_clarification(
+                            world, marshal_clarification, ctx.command_text))
+                    print("[CLARIFICATION] Marshal-choice question -> frontend")
+                    ctx._relay_question(marshal_clarification, ctx.parsed)  # CR-7-3
+                    return _build_result_response(marshal_clarification, world)
+            ctx.berthier_msg = parser.llm.generate_berthier_recovery(
+                raw_command=ctx.command_text,
+                game_state=ctx.llm_game_state,
+                partial_parse={
+                    "recognized_marshal": None,
+                    "recognized_target": ctx.parsed.get("command", {}).get("target"),
+                    "raw_input": ctx.command_text,
+                },
+                skip_llm=bool(ctx.parsed.get("llm_error")),  # CR-3(c)
+            )
+            _recovery = build_base_response(
+                world, success=False, message=ctx.berthier_msg,
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
+            # CR-7-3 rule 4: the head found no marshal — the tail it
+            # carried is named as not relayed, never lost in silence.
+            _relay.attach(_recovery, ctx._relay_obj)
+            _relay.append_note(_recovery, ctx._relay_obj, standalone=True)
+            return _recovery
+    return _NEXT_STAGE
 
 
-        # ════════════════════════════════════════════════════════════
-        # FEEDBACK GENERATION (Phase 5): Generate immersive feedback
-        # Only for non-mock mode, successful player commands
-        #
-        # REQUIRED FIELDS FROM parser.parse() - see parser.py docstring:
-        #   - parsed["mode"]: "mock" or "live"
-        #   - parsed["strategic_score"]: 0-100 (controls morale/trust bonus)
-        #   - parsed["ambiguity"]: 0-100 (controls clarity feedback)
-        #
-        # If these are missing, check parser.py return dict construction!
-        # ════════════════════════════════════════════════════════════
-        feedback = {}
-        mode = parsed.get("mode", "mock")
+def _command_question_returns(ctx: CommandContext):
+    """Stage 13 of `execute_command`: A result carrying a question or a popup
+    returns whole."""
+    from backend.commands.clarification import register_pending_clarification
+    # ════════════════════════════════════════════════════════════
+    # CHECK FOR OBJECTION: If awaiting player choice, return full result
+    # Tactical objections: state == "awaiting_player_choice"
+    # Strategic objections (Phase M): pending_objection == True
+    # ════════════════════════════════════════════════════════════
+    if ctx.result.get("state") == "awaiting_player_choice":
+        print("[OBJECTION] TACTICAL OBJECTION - Returning full result to frontend")
+        return _build_result_response(ctx.result, world)
 
-        if mode != "mock" and result.get("success", False):
-            from backend.ai.feedback import get_strategic_feedback, get_ambiguity_feedback
+    if ctx.result.get("pending_objection"):
+        print("[OBJECTION] STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
+        return _build_result_response(ctx.result, world)
 
-            # Get scores from parsed command
-            strategic_score = parsed.get("strategic_score", 0)
-            ambiguity_score = parsed.get("ambiguity", 0)
-            print(f"[FEEDBACK DEBUG] mode={mode}, strategic_score={strategic_score}, ambiguity={ambiguity_score}")
+    # ════════════════════════════════════════════════════════════
+    # CHECK FOR CLARIFICATION: If awaiting clarification, return full result
+    # CR-2: also register the question on the DialogueManager so the
+    # player's next typed input can answer it (player path only — AI
+    # commands never flow through this endpoint).
+    # ════════════════════════════════════════════════════════════
+    if ctx.result.get("state") == "awaiting_clarification":
+        ctx.result["clarification_registered"] = (
+            register_pending_clarification(world, ctx.result, ctx.command_text))
+        print("[CLARIFICATION] Returning clarification popup to frontend")
+        return _build_result_response(ctx.result, world)
 
-            # Get marshal info - try result first, then parsed command
-            marshal_name = result.get("marshal") or parsed.get("command", {}).get("marshal")
-            if marshal_name:
-                marshal = world.get_marshal(marshal_name)
-                if marshal and marshal.nation == world.player_nation:
-                    personality = getattr(marshal, 'personality', 'balanced')
+    # ════════════════════════════════════════════════════════════
+    # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
+    # ════════════════════════════════════════════════════════════
+    if ctx.result.get("pending_glorious_charge"):
+        print("GLORIOUS CHARGE PENDING - Returning full result to frontend")
+        return _build_result_response(ctx.result, world)
 
-                    # Generate feedback strings
-                    strategic_text = get_strategic_feedback(strategic_score, marshal_name)
-                    ambiguity_text = get_ambiguity_feedback(ambiguity_score, marshal_name, personality)
+    # ════════════════════════════════════════════════════════════
+    # CHECK FOR STRATEGIC INTERRUPT: Blocked path, cannon fire popup
+    # (Session 39: was missing — pending_interrupt dropped at response build)
+    # ════════════════════════════════════════════════════════════
+    if ctx.result.get("pending_interrupt"):
+        print("[INTERRUPT] STRATEGIC INTERRUPT - Returning full result to frontend")
+        return _build_result_response(ctx.result, world)
 
-                    if strategic_text:
-                        feedback["strategic"] = strategic_text
-                    if ambiguity_text:
-                        feedback["ambiguity"] = ambiguity_text
+    # ════════════════════════════════════════════════════════════
+    # CHECK FOR CAPTURE CHOICE (Phase 6.2.E): Plunder or Secure popup
+    # ════════════════════════════════════════════════════════════
+    if ctx.result.get("pending_capture_choice"):
+        print("[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
+        # IGR-X7: this early-return's client route reads only the capture
+        # keys — popping a queued popup here would discard it.
+        return _build_result_response(ctx.result, world, drain_popups=False)
 
-        response = _build_command_response(result, world, feedback)
-        _apply_command_result_layers(response, result, world)
-        return response
-    except Exception as e:
-        _errors.report(e, "main.execute_command: the route", every=True)
-        import traceback
-        traceback.print_exc()
-        return build_base_response(
-            world, success=False, message=f"Error: {str(e)}",
-            action_info={"remaining": int(world.actions_remaining)},
-            **_errors.debug_fields(e, "main.execute_command: the route", DEBUG_MODE))
+    # ════════════════════════════════════════════════════════════
+    # CHECK FOR DIPLOMATIC DIALOGUE (Phase 8 Session 3)
+    # ════════════════════════════════════════════════════════════
+    if ctx.result.get("diplomatic_dialogue") or ctx.result.get("awaiting_diplomatic_response"):
+        print("[DIPLOMATIC] Diplomatic dialogue - Returning full result to frontend")
+        return _build_result_response(ctx.result, world)
+    return _NEXT_STAGE
+
+
+def _command_respond(ctx: CommandContext):
+    """Stage 14 of `execute_command`: Live-mode feedback (Phase 5) and the
+    response."""
+    # ════════════════════════════════════════════════════════════
+    # FEEDBACK GENERATION (Phase 5): Generate immersive feedback
+    # Only for non-mock mode, successful player commands
+    #
+    # REQUIRED FIELDS FROM parser.parse() - see parser.py docstring:
+    #   - parsed["mode"]: "mock" or "live"
+    #   - parsed["strategic_score"]: 0-100 (controls morale/trust bonus)
+    #   - parsed["ambiguity"]: 0-100 (controls clarity feedback)
+    #
+    # If these are missing, check parser.py return dict construction!
+    # ════════════════════════════════════════════════════════════
+    feedback = {}
+    mode = ctx.parsed.get("mode", "mock")
+
+    if mode != "mock" and ctx.result.get("success", False):
+        from backend.ai.feedback import get_strategic_feedback, get_ambiguity_feedback
+
+        # Get scores from parsed command
+        strategic_score = ctx.parsed.get("strategic_score", 0)
+        ambiguity_score = ctx.parsed.get("ambiguity", 0)
+        print(f"[FEEDBACK DEBUG] mode={mode}, strategic_score={strategic_score}, ambiguity={ambiguity_score}")
+
+        # Get marshal info - try result first, then parsed command
+        marshal_name = ctx.result.get("marshal") or ctx.parsed.get("command", {}).get("marshal")
+        if marshal_name:
+            marshal = world.get_marshal(marshal_name)
+            if marshal and marshal.nation == world.player_nation:
+                personality = getattr(marshal, 'personality', 'balanced')
+
+                # Generate feedback strings
+                strategic_text = get_strategic_feedback(strategic_score, marshal_name)
+                ambiguity_text = get_ambiguity_feedback(ambiguity_score, marshal_name, personality)
+
+                if strategic_text:
+                    feedback["strategic"] = strategic_text
+                if ambiguity_text:
+                    feedback["ambiguity"] = ambiguity_text
+
+    response = _build_command_response(ctx.result, world, feedback)
+    _apply_command_result_layers(response, ctx.result, world)
+    return response
 
 
 @app.get("/status")

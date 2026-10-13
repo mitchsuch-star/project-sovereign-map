@@ -259,13 +259,16 @@ class TestRuntimeLog:
 
     def test_the_command_endpoint_records_and_keeps_its_body(self):
         """The transcript rides a DECORATOR on `execute_command`, so the
-        pipeline stays under its own name (three source pins read it) and the
-        provenance key is read in main.py, the census's one allowed reader."""
+        pipeline stays under its own name and the provenance key is read in
+        main.py, the census's one allowed reader. CODE-2b (October 13, 2026):
+        the pipeline is the driver plus its `_command_*` stages
+        (`tests/_command_stages.py`), the decorator on the driver."""
         import inspect
         import backend.main as M
+        from tests._command_stages import command_source
         assert getattr(M.execute_command, "__wrapped__", None) is not None
-        src = inspect.getsource(M.execute_command)
-        assert "@_records_transcript" in src
+        assert "@_records_transcript" in inspect.getsource(M.execute_command)
+        src = command_source()
         assert len(src) > 5000, "the body must be the pipeline, not a wrapper"
         rl_src = _read(REPO / "backend" / "runtime_log.py")
         assert "parse_mode" not in rl_src

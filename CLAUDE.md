@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 13, 2026).** The three most recent landed rows:
+- **S10 slice 1 (October 13, 2026) — CODE-2b `execute_command` — LANDED.** The `/command` route = fifteen `_command_*` stages behind one `CommandContext`. **Functions over 500 lines 33 → 32; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b; pins `tests/test_code2b_the_command_is_staged.py`). **NEXT = slice 2 `format_event_oneliner`**.
 - **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112). **NEXT = S10, CODE-2b**.
 - **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (`tests/test_uxr2_layout_law.py`, allowlist 0); six screens + the war HUD gripped and remembered (`ResizeGrip`, driven); font overrides 72 → 18; whole client 0 RED / 0 P1 (§111).
-- **S8b (October 12, 2026) — CODE-2a + CODE-1 batch 6 — LANDED.** `_execute_attack` = twenty `_attack_*` stages behind one `AttackContext`. **Functions over 500 lines 34 → 33; levers 358 → 231; the series byte-identical** (`CODE_HEALTH_PLAN.md` §CODE-2; pins `tests/test_code2a_the_attack_is_staged.py`). **NEXT = S9, UXR-2**.
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 
@@ -58,7 +58,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 | File | Purpose |
 |------|---------|
-| `backend/main.py` | FastAPI endpoints, response formatting |
+| `backend/main.py` | FastAPI endpoints, response formatting; `/command` = `execute_command`: 15 `_command_*` stages (CODE-2b) |
 | `backend/commands/executor.py` | Action execution, dispatch, objection routing (~1.5k lines) |
 | `backend/commands/combat_executor.py` | Combat execution + coordination: attack, bombardment, charge, garrison, form_square, post-combat pipeline, multi-marshal coordination, reinforcements, overwatch, auto-dispatch combat (~4.7k lines, R10A+R10B) |
 | `backend/commands/strategic_executor.py` | Strategic order execution: MOVE_TO, PURSUE, HOLD, SUPPORT, cancel, objection messages, target resolution, first-step blocking (~1.8k lines, R11) |

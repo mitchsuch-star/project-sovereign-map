@@ -562,12 +562,11 @@ class TestN5PlainEnglishAnswers:
         assert len(self._answers("trust him or insist?")) == 2
 
     def test_main_routes_the_plain_english_form(self):
-        """Pin the wiring, not just the predicate."""
-        import inspect
+        """Pin the wiring, not just the predicate. (CODE-2b, October 13, 2026:
+        the route is the driver plus its stages.)"""
+        from tests._command_stages import command_source
 
-        import backend.main as main_module
-
-        src = inspect.getsource(main_module.execute_command)
+        src = command_source()
         assert "_objection_pending" in src
         assert "Plain-English objection answer" in src
 
@@ -3305,10 +3304,10 @@ class TestReviewObjectionAnswersAreNegationSafe:
             f"'{line}' stopped resolving the objection")
 
     def test_main_applies_both_guards_before_matching(self):
-        import inspect
-
-        import backend.main as main_module
-        src = inspect.getsource(main_module.execute_command)
+        # CODE-2b (October 13, 2026): the route is the driver plus its
+        # stages, joined in run order, so "before" still reads the same.
+        from tests._command_stages import command_source
+        src = command_source()
         at = src.index("Plain-English objection answer")
         head = src[:at]
         assert "strip_negated_clauses" in head
