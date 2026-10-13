@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 13, 2026).** The three most recent landed rows:
-- **S10b (October 13, 2026) — CODE-2c — LANDED.** `_ratify_treaty` = 9 `_ratify_*` stages; `_process_dialogue_choice` = 9 `_choice_*` (elif mode). **Funcs over 500 lines 30 → 28; CODE-2 DONE** (`CODE_HEALTH_PLAN.md` §CODE-2c). **NEXT = S11 UXR-3**.
+- **S11 (October 13, 2026) — UXR-3 the review — LANDED.** 145 surfaces × 8 items (frozen `UX_CHECKLIST_V1.json`), 3 blind readers: 787 ✓ / 373 ✗; 84 rows for S12 (`docs/audits/UXR3_REVIEW_2026_10_13.md`). **NEXT = S12** (2 sessions).
+- **S10b (October 13, 2026) — CODE-2c — LANDED.** `_ratify_treaty` = 9 `_ratify_*` stages; `_process_dialogue_choice` = 9 `_choice_*` (elif mode). **Funcs over 500 lines 30 → 28; CODE-2 DONE** (`CODE_HEALTH_PLAN.md` §CODE-2c).
 - **S10 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages; `format_event_oneliner` = 12 `_oneliner_*`; `_execute_strategic_command` = 11 `_strategic_*`. **Funcs over 500 lines 33 → 30** (`CODE_HEALTH_PLAN.md` §CODE-2b).
-- **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112).
 
 **Open with the user:** UXR-4 alone (the eyes-on sign-off at 5120×1440, S15). Every design row was ruled Oct 13 (S12b = UXR-D4).
 

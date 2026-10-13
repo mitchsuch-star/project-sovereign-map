@@ -591,6 +591,52 @@ five first and re-reads only the flipped items.
 **Done when:** every surface in the order above has a reading; the top five
 surfaces by time on screen read 8 of 8; no surface reads under 6 of 8.
 
+### Landing record — UXR-3, the review (Pre-Deploy S11, October 13, 2026)
+
+> Three commits on master: `603d983f` Part 1, the checklist frozen; `db565b1a` Part 2, the evidence; `1cca0d31` Part 3, the reading; then the close. The review is `docs/audits/UXR3_REVIEW_2026_10_13.md`; records `docs/audits/uxr3/`; rules `SYSTEMS_REFERENCE.md` §113; rows `BUG_FIXES.md` §UXR-3 — the review; pins `tests/test_uxr3_checklist_frozen.py` (the freeze), `tests/test_uxr3_the_review.py` (the reading). Nothing in the client changed.
+
+**The checklist** (`docs/UX_CHECKLIST_V1.json`) was frozen before the first reading. It holds the eight items above, each with its judge and exact pass rule as the S11 hand-off decided them: R1 at all five resolutions; R3 with High contrast off; R4 failing on a one-off size or grey from the census; R5 failing on any SILENT control in the driven probe; R6 failing when unproven; R7 at 1920, 3840 and the user's 5120.
+- **The order:** the ten groups in this section's order, split into 145 surfaces. That is the 142 IQ-10 shots plus the three popups the plan names that the manifest has never shot (`objection_dialog`, `talleyrand_objection`, `capture_choice`).
+- **The top five by time on screen** are the first five groups. The Diplomatic Ledger reads with the diplomacy group; the Moniteur and the campaign log read with the dispatch.
+
+**The evidence**, all from the frozen tree:
+- **The shoot.** 710 frames at five resolutions with the derived scale, every reading ok, 0 SCRIPT ERROR, 0 stray input; again with High contrast on.
+- **The harness gained R7's and R4's records:** layers, unclipped rects, every button, cut text, what lies under a modal, the files that drew the frame, and a real-time `settle_ms`.
+- **New tools:**
+  - `tools/uxr3_action_probe.py` + `.gd`: every control of each live frame clicked in a fresh instance — 785 VISIBLE, 85 SILENT, 234 HANDOFF, 25 DISABLED, 13 NOT PRESSED, 0 crashes.
+  - `tools/uxr3_consistency_census.py` (R4) and `tools/uxr3_fit_report.py` (R7).
+  - `tools/uxr3_review.py`, the assembler.
+- **The Mode C session:** 95 of 95 checks, 5 turns, 21 modals answered.
+- **Corrected before the readers marked:** the main menu re-shot at steady state (its entrance animation runs in real time); three probe defects fixed and their surfaces re-probed; the host rule for HUD pieces shot alone. The review's §6 states each one.
+
+**The reading.** 145 × 8 = 1,160 marks: **787 ✓, 373 ✗**, on 138 surfaces.
+
+| Item | ✓ of 145 | Item | ✓ of 145 |
+|---|---|---|---|
+| R1 Readable | 142 | R5 Affordance | 72 |
+| R2 Hierarchy | 105 | R6 Feedback | 58 |
+| R3 Contrast | 45 | R7 Fit | 142 |
+| R4 Consistency | 84 | R8 Discoverability | 139 |
+
+- **Readers.** Three blind readers, launched in one message, gave the mark two of three; 406 of the 435 reader marks were 3–0.
+- **Seven surfaces read 8 of 8:** the two campaign-log shots, the two white-peace reviews, the last-stand question, and both client's-petition popups.
+- **Group means:** the war room 5.85, the dispatch 6.91, the Generals 4.38, diplomacy 5.54, the Strategic Ledger 4.56, the tutorial 5.00, the enemy phase and diorama 5.62, the popups 5.10, the menu 5.00, the end card 6.57.
+
+**The worst five:** `objection_dialog` 0, `capture_choice` 0, `talleyrand_objection` 1 (never shot), then `war_room_tutorial` 3 and `generals_t20` 4. The worst five the harness reaches are `war_room_tutorial` and four Generals boards at 4.
+
+**What fails most:**
+- `808080` body text on the dark panels reads 4.11–4.44 : 1 and fails R3 on 63 surfaces by itself.
+- Every tabbed screen's live active tab is SILENT (R5 and R6 on 56 surfaces).
+- Command chips only signal `main.gd`, with no live record of the answer (R6).
+- A board's subject sits below the fold (R2).
+
+**Filed** in `BUG_FIXES.md` §UXR-3 — the review:
+- **UXR3-1 … UXR3-73**, one per item, cause and scene, for all 373 ✗ (30 P2, 43 P3). The owner is S12; the completion is the item re-read ✓.
+- **UXR3-F1 … F11**, found while reading: the readers' notes and the conductor's checks. Two are P2: the war-detail bar hides a losing score's minus; the four-rank diorama's standards stand one rank off. F11, the end screen's "50 of 45 titled provinces", is backend copy and is S14's.
+- UXR-X9 and UXR-X28 are cross-referenced, not re-filed.
+
+**The done-when.** S11's own is **MET**: every surface in the order has a reading, every ✗ is filed with owner S12, and the worst five are named. §UXR-3's done-when (the top five at 8 of 8, none under 6) is **S12's**. Today 4 of the top five's 115 surfaces read 8 of 8 and 82 surfaces read under 6. "None under 6" already holds on the dispatch group and the campaign-end card.
+
 ## UXR-4 — The user's eyes (0.5 session, the last before the deploy)
 
 The sign-off convention stands: the user, at their monitor, in the real client.
