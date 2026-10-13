@@ -116,7 +116,8 @@ def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
     index = json.loads(index_path.read_text(encoding="utf-8"))
     out: dict = {"date": index.get("date"), "source": str(index_path), "surfaces": {},
                  "client_commit": index.get("client_commit", ""),
-                 "physical_scale": index.get("physical_scale")}
+                 "physical_scale": index.get("physical_scale"),
+                 "text_size": float(index.get("text_size", 1.0) or 1.0)}
     for row in index.get("rows", []):
         base = str(row.get("base_id") or row.get("id"))
         if surfaces and base not in surfaces:
@@ -128,6 +129,10 @@ def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
             win = res.get("window") or [0, 0]
             scale = float(res.get("scale", res.get("content_scale_factor", 1.0)))
             key = "%dx%d@%.2f" % (int(win[0]), int(win[1]), scale)
+            # UXR-D1: a reading at another Text size is keyed apart from it.
+            text_size = float(res.get("text_size", 1.0) or 1.0)
+            if abs(text_size - 1.0) > 1e-9:
+                key += "/T%.2f" % text_size
             texts = frames[-1].get("texts") or []
             flagged = []
             counts = {"rows": 0, "red": 0, "p1": 0, "ok": 0, "map": 0, "map_small": 0}
@@ -152,7 +157,7 @@ def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
             surf = out["surfaces"].setdefault(base, {"surface": row.get("surface", base),
                                                      "readings": {}})
             surf["readings"][key] = {
-                "window": [int(win[0]), int(win[1])], "scale": scale,
+                "window": [int(win[0]), int(win[1])], "scale": scale, "text_size": text_size,
                 "ok": res.get("ok", False), "counts": counts, "flagged": flagged,
             }
     return out

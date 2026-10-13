@@ -26,6 +26,9 @@ signal ui_scale_changed(value, persist)
 # card ("Preview with a sample…") and re-fit the terminal after Reset layout.
 signal size_card_requested
 signal layout_reset
+# UXR-D1 (Pre-Deploy S9b): the panel re-themed the type sizes; main.gd refits
+# every open surface on the live-refit road.
+signal text_size_changed(value, persist)
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -65,6 +68,7 @@ func _ready():
 	_settings_panel.ui_scale_changed.connect(func(v, p): ui_scale_changed.emit(v, p))
 	_settings_panel.size_card_requested.connect(func(): size_card_requested.emit())
 	_settings_panel.layout_reset.connect(func(): layout_reset.emit())
+	_settings_panel.text_size_changed.connect(func(v, p): text_size_changed.emit(v, p))
 	# PB-4 (the release build): the build stamp on the pause menu too, so a
 	# player reporting from mid-game can quote it without leaving the campaign.
 	_version_line = Label.new()

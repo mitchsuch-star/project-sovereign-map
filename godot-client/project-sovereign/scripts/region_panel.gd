@@ -113,6 +113,9 @@ func _fit_width() -> void:
 	var w := Utils.fraction_px(view.x, _WIDTH_FRACTION, _MIN_WIDTH, _MAX_WIDTH, 24.0)
 	scroll.custom_minimum_size.x = w - 24.0
 	content_area.custom_minimum_size.x = w - 44.0
+	# UXR-D1: the dock clears the top bar's DRAWN strip (its line grows with
+	# Text size); the authored 48 at 100 %.
+	panel_container.offset_top = _PANEL_TOP + Utils.top_bar_growth()
 
 
 func show_region(region_name: String, map_node) -> void:
@@ -669,7 +672,7 @@ func _fit_height() -> void:
 	if header != null:
 		header_h = header.size.y
 	# Panel chrome: top offset + header + separations + PanelContainer margins.
-	var available := limit - _PANEL_TOP - _CLAMP_MARGIN - header_h - 24.0
+	var available := limit - _PANEL_TOP - Utils.top_bar_growth() - _CLAMP_MARGIN - header_h - 24.0
 	available = maxf(available, _MIN_CONTENT_H)
 	var content_h := float(content_area.get_content_height()) + 4.0
 	scroll.custom_minimum_size.y = clampf(content_h, 40.0, available)

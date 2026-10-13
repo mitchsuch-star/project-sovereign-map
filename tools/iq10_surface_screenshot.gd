@@ -360,8 +360,19 @@ func _prepare():
 	# factor to the published default and shoot the wrong frame. In memory
 	# only — the harness never saves (see the UiSettings._persist rail).
 	UiSettings._cfg.set_value("display", "ui_scale", _scale())
+	# UXR-D1 (Pre-Deploy S9b): the Text size the frame is shot at (the spec's
+	# or the shot's `text_size`, 1.0 when neither says) — seeded in memory and
+	# applied to the project theme before the scene loads. An older checkout
+	# (a BEFORE worktree) has no Text size: the harness then shoots its 1.0.
+	var text_size := float(shot.get("text_size", _spec.get("text_size", 1.0)))
+	UiSettings._cfg.set_value("display", "text_size", text_size)
+	var settings_script: Script = UiSettings
+	if settings_script.get_script_constant_map().has("MAX_TEXT_SIZE"):
+		var utils_class: Variant = Utils
+		utils_class.call("apply_text_size")
 	_current["window"] = [size.x, size.y]
 	_current["content_scale_factor"] = _scale()
+	_current["text_size"] = text_size
 	_phase = "instantiate"
 	_wait += 2
 
@@ -737,6 +748,10 @@ func _capture(suffix: String) -> void:
 	frame["buttons_offscreen"] = _buttons_offscreen(view)
 	frame["clipped_text"] = _clipped_text()
 	frame["probe"] = _probe(_shot().get("probe", []))
+	frame["surfaces"] = _surface_rects()
+	# The control holding keyboard focus (the war room's command line should).
+	var focus_owner: Control = root.gui_get_focus_owner()
+	frame["focus"] = str(root.get_path_to(focus_owner)) if focus_owner != null else ""
 	var stub_calls := []
 	for s in _stubs:
 		if s is ApiStub:
@@ -962,6 +977,25 @@ func _probe(paths) -> Dictionary:
 					"visible": (n as Control).is_visible_in_tree()}
 		else:
 			out[str(p)] = {"missing": n == null}
+	return out
+
+
+func _surface_rects() -> Dictionary:
+	"""UXR-D1 (Pre-Deploy S9b): the logical rect of every visible TOP-LEVEL
+	surface — a Control whose parent is a CanvasLayer, or a child of the
+	shot's own scene root — so a run can say whether a setting moved a panel
+	(Text size must move none). Keyed by the node's path from the root."""
+	var out := {}
+	for n in _all_nodes(root):
+		if not (n is Control) or n == _backdrop or not _shown(n):
+			continue
+		var parent: Node = n.get_parent()
+		if not (parent is CanvasLayer or (_node != null and parent == _node and _node is Control)):
+			continue
+		if parent == _backdrop:
+			continue
+		var r: Rect2 = (n as Control).get_global_rect()
+		out[str(root.get_path_to(n))] = [r.position.x, r.position.y, r.size.x, r.size.y]
 	return out
 
 

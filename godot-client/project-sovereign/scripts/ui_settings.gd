@@ -267,11 +267,34 @@ static func set_body_font(face: String) -> void:
 	_save()
 
 
+# --- Text size (UXR-D1, Pre-Deploy S9b: Settings → INTERFACE) ---
+# A multiplier on the THEME's named type sizes alone (Utils.apply_text_size):
+# Caption 14, the theme's 16, BodyLarge 17 … DisplayTitleLarge 30 all scale
+# together; no panel rect, no Interface Scale, no raw override moves. On an
+# ultra-wide the panels have room and the type is the problem — this grows
+# the type without growing the chrome. Never under 1.0: below it the theme's
+# own sizes would read RED by the readability floor's rule.
+const DEFAULT_TEXT_SIZE := 1.0
+const MIN_TEXT_SIZE := 1.0
+const MAX_TEXT_SIZE := 1.75
+const TEXT_SIZE_STEP := 0.05
+
+
+static func get_text_size() -> float:
+	return clampf(_read_num("display", "text_size", DEFAULT_TEXT_SIZE), MIN_TEXT_SIZE, MAX_TEXT_SIZE)
+
+
+static func set_text_size(value: float) -> void:
+	_write_num("display", "text_size", clampf(snappedf(value, TEXT_SIZE_STEP), MIN_TEXT_SIZE, MAX_TEXT_SIZE))
+
+
 static func reset_layout() -> void:
-	"""Settings → Reset layout: the scale back to the derivation, the command
-	window back to its viewport fraction, the window back to the project's
-	maximized boot. Sound, the key, the School's latch stay."""
+	"""Settings → Reset layout: the scale back to the derivation, the text
+	size to 100 %, the command window back to its viewport fraction, the
+	window back to the project's maximized boot. Sound, the key, the School's
+	latch stay."""
 	set_ui_scale_auto()
+	set_text_size(DEFAULT_TEXT_SIZE)
 	clear_terminal_size()
 	# UXR-2: every gripped screen's remembered size too.
 	clear_all_panel_sizes()

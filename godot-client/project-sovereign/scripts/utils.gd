@@ -702,6 +702,60 @@ static func apply_body_font() -> void:
 		theme.set_font("bold_italics_font", "RichTextLabel", _garamond_faces["bold_italics"])
 
 
+# UXR-D1 (Pre-Deploy S9b): the theme's authored type sizes, captured once —
+# "type|item" → [type, item, size] — and the factor last written over them.
+static var _text_size_bases: Dictionary = {}
+static var _text_size_default_base := 0
+static var _text_size_applied := 1.0
+
+
+static func apply_text_size(preview := -1.0) -> void:
+	"""Settings → INTERFACE → Text size: every named type size in the project
+	theme — the default 16, the Label / Button / RichTextLabel / LineEdit
+	sizes, and the ladder's steps (Caption 14 … DisplayTitleLarge 30) — times
+	the stored factor (or `preview`, a slider step not yet persisted), from
+	the AUTHORED sizes captured on the first call (so repeated changes never
+	compound). One `merge_with` writes them all, so the controls re-theme
+	once. No panel rect, no Interface Scale and no raw override moves: the
+	eighteen named raw overrides (the map's furniture, the title screen's and
+	the tableau's display type) keep their sizes. At the factor already
+	applied it does nothing — 1.0 at boot is a no-op."""
+	var factor := UiSettings.get_text_size() if preview < 0.0 else clampf(
+			preview, UiSettings.MIN_TEXT_SIZE, UiSettings.MAX_TEXT_SIZE)
+	if is_equal_approx(factor, _text_size_applied):
+		return
+	var theme: Theme = ThemeDB.get_project_theme()
+	if theme == null:
+		return
+	if _text_size_bases.is_empty():
+		_text_size_default_base = theme.default_font_size
+		for theme_type in theme.get_font_size_type_list():
+			for item in theme.get_font_size_list(theme_type):
+				_text_size_bases["%s|%s" % [theme_type, item]] = [
+					theme_type, item, theme.get_font_size(item, theme_type)]
+	var scaled := Theme.new()
+	if _text_size_default_base > 0:
+		scaled.default_font_size = text_px(_text_size_default_base, factor)
+	for key in _text_size_bases:
+		var row: Array = _text_size_bases[key]
+		scaled.set_font_size(row[1], row[0], text_px(int(row[2]), factor))
+	theme.merge_with(scaled)
+	_text_size_applied = factor
+
+
+static func text_size_factor() -> float:
+	"""The Text size factor the theme carries now (1.0 at the shipped theme)."""
+	return _text_size_applied
+
+
+static func text_px(authored: int, factor := -1.0) -> int:
+	"""An authored theme size at the Text size factor (the factor the theme
+	carries now when none is given): the one rounding rule every scaled size
+	shares."""
+	var f := _text_size_applied if factor < 0.0 else factor
+	return int(round(float(authored) * f))
+
+
 # === Layout Helpers ===
 
 static func clamp_centered_panel(panel: Control) -> void:
@@ -774,7 +828,7 @@ static func clamp_centered_panel(panel: Control) -> void:
 		design = Vector2(maxf(design.x, override.x), maxf(design.y, override.y))
 	var view: Vector2 = viewport.get_visible_rect().size
 	var w: float = minf(design.x, maxf(320.0, view.x - 24.0))
-	var h: float = minf(design.y, maxf(240.0, view.y - 88.0))
+	var h: float = minf(design.y, maxf(240.0, view.y - 88.0 - 2.0 * top_bar_growth()))
 	panel.offset_left = -w / 2.0
 	panel.offset_right = w / 2.0
 	panel.offset_top = -h / 2.0
@@ -791,6 +845,23 @@ static func clamp_centered_panel(panel: Control) -> void:
 # 2 x (36 + 8)). The layout-law census pins each authored number to it.
 const TOP_BAR_HEIGHT := 36.0
 const HUD_MARGIN := 8.0
+# UXR-D1 (Pre-Deploy S9b): the bar's DRAWN height, published by top_bar.gd.
+# Its one line of buttons grows with Text size (45 px at 150 %), so every
+# number above clears TOP_BAR_HEIGHT + top_bar_growth(); 0 at 100 %.
+static var _top_bar_drawn := TOP_BAR_HEIGHT
+
+
+static func top_bar_growth() -> float:
+	"""How far the top bar's drawn strip stands below its authored height."""
+	return maxf(_top_bar_drawn - TOP_BAR_HEIGHT, 0.0)
+
+
+static func set_top_bar_drawn(height: float) -> bool:
+	"""top_bar.gd's report of its strip's drawn height; true when it moved."""
+	if is_equal_approx(height, _top_bar_drawn):
+		return false
+	_top_bar_drawn = height
+	return true
 
 
 static func fraction_px(view_len: float, frac: float, min_px: float, max_px: float,
@@ -817,7 +888,7 @@ static func clamp_anchored_panel(panel: Control) -> void:
 	if viewport == null:
 		return
 	var view: Vector2 = viewport.get_visible_rect().size
-	var band_top := TOP_BAR_HEIGHT + HUD_MARGIN
+	var band_top := TOP_BAR_HEIGHT + top_bar_growth() + HUD_MARGIN
 	var max_h := maxf(view.y - band_top - HUD_MARGIN, 0.0)
 	var max_w := maxf(view.x - 2.0 * HUD_MARGIN, 0.0)
 	var w := minf(panel.offset_right - panel.offset_left, max_w)

@@ -8,6 +8,9 @@ extends CanvasLayer
 # =============================================================================
 
 signal screen_changed(screen_name: String)
+# UXR-D1 (Pre-Deploy S9b): the strip's drawn height moved (Text size grew or
+# shrank its line); main.gd refits the HUD that sits under it.
+signal bar_height_changed
 
 # UI References — paths must match scene tree: BarContainer > BarBG > BarLayout > ...
 @onready var event_log_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/EventLogBtn
@@ -214,6 +217,11 @@ func _ready():
 	# UXR-2: the notice rail's slot is ANCHORED too (a viewport fraction).
 	get_viewport().size_changed.connect(_fit_rail)
 	call_deferred("_fit_rail")
+	# UXR-D1: the strip's drawn height (its line grows with Text size) is the
+	# one number the HUD under it clears.
+	var bar := get_node_or_null("BarContainer") as Control
+	if bar != null:
+		bar.resized.connect(_on_bar_resized)
 
 	# Threat pulse timer
 	_threat_pulse_timer = Timer.new()
@@ -632,6 +640,16 @@ const RAIL_GAP := 6.0
 const RAIL_SLOT_HEIGHT := 76.0
 
 
+func _on_bar_resized() -> void:
+	var bar := get_node_or_null("BarContainer") as Control
+	# A Text size change resizes the strip: re-decide compact first (its
+	# threshold follows the text), then publish the height.
+	_fit_bar()
+	if bar != null and Utils.set_top_bar_drawn(bar.size.y):
+		_fit_rail()
+		bar_height_changed.emit()
+
+
 func _fit_rail() -> void:
 	if notification_area == null or not is_instance_valid(notification_area):
 		return
@@ -640,7 +658,7 @@ func _fit_rail() -> void:
 			2.0 * RAIL_RIGHT_INSET)
 	notification_area.offset_right = -RAIL_RIGHT_INSET
 	notification_area.offset_left = -RAIL_RIGHT_INSET - w
-	notification_area.offset_top = Utils.TOP_BAR_HEIGHT + RAIL_GAP
+	notification_area.offset_top = Utils.TOP_BAR_HEIGHT + RAIL_GAP + Utils.top_bar_growth()
 	notification_area.offset_bottom = notification_area.offset_top + RAIL_SLOT_HEIGHT
 
 
@@ -649,7 +667,9 @@ func _fit_bar():
 	nav buttons go icon-only (their tooltips carry the name and both hotkeys),
 	the Cabinet line hides and the Admiralty chip keeps the count alone."""
 	var width := get_viewport().get_visible_rect().size.x
-	var compact := width < COMPACT_BELOW_PX
+	# UXR-D1: the full-text bar's width grows with Text size (it overran a
+	# 1920-px screen at 175 %), so the threshold grows with it.
+	var compact := width < COMPACT_BELOW_PX * Utils.text_size_factor()
 	if compact == _compact and not _nav_full_text.is_empty() and _fit_applied:
 		return
 	_compact = compact

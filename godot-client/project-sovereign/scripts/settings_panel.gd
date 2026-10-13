@@ -35,6 +35,9 @@ signal ui_scale_changed(value: float, persist: bool)
 # and tells it a Reset layout happened (the terminal's footprint re-fits).
 signal size_card_requested
 signal layout_reset
+# UXR-D1 (Pre-Deploy S9b): the panel re-themes the type sizes itself (the
+# theme is global); the host refits its open surfaces on the live-refit road.
+signal text_size_changed(value: float, persist: bool)
 
 # Golden Rule 7: same origin as api_client.gd — one source, env-overridable.
 var BACKEND_URL: String = Utils.backend_url()
@@ -54,6 +57,9 @@ const _BODY_FONT_LABELS := {
 var _scale_dragging := false
 var _scale_slider: HSlider
 var _scale_value: Label
+var _text_dragging := false
+var _text_slider: HSlider
+var _text_value: Label
 var _fit_button: Button
 var _window_mode: OptionButton
 var _window_size: OptionButton
@@ -89,6 +95,9 @@ func refresh() -> void:
 	if _scale_slider:
 		_scale_slider.set_value_no_signal(UiSettings.get_ui_scale())
 		_update_scale_value_label(UiSettings.get_ui_scale())
+	if _text_slider:
+		_text_slider.set_value_no_signal(UiSettings.get_text_size())
+		_update_text_value_label(UiSettings.get_text_size())
 	_refresh_display_controls()
 	for bus_name in _volume_sliders:
 		_volume_sliders[bus_name].set_value_no_signal(AudioManager.get_bus_volume(bus_name))
@@ -236,6 +245,41 @@ func _build_interface_section() -> void:
 		+ "ledgers, and pop-ups. Ctrl+= and Ctrl+− step it anywhere; Ctrl+0 returns "
 		+ "to this screen's size; the command-window header has the same + / −.")
 
+	# UXR-D1 (Pre-Deploy S9b): Text size — the theme's type sizes alone, the
+	# panels left as they are. Live on every step, persisted when the drag
+	# ends (the scale slider's own contract).
+	var text_row := HBoxContainer.new()
+	text_row.add_theme_constant_override("separation", 10)
+	var text_lbl := Label.new()
+	text_lbl.text = "Text size"
+	text_lbl.theme_type_variation = &"Caption"
+	text_lbl.custom_minimum_size.x = 72
+	text_row.add_child(text_lbl)
+	_text_slider = HSlider.new()
+	_text_slider.name = "TextSizeSlider"
+	_text_slider.min_value = UiSettings.MIN_TEXT_SIZE
+	_text_slider.max_value = UiSettings.MAX_TEXT_SIZE
+	_text_slider.step = UiSettings.TEXT_SIZE_STEP
+	_text_slider.custom_minimum_size = Vector2(140, 0)
+	_text_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_text_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_text_slider.set_value_no_signal(UiSettings.get_text_size())
+	_text_slider.value_changed.connect(_on_text_size_changed)
+	_text_slider.drag_started.connect(func(): _text_dragging = true)
+	_text_slider.drag_ended.connect(_on_text_size_drag_ended)
+	text_row.add_child(_text_slider)
+	_text_value = Label.new()
+	_text_value.custom_minimum_size = Vector2(52, 0)
+	_text_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_text_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_text_value.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7))
+	_text_value.theme_type_variation = &"Caption"
+	text_row.add_child(_text_value)
+	add_child(text_row)
+	_update_text_value_label(UiSettings.get_text_size())
+	_add_hint("Text size enlarges the words alone — the panels keep their size, "
+		+ "so on a wide screen the type can grow without the chrome growing with it.")
+
 	# UXR-1b: the body face. Garamond is the design; Plain (Source Sans 3)
 	# gives a quarter more x-height at the same size.
 	var font_row := HBoxContainer.new()
@@ -261,9 +305,9 @@ func _build_interface_section() -> void:
 	reset_layout.custom_minimum_size = Vector2(0, 32)
 	reset_layout.pressed.connect(_on_reset_layout)
 	add_child(reset_layout)
-	_add_hint("Reset layout returns the scale to this screen's size, the command "
-		+ "window to its default footprint and the window to Maximized. Sound, the "
-		+ "parser key and the School's progress are kept.")
+	_add_hint("Reset layout returns the scale to this screen's size, the text to "
+		+ "100%, the command window and the screens to their default sizes and the "
+		+ "window to Maximized. Sound, the parser key and the School's progress are kept.")
 
 
 func _on_scale_changed(value: float) -> void:
@@ -287,6 +331,30 @@ func _on_reset_scale() -> void:
 	ui_scale_changed.emit(derived, false)
 
 
+func _on_text_size_changed(value: float) -> void:
+	_update_text_value_label(value)
+	_apply_text_size(value, not _text_dragging)
+
+
+func _on_text_size_drag_ended(_changed: bool) -> void:
+	_text_dragging = false
+	_apply_text_size(_text_slider.value, true)
+
+
+func _apply_text_size(value: float, persist: bool) -> void:
+	if persist:
+		UiSettings.set_text_size(value)
+		Utils.apply_text_size()
+	else:
+		Utils.apply_text_size(value)
+	text_size_changed.emit(value, persist)
+
+
+func _update_text_value_label(value: float) -> void:
+	if _text_value:
+		_text_value.text = "%d%%" % int(round(value * 100.0))
+
+
 func _on_body_font_selected(index: int) -> void:
 	var face: String = UiSettings.BODY_FONTS[clampi(index, 0, UiSettings.BODY_FONTS.size() - 1)]
 	UiSettings.set_body_font(face)
@@ -296,9 +364,11 @@ func _on_body_font_selected(index: int) -> void:
 func _on_reset_layout() -> void:
 	UiSettings.reset_layout()
 	Utils.apply_window_settings(get_window())
+	Utils.apply_text_size()
 	refresh()
 	# Already persisted by reset_layout — the host applies the new value.
 	ui_scale_changed.emit(UiSettings.get_ui_scale(), false)
+	text_size_changed.emit(UiSettings.get_text_size(), false)
 	layout_reset.emit()
 
 

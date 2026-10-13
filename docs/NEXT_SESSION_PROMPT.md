@@ -13,6 +13,8 @@
 > Records: `docs/UX_UI_REVIEW_PLAN.md` §UXR-2 landing record; rules `SYSTEMS_REFERENCE.md` §111; rows `BUG_FIXES.md` §UXR-2 (UXR-X5 … X20).
 > Routing authority: `docs/PRE_DEPLOY_PLAN.md` §2 (S9 STRUCK; **S9b is NEXT**), with `docs/STATUS.md` ▶ NEXT UP and the `CLAUDE.md` LIVE STATE line pointing there. The Score Finish residue (`SCORE_FINISH_SPEC.md` §3 Step 9) stays PAUSED until S14.
 >
+> **⏸ RESUME NOTE (October 12, 2026, mid-S9b):** Slice A (UXR-D1, Text size, + UXR-X21 / X22) LANDED on master. The approved plan (`[− ⌂ +]` bottom-centre, the screen-space map floor, Text size 100–175 %) runs **B HUD width + ⌂ → C the map's furniture → D High contrast**. Read `docs/UX_UI_REVIEW_PLAN.md` §UXR-2's S9b landing record and `BUG_FIXES.md` §UXR-2's extras first. UXR-X23 (the header's "Text Size" + / − steps the Interface Scale) awaits the user's ruling. UXR-X24 (boot focus on the output) is Slice B's. **Capture runs: ONE engine at a time.** Two concurrent shoots ran this machine out of memory (Vulkan swap-chain / `mem` null crashes, exit 0xC0000005).
+>
 > Paste everything below the line as the opening message of a fresh session.
 
 ---

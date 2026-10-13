@@ -10189,3 +10189,27 @@ What stands outside a scroll is named, with a proof: the tutor body and the rail
   - A grown ledger is refit inside a smaller viewport, and Reset layout forgets every size.
 - **The readability instrument (UXR-0)** reads the whole client at the five resolutions with the derived scale: RED / P1 per `tests/test_uxr0_readability.py` (the landing record has the numbers).
 - **Not seen by any census:** the map tooltip's 11-px `draw_string` text, now UXR-X4's (S9b).
+
+## 112. THE ADJUSTABILITY EXTRAS — Text size, the HUD band, the map's scale term, High contrast — UXR-2's extras (Pre-Deploy S9b, October 12, 2026)
+
+*`docs/UX_UI_REVIEW_PLAN.md` §UXR-2, the S9b landing record. Client-only (Golden Rule 6). Rows `DESIGN_REFINEMENT.md` UXR-D1 … D3, `BUG_FIXES.md` §UXR-2's extras. Built in slices; each subsection names its slice.*
+
+### 112.1 Text size (UXR-D1, Slice A)
+
+- **What it scales.** Settings → INTERFACE → *Text size*, 100–175 % in 5 % steps (`UiSettings.get/set_text_size`, `display/text_size`). It multiplies the project theme's type sizes and nothing else: `default_font_size` and every `font_size` item of every type, so the Label / Button / RichTextLabel / LineEdit sizes and the whole ladder (Caption 14 … DisplayTitleLarge 30, §111.7) move together. The Interface Scale, panel rects, the eighteen named raw overrides and the two BBCode titles do not move.
+- **The swap.** `Utils.apply_text_size(preview)` captures the theme's authored sizes on its first call, so changes never compound. It writes `round(authored × factor)` (`Utils.text_px`) through ONE `Theme.merge_with`, so every control re-themes once. At the factor already applied it does nothing, so 100 % at boot is a no-op. The static ladder in `ui/main_theme.tres` never changes.
+- **Where it runs.**
+  - The main menu and the war room apply the stored size at boot, beside the body face.
+  - The slider is live on every step and persisted when the drag ends, like the scale slider.
+  - `text_size_changed` puts every open surface on the live-refit road: `main._on_root_resized` in the campaign, `_refit_open_panels` on the menu.
+  - Reset layout returns the text to 100 %.
+- **The strip it grows.** The top bar is one line of buttons, so it grows with the text: 36 px at 100 %, 45 px at 150 %. `top_bar.gd` publishes its drawn height (`Utils.set_top_bar_drawn`), and everything that clears the bar adds `Utils.top_bar_growth()` (0 at 100 %): the rail slot, the tutor card, the region panel's dock, the command window's reserve, `clamp_anchored_panel`'s band and `clamp_centered_panel`'s vertical reserve. `bar_height_changed` refits them. Compact mode's threshold scales with the text too (`COMPACT_BELOW_PX × Utils.text_size_factor()`), so the full-text bar never runs off a 1920-px screen at 175 % (UXR-X22).
+- **What may grow, by rule.** Only these change size:
+  - the top bar strip, by its line;
+  - the shrink-wrapped heights: the tutor card (bounded by the screen) and the war HUD (bounded at 45 %);
+  - the command window, past its footprint only where its input row no longer fits. Its stats line wraps (an `HFlowContainer`), and its command line holds 8 em (`minimum_character_width`), so the input row is the floor: 413 px at 100 %, 569 at 150 % (UXR-X21).
+  - A clamped screen's rect never moves.
+- **The proof.**
+  - The pair record `docs/audits/uxr0/readability_text150_named_2026_10_12.json` (`tools/uxr2b_text_size_check.py`, over two `iq10_run_captures.py --physical --physical-scale 1.0 --text-size …` runs) is pinned by `tests/test_uxr2b_text_size.py`.
+  - The live slider is driven by `TestTheTextSizeSlider`.
+  - The capture runner's `--text-size` and the harness's per-frame `surfaces` record (the logical rect of every top-level surface) are the instrument's two additions.

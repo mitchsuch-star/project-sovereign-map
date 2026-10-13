@@ -422,6 +422,53 @@ The frames found one more thing: the war-detail popup's button row is an HFlowCo
 
 ⚠ The user's half — the screens feel right in the hand at 5120×1440 — is UXR-4's eyes. **S9b is next** (UXR-D1 Text size, D2 High contrast, D3 HUD Centred + ⌂ Fit Europe, X4 the map follows the scale).
 
+### Landing record — S9b, UXR-2's adjustability extras (Pre-Deploy S9b, October 12, 2026)
+
+> Built in slices on master: A Text size → B HUD width + ⌂ → C the map's furniture → D High contrast. Routing `PRE_DEPLOY_PLAN.md` §2 row S9b; rules `SYSTEMS_REFERENCE.md` §112; rows `DESIGN_REFINEMENT.md` UXR-D1 … D3, `BUG_FIXES.md` §UXR-2's extras.
+
+**The rulings of the session (the user, at the plan):**
+1. **⌂ Fit Europe** goes in a `[− ⌂ +]` map-control cluster at the bottom-centre of the HUD band. There was no on-screen zoom control to sit beside; zoom and recentre were keys only.
+2. **UXR-X4** is met with a screen-space floor: the map's furniture holds a minimum on-screen size as the view zooms out, as the province names already do.
+3. **Text size** runs from 100 % to 175 %.
+
+**Slice A — UXR-D1, Text size.**
+
+*What it is.* Settings → INTERFACE → *Text size* (100–175 %, 5 % steps, `display/text_size`) scales the project theme's type sizes alone: the default 16, the Label / Button / RichTextLabel / LineEdit sizes and the whole ladder from Caption 14 to DisplayTitleLarge 30. `Utils.apply_text_size` captures the authored sizes once and writes `round(authored × factor)` through one `Theme.merge_with`. At the factor already applied it does nothing, so 100 % at boot changes nothing. The Interface Scale, the panel rects, the eighteen named raw overrides and the two BBCode titles do not move.
+- The slider is live on every step and persisted when the drag ends. Its `text_size_changed` puts every open surface on the live-refit road.
+- Both boots apply the stored size. Reset layout returns it to 100 %.
+
+*Found while building (the 150 % frames were the first to grow a one-line row past its box):*
+- **UXR-X22.** The top bar is one line of buttons, 36 px at 100 % and 45 px at 150 %, and five numbers cleared its authored 36. The rail slot sat 3 px under it. At 175 % the full-text bar ran off a 1920-px screen, because compact mode switched at a fixed 1,180 px.
+  - Now the bar publishes its drawn height (`Utils.top_bar_growth()`); the rail, the tutor card, the region dock, the command window's reserve and both clamps clear it.
+  - Compact mode's threshold scales with the text.
+- **UXR-X21.** The command window's stats line was one 513-px HBox line (726 px at 150 %). It floored the window above the size it was asked for: 572 against 537 at 1080p even at 100 %, and 760 at 150 %. It wraps now (an `HFlowContainer`). The wrap exposed the command line's own default floor of 4 em (about 100 px at 150 % on 1080p), so the line now holds 8 em. The window's width floor is its input row: 413 px at 100 %, 569 at 150 %.
+- **UXR-X24 (filed, owner Slice B).** The war room's boot sometimes leaves keyboard focus on the output rather than the command line: 1 capture in 3, present at HEAD before any S9b change. The capture record now carries the focus owner.
+
+*The reading* (the done-when's test): the five named surfaces were shot as a pair at Interface Scale 1.0 and the five resolutions, once at 100 % and once at 150 %, and `tools/uxr2b_text_size_check.py` read the pair (`docs/audits/uxr0/readability_text150_named_2026_10_12.json`, pinned by `tests/test_uxr2b_text_size.py`):
+
+| | Readings | Text rows | RED / P1 | Scaled exactly | Clipped / off-screen |
+|---|---|---|---|---|---|
+| 150 % | 35 | 550 | **0 / 0** | **550 of 550** | 0 / 0 |
+| 175 % (the slider's top) | 35 | 547 | 0 / 0 | 528 of 528 paired | 0 / 0 |
+
+- **The panels.** The dispatch and the Generals screen, the clamped screens, keep their rects at both sizes. Only surfaces whose size *is* their text move, each by its rule:
+  - the top bar's strip grows by its line (36 → 45 px), and the rail slot and the tutor card move down by exactly that;
+  - the tutor card and the war HUD shrink-wrap taller cards, their widths and anchored edges fixed;
+  - the command window keeps its width wherever its input row fits (every screen from 2560 up). On a 1080p screen it widens to that row's floor, 538 → 617 px (the command line holds 8 em), and it grows 45 px taller because every line is taller.
+- **At 175 % on a 1080p screen** three content floors widen a little. The command window (its input row), the war HUD (230 → 265) and the tutor card (422 → 470) each widen to hold one unbreakable line; nothing clips or leaves the screen.
+- The 175 % record is `readability_text175_named_2026_10_12.json`.
+- Frame: `docs/audits/uxr0/UXR2B_TEXT_SIZE_100_150_WAR_ROOM_TUTORIAL_5120x1440_2026_10_12.jpg` (the user's panel, 100 % above 150 %).
+
+*Driven* (`TestTheTextSizeSlider`, on the live war room): a click on the slider re-themes the LineEdit 16 → 24, the output 16 → 24 and a Caption 14 → 21, and stores 1.5. Reset layout from the panel returns 16 / 14 and 1.0. The command window is drawn at its footprint or at its input row's floor.
+
+*Regression:* the full IQ-10 set at 1600×900 × {1.0, 2.0} at Text size 100 % was shot against the pristine HEAD worktree (`c8e65997`). **274 of 284 frames are pixel-identical.** The war room's frames were re-shot after the command line's 8-em floor; the floor touches only `main.tscn`'s war room. The other ten differ as follows:
+- **The six war-room frames.** The stats line wraps and the command window sits at the width it was asked for. Every text is identical in content and size; only positions move.
+- **The main menu's four.** Two are its painting's Ken Burns drift. The other two are Settings, whose new Text size row and Reset-layout hint are the run's **only** text-record differences.
+
+The run had 0 SCRIPT ERROR, 0 clipped text and 0 buttons off-screen, and the war-room frames end with focus on the command line.
+
+*Open for the review pause:* the command window's header carries a control labelled **"Text Size"** (UI-2c, July) that steps the *Interface Scale*. Settings now also has a real *Text size*. One of the two needs another name; the user rules which (UXR-X23).
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed

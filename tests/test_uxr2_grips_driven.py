@@ -151,3 +151,41 @@ class TestTheRefitRoadAndTheReset:
 
     def test_the_command_window_keeps_its_grip(self, driven):
         assert driven["terminal_grip"] is True
+
+
+class TestTheTextSizeSlider:
+    """UXR-D1 (Pre-Deploy S9b): the Settings slider, DRIVEN on the live war
+    room — a click on it re-themes every named size at once (the command
+    line's LineEdit 16 → 24, the output's RichTextLabel 16 → 24, a Caption
+    14 → 21) and stores 1.5; Reset layout from the panel returns 16 / 14 and
+    stores 1.0."""
+
+    def test_the_slider_is_in_settings_with_its_range(self, driven):
+        ts = driven["text_size"]
+        assert "error" not in ts, ts
+        assert ts["range"] == [1.0, 1.75]
+
+    def test_a_click_rethemes_every_family_live_and_stores_it(self, driven):
+        before, after = driven["text_size"]["before"], driven["text_size"]["at_150"]
+        assert (before["line_edit"], before["rich"], before["caption"]) == (16, 16, 14)
+        assert (after["line_edit"], after["rich"], after["caption"]) == (24, 24, 21)
+        assert after["stored"] == 1.5
+
+    def test_reset_layout_returns_the_text_to_one_hundred(self, driven):
+        reset = driven["text_size"]["after_reset"]
+        assert (reset["line_edit"], reset["rich"], reset["caption"]) == (16, 16, 14)
+        assert reset["stored"] == 1.0
+        assert reset["terminal"] == driven["text_size"]["before"]["terminal"]
+
+    def test_the_command_window_keeps_its_width_floor_on_its_input_row(self, driven):
+        """UXR-X21: the stats line wraps (an HFlowContainer), so the command
+        window's width floor is its input row, not a 513-px stats line — at
+        150 % the window grows by the input row's growth, not by 40 %."""
+        for key in ("before", "at_150"):
+            reading = driven["text_size"][key]
+            rows = reading["rows_min_width"]
+            assert rows["StatusSection"] < rows["InputSection"], (key, rows)
+            # drawn at the width it was asked for, or at the input row's floor
+            # (plus the panel's chrome — margins and stylebox, under 70 px)
+            floor = max(rows["InputSection"], rows["TitleRow"]) + 70.0
+            assert reading["terminal"][0] <= max(reading["requested"][0], floor) + 1.0, (key, reading)

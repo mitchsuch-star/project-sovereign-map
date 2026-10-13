@@ -629,6 +629,8 @@ func _ready():
 			pause_menu.size_card_requested.connect(open_scale_card)
 		if pause_menu.has_signal("layout_reset"):
 			pause_menu.layout_reset.connect(_on_layout_reset)
+		if pause_menu.has_signal("text_size_changed"):
+			pause_menu.text_size_changed.connect(_on_text_size_changed)
 	if pause_menu:
 		pause_menu.save_requested.connect(_on_pause_save_requested)
 		pause_menu.load_requested.connect(_on_pause_load_requested)
@@ -642,6 +644,8 @@ func _ready():
 		add_child(top_bar)
 		top_bar.set_api_client(api_client)
 		top_bar.screen_changed.connect(_on_screen_changed)
+		# UXR-D1: its strip grows with Text size; the HUD under it refits.
+		top_bar.bar_height_changed.connect(_on_bar_height_changed)
 		top_bar.envoy_clicked.connect(_on_envoy_clicked)
 		# NUI: the Admiralty chip opens the ledger's own naval book.
 		if top_bar.has_signal("admiralty_clicked"):
@@ -783,6 +787,8 @@ func _ready():
 	# the window never moves under a capture harness) — the menu applied them
 	# at boot, and this covers a main.tscn booted on its own.
 	Utils.apply_body_font()
+	# UXR-D1: the stored Text size (a no-op at 100 %).
+	Utils.apply_text_size()
 	Utils.apply_window_settings(get_window())
 	# Apply the saved global interface scale FIRST so the logical viewport is
 	# settled before the terminal geometry is computed in logical coordinates.
@@ -1650,7 +1656,7 @@ func _relayout_terminal() -> void:
 	# the bar, where they are hidden and click-blocked — the grip becomes
 	# unreachable and the terminal is wedged at full height.
 	var disp_h = clampf(_terminal_height, UiSettings.MIN_TERMINAL_HEIGHT,
-			maxf(UiSettings.MIN_TERMINAL_HEIGHT, size.y - 20.0 - TOP_BAR_RESERVED_PX))
+			maxf(UiSettings.MIN_TERMINAL_HEIGHT, size.y - 20.0 - TOP_BAR_RESERVED_PX - Utils.top_bar_growth()))
 	bottom_left_ui.offset_left = TERMINAL_ANCHOR_LEFT
 	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
 	bottom_left_ui.offset_right = TERMINAL_ANCHOR_LEFT + disp_w
@@ -1808,11 +1814,31 @@ func open_scale_card() -> void:
 	_scale_card.open(UiSettings.get_ui_scale(), UiSettings.derive_default_ui_scale())
 
 
+func _on_bar_height_changed() -> void:
+	"""UXR-D1: the top bar's strip grew or shrank with Text size — the HUD
+	under it (the command window's reserve, the tutor card, the region
+	panel's dock, every clamped surface's band) refits to clear it."""
+	_on_root_resized()
+	if tutorial_overlay != null and tutorial_overlay.has_method("_on_viewport_changed"):
+		tutorial_overlay.call("_on_viewport_changed")
+	if region_panel != null and region_panel.visible and region_panel.has_method("_on_viewport_resized"):
+		region_panel.call("_on_viewport_resized")
+
+
+func _on_text_size_changed(_value: float, _persist: bool) -> void:
+	"""UXR-D1: the settings panel re-themed the type sizes (the theme is
+	global); every open surface refits on the one live-refit road once the
+	controls have taken the new sizes."""
+	call_deferred("_on_root_resized")
+
+
 func _on_layout_reset() -> void:
 	"""Settings → Reset layout: the panel reset the stored values; apply
 	them here — the derived scale (with the map's compensation) and the
 	command window's viewport-fraction footprint."""
 	_apply_ui_scale(UiSettings.get_ui_scale(), false)
+	# UXR-D1: the text back to 100 % (a no-op when the panel already did it).
+	Utils.apply_text_size()
 	_reset_terminal_size()
 	# UXR-2: every gripped screen back to its authored size (the store is
 	# already cleared; an OPEN screen re-fits at once).

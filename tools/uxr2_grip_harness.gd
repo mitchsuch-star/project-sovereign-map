@@ -474,6 +474,93 @@ func _reset_measure():
 	var view := root.get_visible_rect().size
 	_out["reset_view"] = [view.x, view.y]
 	_out["ledger_authored"] = _out["screens"]["ledger"].get("authored", [])
+	_top_bar.toggle_screen("ledger")
+	_phase = "text_open"
+	_wait = 6
+
+
+# ── UXR-D1 (Pre-Deploy S9b): the Text size slider, driven live ──────────────
+
+func _text_slider() -> HSlider:
+	var pm = _main.get("pause_menu")
+	return (pm.find_child("TextSizeSlider", true, false) as HSlider) if pm != null else null
+
+
+func _text_sizes() -> Dictionary:
+	# A theme-sized node of each family on the live war room: the command
+	# line (LineEdit 16), the output (RichTextLabel 16), the slider's own hint
+	# rows in the pause menu (Caption 14), and the terminal's footprint.
+	var out := {}
+	var input = _main.get("command_input")
+	if input is Control:
+		out["line_edit"] = (input as Control).get_theme_font_size("font_size")
+	var output = _main.get("output_display")
+	if output is Control:
+		out["rich"] = (output as Control).get_theme_font_size("normal_font_size")
+	var slider := _text_slider()
+	if slider != null:
+		var row := slider.get_parent()
+		var caption := row.get_child(0) as Label if row != null else null
+		if caption != null:
+			out["caption"] = caption.get_theme_font_size("font_size")
+	var term = _main.get_node_or_null("BottomLeftUI")
+	if term is Control:
+		out["terminal"] = [(term as Control).size.x, (term as Control).size.y]
+		# What floors the command window's width: each row's own minimum.
+		var rows := {}
+		for row_name in ["TitleRow", "StatusSection", "InputSection"]:
+			var row := (term as Control).find_child(row_name, true, false) as Control
+			if row != null:
+				rows[row_name] = row.get_combined_minimum_size().x
+		out["rows_min_width"] = rows
+		# the footprint the window was ASKED for (its fraction or the grip's)
+		out["requested"] = [float(_main.get("_terminal_width")), float(_main.get("_terminal_height"))]
+	out["stored"] = UiSettings.get_text_size()
+	return out
+
+
+func _text_open():
+	var pm = _main.get("pause_menu")
+	if pm == null:
+		_out["text_size"] = {"error": "no pause menu"}
+		_finish()
+		return
+	pm.call("open_menu")
+	pm.call("_on_settings")
+	_phase = "text_drive"
+	_wait = 10
+
+
+func _text_drive():
+	var slider := _text_slider()
+	if slider == null:
+		_out["text_size"] = {"error": "no TextSizeSlider in Settings"}
+		_finish()
+		return
+	_out["text_size"] = {"before": _text_sizes(), "range": [slider.min_value, slider.max_value]}
+	# A click on the slider (not a drag): applied AND persisted at once.
+	slider.value = 1.5
+	_phase = "text_measure"
+	_wait = 10
+
+
+func _text_measure():
+	_out["text_size"]["at_150"] = _text_sizes()
+	# Reset layout from the panel itself returns the text to 100 %.
+	var panel = _text_slider()
+	while panel != null and not (panel is SettingsPanel):
+		panel = panel.get_parent()
+	if panel != null:
+		panel.call("_on_reset_layout")
+	_phase = "text_reset_measure"
+	_wait = 10
+
+
+func _text_reset_measure():
+	_out["text_size"]["after_reset"] = _text_sizes()
+	var pm = _main.get("pause_menu")
+	if pm != null:
+		pm.call("close_menu")
 	_finish()
 
 

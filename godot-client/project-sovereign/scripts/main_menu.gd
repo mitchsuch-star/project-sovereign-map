@@ -170,6 +170,8 @@ func _apply_boot_scale() -> void:
 	# defaults; the window never moves under a capture harness).
 	Utils.apply_window_settings(get_window())
 	Utils.apply_body_font()
+	# UXR-D1: the stored Text size (a no-op at 100 %).
+	Utils.apply_text_size()
 	_derived_scale = UiSettings.derive_default_ui_scale()
 	var scale := UiSettings.resolve_ui_scale_at_boot()
 	get_window().content_scale_factor = clampf(scale, UiSettings.MIN_UI_SCALE, UiSettings.MAX_UI_SCALE)
@@ -493,6 +495,8 @@ func _build_settings_view() -> void:
 	_settings_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_settings_panel)
 	_settings_panel.ui_scale_changed.connect(_on_ui_scale_changed)
+	# UXR-D1: the panel re-themed the type sizes; the open panels re-fit.
+	_settings_panel.text_size_changed.connect(func(_v, _p): _refit_open_panels.call_deferred())
 	# UXR-1b: "Preview with a sample…" opens the sizing card over the menu.
 	_settings_panel.size_card_requested.connect(open_scale_card)
 

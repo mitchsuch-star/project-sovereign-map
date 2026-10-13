@@ -108,9 +108,10 @@ theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
 theme_type_variation = &"CaptionButton"
 text = "—"
 
-[node name="StatusSection" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent"]
+[node name="StatusSection" type="HFlowContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 2
 
 [node name="TurnDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
 layout_mode = 2
@@ -238,6 +239,7 @@ theme_override_constants/separation = 6
 [node name="CommandInput" type="LineEdit" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/minimum_character_width = 8
 placeholder_text = "Type command..."
 
 [node name="SendButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]

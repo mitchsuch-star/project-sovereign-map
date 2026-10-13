@@ -1,0 +1,1898 @@
+{
+ "factor": 1.75,
+ "base_source": [
+  "C:/Users/User/AppData/Local/Temp/claude/C--Users-User-PycharmProjects-project-sovereign-map/97f5b384-16c4-46c3-a965-6014730cfa15/scratchpad/c_t1.0/index.json",
+  "C:/Users/User/AppData/Local/Temp/claude/C--Users-User-PycharmProjects-project-sovereign-map/97f5b384-16c4-46c3-a965-6014730cfa15/scratchpad/d_t1.0/index.json"
+ ],
+ "scaled_source": [
+  "C:/Users/User/AppData/Local/Temp/claude/C--Users-User-PycharmProjects-project-sovereign-map/97f5b384-16c4-46c3-a965-6014730cfa15/scratchpad/c_t1.75/index.json",
+  "C:/Users/User/AppData/Local/Temp/claude/C--Users-User-PycharmProjects-project-sovereign-map/97f5b384-16c4-46c3-a965-6014730cfa15/scratchpad/d_t1.75/index.json"
+ ],
+ "client_commit": "c8e65997",
+ "physical_scale": "1.0",
+ "surfaces": {
+  "dispatch_boot_today": {
+   "readings": {
+    "1920x1080": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "2560x1440": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3440x1440": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3840x2160": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "5120x1440": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    }
+   }
+  },
+  "dispatch_t20": {
+   "readings": {
+    "1920x1080": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "paired": 3,
+      "scaled": 3,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "2560x1440": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "paired": 3,
+      "scaled": 3,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3440x1440": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "paired": 3,
+      "scaled": 3,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3840x2160": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "paired": 3,
+      "scaled": 3,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "5120x1440": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "paired": 3,
+      "scaled": 3,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    }
+   }
+  },
+  "generals_boot": {
+   "readings": {
+    "1920x1080": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "2560x1440": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3440x1440": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3840x2160": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "5120x1440": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "paired": 2,
+      "scaled": 2,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [],
+     "surfaces_seen": 3,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    }
+   }
+  },
+  "top_bar_boot": {
+   "readings": {
+    "1920x1080": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "paired": 5,
+      "scaled": 5,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        1920.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        1920.0,
+        50.0
+       ]
+      },
+      {
+       "path": "TopBar/NotificationArea",
+       "base": [
+        1546.0,
+        42.0,
+        360.0,
+        76.0
+       ],
+       "scaled": [
+        1546.0,
+        56.0,
+        360.0,
+        76.0
+       ]
+      }
+     ],
+     "surfaces_seen": 2,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "2560x1440": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "paired": 12,
+      "scaled": 12,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        2560.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        2560.0,
+        50.0
+       ]
+      },
+      {
+       "path": "TopBar/NotificationArea",
+       "base": [
+        2186.0,
+        42.0,
+        360.0,
+        76.0
+       ],
+       "scaled": [
+        2186.0,
+        56.0,
+        360.0,
+        76.0
+       ]
+      }
+     ],
+     "surfaces_seen": 2,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3440x1440": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "paired": 12,
+      "scaled": 12,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        3440.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        3440.0,
+        50.0
+       ]
+      },
+      {
+       "path": "TopBar/NotificationArea",
+       "base": [
+        3013.19995117188,
+        42.0,
+        412.800048828125,
+        76.0
+       ],
+       "scaled": [
+        3013.19995117188,
+        56.0,
+        412.800048828125,
+        76.0
+       ]
+      }
+     ],
+     "surfaces_seen": 2,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3840x2160": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "paired": 12,
+      "scaled": 12,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        3840.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        3840.0,
+        50.0
+       ]
+      },
+      {
+       "path": "TopBar/NotificationArea",
+       "base": [
+        3365.19995117188,
+        42.0,
+        460.800048828125,
+        76.0
+       ],
+       "scaled": [
+        3365.19995117188,
+        56.0,
+        460.800048828125,
+        76.0
+       ]
+      }
+     ],
+     "surfaces_seen": 2,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "5120x1440": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "paired": 12,
+      "scaled": 12,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        5120.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        5120.0,
+        50.0
+       ]
+      },
+      {
+       "path": "TopBar/NotificationArea",
+       "base": [
+        4586.0,
+        42.0,
+        520.0,
+        76.0
+       ],
+       "scaled": [
+        4586.0,
+        56.0,
+        520.0,
+        76.0
+       ]
+      }
+     ],
+     "surfaces_seen": 2,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    }
+   }
+  },
+  "tutorial_card": {
+   "readings": {
+    "1920x1080": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "paired": 5,
+      "scaled": 5,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TutorialOverlay/Card",
+       "base": [
+        1489.59997558594,
+        44.0,
+        422.400024414063,
+        323.0
+       ],
+       "scaled": [
+        1442.0,
+        58.0,
+        470.0,
+        646.0
+       ]
+      }
+     ],
+     "surfaces_seen": 1,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "2560x1440": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "paired": 5,
+      "scaled": 5,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TutorialOverlay/Card",
+       "base": [
+        1992.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        1992.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      }
+     ],
+     "surfaces_seen": 1,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3440x1440": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "paired": 5,
+      "scaled": 5,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TutorialOverlay/Card",
+       "base": [
+        2872.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        2872.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      }
+     ],
+     "surfaces_seen": 1,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3840x2160": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "paired": 5,
+      "scaled": 5,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TutorialOverlay/Card",
+       "base": [
+        3272.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        3272.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      }
+     ],
+     "surfaces_seen": 1,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "5120x1440": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "paired": 5,
+      "scaled": 5,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "TutorialOverlay/Card",
+       "base": [
+        4552.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        4552.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      }
+     ],
+     "surfaces_seen": 1,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    }
+   }
+  },
+  "war_room_boot": {
+   "readings": {
+    "1920x1080": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 41,
+      "red": 0,
+      "p1": 0,
+      "ok": 41,
+      "map": 34,
+      "paired": 34,
+      "scaled": 34,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/BottomLeftUI",
+       "base": [
+        10.0,
+        686.0,
+        537.599975585938,
+        384.0
+       ],
+       "scaled": [
+        10.0,
+        616.0,
+        705.0,
+        454.0
+       ]
+      },
+      {
+       "path": "Control/TerminalResizeGrip",
+       "base": [
+        537.599975585938,
+        676.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        705.0,
+        606.0,
+        20.0,
+        20.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        1920.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        1920.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        1546.0,
+        42.0,
+        360.0,
+        76.0
+       ],
+       "scaled": [
+        1546.0,
+        56.0,
+        360.0,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        1681.59997558594,
+        974.0,
+        230.400024414063,
+        98.0
+       ],
+       "scaled": [
+        1647.0,
+        946.0,
+        265.0,
+        126.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        1671.59997558594,
+        964.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        1637.0,
+        936.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 7,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "2560x1440": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "paired": 42,
+      "scaled": 42,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        2560.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        2560.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        2186.0,
+        42.0,
+        360.0,
+        76.0
+       ],
+       "scaled": [
+        2186.0,
+        56.0,
+        360.0,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        2244.80004882813,
+        1334.0,
+        307.199951171875,
+        98.0
+       ],
+       "scaled": [
+        2244.80004882813,
+        1306.0,
+        307.199951171875,
+        126.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        2234.80004882813,
+        1324.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        2234.80004882813,
+        1296.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 7,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3440x1440": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "paired": 42,
+      "scaled": 42,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        3440.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        3440.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        3013.19995117188,
+        42.0,
+        412.800048828125,
+        76.0
+       ],
+       "scaled": [
+        3013.19995117188,
+        56.0,
+        412.800048828125,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        3019.19995117188,
+        1334.0,
+        412.800048828125,
+        98.0
+       ],
+       "scaled": [
+        3019.19995117188,
+        1306.0,
+        412.800048828125,
+        126.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        3009.19995117188,
+        1324.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        3009.19995117188,
+        1296.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 7,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3840x2160": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "paired": 42,
+      "scaled": 42,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        3840.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        3840.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        3365.19995117188,
+        42.0,
+        460.800048828125,
+        76.0
+       ],
+       "scaled": [
+        3365.19995117188,
+        56.0,
+        460.800048828125,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        3392.0,
+        2054.0,
+        440.0,
+        98.0
+       ],
+       "scaled": [
+        3392.0,
+        2026.0,
+        440.0,
+        126.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        3382.0,
+        2044.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        3382.0,
+        2016.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 7,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "5120x1440": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "paired": 42,
+      "scaled": 42,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        5120.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        5120.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        4586.0,
+        42.0,
+        520.0,
+        76.0
+       ],
+       "scaled": [
+        4586.0,
+        56.0,
+        520.0,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        4672.0,
+        1334.0,
+        440.0,
+        98.0
+       ],
+       "scaled": [
+        4672.0,
+        1306.0,
+        440.0,
+        126.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        4662.0,
+        1324.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        4662.0,
+        1296.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 7,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    }
+   }
+  },
+  "war_room_tutorial": {
+   "readings": {
+    "1920x1080": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 43,
+      "red": 0,
+      "p1": 0,
+      "ok": 43,
+      "map": 11,
+      "paired": 37,
+      "scaled": 37,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/BottomLeftUI",
+       "base": [
+        10.0,
+        686.0,
+        537.599975585938,
+        384.0
+       ],
+       "scaled": [
+        10.0,
+        616.0,
+        705.0,
+        454.0
+       ]
+      },
+      {
+       "path": "Control/TerminalResizeGrip",
+       "base": [
+        537.599975585938,
+        676.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        705.0,
+        606.0,
+        20.0,
+        20.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        1920.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        1920.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        1546.0,
+        42.0,
+        360.0,
+        76.0
+       ],
+       "scaled": [
+        1546.0,
+        56.0,
+        360.0,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/TutorialOverlay/Card",
+       "base": [
+        1489.59997558594,
+        44.0,
+        422.400024414063,
+        323.0
+       ],
+       "scaled": [
+        1442.0,
+        58.0,
+        470.0,
+        646.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        1681.59997558594,
+        1007.0,
+        230.400024414063,
+        65.0
+       ],
+       "scaled": [
+        1681.59997558594,
+        993.0,
+        230.400024414063,
+        79.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        1671.59997558594,
+        997.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        1671.59997558594,
+        983.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 8,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "2560x1440": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "paired": 44,
+      "scaled": 44,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        2560.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        2560.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        2186.0,
+        42.0,
+        360.0,
+        76.0
+       ],
+       "scaled": [
+        2186.0,
+        56.0,
+        360.0,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/TutorialOverlay/Card",
+       "base": [
+        1992.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        1992.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        2244.80004882813,
+        1367.0,
+        307.199951171875,
+        65.0
+       ],
+       "scaled": [
+        2244.80004882813,
+        1353.0,
+        307.199951171875,
+        79.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        2234.80004882813,
+        1357.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        2234.80004882813,
+        1343.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 8,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3440x1440": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "paired": 44,
+      "scaled": 44,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        3440.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        3440.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        3013.19995117188,
+        42.0,
+        412.800048828125,
+        76.0
+       ],
+       "scaled": [
+        3013.19995117188,
+        56.0,
+        412.800048828125,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/TutorialOverlay/Card",
+       "base": [
+        2872.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        2872.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        3019.19995117188,
+        1367.0,
+        412.800048828125,
+        65.0
+       ],
+       "scaled": [
+        3019.19995117188,
+        1353.0,
+        412.800048828125,
+        79.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        3009.19995117188,
+        1357.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        3009.19995117188,
+        1343.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 8,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "3840x2160": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "paired": 44,
+      "scaled": 44,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        3840.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        3840.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        3365.19995117188,
+        42.0,
+        460.800048828125,
+        76.0
+       ],
+       "scaled": [
+        3365.19995117188,
+        56.0,
+        460.800048828125,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/TutorialOverlay/Card",
+       "base": [
+        3272.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        3272.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        3392.0,
+        2087.0,
+        440.0,
+        65.0
+       ],
+       "scaled": [
+        3392.0,
+        2073.0,
+        440.0,
+        79.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        3382.0,
+        2077.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        3382.0,
+        2063.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 8,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    },
+    "5120x1440": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.0,
+     "text_size": 1.75,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "paired": 44,
+      "scaled": 44,
+      "unscaled": 0
+     },
+     "flagged": [],
+     "unscaled": [],
+     "surfaces_moved": [
+      {
+       "path": "Control/TopBar/BarContainer",
+       "base": [
+        0.0,
+        0.0,
+        5120.0,
+        36.0
+       ],
+       "scaled": [
+        0.0,
+        0.0,
+        5120.0,
+        50.0
+       ]
+      },
+      {
+       "path": "Control/TopBar/NotificationArea",
+       "base": [
+        4586.0,
+        42.0,
+        520.0,
+        76.0
+       ],
+       "scaled": [
+        4586.0,
+        56.0,
+        520.0,
+        76.0
+       ]
+      },
+      {
+       "path": "Control/TutorialOverlay/Card",
+       "base": [
+        4552.0,
+        44.0,
+        560.0,
+        257.0
+       ],
+       "scaled": [
+        4552.0,
+        58.0,
+        560.0,
+        570.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/PanelContainer",
+       "base": [
+        4672.0,
+        1367.0,
+        440.0,
+        65.0
+       ],
+       "scaled": [
+        4672.0,
+        1353.0,
+        440.0,
+        79.0
+       ]
+      },
+      {
+       "path": "Control/WarStatusPanel/ResizeGrip",
+       "base": [
+        4662.0,
+        1357.0,
+        20.0,
+        20.0
+       ],
+       "scaled": [
+        4662.0,
+        1343.0,
+        20.0,
+        20.0
+       ]
+      }
+     ],
+     "surfaces_seen": 8,
+     "clipped_text": 0,
+     "buttons_offscreen": 0
+    }
+   }
+  }
+ }
+}

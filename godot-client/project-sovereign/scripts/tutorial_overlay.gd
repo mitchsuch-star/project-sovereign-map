@@ -447,11 +447,11 @@ func _card_placement(view: Vector2, width: float) -> Vector2:
 	screen; beside the rail when the card still sits in the right half; else
 	below the rail's slot."""
 	if avoid_rail == null or not is_instance_valid(avoid_rail) or not avoid_rail.is_visible_in_tree():
-		return Vector2(0.0, CARD_TOP)
+		return Vector2(0.0, CARD_TOP + Utils.top_bar_growth())
 	var rail := avoid_rail.get_global_rect()
 	var inset := maxf(view.x - rail.position.x, 0.0)
 	if view.x - (inset + CARD_MARGIN + width) >= view.x * 0.5:
-		return Vector2(inset, CARD_TOP)
+		return Vector2(inset, CARD_TOP + Utils.top_bar_growth())
 	return Vector2(0.0, rail.end.y + CARD_MARGIN)
 
 
