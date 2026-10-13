@@ -813,7 +813,7 @@ func _add_action_button(action: Dictionary):
 		picker_label.bbcode_enabled = true
 		picker_label.fit_content = true
 		picker_label.scroll_active = false
-		picker_label.text = "  [color=#a0a0a0][i]Pick a war to settle:[/i][/color]"
+		picker_label.text = "  [color=#" + Utils.toned_hex("a0a0a0") + "][i]Pick a war to settle:[/i][/color]"
 		content_list.add_child(picker_label)
 		for war_entry in available_wars:
 			var war_str = str(war_entry)
@@ -839,7 +839,7 @@ func _add_action_button(action: Dictionary):
 		grant_label.bbcode_enabled = true
 		grant_label.fit_content = true
 		grant_label.scroll_active = false
-		grant_label.text = "  [color=#a0a0a0][i]Pick a province to cede:[/i][/color]"
+		grant_label.text = "  [color=#" + Utils.toned_hex("a0a0a0") + "][i]Pick a province to cede:[/i][/color]"
 		content_list.add_child(grant_label)
 		for region_entry in eligible_regions:
 			if not (region_entry is Dictionary):

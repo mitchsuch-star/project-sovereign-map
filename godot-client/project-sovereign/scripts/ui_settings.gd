@@ -288,6 +288,23 @@ static func set_text_size(value: float) -> void:
 	_write_num("display", "text_size", clampf(snappedf(value, TEXT_SIZE_STEP), MIN_TEXT_SIZE, MAX_TEXT_SIZE))
 
 
+# --- High contrast (UXR-D2, Pre-Deploy S9b: Settings → INTERFACE) ---
+# Every dim-grey text class raised at least one step of the dim ladder, and
+# none left under the step that reads 4.5 : 1 on the game's panels (this hex,
+# the old COLOR_INFO) — Utils.apply_contrast holds the ladder. A preference
+# like the body face: Reset layout keeps it.
+const HIGH_CONTRAST_FLOOR_HEX := "a0a0a8"
+
+
+static func get_high_contrast() -> bool:
+	return bool(_config().get_value("display", "high_contrast", false))
+
+
+static func set_high_contrast(on: bool) -> void:
+	_config().set_value("display", "high_contrast", on)
+	_save()
+
+
 # --- HUD width (UXR-D3, Pre-Deploy S9b: Settings → DISPLAY) ---
 # "full" spreads the HUD to the viewport's edges (the default, as ever);
 # "centred" confines the command window, the notice rail, the top bar's two

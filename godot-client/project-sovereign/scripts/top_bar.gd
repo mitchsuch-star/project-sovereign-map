@@ -410,7 +410,7 @@ func _update_button_highlights():
 			if sname == "generals" and _audience_marshal != "":
 				btn.add_theme_color_override("font_color", Utils.UI_WARNING)
 			else:
-				btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+				btn.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
 
 
 # =============================================================================
@@ -527,7 +527,7 @@ func update_mailbox_count(envoy_count: int):
 		mailbox_btn.tooltip_text = "No pending envoys."
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
-		mailbox_btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+		mailbox_btn.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
 
 
 func _start_threat_pulse():
@@ -591,7 +591,7 @@ func update_admiralty(summary: Dictionary):
 	else:
 		admiralty_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
 		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
-		admiralty_btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+		admiralty_btn.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
 	_refresh_admiralty_text()
 
 

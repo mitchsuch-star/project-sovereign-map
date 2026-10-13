@@ -150,7 +150,7 @@ func _on_campaign_log_received(response):
 
 			var category = evt.get("category", "unknown")
 			var icon = _category_icon(str(category))
-			var color = CATEGORY_COLORS.get(category, "a0a0a8")
+			var color = CATEGORY_COLORS.get(category, Utils.toned_hex("a0a0a8"))
 			var display_text = evt.get("display", "Unknown event")
 			var body = Utils.humanize_nation_keys_in_text(str(display_text))
 			if tier == "lead":
@@ -171,7 +171,7 @@ func _on_campaign_log_received(response):
 
 func _category_icon(category: String) -> String:
 	"""LV-16: the category's glyph, tinted; the letter only as a fallback."""
-	var color = str(CATEGORY_COLORS.get(category, "a0a0a8"))
+	var color = str(CATEGORY_COLORS.get(category, Utils.toned_hex("a0a0a8")))
 	var glyph = str(CATEGORY_GLYPHS.get(category, ""))
 	if glyph != "":
 		var path = Utils.ICON_PHOSPHOR + glyph + ".svg"

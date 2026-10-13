@@ -517,6 +517,42 @@ The sail counts went from 2.1 px to 25 px (18 logical) on the user's panel, with
 
 *For the user's eyes:* `docs/audits/uxr0/UXR2B_MAP_FURNITURE_BEFORE_AFTER_{5120x1440,1920x1080}_2026_10_12.jpg`. The furniture now reads at the whole-map view, and Central Europe is busier. Where the boot masses corps, the names brush the province names, and at Venetia a fogged "?" chip overlaps Masséna's name. Filed as **UXR-X28**, owner UXR-3's fixes (S12), with a rect-overlap census as its test.
 
+**Slice D — UXR-D2, High contrast.**
+
+*The instrument first* (UXR-3's R3 item, built now; `SYSTEMS_REFERENCE.md` §112.4). Every text row records its rect and the colours it declares; the reader takes the background off the frame and applies WCAG's ratio. The floor is body 4.5 : 1 and caption 3 : 1. It found the dim class exactly, with High contrast off, on the five named surfaces:
+
+| Text | Colour | Ratio |
+|---|---|---|
+| The Generals' biography | 666670 | 3.09 : 1 |
+| The tutor card's body | 808080 | 4.26 : 1 |
+| Both dispatch boards' footers | 808080 | 4.44 : 1 |
+
+That is **20 readings** under the floor.
+
+*The toggle.* "Dim" is a class, and High contrast raises every member at least one ladder step, none under a0a0a8.
+- The tokens are static and re-toned.
+- The Generals' own 666670 became the shared `COLOR_DIM`.
+- 34 grey literals in BBCode strings (the proposal and incoming-proposal popups, the wizard, the reward and objection popups, the war-detail popup) and five assignments (the dispatch's and the terminal's 808088, the terminal's two a0a0a8, the log's default) go through `Utils.toned_hex`. The 808088 was the last failure the first ON reading found (4.48 : 1).
+- The top bar's three run-time greys go through `Utils.toned`.
+- Every grey font-colour override is raised by one chokepoint as its node enters the tree, and restored when the toggle turns off.
+
+*The reading* (the done-when):
+- With High contrast **on**, 580 measured rows on the five named surfaces at the five resolutions read **0 under the floor** (`contrast_hc_on_named_2026_10_13.json`), against 20 off (`contrast_hc_off_named_2026_10_13.json`, shot from the pre-D tree `786839b9`).
+- Driven: the real toggle raises a scene grey, a code-built hint and the tokens, and off restores each exactly.
+- *Regression:* the full IQ-10 set at 1600×900 × {1.0, 2.0} with High contrast off: **274 of 284 pixel-identical** to Slice B's frames. The ten others are the war room's six (Slice C's map furniture) and the main menu's four (two its Ken Burns drift, two Settings' new toggle row). The only text-record difference is that row and its hint, so the 34 routed literals and every popup draw unchanged when off. The run had 0 SCRIPT ERROR, 0 clipped, 0 off-screen and 0 stray input.
+- *Frame:* `docs/audits/uxr0/UXR2B_HIGH_CONTRAST_OFF_ON_GENERALS_5120x1440_2026_10_13.jpg`.
+
+**S9b's done-when is MET on the instrument:**
+
+| Row | Measured |
+|---|---|
+| UXR-D1 | At 150 %, 0 RED on the five named surfaces, every text node scaled and no clamped panel moved |
+| UXR-D3 | Driven at 5120×1440 Centred, every HUD rect inside the band, with the census green |
+| UXR-X4 | `map_small` 0 at the derived scale |
+| UXR-D2 | 0 rows under the contrast floor with the toggle on |
+
+⚠ The user's half is UXR-4's eyes at 5120×1440: Text size, Centred, the map at the whole-Europe view (UXR-X28's crowding is S12's) and High contrast. **S10 (CODE-2b) is next.**
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed

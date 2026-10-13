@@ -1,0 +1,526 @@
+{
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\97f5b384-16c4-46c3-a965-6014730cfa15\\scratchpad\\hc_on2\\index.json",
+ "client_commit": "786839b9",
+ "physical_scale": "auto",
+ "high_contrast": true,
+ "surfaces": {
+  "generals_boot": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "top_bar_boot": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "measured": 12,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "measured": 12,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "measured": 12,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "measured": 12,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "measured": 12,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "dispatch_t20": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "dispatch_boot_today": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "war_room_boot": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 79,
+      "measured": 45,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 79,
+      "measured": 45,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 79,
+      "measured": 45,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 79,
+      "measured": 45,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 79,
+      "measured": 45,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "war_room_tutorial": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 58,
+      "measured": 47,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 58,
+      "measured": 47,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 58,
+      "measured": 47,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 58,
+      "measured": 47,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 58,
+      "measured": 47,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "tutorial_card": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "measured": 5,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "measured": 5,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "measured": 5,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "measured": 5,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "measured": 5,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  }
+ }
+}

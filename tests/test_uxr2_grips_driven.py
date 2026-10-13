@@ -189,3 +189,31 @@ class TestTheTextSizeSlider:
             # (plus the panel's chrome — margins and stylebox, under 70 px)
             floor = max(rows["InputSection"], rows["TitleRow"]) + 70.0
             assert reading["terminal"][0] <= max(reading["requested"][0], floor) + 1.0, (key, reading)
+
+
+def _lum(hexstr: str) -> float:
+    r, g, b = (int(hexstr[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+class TestTheHighContrastToggle:
+    """UXR-D2 (Pre-Deploy S9b): the Settings toggle, DRIVEN on the live war
+    room — on, a scene-authored grey (main.tscn's header label), a code-built
+    hint and the BBCode tokens all rise; off, every one returns exactly."""
+
+    def test_the_toggle_is_in_settings(self, driven):
+        assert driven["contrast"]["before"]["toggle"] is True
+
+    def test_on_every_dim_class_rises(self, driven):
+        before, on = driven["contrast"]["before"], driven["contrast"]["on"]
+        assert driven["contrast"]["stored_on"] is True
+        for key in ("scene_grey", "hint_grey", "info", "dimmed", "dim"):
+            assert _lum(on[key]) > _lum(before[key]) + 0.02, (key, before[key], on[key])
+        # none stays under the floor step (a0a0a8)
+        for key in ("dimmed", "dim"):
+            assert _lum(on[key]) >= _lum("a0a0a8") - 1e-6, (key, on[key])
+
+    def test_off_restores_every_one(self, driven):
+        before, off = driven["contrast"]["before"], driven["contrast"]["off"]
+        for key in ("scene_grey", "hint_grey", "info", "dimmed", "dim"):
+            assert off[key] == before[key], (key, before[key], off[key])

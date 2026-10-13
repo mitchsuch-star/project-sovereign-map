@@ -30,7 +30,7 @@ signal audience_requested
 @onready var content_area = $PanelContainer/VBoxContainer/ScrollContainer/ContentArea
 
 # File-specific colors (not in Utils)
-const COLOR_DIM = "666670"
+# UXR-D2: the faintest grey is Utils.COLOR_DIM (High contrast raises it).
 const COLOR_DEVOTED = "ffd700"
 # IQ-2 (Sept 14, 2026) flip lever — true: a captured marshal's card renders
 # the backend's `status_note` ("PRISONER of Austria since T37.") at the head
@@ -295,13 +295,13 @@ func _render_glory_ladder() -> String:
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]OUR DOCTRINE — " + str(cached_doctrine.get("name", "")) + "[/color]\n"
 		var d_says = str(cached_doctrine.get("says", ""))
 		if d_says != "":
-			bbcode += "  [color=#" + COLOR_DIM + "]\"" + d_says + "\"[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_DIM + "]\"" + d_says + "\"[/color]\n"
 		if d_strength is Dictionary:
 			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Strength — " + str(d_strength.get("name", "")) + ":[/color] " + str(d_strength.get("line", "")) + "\n"
 		if d_flaw is Dictionary:
 			var flaw_color = Utils.COLOR_GREY if bool(d_flaw.get("cured", false)) else Utils.COLOR_WARNING
 			bbcode += "  [color=#" + flaw_color + "]Flaw — " + str(d_flaw.get("name", "")) + ":[/color] " + str(d_flaw.get("line", "")) \
-				+ "  [color=#" + COLOR_DIM + "](" + str(d_flaw.get("status_line", "")) + ")[/color]\n"
+				+ "  [color=#" + Utils.COLOR_DIM + "](" + str(d_flaw.get("status_line", "")) + ")[/color]\n"
 		bbcode += "\n"
 
 	if cached_ladder is Array and cached_ladder.size() > 1:
@@ -311,7 +311,7 @@ func _render_glory_ladder() -> String:
 		# rule is stated as the engine actually implements it — envy fixes
 		# on a REMEMBERED rival (JEALOUSY_RIVAL_MEMORY), not on whoever
 		# happens to stand one rung up this turn.
-		bbcode += "  [color=#" + COLOR_DIM + "](glory, last " + str(cached_glory_window) + " turns — a marshal envies the man above him, and keeps that rival while he stays above)[/color]\n"
+		bbcode += "  [color=#" + Utils.COLOR_DIM + "](glory, last " + str(cached_glory_window) + " turns — a marshal envies the man above him, and keeps that rival while he stays above)[/color]\n"
 		for i in range(cached_ladder.size()):
 			var row = cached_ladder[i]
 			var rname = str(row.get("name", "?"))
@@ -319,7 +319,7 @@ func _render_glory_ladder() -> String:
 			var crowned = bool(row.get("crowned", false))
 			var envies = str(row.get("jealous_of", "")) if row.get("jealous_of") != null else ""
 			var filled = clampi(glory, 0, 10)
-			var bar_color = Utils.COLOR_GOLD if crowned else (Utils.COLOR_INFO if glory > 0 else COLOR_DIM)
+			var bar_color = Utils.COLOR_GOLD if crowned else (Utils.COLOR_INFO if glory > 0 else Utils.COLOR_DIM)
 			var bar = _stat_bar_img(filled, bar_color)
 			bbcode += "  " + str(i + 1) + ". "
 			if crowned:
@@ -336,7 +336,7 @@ func _render_glory_ladder() -> String:
 
 	if has_bench:
 		bbcode += _button_chip("commission_open", "Commission a Marshal…", "f4e6bd", "3a2f18", _ICON_PHOSPHOR + "crown.svg")
-		bbcode += "  [color=#" + COLOR_DIM + "]" + str(candidates.size()) + " await the Emperor's call[/color]\n\n"
+		bbcode += "  [color=#" + Utils.COLOR_DIM + "]" + str(candidates.size()) + " await the Emperor's call[/color]\n\n"
 
 	if bbcode != "":
 		bbcode += "[color=#" + Utils.COLOR_GREY + "]════════════════════════════════════════[/color]\n\n"
@@ -358,7 +358,7 @@ func _render_commission_view():
 	if not (pools is Dictionary):
 		pools = {}
 	var inf_pool = int(pools.get("infantry", cached_recruitment.get("infantry_pool", 0)))
-	bbcode += "[color=#" + COLOR_DIM + "]Treasury: " + _format_number(treasury) + "g | Pools: " + _format_number(inf_pool) + " foot · " + _format_number(int(pools.get("cavalry", 0))) + " horse · " + _format_number(int(pools.get("artillery", 0))) + " guns"
+	bbcode += "[color=#" + Utils.COLOR_DIM + "]Treasury: " + _format_number(treasury) + "g | Pools: " + _format_number(inf_pool) + " foot · " + _format_number(int(pools.get("cavalry", 0))) + " horse · " + _format_number(int(pools.get("artillery", 0))) + " guns"
 	bbcode += " | A commission raises his corps at the capital from his own arm's pool (1 admin AP + the candidate's price).[/color]\n\n"
 
 	var candidates = cached_recruitment.get("candidates", [])
@@ -393,11 +393,11 @@ func _render_commission_view():
 			bbcode += "  " + _unit_icon(arm_label, arm_color) + " [color=#" + arm_color + "][" + arm_label + "][/color]"
 		else:
 			bbcode += "  [color=#" + arm_color + "][" + arm_label + "][/color]"
-		bbcode += " [color=#" + COLOR_DIM + "]a corps of " + _format_number(int(c.get("corps", 0))) + " " + str(_BENCH_ARM_NOUN.get(c_arm, "men")) + "[/color]"
+		bbcode += " [color=#" + Utils.COLOR_DIM + "]a corps of " + _format_number(int(c.get("corps", 0))) + " " + str(_BENCH_ARM_NOUN.get(c_arm, "men")) + "[/color]"
 		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + _format_number(cost) + "g[/color]\n"
 		var bio = str(c.get("biography", ""))
 		if bio != "":
-			bbcode += "[color=#" + COLOR_DIM + "]" + bio + "[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_DIM + "]" + bio + "[/color]\n"
 		var skills = c.get("skills", {})
 		if skills is Dictionary:
 			for skill_name in ["tactical", "shock", "defense", "logistics", "administration", "command"]:
@@ -410,7 +410,7 @@ func _render_commission_view():
 				var v = int(seeds[other])
 				var vlabel = "Friendly" if v > 0 else ("Rival" if v == -1 else "Hostile")
 				seed_parts.append(other + ": " + _relationship_colored(v, vlabel))
-			bbcode += "  [color=#" + COLOR_DIM + "]Arrives with a history —[/color] " + ", ".join(seed_parts) + "\n"
+			bbcode += "  [color=#" + Utils.COLOR_DIM + "]Arrives with a history —[/color] " + ", ".join(seed_parts) + "\n"
 		if available:
 			bbcode += "  " + _button_chip("commission:" + cname, "Commission " + cname + " — " + _format_number(cost) + "g", "b6e6b6", "1e3320") + "\n"
 		else:
@@ -453,7 +453,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	# ═══════ BIOGRAPHY ═══════
 	var bio = str(m.get("biography", ""))
 	if bio != "":
-		bbcode += "[color=#" + COLOR_DIM + "]" + bio + "[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_DIM + "]" + bio + "[/color]\n"
 
 	# ═══════ PERSONALITY & UNIT TYPE ═══════
 	var pers_desc = str(m.get("personality_description", ""))
@@ -542,7 +542,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	if glory > 0 or glory_rank > 0:
 		bbcode += "  Glory: [color=#" + (Utils.COLOR_GOLD if glory > 0 else Utils.COLOR_GREY) + "]" + str(glory) + "[/color]"
 		if glory_rank > 0 and glory_roster > 1:
-			bbcode += "  [color=#" + COLOR_DIM + "](rank " + str(glory_rank) + " of " + str(glory_roster) + " on the ladder)[/color]"
+			bbcode += "  [color=#" + Utils.COLOR_DIM + "](rank " + str(glory_rank) + " of " + str(glory_roster) + " on the ladder)[/color]"
 		if m.get("glory_crowned", false):
 			bbcode += "  [color=#" + COLOR_DEVOTED + "]★ CROWNED WITH GLORY (+1 shock/defense/administration)[/color]"
 		bbcode += "\n"
@@ -562,7 +562,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Entrenched feud: " + ", ".join(feuds) + "[/color]\n"
 	var separations = m.get("separations", [])
 	if separations is Array and separations.size() > 0:
-		bbcode += "  [color=#" + COLOR_DIM + "]Kept apart from: " + ", ".join(separations) + " (Berthier watches)[/color]\n"
+		bbcode += "  [color=#" + Utils.COLOR_DIM + "]Kept apart from: " + ", ".join(separations) + " (Berthier watches)[/color]\n"
 	# PC15-10 B1: he waits in the antechamber — his petition is no modal;
 	# the chip opens it (the same dialog, the same answer).
 	if m.get("seeks_audience", false):
@@ -584,7 +584,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	if bool(m.get("sovereign", false)):
 		if is_dotation:
 			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
-				+ "  [color=#" + COLOR_DIM + "]" + str(m.get("sovereign_note", "The Empire is his estate.")) + "[/color]\n"
+				+ "  [color=#" + Utils.COLOR_DIM + "]" + str(m.get("sovereign_note", "The Empire is his estate.")) + "[/color]\n"
 	elif expectation > 0 or estate_income > 0 or pension > 0:
 		if estate_title != "":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + estate_title + "[/color]"
@@ -616,24 +616,24 @@ func _render_card(m: Dictionary, index: int) -> String:
 		# executors refuse him; review fix).
 		if m.get("captured", false):
 			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
-				+ "  [color=#" + COLOR_DIM + "]held prisoner — his rewards await his release[/color]\n"
+				+ "  [color=#" + Utils.COLOR_DIM + "]held prisoner — his rewards await his release[/color]\n"
 		elif shortfall > 0 or pension > 0:
 			bbcode += "  " + _button_chip("reward:" + str(index), "Reward — estate or rente…", "f4e6bd", "3a2f18", _ICON_GAME + "estate-domaine.svg")
 			var eligible = m.get("eligible_estates", [])
 			if shortfall > 0 and eligible is Array and eligible.size() > 0:
 				var m_name_hint = str(m.get("name", "?"))
-				bbcode += "  [color=#" + COLOR_DIM + "]or type: 'endow " + m_name_hint + " with " + str(eligible[0]) + "'[/color]"
+				bbcode += "  [color=#" + Utils.COLOR_DIM + "]or type: 'endow " + m_name_hint + " with " + str(eligible[0]) + "'[/color]"
 			bbcode += "\n"
 		else:
 			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
-				+ "  [color=#" + COLOR_DIM + "]his expectation is met — new victories raise it[/color]\n"
+				+ "  [color=#" + Utils.COLOR_DIM + "]his expectation is met — new victories raise it[/color]\n"
 	elif is_dotation and not m.get("captured", false):
 		# Fresh marshal, no expectation yet. The reward portfolio is REACTIVE
 		# by design (ES-7 "cost of success"): there is nothing to grant until
 		# he EARNS an expectation by winning battles. The chip sits in its
 		# fixed place, locked, and says exactly what unlocks it.
 		bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
-			+ "  [color=#" + COLOR_DIM + "]victories raise his expectation — then endow a conquered province (a Duchy) or grant a rente (gold/turn)[/color]\n"
+			+ "  [color=#" + Utils.COLOR_DIM + "]victories raise his expectation — then endow a conquered province (a Duchy) or grant a rente (gold/turn)[/color]\n"
 
 	# ═══════ CURRENT STATUS ═══════
 	# IQ-2 (Sept 14, 2026): W6-7 put a prisoner's fate on the card payload —
@@ -724,11 +724,11 @@ func _render_card(m: Dictionary, index: int) -> String:
 				if unfortify_why == "":
 					order_chips.append(Utils.bb_button_chip("order:unfortify:" + chip_name, "Unfortify", Utils.COLOR_COMMAND, "233043"))
 				else:
-					order_chips.append(Utils.bb_chip_disabled("Unfortify") + " [color=#" + COLOR_DIM + "]" + unfortify_why + "[/color]")
+					order_chips.append(Utils.bb_chip_disabled("Unfortify") + " [color=#" + Utils.COLOR_DIM + "]" + unfortify_why + "[/color]")
 			elif fortify_why == "":
 				order_chips.append(Utils.bb_button_chip("order:fortify:" + chip_name, "Fortify", Utils.COLOR_COMMAND, "233043"))
 			else:
-				order_chips.append(Utils.bb_chip_disabled("Fortify") + " [color=#" + COLOR_DIM + "]" + fortify_why + "[/color]")
+				order_chips.append(Utils.bb_chip_disabled("Fortify") + " [color=#" + Utils.COLOR_DIM + "]" + fortify_why + "[/color]")
 			# CN-4: Drill is offered only where the drill would begin;
 			# otherwise it is dimmed beside the executor's own reason (the
 			# card's `drill_refusal`, `tactical_executor.drill_refusal`) —
@@ -739,7 +739,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 				if drill_why == "":
 					order_chips.append(Utils.bb_button_chip("order:drill:" + chip_name, "Drill", Utils.COLOR_COMMAND, "233043"))
 				else:
-					order_chips.append(Utils.bb_chip_disabled("Drill") + " [color=#" + COLOR_DIM + "]" + drill_why + "[/color]")
+					order_chips.append(Utils.bb_chip_disabled("Drill") + " [color=#" + Utils.COLOR_DIM + "]" + drill_why + "[/color]")
 			if order_chips.size() > 0:
 				bbcode += "  " + "  ".join(PackedStringArray(order_chips)) + "\n"
 
@@ -856,7 +856,7 @@ func _skill_bar_row(label: String, val: int, note: String) -> String:
 	var bar = _stat_bar_img(filled, color)
 	var row = bar + "  " + label + " [color=#" + color + "]" + str(val) + "[/color]"
 	if note != "":
-		row += "  [color=#" + COLOR_DIM + "]" + note + "[/color]"
+		row += "  [color=#" + Utils.COLOR_DIM + "]" + note + "[/color]"
 	return row + "\n"
 
 

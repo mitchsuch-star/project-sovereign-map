@@ -68,7 +68,7 @@ func show_objection(data: Dictionary):
 		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome_display]
 		var hint = data.get("acceptance_hint", "")
 		if hint:
-			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
+			bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]%s[/color]\n" % hint
 
 	bbcode += "[b]Defiance Risk:[/b] %s\n" % defiance_risk
 	bbcode += "[b]Regarding:[/b] %s" % Utils.humanize_nation_keys_in_text(str(proposal_summary))

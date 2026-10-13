@@ -10258,3 +10258,25 @@ What stands outside a scroll is named, with a proof: the tutor body and the rail
 - **The proof.** `tests/test_uxr2b_map_furniture.py` reads `docs/audits/uxr0/readability_map_{before,after}_2026_10_12.json`.
   - `map_small` was 34 of 34 before. It is 0 after, at every resolution with the derived scale.
   - The sail counts went from 2.1 px to 25 px on the user's panel.
+
+### 112.4 High contrast (UXR-D2, Slice D)
+
+- **The setting.** Settings → INTERFACE → *High contrast* (`display/high_contrast`). It is a preference, so Reset layout keeps it.
+- **The dim class.** "Dim" is a class: the BBCode greys (`Utils.COLOR_DIM` 666670, `COLOR_DIMMED` / `COLOR_GREY` 808080, `COLOR_INFO` a0a0a8), `UI_TEXT_DIM`, and every grey font colour authored as a literal.
+- **The ladder.** `Utils.DIM_LADDER` runs 666670 → 808080 → a0a0a8 → UI_TEXT_DIM → ddd6c8.
+  - `raise_dim(c)` takes a low-chroma grey in the dim band one step up, never under `DIM_FLOOR_INDEX` (a0a0a8, the step that reads 4.5 : 1 on the game's panels; 808080 read 4.3), and keeps its alpha.
+  - Coloured text (`is_dim` is greys only) and disabled-button text (WCAG's inactive components) are untouched.
+- **The roads it travels:**
+  - The BBCode tokens are `static var`s, re-toned by `Utils.apply_contrast()`.
+  - Every grey literal in a BBCode string goes through `Utils.toned_hex("…")`: the same hex when off, so nothing moves.
+  - Run-time re-sets go through `Utils.toned(c)`.
+  - Every Control's grey `font_color` / `default_color` override is raised through ONE chokepoint, `Utils.contrast_node`, with the original kept in meta, so off restores it. It runs as each node enters the tree (main and main_menu hook `node_added`) and over the whole tree when the toggle flips.
+  - Text a screen already wrote takes the new colour when the screen next draws.
+- **The contrast instrument** (UXR-3's R3 item, built here).
+  - The IQ-10 harness records each text row's rect (clipped to its scroll) and the colours it declares: the font colour, the RichTextLabel's default and every `[color]` span, and a chip's `[bgcolor][color]` pair apart, each times the node's modulate chain.
+  - `tools/uxr2b_contrast_report.py` reads the background off the frame (the median of the row's rect), blends a translucent colour over it, and takes WCAG's ratio. A chip span is measured against its own fill. Disabled buttons, the locked chip and the map tier are skipped.
+  - The floor is body ≥ 4.5 : 1 and caption ≥ 3 : 1.
+- **The proof.** `tests/test_uxr2b_high_contrast.py` reads `docs/audits/uxr0/contrast_hc_{off,on}_named_2026_10_13.json`. On the five named surfaces at five resolutions:
+  - with High contrast **off**, 20 readings under the floor (the Generals' 666670 at 3.1 : 1, the tutor card's and the dispatch's 808080);
+  - with it **on**, **0**.
+  - The driven `TestTheHighContrastToggle` flips the real toggle: a scene grey, a code-built hint and the tokens rise, and off restores every one exactly.

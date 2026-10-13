@@ -35,7 +35,9 @@ var _trailing_group_expanded: Dictionary = {}
 var _suggestion_options_expanded: Dictionary = {}
 
 const COLOR_GOLD = "#d9c08c"
-const COLOR_DIMMED = "#808080"
+# UXR-D2: the dim grey through High contrast (a getter, not a const).
+var COLOR_DIMMED: String:
+	get: return "#" + Utils.toned_hex("808080")
 const COLOR_RED = "#e04040"
 # IGR-G1: the settlement authoring surface is a DOCUMENT (treasury preamble +
 # the per-court table + footer + tier-2 affordance rails), not a dialog — on a
@@ -397,7 +399,7 @@ func _build_content(data: Dictionary) -> String:
 		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome]
 		var hint = data.get("acceptance_hint", "")
 		if hint:
-			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
+			bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]%s[/color]\n" % hint
 	# G4F-13: the ratify gate can veto a formula-passing deal (PEACE needs
 	# relations >= -60) — say so BEFORE the player spends DP on it.
 	var gate_warning = str(data.get("ratification_gate_warning", ""))
@@ -428,7 +430,7 @@ func _build_content(data: Dictionary) -> String:
 				color = "#e0c060"
 			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
 		if warnings.size() > shown:
-			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
+			bbcode += "  [color=#" + Utils.toned_hex("a0a0a0") + "]+%d more diplomatic concern%s[/color]\n" % [
 				warnings.size() - shown,
 				"" if (warnings.size() - shown) == 1 else "s",
 			]
@@ -490,7 +492,7 @@ func _build_settlement_content(data: Dictionary) -> String:
 		bbcode += "[b][color=#e0c070]Settlement of %s — ready for ratification[/color][/b]\n" % war_label
 	else:
 		bbcode += "[b][color=#e04040]This settlement cannot be ratified now.[/color][/b]\n"
-	bbcode += "[color=#a0a0a8]%s - %s[/color]\n" % [war_label, scope]
+	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
 
 	# UX-2 (GT-Slice-3): REVIEW reads as a staged-decision surface, visually
 	# distinct from the PROPOSE authoring surface — the terms are frozen, the
@@ -570,11 +572,11 @@ func _build_settlement_footer(data: Dictionary) -> String:
 					stamps.append("rewarded")
 				var stamp_text = ""
 				if stamps.size() > 0:
-					stamp_text = " [color=#808080](" + ", ".join(PackedStringArray(stamps)) + ")[/color]"
+					stamp_text = " [color=#" + Utils.toned_hex("808080") + "](" + ", ".join(PackedStringArray(stamps)) + ")[/color]"
 				bbcode += "  [color=#e0c070]*[/color] %s - %s%s\n" % [Utils.display_nation_name(nation), standing, stamp_text]
 			var overflow = int(allies.get("overflow_count", 0))
 			if overflow > 0:
-				bbcode += "  [color=#808080]+%d more participants in the ledger[/color]\n" % overflow
+				bbcode += "  [color=#" + Utils.toned_hex("808080") + "]+%d more participants in the ledger[/color]\n" % overflow
 			bbcode += "\n"
 
 	# G4F-12 (Gate-4 smoke): this footer block is the LEAD COURT's score
@@ -652,7 +654,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		# is therefore a no-op outside the terminal-stale state.
 		var terminal_recovery_copy = str(data.get("terminal_recovery_copy", ""))
 		if terminal_recovery_copy != "":
-			bbcode += "  [color=#a0a0a0][i]" + terminal_recovery_copy + "[/i][/color]\n"
+			bbcode += "  [color=#" + Utils.toned_hex("a0a0a0") + "][i]" + terminal_recovery_copy + "[/i][/color]\n"
 		bbcode += "\n"
 
 	# G4F-20: the SC-16 forced-alliance coalition threat projection was
@@ -686,7 +688,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 				bbcode += "\n"
 			var overflow_warns = warnings.get("overflow", [])
 			if overflow_warns is Array and overflow_warns.size() > 0:
-				bbcode += "  [color=#808080]+%d more warnings in the ledger[/color]\n" % overflow_warns.size()
+				bbcode += "  [color=#" + Utils.toned_hex("808080") + "]+%d more warnings in the ledger[/color]\n" % overflow_warns.size()
 			bbcode += "\n"
 
 	var terms = sections.get("terms", {}) if sections is Dictionary else {}
@@ -703,7 +705,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 					bbcode += "  [color=#e0c070]*[/color] %s\n" % label
 			var term_overflow = int(terms.get("overflow_count", 0))
 			if term_overflow > 0:
-				bbcode += "  [color=#808080]+%d more terms in the ledger[/color]\n" % term_overflow
+				bbcode += "  [color=#" + Utils.toned_hex("808080") + "]+%d more terms in the ledger[/color]\n" % term_overflow
 			bbcode += "\n"
 
 	# SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
@@ -769,7 +771,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		var withheld_reason = _safe_str(opt.get("disabled_reason_display"))
 		if withheld_reason == "":
 			continue
-		withheld_lines += "  [color=#808080]%s — %s[/color]\n" % [_safe_str(opt.get("label")), withheld_reason]
+		withheld_lines += "  [color=#" + Utils.toned_hex("808080") + "]%s — %s[/color]\n" % [_safe_str(opt.get("label")), withheld_reason]
 	if withheld_lines != "":
 		bbcode += "[b]Not available now[/b]\n" + withheld_lines
 
@@ -901,7 +903,7 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			]
 		bbcode += "  [color=#e0c070]*[/color] %s - %s%s" % [name_cell, band_display, total_text]
 		if direction != "":
-			bbcode += " [color=#a0a0a8]%s[/color]" % direction
+			bbcode += " [color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]" % direction
 		bbcode += "\n"
 		var blocker = _safe_str(row.get("top_blocker_display"))
 		if blocker != "":
@@ -956,7 +958,7 @@ func _build_focused_component_breakdown(row: Dictionary) -> String:
 		if not (entry is Dictionary):
 			continue
 		var value = int(entry.get("value", 0))
-		var color = "#80c080" if value > 0 else ("#e08060" if value < 0 else "#a0a0a8")
+		var color = "#80c080" if value > 0 else ("#e08060" if value < 0 else "#" + Utils.toned_hex("a0a0a8"))
 		bbcode += "        [color=%s]%s %s[/color]\n" % [
 			color,
 			_safe_str(entry.get("value_display")),
@@ -984,7 +986,7 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 			var tag_color = "#e09040" if tag == "Demanded" else ("#80c0a0" if tag == "Conceded" else "#e0c070")
 			var authored_suffix = ""
 			if str(line.get("authored_by", "")) == "player":
-				authored_suffix = " [color=#808080](yours)[/color]"
+				authored_suffix = " [color=#" + Utils.toned_hex("808080") + "](yours)[/color]"
 			bbcode += "      [color=%s]%s[/color] · %s%s" % [
 				tag_color, tag, _safe_str(line.get("line_display")), authored_suffix,
 			]
@@ -994,7 +996,7 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 					court_index, line_index, court_index, line_index,
 				]
 				if magnitude.has("turns"):
-					bbcode += " [color=#a0a0a8]turns[/color][url=mag:%d:%d:turns:-][-][/url][url=mag:%d:%d:turns:+][+][/url]" % [
+					bbcode += " [color=#" + Utils.toned_hex("a0a0a8") + "]turns[/color][url=mag:%d:%d:turns:-][-][/url][url=mag:%d:%d:turns:+][+][/url]" % [
 						court_index, line_index, court_index, line_index,
 					]
 			if line.get("remove_action") != null:
@@ -1007,7 +1009,7 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 	if not bool(row.get("can_author", false)):
 		var disabled_reason = _safe_str(row.get("authoring_disabled_reason_display"))
 		if disabled_reason != "":
-			bbcode += "      [color=#808080]+ Add demand — %s[/color]\n" % disabled_reason
+			bbcode += "      [color=#" + Utils.toned_hex("808080") + "]+ Add demand — %s[/color]\n" % disabled_reason
 		return bbcode
 	var suggestions = row.get("demand_suggestions", [])
 	if not (suggestions is Array) or suggestions.size() == 0:
@@ -1071,7 +1073,7 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 			line += " (%s)" % gate
 		line += "[/color]\n"
 		if why != "" and why != "null":
-			line += "            [i][color=#909098]— %s[/color][/i]\n" % why
+			line += "            [i][color=#" + Utils.toned_hex("909098") + "]— %s[/color][/i]\n" % why
 		return line
 	var bbcode = "          [url=sugg:%d:%d][color=#80b0e0]%s[/color][/url]" % [
 		court_index, sugg_index, _safe_str(sugg.get("label")),
@@ -1095,7 +1097,7 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	bbcode += "\n"
 	var reason = _safe_str(sugg.get("reason_display"))
 	if reason != "":
-		bbcode += "            [i][color=#909098]— %s[/color][/i]\n" % reason
+		bbcode += "            [i][color=#" + Utils.toned_hex("909098") + "]— %s[/color][/i]\n" % reason
 	var options_key = "%d|%d" % [court_index, sugg_index]
 	if options.size() > 1 and bool(_suggestion_options_expanded.get(options_key, false)):
 		var opt_index = -1
@@ -1289,7 +1291,7 @@ func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	var war_label = str(data.get("war_label", data.get("war_id", "this war")))
 	var bbcode = ""
 	bbcode += "[b][color=#e0c070]Leave the joint settlement?[/color][/b]\n"
-	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
+	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]\n\n" % war_label
 	bbcode += "Treat with [b]%s[/b] alone — every other court keeps its war.\n" % Utils.display_nation_name(target)
 	# IGR-D: this line used to be a hardcoded, unconditional
 	# "Your drafted terms for X carry into the talks." The backend has
@@ -1304,7 +1306,7 @@ func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	var carry_line = str(data.get("carry_line", ""))
 	if carry_line != "":
 		bbcode += "[color=#80b0e0]%s[/color]\n" % Utils.humanize_nation_keys_in_text(carry_line)
-	bbcode += "[color=#a0a0a8]The joint draft stays untouched if you cancel.[/color]\n\n"
+	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]The joint draft stays untouched if you cancel.[/color]\n\n"
 	var ttext = str(data.get("talleyrand_text", ""))
 	if ttext != "":
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
@@ -1316,7 +1318,7 @@ func _build_settlement_scope_replace_content(data: Dictionary) -> String:
 	var incoming_scope = str(data.get("incoming_scope_display", "new scope"))
 	var bbcode = ""
 	bbcode += "[b][color=#e0c070]Settlement scope already staged[/color][/b]\n"
-	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
+	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]\n\n" % war_label
 	bbcode += "[b]Current draft:[/b] %s\n" % current_scope
 	bbcode += "[b]New scope:[/b] %s\n\n" % incoming_scope
 	var ttext = str(data.get("talleyrand_text", ""))
@@ -1518,7 +1520,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			shown += 1
 		var overflow = consequence_items.size() - shown
 		if overflow > 0:
-			bbcode += "  [color=#808080](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
+			bbcode += "  [color=#" + Utils.toned_hex("808080") + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
@@ -1566,7 +1568,7 @@ func _build_ultimatum_content(data: Dictionary) -> String:
 		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome]
 		var hint = data.get("acceptance_hint", "")
 		if hint:
-			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
+			bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]%s[/color]\n" % hint
 
 	# DP cost
 	var dp_cost = data.get("dp_cost", -1)
@@ -1621,7 +1623,7 @@ func _build_feasibility_content(data: Dictionary) -> String:
 		bbcode += "Estimated acceptance: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome]
 		var hint = data.get("acceptance_hint", "")
 		if hint:
-			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
+			bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]%s[/color]\n" % hint
 	return bbcode
 
 
@@ -1636,7 +1638,7 @@ func _build_incoming_settlement_offer_content(data: Dictionary) -> String:
 	var war_label = str(data.get("war_label", data.get("war_id", "settlement")))
 	var bbcode = ""
 	bbcode += "[b]SETTLEMENT OFFER FROM %s[/b]\n\n" % Utils.display_nation_name(proposer).to_upper()
-	bbcode += "[color=#a0a0a8]%s[/color]\n\n" % war_label
+	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]\n\n" % war_label
 
 	var proposer_voice = str(data.get("proposer_voice", ""))
 	if proposer_voice != "":
@@ -1671,9 +1673,9 @@ func _build_ally_settlement_petition_content(data: Dictionary) -> String:
 	var target_enemy = str(data.get("target_enemy", "the enemy"))
 	var bbcode = ""
 	bbcode += "[b]ALLY SETTLEMENT PETITION - %s[/b]\n\n" % Utils.display_nation_name(ally).to_upper()
-	bbcode += "[color=#a0a0a8]%s[/color]\n" % war_label
+	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]\n" % war_label
 	if claim_war != "":
-		bbcode += "[color=#a0a0a8]Related claim: %s[/color]\n" % claim_war
+		bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]Related claim: %s[/color]\n" % claim_war
 	bbcode += "\n"
 
 	var ally_voice = str(data.get("ally_voice", ""))
@@ -1741,7 +1743,7 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 				color = "#e0c060"
 			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
 		if warnings.size() > shown:
-			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
+			bbcode += "  [color=#" + Utils.toned_hex("a0a0a0") + "]+%d more diplomatic concern%s[/color]\n" % [
 				warnings.size() - shown,
 				"" if (warnings.size() - shown) == 1 else "s",
 			]
@@ -1772,7 +1774,7 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 				color = "#e0c060"
 			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
 		if warnings.size() > shown:
-			bbcode += "  [color=#a0a0a0]+%d more diplomatic concern%s[/color]\n" % [
+			bbcode += "  [color=#" + Utils.toned_hex("a0a0a0") + "]+%d more diplomatic concern%s[/color]\n" % [
 				warnings.size() - shown,
 				"" if (warnings.size() - shown) == 1 else "s",
 			]

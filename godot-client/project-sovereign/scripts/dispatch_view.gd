@@ -400,7 +400,7 @@ func _on_dispatch_received(response):
 				"MEDIUM":
 					de_color = Utils.COLOR_INFO    # grey
 				"LOW":
-					de_color = "808088"      # dim grey
+					de_color = Utils.toned_hex("808088")      # dim grey
 			bbcode += "[color=#" + de_color + "]  " + de_text + "[/color]\n"
 		bbcode += "\n"
 

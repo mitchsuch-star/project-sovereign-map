@@ -385,6 +385,19 @@ func _prepare():
 	_current["window"] = [size.x, size.y]
 	_current["content_scale_factor"] = _scale()
 	_current["text_size"] = text_size
+	# UXR-D2: High contrast (off when unsaid) — seeded and applied like the
+	# game does (main / main_menu re-tone each node as it enters the tree;
+	# a scene shot alone has neither, so the harness hooks the same chokepoint).
+	var high_contrast := bool(shot.get("high_contrast", _spec.get("high_contrast", false)))
+	UiSettings._cfg.set_value("display", "high_contrast", high_contrast)
+	_current["high_contrast"] = high_contrast
+	if settings_script.get_script_constant_map().has("HIGH_CONTRAST_FLOOR_HEX"):
+		var utils_hc: Variant = Utils
+		utils_hc.call("apply_contrast")
+		if high_contrast and not node_added.is_connected(_on_node_added_contrast):
+			node_added.connect(_on_node_added_contrast)
+		elif not high_contrast and node_added.is_connected(_on_node_added_contrast):
+			node_added.disconnect(_on_node_added_contrast)
 	# UXR-D3: the HUD width the frame is shot at ("full" when unsaid).
 	var hud_width := str(shot.get("hud_width", _spec.get("hud_width", "full")))
 	UiSettings._cfg.set_value("display", "hud_width", hud_width)
@@ -857,6 +870,7 @@ func _collect_texts() -> Array:
 			continue
 		entry["path"] = str(root.get_path_to(n))
 		_add_text_metrics(entry, n, font, font_size)
+		_add_text_colors(entry, n)
 		out.append(entry)
 	return out
 
@@ -905,6 +919,62 @@ func _add_text_metrics(entry: Dictionary, n: Control, font: Font, font_size: int
 	var ratios := _glyph_ratios(font, font_size)
 	entry["cap_px"] = float(ratios.get("cap", 0.0)) * mult
 	entry["x_px"] = float(ratios.get("x", 0.0)) * mult
+
+
+# ── the contrast census (UXR-D2, Pre-Deploy S9b — UXR-3's R3 instrument) ────
+# Per text row: its logical rect (clipped to the scroll that shows it) and the
+# colours it DECLARES — a Label / Button / LineEdit's resolved font colour, a
+# RichTextLabel's default colour and every BBCode [color] span, each times the
+# node's modulate chain, and a chip's [bgcolor][color] pair apart.
+# `tools/uxr2b_contrast_report.py` reads the background off the frame.
+var _chip_re := RegEx.create_from_string("(?s)\\[bgcolor=([^\\]]+)\\](.*?)\\[/bgcolor\\]")
+var _span_re := RegEx.create_from_string("\\[color=([^\\]]+)\\]")
+
+
+func _modulate_chain(n: CanvasItem) -> Color:
+	var m := n.self_modulate
+	var p: Node = n
+	while p != null and p is CanvasItem:
+		m *= (p as CanvasItem).modulate
+		p = p.get_parent()
+	return m
+
+
+func _add_text_colors(entry: Dictionary, n: Control) -> void:
+	if _inside_subviewport(n):
+		return
+	var r := n.get_global_rect()
+	var scroll := _scroll_ancestor(n)
+	if scroll != null:
+		r = r.intersection(scroll.get_global_rect())
+	r = r.intersection(root.get_visible_rect())
+	entry["rect"] = [r.position.x, r.position.y, r.size.x, r.size.y]
+	var mod := _modulate_chain(n)
+	var colors: Array = []
+	var chips: Array = []
+	if n is RichTextLabel:
+		var rtl := n as RichTextLabel
+		colors.append((rtl.get_theme_color("default_color") * mod).to_html(true))
+		var src := rtl.text
+		for m in _chip_re.search_all(src):
+			var bg := Color.from_string(m.get_string(1), Color(0, 0, 0, 0))
+			for span in _span_re.search_all(m.get_string(2)):
+				chips.append([bg.to_html(true), (Color.from_string(span.get_string(1), Color.WHITE) * mod).to_html(true)])
+		var rest := _chip_re.sub(src, "", true)
+		for span in _span_re.search_all(rest):
+			colors.append((Color.from_string(span.get_string(1), Color.WHITE) * mod).to_html(true))
+	elif n is BaseButton:
+		var key := "font_disabled_color" if (n as BaseButton).disabled else "font_color"
+		colors.append((n.get_theme_color(key) * mod).to_html(true))
+	else:
+		colors.append((n.get_theme_color("font_color") * mod).to_html(true))
+	var unique: Array = []
+	for c in colors:
+		if not unique.has(c):
+			unique.append(c)
+	entry["colors"] = unique
+	if not chips.is_empty():
+		entry["chips"] = chips
 
 
 func _subviewport_of(n: Node) -> SubViewport:
@@ -1043,6 +1113,11 @@ func _probe(paths) -> Dictionary:
 		else:
 			out[str(p)] = {"missing": n == null}
 	return out
+
+
+func _on_node_added_contrast(node: Node) -> void:
+	var utils_hc: Variant = Utils
+	utils_hc.call_deferred("contrast_node", node)
 
 
 func _on_stray_input(event: InputEvent) -> void:

@@ -574,6 +574,53 @@ func _text_measure():
 
 func _text_reset_measure():
 	_out["text_size"]["after_reset"] = _text_sizes()
+	_phase = "hc_on"
+	_wait = 4
+
+
+# ── UXR-D2 (Pre-Deploy S9b): High contrast, driven from the Settings toggle ──
+
+func _hc_probe() -> Dictionary:
+	# A scene-authored grey (main.tscn's header label, Color(0.7, 0.7, 0.75)),
+	# a code-built hint (settings_panel's grey), and the BBCode tokens.
+	var out := {"info": Utils.COLOR_INFO, "dimmed": Utils.COLOR_DIMMED, "dim": Utils.COLOR_DIM}
+	var lbl := _main.find_child("TextSizeLabel", true, false) as Label
+	if lbl != null:
+		out["scene_grey"] = lbl.get_theme_color("font_color").to_html(false)
+	var pm = _main.get("pause_menu")
+	var toggle := (pm.find_child("HighContrastToggle", true, false) as CheckButton) if pm != null else null
+	out["toggle"] = toggle != null
+	if toggle != null:
+		var hint := toggle.get_parent().get_child(toggle.get_index() + 1) as Label
+		if hint != null:
+			out["hint_grey"] = hint.get_theme_color("font_color").to_html(false)
+	return out
+
+
+func _hc_toggle(on: bool) -> void:
+	var pm = _main.get("pause_menu")
+	var toggle := (pm.find_child("HighContrastToggle", true, false) as CheckButton) if pm != null else null
+	if toggle != null:
+		toggle.button_pressed = on
+
+
+func _hc_on():
+	_out["contrast"] = {"before": _hc_probe()}
+	_hc_toggle(true)
+	_phase = "hc_off"
+	_wait = 6
+
+
+func _hc_off():
+	_out["contrast"]["on"] = _hc_probe()
+	_out["contrast"]["stored_on"] = UiSettings.get_high_contrast()
+	_hc_toggle(false)
+	_phase = "hc_done"
+	_wait = 6
+
+
+func _hc_done():
+	_out["contrast"]["off"] = _hc_probe()
 	var pm = _main.get("pause_menu")
 	if pm != null:
 		pm.call("close_menu")

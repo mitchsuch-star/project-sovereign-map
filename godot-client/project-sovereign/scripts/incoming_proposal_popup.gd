@@ -82,7 +82,7 @@ func show_proposal(data: Dictionary):
 		bbcode += "[center][color=#7eb8da][b]COUNTER-OFFER[/b][/color][/center]\n"
 		var pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
 		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_display]
-		bbcode += "[color=#a0a0a8]In response to your %s proposal, %s offers modified terms:[/color]\n\n" % [type_display, from_display]
+		bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]In response to your %s proposal, %s offers modified terms:[/color]\n\n" % [type_display, from_display]
 		bbcode += "[b]Revised Terms:[/b]\n"
 		# Style: blue border for counter-offers
 		panel_style.border_color = Color(0.494, 0.722, 0.855, 1.0)  # Steel blue
@@ -108,7 +108,7 @@ func show_proposal(data: Dictionary):
 	if diplomat_line != "":
 		bbcode += "\n[color=#e0c060][i]%s[/i][/color]\n" % diplomat_line
 	elif decision_reason_display:
-		bbcode += "\n[color=#a0a0a8]Court rationale: %s.[/color]\n" % decision_reason_display
+		bbcode += "\n[color=#" + Utils.toned_hex("a0a0a8") + "]Court rationale: %s.[/color]\n" % decision_reason_display
 
 	if assessment:
 		bbcode += "\n[color=gray]%s[/color]\n" % assessment
@@ -367,7 +367,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			shown += 1
 		var overflow = consequence_items.size() - shown
 		if overflow > 0:
-			bbcode += "  [color=#808080](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
+			bbcode += "  [color=#" + Utils.toned_hex("808080") + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
 	return bbcode
 

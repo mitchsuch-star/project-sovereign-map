@@ -172,6 +172,8 @@ func _apply_boot_scale() -> void:
 	Utils.apply_body_font()
 	# UXR-D1: the stored Text size (a no-op at 100 %).
 	Utils.apply_text_size()
+	# UXR-D2: High contrast — the tokens, and every node re-toned as it enters.
+	Utils.apply_contrast(get_tree())
 	_derived_scale = UiSettings.derive_default_ui_scale()
 	var scale := UiSettings.resolve_ui_scale_at_boot()
 	get_window().content_scale_factor = clampf(scale, UiSettings.MIN_UI_SCALE, UiSettings.MAX_UI_SCALE)

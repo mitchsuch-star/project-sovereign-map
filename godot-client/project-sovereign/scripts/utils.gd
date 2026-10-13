@@ -153,7 +153,9 @@ const COLOR_COMMAND = "7eb8da"
 const COLOR_SUCCESS = "8fbc8f"
 const COLOR_ERROR = "cd6b6b"
 const COLOR_BATTLE = "daa06d"
-const COLOR_INFO = "a0a0a8"
+# UXR-D2 (Pre-Deploy S9b): the DIM tokens are static — High contrast raises
+# them (Utils.apply_contrast); every other colour stays a constant.
+static var COLOR_INFO := "a0a0a8"
 const COLOR_MARSHAL = "c9b8e0"
 const COLOR_CONQUEST = "90d890"
 const COLOR_FEEDBACK = "b8a0d9"
@@ -166,13 +168,15 @@ const COLOR_OBSERVATION = "DAA520"
 # there the speaker is already labelled by position on the tableau).
 const COLOR_ENEMY_VOICE = "9aaec9"
 const COLOR_TEXT = "eeeeee"
-const COLOR_DIMMED = "808080"
+static var COLOR_DIMMED := "808080"
 const COLOR_WARNING = "e0c060"
 
 # === Semantic Aliases (same hex, different context) ===
 const COLOR_BLUE = "6495ed"
 const COLOR_ORANGE = "daa06d"       # Same as COLOR_BATTLE — semantic alias for ledger UIs
-const COLOR_GREY = "808080"         # Same as COLOR_DIMMED — semantic alias
+static var COLOR_GREY := "808080"         # Same as COLOR_DIMMED — semantic alias
+# The faintest grey (the Generals screen's own until UXR-D2 shared it).
+static var COLOR_DIM := "666670"
 const COLOR_HEADER = "B8860B"       # Same as COLOR_BERTHIER — semantic alias for ledger headers
 
 # === Nation Colors (Color objects for UI elements) ===
@@ -448,6 +452,14 @@ const UI_PANEL_BG := Color(0.12, 0.14, 0.18, 1.0)               # normal tab / b
 const UI_ACTIVE_TAB_BG := Color(0.25, 0.22, 0.15, 1.0)         # active tab / highlighted button fill
 const UI_POPUP_BG := Color(0.1, 0.1, 0.18, 0.95)               # modal popup panel fill (matches theme PanelContainer)
 const UI_TEXT_DIM := Color(0.75, 0.72, 0.65, 1.0)              # dimmed label text
+# UXR-D2 (Pre-Deploy S9b): the dim ladder, faintest first — 666670, 808080,
+# a0a0a8, UI_TEXT_DIM, and the step High contrast adds above it.
+const DIM_LADDER: Array = [
+	Color(0.4, 0.4, 0.4392, 1.0), Color(0.502, 0.502, 0.502, 1.0),
+	Color(0.6275, 0.6275, 0.6588, 1.0), UI_TEXT_DIM, Color(0.8667, 0.8392, 0.7843, 1.0)]
+# The step that reads 4.5 : 1 on the game's panels: High contrast leaves no
+# dim text under it (808080 on the navy panel read 4.3 : 1).
+const DIM_FLOOR_INDEX := 2
 const UI_ALERT := Color(0.85, 0.25, 0.25, 1.0)                 # alert / danger red
 const UI_WARNING := Color(0.85, 0.65, 0.2, 1.0)               # amber warning / threat
 # Score / balance-bar palette (shared by war_status_panel + war_detail_popup):
@@ -597,6 +609,104 @@ static func bb_chip_disabled(label: String, icon_path := "") -> String:
 		inner += bb_icon(icon_path, 18, "6f7480") + " "
 	inner += "[color=#6f7480]" + label + "[/color]"
 	return "[bgcolor=#20242c]  " + inner + "  [/bgcolor]"
+
+
+# === High contrast (UXR-D2, Pre-Deploy S9b) ===
+# Settings → INTERFACE → High contrast. "Dim" is a CLASS, not one token: the
+# BBCode greys (COLOR_DIM / DIMMED / GREY / INFO), UI_TEXT_DIM, and the grey
+# font colours authored as literals in scenes and scripts. On: every member
+# rises at least one step of DIM_LADDER, and none stays under the step that
+# reads 4.5 : 1. Two roads carry it: the BBCode tokens are static (re-toned
+# here, so every text built after reads them), and every Control's grey
+# font-colour override is raised through ONE chokepoint (`contrast_node`) —
+# as each node enters the tree (main / main_menu hook `node_added`) and over
+# the whole tree when the toggle flips. Text a screen already wrote in BBCode
+# takes the new colour when that screen next draws.
+static var _hc_on := false
+
+
+static func is_dim(c: Color) -> bool:
+	"""A grey (low chroma) in the dim band: from the ladder's faintest step
+	to UI_TEXT_DIM. Brighter text and coloured text are not dim."""
+	var chroma := maxf(c.r, maxf(c.g, c.b)) - minf(c.r, minf(c.g, c.b))
+	var l := c.get_luminance()
+	return chroma <= 0.12 and l >= 0.15 and l <= UI_TEXT_DIM.get_luminance() + 0.02
+
+
+static func raise_dim(c: Color) -> Color:
+	"""A dim colour one ladder step up (never under DIM_FLOOR_INDEX), its
+	alpha kept; anything else unchanged."""
+	if not is_dim(c):
+		return c
+	var l := c.get_luminance()
+	for i in range(DIM_LADDER.size()):
+		var t: Color = DIM_LADDER[i]
+		if i >= DIM_FLOOR_INDEX and t.get_luminance() > l + 0.02:
+			return Color(t.r, t.g, t.b, c.a)
+	return c
+
+
+static func toned(c: Color) -> Color:
+	"""A colour as High contrast would draw it (unchanged when off) — for
+	code that re-sets a grey at run time (the top bar's idle buttons)."""
+	return raise_dim(c) if _hc_on else c
+
+
+static func toned_hex(hex: String) -> String:
+	"""A BBCode grey as High contrast would draw it (the same hex when off) —
+	for a literal grey written straight into a string."""
+	return raise_dim(Color(hex)).to_html(false) if _hc_on else hex
+
+
+static func apply_contrast(tree: SceneTree = null) -> void:
+	"""Re-tone the BBCode tokens from the stored setting; with a tree, hook
+	(or unhook) `node_added` and re-tone every node already in it."""
+	_hc_on = UiSettings.get_high_contrast()
+	COLOR_DIM = toned_hex("666670")
+	COLOR_DIMMED = toned_hex("808080")
+	COLOR_GREY = toned_hex("808080")
+	COLOR_INFO = toned_hex("a0a0a8")
+	if tree == null:
+		return
+	var hook := Callable(Utils, "_on_node_added_contrast")
+	if _hc_on and not tree.node_added.is_connected(hook):
+		tree.node_added.connect(hook)
+	elif not _hc_on and tree.node_added.is_connected(hook):
+		tree.node_added.disconnect(hook)
+	apply_contrast_to(tree.root)
+
+
+static func _on_node_added_contrast(node: Node) -> void:
+	# Deferred: a node's builder often sets its colour right after add_child.
+	Callable(Utils, "contrast_node").call_deferred(node)
+
+
+static func apply_contrast_to(root: Node) -> void:
+	if root == null:
+		return
+	contrast_node(root)
+	for child in root.get_children():
+		apply_contrast_to(child)
+
+
+static func contrast_node(node) -> void:
+	"""THE chokepoint: a Control's grey font-colour override raised (the
+	original kept in meta, so turning High contrast off restores it)."""
+	if not (node is Control) or not is_instance_valid(node):
+		return
+	var c := node as Control
+	for key in ["font_color", "default_color"]:
+		var meta: String = "hc_" + key
+		if _hc_on:
+			if c.has_theme_color_override(key) and not c.has_meta(meta):
+				var orig: Color = c.get_theme_color(key)
+				var up := raise_dim(orig)
+				if up != orig:
+					c.set_meta(meta, orig)
+					c.add_theme_color_override(key, up)
+		elif c.has_meta(meta):
+			c.add_theme_color_override(key, c.get_meta(meta))
+			c.remove_meta(meta)
 
 
 # === Display settings (UXR-1b, October 9, 2026) ===

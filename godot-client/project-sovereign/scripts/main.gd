@@ -796,6 +796,8 @@ func _ready():
 	Utils.apply_body_font()
 	# UXR-D1: the stored Text size (a no-op at 100 %).
 	Utils.apply_text_size()
+	# UXR-D2: High contrast — the tokens, and every node re-toned as it enters.
+	Utils.apply_contrast(get_tree())
 	Utils.apply_window_settings(get_window())
 	# Apply the saved global interface scale FIRST so the logical viewport is
 	# settled before the terminal geometry is computed in logical coordinates.
@@ -4411,13 +4413,13 @@ func _display_coordination_tutorial(tutorial: Dictionary):
 
 func _display_bombardment_report(result: Dictionary):
 	"""Display Berthier's bombardment report with casualty summary and observation."""
-	var COLOR_CASUALTY = "a0a0a8"   # Info gray for stats
+	var COLOR_CASUALTY = Utils.toned_hex("a0a0a8")   # Info gray for stats
 	var COLOR_ENEMY_CAS = "cd5c5c"  # Red for enemy casualties
 	var COLOR_OWN_CAS = "8fbc8f"    # Muted green for own (low) casualties
 	var COLOR_TERRAIN = "b0a890"    # Warm gray for terrain info
 	var COLOR_FORT = "daa06d"       # Battle orange for fort degradation
 	var COLOR_FRIENDLY = "cd6b6b"   # Muted red for friendly fire
-	var COLOR_REMAINING = "a0a0a8"  # Info gray for remaining count
+	var COLOR_REMAINING = Utils.toned_hex("a0a0a8")  # Info gray for remaining count
 
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]--- Bombardment Report ---[/color]")
 
@@ -4970,7 +4972,7 @@ func _display_morning_dispatch(data: Dictionary):
 				"MEDIUM":
 					de_color = Utils.COLOR_INFO
 				"LOW":
-					de_color = "808088"
+					de_color = Utils.toned_hex("808088")
 			add_output("[color=#" + de_color + "]  " + de_text + "[/color]")
 		add_output("")
 

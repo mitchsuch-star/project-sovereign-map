@@ -34,8 +34,11 @@ const COLOR_WHITE = "#c0c0c8"
 const COLOR_GOLD = "#d9c08c"
 const COLOR_AMBER = "#e0a040"
 const COLOR_HEADER = "#B8860B"
-const COLOR_DIMMED = "#808080"
-const COLOR_INFO = "#a0a0a8"
+# UXR-D2: the dim greys through High contrast (getters, not consts).
+var COLOR_DIMMED: String:
+	get: return "#" + Utils.toned_hex("808080")
+var COLOR_INFO: String:
+	get: return "#" + Utils.toned_hex("a0a0a8")
 
 # Bar colors — nation tints come from Utils.NATION_COLORS (§3.3).
 # UI-2 Part 2: the bar track is shared with war_status_panel via Utils.
@@ -426,7 +429,7 @@ func _render_war_detail(w: Dictionary):
 	var bbcode = ""
 
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#808080]The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.[/color]\n\n"
+	bbcode += "[color=#" + Utils.toned_hex("808080") + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.[/color]\n\n"
 
 	# Breakdown
 	if breakdown != null and breakdown is Dictionary:

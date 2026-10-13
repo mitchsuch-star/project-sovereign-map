@@ -73,6 +73,7 @@ var _window_size: OptionButton
 var _window_size_row: HBoxContainer
 var _body_font: OptionButton
 var _hud_width: OptionButton
+var _contrast_toggle: CheckButton
 var _volume_sliders: Dictionary = {}   # bus name -> HSlider
 var _battle_toggle: CheckButton
 var _key_edit: LineEdit
@@ -203,6 +204,8 @@ func _refresh_display_controls() -> void:
 		_body_font.select(maxi(UiSettings.BODY_FONTS.find(UiSettings.get_body_font()), 0))
 	if _hud_width != null:
 		_hud_width.select(maxi(UiSettings.HUD_WIDTHS.find(UiSettings.get_hud_width()), 0))
+	if _contrast_toggle != null:
+		_contrast_toggle.set_pressed_no_signal(UiSettings.get_high_contrast())
 	if _fit_button != null:
 		_fit_button.text = "Size for this screen (%d%%)" % int(round(UiSettings.derive_default_ui_scale() * 100.0))
 
@@ -333,6 +336,17 @@ func _build_interface_section() -> void:
 	font_row.add_child(_body_font)
 	add_child(font_row)
 
+	# UXR-D2 (Pre-Deploy S9b): High contrast — every dim grey one step brighter.
+	_contrast_toggle = CheckButton.new()
+	_contrast_toggle.name = "HighContrastToggle"
+	_contrast_toggle.text = "High contrast"
+	_contrast_toggle.button_pressed = UiSettings.get_high_contrast()
+	_contrast_toggle.toggled.connect(_on_high_contrast_toggled)
+	add_child(_contrast_toggle)
+	_add_hint("High contrast raises every dim grey text one step, and no hint or "
+		+ "caption stays under the step that reads clearly. Text already written in "
+		+ "the command window keeps its colour; everything drawn after takes the new one.")
+
 	var reset_layout := Button.new()
 	reset_layout.name = "ResetLayoutButton"
 	reset_layout.text = "Reset layout"
@@ -364,6 +378,12 @@ func _on_reset_scale() -> void:
 	_scale_slider.set_value_no_signal(derived)
 	_update_scale_value_label(derived)
 	ui_scale_changed.emit(derived, false)
+
+
+func _on_high_contrast_toggled(on: bool) -> void:
+	UiSettings.set_high_contrast(on)
+	# The tokens, the tree-wide re-tone and the node_added hook, at once.
+	Utils.apply_contrast(get_tree())
 
 
 func _on_text_size_changed(value: float) -> void:
