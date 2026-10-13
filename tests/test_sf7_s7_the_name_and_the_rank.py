@@ -38,6 +38,7 @@ from backend.commands.parser import CommandParser
 from backend.game_logic import contingent as C
 from backend.game_logic import game_end as GE
 from backend.models import dialogue_manager as DMOD
+from tests._staged_functions import stage_names, strategic_command
 from backend.models.marshal import StrategicOrder
 from tools import _name_census as NC
 
@@ -333,7 +334,10 @@ NPC12_PRODUCERS = {
          "_condition_arms", "_handle_blocked_path", "_handle_combat_result"},
         {"enemy_name", "enemy.name", "target.name"}),
     "backend/commands/strategic_executor.py": (
-        {"_execute_strategic_command", "_first_step_refusal", "_handle_first_step_blocked"},
+        # CODE-2b slice 3: `_execute_strategic_command` is a driver; its
+        # f-strings live in the `_strategic_*` stages it names.
+        {"_execute_strategic_command", *stage_names(*strategic_command()),
+         "_first_step_refusal", "_handle_first_step_blocked"},
         {"enemy_name", "enemy.name"}),
     "backend/game_logic/turn_manager.py": ({"_check_capital_proximity"}, {"enemy.name"}),
     "backend/game_logic/jealousy.py": (

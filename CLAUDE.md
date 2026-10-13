@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 13, 2026).** The three most recent landed rows:
-- **S10 slices 1–2 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages (`CommandContext`); `format_event_oneliner` = 12 `_oneliner_*`. **Funcs over 500 lines 33 → 31; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b; pins `tests/test_code2b_*`). **NEXT = slice 3 `_execute_strategic_command`**.
+- **S10 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages; `format_event_oneliner` = 12 `_oneliner_*`; `_execute_strategic_command` = 11 `_strategic_*`. **Funcs over 500 lines 33 → 30; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b). **NEXT = S10b CODE-2c** (`_ratify_treaty`, `_process_dialogue_choice`: DD-1 never split them).
 - **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112). **NEXT = S10, CODE-2b**.
-- **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (`tests/test_uxr2_layout_law.py`, allowlist 0); six screens + the war HUD gripped and remembered (`ResizeGrip`, driven); font overrides 72 → 18; whole client 0 RED / 0 P1 (§111).
+- **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (allowlist 0); six screens + the war HUD gripped (`ResizeGrip`); font overrides 72 → 18; 0 RED / 0 P1 (§111).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 
@@ -165,7 +165,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | Player garrison | `economy_executor.py` (_execute_garrison), `region.py` (garrison_detachment), `world_state.py` (regen exclusion) |
 | Fort degradation | `combat.py` (resolve_combat degradation block), `battle_report.py` (P6c observations) |
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
-| Strategic commands | `strategic.py`, `strategic_parser.py`, `strategic_executor.py` (_execute_strategic_command, _execute_cancel, objection handling) |
+| Strategic commands | `strategic.py`, `strategic_parser.py`, `strategic_executor.py` (`_execute_strategic_command` = 11 `_strategic_*` stages, _execute_cancel, objection handling) |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md`, `docs/V2B_DEFIANCE_SPEC.md` |
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `intel.py`, `intel_report.py`, `map.gd`. Use `get_visible_enemies()` for player-facing, `get_enemies_of_nation()` for omniscient only |
 | Manpower / recruitment | `world_state.py` (manpower constants), `economy_executor.py` (_execute_recruit), `enemy_ai.py` (P1/P4.5/P7) |

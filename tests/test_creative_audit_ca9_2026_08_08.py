@@ -3474,7 +3474,9 @@ class TestReviewF11ActuallyIssuesTheOrder:
         window = src[at:at + 1600]
         assert "humanize_entity_name(_m.name).lower() == _typed" in window, (
             "the display-name resolution still only feeds the suggestion")
-        assert "enemy = world.get_marshal(target)" in window
+        # CODE-2b slice 3: the shared names are `ctx.` fields of the
+        # staged `_strategic_validate_target`.
+        assert "enemy = ctx.world.get_marshal(ctx.target)" in window
         # …and it is EXACT, not fuzzy: CA8-28 ruled the strategic arms
         # SUGGEST a typo rather than correcting it, and scopes that
         # suggestion to what fog already reveals. Neither is crossed.

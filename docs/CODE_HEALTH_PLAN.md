@@ -919,6 +919,145 @@ is unchanged. Each stage is a module-level `_oneliner_<stage>(ctx)`:
 The generic `tests/_staged_functions.py` reads any staged driver, a module
 function or a method.
 
+**CODE-2b LANDING RECORD, SLICE 3 — `_execute_strategic_command` (Pre-Deploy
+S10, October 13, 2026).** *The stage list, written before the cut (recipe step
+1).* The method (`StrategicExecutor._execute_strategic_command`,
+`backend/commands/strategic_executor.py`, line 618 on the slice-2 commit,
+1,402 lines) is a straight pipeline with its own `──` banners. It runs
+validation, then the road, then the V2a objection, then the order, then the
+first step, then the reply. The cut runs at the body's top-level statement
+boundaries. Each stage is a method `_strategic_<stage>(self, ctx)` on the same
+class, so `self._executor` and the module globals the suite patches are read
+exactly as before:
+
+| # | Stage | Its header in the old body | What it holds |
+|---|---|---|---|
+| 1 | `_strategic_open` | the function's head | the world and the marshal found; the broken and the routed refuse (7A-1, FA-9); the state speaks first (CRT-9); an identical order already carried is a no-op (F10) |
+| 2 | `_strategic_square_and_engagement` | "Auto-break square formation (Session 67" | the square breaks; guns cannot chase; no order while engaged; no self-target |
+| 3 | `_strategic_generic_target` | "── Resolve generic/vague targets" | a bare march asks where (CX3-R2); a generic target resolved |
+| 4 | `_strategic_validate_target` | "── Validate target" | SUPPORT names a friendly marshal; PURSUE an enemy one, at war and sighted |
+| 5 | `_strategic_hold` | "── HOLD: default target to current location (Bug #7)" | HOLD defaults to where he stands (CRT-2); a redundant HOLD refused |
+| 6 | `_strategic_path` | "── Build path for movement orders" | the road for MOVE_TO, PURSUE, SUPPORT and HOLD, from where our scouts saw the quarry (FA-S17-9) |
+| 7 | `_strategic_objection` | "── Strategic objection check (V2a)" | the V2a objection, before any order exists |
+| 8 | `_strategic_create_order` | "── Build condition" | the condition, the `StrategicOrder`, the old order cancelled, the event logged |
+| 9 | `_strategic_first_step` | "── Execute first step immediately" | PURSUE in the same province, the march's first leg, SUPPORT already beside its friend |
+| 10 | `_strategic_response` | "── Build response" | the reply's road, the grounding note (FA-54), the MOVE_TO lines |
+| 11 | `_strategic_cost_and_reply` | "CR-7-4 item 6 — THE ECHO" | the condition echoed, the order priced (SR-2e), the acknowledgement, the reply |
+
+*The outcome (✅ LANDED October 13, 2026).*
+- **The context.** Of the old body's 163 locals (`self` aside), **22 ride
+  `StrategicCommandContext`**: the three parameters, then `world`,
+  `marshal`, `strategic_type`, `target`, `path`, `order` and the reply's
+  pieces. Slice 2's two rules keep nine more names local. Two are confined
+  (`message`, `turns_left`). Seven are split, bound before read in every
+  stage that uses them: `_road`, `ally`, `ally_m`, `enemy`, `enemy_m`,
+  `existing_order` and `personality`, each checked by hand.
+- **What else moved.** One import is repeated:
+  `StrategicOrder`/`StrategicCondition` at `_strategic_create_order`'s head.
+  The original line stays in `_strategic_open`, where the function's head
+  had it.
+- **Unchanged.** The three early `return None`s ("fall through to tactical
+  routing") still end the call with `None`, because the driver tests the
+  sentinel.
+- **Sizes.** Stages run 31–298 lines, and the driver is 56. **Functions over
+  500 lines 31 → 30**, and `FUNCTIONS_OVER_500_CAP` is lowered to match.
+- **The F2 class is empty.** 24 local imports remain across the stages, and
+  none binds a module-level name of `strategic_executor.py`.
+
+**The net:**
+- `score_run.py check` against `2026_10_05_sfr` gives stdout identical to the
+  same check on the slice-2 commit.
+- The 184 test files on the strategic road (the executor, the order types,
+  the state probe, `march to` / `pursue`), with `BASELINE_SERIES` and M1–M7:
+  9,191 passed with no re-record.
+- **Four pins were re-pointed before that run.** A scan of every test string
+  literal that matched `strategic_executor.py` before the cut but not after
+  found three; the fourth reads functions by name. The rule is the same
+  assertion where the code now lives:
+  - CA9's PURSUE window (`enemy = ctx.world.get_marshal(ctx.target)`);
+  - PT-G's acknowledgement call (`marshal_name=ctx.marshal.name`);
+  - WO-16's budget reader (`in ctx.world.objection_popups_this_turn`);
+  - **the NPC-12 producer census** (`test_sf7_s7_the_name_and_the_rank.py`),
+    which selects functions BY NAME. It would have passed *vacuously* over a
+    56-line driver, so it now names the stages, read off the driver.
+- **A fifth pin was found by the hook, not by the slice's own family run.**
+  `test_wo_slice13_corridor_direction.py`'s WO-17 census scans every
+  backend `passable_for` pathfind call and requires its start argument to
+  EQUAL `marshal.location`. In `_strategic_path` the mover is `ctx.marshal`
+  (`pathfinder(ctx.marshal.location, dest, passable_for=ctx.marshal.nation)`),
+  so the census now accepts `ctx.marshal.location` as the same man.
+  - The literal scan could not see it, because `marshal.location` is still a
+    substring of the new text.
+  - The family grep missed it because the file names neither the executor
+    nor an order type.
+  - The class to check next time: **a pin that extracts an expression and
+    compares it for equality**, not for containment.
+- `state_probe._standing_reason`'s docstring names the stage it mirrors.
+
+**The shape is pinned** in
+`tests/test_code2b_the_strategic_order_is_staged.py` (21):
+- the eleven stages in order, and the driver's body `[Assign, For,
+  Return]`;
+- the identity test, and the signature unchanged;
+- no stage over 500 lines;
+- R11's delegation forwards the driver and no stage;
+- a missing world or marshal still answers `None` (driven);
+- the context's slots and no-default contract;
+- nothing on the wire from a real MOVE_TO;
+- no stage-local import shadowing a module name.
+
+**CODE-2b is DONE** (S10 STRUCK, October 13, 2026). None of its three
+functions is over 500 lines, and the census reads 30. No rule moved, so
+`SYSTEMS_REFERENCE.md` gains no section.
+
+**CODE-2 itself is NOT done. This was found closing S10, by measuring the
+eight named functions rather than trusting the routing.** Six of the eight
+are under 500 lines:
+- `_execute_attack` 76 (CODE-2a);
+- `execute_command` 73, `format_event_oneliner` 74 and
+  `_execute_strategic_command` 56 (CODE-2b);
+- `_parse_with_mock_chain` 38 and `_execute_one` 11 (DD-0).
+
+**Two are not:**
+- `DiplomaticExecutor._process_dialogue_choice` at **2,210** lines;
+- `WorldState._ratify_treaty` at **1,024**.
+
+`PRE_DEPLOY_PLAN.md` §3.1 had DD-1's structural fix "absorb" both splits.
+DD-1 S7 Slice B lifted the ratifier's guard sequence out into
+`treaty.can_sign` (1,179 → 1,024), but neither function was staged, and
+nothing still owned the split. They are re-homed as **CODE-2c**, below.
+
+**CODE-2c — the two DD-1 left whole (the user's ruling, October 13, 2026:
+row S10b, the next session, before UXR-3).**
+- **Owner row:** `PRE_DEPLOY_PLAN.md` §2 S10b.
+- **Landing slices:** two, one commit each, with the review pause between.
+  - **Slice 1: `WorldState._ratify_treaty`** (`backend/models/world_state.py`,
+    1,024 lines). It runs as top-level statements (a state map, the clause
+    loops, the forced-alliance block, the 292-line `if is_player_treaty:`),
+    so the tool's body mode cuts it as it stands: `cls="WorldState"`,
+    `confine=True`.
+  - **Slice 2: `DiplomaticExecutor._process_dialogue_choice`**
+    (`backend/commands/diplomatic_executor.py`, 2,210 lines). Past its imports, its body is
+    ONE `if action == "dismiss": … elif …` chain of 2,195 lines, a single
+    statement that no top-level cut can split. The tool needs an
+    **elif-chain mode**, where each run of arms becomes a stage. The proof
+    must show three things:
+    - the tests are evaluated in the same order;
+    - the first true arm alone runs;
+    - an arm that falls off its end still returns `None` from the driver.
+
+    It carries 73 local imports, so the F2 check matters most here.
+- **Completion:** neither function is over 500 lines, and
+  `FUNCTIONS_OVER_500_CAP` goes 30 → 28. CODE-2's done-when (none of the
+  eight named over 500) is then MET.
+- **STATUS tracking:** the ▶ NEXT UP S10b line.
+- **Behaviour tests:** a shape pin per function (`tests/test_code2c_*`,
+  modelled on CODE-2b's), plus the census ratchet. The net is byte-for-byte:
+  - DD-1's own instruments (the sign-ability sweep, the exit fuzzer, the
+    answer-binding shuffle);
+  - `score_run check`, `BASELINE_SERIES` + M1–M7;
+  - the settlement suites.
+
 ## CODE-3 — Every broad except speaks (1 session, with DD-C)
 
 **The rule.** `except Exception` is allowed only through

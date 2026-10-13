@@ -115,7 +115,8 @@ def _broken_turns(marshal) -> int:
 
 def _standing_reason(world, marshal, strategic_type: str) -> str:
     """The standing-order road's state arms (`strategic_executor.
-    _execute_strategic_command`), in its order."""
+    StrategicExecutor._strategic_open`, the first stage of
+    `_execute_strategic_command`), in its order."""
     from backend.commands.strategic import THE_STATE_SPEAKS_FIRST
     recovering = (marshal.in_retreat_recovery())
     if recovering:

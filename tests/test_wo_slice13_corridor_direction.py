@@ -622,7 +622,9 @@ class TestTheCensusPin:
                     continue
                 seen += 1
                 first_arg = call[1:].split(",", 1)[0].strip()
-                if first_arg != "marshal.location":
+                # CODE-2b slice 3: inside a staged driver the mover is the
+                # context's `ctx.marshal` (`_strategic_path`) — the same man.
+                if first_arg not in ("marshal.location", "ctx.marshal.location"):
                     offenders.append((path.name, first_arg))
         assert seen >= 5, (
             f"census regex matched only {seen} passable_for calls — the "

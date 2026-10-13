@@ -368,7 +368,8 @@ class TestWO23TheBudgetSurvivesALoad:
                    / "executor.py").read_text(encoding="utf-8")
         src_str = STRATEGIC_EXECUTOR.read_text(encoding="utf-8")
         assert "in world.objection_popups_this_turn" in src_tac
-        assert "in world.objection_popups_this_turn" in src_str
+        # CODE-2b slice 3: the staged `_strategic_objection` reads `ctx.world`.
+        assert "in ctx.world.objection_popups_this_turn" in src_str
         assert "Davout" in loaded.objection_popups_this_turn
 
     def test_the_budget_still_clears_at_the_real_turn_boundary(self):

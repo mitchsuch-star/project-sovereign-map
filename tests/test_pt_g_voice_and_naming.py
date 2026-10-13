@@ -141,7 +141,7 @@ class TestTheAckKeyKnowsWhoIsSpeaking:
         # list contains `getattr(marshal, "personality", "")`, whose paren
         # truncates a naive split before the argument being pinned.
         call = src.split("_ack = personality_ack(")[1][:300]
-        assert "marshal_name=marshal.name" in call
+        assert "marshal_name=ctx.marshal.name" in call   # CODE-2b slice 3: a `ctx.` field
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -5,7 +5,8 @@ Handles strategic order execution: MOVE_TO, PURSUE, HOLD, SUPPORT, cancel, objec
 Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
 import random
-from typing import Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 from backend.ai.generic_targets import is_generic_target
 from backend.ai.strategic_parser import unmapped_terrain_noun
 from backend.ai.strategic_parser import march_slot_is_empty  # CX3-R2
@@ -176,6 +177,40 @@ def _visible_marshal_names(world, actor_nation: str) -> set:
             if intel is not None and intel.visibility_at_least(PARTIAL):
                 names.add(name)
     return names
+
+
+# CODE-2b (October 2026): what the stages of `StrategicExecutor._execute_strategic_command`
+# share. Built once at the driver's head, never on the wire. The parameters
+# are init fields; every other field is set by the stage that first assigns
+# it — `slots` with no default, so a read before any assignment raises as
+# the local it replaced did.
+_NEXT_STAGE = object()
+
+
+@dataclass(slots=True, repr=False, eq=False)
+class StrategicCommandContext:
+    parsed_command: Any
+    command: Any
+    game_state: Any
+    world: Any = field(init=False)
+    marshal: Any = field(init=False)
+    strategic_type: Any = field(init=False)
+    target: Any = field(init=False)
+    target_type: Any = field(init=False)
+    snapshot: Any = field(init=False)
+    was_in_square: Any = field(init=False)
+    is_generic: Any = field(init=False)
+    msg: Any = field(init=False)
+    _hold_placed_by_the_game: Any = field(init=False)
+    path: Any = field(init=False)
+    pursue_sighted_at: Any = field(init=False)
+    condition: Any = field(init=False)
+    order: Any = field(init=False)
+    first_step_msg: Any = field(init=False)
+    capture_tail: Any = field(init=False)
+    movement_range: Any = field(init=False)
+    first_step_attack_result: Any = field(init=False)
+    remaining: Any = field(init=False)
 
 
 class StrategicExecutor:
@@ -620,19 +655,74 @@ class StrategicExecutor:
         Handle a strategic command: create StrategicOrder and execute first step.
 
         Returns result dict if handled, None to fall through to tactical routing.
+
+        CODE-2b (October 2026): a driver of named stages behind one
+        `StrategicCommandContext`. A stage returns `_NEXT_STAGE` to continue or the
+        result to stop; nothing on the context reaches the wire.
+
+         1. `_strategic_open` — The world and the marshal found; the broken and
+            the routed refuse (7A-1, FA-9); the state speaks first (CRT-9); an
+            identical order already carried is a no-op (F10).
+         2. `_strategic_square_and_engagement` — The square breaks; guns cannot
+            chase; no order while engaged; a marshal never targets himself.
+         3. `_strategic_generic_target` — A bare march asks where (CX3-R2); a
+            generic target resolved.
+         4. `_strategic_validate_target` — SUPPORT names a friendly marshal;
+            PURSUE an enemy one, at war and sighted.
+         5. `_strategic_hold` — HOLD defaults to where he stands (CRT-2
+            remembers the game placed it); a redundant HOLD refused.
+         6. `_strategic_path` — The road for MOVE_TO, PURSUE, SUPPORT and HOLD,
+            from where our scouts saw the quarry (FA-S17-9).
+         7. `_strategic_objection` — The V2a objection check, before any order
+            exists.
+         8. `_strategic_create_order` — The condition, the `StrategicOrder`,
+            the old order cancelled, the event logged.
+         9. `_strategic_first_step` — The first step at once: PURSUE in the
+            same province, the march's first leg, SUPPORT already beside its
+            friend.
+        10. `_strategic_response` — The reply's road, the grounding note
+            (FA-54), the MOVE_TO lines.
+        11. `_strategic_cost_and_reply` — The condition echoed (CR-7-4), the
+            order priced (SR-2e), the acknowledgement, the reply.
         """
+        ctx = StrategicCommandContext(
+            parsed_command=parsed_command,
+            command=command,
+            game_state=game_state,
+        )
+        for stage in (
+                self._strategic_open,
+                self._strategic_square_and_engagement,
+                self._strategic_generic_target,
+                self._strategic_validate_target,
+                self._strategic_hold,
+                self._strategic_path,
+                self._strategic_objection,
+                self._strategic_create_order,
+                self._strategic_first_step,
+                self._strategic_response,
+        ):
+            result = stage(ctx)
+            if result is not _NEXT_STAGE:
+                return result
+        return self._strategic_cost_and_reply(ctx)
+
+    def _strategic_open(self, ctx: StrategicCommandContext):
+        """Stage 1 of `_execute_strategic_command`: The world and the marshal
+        found; the broken and the routed refuse (7A-1, FA-9); the state speaks
+        first (CRT-9); an identical order already carried is a no-op (F10)."""
         from backend.models.marshal import StrategicOrder, StrategicCondition
 
-        world: WorldState = game_state.get("world")
-        if not world:
+        ctx.world: WorldState = ctx.game_state.get("world")
+        if not ctx.world:
             return None
 
-        marshal_name = command.get("marshal")
+        marshal_name = ctx.command.get("marshal")
         if not marshal_name:
             return None
 
-        marshal = world.get_marshal(marshal_name)
-        if not marshal:
+        ctx.marshal = ctx.world.get_marshal(marshal_name)
+        if not ctx.marshal:
             return None
 
         # [7A-1] Broken/retreating marshals cannot accept strategic orders.
@@ -640,11 +730,11 @@ class StrategicExecutor:
         # on the rout turn itself (`retreating` set, the stage not yet
         # ticked) a PURSUE was accepted and its first step attacked and
         # annexed under strategic execution, while `attack` was refused.
-        if (marshal.in_retreat_recovery()):
-            turns_left = max(1, int(getattr(marshal, 'retreat_recovery', 0) or 0))
+        if (ctx.marshal.in_retreat_recovery()):
+            turns_left = max(1, int(getattr(ctx.marshal, 'retreat_recovery', 0) or 0))
             return {
                 "success": False,
-                "message": f"{marshal.name} is recovering from retreat ({_plural(int(turns_left), 'turn')} remaining) and cannot accept strategic orders."
+                "message": f"{ctx.marshal.name} is recovering from retreat ({_plural(int(turns_left), 'turn')} remaining) and cannot accept strategic orders."
             }
         # RS-4 / CQ-28 — CRT-9 (Oct 3, 2026): the standing-order road reads
         # the state probe's fortified and drill-locked arms for the PLAYER's
@@ -653,82 +743,87 @@ class StrategicExecutor:
         # series untouched and recorded as such). HOLD is exempt: a
         # fortified corps may be told to hold where it stands.
         from backend.commands.strategic import THE_STATE_SPEAKS_FIRST as _speaks
-        if (_speaks and marshal.nation == getattr(world, "player_nation", None)
-                and str(parsed_command.get("strategic_type") or "").upper() not in ("HOLD", "SUPPORT")):
-            if getattr(marshal, 'fortified', False):
+        if (_speaks and ctx.marshal.nation == getattr(ctx.world, "player_nation", None)
+                and str(ctx.parsed_command.get("strategic_type") or "").upper() not in ("HOLD", "SUPPORT")):
+            if getattr(ctx.marshal, 'fortified', False):
                 from backend.display_names import humanize_entity_name as _hn
                 return {
                     "success": False,
-                    "message": (f"{_hn(marshal.name)} is fortified at {marshal.location} "
-                                f"and cannot march from his works — '{_hn(marshal.name)}, "
+                    "message": (f"{_hn(ctx.marshal.name)} is fortified at {ctx.marshal.location} "
+                                f"and cannot march from his works — '{_hn(ctx.marshal.name)}, "
                                 f"unfortify' first. Nothing spent."),
                 }
-            if getattr(marshal, 'drilling_locked', False) or getattr(marshal, 'drilling', False):
+            if getattr(ctx.marshal, 'drilling_locked', False) or getattr(ctx.marshal, 'drilling', False):
                 from backend.display_names import humanize_entity_name as _hn
                 return {
                     "success": False,
-                    "message": (f"{_hn(marshal.name)} is locked in drill exercises this "
+                    "message": (f"{_hn(ctx.marshal.name)} is locked in drill exercises this "
                                 f"turn and cannot receive a standing order. Nothing spent."),
                 }
-        if getattr(marshal, 'broken', False):
+        if getattr(ctx.marshal, 'broken', False):
             return {
                 "success": False,
-                "message": f"{marshal.name}'s army is broken and cannot accept strategic orders. Rally them first."
+                "message": f"{ctx.marshal.name}'s army is broken and cannot accept strategic orders. Rally them first."
             }
 
-        strategic_type = parsed_command.get("strategic_type")
-        target = command.get("target")
-        target_type = command.get("target_type", "region")
-        snapshot = parsed_command.get("target_snapshot_location")
+        ctx.strategic_type = ctx.parsed_command.get("strategic_type")
+        ctx.target = ctx.command.get("target")
+        ctx.target_type = ctx.command.get("target_type", "region")
+        ctx.snapshot = ctx.parsed_command.get("target_snapshot_location")
 
         # F10: re-issuing an IDENTICAL standing order should not re-charge AP or
         # log a duplicate event — the marshal is already carrying it out. Detect a
         # matching active order (same type + target, no new condition) and no-op.
-        existing_order = getattr(marshal, 'strategic_order', None)
+        existing_order = getattr(ctx.marshal, 'strategic_order', None)
         has_new_condition = bool(
-            parsed_command.get("strategic_condition")
-            or parsed_command.get("condition")
-            or command.get("strategic_condition"))
+            ctx.parsed_command.get("strategic_condition")
+            or ctx.parsed_command.get("condition")
+            or ctx.command.get("strategic_condition"))
         if (existing_order is not None and not has_new_condition
                 and not getattr(existing_order, 'condition', None)
-                and getattr(existing_order, 'command_type', None) == strategic_type
+                and getattr(existing_order, 'command_type', None) == ctx.strategic_type
                 and str(getattr(existing_order, 'target', '') or '').lower()
-                == str(target or '').lower()):
+                == str(ctx.target or '').lower()):
             return {
                 "success": True,
-                "message": f"{marshal.name} is already carrying out that order. No change.",
+                "message": f"{ctx.marshal.name} is already carrying out that order. No change.",
                 "variable_action_cost": 0,
             }
+        return _NEXT_STAGE
 
+    def _strategic_square_and_engagement(self, ctx: StrategicCommandContext):
+        """Stage 2 of `_execute_strategic_command`: The square breaks; guns
+        cannot chase; no order while engaged; a marshal never targets
+        himself."""
         # Auto-break square formation (Session 67: "any strategic command breaks square")
         # FA-N57: remember the PRE-break state — the SUPPORT advisory below
         # reads it, because after this line the live attribute is always False.
-        was_in_square = bool(getattr(marshal, 'square_formation', False))
-        self._executor._auto_break_square(marshal, strategic_type or "strategic order")
+        ctx.was_in_square = bool(getattr(ctx.marshal, 'square_formation', False))
+        self._executor._auto_break_square(ctx.marshal, ctx.strategic_type or "strategic order")
 
-        print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
+        print(f"[STRATEGIC] Creating {ctx.strategic_type} order for {ctx.marshal.name} -> {ctx.target}")
 
         # ── Artillery PURSUE block: guns can't chase ──
-        if strategic_type == "PURSUE" and getattr(marshal, 'artillery', False):
+        if ctx.strategic_type == "PURSUE" and getattr(ctx.marshal, 'artillery', False):
             return {
                 "success": False,
-                "message": f"{marshal.name}'s artillery cannot pursue. Guns must be repositioned manually — try 'move to' instead."
+                "message": f"{ctx.marshal.name}'s artillery cannot pursue. Guns must be repositioned manually — try 'move to' instead."
             }
 
         # ── Engagement check: cannot issue strategic orders while engaged ──
         # Exceptions:
         #   - PURSUE targeting an enemy in THIS region (or generic, which resolves to one here)
         #   - HOLD current region: defending where you stand is always valid
-        enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
+        enemies_here = ctx.world.get_enemies_in_region(ctx.marshal.location, ctx.marshal.nation)
         if enemies_here:
             holding_here = (
-                strategic_type == "HOLD" and
-                (not target or target == "generic" or target == marshal.location)
+                ctx.strategic_type == "HOLD" and
+                (not ctx.target or ctx.target == "generic" or ctx.target == ctx.marshal.location)
             )
             pursuing_local = (
-                strategic_type == "PURSUE" and (
-                    not target or target == "generic" or
-                    any(e.name.lower() == target.lower() for e in enemies_here)
+                ctx.strategic_type == "PURSUE" and (
+                    not ctx.target or ctx.target == "generic" or
+                    any(e.name.lower() == ctx.target.lower() for e in enemies_here)
                 )
             )
             if not holding_here and not pursuing_local:
@@ -737,7 +832,7 @@ class StrategicExecutor:
                 # (CR-5 _resolve_target handles spaced names).
                 enemy_names = [e.name for e in enemies_here]
                 enemy_display = [humanize_entity_name(n) for n in enemy_names]
-                m_display = humanize_entity_name(marshal.name)
+                m_display = humanize_entity_name(ctx.marshal.name)
                 return {
                     "success": False,
                     "message": f"{m_display} is engaged with {', '.join(enemy_display)} and cannot begin a strategic march. Deal with the engagement first.",
@@ -746,106 +841,114 @@ class StrategicExecutor:
                 }
 
         # ── Self-targeting validation ────────────────────────────────
-        if target and target.lower() == marshal.name.lower():
+        if ctx.target and ctx.target.lower() == ctx.marshal.name.lower():
             return {
                 "success": False,
-                "message": f"{marshal.name} cannot target themselves!"
+                "message": f"{ctx.marshal.name} cannot target themselves!"
             }
+        return _NEXT_STAGE
 
+    def _strategic_generic_target(self, ctx: StrategicCommandContext):
+        """Stage 3 of `_execute_strategic_command`: A bare march asks where
+        (CX3-R2); a generic target resolved."""
         # ── Resolve generic/vague targets for ALL strategic types ────
         # The sentinel set is shared with the parser seam (backend/ai/
         # generic_targets.py) so the tactical and strategic paths cannot
         # disagree about what "no specific target" means — they did, and the
         # tactical side rejected the very value the prompt tells the model to
         # produce.
-        is_generic = is_generic_target(target) or target_type == "generic"
+        ctx.is_generic = is_generic_target(ctx.target) or ctx.target_type == "generic"
         # CX3-R2: "Ney, march to" named no destination — ask, free (the
         # player's own order only; an AI rung always names its province).
-        if (A_BARE_MARCH_ASKS_WHERE and is_generic and strategic_type == "MOVE_TO"
-                and marshal.nation == getattr(world, "player_nation", None)
-                and not command.get("_strategic_execution")
-                and march_slot_is_empty(parsed_command.get("raw_input"))):
+        if (A_BARE_MARCH_ASKS_WHERE and ctx.is_generic and ctx.strategic_type == "MOVE_TO"
+                and ctx.marshal.nation == getattr(ctx.world, "player_nation", None)
+                and not ctx.command.get("_strategic_execution")
+                and march_slot_is_empty(ctx.parsed_command.get("raw_input"))):
             from backend.commands.clarification import (
                 build_move_destination_clarification)
             ask = build_move_destination_clarification(
-                world, marshal, str(parsed_command.get("raw_input") or ""),
+                ctx.world, ctx.marshal, str(ctx.parsed_command.get("raw_input") or ""),
                 verb="march to", strategic_type="MOVE_TO")
             if ask is not None:
                 return ask
             return {"success": False, "free_action": True,
-                    "message": (f"Where shall {marshal.name} march, Sire? He stands at "
-                                f"{humanize_entity_name(marshal.location)}. Name a destination.")}
-        if is_generic:
+                    "message": (f"Where shall {ctx.marshal.name} march, Sire? He stands at "
+                                f"{humanize_entity_name(ctx.marshal.location)}. Name a destination.")}
+        if ctx.is_generic:
             resolution = self._resolve_generic_target(
-                marshal, strategic_type, target, world, parsed_command
+                ctx.marshal, ctx.strategic_type, ctx.target, ctx.world, ctx.parsed_command
             )
             if resolution.get("needs_clarification"):
                 return resolution["response"]
             if resolution.get("resolved"):
-                target = resolution["target"]
-                target_type = resolution["target_type"]
-                print(f"[STRATEGIC] Generic resolved -> {target} ({target_type})")
+                ctx.target = resolution["target"]
+                ctx.target_type = resolution["target_type"]
+                print(f"[STRATEGIC] Generic resolved -> {ctx.target} ({ctx.target_type})")
+        return _NEXT_STAGE
 
+    def _strategic_validate_target(self, ctx: StrategicCommandContext):
+        """Stage 4 of `_execute_strategic_command`: SUPPORT names a friendly
+        marshal; PURSUE an enemy one, at war and sighted."""
         # ── Validate target ───────────────────────────────────────────
         # SUPPORT must target a friendly marshal, not a region
-        if strategic_type == "SUPPORT":
+        if ctx.strategic_type == "SUPPORT":
             # Self-SUPPORT guard (Phase 7 audit finding)
-            if target and target.lower() == marshal.name.lower():
+            if ctx.target and ctx.target.lower() == ctx.marshal.name.lower():
                 return {
                     "success": False,
-                    "message": f"Berthier pauses. 'Sire, {marshal.name} cannot be ordered to support himself. SUPPORT coordinates with a different marshal.'",
+                    "message": f"Berthier pauses. 'Sire, {ctx.marshal.name} cannot be ordered to support himself. SUPPORT coordinates with a different marshal.'",
                     "suggestion": "Available French marshals: " + ", ".join(
-                        m.name for m in world.marshals.values()
-                        if m.nation == marshal.nation and m.name != marshal.name
+                        m.name for m in ctx.world.marshals.values()
+                        if m.nation == ctx.marshal.nation and m.name != ctx.marshal.name
                     )
                 }
             # NPC-18 (Score Finish Step 7 slice 5a): "the Emperor" is the
             # sovereign as a REFERENT too — `Ney, support the Emperor` answered
             # "Cannot find marshal 'Emperor'" while `support Napoleon` worked.
-            if THE_EMPEROR_IS_A_REFERENT and target:
-                _word = target.strip().lower()
+            if THE_EMPEROR_IS_A_REFERENT and ctx.target:
+                _word = ctx.target.strip().lower()
                 if _word.startswith("the "):
                     _word = _word[4:]
                 if _word in ("emperor", "his majesty"):
-                    _sov = next((m.name for m in world.marshals.values()
-                                 if m.nation == marshal.nation
+                    _sov = next((m.name for m in ctx.world.marshals.values()
+                                 if m.nation == ctx.marshal.nation
                                  and getattr(m, "is_sovereign", False)
                                  and not getattr(m, "captured_by", "")), None)
                     if _sov:
-                        target = _sov
-            ally = world.get_marshal(target)
+                        ctx.target = _sov
+            ally = ctx.world.get_marshal(ctx.target)
             if not ally:
                 # Check if it's a region name (Bug #4)
-                region = world.get_region(target) if target else None
+                region = ctx.world.get_region(ctx.target) if ctx.target else None
                 if region:
                     return {
                         "success": False,
-                        "message": f"{target} is a region, not a marshal. SUPPORT targets a friendly marshal.",
-                        "suggestion": f"Try: '{marshal.name}, support Davout' — SUPPORT targets a friendly marshal, not a region."
+                        "message": f"{ctx.target} is a region, not a marshal. SUPPORT targets a friendly marshal.",
+                        "suggestion": f"Try: '{ctx.marshal.name}, support Davout' — SUPPORT targets a friendly marshal, not a region."
                     }
-                roster = [m.name for m in world.marshals.values()
-                          if m.nation == marshal.nation and m.name != marshal.name]
+                roster = [m.name for m in ctx.world.marshals.values()
+                          if m.nation == ctx.marshal.nation and m.name != ctx.marshal.name]
                 # CA8-28: rank it. An unranked roster dump is not the tactical
                 # path's "Did you mean…?", and "support Davot" is a typo, not a
                 # request for the army list.
-                near = self._closest_marshal_name(target, roster)
-                msg = f"Cannot find marshal '{target}' to support."
+                near = self._closest_marshal_name(ctx.target, roster)
+                ctx.msg = f"Cannot find marshal '{ctx.target}' to support."
                 if near:
-                    msg += f" Did you mean '{near}'?"
+                    ctx.msg += f" Did you mean '{near}'?"
                 # NPC-18: the sovereign is listed by his title, not as a marshal.
                 _listed = [("the Emperor" if THE_EMPEROR_IS_A_REFERENT and getattr(
-                    world.get_marshal(n), "is_sovereign", False) else n) for n in roster]
+                    ctx.world.get_marshal(n), "is_sovereign", False) else n) for n in roster]
                 return {
                     "success": False,
-                    "message": msg,
+                    "message": ctx.msg,
                     "suggestion": "Available French marshals: " + ", ".join(_listed),
                     "variable_action_cost": 0,
                 }
-            if ally.nation != marshal.nation:
+            if ally.nation != ctx.marshal.nation:
                 return {
                     "success": False,
-                    "message": f"{target} is an enemy! Use PURSUE instead.",
-                    "suggestion": f"Try: '{marshal.name}, pursue {target}'"
+                    "message": f"{ctx.target} is an enemy! Use PURSUE instead.",
+                    "suggestion": f"Try: '{ctx.marshal.name}, pursue {ctx.target}'"
                 }
             # FA slice 7 review round (R2-5): "Davout, support Ney" with Ney
             # in Austrian hands created a SUPPORT order marching toward the
@@ -853,20 +956,20 @@ class StrategicExecutor:
             if getattr(ally, "captured_by", "") or ally.strength <= 0:
                 from backend.game_logic.formations import formed_display_name
                 _captor = getattr(ally, "captured_by", "")
-                _why = (f"is a prisoner of {formed_display_name(world, _captor)}"
+                _why = (f"is a prisoner of {formed_display_name(ctx.world, _captor)}"
                         if _captor else "has no corps in the field")
                 return {
                     "success": False,
-                    "message": (f"{marshal_title(world, ally.name, start=True)} {_why}, Sire — there is no "
+                    "message": (f"{marshal_title(ctx.world, ally.name, start=True)} {_why}, Sire — there is no "
                                 f"one to support until his release."),
                     "variable_action_cost": 0,
                 }
-            target_type = "marshal"
+            ctx.target_type = "marshal"
 
         # PURSUE must target an enemy marshal
-        if strategic_type == "PURSUE":
-            enemy = world.get_marshal(target)
-            if not enemy and target:
+        if ctx.strategic_type == "PURSUE":
+            enemy = ctx.world.get_marshal(ctx.target)
+            if not enemy and ctx.target:
                 # CA9-F11 (review round): the first cut relaxed
                 # `_closest_marshal_name`'s phrase gate — but that helper
                 # only ever fed a "Did you mean…?" SUGGESTION, so
@@ -883,50 +986,50 @@ class StrategicExecutor:
                 # the game prints on every screen, and the player supplied
                 # it, so resolving it reveals nothing they did not type.
                 # `pursue Macck` still gets the fog-limited suggestion.
-                _typed = str(target).strip().lower()
-                for _m in world.marshals.values():
-                    if _m.nation == marshal.nation:
+                _typed = str(ctx.target).strip().lower()
+                for _m in ctx.world.marshals.values():
+                    if _m.nation == ctx.marshal.nation:
                         continue
                     if humanize_entity_name(_m.name).lower() == _typed:
-                        print(f"[STRATEGIC] PURSUE '{target}' -> "
+                        print(f"[STRATEGIC] PURSUE '{ctx.target}' -> "
                               f"'{_m.name}' (display name)")
-                        target = _m.name
+                        ctx.target = _m.name
                         enemy = _m
                         break
             # FA slice 7 (NPC-19): `Ney, pursue Mack` accepted a 2-AP chase of
             # a man in our own cells — the named arm read no captivity.
             from backend.commands import prisoners as _prisoners
             if (enemy is not None and getattr(enemy, "captured_by", "")):
-                return _prisoners.prisoner_refusal(world, enemy, marshal.nation)
+                return _prisoners.prisoner_refusal(ctx.world, enemy, ctx.marshal.nation)
             if not enemy:
                 # Check if it's a region
-                region = world.get_region(target) if target else None
+                region = ctx.world.get_region(ctx.target) if ctx.target else None
                 if region:
                     # PURSUE a region doesn't make sense — convert to MOVE_TO
-                    print(f"[STRATEGIC] PURSUE region '{target}' -> converting to MOVE_TO")
-                    strategic_type = "MOVE_TO"
-                    target_type = "region"
+                    print(f"[STRATEGIC] PURSUE region '{ctx.target}' -> converting to MOVE_TO")
+                    ctx.strategic_type = "MOVE_TO"
+                    ctx.target_type = "region"
                 else:
                     # CA8-28: the barest of the three — no suggestion at all.
                     # Suggest only from enemies fog already reveals (R5); a
                     # ranked guess at a hidden army is free intelligence.
                     visible = [getattr(e, "name", "") for e in
-                               world.get_visible_enemies(marshal.nation)]
-                    near = self._closest_marshal_name(target, visible)
-                    msg = f"Cannot find '{target}' to pursue."
+                               ctx.world.get_visible_enemies(ctx.marshal.nation)]
+                    near = self._closest_marshal_name(ctx.target, visible)
+                    ctx.msg = f"Cannot find '{ctx.target}' to pursue."
                     if near:
-                        msg += f" Did you mean '{near}'?"
+                        ctx.msg += f" Did you mean '{near}'?"
                     return {
                         "success": False,
-                        "message": msg,
+                        "message": ctx.msg,
                         "variable_action_cost": 0,
                     }
             else:
                 # PT-5 FIX: Check war status BEFORE order creation to prevent AP waste
-                if not world.is_at_war(marshal.nation, enemy.nation):
-                    diplo_state = world.get_diplomatic_state(marshal.nation, enemy.nation)
+                if not ctx.world.is_at_war(ctx.marshal.nation, enemy.nation):
+                    diplo_state = ctx.world.get_diplomatic_state(ctx.marshal.nation, enemy.nation)
                     if diplo_state == "ARMISTICE":
-                        diplo_key = world._make_diplo_key(marshal.nation, enemy.nation)
+                        diplo_key = ctx.world._make_diplo_key(ctx.marshal.nation, enemy.nation)
                         # SRX-16 (the session exit of September 28, 2026),
                         # found in passing: the attack road's truce refusal
                         # was moved onto the truce's own clock by SR-3a
@@ -937,7 +1040,7 @@ class StrategicExecutor:
                         # the same clock now, and prints the names.
                         from backend.display_names import display_nation
                         from backend.game_logic.diplomacy import ARMISTICE_DURATION
-                        elapsed = int((getattr(world, "armistice_turns", {}) or {})
+                        elapsed = int((getattr(ctx.world, "armistice_turns", {}) or {})
                                       .get(diplo_key, 0) or 0)
                         turns_left = int(max(0, ARMISTICE_DURATION - elapsed))
                         unit = "turn" if turns_left == 1 else "turns"
@@ -953,7 +1056,7 @@ class StrategicExecutor:
                         # the road (this arm used to refuse flat, with the
                         # raw scenario key).
                         from backend.commands.strategic import hostile_verb_at_peace
-                        _one = hostile_verb_at_peace(world, marshal, enemy, "pursue")
+                        _one = hostile_verb_at_peace(ctx.world, ctx.marshal, enemy, "pursue")
                         return {
                             "success": False,
                             "message": _one or (
@@ -968,85 +1071,95 @@ class StrategicExecutor:
                 # exactly that intelligence. Accepting an order we already
                 # know we cannot execute, and paying for the privilege with
                 # a fog leak, is the worst of both.
-                _unseen = self._pursue_known_location(world, marshal, enemy)
-                if _unseen is None and marshal.nation == world.player_nation:
+                _unseen = self._pursue_known_location(ctx.world, ctx.marshal, enemy)
+                if _unseen is None and ctx.marshal.nation == ctx.world.player_nation:
                     return {
                         "success": False,
                         "message": (
                             f"No intelligence on "
                             f"{humanize_entity_name(enemy.name)}'s position, "
-                            f"Sire. Scout for him before {marshal.name} can "
+                            f"Sire. Scout for him before {ctx.marshal.name} can "
                             f"give chase."),
                         "variable_action_cost": 0,
                     }
-                target_type = "marshal"
+                ctx.target_type = "marshal"
+        return _NEXT_STAGE
 
+    def _strategic_hold(self, ctx: StrategicCommandContext):
+        """Stage 5 of `_execute_strategic_command`: HOLD defaults to where he
+        stands (CRT-2 remembers the game placed it); a redundant HOLD
+        refused."""
         # ── HOLD: default target to current location (Bug #7) ─────────
         # CRT-2: remember that the GAME placed it — no name was read: the
         # strategic parser's own default, a deictic the executor resolved
         # above ("here", "our lines" — `is_generic`), or this default.
-        _hold_placed_by_the_game = bool(
-            parsed_command.get("target_placed_by_the_game")
-            or (strategic_type == "HOLD" and is_generic))
-        if strategic_type == "HOLD" and (not target or target == "generic"):
-            target = marshal.location
-            target_type = "region"
-            _hold_placed_by_the_game = True
+        ctx._hold_placed_by_the_game = bool(
+            ctx.parsed_command.get("target_placed_by_the_game")
+            or (ctx.strategic_type == "HOLD" and ctx.is_generic))
+        if ctx.strategic_type == "HOLD" and (not ctx.target or ctx.target == "generic"):
+            ctx.target = ctx.marshal.location
+            ctx.target_type = "region"
+            ctx._hold_placed_by_the_game = True
 
         # ── HOLD: Check if already holding the same location ──────────
         # Block redundant HOLD orders to prevent accidental AP waste
-        if strategic_type == "HOLD":
-            existing_order = marshal.strategic_order
+        if ctx.strategic_type == "HOLD":
+            existing_order = ctx.marshal.strategic_order
             if existing_order and existing_order.command_type == "HOLD":
-                existing_target = existing_order.target or marshal.location
-                new_target = target or marshal.location
+                existing_target = existing_order.target or ctx.marshal.location
+                new_target = ctx.target or ctx.marshal.location
                 if existing_target == new_target:
                     return {
                         "success": False,
-                        "message": f"{marshal.name} is already holding {existing_target}. No action needed.",
+                        "message": f"{ctx.marshal.name} is already holding {existing_target}. No action needed.",
                         "already_holding": True,
                         "variable_action_cost": 0,  # Don't consume AP
                     }
+        return _NEXT_STAGE
 
+    def _strategic_path(self, ctx: StrategicCommandContext):
+        """Stage 6 of `_execute_strategic_command`: The road for MOVE_TO,
+        PURSUE, SUPPORT and HOLD, from where our scouts saw the quarry
+        (FA-S17-9)."""
         # ── Build path for movement orders ────────────────────────────
-        path = []
+        ctx.path = []
         # FA-S17-9 (Phase 4): the province the PURSUE road is plotted from —
         # what our own scouts saw at issuance. The acceptance line used to
         # re-resolve this AFTER the first step, and the first step's own
         # visibility refresh can lose the quarry, so an order the fog gate had
         # just ACCEPTED on a real sighting announced itself "(at unknown)".
-        pursue_sighted_at = None
-        if strategic_type in ("MOVE_TO", "PURSUE", "SUPPORT", "HOLD"):
+        ctx.pursue_sighted_at = None
+        if ctx.strategic_type in ("MOVE_TO", "PURSUE", "SUPPORT", "HOLD"):
             dest = None
-            if strategic_type == "MOVE_TO":
-                dest = target
-            elif strategic_type == "PURSUE":
-                enemy = world.get_marshal(target)
+            if ctx.strategic_type == "MOVE_TO":
+                dest = ctx.target
+            elif ctx.strategic_type == "PURSUE":
+                enemy = ctx.world.get_marshal(ctx.target)
                 # NPC-5: the road we plot is to where we BELIEVE he is.
-                dest = self._pursue_known_location(world, marshal, enemy)
-                pursue_sighted_at = dest  # FA-S17-9
-            elif strategic_type == "SUPPORT":
-                ally = world.get_marshal(target)
+                dest = self._pursue_known_location(ctx.world, ctx.marshal, enemy)
+                ctx.pursue_sighted_at = dest  # FA-S17-9
+            elif ctx.strategic_type == "SUPPORT":
+                ally = ctx.world.get_marshal(ctx.target)
                 dest = ally.location if ally else None
-            elif strategic_type == "HOLD":
-                dest = target
+            elif ctx.strategic_type == "HOLD":
+                dest = ctx.target
 
             # F4 (playtest): resolve a messy destination phrase to a real
             # region before pathfinding, and never leak an unresolved phrase.
-            if (strategic_type in ("MOVE_TO", "HOLD")
-                    and dest and dest not in world.regions):
+            if (ctx.strategic_type in ("MOVE_TO", "HOLD")
+                    and dest and dest not in ctx.world.regions):
                 resolved = _resolve_region_from_phrase(
-                    world, dest, getattr(marshal, "nation", ""))
+                    ctx.world, dest, getattr(ctx.marshal, "nation", ""))
                 if resolved is None:
                     # IGR-A3: "Ney, march to Austria" reaches HERE, not the
                     # tactical region chokepoint — so the strategic verbs need
                     # the same honest answer, or a named court reads as an
                     # unintelligible phrase.
-                    nation = resolve_typed_nation(dest, world)
+                    nation = resolve_typed_nation(dest, ctx.world)
                     if nation:
                         return {
                             "success": False,
-                            "message": nation_not_a_province_message(nation, world),
+                            "message": nation_not_a_province_message(nation, ctx.world),
                             "nation_named": nation,
                             "variable_action_cost": 0,
                         }
@@ -1060,7 +1173,7 @@ class StrategicExecutor:
                     # nation arm, so "march on Archduke John at Tyrol" and
                     # "march to Austria" keep their existing answers.
                     typo_fix, typo_err = self._suggest_region_for_phrase(
-                        dest, world, near=getattr(marshal, "location", None))
+                        dest, ctx.world, near=getattr(ctx.marshal, "location", None))
                     if typo_fix is not None:
                         resolved = typo_fix
                     elif typo_err is not None:
@@ -1081,8 +1194,8 @@ class StrategicExecutor:
                             message = (
                                 f"The map knows no {terrain} by that name, Sire "
                                 f"- the campaign is fought province by province. "
-                                f"Name one (e.g. '{marshal.name}, hold "
-                                f"{marshal.location}')."
+                                f"Name one (e.g. '{ctx.marshal.name}, hold "
+                                f"{ctx.marshal.location}')."
                             )
                         elif (THE_MARCH_ROAD_READS_ITS_ROADS and _one_name
                               and len(_one_name.split()) == 1):
@@ -1092,12 +1205,12 @@ class StrategicExecutor:
                             # province, never "I could not make out" (the
                             # CA8-28 swallow above still keeps every guess out).
                             message = self._executor._no_guess_answer(
-                                _one_name, world, marshal.location)["message"]
+                                _one_name, ctx.world, ctx.marshal.location)["message"]
                         else:
                             message = (
                                 f"I could not make out a destination in that order, "
-                                f"Sire - name a province (e.g. '{marshal.name}, move "
-                                f"to {marshal.location}')."
+                                f"Sire - name a province (e.g. '{ctx.marshal.name}, move "
+                                f"to {ctx.marshal.location}')."
                             )
                         return {
                             "success": False,
@@ -1106,34 +1219,34 @@ class StrategicExecutor:
                         }
                 dest = resolved
 
-            if dest and dest != marshal.location:
+            if dest and dest != ctx.marshal.location:
                 # Personality-aware pathfinding (cautious avoids enemies)
                 # MOVE_TO and HOLD use weighted (Dijkstra) pathfinding for terrain-aware routes
                 # PURSUE/SUPPORT stay on BFS (chasing/supporting doesn't pick scenic routes)
-                use_weighted = (strategic_type in ("MOVE_TO", "HOLD"))
-                pathfinder = world.find_weighted_path if use_weighted else world.find_path
-                personality = getattr(marshal, 'personality', 'balanced')
+                use_weighted = (ctx.strategic_type in ("MOVE_TO", "HOLD"))
+                pathfinder = ctx.world.find_weighted_path if use_weighted else ctx.world.find_path
+                personality = getattr(ctx.marshal, 'personality', 'balanced')
                 import backend.commands.strategic as _road
                 # SR-2e CRT-4: the ONE road reader the desk, the `move
                 # to` belt and the objection battery read too.
-                path, _march_refusal, _march_kind = _road.march_road(
-                    world, marshal, dest, strategic_type)
+                ctx.path, _march_refusal, _march_kind = _road.march_road(
+                    ctx.world, ctx.marshal, dest, ctx.strategic_type)
                 if _march_refusal is not None:
                     if _march_kind == "road":
                         _march_refusal = dict(_march_refusal)
                         _march_refusal["message"] = (
                             str(_march_refusal.get("message") or "")
                             + destination_grounding_note(
-                                parsed_command.get("raw_input"), dest))
+                                ctx.parsed_command.get("raw_input"), dest))
                     return _march_refusal
-                path = [marshal.location] + list(path or [])
-                if not path:
+                ctx.path = [ctx.marshal.location] + list(ctx.path or [])
+                if not ctx.path:
                     return {
                         "success": False,
-                        "message": f"No path from {marshal.location} to {dest}.",
+                        "message": f"No path from {ctx.marshal.location} to {dest}.",
                     }
                 # Strip start location
-                path = [r for r in path if r != marshal.location]
+                ctx.path = [r for r in ctx.path if r != ctx.marshal.location]
 
                 # ── S5-D2: issuance-time passability honesty ──────────────
                 # The route above ignores diplomacy. PF-8's per-turn march
@@ -1144,22 +1257,22 @@ class StrategicExecutor:
                 # way around), say so NOW and charge nothing. Diplomacy is
                 # un-fogged, so this is safe to surface. The stall handoff for
                 # reachable/partial routes is unchanged.
-                if (marshal.nation == world.player_nation and path
+                if (ctx.marshal.nation == ctx.world.player_nation and ctx.path
                         and any(
                             r != dest
-                            and not world._region_passable_for(
-                                r, marshal.nation,
-                                mover_location=marshal.location)
-                            for r in path)):
-                    if not pathfinder(marshal.location, dest,
-                                      passable_for=marshal.nation):
+                            and not ctx.world._region_passable_for(
+                                r, ctx.marshal.nation,
+                                mover_location=ctx.marshal.location)
+                            for r in ctx.path)):
+                    if not pathfinder(ctx.marshal.location, dest,
+                                      passable_for=ctx.marshal.nation):
                         blocker = next(
-                            r for r in path
+                            r for r in ctx.path
                             if r != dest
-                            and not world._region_passable_for(
-                                r, marshal.nation,
-                                mover_location=marshal.location))
-                        blk = world.regions.get(blocker)
+                            and not ctx.world._region_passable_for(
+                                r, ctx.marshal.nation,
+                                mover_location=ctx.marshal.location))
+                        blk = ctx.world.regions.get(blocker)
                         blk_ctrl = blk.controller if blk else "neutral"
                         return {
                             "success": False,
@@ -1171,13 +1284,17 @@ class StrategicExecutor:
                             ),
                             "variable_action_cost": 0,
                         }
+        return _NEXT_STAGE
 
+    def _strategic_objection(self, ctx: StrategicCommandContext):
+        """Stage 7 of `_execute_strategic_command`: The V2a objection check,
+        before any order exists."""
         # ── Strategic objection check (V2a) ───────────────────────────
         # Check if marshal objects to this strategic command BEFORE creating order
         # Uses V2 evaluate_strategic_situation() (deterministic ConcernLevel triggers)
 
         # Check for objection response (post-objection execution)
-        objection_response = command.get("objection_response")
+        objection_response = ctx.command.get("objection_response")
 
         # ═══════════════════════════════════════════════════════════════════════════
         # V2a STRATEGIC OBJECTION CHECK
@@ -1197,24 +1314,24 @@ class StrategicExecutor:
         if not objection_response:
             # Bypass checks (already handled by V2 evaluators for literal/etc.)
             should_check = True
-            if getattr(marshal, 'retreat_recovery', 0) > 0:
+            if getattr(ctx.marshal, 'retreat_recovery', 0) > 0:
                 should_check = False
-            if marshal.nation != world.player_nation:
+            if ctx.marshal.nation != ctx.world.player_nation:
                 should_check = False
             # NP-1 (NAPOLEON_SPEC §4.2): the sovereign never objects to his
             # own strategic will (objection_v2's head guard is the belt).
-            if getattr(marshal, 'is_sovereign', False):
+            if getattr(ctx.marshal, 'is_sovereign', False):
                 should_check = False
 
             if should_check:
                 # V2 evaluation: deterministic concern level + mood variance
                 base_concern = evaluate_strategic_situation(
-                    marshal, strategic_type, target, path, game_state
+                    ctx.marshal, ctx.strategic_type, ctx.target, ctx.path, ctx.game_state
                 )
 
                 # V2b: Vindication escalation/de-escalation (same as tactical path)
                 vindication_shifted = base_concern
-                v_score = getattr(marshal, 'vindication_score', 0)
+                v_score = getattr(ctx.marshal, 'vindication_score', 0)
                 if v_score > 0 and base_concern != ConcernLevel.NONE:
                     new_val = min(base_concern.value + 1, ConcernLevel.EXTREME.value)
                     vindication_shifted = ConcernLevel(new_val)
@@ -1224,40 +1341,40 @@ class StrategicExecutor:
                 strategic_concern = apply_mood_variance(vindication_shifted)
                 # Track last objection turn for vindication decay
                 if base_concern != ConcernLevel.NONE:
-                    marshal.last_objection_turn = world.current_turn
+                    ctx.marshal.last_objection_turn = ctx.world.current_turn
 
                 if strategic_concern == ConcernLevel.MILD:
                     # MILD: Flavor text in turn log, order proceeds
-                    if marshal.name not in [c.get("marshal") for c in world.mild_concerns_this_turn]:
-                        world.mild_concerns_this_turn.append({
-                            "marshal": marshal.name,
+                    if ctx.marshal.name not in [c.get("marshal") for c in ctx.world.mild_concerns_this_turn]:
+                        ctx.world.mild_concerns_this_turn.append({
+                            "marshal": ctx.marshal.name,
                             "message": self._generate_mild_concern_message(
-                                marshal, strategic_type.lower(), command
+                                ctx.marshal, ctx.strategic_type.lower(), ctx.command
                             ),
                             "concern_level": "MILD",
-                            "action": strategic_type,
+                            "action": ctx.strategic_type,
                         })
 
                 elif strategic_concern >= ConcernLevel.MODERATE:
                     # Per-marshal cap: max 1 popup per marshal per turn
-                    if marshal.name in world.objection_popups_this_turn:
+                    if ctx.marshal.name in ctx.world.objection_popups_this_turn:
                         # Downgrade to MILD
-                        if marshal.name not in [c.get("marshal") for c in world.mild_concerns_this_turn]:
-                            world.mild_concerns_this_turn.append({
-                                "marshal": marshal.name,
+                        if ctx.marshal.name not in [c.get("marshal") for c in ctx.world.mild_concerns_this_turn]:
+                            ctx.world.mild_concerns_this_turn.append({
+                                "marshal": ctx.marshal.name,
                                 "message": self._generate_mild_concern_message(
-                                    marshal, strategic_type.lower(), command
+                                    ctx.marshal, ctx.strategic_type.lower(), ctx.command
                                 ),
                                 "concern_level": "MILD",
-                                "action": strategic_type,
+                                "action": ctx.strategic_type,
                                 "downgraded_from": strategic_concern.name,
                             })
                     else:
                         # Show popup
-                        world.objection_popups_this_turn.add(marshal.name)
+                        ctx.world.objection_popups_this_turn.add(ctx.marshal.name)
 
                         # V2 trust consequences
-                        trust_tier = get_trust_tier(marshal.trust.value)
+                        trust_tier = get_trust_tier(ctx.marshal.trust.value)
                         tone = get_objection_tone(trust_tier)
                         insist_penalty = get_insist_penalty(trust_tier)
                         # WO-D9: damped at the QUOTE (see executor.py).
@@ -1266,14 +1383,14 @@ class StrategicExecutor:
                             objection_trust_modifier,
                         )
                         trust_gain = damp_objection_trust_gain(
-                            world,
+                            ctx.world,
                             calculate_trust_gain(strategic_concern, trust_tier))
                         legacy_severity = concern_to_legacy_severity(strategic_concern)
 
                         # Generate alternatives using V1 personality helpers
                         from backend.commands.disobedience import check_strategic_objection
                         v1_objection = check_strategic_objection(
-                            marshal, strategic_type, target, path, world, game_state
+                            ctx.marshal, ctx.strategic_type, ctx.target, ctx.path, ctx.world, ctx.game_state
                         )
                         # Extract options from V1 if available, otherwise build minimal
                         v1_options = v1_objection.get("options", []) if v1_objection else []
@@ -1283,9 +1400,9 @@ class StrategicExecutor:
                             _evaluate_relationship_support, RELATIONSHIP_SUPPORT_MESSAGES
                         )
                         relationship_concern = ConcernLevel.NONE
-                        if strategic_type == "SUPPORT":
+                        if ctx.strategic_type == "SUPPORT":
                             relationship_concern = _evaluate_relationship_support(
-                                marshal, target, game_state
+                                ctx.marshal, ctx.target, ctx.game_state
                             )
                         if relationship_concern >= ConcernLevel.MODERATE and not v1_options:
                             # Build relationship-specific options with timed SUPPORT compromise
@@ -1306,17 +1423,17 @@ class StrategicExecutor:
                                 get_insist_penalty as _gip,
                                 get_trust_tier as _gtt,
                             )
-                            _tier = _gtt(marshal.trust.value)
+                            _tier = _gtt(ctx.marshal.trust.value)
                             # SR-2e: the order's own price, from the one
                             # source the charge reads (a SUPPORT is one
                             # action — the button said 2 for everyone
                             # but a literal marshal).
-                            _support_ap = marshal.strategic_order_ap(
+                            _support_ap = ctx.marshal.strategic_order_ap(
                                 order_type="SUPPORT")
                             v1_options = [
                                 {
                                     "type": "proceed",
-                                    "text": f"Insist: SUPPORT {target} as ordered",
+                                    "text": f"Insist: SUPPORT {ctx.target} as ordered",
                                     # Review-fleet fix: quote the values
                                     # the objection dict CARRIES (`:896`,
                                     # `:897`), not a re-derivation — the
@@ -1337,7 +1454,7 @@ class StrategicExecutor:
                                     # says so.
                                     "text": "Trust: Do not issue the SUPPORT order",
                                     "action": "cancel",
-                                    "target": target,
+                                    "target": ctx.target,
                                     "trust_change": trust_gain,
                                     "ap_cost": 1,
                                 },
@@ -1354,16 +1471,16 @@ class StrategicExecutor:
                         # build default insist/trust/compromise with aggressive preferred chain
                         if not v1_options and strategic_concern >= ConcernLevel.MODERATE:
                             from backend.commands.disobedience import _get_aggressive_preferred, _build_strategic_options
-                            preferred = _get_aggressive_preferred(marshal, world) if marshal.personality == 'aggressive' else None
-                            compromise = {"action": strategic_type.lower(), "max_turns": 3}
-                            display_type = get_strategic_display(strategic_type)
+                            preferred = _get_aggressive_preferred(ctx.marshal, ctx.world) if ctx.marshal.personality == 'aggressive' else None
+                            compromise = {"action": ctx.strategic_type.lower(), "max_turns": 3}
+                            display_type = get_strategic_display(ctx.strategic_type)
                             v1_options = _build_strategic_options(
-                                marshal,
+                                ctx.marshal,
                                 preferred,
                                 compromise,
                                 f"Proceed with {display_type}",
                                 f"Accept: Timed {display_type} (3 turns)",
-                                strategic_type,
+                                ctx.strategic_type,
                                 # PT-C2: this is the one site that knows the
                                 # real concern, so it hands it over rather
                                 # than letting the builder assume the floor.
@@ -1372,21 +1489,21 @@ class StrategicExecutor:
 
                         # V2b: Use relationship message if this is a relationship-triggered SUPPORT objection
                         if (relationship_concern >= ConcernLevel.MILD
-                                and strategic_type == "SUPPORT"
+                                and ctx.strategic_type == "SUPPORT"
                                 and relationship_concern >= strategic_concern):
                             rel_msg_template = RELATIONSHIP_SUPPORT_MESSAGES.get(
                                 relationship_concern, ""
                             )
                             if rel_msg_template:
-                                message = f'"{marshal.name}: {rel_msg_template.format(target=target)}"'
+                                message = f'"{ctx.marshal.name}: {rel_msg_template.format(target=ctx.target)}"'
                             else:
                                 message = self._generate_objection_message(
-                                    marshal, strategic_type.lower(), command,
+                                    ctx.marshal, ctx.strategic_type.lower(), ctx.command,
                                     strategic_concern, tone
                                 )
                         else:
                             message = self._generate_objection_message(
-                                marshal, strategic_type.lower(), command,
+                                ctx.marshal, ctx.strategic_type.lower(), ctx.command,
                                 strategic_concern, tone
                             )
 
@@ -1414,56 +1531,64 @@ class StrategicExecutor:
                             "compromise_gain": COMPROMISE_TRUST_GAIN,
                             # WO-D12 — see executor.py. Display-only.
                             "trust_gain_modifier": (
-                                objection_trust_modifier(world)),
+                                objection_trust_modifier(ctx.world)),
                             "should_object": True,
                             # Backward compat fields
                             "severity": legacy_severity,
                             "message": message,
-                            "marshal": marshal.name,
-                            "personality": marshal.personality,
-                            "reason": f"v2_{marshal.personality}_{strategic_type.lower()}",
+                            "marshal": ctx.marshal.name,
+                            "personality": ctx.marshal.personality,
+                            "reason": f"v2_{ctx.marshal.personality}_{ctx.strategic_type.lower()}",
                             "options": v1_options,
                             # Data for response handling
-                            "original_command": command.copy(),
-                            "parsed_command": parsed_command.copy(),
-                            "strategic_type": strategic_type,
-                            "path": path,
-                            "target": target,
-                            "marshal_name": marshal.name,
+                            "original_command": ctx.command.copy(),
+                            "parsed_command": ctx.parsed_command.copy(),
+                            "strategic_type": ctx.strategic_type,
+                            "path": ctx.path,
+                            "target": ctx.target,
+                            "marshal_name": ctx.marshal.name,
                         }
 
                         # CRITICAL: Store on world for /respond_to_objection endpoint
-                        world.pending_strategic_objection = objection
+                        ctx.world.pending_strategic_objection = objection
 
                         return {
                             "success": True,
                             "pending_objection": True,
                             "objection": objection,
                             "message": message,
-                            "marshal": marshal.name,
-                            "personality": marshal.personality,
+                            "marshal": ctx.marshal.name,
+                            "personality": ctx.marshal.personality,
                             "concern_level": strategic_concern.name,
                             "tone": tone,
                             "severity": legacy_severity,
-                            "trust": int(marshal.trust.value),
-                            "trust_label": marshal.trust.get_label(),
-                            "vindication": world.vindication_tracker.get_vindication_data(marshal.name).get("score", 0),
-                            "authority": int(world.authority_tracker.authority),
+                            "trust": int(ctx.marshal.trust.value),
+                            "trust_label": ctx.marshal.trust.get_label(),
+                            "vindication": ctx.world.vindication_tracker.get_vindication_data(ctx.marshal.name).get("score", 0),
+                            "authority": int(ctx.world.authority_tracker.authority),
                         }
 
         else:
             # Post-objection: Handle the response
             result = self._handle_strategic_objection_response(
-                marshal, command, parsed_command, objection_response, world, game_state, path, target, strategic_type
+                ctx.marshal, ctx.command, ctx.parsed_command, objection_response, ctx.world, ctx.game_state, ctx.path, ctx.target, ctx.strategic_type
             )
             if result is not None:
                 return result
+        return _NEXT_STAGE
 
+    def _strategic_create_order(self, ctx: StrategicCommandContext):
+        """Stage 8 of `_execute_strategic_command`: The condition, the
+        `StrategicOrder`, the old order cancelled, the event logged."""
+        from backend.models.marshal import (
+            StrategicOrder,
+            StrategicCondition,
+        )
         # ── Build condition ───────────────────────────────────────────
-        condition = None
-        cond_dict = parsed_command.get("strategic_condition")
+        ctx.condition = None
+        cond_dict = ctx.parsed_command.get("strategic_condition")
         if cond_dict and isinstance(cond_dict, dict):
-            condition = StrategicCondition(
+            ctx.condition = StrategicCondition(
                 max_turns=cond_dict.get("max_turns"),
                 until_marshal_arrives=cond_dict.get("until_marshal_arrives"),
                 until_marshal_destroyed=cond_dict.get("until_marshal_destroyed"),
@@ -1473,62 +1598,67 @@ class StrategicExecutor:
             )
 
         # ── Create StrategicOrder ─────────────────────────────────────
-        order = StrategicOrder(
-            command_type=strategic_type,
-            target=target or "generic",
-            target_type=target_type,
-            started_turn=world.current_turn,
+        ctx.order = StrategicOrder(
+            command_type=ctx.strategic_type,
+            target=ctx.target or "generic",
+            target_type=ctx.target_type,
+            started_turn=ctx.world.current_turn,
             # CR-5 Phase 4: for a delegation-inferred order the RECORD is the
             # player's verbatim phrase ("Ney, deal with Mack"), not the synthetic
             # reissue the router re-parsed — rider (d) "words become the record"
             # (§6.4). Falls back to raw_input for every explicit order.
-            original_command=(parsed_command.get("delegation_phrase")
-                              or parsed_command.get("raw_input", "")),
-            path=path,
-            condition=condition,
-            target_snapshot_location=snapshot,
-            attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+            original_command=(ctx.parsed_command.get("delegation_phrase")
+                              or ctx.parsed_command.get("raw_input", "")),
+            path=ctx.path,
+            condition=ctx.condition,
+            target_snapshot_location=ctx.snapshot,
+            attack_on_arrival=ctx.parsed_command.get("attack_on_arrival", False),
             # CR-7-6: the man the arrival tail named (None for a bare tail).
-            arrival_target=parsed_command.get("arrival_target"),
+            arrival_target=ctx.parsed_command.get("arrival_target"),
             # CR-5 Phase 4: tag orders the CR-5 router inferred from a delegation
             # verb so ONLY they get the fortification-aware bad-odds gate.
-            delegation_inferred=parsed_command.get("delegation_inferred", False),
-            issued_turn=world.current_turn,
+            delegation_inferred=ctx.parsed_command.get("delegation_inferred", False),
+            issued_turn=ctx.world.current_turn,
         )
         # CR-7-4 item 5: `until the battle is won` read the MARSHAL-scoped
         # `last_combat_result`, which a battle fought BEFORE this order left
         # standing — so the hold completed on its first tick. A new order
         # starts with no battle behind it; `_check_condition` also gates the
         # read on `last_combat_turn >= started_turn` for legacy saves.
-        marshal.last_combat_result = None
+        ctx.marshal.last_combat_result = None
 
         # Cancel any existing strategic order
-        if marshal.strategic_order:
-            print(f"[STRATEGIC] {marshal.name}'s previous order cancelled by new order")
+        if ctx.marshal.strategic_order:
+            print(f"[STRATEGIC] {ctx.marshal.name}'s previous order cancelled by new order")
             # Clear HOLD state if previous order was HOLD (mirrors pattern at line 937)
-            if marshal.strategic_order.command_type == "HOLD":
-                marshal.holding_position = False
-                marshal.hold_region = ""
-        marshal.strategic_order = order
-        clear_order_bound_interrupt(marshal)  # NPC-2
+            if ctx.marshal.strategic_order.command_type == "HOLD":
+                ctx.marshal.holding_position = False
+                ctx.marshal.hold_region = ""
+        ctx.marshal.strategic_order = ctx.order
+        clear_order_bound_interrupt(ctx.marshal)  # NPC-2
 
         # Log strategic order event
-        world.log_event({
+        ctx.world.log_event({
             "type": "strategic_order",
-            "marshal": marshal.name,
-            "order_type": strategic_type,
-            "destination": target or "",
+            "marshal": ctx.marshal.name,
+            "order_type": ctx.strategic_type,
+            "destination": ctx.target or "",
         })
 
-        print(f"[STRATEGIC] Order created: {strategic_type} -> {target}, path={path}")
+        print(f"[STRATEGIC] Order created: {ctx.strategic_type} -> {ctx.target}, path={ctx.path}")
+        return _NEXT_STAGE
 
+    def _strategic_first_step(self, ctx: StrategicCommandContext):
+        """Stage 9 of `_execute_strategic_command`: The first step at once:
+        PURSUE in the same province, the march's first leg, SUPPORT already
+        beside its friend."""
         # ── Execute first step immediately ────────────────────────────
         # Cavalry (movement_range=2) moves UP TO movement_range regions per step
-        first_step_msg = ""
-        capture_tail = ""  # WO-D11 copy half: the capture rides the march's own line
-        movement_range = getattr(marshal, 'movement_range', 1)
-        print(f"[STRATEGIC INIT] {marshal.name}: Path = {path}, movement_range = {movement_range}")
-        print(f"[STRATEGIC INIT] {marshal.name}: Executing first step from {marshal.location}...")
+        ctx.first_step_msg = ""
+        ctx.capture_tail = ""  # WO-D11 copy half: the capture rides the march's own line
+        ctx.movement_range = getattr(ctx.marshal, 'movement_range', 1)
+        print(f"[STRATEGIC INIT] {ctx.marshal.name}: Path = {ctx.path}, movement_range = {ctx.movement_range}")
+        print(f"[STRATEGIC INIT] {ctx.marshal.name}: Executing first step from {ctx.marshal.location}...")
 
         # ── PURSUE: target in same region → personality-aware immediate response ──
         pursue_handled = False
@@ -1537,121 +1667,121 @@ class StrategicExecutor:
         # report, tableau and CAPTURE PROMPT were dropped (measured: a first
         # step that captured Bohemia replied with `events: []`, and the
         # plunder/secure modal arrived one swallowed command late).
-        first_step_attack_result = None
-        if strategic_type == "PURSUE":
-            enemy_m = world.get_marshal(target)
-            if enemy_m and enemy_m.strength > 0 and marshal.location == enemy_m.location:
+        ctx.first_step_attack_result = None
+        if ctx.strategic_type == "PURSUE":
+            enemy_m = ctx.world.get_marshal(ctx.target)
+            if enemy_m and enemy_m.strength > 0 and ctx.marshal.location == enemy_m.location:
                 pursue_handled = True
-                personality = getattr(marshal, 'personality', 'balanced')
-                if personality == "aggressive" or order.attack_on_arrival:
+                personality = getattr(ctx.marshal, 'personality', 'balanced')
+                if personality == "aggressive" or ctx.order.attack_on_arrival:
                     # CR-5 Phase 4: a delegation-inferred assault on a dug-in
                     # superior force routes through the one-modal confirm before
                     # it commits (§6.3c). Explicit/typed orders fall straight
                     # through (gate returns None) — the player named the attack.
                     _gate = self._inferred_first_step_gate(
-                        marshal, enemy_m, game_state)
+                        ctx.marshal, enemy_m, ctx.game_state)
                     if _gate is not None:
                         return _gate
                     attack_result = self._executor.execute(
-                        {"command": {"marshal": marshal.name, "action": "attack",
-                                     "target": target, "_strategic_execution": True}},
-                        game_state)
+                        {"command": {"marshal": ctx.marshal.name, "action": "attack",
+                                     "target": ctx.target, "_strategic_execution": True}},
+                        ctx.game_state)
                     from backend.commands.strategic import attack_was_refused
                     if attack_was_refused(attack_result):
                         # FA-20 family (slice 3): no "Engaging!" over a refusal,
                         # and no PURSUE left standing on one.
-                        return self._first_step_refusal(marshal, attack_result, target, world)
+                        return self._first_step_refusal(ctx.marshal, attack_result, ctx.target, ctx.world)
                     combat_msg = attack_result.get("message", "")
-                    first_step_attack_result = attack_result
-                    first_step_msg = f" They're right here! Engaging!\n\n{combat_msg}"
+                    ctx.first_step_attack_result = attack_result
+                    ctx.first_step_msg = f" They're right here! Engaging!\n\n{combat_msg}"
                 else:
-                    first_step_msg = (f" {target} is right here in {marshal.location}!"
+                    ctx.first_step_msg = (f" {ctx.target} is right here in {ctx.marshal.location}!"
                                       f" Awaiting the right moment to strike.")
 
-        if not pursue_handled and strategic_type == "MOVE_TO" and path:
-            steps = min(movement_range, len(path))
+        if not pursue_handled and ctx.strategic_type == "MOVE_TO" and ctx.path:
+            steps = min(ctx.movement_range, len(ctx.path))
             moved_regions = []
-            print(f"[STRATEGIC INIT] {marshal.name}: MOVE_TO first step, {_plural(int(steps), 'step')} max")
+            print(f"[STRATEGIC INIT] {ctx.marshal.name}: MOVE_TO first step, {_plural(int(steps), 'step')} max")
             for i in range(steps):
-                if not order.path:
+                if not ctx.order.path:
                     break
-                next_region = order.path[0]
-                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                next_region = ctx.order.path[0]
+                enemies = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
                 if enemies:
-                    print(f"[STRATEGIC INIT] {marshal.name}: First step BLOCKED by enemies at {next_region}")
+                    print(f"[STRATEGIC INIT] {ctx.marshal.name}: First step BLOCKED by enemies at {next_region}")
                     if not moved_regions:
                         # First step blocked — personality-based response
                         blocked_result = self._handle_first_step_blocked(
-                            marshal, enemies, next_region, world, game_state)
+                            ctx.marshal, enemies, next_region, ctx.world, ctx.game_state)
                         if blocked_result is not None:
                             return blocked_result  # Interrupt or combat result
                         # Literal reroute succeeded — continue with new path
-                        first_step_msg = f" Adjusting route to avoid {next_region}."
+                        ctx.first_step_msg = f" Adjusting route to avoid {next_region}."
                         # Re-check path after reroute
-                        if order.path:
-                            next_region = order.path[0]
-                            enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                        if ctx.order.path:
+                            next_region = ctx.order.path[0]
+                            enemies = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
                             if enemies:
                                 break  # Still blocked after reroute
                         else:
                             break  # No path left
                     else:
                         break  # Mid-march block, stop here
-                print(f"[STRATEGIC INIT] {marshal.name}: Moving {marshal.location} -> {next_region}")
+                print(f"[STRATEGIC INIT] {ctx.marshal.name}: Moving {ctx.marshal.location} -> {next_region}")
                 move_result = self._executor.execute(
                     {"command": {
-                        "marshal": marshal.name,
+                        "marshal": ctx.marshal.name,
                         "action": "move",
                         "target": next_region,
                         "_strategic_execution": True
                     }},
-                    game_state
+                    ctx.game_state
                 )
                 if move_result.get("success"):
-                    order.path.pop(0)
+                    ctx.order.path.pop(0)
                     moved_regions.append(next_region)
-                    capture_tail += _capture_tail(move_result)
-                    print(f"[STRATEGIC INIT] {marshal.name}: Moved to {next_region} OK")
+                    ctx.capture_tail += _capture_tail(move_result)
+                    print(f"[STRATEGIC INIT] {ctx.marshal.name}: Moved to {next_region} OK")
                 else:
-                    print(f"[STRATEGIC INIT] {marshal.name}: Move FAILED - {move_result.get('message', '?')}")
+                    print(f"[STRATEGIC INIT] {ctx.marshal.name}: Move FAILED - {move_result.get('message', '?')}")
                     break
             if not moved_regions:
-                print(f"[STRATEGIC INIT] {marshal.name}: First step SKIPPED - no regions moved")
+                print(f"[STRATEGIC INIT] {ctx.marshal.name}: First step SKIPPED - no regions moved")
             if moved_regions:
                 if len(moved_regions) > 1:
-                    first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
+                    ctx.first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
                 else:
-                    first_step_msg = f" Moves to {moved_regions[0]}."
+                    ctx.first_step_msg = f" Moves to {moved_regions[0]}."
 
-        elif strategic_type == "HOLD":
+        elif ctx.strategic_type == "HOLD":
             # If already at target, set holding immediately
-            if marshal.location == (target or marshal.location):
-                if marshal.personality == "literal":
-                    marshal.holding_position = True
-                    marshal.hold_region = marshal.location
-                    first_step_msg = " [Immovable: +15% defense]"
+            if ctx.marshal.location == (ctx.target or ctx.marshal.location):
+                if ctx.marshal.personality == "literal":
+                    ctx.marshal.holding_position = True
+                    ctx.marshal.hold_region = ctx.marshal.location
+                    ctx.first_step_msg = " [Immovable: +15% defense]"
                 else:
-                    first_step_msg = " Holding position."
-            elif path:
-                steps = min(movement_range, len(path))
+                    ctx.first_step_msg = " Holding position."
+            elif ctx.path:
+                steps = min(ctx.movement_range, len(ctx.path))
                 moved_regions = []
                 for i in range(steps):
-                    if not order.path:
+                    if not ctx.order.path:
                         break
-                    next_region = order.path[0]
-                    enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                    next_region = ctx.order.path[0]
+                    enemies = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
                     if enemies:
                         if not moved_regions:
                             # First step blocked — personality-based response
                             blocked_result = self._handle_first_step_blocked(
-                                marshal, enemies, next_region, world, game_state)
+                                ctx.marshal, enemies, next_region, ctx.world, ctx.game_state)
                             if blocked_result is not None:
                                 return blocked_result
                             # Literal reroute — continue with new path
-                            first_step_msg = f" Adjusting route to avoid {next_region}."
-                            if order.path:
-                                next_region = order.path[0]
-                                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                            ctx.first_step_msg = f" Adjusting route to avoid {next_region}."
+                            if ctx.order.path:
+                                next_region = ctx.order.path[0]
+                                enemies = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
                                 if enemies:
                                     break
                             else:
@@ -1660,45 +1790,45 @@ class StrategicExecutor:
                             break
                     move_result = self._executor.execute(
                         {"command": {
-                            "marshal": marshal.name,
+                            "marshal": ctx.marshal.name,
                             "action": "move",
                             "target": next_region,
                             "_strategic_execution": True
                         }},
-                        game_state
+                        ctx.game_state
                     )
                     if move_result.get("success"):
-                        order.path.pop(0)
+                        ctx.order.path.pop(0)
                         moved_regions.append(next_region)
-                        capture_tail += _capture_tail(move_result)
+                        ctx.capture_tail += _capture_tail(move_result)
                     else:
                         break
                 if moved_regions:
-                    first_step_msg = f" Marching to {target}."
+                    ctx.first_step_msg = f" Marching to {ctx.target}."
 
-        elif not pursue_handled and strategic_type == "PURSUE" and path:
-            steps = min(movement_range, len(path))
+        elif not pursue_handled and ctx.strategic_type == "PURSUE" and ctx.path:
+            steps = min(ctx.movement_range, len(ctx.path))
             moved_regions = []
             for i in range(steps):
-                if not order.path:
+                if not ctx.order.path:
                     break
-                next_region = order.path[0]
-                enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
+                next_region = ctx.order.path[0]
+                enemies_blocking = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
                 # Allow moving into target's region (that's the point of PURSUE)
-                blocking = [e for e in enemies_blocking if e.name != target]
+                blocking = [e for e in enemies_blocking if e.name != ctx.target]
                 if blocking:
                     if not moved_regions:
                         # First step blocked by non-target enemy
                         blocked_result = self._handle_first_step_blocked(
-                            marshal, blocking, next_region, world, game_state)
+                            ctx.marshal, blocking, next_region, ctx.world, ctx.game_state)
                         if blocked_result is not None:
                             return blocked_result
                         # Literal reroute — continue
-                        first_step_msg = f" Adjusting route to avoid {next_region}."
-                        if order.path:
-                            next_region = order.path[0]
-                            enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
-                            blocking = [e for e in enemies_blocking if e.name != target]
+                        ctx.first_step_msg = f" Adjusting route to avoid {next_region}."
+                        if ctx.order.path:
+                            next_region = ctx.order.path[0]
+                            enemies_blocking = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
+                            blocking = [e for e in enemies_blocking if e.name != ctx.target]
                             if blocking:
                                 break
                         else:
@@ -1707,78 +1837,78 @@ class StrategicExecutor:
                         break
                 move_result = self._executor.execute(
                     {"command": {
-                        "marshal": marshal.name,
+                        "marshal": ctx.marshal.name,
                         "action": "move",
                         "target": next_region,
                         "_strategic_execution": True
                     }},
-                    game_state
+                    ctx.game_state
                 )
                 if move_result.get("success"):
-                    order.path.pop(0)
+                    ctx.order.path.pop(0)
                     moved_regions.append(next_region)
-                    capture_tail += _capture_tail(move_result)
+                    ctx.capture_tail += _capture_tail(move_result)
                 else:
                     # Move failed — check if target is in this region (PURSUE should attack)
-                    enemy_m = world.get_marshal(target)
+                    enemy_m = ctx.world.get_marshal(ctx.target)
                     if enemy_m and next_region == enemy_m.location:
-                        personality = getattr(marshal, 'personality', 'balanced')
-                        attack_on_arrival = getattr(order, 'attack_on_arrival', False)
+                        personality = getattr(ctx.marshal, 'personality', 'balanced')
+                        attack_on_arrival = getattr(ctx.order, 'attack_on_arrival', False)
                         if personality == "aggressive" or attack_on_arrival:
                             # CR-5 Phase 4: gate an inferred assault on a dug-in
                             # superior force (§6.3c); explicit orders fall through.
                             _gate = self._inferred_first_step_gate(
-                                marshal, enemy_m, game_state)
+                                ctx.marshal, enemy_m, ctx.game_state)
                             if _gate is not None:
                                 return _gate
                             attack_result = self._executor.execute(
-                                {"command": {"marshal": marshal.name, "action": "attack",
-                                             "target": target, "_strategic_execution": True}},
-                                game_state)
+                                {"command": {"marshal": ctx.marshal.name, "action": "attack",
+                                             "target": ctx.target, "_strategic_execution": True}},
+                                ctx.game_state)
                             from backend.commands.strategic import attack_was_refused
                             if attack_was_refused(attack_result):
                                 # FA-20 family (slice 3): "spotted at London!
                                 # Engaging!" was printed over the crossing
                                 # refusal with the PURSUE left standing.
                                 return self._first_step_refusal(
-                                    marshal, attack_result, target, world)
+                                    ctx.marshal, attack_result, ctx.target, ctx.world)
                             combat_msg = attack_result.get("message", "")
-                            first_step_attack_result = attack_result
-                            first_step_msg = f" {humanize_entity_name(target)} spotted at {next_region}! Engaging!\n\n{combat_msg}"
+                            ctx.first_step_attack_result = attack_result
+                            ctx.first_step_msg = f" {humanize_entity_name(ctx.target)} spotted at {next_region}! Engaging!\n\n{combat_msg}"
                         else:
-                            first_step_msg = f" {humanize_entity_name(target)} spotted at {next_region}. Preparing to engage."
+                            ctx.first_step_msg = f" {humanize_entity_name(ctx.target)} spotted at {next_region}. Preparing to engage."
                     break
             if moved_regions:
-                order.path = []  # PURSUE recalculates each turn
+                ctx.order.path = []  # PURSUE recalculates each turn
                 if len(moved_regions) > 1:
-                    first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
+                    ctx.first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
                 else:
-                    first_step_msg = f" Moves to {moved_regions[0]}."
+                    ctx.first_step_msg = f" Moves to {moved_regions[0]}."
                 # Check if caught up
-                enemy_m = world.get_marshal(target)
-                if enemy_m and marshal.location == enemy_m.location:
-                    first_step_msg += f" {target} found here!"
+                enemy_m = ctx.world.get_marshal(ctx.target)
+                if enemy_m and ctx.marshal.location == enemy_m.location:
+                    ctx.first_step_msg += f" {ctx.target} found here!"
 
-        elif strategic_type == "SUPPORT" and path:
-            steps = min(movement_range, len(path))
+        elif ctx.strategic_type == "SUPPORT" and ctx.path:
+            steps = min(ctx.movement_range, len(ctx.path))
             moved_regions = []
             for i in range(steps):
-                if not order.path:
+                if not ctx.order.path:
                     break
-                next_region = order.path[0]
-                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                next_region = ctx.order.path[0]
+                enemies = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
                 if enemies:
                     if not moved_regions:
                         # First step blocked
                         blocked_result = self._handle_first_step_blocked(
-                            marshal, enemies, next_region, world, game_state)
+                            ctx.marshal, enemies, next_region, ctx.world, ctx.game_state)
                         if blocked_result is not None:
                             return blocked_result
                         # Literal reroute — continue
-                        first_step_msg = f" Adjusting route to avoid {next_region}."
-                        if order.path:
-                            next_region = order.path[0]
-                            enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                        ctx.first_step_msg = f" Adjusting route to avoid {next_region}."
+                        if ctx.order.path:
+                            next_region = ctx.order.path[0]
+                            enemies = ctx.world.get_enemies_in_region(next_region, ctx.marshal.nation)
                             if enemies:
                                 break
                         else:
@@ -1787,39 +1917,43 @@ class StrategicExecutor:
                         break
                 move_result = self._executor.execute(
                     {"command": {
-                        "marshal": marshal.name,
+                        "marshal": ctx.marshal.name,
                         "action": "move",
                         "target": next_region,
                         "_strategic_execution": True
                     }},
-                    game_state
+                    ctx.game_state
                 )
                 if move_result.get("success"):
-                    order.path.pop(0)
+                    ctx.order.path.pop(0)
                     moved_regions.append(next_region)
-                    capture_tail += _capture_tail(move_result)
+                    ctx.capture_tail += _capture_tail(move_result)
                 else:
                     break
             if moved_regions:
                 if len(moved_regions) > 1:
-                    first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
+                    ctx.first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
                 else:
-                    first_step_msg = f" Moves to {moved_regions[0]}."
+                    ctx.first_step_msg = f" Moves to {moved_regions[0]}."
             # Record arrival if first step reached ally
-            ally_m = world.get_marshal(target)
-            if ally_m and marshal.location == ally_m.location and order.arrived_turn is None:
-                order.arrived_turn = world.current_turn
+            ally_m = ctx.world.get_marshal(ctx.target)
+            if ally_m and ctx.marshal.location == ally_m.location and ctx.order.arrived_turn is None:
+                ctx.order.arrived_turn = ctx.world.current_turn
 
         # ── SUPPORT already co-located: set arrived_turn immediately ──
-        if strategic_type == "SUPPORT" and order.arrived_turn is None:
-            ally_m = world.get_marshal(target)
-            if ally_m and marshal.location == ally_m.location:
-                order.arrived_turn = world.current_turn
+        if ctx.strategic_type == "SUPPORT" and ctx.order.arrived_turn is None:
+            ally_m = ctx.world.get_marshal(ctx.target)
+            if ally_m and ctx.marshal.location == ally_m.location:
+                ctx.order.arrived_turn = ctx.world.current_turn
+        return _NEXT_STAGE
 
+    def _strategic_response(self, ctx: StrategicCommandContext):
+        """Stage 10 of `_execute_strategic_command`: The reply's road, the
+        grounding note (FA-54), the MOVE_TO lines."""
         # ── Build response ────────────────────────────────────────────
-        first_step_msg = f"{first_step_msg}{capture_tail}"
-        remaining = len(order.path) if order.path else 0
-        route_str = " → ".join([marshal.location] + (order.path or []))  # LV-19: one arrow
+        ctx.first_step_msg = f"{ctx.first_step_msg}{ctx.capture_tail}"
+        ctx.remaining = len(ctx.order.path) if ctx.order.path else 0
+        route_str = " → ".join([ctx.marshal.location] + (ctx.order.path or []))  # LV-19: one arrow
 
         # FA-54: the strategic route was SILENT about an auto-corrected
         # destination while the tactical route disclosed the identical
@@ -1827,68 +1961,68 @@ class StrategicExecutor:
         # `march` is the common verb. Same note, same words, built by the
         # one shared helper so the two routes cannot drift again.
         _ground = destination_grounding_note(
-            parsed_command.get("raw_input"), target)
+            ctx.parsed_command.get("raw_input"), ctx.target)
 
-        if strategic_type == "MOVE_TO":
-            if remaining == 0:
+        if ctx.strategic_type == "MOVE_TO":
+            if ctx.remaining == 0:
                 # Adjacent move — skip redundant route description
-                msg = (f"{marshal.name} begins march to {target}."
-                       f"{first_step_msg}{_ground}")
+                ctx.msg = (f"{ctx.marshal.name} begins march to {ctx.target}."
+                       f"{ctx.first_step_msg}{_ground}")
             else:
-                msg = (f"{marshal.name} begins march to {target}. "
-                       f"Route: {route_str}.{first_step_msg}{_ground}")
-        elif strategic_type == "PURSUE":
-            enemy_m = world.get_marshal(target)
+                ctx.msg = (f"{ctx.marshal.name} begins march to {ctx.target}. "
+                       f"Route: {route_str}.{ctx.first_step_msg}{_ground}")
+        elif ctx.strategic_type == "PURSUE":
+            enemy_m = ctx.world.get_marshal(ctx.target)
             # NPC-5: the acceptance line must not tell the player where the
             # quarry actually is — only where his own scouts last saw him.
             # NPC-12: and it must spell his name the way every other surface
             # does ("Archduke Charles"), not as the internal key.
             # FA-S17-9: quote the sighting the road was plotted from, never
             # a re-resolution taken after the first step has already moved us.
-            loc = pursue_sighted_at if self.PURSUIT_QUOTES_THE_SIGHTING else None
+            loc = ctx.pursue_sighted_at if self.PURSUIT_QUOTES_THE_SIGHTING else None
             if not loc:
-                loc = (self._pursue_known_location(world, marshal, enemy_m)
+                loc = (self._pursue_known_location(ctx.world, ctx.marshal, enemy_m)
                        or "unknown")
-            msg = (f"{marshal.name} pursues {humanize_entity_name(target)} "
-                   f"(at {loc}).{first_step_msg}")
-            _upgraded = (bool(parsed_command.get("attack_on_arrival"))
-                         and str((parsed_command.get("command") or {}).get("action") or "") == "attack")
+            ctx.msg = (f"{ctx.marshal.name} pursues {humanize_entity_name(ctx.target)} "
+                   f"(at {loc}).{ctx.first_step_msg}")
+            _upgraded = (bool(ctx.parsed_command.get("attack_on_arrival"))
+                         and str((ctx.parsed_command.get("command") or {}).get("action") or "") == "attack")
             if THE_PURSUIT_STATES_ITS_TERMS and _upgraded:
                 # NPC-D4: the upgrade announces what it IS — a standing
                 # order with a pace, a road, an interrupt and a lapse.
                 from backend.commands.strategic import march_turns
-                _steps = len(order.path or [])
-                _turns = march_turns(_steps, movement_range) if _steps else 0
-                _pace = (f"{movement_range} province"
-                         f"{'s' if movement_range != 1 else ''} a turn")
+                _steps = len(ctx.order.path or [])
+                _turns = march_turns(_steps, ctx.movement_range) if _steps else 0
+                _pace = (f"{ctx.movement_range} province"
+                         f"{'s' if ctx.movement_range != 1 else ''} a turn")
                 _road = (f" — about {_turns} turn{'s' if _turns != 1 else ''} to {loc}"
                          if _turns and loc != "unknown" else "")
-                msg += (f" A standing order, not a single attack: he closes {_pace}"
+                ctx.msg += (f" A standing order, not a single attack: he closes {_pace}"
                         f"{_road}, attacks on arrival, may be diverted by an "
                         f"interrupt, and stands down if intelligence on him lapses. "
-                        f"'{marshal.name}, cancel' recalls him.")
-        elif strategic_type == "HOLD":
-            hold_loc = target or marshal.location
+                        f"'{ctx.marshal.name}, cancel' recalls him.")
+        elif ctx.strategic_type == "HOLD":
+            hold_loc = ctx.target or ctx.marshal.location
             # A HOLD is a STANDING order, and the CR-5 rider-(d)
             # verbatim quote rides beside it — measured, `Soult, hold
             # Mainz` printed `Soult will hold Maine. Marching to Maine.
             # "Soult, hold Mainz."`, the player's own words and the
             # substituted province contradicting each other in one
             # sentence.
-            msg = (f"{marshal.name} will hold {hold_loc}.{first_step_msg}"
-                   + ("" if (_hold_placed_by_the_game)
+            ctx.msg = (f"{ctx.marshal.name} will hold {hold_loc}.{ctx.first_step_msg}"
+                   + ("" if (ctx._hold_placed_by_the_game)
                       else destination_grounding_note(
-                          parsed_command.get("raw_input"), hold_loc)))
-        elif strategic_type == "SUPPORT":
-            ally_m = world.get_marshal(target)
+                          ctx.parsed_command.get("raw_input"), hold_loc)))
+        elif ctx.strategic_type == "SUPPORT":
+            ally_m = ctx.world.get_marshal(ctx.target)
             loc = ally_m.location if ally_m else "unknown"
             # NPC-12: the SUPPORT sibling four lines below the PURSUE line —
             # the exact pair a source-grep pin could not tell apart, and the
             # reason the previous fix of this class left this one raw. (An
             # ally's location is our own intelligence; no fog arm needed.)
-            msg = (f"{marshal.name} moves to support "
-                   f"{humanize_entity_name(target)} (at {loc})."
-                   f"{first_step_msg}")
+            ctx.msg = (f"{ctx.marshal.name} moves to support "
+                   f"{humanize_entity_name(ctx.target)} (at {loc})."
+                   f"{ctx.first_step_msg}")
             # W6-4 §6.3: confirm the standing-orders doctrine — a SUPPORT
             # order authorizes even a literal marshal to march to the guns.
             # CA9-F8 (the COPY half; the mechanic is out of scope and
@@ -1904,35 +2038,39 @@ class StrategicExecutor:
             #      threshold and a bonus on the score, not a guarantee.
             #   3. the order auto-completes the first turn the ally is
             #      safe, unless the player named a duration.
-            msg += (
-                f" {marshal.name} holds your written order: when {target} "
+            ctx.msg += (
+                f" {ctx.marshal.name} holds your written order: when {ctx.target} "
                 f"leads a battle within reach, he will march to the guns."
             )
-            if not (condition and getattr(condition, "max_turns", None)):
-                msg += (
-                    f" The order lapses of itself once {target} is out of "
+            if not (ctx.condition and getattr(ctx.condition, "max_turns", None)):
+                ctx.msg += (
+                    f" The order lapses of itself once {ctx.target} is out of "
                     f"danger — name a duration to hold him to it."
                 )
             # A-M3: Berthier advisory — fortified/square marshal cannot reinforce
-            if getattr(marshal, 'fortified', False):
-                msg += (
-                    f"\n\nBerthier: \"Sire, {marshal.name} is ordered to support {target} "
+            if getattr(ctx.marshal, 'fortified', False):
+                ctx.msg += (
+                    f"\n\nBerthier: \"Sire, {ctx.marshal.name} is ordered to support {ctx.target} "
                     f"but is fortified — they cannot march to reinforce from their current "
                     f"position. Consider unfortifying, or rely on the co-location coordination bonus.\""
                 )
-            elif was_in_square:
+            elif ctx.was_in_square:
                 # FA-N57: the CONSEQUENCE, not the old sentence on the captured
                 # state — "they cannot march to reinforce" (he can) and
                 # "consider breaking square first" (it is already broken) are
                 # both false once the auto-break above has run.
-                msg += (
-                    f"\n\nBerthier: \"Sire, {marshal.name} has broken square to take up "
-                    f"the order — he marches to {target}'s aid, but the anti-cavalry "
+                ctx.msg += (
+                    f"\n\nBerthier: \"Sire, {ctx.marshal.name} has broken square to take up "
+                    f"the order — he marches to {ctx.target}'s aid, but the anti-cavalry "
                     f"formation is gone.\""
                 )
         else:
-            msg = f"{marshal.name} received the order to {order_verb_display(strategic_type)}.{first_step_msg}"
+            ctx.msg = f"{ctx.marshal.name} received the order to {order_verb_display(ctx.strategic_type)}.{ctx.first_step_msg}"
+        return _NEXT_STAGE
 
+    def _strategic_cost_and_reply(self, ctx: StrategicCommandContext):
+        """Stage 11 of `_execute_strategic_command`: The condition echoed
+        (CR-7-4), the order priced (SR-2e), the acknowledgement, the reply."""
         # CR-7-4 item 6 — THE ECHO. The confirmation used to be byte-identical
         # across six different conditions (this block named four and was
         # appended where the player never read it); it now names EVERY
@@ -1941,12 +2079,12 @@ class StrategicExecutor:
         # clause was read ("'for three turns' read as for 3 turns") or that
         # it could not be ("'unless attacked' is not a clause I can hold").
         cond_str = ""
-        if condition:
+        if ctx.condition:
             from backend.ai.condition_grammar import describe_condition
-            described = describe_condition(condition)
+            described = describe_condition(ctx.condition)
             if described:
                 cond_str = f" ({described})"
-        _condition_notes = [str(n) for n in (parsed_command.get("condition_notes") or []) if n]
+        _condition_notes = [str(n) for n in (ctx.parsed_command.get("condition_notes") or []) if n]
         if _condition_notes:
             cond_str += " Berthier: \"" + ". ".join(_condition_notes) + ".\""
 
@@ -1954,13 +2092,13 @@ class StrategicExecutor:
         # Auto-upgrades (e.g., attack→PURSUE) cost 1 (player didn't ask for strategic)
         # NP-1: 1 for the sovereign — his orders are the player's own will
         # (NAPOLEON_SPEC §4.2; matches the executor.py pre-check).
-        is_literal = getattr(marshal, 'personality', '') == 'literal'
-        is_sovereign = getattr(marshal, 'is_sovereign', False)
-        is_auto_upgrade = parsed_command.get("auto_upgrade", False)
+        is_literal = getattr(ctx.marshal, 'personality', '') == 'literal'
+        is_sovereign = getattr(ctx.marshal, 'is_sovereign', False)
+        is_auto_upgrade = ctx.parsed_command.get("auto_upgrade", False)
         # NP-V: single source on the marshal (GR1).
         # SR-2e: the order's type prices it (a SUPPORT is one action).
-        strategic_cost = marshal.strategic_order_ap(
-            auto_upgrade=bool(is_auto_upgrade), order_type=strategic_type)
+        strategic_cost = ctx.marshal.strategic_order_ap(
+            auto_upgrade=bool(is_auto_upgrade), order_type=ctx.strategic_type)
 
         # W6-5 The Literal Doctrine (§7.2.2 + §7.2.5): a literal marshal
         # acknowledges by quoting the order's own words (the verbatim text
@@ -1969,11 +2107,11 @@ class StrategicExecutor:
         # doctrine, not accounting.
         if is_literal:
             from backend.game_logic.marshal_voice import literal_ack
-            original = getattr(order, "original_command", "") or ""
+            original = getattr(ctx.order, "original_command", "") or ""
             if original:
-                msg += " " + literal_ack(original, int(world.current_turn))
+                ctx.msg += " " + literal_ack(original, int(ctx.world.current_turn))
             if not is_auto_upgrade:
-                msg += (f" (1 AP — {marshal.name} executes precise orders "
+                ctx.msg += (f" (1 AP — {ctx.marshal.name} executes precise orders "
                         f"with fewer couriers.)")
         else:
             # Marshal Voice Tier 1 (position 9): aggressive/cautious
@@ -1984,38 +2122,38 @@ class StrategicExecutor:
             # message builder anyway).
             from backend.game_logic.marshal_voice import personality_ack
             _ack = personality_ack(
-                getattr(marshal, "personality", ""), strategic_type,
-                int(world.current_turn), len(str(target or "")),
-                marshal_name=marshal.name)
-            if _ack and marshal.nation == world.player_nation:
-                msg += f" {marshal.name}: {_ack}"
+                getattr(ctx.marshal, "personality", ""), ctx.strategic_type,
+                int(ctx.world.current_turn), len(str(ctx.target or "")),
+                marshal_name=ctx.marshal.name)
+            if _ack and ctx.marshal.nation == ctx.world.player_nation:
+                ctx.msg += f" {ctx.marshal.name}: {_ack}"
             # NP-1: the sovereign's discount is captioned like the
             # literal's, so 1 AP reads as doctrine, not accounting.
             if is_sovereign and not is_auto_upgrade:
-                msg += " (1 AP — the Emperor commands in his own name.)"
-            if strategic_type == "HOLD" and strategic_cost == 2:
+                ctx.msg += " (1 AP — the Emperor commands in his own name.)"
+            if ctx.strategic_type == "HOLD" and strategic_cost == 2:
                 # PF-6: a tactical-sounding "hold your ground" is upgraded
                 # to a 2-AP standing strategic HOLD for a non-literal
                 # marshal. Announce the upgrade inline (the V2-58 pricing
                 # stands — do NOT re-price) and name the 1-AP tactical
                 # alternative so the player can opt out.
-                msg += (" (2 AP — a standing strategic order to hold this "
+                ctx.msg += (" (2 AP — a standing strategic order to hold this "
                         "ground turn after turn. For a single-turn tactical "
                         "hold, order 'defend' at 1 AP.)")
 
         _reply = {
             "success": True,
-            "message": msg + cond_str,
+            "message": ctx.msg + cond_str,
             "strategic_order": True,
-            "strategic_type": strategic_type,
-            "target": target,
-            "path": order.path,
-            "remaining_regions": remaining,
+            "strategic_type": ctx.strategic_type,
+            "target": ctx.target,
+            "path": ctx.order.path,
+            "remaining_regions": ctx.remaining,
             "variable_action_cost": strategic_cost,
         }
-        if first_step_attack_result is not None:
+        if ctx.first_step_attack_result is not None:
             from backend.commands.strategic import _carry_combat_fields
-            _carry_combat_fields(_reply, first_step_attack_result)
+            _carry_combat_fields(_reply, ctx.first_step_attack_result)
         return _reply
 
     def _handle_strategic_objection_response(
