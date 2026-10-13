@@ -38,6 +38,9 @@ signal layout_reset
 # UXR-D1 (Pre-Deploy S9b): the panel re-themes the type sizes itself (the
 # theme is global); the host refits its open surfaces on the live-refit road.
 signal text_size_changed(value: float, persist: bool)
+# UXR-D3 (Pre-Deploy S9b): HUD width changed; the campaign's host refits the
+# HUD to the band (the menu has no HUD).
+signal hud_width_changed(width: String)
 
 # Golden Rule 7: same origin as api_client.gd — one source, env-overridable.
 var BACKEND_URL: String = Utils.backend_url()
@@ -48,6 +51,10 @@ const _WINDOW_MODE_LABELS := {
 	"fullscreen": "Fullscreen",
 	"borderless": "Borderless window",
 	"windowed": "Windowed",
+}
+const _HUD_WIDTH_LABELS := {
+	"full": "Full (the default)",
+	"centred": "Centred (a 2560-px band)",
 }
 const _BODY_FONT_LABELS := {
 	"garamond": "Garamond (the default)",
@@ -65,6 +72,7 @@ var _window_mode: OptionButton
 var _window_size: OptionButton
 var _window_size_row: HBoxContainer
 var _body_font: OptionButton
+var _hud_width: OptionButton
 var _volume_sliders: Dictionary = {}   # bus name -> HSlider
 var _battle_toggle: CheckButton
 var _key_edit: LineEdit
@@ -144,10 +152,28 @@ func _build_display_section() -> void:
 	_window_size.item_selected.connect(_on_window_size_selected)
 	_window_size_row.add_child(_window_size)
 	add_child(_window_size_row)
+	# UXR-D3: HUD width — Full, or the HUD confined to a central band.
+	var hud_row := HBoxContainer.new()
+	hud_row.add_theme_constant_override("separation", 10)
+	var hud_lbl := Label.new()
+	hud_lbl.text = "HUD width"
+	hud_lbl.theme_type_variation = &"Caption"
+	hud_lbl.custom_minimum_size.x = 72
+	hud_row.add_child(hud_lbl)
+	_hud_width = OptionButton.new()
+	_hud_width.name = "HudWidthOption"
+	for i in range(UiSettings.HUD_WIDTHS.size()):
+		var width_key: String = UiSettings.HUD_WIDTHS[i]
+		_hud_width.add_item(str(_HUD_WIDTH_LABELS.get(width_key, width_key)), i)
+	_hud_width.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_hud_width.item_selected.connect(_on_hud_width_selected)
+	hud_row.add_child(_hud_width)
+	add_child(hud_row)
 	_add_hint("Maximized is the game's own boot. Fullscreen takes the whole screen; "
 		+ "a borderless window fills it without a frame; Windowed uses the size "
-		+ "chosen above, centred. On a very wide screen a 3440- or 2560-wide window "
-		+ "keeps the command window and the ledgers within a turn of the head.")
+		+ "chosen above, centred. On a very wide screen, HUD width: Centred gathers "
+		+ "the command window, the notices, the top bar and the war panel into the "
+		+ "middle 2560 px while the map stays full width.")
 	_refresh_display_controls()
 
 
@@ -175,6 +201,8 @@ func _refresh_display_controls() -> void:
 	_window_size_row.visible = mode == "windowed"
 	if _body_font != null:
 		_body_font.select(maxi(UiSettings.BODY_FONTS.find(UiSettings.get_body_font()), 0))
+	if _hud_width != null:
+		_hud_width.select(maxi(UiSettings.HUD_WIDTHS.find(UiSettings.get_hud_width()), 0))
 	if _fit_button != null:
 		_fit_button.text = "Size for this screen (%d%%)" % int(round(UiSettings.derive_default_ui_scale() * 100.0))
 
@@ -184,6 +212,12 @@ func _on_window_mode_selected(index: int) -> void:
 	UiSettings.set_window_mode(mode)
 	_window_size_row.visible = mode == "windowed"
 	Utils.apply_window_settings(get_window())
+
+
+func _on_hud_width_selected(index: int) -> void:
+	var width: String = UiSettings.HUD_WIDTHS[clampi(index, 0, UiSettings.HUD_WIDTHS.size() - 1)]
+	UiSettings.set_hud_width(width)
+	hud_width_changed.emit(width)
 
 
 func _on_window_size_selected(index: int) -> void:
@@ -306,8 +340,9 @@ func _build_interface_section() -> void:
 	reset_layout.pressed.connect(_on_reset_layout)
 	add_child(reset_layout)
 	_add_hint("Reset layout returns the scale to this screen's size, the text to "
-		+ "100%, the command window and the screens to their default sizes and the "
-		+ "window to Maximized. Sound, the parser key and the School's progress are kept.")
+		+ "100%, the HUD to Full, the command window and the screens to their default "
+		+ "sizes and the window to Maximized. Sound, the parser key and the School's "
+		+ "progress are kept.")
 
 
 func _on_scale_changed(value: float) -> void:
@@ -369,6 +404,7 @@ func _on_reset_layout() -> void:
 	# Already persisted by reset_layout — the host applies the new value.
 	ui_scale_changed.emit(UiSettings.get_ui_scale(), false)
 	text_size_changed.emit(UiSettings.get_text_size(), false)
+	hud_width_changed.emit(UiSettings.get_hud_width())
 	layout_reset.emit()
 
 
@@ -386,8 +422,9 @@ func _build_controls_section() -> void:
 		+ "The ledgers' books: 1–8.")
 	_add_hint("The day — E End Turn · Tab show or hide the command window (Alt+` while "
 		+ "typing) · Up / Down the command history · Tab completes a half-typed order.")
-	_add_hint("The map — wheel zoom at the cursor · + / − zoom · Home recentre · M map "
-		+ "mode · arrows pan · middle-drag pan (Alt+key while typing).")
+	_add_hint("The map — wheel zoom at the cursor · + / − zoom · Home recentre · the "
+		+ "⌂ chip under the map fits all Europe · M map mode · arrows pan · middle-drag "
+		+ "pan (Alt+key while typing).")
 	_add_hint("The interface — Ctrl+= / Ctrl+− Interface Scale · Ctrl+0 this screen's "
 		+ "size · the command window's corner grip resizes it (double-click resets).")
 

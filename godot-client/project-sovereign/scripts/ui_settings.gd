@@ -288,13 +288,36 @@ static func set_text_size(value: float) -> void:
 	_write_num("display", "text_size", clampf(snappedf(value, TEXT_SIZE_STEP), MIN_TEXT_SIZE, MAX_TEXT_SIZE))
 
 
+# --- HUD width (UXR-D3, Pre-Deploy S9b: Settings → DISPLAY) ---
+# "full" spreads the HUD to the viewport's edges (the default, as ever);
+# "centred" confines the command window, the notice rail, the top bar's two
+# clusters, the war HUD and the map controls to a central band
+# HUD_BAND_WIDTH logical px wide — on a 32:9 panel they sat 4,300–5,000 px
+# apart. The map stays full-bleed. A viewport no wider than the band reads
+# as Full (Utils.hud_band).
+const HUD_WIDTHS := ["full", "centred"]
+const DEFAULT_HUD_WIDTH := "full"
+const HUD_BAND_WIDTH := 2560.0
+
+
+static func get_hud_width() -> String:
+	var width := str(_config().get_value("display", "hud_width", DEFAULT_HUD_WIDTH))
+	return width if width in HUD_WIDTHS else DEFAULT_HUD_WIDTH
+
+
+static func set_hud_width(width: String) -> void:
+	_config().set_value("display", "hud_width", width if width in HUD_WIDTHS else DEFAULT_HUD_WIDTH)
+	_save()
+
+
 static func reset_layout() -> void:
 	"""Settings → Reset layout: the scale back to the derivation, the text
-	size to 100 %, the command window back to its viewport fraction, the
-	window back to the project's maximized boot. Sound, the key, the School's
-	latch stay."""
+	size to 100 %, the HUD to Full, the command window back to its viewport
+	fraction, the window back to the project's maximized boot. Sound, the
+	key, the School's latch stay."""
 	set_ui_scale_auto()
 	set_text_size(DEFAULT_TEXT_SIZE)
+	set_hud_width(DEFAULT_HUD_WIDTH)
 	clear_terminal_size()
 	# UXR-2: every gripped screen's remembered size too.
 	clear_all_panel_sizes()

@@ -10213,3 +10213,29 @@ What stands outside a scroll is named, with a proof: the tutor body and the rail
   - The pair record `docs/audits/uxr0/readability_text150_named_2026_10_12.json` (`tools/uxr2b_text_size_check.py`, over two `iq10_run_captures.py --physical --physical-scale 1.0 --text-size …` runs) is pinned by `tests/test_uxr2b_text_size.py`.
   - The live slider is driven by `TestTheTextSizeSlider`.
   - The capture runner's `--text-size` and the harness's per-frame `surfaces` record (the logical rect of every top-level surface) are the instrument's two additions.
+
+### 112.2 HUD width: Full · Centred, and the map controls (UXR-D3, Slice B)
+
+- **The setting.** Settings → DISPLAY → *HUD width* (`UiSettings.get/set_hud_width`, `display/hud_width`, the closed list `full` / `centred`, default `full`; Reset layout returns it to Full).
+- **The band.** `Utils.hud_band(view)` returns the HUD's horizontal band as (left, right) in logical px.
+  - At Full it is the viewport.
+  - At Centred it is `UiSettings.HUD_BAND_WIDTH` (2560) about the centre, but only on a viewport wider than the band and its margins; a narrower one reads as Full.
+  - Every HUD surface measures its edge inset and its width fraction from the band, never from 0 / view.x. `clamp_anchored_panel` slides into it.
+- **Who rides it** (each through its existing fitter, so the layout-law census is unchanged):
+
+  | Surface | How it rides the band |
+  |---|---|
+  | Command window | `_terminal_left()` = band.left + 10; the default footprint and the width cap are fractions of `_hud_room()`; the grip and the restore button follow |
+  | Top bar | Two code-built pads at the ends of `BarLayout` hold the clusters in the band, and the strip stays full-bleed. Compact mode compares the band's width |
+  | Rail slot | A fraction of the band, inset from its right edge |
+  | War HUD | Its right inset and its fraction come from the band |
+  | Region panel | Docked at band.left + 12 |
+  | Tutor card | Its corner and its beside-or-below test are the band's |
+  | War-detail popup | Docks beside the war HUD |
+- **A change** goes through `main._refit_hud_band()`: the live-refit road plus each HUD fitter, and the map controls.
+- **The map controls `[− ⌂ +]`** (`main._build_map_controls`): three icon chips (Phosphor minus / house / plus) at the band's bottom-centre.
+  - Placement (`_fit_map_controls`, reached by every resize, every command-window relayout and the war HUD's rect): the bottom-centre of the band. It slides right of the command window (or its restore button) when that reaches past the centre, and sits above the war HUD's corner when there is no room between the two. The map's labels dodge it.
+  - The chips never take keyboard focus (`FOCUS_NONE`).
+  - − / + are `zoom_step`. ⌂ is `fit_europe()`: the boot's contain-fit zoom and the map's centre. Home only re-centres.
+  - Both kill a zoom still easing in first (UXR-X25).
+- **The proof.** `tools/uxr2_grip_harness.gd` in band mode (`UXR2_MODE=band`, `UXR2_RES`, `UXR2_SCALE`, `UXR2_HUD`) boots the real war room in a 5120×1440 window at scale 1.4 and reads every HUD rect against the band, Centred and Full. `tests/test_uxr2b_hud_band.py` holds the result.

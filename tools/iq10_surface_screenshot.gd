@@ -97,6 +97,15 @@ var _steps: Array = []
 var _step_i := 0
 var _payload = null
 var _current: Dictionary = {}
+# Every keyboard-focus change of the shot, with the GDScript stack that made
+# it (empty when the engine moved it): [frame, path, [caller, …]].
+var _focus_log: Array = []
+# UXR-X24 (Pre-Deploy S9b): OS input that reached the capture window during
+# the shot. The window is real and takes the foreground when it opens, so a
+# key the player pressed elsewhere (a Tab, a Shift+Tab) landed in the scene
+# and moved the command line's focus. The harness never synthesises input,
+# so the root ignores all of it (`gui_disable_input`) and counts what came.
+var _stray_input := 0
 var _backdrop: CanvasLayer = null
 var _window_size := Vector2i(0, 0)
 var _fatal := ""
@@ -301,6 +310,9 @@ func _boot():
 		_finish()
 		return
 	root.mode = Window.MODE_WINDOWED
+	root.gui_disable_input = true
+	if not root.window_input.is_connected(_on_stray_input):
+		root.window_input.connect(_on_stray_input)
 	var pos = _spec.get("window_position", [5200, 20])
 	root.position = Vector2i(int(pos[0]), int(pos[1]))
 	# A flat backdrop under every layer: an isolated popup over the engine's
@@ -373,6 +385,10 @@ func _prepare():
 	_current["window"] = [size.x, size.y]
 	_current["content_scale_factor"] = _scale()
 	_current["text_size"] = text_size
+	# UXR-D3: the HUD width the frame is shot at ("full" when unsaid).
+	var hud_width := str(shot.get("hud_width", _spec.get("hud_width", "full")))
+	UiSettings._cfg.set_value("display", "hud_width", hud_width)
+	_current["hud_width"] = hud_width
 	_phase = "instantiate"
 	_wait += 2
 
@@ -400,6 +416,10 @@ func _instantiate():
 	if shot.get("formation_overrides") is Dictionary:
 		var fo: Dictionary = shot["formation_overrides"]
 		Utils.set_formation_overrides(fo.get("names", {}), fo.get("flags", {}))
+	_focus_log = []
+	_stray_input = 0
+	if not root.gui_focus_changed.is_connected(_on_focus_changed):
+		root.gui_focus_changed.connect(_on_focus_changed)
 	_node = packed.instantiate()
 	root.add_child(_node)
 	if mode == "main":
@@ -752,6 +772,8 @@ func _capture(suffix: String) -> void:
 	# The control holding keyboard focus (the war room's command line should).
 	var focus_owner: Control = root.gui_get_focus_owner()
 	frame["focus"] = str(root.get_path_to(focus_owner)) if focus_owner != null else ""
+	frame["focus_log"] = _focus_log.duplicate()
+	frame["stray_input"] = _stray_input
 	var stub_calls := []
 	for s in _stubs:
 		if s is ApiStub:
@@ -978,6 +1000,18 @@ func _probe(paths) -> Dictionary:
 		else:
 			out[str(p)] = {"missing": n == null}
 	return out
+
+
+func _on_stray_input(event: InputEvent) -> void:
+	if event is InputEventKey or event is InputEventMouseButton:
+		_stray_input += 1
+
+
+func _on_focus_changed(node: Control) -> void:
+	var callers: Array = []
+	for f in get_stack():
+		callers.append("%s:%d %s" % [str(f.get("source", "")).get_file(), int(f.get("line", 0)), str(f.get("function", ""))])
+	_focus_log.append([_frames, str(root.get_path_to(node)) if node != null else "", callers])
 
 
 func _surface_rects() -> Dictionary:

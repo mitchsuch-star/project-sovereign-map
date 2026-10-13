@@ -76,9 +76,21 @@ func _init():
 	UiSettings._cfg.set_value("tutorial", "done", true)
 	UiSettings._cfg.set_value("parser", "hint_seen", true)
 	UiSettings._cfg.set_value("display", "scale_acknowledged", true)
-	UiSettings._cfg.set_value("display", "ui_scale", 1.0)
+	UiSettings._cfg.set_value("display", "ui_scale", _env_float("UXR2_SCALE", 1.0))
 	UiSettings._cfg.set_value("display", "ui_scale_auto", false)
+	# UXR-D3 (Pre-Deploy S9b): UXR2_MODE=band measures the HUD against the
+	# band at UXR2_RES (e.g. 5120x1440) with UXR2_HUD (full / centred).
+	UiSettings._cfg.set_value("display", "hud_width", OS.get_environment("UXR2_HUD") if OS.get_environment("UXR2_HUD") != "" else "full")
 	process_frame.connect(_tick)
+
+
+func _env_float(key: String, fallback: float) -> float:
+	var v := OS.get_environment(key)
+	return float(v) if v.is_valid_float() else fallback
+
+
+func _band_mode() -> bool:
+	return OS.get_environment("UXR2_MODE") == "band"
 
 
 func _tick():
@@ -99,7 +111,11 @@ func _window():
 	# windowed 1600x900, parked past the desktop, never on the player's screen.
 	root.mode = Window.MODE_WINDOWED
 	root.position = Vector2i(5200, 20)
-	root.size = Vector2i(1600, 900)
+	var res := OS.get_environment("UXR2_RES").split("x")
+	if res.size() == 2 and res[0].is_valid_int() and res[1].is_valid_int():
+		root.size = Vector2i(int(res[0]), int(res[1]))
+	else:
+		root.size = Vector2i(1600, 900)
 	_phase = "boot"
 	_wait = 10
 
@@ -144,7 +160,7 @@ func _settle():
 		return
 	_out["viewport"] = [root.get_visible_rect().size.x, root.get_visible_rect().size.y]
 	_out["terminal_grip"] = _main.get("resize_grip") != null
-	_phase = "open"
+	_phase = "band_show" if _band_mode() else "open"
 
 
 # ── per screen ────────────────────────────────────────────────────────────
@@ -561,6 +577,81 @@ func _text_reset_measure():
 	var pm = _main.get("pause_menu")
 	if pm != null:
 		pm.call("close_menu")
+	_finish()
+
+
+# ── UXR-D3 (Pre-Deploy S9b): the HUD band, driven ──────────────────────────
+
+func _rect_of(c) -> Array:
+	if not (c is Control) or not (c as Control).is_visible_in_tree():
+		return []
+	var r: Rect2 = (c as Control).get_global_rect()
+	return [r.position.x, r.position.y, r.end.x, r.end.y]
+
+
+func _band_show():
+	# the war HUD and the region panel on screen, as a campaign has them
+	var ws := _ws()
+	if ws != null:
+		ws.show()
+		ws.call("_fit_panel_to_content")
+	var rp = _main.get("region_panel")
+	if rp != null:
+		rp.show()
+		rp.call("_fit_width")
+	_phase = "band_measure"
+	_wait = 12
+
+
+func _band_measure():
+	var view := root.get_visible_rect().size
+	var band := Utils.hud_band(view)
+	_out["band"] = {"view": [view.x, view.y], "band": [band.x, band.y],
+			"hud_width": UiSettings.get_hud_width()}
+	var rects := {}
+	rects["terminal"] = _rect_of(_main.get_node_or_null("BottomLeftUI"))
+	rects["screen_buttons"] = _rect_of(_top_bar.get_node_or_null("BarContainer/BarBG/BarLayout/ScreenButtons"))
+	rects["right_section"] = _rect_of(_top_bar.get_node_or_null("BarContainer/BarBG/BarLayout/RightSection"))
+	rects["bar_strip"] = _rect_of(_top_bar.get_node_or_null("BarContainer"))
+	rects["rail_slot"] = _rect_of(_top_bar.get("notification_area"))
+	rects["war_hud"] = _rect_of(_ws_panel())
+	var rp = _main.get("region_panel")
+	rects["region_panel"] = _rect_of(rp.get_node_or_null("PanelContainer")) if rp != null else []
+	rects["map_controls"] = _rect_of(_main.get("map_controls"))
+	_out["band"]["rects"] = rects
+	# the minimized window's restore button rides the band too
+	_main.call("_minimize_terminal")
+	_phase = "band_restore"
+	_wait = 6
+
+
+func _band_restore():
+	_out["band"]["rects"]["restore_button"] = _rect_of(_main.get_node_or_null("RestoreButton"))
+	_main.call("_restore_terminal")
+	# ⌂ Fit Europe: zoom in three steps, then press the chip
+	var map = _main.get("map_area")
+	_out["band"]["zoom_fit"] = float(map.call("_get_initial_zoom_level"))
+	for i in 3:
+		map.call("zoom_step", true)
+	_phase = "band_zoomed"
+	_wait = 4
+
+
+func _band_zoomed():
+	# mid-ease (the zoom tween still running): ⌂ must still land on the fit
+	var map = _main.get("map_area")
+	_out["band"]["zoom_in"] = float(map.get("_zoom_level"))
+	var fit := (_main.get("map_controls") as Node).find_child("FitEuropeButton", true, false) as Button
+	_out["band"]["fit_button"] = fit != null and fit.focus_mode == Control.FOCUS_NONE
+	if fit != null:
+		fit.pressed.emit()
+	_phase = "band_fit"
+	_wait = 40
+
+
+func _band_fit():
+	var map = _main.get("map_area")
+	_out["band"]["zoom_after_fit"] = float(map.get("_zoom_level"))
 	_finish()
 
 

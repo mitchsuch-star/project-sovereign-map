@@ -127,6 +127,7 @@ ENGINE_GROUP_MODULES = frozenset({
     "test_uxr0_readability",
     "test_uxr1_scale_fix",
     "test_uxr2_grips_driven",
+    "test_uxr2b_hud_band",
     # a fixed loopback port of their own
     "test_ge3_the_client",                 # SOVEREIGN_PORT 8997
     "test_release_build_2026_09_25",       # the smoke on 8099

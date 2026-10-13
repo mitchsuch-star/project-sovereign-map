@@ -208,6 +208,19 @@ func _ready():
 		admiralty_btn.pressed.connect(func(): admiralty_clicked.emit())
 		admiralty_btn.visible = false
 
+	# UXR-D3: two pads at the ends of the layout hold the clusters inside the
+	# HUD band (0 wide at Full); the strip itself stays full-bleed.
+	var layout := get_node_or_null("BarContainer/BarBG/BarLayout") as Control
+	if layout != null:
+		_band_pad_left = Control.new()
+		_band_pad_left.name = "BandPadLeft"
+		_band_pad_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layout.add_child(_band_pad_left)
+		layout.move_child(_band_pad_left, 0)
+		_band_pad_right = Control.new()
+		_band_pad_right.name = "BandPadRight"
+		_band_pad_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layout.add_child(_band_pad_right)
 	# IQ10-X1: the bar fits itself to the logical viewport, now and on every
 	# resize (an Interface Scale change resizes the logical viewport too).
 	for sname in button_map:
@@ -650,14 +663,23 @@ func _on_bar_resized() -> void:
 		bar_height_changed.emit()
 
 
+func refit_hud_band() -> void:
+	"""UXR-D3: Settings → HUD width changed — the clusters and the rail slot
+	re-measure the band."""
+	_fit_bar()
+	_fit_rail()
+
+
 func _fit_rail() -> void:
 	if notification_area == null or not is_instance_valid(notification_area):
 		return
 	var view := get_viewport().get_visible_rect().size
-	var w := Utils.fraction_px(view.x, RAIL_WIDTH_FRACTION, RAIL_MIN_WIDTH, RAIL_MAX_WIDTH,
+	# UXR-D3: a fraction of the HUD band, inset from the band's right edge.
+	var band := Utils.hud_band(view)
+	var w := Utils.fraction_px(band.y - band.x, RAIL_WIDTH_FRACTION, RAIL_MIN_WIDTH, RAIL_MAX_WIDTH,
 			2.0 * RAIL_RIGHT_INSET)
-	notification_area.offset_right = -RAIL_RIGHT_INSET
-	notification_area.offset_left = -RAIL_RIGHT_INSET - w
+	notification_area.offset_right = -RAIL_RIGHT_INSET - (view.x - band.y)
+	notification_area.offset_left = notification_area.offset_right - w
 	notification_area.offset_top = Utils.TOP_BAR_HEIGHT + RAIL_GAP + Utils.top_bar_growth()
 	notification_area.offset_bottom = notification_area.offset_top + RAIL_SLOT_HEIGHT
 
@@ -666,7 +688,13 @@ func _fit_bar():
 	"""IQ10-X1: fit the bar to the LOGICAL viewport. Below COMPACT_BELOW_PX the
 	nav buttons go icon-only (their tooltips carry the name and both hotkeys),
 	the Cabinet line hides and the Admiralty chip keeps the count alone."""
-	var width := get_viewport().get_visible_rect().size.x
+	var view := get_viewport().get_visible_rect().size
+	# UXR-D3: the clusters live in the HUD band (the pads are 0 at Full).
+	var band := Utils.hud_band(view)
+	if _band_pad_left != null:
+		_band_pad_left.custom_minimum_size.x = band.x
+		_band_pad_right.custom_minimum_size.x = view.x - band.y
+	var width := band.y - band.x
 	# UXR-D1: the full-text bar's width grows with Text size (it overran a
 	# 1920-px screen at 175 %), so the threshold grows with it.
 	var compact := width < COMPACT_BELOW_PX * Utils.text_size_factor()
@@ -689,3 +717,5 @@ func _fit_bar():
 
 
 var _fit_applied := false
+var _band_pad_left: Control = null
+var _band_pad_right: Control = null

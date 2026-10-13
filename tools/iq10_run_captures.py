@@ -39,6 +39,7 @@ UXR-D1 (Pre-Deploy S9b) — the Text size knob:
     --text-size <x>                every frame shot at Text size x (the theme's
                                    named sizes x; 1.0, the default, is the
                                    shipped theme and changes nothing)
+    --hud-width full|centred       UXR-D3: the HUD width every frame is shot at
 Every frame's record carries the text census (em / cap / x in physical px per
 visible node); `tools/uxr0_readability_report.py <run>/index.json` applies the
 floor and writes the committed machine record.
@@ -1217,12 +1218,14 @@ def expand_physical(shots: list[dict], physical_scale: str) -> list[dict]:
 def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str,
                spec_path: pathlib.Path, result_path: pathlib.Path,
                png_dir: pathlib.Path | None = None,
-               text_size: float = 1.0) -> tuple[dict, list[dict]]:
+               text_size: float = 1.0, hud_width: str = "full") -> tuple[dict, list[dict]]:
     # SF-R (Step 8): a scoring run keeps its frames in its own run directory
     # (`--png-dir`); every other caller writes them to docs/audits as before.
     png_dir = AUDITS if png_dir is None else pathlib.Path(png_dir)
     # UXR-D1: a frame shot at another Text size says so in its name.
     text_tag = "" if abs(text_size - 1.0) < 1e-9 else "_T%.2f" % text_size
+    if hud_width != "full":
+        text_tag += "_HUD_" + hud_width.upper()
     out_shots, index = [], []
     for row in shots:
         cap = captures.get(row["payload"])
@@ -1287,6 +1290,7 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
         "window_position": WINDOW_POSITION,
         "result": str(result_path),
         "text_size": text_size,
+        "hud_width": hud_width,
     }
     spec_path.write_text(json.dumps(spec, indent=1), encoding="utf-8")
     return spec, index
@@ -1342,6 +1346,8 @@ def main() -> int:
                     help="auto (derive_ui_scale) or a number such as 1.0 (the BEFORE picture)")
     ap.add_argument("--text-size", type=float, default=1.0,
                     help="UXR-D1: shoot every frame at this Text size (1.0 = the shipped theme)")
+    ap.add_argument("--hud-width", default="full", choices=["full", "centred"],
+                    help="UXR-D3: shoot every frame at this HUD width")
     ap.add_argument("--project", default="",
                     help="another checkout's godot-client/project-sovereign to shoot (a "
                          "pristine worktree for a BEFORE record); the harness stays this repo's")
@@ -1378,7 +1384,7 @@ def main() -> int:
     spec_path, result_path = work / "spec.json", work / "result.json"
     log_path = work / "engine.log"
     spec, index = build_spec(shots, captures, scales, args.date, spec_path, result_path,
-                             png_dir, args.text_size)
+                             png_dir, args.text_size, args.hud_width)
     project = pathlib.Path(args.project) if args.project else None
     code = run_godot(args.godot, spec_path, log_path, project)
     errors = script_errors(log_path)
@@ -1410,6 +1416,7 @@ def main() -> int:
         "physical": bool(args.physical),
         "physical_scale": args.physical_scale if args.physical else None,
         "text_size": args.text_size,
+        "hud_width": args.hud_width,
         "rows": index,
     }, indent=1), encoding="utf-8")
     print(f"godot exit {code}; SCRIPT ERROR lines: {len(errors)}")

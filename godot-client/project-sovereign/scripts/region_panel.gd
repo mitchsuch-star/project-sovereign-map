@@ -42,6 +42,7 @@ const _PLAYER_NATION = "France"
 # Panel geometry: matches the .tscn top-left dock (12, 48 — under the 36px
 # top bar) plus a breathing margin above the terminal / screen bottom.
 const _PANEL_TOP := 48.0
+const _PANEL_LEFT := 12.0     # matches PanelContainer offset_left in region_panel.tscn
 const _CLAMP_MARGIN := 10.0
 # Never fit smaller than this — if the player drags the terminal to a
 # near-full-height footprint the panel keeps a usable window and (drawing on
@@ -110,9 +111,13 @@ func _fit_width() -> void:
 	if scroll == null or content_area == null or panel_container == null:
 		return
 	var view := get_viewport().get_visible_rect().size
-	var w := Utils.fraction_px(view.x, _WIDTH_FRACTION, _MIN_WIDTH, _MAX_WIDTH, 24.0)
+	# UXR-D3: docked at the HUD band's left edge, a fraction of its width.
+	var band := Utils.hud_band(view)
+	var w := Utils.fraction_px(band.y - band.x, _WIDTH_FRACTION, _MIN_WIDTH, _MAX_WIDTH, 24.0)
 	scroll.custom_minimum_size.x = w - 24.0
 	content_area.custom_minimum_size.x = w - 44.0
+	panel_container.offset_left = band.x + _PANEL_LEFT
+	panel_container.offset_right = panel_container.offset_left + w
 	# UXR-D1: the dock clears the top bar's DRAWN strip (its line grows with
 	# Text size); the authored 48 at 100 %.
 	panel_container.offset_top = _PANEL_TOP + Utils.top_bar_growth()

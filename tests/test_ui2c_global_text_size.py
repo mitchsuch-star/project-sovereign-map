@@ -40,7 +40,11 @@ def _read(path: Path) -> str:
 def test_tscn_has_text_size_label():
     text = _read(SCENES / "main.tscn")
     assert '[node name="TextSizeLabel"' in text
-    assert 'text = "Text Size"' in text
+    # UXR-X23 (Pre-Deploy S9b, the user's ruling): the control steps the
+    # Interface SCALE, and Settings now has a real Text size (the words
+    # alone), so the header reads "Scale" — the node names stay.
+    assert 'text = "Scale"' in text
+    assert 'text = "Text Size"' not in text
 
 
 def test_tscn_has_stacked_plus_over_minus_buttons():

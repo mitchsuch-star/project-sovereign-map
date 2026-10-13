@@ -864,6 +864,19 @@ static func set_top_bar_drawn(height: float) -> bool:
 	return true
 
 
+static func hud_band(view: Vector2) -> Vector2:
+	"""UXR-D3 (Pre-Deploy S9b): the HUD's horizontal band, (left, right) in
+	logical px. Full: the whole viewport. Centred: UiSettings.HUD_BAND_WIDTH
+	about the viewport's centre — on a viewport wider than the band and its
+	margins only; a narrower one reads as Full. Every HUD surface measures
+	its edge inset and its fraction from this band, never from 0 / view.x."""
+	if UiSettings.get_hud_width() == "centred" \
+			and view.x > UiSettings.HUD_BAND_WIDTH + 2.0 * HUD_MARGIN:
+		var left := floorf((view.x - UiSettings.HUD_BAND_WIDTH) / 2.0)
+		return Vector2(left, left + UiSettings.HUD_BAND_WIDTH)
+	return Vector2(0.0, view.x)
+
+
 static func fraction_px(view_len: float, frac: float, min_px: float, max_px: float,
 		reserve: float = 16.0) -> float:
 	"""An ANCHORED surface's extent: a fraction of the logical viewport
@@ -890,7 +903,9 @@ static func clamp_anchored_panel(panel: Control) -> void:
 	var view: Vector2 = viewport.get_visible_rect().size
 	var band_top := TOP_BAR_HEIGHT + top_bar_growth() + HUD_MARGIN
 	var max_h := maxf(view.y - band_top - HUD_MARGIN, 0.0)
-	var max_w := maxf(view.x - 2.0 * HUD_MARGIN, 0.0)
+	# UXR-D3: x lives in the HUD band (the whole width at Full).
+	var band := hud_band(view)
+	var max_w := maxf(band.y - band.x - 2.0 * HUD_MARGIN, 0.0)
 	var w := minf(panel.offset_right - panel.offset_left, max_w)
 	var h := minf(panel.offset_bottom - panel.offset_top, max_h)
 	_relax_child_minimums(panel, h)
@@ -924,10 +939,10 @@ static func clamp_anchored_panel(panel: Control) -> void:
 	var top := panel.anchor_top * view.y + panel.offset_top
 	var dx := 0.0
 	var dy := 0.0
-	if left + w > view.x - HUD_MARGIN:
-		dx = (view.x - HUD_MARGIN) - (left + w)
-	if left + dx < HUD_MARGIN:
-		dx = HUD_MARGIN - left
+	if left + w > band.y - HUD_MARGIN:
+		dx = (band.y - HUD_MARGIN) - (left + w)
+	if left + dx < band.x + HUD_MARGIN:
+		dx = band.x + HUD_MARGIN - left
 	if top + h > view.y - HUD_MARGIN:
 		dy = (view.y - HUD_MARGIN) - (top + h)
 	if top + dy < band_top:

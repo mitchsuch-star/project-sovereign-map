@@ -166,14 +166,17 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 	var view: Vector2 = get_viewport().get_visible_rect().size
 	var max_h := float(int(view.y * MAX_HEIGHT_RATIO))
 	var stored := UiSettings.get_panel_size("war_status", Vector2.ZERO)
+	# UXR-D3: the HUD band's right edge, and a fraction of its width.
+	var band := Utils.hud_band(view)
+	var room := band.y - band.x
 	var w: float
 	if drag != Vector2.ZERO:
 		w = drag.x
 	elif stored != Vector2.ZERO:
 		w = stored.x
 	else:
-		w = Utils.fraction_px(view.x, WIDTH_FRACTION, DEFAULT_MIN_WIDTH, DEFAULT_MAX_WIDTH)
-	w = clampf(w, MIN_WIDTH, maxf(view.x - 2.0 * EDGE_MARGIN, MIN_WIDTH))
+		w = Utils.fraction_px(room, WIDTH_FRACTION, DEFAULT_MIN_WIDTH, DEFAULT_MAX_WIDTH)
+	w = clampf(w, MIN_WIDTH, maxf(room - 2.0 * EDGE_MARGIN, MIN_WIDTH))
 	var h: float
 	if drag != Vector2.ZERO:
 		h = clampf(drag.y, MIN_HEIGHT, maxf(max_h, MIN_HEIGHT))
@@ -183,9 +186,10 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 			cap = minf(cap, stored.y)
 		# +8 covers the panel stylebox content margins (2 top + 4 bottom) + slack.
 		h = clampf(vbox.get_combined_minimum_size().y + 8.0, MIN_HEIGHT, maxf(cap, MIN_HEIGHT))
-	panel_container.offset_right = -EDGE_MARGIN
+	var right_inset := EDGE_MARGIN + (view.x - band.y)
+	panel_container.offset_right = -right_inset
 	panel_container.offset_bottom = -EDGE_MARGIN
-	panel_container.offset_left = -EDGE_MARGIN - w
+	panel_container.offset_left = -right_inset - w
 	panel_container.offset_top = -EDGE_MARGIN - h
 
 

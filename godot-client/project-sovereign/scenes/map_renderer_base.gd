@@ -1130,6 +1130,21 @@ func recenter_view() -> void:
 	the key event cannot help because it lands on the same guard. The focused
 	path therefore CALLS, and these are the doors it calls through.
 	"""
+	# UXR-D3: a zoom still easing in would carry the camera off the centre.
+	if zoom_tween:
+		zoom_tween.kill()
+	_center_view_on_map()
+
+
+func fit_europe() -> void:
+	"""UXR-D3 (Pre-Deploy S9b): the ⌂ chip — the whole theatre: the boot's
+	contain-fit zoom AND the map's centre (Home only re-centres). A zoom
+	still easing in (the wheel, + / −) is stopped first, or its tween would
+	land after the fit and undo it (found by the driven harness: + three
+	times, then ⌂, read 0.97 where the fit is 0.90)."""
+	if zoom_tween:
+		zoom_tween.kill()
+	_set_camera_zoom_level(_get_initial_zoom_level())
 	_center_view_on_map()
 
 

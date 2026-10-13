@@ -469,6 +469,32 @@ The run had 0 SCRIPT ERROR, 0 clipped text and 0 buttons off-screen, and the war
 
 *Open for the review pause:* the command window's header carries a control labelled **"Text Size"** (UI-2c, July) that steps the *Interface Scale*. Settings now also has a real *Text size*. One of the two needs another name; the user rules which (UXR-X23).
 
+**Slice B — UXR-D3, HUD width: Full · Centred, and the `[− ⌂ +]` map controls.**
+
+*What it is.* Settings → DISPLAY → *HUD width* (`display/hud_width`, default Full; Reset layout returns Full). `Utils.hud_band(view)` is the HUD's band: the viewport at Full, and 2560 logical px about the centre at Centred (on a viewport wider than that and its margins). Every HUD surface measures its edge and its fraction from the band, each through its existing fitter, so the layout-law census is unchanged and green:
+- the command window and its restore button (`_terminal_left` / `_hud_room`);
+- the top bar's two clusters (two code-built pads at the ends of the bar's layout; the strip stays full-bleed; compact mode compares the band);
+- the rail slot and the war HUD;
+- the region panel and the tutor card;
+- the war-detail popup (it docks to the war HUD).
+
+*The map controls* (the user's ruling: the band's bottom-centre; the map had no on-screen zoom). Three chips, − ⌂ +, that never take the command line's focus. ⌂ is `fit_europe()`: the boot's contain-fit zoom and the centre, where Home only re-centres. The cluster slides right of the command window when it reaches past the centre, and stacks above the war HUD's corner when there is no room between them (an 800-px logical screen). The map's labels dodge it.
+
+*Found and fixed:*
+- **UXR-X25.** A zoom still easing in (a 0.2-s tween) landed after Home's re-centre and after ⌂, and undid them. Found by the driven harness: + three times, then ⌂ mid-ease, read 0.97 against a fit of 0.90. Both now kill the tween first.
+- **UXR-X23** (the user's ruling). The header's + / − read **"Scale"**: they step the Interface Scale. Settings' Text size grows the words alone.
+- **UXR-X24, a harness defect, not a game defect.** The failing boot's focus left the command line at frame 70 for the next control in tab order, a Tab press: the capture window is foreground when it opens, so the player's own keystrokes reached it. The harness now ignores OS input (`gui_disable_input`) and records the focus owner, every focus change and any stray input.
+
+*The test* (the done-when). `tools/uxr2_grip_harness.gd` in band mode boots the real war room in a 5120×1440 window at scale 1.4, the panel's derived scale (`tests/test_uxr2b_hud_band.py`).
+- **Centred:** the band is 548–3108 of a 3657-px viewport. The command window, its restore button, both clusters, the rail slot, the war HUD, the region panel and the map controls all lie inside it; the strip spans the screen; the chips sit at the band's bottom-centre.
+- **Full:** every edge is where S9 left it.
+- **⌂ pressed mid-zoom** lands on the fit (0.899).
+- The layout-law census still passes.
+
+*Regression:* the full IQ-10 set at 1600×900 × {1.0, 2.0} at Full against Slice A's frames: **274 of 284 pixel-identical.** The ten others are the six war-room frames (the cluster, "Scale" and the map's labels dodging the chips), Settings' four (the HUD width row and the hints; two of them are the main menu's Ken Burns drift). The run had 0 SCRIPT ERROR, 0 clipped and 0 off-screen, and every war-room frame ends with focus on the command line and **0 stray input**. The Centred war room at all five resolutions shows the same.
+
+*Frame:* `docs/audits/uxr0/UXR2B_HUD_FULL_CENTRED_WAR_ROOM_TUTORIAL_5120x1440_2026_10_12.jpg` (the user's panel at 1.4, Full above Centred).
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed

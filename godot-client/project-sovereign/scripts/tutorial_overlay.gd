@@ -446,13 +446,16 @@ func _card_placement(view: Vector2, width: float) -> Vector2:
 	"""(right inset, top) for the card: the corner when the rail is not on
 	screen; beside the rail when the card still sits in the right half; else
 	below the rail's slot."""
+	# UXR-D3: "the corner" and "the right half" are the HUD band's.
+	var band := Utils.hud_band(view)
+	var band_inset := view.x - band.y
 	if avoid_rail == null or not is_instance_valid(avoid_rail) or not avoid_rail.is_visible_in_tree():
-		return Vector2(0.0, CARD_TOP + Utils.top_bar_growth())
+		return Vector2(band_inset, CARD_TOP + Utils.top_bar_growth())
 	var rail := avoid_rail.get_global_rect()
 	var inset := maxf(view.x - rail.position.x, 0.0)
-	if view.x - (inset + CARD_MARGIN + width) >= view.x * 0.5:
+	if view.x - (inset + CARD_MARGIN + width) >= (band.x + band.y) * 0.5:
 		return Vector2(inset, CARD_TOP + Utils.top_bar_growth())
-	return Vector2(0.0, rail.end.y + CARD_MARGIN)
+	return Vector2(band_inset, rail.end.y + CARD_MARGIN)
 
 
 func _fit_card_height() -> void:

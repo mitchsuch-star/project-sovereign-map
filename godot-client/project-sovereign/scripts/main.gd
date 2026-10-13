@@ -182,6 +182,7 @@ var _terminal_uses_default := true
 var _scale_card: ScaleCard = null
 var _scale_card_layer: CanvasLayer = null
 const TERMINAL_ANCHOR_LEFT := 10.0    # matches BottomLeftUI offset_left in main.tscn
+const RESTORE_BUTTON_WIDTH := 170.0    # matches RestoreButton offset_right - offset_left
 const TERMINAL_ANCHOR_BOTTOM := -10.0  # matches BottomLeftUI offset_bottom in main.tscn
 const TOP_BAR_RESERVED_PX := 36.0      # matches BarContainer offset_bottom in top_bar.tscn
 var _terminal_width := UiSettings.DEFAULT_TERMINAL_WIDTH
@@ -631,6 +632,8 @@ func _ready():
 			pause_menu.layout_reset.connect(_on_layout_reset)
 		if pause_menu.has_signal("text_size_changed"):
 			pause_menu.text_size_changed.connect(_on_text_size_changed)
+		if pause_menu.has_signal("hud_width_changed"):
+			pause_menu.hud_width_changed.connect(func(_w): _refit_hud_band())
 	if pause_menu:
 		pause_menu.save_requested.connect(_on_pause_save_requested)
 		pause_menu.load_requested.connect(_on_pause_load_requested)
@@ -728,6 +731,10 @@ func _ready():
 	# LIVE left edge (the HUD's width is a viewport fraction, or the player's).
 	if war_detail_popup != null and war_status_panel != null and "dock_beside" in war_detail_popup:
 		war_detail_popup.dock_beside = war_status_panel.panel_container
+	# UXR-D3: the map controls step aside for the war HUD as it grows.
+	if war_status_panel != null and war_status_panel.get("panel_container") is Control:
+		war_status_panel.panel_container.item_rect_changed.connect(_queue_fit_map_controls)
+		war_status_panel.visibility_changed.connect(_queue_fit_map_controls)
 
 	# UI-6: map province click → Region Action Panel (the region_clicked
 	# signal existed since the cutover but nothing listened in the game path)
@@ -794,6 +801,7 @@ func _ready():
 	# settled before the terminal geometry is computed in logical coordinates.
 	_apply_ui_scale(UiSettings.get_ui_scale(), false)
 	_setup_scalable_terminal()
+	_build_map_controls()
 	# The pause-menu Settings slider drives the global scale through us (we own
 	# the map compensation + persistence).
 	if pause_menu and pause_menu.has_signal("ui_scale_changed"):
@@ -1560,6 +1568,7 @@ func _minimize_terminal():
 		resize_grip.visible = false
 	# A minimized terminal hands the map back its labels.
 	_push_map_label_avoid_rects()
+	_queue_fit_map_controls()
 
 func _restore_terminal():
 	"""Expand the terminal panel, hide restore button."""
@@ -1593,7 +1602,7 @@ func _setup_scalable_terminal() -> void:
 	# (called just before us in _ready()).
 	_terminal_uses_default = not UiSettings.has_terminal_size()
 	if _terminal_uses_default:
-		var default_size := UiSettings.default_terminal_size(size)
+		var default_size := UiSettings.default_terminal_size(_hud_room())
 		_apply_terminal_size(default_size.x, default_size.y)
 	else:
 		_apply_terminal_size(UiSettings.get_terminal_width(), UiSettings.get_terminal_height())
@@ -1614,10 +1623,12 @@ func _step_ui_scale(direction: int) -> void:
 
 func _update_text_size_readout() -> void:
 	"""Keep the Text Size control's tooltip showing the live percentage (the
-	label text stays a stable "Text Size" so the header never reflows)."""
+	label text stays a stable "Scale" — UXR-X23 — so the header never reflows)."""
 	if text_size_label and is_instance_valid(text_size_label):
 		var pct := int(round(UiSettings.get_ui_scale() * 100.0))
-		text_size_label.tooltip_text = "Text Size: %d%% — scales the command window and every pop-up/ledger." % pct
+		# UXR-X23: this control is the Interface SCALE (panels and text
+		# together); Settings → Text size grows the words alone.
+		text_size_label.tooltip_text = "Interface Scale: %d%% — scales the command window and every pop-up/ledger, panels and text together." % pct
 
 func _create_resize_grip() -> void:
 	if resize_grip and is_instance_valid(resize_grip):
@@ -1650,18 +1661,37 @@ func _relayout_terminal() -> void:
 	extends offset_top (negative = upward). Growing the window back restores the
 	intended footprint because _terminal_width/height are left untouched here."""
 	var disp_w = clampf(_terminal_width, UiSettings.MIN_TERMINAL_WIDTH,
-			maxf(UiSettings.MIN_TERMINAL_WIDTH, size.x - TERMINAL_ANCHOR_LEFT * 2.0))
+			maxf(UiSettings.MIN_TERMINAL_WIDTH, _hud_room().x - TERMINAL_ANCHOR_LEFT * 2.0))
 	# Reserve the top-bar strip (CanvasLayer 75, y 0..36): without it a
 	# full-height drag slides the header row and the corner resize grip under
 	# the bar, where they are hidden and click-blocked — the grip becomes
 	# unreachable and the terminal is wedged at full height.
 	var disp_h = clampf(_terminal_height, UiSettings.MIN_TERMINAL_HEIGHT,
 			maxf(UiSettings.MIN_TERMINAL_HEIGHT, size.y - 20.0 - TOP_BAR_RESERVED_PX - Utils.top_bar_growth()))
-	bottom_left_ui.offset_left = TERMINAL_ANCHOR_LEFT
+	var left := _terminal_left()
+	bottom_left_ui.offset_left = left
 	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
-	bottom_left_ui.offset_right = TERMINAL_ANCHOR_LEFT + disp_w
+	bottom_left_ui.offset_right = left + disp_w
 	bottom_left_ui.offset_top = TERMINAL_ANCHOR_BOTTOM - disp_h
+	# UXR-D3: the minimized window's restore button keeps its corner too.
+	if restore_button != null:
+		restore_button.offset_left = left
+		restore_button.offset_right = left + RESTORE_BUTTON_WIDTH
 	_reposition_after_layout()
+
+
+func _terminal_left() -> float:
+	"""UXR-D3: the command window's fixed left edge — the HUD band's left
+	edge plus the authored 10 (0 + 10 at Full, as ever)."""
+	return Utils.hud_band(size).x + TERMINAL_ANCHOR_LEFT
+
+
+func _hud_room() -> Vector2:
+	"""UXR-D3: the room the HUD has — the band's width by the viewport's
+	height. The command window's default footprint and its width cap are
+	fractions of this, not of the whole viewport."""
+	var band := Utils.hud_band(size)
+	return Vector2(band.y - band.x, size.y)
 
 func _position_resize_grip() -> void:
 	if resize_grip == null or not is_instance_valid(resize_grip):
@@ -1680,6 +1710,96 @@ func _reposition_after_layout() -> void:
 	# Font/scale changes can reflow container min-sizes a frame later.
 	call_deferred("_position_resize_grip")
 	call_deferred("_push_map_label_avoid_rects")
+	_queue_fit_map_controls()
+
+
+# ── UXR-D3 (Pre-Deploy S9b): the map's own controls, [− ⌂ +] ──────────────
+# The map had no on-screen zoom at all — the wheel and the keys only — and
+# Home only re-centred. Three chips at the bottom-centre of the HUD band:
+# zoom out, Fit Europe (the whole theatre: the contain-fit zoom AND the
+# centre), zoom in. They never take keyboard focus from the command line.
+const MAP_CONTROL_SIZE := 32.0
+var map_controls: PanelContainer = null
+
+
+func _build_map_controls() -> void:
+	map_controls = PanelContainer.new()
+	map_controls.name = "MapControls"
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	map_controls.add_child(row)
+	var chips := [
+		["ZoomOutButton", "minus.svg", "Zoom out  (−)", _on_map_zoom_out],
+		["FitEuropeButton", "house.svg", "Fit Europe — the whole theatre  (Home re-centres)", _on_fit_europe],
+		["ZoomInButton", "plus.svg", "Zoom in  (+)", _on_map_zoom_in],
+	]
+	for chip in chips:
+		var btn := Button.new()
+		btn.name = chip[0]
+		btn.tooltip_text = chip[2]
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.custom_minimum_size = Vector2(MAP_CONTROL_SIZE, MAP_CONTROL_SIZE)
+		Utils.apply_icon_only_button(btn, Utils.ICON_PHOSPHOR + chip[1])
+		btn.pressed.connect(chip[3])
+		row.add_child(btn)
+	add_child(map_controls)
+	map_controls.resized.connect(_queue_fit_map_controls)
+	_queue_fit_map_controls()
+
+
+func _on_map_zoom_out() -> void:
+	if map_area != null and map_area.has_method("zoom_step"):
+		map_area.zoom_step(false)
+
+
+func _on_map_zoom_in() -> void:
+	if map_area != null and map_area.has_method("zoom_step"):
+		map_area.zoom_step(true)
+
+
+func _on_fit_europe() -> void:
+	if map_area != null and map_area.has_method("fit_europe"):
+		map_area.fit_europe()
+
+
+var _map_controls_fit_queued := false
+
+
+func _queue_fit_map_controls() -> void:
+	if not _map_controls_fit_queued:
+		_map_controls_fit_queued = true
+		_fit_map_controls.call_deferred()
+
+
+func _fit_map_controls() -> void:
+	"""The cluster's place: the bottom-centre of the HUD band; to the right
+	of the command window when the window reaches past the centre; above the
+	war HUD's corner when there is no room between the two."""
+	_map_controls_fit_queued = false
+	if map_controls == null or not is_instance_valid(map_controls):
+		return
+	var band := Utils.hud_band(size)
+	var cs := map_controls.get_combined_minimum_size()
+	var x := floorf((band.x + band.y - cs.x) / 2.0)
+	var y := size.y - Utils.HUD_MARGIN - cs.y
+	if bottom_left_ui != null and bottom_left_ui.visible:
+		x = maxf(x, bottom_left_ui.get_global_rect().end.x + Utils.HUD_MARGIN)
+	elif restore_button != null and restore_button.visible:
+		x = maxf(x, restore_button.get_global_rect().end.x + Utils.HUD_MARGIN)
+	var hud := _war_hud_rect()
+	if hud.size.x > 0.0 and x + cs.x > hud.position.x - Utils.HUD_MARGIN:
+		x = hud.end.x - cs.x
+		y = hud.position.y - Utils.HUD_MARGIN - cs.y
+	map_controls.position = Vector2(x, y)
+	map_controls.size = cs
+	_push_map_label_avoid_rects.call_deferred()
+
+
+func _war_hud_rect() -> Rect2:
+	if war_status_panel == null or not war_status_panel.visible:
+		return Rect2()
+	var panel = war_status_panel.get("panel_container")
+	return (panel as Control).get_global_rect() if panel is Control else Rect2()
 
 
 func _push_map_label_avoid_rects() -> void:
@@ -1695,6 +1815,9 @@ func _push_map_label_avoid_rects() -> void:
 	var rects: Array = []
 	if bottom_left_ui != null and bottom_left_ui.visible:
 		rects.append(bottom_left_ui.get_global_rect())
+	# UXR-D3: the map controls too — no name draws under the chips.
+	if map_controls != null and is_instance_valid(map_controls) and map_controls.visible:
+		rects.append(map_controls.get_global_rect())
 	map_area.set_ui_avoid_rects(rects)
 
 func _on_grip_gui_input(event: InputEvent) -> void:
@@ -1730,7 +1853,7 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 
 func _resize_terminal_from_mouse(mouse_pos: Vector2) -> void:
 	# The panel's fixed corner is bottom-left; the grip drags the top-right one.
-	var new_width = mouse_pos.x - TERMINAL_ANCHOR_LEFT
+	var new_width = mouse_pos.x - _terminal_left()
 	var bottom_y = size.y + TERMINAL_ANCHOR_BOTTOM
 	var new_height = bottom_y - mouse_pos.y
 	_apply_terminal_size(new_width, new_height)
@@ -1740,7 +1863,7 @@ func _reset_terminal_size() -> void:
 	# is CLEARED so the fraction follows the screen again.
 	UiSettings.clear_terminal_size()
 	_terminal_uses_default = true
-	var default_size := UiSettings.default_terminal_size(size)
+	var default_size := UiSettings.default_terminal_size(_hud_room())
 	_apply_terminal_size(default_size.x, default_size.y)
 
 func _on_root_resized() -> void:
@@ -1750,7 +1873,7 @@ func _on_root_resized() -> void:
 	# intent IS the viewport fraction (nothing stored), which follows the
 	# viewport by definition.
 	if _terminal_uses_default:
-		var default_size := UiSettings.default_terminal_size(size)
+		var default_size := UiSettings.default_terminal_size(_hud_room())
 		_terminal_width = clampf(default_size.x, UiSettings.MIN_TERMINAL_WIDTH, UiSettings.MAX_TERMINAL_WIDTH)
 		_terminal_height = clampf(default_size.y, UiSettings.MIN_TERMINAL_HEIGHT, UiSettings.MAX_TERMINAL_HEIGHT)
 	_relayout_terminal()
@@ -1825,6 +1948,23 @@ func _on_bar_height_changed() -> void:
 		region_panel.call("_on_viewport_resized")
 
 
+func _refit_hud_band() -> void:
+	"""UXR-D3: Settings → HUD width (or Reset layout) — every HUD surface
+	re-measures the band: the command window, the top bar's clusters and the
+	rail slot, the war HUD, the region panel, the tutor card and the map
+	controls (the open dialogs ride the live-refit road)."""
+	_on_root_resized()
+	if top_bar != null and top_bar.has_method("refit_hud_band"):
+		top_bar.refit_hud_band()
+	if war_status_panel != null and war_status_panel.visible and war_status_panel.has_method("_fit_panel_to_content"):
+		war_status_panel.call("_fit_panel_to_content")
+	if region_panel != null and region_panel.visible and region_panel.has_method("_on_viewport_resized"):
+		region_panel.call("_on_viewport_resized")
+	if tutorial_overlay != null and tutorial_overlay.has_method("_on_viewport_changed"):
+		tutorial_overlay.call("_on_viewport_changed")
+	_queue_fit_map_controls()
+
+
 func _on_text_size_changed(_value: float, _persist: bool) -> void:
 	"""UXR-D1: the settings panel re-themed the type sizes (the theme is
 	global); every open surface refits on the one live-refit road once the
@@ -1840,6 +1980,8 @@ func _on_layout_reset() -> void:
 	# UXR-D1: the text back to 100 % (a no-op when the panel already did it).
 	Utils.apply_text_size()
 	_reset_terminal_size()
+	# UXR-D3: the HUD back to Full.
+	_refit_hud_band()
 	# UXR-2: every gripped screen back to its authored size (the store is
 	# already cleared; an OPEN screen re-fits at once).
 	get_tree().call_group(ResizeGrip.GROUP, "reset_to_authored")

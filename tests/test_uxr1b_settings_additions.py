@@ -237,7 +237,9 @@ class TestTheHosts:
         assert "var _terminal_uses_default := true" in main
         setup = _func(main, "func _setup_scalable_terminal() -> void:")
         assert "_terminal_uses_default = not UiSettings.has_terminal_size()" in setup
-        assert "UiSettings.default_terminal_size(size)" in setup
+        # UXR-D3 (Pre-Deploy S9b): a fraction of the HUD's room — the band's
+        # width by the viewport's height (the whole viewport at Full).
+        assert "UiSettings.default_terminal_size(_hud_room())" in setup
         resized = _func(main, "func _on_root_resized() -> void:")
         assert "if _terminal_uses_default:" in resized
         reset = _func(main, "func _reset_terminal_size() -> void:")

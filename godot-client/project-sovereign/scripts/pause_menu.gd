@@ -29,6 +29,8 @@ signal layout_reset
 # UXR-D1 (Pre-Deploy S9b): the panel re-themed the type sizes; main.gd refits
 # every open surface on the live-refit road.
 signal text_size_changed(value, persist)
+# UXR-D3: HUD width changed; main.gd refits the HUD to the band.
+signal hud_width_changed(width)
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -69,6 +71,7 @@ func _ready():
 	_settings_panel.size_card_requested.connect(func(): size_card_requested.emit())
 	_settings_panel.layout_reset.connect(func(): layout_reset.emit())
 	_settings_panel.text_size_changed.connect(func(v, p): text_size_changed.emit(v, p))
+	_settings_panel.hud_width_changed.connect(func(w): hud_width_changed.emit(w))
 	# PB-4 (the release build): the build stamp on the pause menu too, so a
 	# player reporting from mid-game can quote it without leaving the campaign.
 	_version_line = Label.new()
