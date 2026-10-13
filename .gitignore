@@ -84,6 +84,10 @@ smoke_logs/*.out
 # PSD region-key generator working output (promoted copies live in assets/maps)
 tools/mapgen_out/
 
+# CODE-2 staging tool's dry-run output (tools/stage_fn.py writes
+# <target>_staged.py here; --apply writes the source instead)
+tools/stage_fn_out/
+
 # Playtest driver run outputs (digests, sandboxed saves, server consoles) —
 # the COMMITTED fixtures live in tests/fixtures/playtest_saves/ instead
 tools/playtest_runs/

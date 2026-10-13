@@ -33,7 +33,7 @@
   - Check first that no arm's TEST binds a name (walrus) and that nothing reads a name an earlier arm bound.
 - **Done when:** neither function is over 500 lines and `FUNCTIONS_OVER_500_CAP` reads 28 (30 now). CODE-2's own done-when (none of the eight named over 500) is then MET; record it.
 
-**The tool:** `stage_fn.py`, plus `pin_scan.py` and `oneliner_sweep.py` as models, in the S10 session's scratchpad (`C:\Users\User\AppData\Local\Temp\claude\C--Users-User-PycharmProjects-project-sovereign-map\a2cd1502-3e0b-446c-8899-677b29a146c5\scratchpad`). If that folder is gone, slice 1's original is in `…\2788afd1-1293-4154-ae05-3021bb6a0ce0\scratchpad`, but it lacks S10's four changes:
+**The tool:** `tools/stage_fn.py`, plus `tools/pin_scan.py` and, as a model, `tools/oneliner_sweep.py`. It was moved out of S10's scratchpad on October 13, 2026, and the moved tool rebuilds slice 3 byte-identical from its parent commit. Slices 1–2 differ only by their own recorded hand edits after the run. It carries S10's four changes:
 - `confine=True` turns on two rules, each recorded in slice 2's landing record:
   - **confine:** a name bound only inside branches that always return or raise stays local.
   - **split:** a name every stage binds before reading stays local, under a conservative definite-assignment pass.
@@ -42,7 +42,8 @@
 - the proof expects `simple=0` on an annotated `ctx.` target.
 
 What the tool does:
-- `python stage_fn.py <target>` is a dry run (it writes `<target>_staged.py` beside the tool); add `--apply` to write the source; `--no-confine` compares against slice 1's rule.
+- `.venv/Scripts/python.exe tools/stage_fn.py <target>` is a dry run (it writes `tools/stage_fn_out/<target>_staged.py`, gitignored); add `--apply` to write the source; `--no-confine` compares against slice 1's rule.
+- Each target is a `TARGETS` entry in the tool. S10b adds two, plus the elif-chain mode.
 - It proves every stage AST-equal to the old body, with the shared names as `ctx.<name>`. A symtable check refuses any stage that reads an old local it never bound.
 
 **Read first, in this order:**
@@ -60,7 +61,7 @@ What the tool does:
 A re-record needs a stated reason, and a pure refactor has none.
 
 **Find the pins BEFORE the run — S10 found four of its five this way; the hook found the fifth:**
-- `pin_scan.py <src> <staged>` lists every test string literal that matched the file before the cut and not after. A shared local now reads `ctx.world`, so a pin on `world.get_marshal(target)` must name `ctx.world.get_marshal(ctx.target)`. Same assertion, where the code now lives.
+- `tools/pin_scan.py <src> <staged>` lists every test string literal that matched the file before the cut and not after. A shared local now reads `ctx.world`, so a pin on `world.get_marshal(target)` must name `ctx.world.get_marshal(ctx.target)`. Same assertion, where the code now lives.
 - Grep the tests for the function's name AS A STRING. A census that selects functions by name (S10's NPC-12) passes VACUOUSLY over a short driver. Name the stages, read off the driver.
 - Grep the tests for censuses that EXTRACT an expression and compare it for equality (S10's WO-17 `passable_for` census wanted `marshal.location` exactly). The literal scan cannot see these, because the old text survives as a substring of the `ctx.` form.
 

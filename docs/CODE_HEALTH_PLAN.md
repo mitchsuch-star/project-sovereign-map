@@ -1047,6 +1047,10 @@ row S10b, the next session, before UXR-3).**
     - an arm that falls off its end still returns `None` from the driver.
 
     It carries 73 local imports, so the F2 check matters most here.
+- **The tool:** `tools/stage_fn.py`, with `tools/pin_scan.py` and
+  `tools/oneliner_sweep.py`. They were moved out of S10's scratchpad on
+  October 13, 2026, and the moved tool rebuilds slice 3 byte-identical from
+  its parent commit.
 - **Completion:** neither function is over 500 lines, and
   `FUNCTIONS_OVER_500_CAP` goes 30 → 28. CODE-2's done-when (none of the
   eight named over 500) is then MET.
