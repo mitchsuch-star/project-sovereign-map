@@ -1168,6 +1168,10 @@ SHOTS += [
         "scene": "res://scenes/main_menu.tscn",
         "mode": "call", "method": "",
         "settle": 100,
+        # UXR-3 (Pre-Deploy S11): the menu's entrance (the title over 1.1 s,
+        # the buttons staggered from 0.5 s) runs in REAL time; frames alone
+        # shot it mid-fade, so the capture waits 2.5 s for the steady state.
+        "settle_ms": 2500,
         "must_show": "the title block, the campaign column, the status line, and — the "
                      "harness's settings hold no acknowledgement — the first-run card "
                      "'CAN YOU READ THIS COMFORTABLY?' over them at the derived scale (UXR-1); "
@@ -1182,6 +1186,7 @@ SHOTS += [
         # Opening Settings answers a first-run card still on screen (UXR-1b).
         "steps": [{"wait": 90}, {"call": "_open_settings", "then_wait": 12}],
         "settle": 20,
+        "settle_ms": 2500,             # the menu's real-time entrance (UXR-3, S11)
         "must_show": "the SETTINGS view with no card over it: DISPLAY (Window, and Size for "
                      "Windowed), INTERFACE (the slider, 'Size for this screen (N%)', 'Preview "
                      "with a sample…', Body text, Reset layout), SOUND, SMARTER PARSING, "
@@ -1261,7 +1266,7 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
         # chip is fed by a second call after the entry method) — the tuple
         # below is the ONLY road a row key takes into the spec, and `steps`
         # was not on it, so the chip shot rendered the bare bar in silence.
-        for key in ("args", "api_method", "place", "settle", "window", "window_by_scale",
+        for key in ("args", "api_method", "place", "settle", "settle_ms", "window", "window_by_scale",
                     "formation_overrides", "downscale", "steps"):
             if key in row:
                 shot[key] = row[key]

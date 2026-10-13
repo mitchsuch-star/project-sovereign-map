@@ -10280,3 +10280,60 @@ What stands outside a scroll is named, with a proof: the tutor body and the rail
   - with High contrast **off**, 20 readings under the floor (the Generals' 666670 at 3.1 : 1, the tutor card's and the dispatch's 808080);
   - with it **on**, **0**.
   - The driven `TestTheHighContrastToggle` flips the real toggle: a scene grey, a code-built hint and the tokens rise, and off restores every one exactly.
+
+## 113. THE LOOK-AND-FEEL REVIEW'S INSTRUMENTS — UXR-3 (Pre-Deploy S11, October 13, 2026)
+
+> The review itself is `docs/audits/UXR3_REVIEW_2026_10_13.md`; its plan and landing record are `docs/UX_UI_REVIEW_PLAN.md` §UXR-3; its rows are `docs/BUG_FIXES.md` §UXR-3 — the review. This section holds the instruments' rules, so S12's re-read and any later review run them the same way.
+
+### 113.1 The frozen checklist
+
+- **`docs/UX_CHECKLIST_V1.json`** holds the eight binary items R1–R8, each with its judge (instrument, reader or driven) and its exact pass rule, and the surface list: §UXR-3's ten groups in review order, 145 surfaces (the 142 IQ-10 shots and the three popups the plan names that the manifest has never shot).
+- It was committed before the first reading (`603d983f`). `tests/test_uxr3_checklist_frozen.py` pins its eight ids, the order and the SHA-256 of its canonical JSON (`sort_keys`, compact separators), so line endings never move it and any rule change does.
+- A changed rule is a NEW file (`UX_CHECKLIST_V2.json`), never an edit. A surface the manifest gains later is read under the id the checklist already gives it.
+
+### 113.2 What the capture harness records for R7 and R4
+
+`tools/iq10_surface_screenshot.gd` records, per frame, beside the text census and the contrast fields:
+- **each text row's** CanvasLayer (`layer`), its UNCLIPPED rect (`rect_raw`; the older `rect` is clipped to its scroll and the viewport, so a row past an edge read as empty) and its ScrollContainer's rect (`scroll_rect`);
+- **`buttons`**: every visible BaseButton outside the map's SubViewport, icon-only ones too, with layer, rects, tooltip and disabled state;
+- **`truncated_text`**: a Label or Button with clip_text or a trimming overrun whose one line is wider than its content box, an autowrapped Label showing fewer lines than it holds, a non-wrapping RichTextLabel wider than its box, a text node in a zero-width box;
+- **`under_modal`**: a text row or button of the LIVE frame whose centre lies inside a drawing Control (Panel, PanelContainer, ColorRect, NinePatchRect, TextureRect, not fully transparent) on a strictly higher CanvasLayer. The live frame is the layers at and above the topmost modal layer: one holding a visible Control whose mouse filter is not IGNORE and which covers ≥ 95 % of the logical viewport. The modal layers, the live floor and the count of suspended rows are recorded beside it;
+- **`files`**: the scene file and script (with its base scripts) of every shown node and of its ancestors (a CanvasLayer is no CanvasItem, yet its script builds what it shows), plus the shot's own scene.
+
+A shot may carry **`settle_ms`**: the capture waits that much REAL time after its steps. Off-screen frames run unthrottled, so a frame-count settle catches a real-time entrance mid-way; the main menu's (the title over 1.1 s, the buttons staggered from 0.5 s) is the case that needed it.
+
+### 113.3 The action probe (R5, R6) — `tools/uxr3_action_probe.py` + `.gd`
+
+- **The record behind R5's driven half and R6.** The runner builds its spec through `iq10_run_captures.build_spec`, so a probed surface is exactly the surface the frames show: the same payloads, scenes, entry methods and steps. It runs one windowed engine parked past the desktop at 1920×1080 and Interface Scale 1.0, every API stubbed, and refuses `main.tscn` while `SOVEREIGN_PORT` is the player's 8005.
+- **The controls** are the live frame's (R7's rule above): every visible BaseButton, every visible non-button Control showing the pointing-hand cursor, every `[url]` link of a visible RichTextLabel.
+- **Each enabled control is pressed in a fresh instance.** A button or pointer control takes a synthetic left press and release at its centre, with OS input enabled for those two frames only. If the click never reaches it, the probe records what took it (`taken_by`), re-opens the surface and presses the control by its own signal. A link is pressed by its label's `meta_clicked`.
+- **The answer.** The frame is read before the press, 2 frames after it, and once 500 ms and 30 frames have passed. Whatever changes on its own over 500 ms with no press is read once per surface and set aside. The control is:
+  - **VISIBLE** when a visible text, a node's visibility, a control's rect, a button's pressed or disabled state, the focus owner (other than onto the pressed control), a window or a Camera2D changed;
+  - **HANDOFF** when the only response is an API call the stub recorded or a script signal some node emitted;
+  - **SILENT** when nothing happened.
+  - Words that change the scene, quit, save, load or start a game (a label LEADING with the verb, or naming "main menu") and links to an outside address are **NOT PRESSED**.
+- **Its traps, paid for:**
+  - `main.gd` hands its REAL API client to the top bar and the screens in `_ready`, so the probe re-points every script variable holding it to the stub before freeing it (a freed client segfaulted the engine on a nav button).
+  - **A fresh instance must be fresh.** A press that writes a setting (the war room's Scale +, the first-run card's Looks right, a Settings row) writes the in-memory config and the window's content scale, which outlive the instance; the next one booted at another scale and the clicks landed beside their controls. The probe restores the initial config, the scale, the theme's sizes, contrast and body font, and the top bar's drawn height before every open.
+  - A code-built control is auto-named (`@Button@123`), and a path normalised across instances names every such sibling alike; the probe presses the node its own enumeration walked to, never the first match of a path.
+  - A control its own press frees (a rail row rebuilt) counts as reached. `unbind(0)` is an error, so a zero-argument signal's recorder is bound without it.
+- **Crash-safe.** The engine writes its result after every surface and a progress marker before every press. If it dies, the runner records that control as CRASHED and resumes after it. SCRIPT ERROR lines are attributed to the press they follow.
+
+### 113.4 The fit report (R7) and the consistency census (R4)
+
+- **`tools/uxr3_fit_report.py`** reads the harness records at 1920×1080, 3840×2160 and 5120×1440 and applies R7: `clipped_text`, `truncated_text`, `buttons_offscreen`, `text_offscreen` (computed here: a row whose rect, or its scroll's, leaves the logical viewport; the map tier is not read) and `under_modal`.
+- **`tools/uxr3_consistency_census.py`** applies R4 to each surface's own files (the frames' `files`; a surface with no frame is read statically: its scene, the scripts the scene attaches, their bases). Never `scripts/utils.gd` (the palette's home), `ui_settings.gd`, the theme or `tools/**`.
+  - A **one-off size** is a raw font-size override exactly as `tests/test_uxr2_override_diet.py::raw_sites` counts it, its named exemptions included, or a BBCode `[font_size=` in code.
+  - A **one-off grey** is a literal in `Utils.is_dim`'s class (chroma ≤ 0.12, 0.15 ≤ luminance ≤ luminance(UI_TEXT_DIM) + 0.02) not routed through `toned(` / `toned_hex(` / the COLOR tokens: in code a numeric `Color(r, g, b[, a])`, a hex in `Color("…")` or `Color.html`, a `[color=…]` hex, a bare 6- or 8-digit hex string, or a named Godot grey; in a scene a `theme_override_colors/*`, `modulate` or `self_modulate` value off the dim ladder (±1/255).
+  - Each hit names its SOURCE line: the census finds it in the comment-stripped copy and locates the same literal's k-th occurrence in the source.
+
+### 113.5 The assembler — `tools/uxr3_review.py`
+
+- **`marks`** derives R1, R3, R4, R6, R7 and R5's SILENT half from the records (`docs/audits/uxr3/`).
+  - **The host rule.** A HUD component shot alone (the top bar, the war HUD, the notice rail, the tutor card) never runs without the war room that hosts it: alone, the top bar's nav buttons open nothing and the war HUD's rows hand their click to an absent `main.gd`. Where the war room's own probe (`war_room_boot`, or `war_room_tutorial` for the tutor card) pressed the same control (its path under the war room's `Control/` root, the same words) and it answered VISIBLE, that record stands for the component's. The packet shows both.
+  - **A citation** (`docs/audits/uxr3/live_citations.json`) lets a HANDOFF or NOT PRESSED control count where a live-backend driven record shows its road's visible answer, matched by scene and words.
+- **`packets`** builds the blind readers' packet: one card per surface (its must_show line, its frames cropped to its own top-level rects and never scaled, the probe's record of its controls), one file per group.
+- **`aggregate`** takes the mark two of the three readers give for R2, R8 and R5's reader half (no abstaining: a missing mark is ✗), records the spread, scores each surface out of 8 and names the worst five.
+- **`report`** groups every ✗ into `BUG_FIXES.md` rows: one item, one cause, one scene per row; a surface the harness never shot gets one row for all its items.
+- **`frames`** writes every cited frame as a JPEG crop under `docs/audits/uxr3/frames/`.
+- `tests/test_uxr3_the_review.py` holds the reading to its committed records: the marks re-derive the same way, the readers aggregate two of three, and every ✗ is filed.

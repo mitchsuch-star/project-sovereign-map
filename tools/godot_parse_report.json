@@ -515,7 +515,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/uxr2_grip_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/uxr3_action_probe.gd"
     }
   ],
-  "timestamp": "2026-10-13T04:33:12Z"
+  "timestamp": "2026-10-13T21:30:24Z"
 }

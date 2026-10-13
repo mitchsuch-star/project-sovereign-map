@@ -198,6 +198,9 @@ const TOOL_SCRIPTS = [
 	# UXR-2 (Pre-Deploy S9): the six screens' grips, driven
 	# (tests/test_uxr2_grips_driven.py)
 	"res://../../tools/uxr2_grip_harness.gd",
+	# UXR-3 (Pre-Deploy S11): the action probe, R5 / R6's driven record
+	# (tools/uxr3_action_probe.py; its record is read by tests/test_uxr3_the_review.py)
+	"res://../../tools/uxr3_action_probe.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

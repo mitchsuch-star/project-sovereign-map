@@ -109,6 +109,11 @@ var _stray_input := 0
 var _backdrop: CanvasLayer = null
 var _window_size := Vector2i(0, 0)
 var _fatal := ""
+# UXR-3 (Pre-Deploy S11): a shot's `settle_ms` holds the capture until that
+# much REAL time has passed after its steps. Frames are not time off-screen,
+# so a surface with a real-time entrance (the main menu's 1.1-s title and
+# staggered buttons) was shot mid-fade by a frame-count settle alone.
+var _settle_until := 0
 
 
 # ── stubs ───────────────────────────────────────────────────────────────────
@@ -284,6 +289,8 @@ func _tick():
 		"steps":
 			_run_steps()
 		"capture":
+			if Time.get_ticks_msec() < _settle_until:
+				return
 			_capture("")
 			_phase = "teardown"
 		"teardown":
@@ -522,6 +529,7 @@ func _run_steps():
 	if _step_i >= _steps.size():
 		_phase = "capture"
 		_wait = int(_shot().get("settle", _spec.get("settle", SETTLE_DEFAULT)))
+		_settle_until = Time.get_ticks_msec() + int(_shot().get("settle_ms", 0))
 		return
 	var step = _steps[_step_i]
 	if not (step is Dictionary):
@@ -780,6 +788,14 @@ func _capture(suffix: String) -> void:
 	frame["texts"] = _collect_texts()
 	frame["buttons_offscreen"] = _buttons_offscreen(view)
 	frame["clipped_text"] = _clipped_text()
+	# UXR-3 (Pre-Deploy S11): R7's cut text, every button, what lies under a
+	# modal, and the files that drew the frame (R4's census reads them).
+	frame["truncated_text"] = _truncated_text()
+	frame["buttons"] = _visible_buttons()
+	var fit := _under_modal(view)
+	for key in fit:
+		frame[key] = fit[key]
+	frame["files"] = _visible_files()
 	frame["probe"] = _probe(_shot().get("probe", []))
 	frame["surfaces"] = _surface_rects()
 	# The control holding keyboard focus (the war room's command line should).
@@ -871,6 +887,7 @@ func _collect_texts() -> Array:
 		entry["path"] = str(root.get_path_to(n))
 		_add_text_metrics(entry, n, font, font_size)
 		_add_text_colors(entry, n)
+		_add_fit_fields(entry, n)
 		out.append(entry)
 	return out
 
@@ -1097,6 +1114,249 @@ func _clipped_text() -> Array:
 		if rtl.get_content_height() > int(rtl.size.y) + 1:
 			out.append({"path": str(root.get_path_to(rtl)),
 					"content_height": rtl.get_content_height(), "box_height": rtl.size.y})
+	return out
+
+
+# ── the Fit and Consistency records (UXR-3, Pre-Deploy S11 — R7 and R4 of ──
+# docs/UX_CHECKLIST_V1.json). Read by tools/uxr3_fit_report.py and
+# tools/uxr3_consistency_census.py; the rules live in the checklist, these
+# functions only record.
+
+func _layer_of(n: Node) -> int:
+	var p: Node = n
+	while p != null:
+		if p is CanvasLayer:
+			return (p as CanvasLayer).layer
+		p = p.get_parent()
+	return 0
+
+
+func _add_fit_fields(entry: Dictionary, n: Control) -> void:
+	# The row's CanvasLayer, its UNCLIPPED rect (the `rect` above is clipped to
+	# its scroll and the viewport, so a row past the edge reads as empty), and
+	# the rect of the ScrollContainer that shows it — a scrolled list is judged
+	# by its scroll, as `_buttons_offscreen` judges a button.
+	if _inside_subviewport(n):
+		return
+	entry["layer"] = _layer_of(n)
+	var r := n.get_global_rect()
+	entry["rect_raw"] = [r.position.x, r.position.y, r.size.x, r.size.y]
+	var scroll := _scroll_ancestor(n)
+	if scroll != null:
+		var s := scroll.get_global_rect()
+		entry["scroll_rect"] = [s.position.x, s.position.y, s.size.x, s.size.y]
+
+
+func _single_line_width(font: Font, text: String, size: int) -> float:
+	var w := 0.0
+	for line in text.split("\n"):
+		w = maxf(w, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x)
+	return w
+
+
+func _stylebox_h_margins(c: Control, sb_name: String) -> float:
+	var sb := c.get_theme_stylebox(sb_name)
+	if sb == null:
+		return 0.0
+	return sb.get_margin(SIDE_LEFT) + sb.get_margin(SIDE_RIGHT)
+
+
+func _truncated_text() -> Array:
+	# R7 (1)'s second half: a Label or Button whose words are CUT. A one-line
+	# label or button with clip_text on, or a text_overrun_behavior other than
+	# no-trimming, whose text is wider than its content box; an autowrapped
+	# Label showing fewer lines than it holds; a non-wrapping RichTextLabel
+	# wider than its box; a visible text node drawn in a zero-width box.
+	var out: Array = []
+	for n in _all_nodes(root):
+		if n == _backdrop or not _shown(n) or _inside_subviewport(n):
+			continue
+		if n is Label:
+			var l := n as Label
+			if l.text.strip_edges() == "":
+				continue
+			var row := {"path": str(root.get_path_to(l)), "class": "Label", "text": l.text.left(60)}
+			if l.size.x < 1.0:
+				row["reason"] = "zero_box"
+				out.append(row)
+			elif l.autowrap_mode != TextServer.AUTOWRAP_OFF:
+				var lines := l.get_line_count()
+				var vis := l.get_visible_line_count()
+				if vis < lines:
+					row["reason"] = "lines"
+					row["lines"] = lines
+					row["visible_lines"] = vis
+					out.append(row)
+			elif l.clip_text or l.text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING:
+				var font := l.get_theme_font("font")
+				if font == null:
+					continue
+				var tw := _single_line_width(font, l.text, l.get_theme_font_size("font_size"))
+				var box := l.size.x - _stylebox_h_margins(l, "normal")
+				if tw > box + 1.0:
+					row["reason"] = "width"
+					row["text_w"] = tw
+					row["box_w"] = box
+					out.append(row)
+		elif n is Button:
+			var b := n as Button
+			if b.text.strip_edges() == "":
+				continue
+			if not (b.clip_text or b.text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING):
+				continue
+			var font := b.get_theme_font("font")
+			if font == null:
+				continue
+			var tw := _single_line_width(font, b.text, b.get_theme_font_size("font_size"))
+			var box := b.size.x - _stylebox_h_margins(b, "normal")
+			if b.icon != null and not b.expand_icon:
+				box -= b.icon.get_width() + b.get_theme_constant("h_separation")
+			if tw > box + 1.0:
+				out.append({"path": str(root.get_path_to(b)), "class": b.get_class(),
+						"text": b.text.left(60), "reason": "width", "text_w": tw, "box_w": box})
+		elif n is RichTextLabel:
+			var rtl := n as RichTextLabel
+			if rtl.autowrap_mode != TextServer.AUTOWRAP_OFF or rtl.get_parsed_text().strip_edges() == "":
+				continue
+			if rtl.get_content_width() > int(rtl.size.x) + 1:
+				out.append({"path": str(root.get_path_to(rtl)), "class": "RichTextLabel",
+						"text": rtl.get_parsed_text().left(60), "reason": "rtl_width",
+						"text_w": rtl.get_content_width(), "box_w": rtl.size.x})
+	return out
+
+
+func _visible_buttons() -> Array:
+	# Every visible BaseButton outside the map's SubViewport — icon-only ones
+	# too, which the text census cannot see — with its layer and rects.
+	var out: Array = []
+	for n in _all_nodes(root):
+		if not (n is BaseButton) or n == _backdrop or not _shown(n) or _inside_subviewport(n):
+			continue
+		var b := n as BaseButton
+		var r := b.get_global_rect()
+		var row := {"path": str(root.get_path_to(b)), "class": b.get_class(),
+				"text": (str(n.text) if ("text" in n) else "").left(60), "disabled": b.disabled,
+				"tooltip": str(b.tooltip_text).left(120), "layer": _layer_of(b),
+				"rect_raw": [r.position.x, r.position.y, r.size.x, r.size.y]}
+		var scroll := _scroll_ancestor(b)
+		if scroll != null:
+			var s := scroll.get_global_rect()
+			row["scroll_rect"] = [s.position.x, s.position.y, s.size.x, s.size.y]
+		out.append(row)
+	return out
+
+
+func _draws(c: Control) -> bool:
+	# A Control that paints over its rect: a panel, a coloured or textured rect
+	# — not a bare container, and not a fully transparent one.
+	if _modulate_chain(c).a <= 0.02:
+		return false
+	if c is ColorRect:
+		return (c as ColorRect).color.a > 0.02
+	if c is TextureRect:
+		return (c as TextureRect).texture != null
+	if c is NinePatchRect:
+		return (c as NinePatchRect).texture != null
+	if c is Panel or c is PanelContainer:
+		var sb := c.get_theme_stylebox("panel")
+		if sb == null or sb is StyleBoxEmpty:
+			return false
+		if sb is StyleBoxFlat:
+			var f := sb as StyleBoxFlat
+			var border := f.border_width_left + f.border_width_right + f.border_width_top + f.border_width_bottom
+			return f.bg_color.a > 0.02 or (border > 0 and f.border_color.a > 0.02)
+		return true
+	return false
+
+
+func _under_modal(view: Vector2) -> Dictionary:
+	# R7 (3): a visible text row or button of the LIVE frame whose centre lies
+	# inside a drawing Control on a strictly higher CanvasLayer. The live frame
+	# is the layers at and above the topmost modal layer — one holding a
+	# visible Control whose mouse filter is not IGNORE and which covers >= 95 %
+	# of the logical viewport; what lies under a modal is suspended by it.
+	var vrect := Rect2(Vector2.ZERO, view)
+	var area := view.x * view.y
+	var modal: Array = []
+	var drawers: Array = []
+	var rows: Array = []
+	for n in _all_nodes(root):
+		if not (n is Control) or n == _backdrop or not _shown(n) or _inside_subviewport(n):
+			continue
+		if _backdrop != null and _backdrop.is_ancestor_of(n):
+			continue
+		var c := n as Control
+		var layer := _layer_of(c)
+		var r := c.get_global_rect()
+		if c.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			var ri := r.intersection(vrect)
+			if ri.size.x * ri.size.y >= 0.95 * area and not modal.has(layer):
+				modal.append(layer)
+		if _draws(c):
+			drawers.append([layer, r, str(root.get_path_to(c)), c.get_class()])
+		var words = null
+		if c is BaseButton:
+			words = str(n.text) if ("text" in n) else ""
+		elif c is Label:
+			words = (c as Label).text
+		elif c is RichTextLabel:
+			words = (c as RichTextLabel).get_parsed_text()
+		elif c is LineEdit:
+			words = (c as LineEdit).text
+		if words == null or (not (c is BaseButton) and str(words).strip_edges() == ""):
+			continue
+		rows.append([layer, r.get_center(), str(root.get_path_to(c)), str(words)])
+	var live_floor := -1000000
+	for l in modal:
+		live_floor = maxi(live_floor, int(l))
+	var hits: Array = []
+	var suspended := 0
+	for row in rows:
+		if int(row[0]) < live_floor:
+			suspended += 1
+			continue
+		for d in drawers:
+			var drect: Rect2 = d[1]
+			if int(d[0]) > int(row[0]) and drect.has_point(row[1]):
+				hits.append({"path": row[2], "text": str(row[3]).left(40), "layer": row[0],
+						"cover": d[2], "cover_class": d[3], "cover_layer": d[0]})
+				break
+	modal.sort()
+	return {"under_modal": hits.slice(0, 60), "under_modal_count": hits.size(),
+			"modal_layers": modal, "live_floor": live_floor, "suspended_rows": suspended}
+
+
+func _visible_files() -> Array:
+	# R4's census reads the files that drew the frame: the scene file and the
+	# script (with its base scripts) of every node shown AND of its ancestors
+	# (a CanvasLayer is no CanvasItem, yet its script builds what it shows —
+	# the top bar, the war HUD, the rail), plus the shot's own scene and root
+	# script whatever they show.
+	var seen := {}
+	var picked := {}
+	var nodes: Array = []
+	for n in _all_nodes(root):
+		if n == _backdrop or not _shown(n):
+			continue
+		var p: Node = n
+		while p != null and p != root and not picked.has(p.get_instance_id()):
+			picked[p.get_instance_id()] = true
+			nodes.append(p)
+			p = p.get_parent()
+	if _node != null and is_instance_valid(_node):
+		nodes.append(_node)
+	for n in nodes:
+		var s = n.get_script()
+		while s is Script:
+			var p := (s as Script).resource_path
+			if p != "":
+				seen[p] = true
+			s = (s as Script).get_base_script()
+		var sf := str(n.scene_file_path)
+		if sf != "":
+			seen[sf] = true
+	var out := seen.keys()
+	out.sort()
 	return out
 
 
