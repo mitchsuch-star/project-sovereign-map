@@ -632,8 +632,11 @@ class TestTheReviewRoundSpend:
             settlement_ratify._apply_settlement_terms)
         assert "_eliminate_nation(cc_from, by_treaty=True)" in inspect.getsource(
             formations.apply_create_client_clause)
-        assert "self._eliminate_nation(nation, by_treaty=True)" in inspect.getsource(
-            WorldState._ratify_treaty)
+        # CODE-2c (October 13, 2026): the ratifier is a driver of `_ratify_*`
+        # stages; the elimination site lives in one of them, read in run order.
+        from tests import _staged_functions as S
+        assert "self._eliminate_nation(nation, by_treaty=True)" in S.staged_source(
+            *S.ratify_treaty())
         assert "by_treaty" not in inspect.getsource(WorldState.capture_region)
 
     def test_breaking_a_truce_never_spends(self):

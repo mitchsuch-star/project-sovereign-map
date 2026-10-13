@@ -34,7 +34,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 13, 2026).** The three most recent landed rows:
-- **S10 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages; `format_event_oneliner` = 12 `_oneliner_*`; `_execute_strategic_command` = 11 `_strategic_*`. **Funcs over 500 lines 33 → 30; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b). **NEXT = S10b CODE-2c** (`_ratify_treaty`, `_process_dialogue_choice`: DD-1 never split them).
+- **S10 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages; `format_event_oneliner` = 12 `_oneliner_*`; `_execute_strategic_command` = 11 `_strategic_*`. **Funcs over 500 lines 33 → 30; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b). **NEXT = S10b CODE-2c**: `_ratify_treaty` = 9 `_ratify_*` (slice 1); `_process_dialogue_choice` next.
 - **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112). **NEXT = S10, CODE-2b**.
 - **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (allowlist 0); six screens + the war HUD gripped (`ResizeGrip`); font overrides 72 → 18; 0 RED / 0 P1 (§111).
 

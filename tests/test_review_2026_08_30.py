@@ -558,12 +558,13 @@ class TestTheRoadHomeAfterATruce:
         pre-cession map — a corps whose only road home is a province the
         treaty gives away read as connected, and (if nobody else was
         stranded) the provisional grant was rolled back entirely."""
-        src = _read("backend/models/world_state.py")
-        body = src[src.index("    def _ratify_treaty("):]
-        body = body[:body.index("\n    def ", 10)]
+        # CODE-2c (October 13, 2026): the ratifier is a driver of `_ratify_*`
+        # stages, read here in run order; the two courts ride its context.
+        from tests import _staged_functions as S
+        body = S.staged_source(*S.ratify_treaty())
         cede = body.index("region.controller = to_nation")
         reopen = body.index(
-            "open_evacuation_corridor(self, proposer, target_nation)")
+            "open_evacuation_corridor(self, ctx.proposer, ctx.target_nation)")
         assert reopen > cede, (
             "the re-run must sit AFTER the transfers or it re-asks the same "
             "question on the same map")

@@ -406,8 +406,11 @@ class TestTheBilateralRouteCarves:
         assert hasattr(formations, "apply_create_client_clause")
         assert "apply_create_client_clause" in inspect.getsource(
             settlement_ratify._apply_settlement_terms)
-        assert "apply_create_client_clause" in inspect.getsource(
-            world_state.WorldState._ratify_treaty)
+        # CODE-2c (October 13, 2026): the ratifier is a driver of `_ratify_*`
+        # stages; the call lives in one of them, read in run order.
+        from tests import _staged_functions as S
+        assert world_state.WorldState is S.ratify_treaty()[0]
+        assert "apply_create_client_clause" in S.staged_source(*S.ratify_treaty())
         # And the guard that stops the duplicate elimination announcement
         # lives in the shared body, not in either caller.
         body = inspect.getsource(formations.apply_create_client_clause)

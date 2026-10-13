@@ -1093,6 +1093,85 @@ row S10b, the next session, before UXR-3).**
   - `score_run check`, `BASELINE_SERIES` + M1–M7;
   - the settlement suites.
 
+**CODE-2c LANDING RECORD, SLICE 1 — `WorldState._ratify_treaty` (Pre-Deploy
+S10b, October 13, 2026).** *The stage list, written before the cut (recipe step
+1).* The method (`backend/models/world_state.py`, 1,024 lines, 61 local imports)
+runs as 76 top-level statements under their own comment banners. The cut runs at
+those statement boundaries. Each stage is a method `_ratify_<stage>(self, ctx)`
+on `WorldState`, so `self` and the module globals the suite patches are read
+exactly as before:
+
+| # | Stage | Its header in the old body | What it holds |
+|---|---|---|---|
+| 1 | `_ratify_open` | "# Extract nations from proposal" | the two courts, the target state, the one verdict (`treaty.can_sign`, DD-1 S7 Slice B): a letter naming no court answers `None`, a refused one its refusal dict |
+| 2 | `_ratify_snapshot_and_vassal` | "# Build treaty clauses before vassalage validation" | the clauses built; the war's data snapshotted before anything clears it (BPH-D, GE-1); a VASSAL treaty's vassal created first |
+| 3 | `_ratify_transition_and_record` | "# Apply state transition (R2: centralized setter)" | the transition (R2), the armistice cooldown (R5b), open borders, the treaty stored and remembered |
+| 4 | `_ratify_one_time_clauses` | "# Apply one-time clauses (shared)" | every one-time clause, the gold among them |
+| 5 | `_ratify_alliances_and_carves` | "═══ WPS-C: Forced alliance + liberation clause handling ═══" | WPS-C's forced alliance and liberation, the client carved (NA-6c), the Tilsit clause, the war bargains' commitments (WB-A) |
+| 6 | `_ratify_titles_and_elimination` | "AI-5b(i) (§3.6): a bilateral treaty that strips a court leaves" | the punitive record, the titles and the Humbled Peace (GE-1), a court eliminated by its cessions (R81) |
+| 7 | `_ratify_war_end` | "# War-end cleanup (shared — for both player and AI-AI)." | the war's end cleaned up (WPS-A, WB-B), the clients follow (SR-1b), the forced alliance set (WPS-C §9.2), the corridor (WIN-D3), the volte-face (AI-5b(ii)) |
+| 8 | `_ratify_player_events` | "═══ Player-specific events ═══" | France's own treaty: its events, notices and reply |
+| 9 | `_ratify_ai_ai_events` | "═══ AI-AI-specific events ═══" | two other courts: relations, the dispatch, the log, the pair's cooldown (R43), the result |
+
+*The outcome (✅ LANDED October 13, 2026).*
+- **The context.** Of the old body's 194 locals (`self` aside), **21 ride
+  `RatifyTreatyContext`**: `proposal`, then the two courts, the states, the
+  clause lists, the war-end snapshots, the treaty and the breach events. Five
+  more names are split, bound before read in every stage that uses them, on
+  the tool's definite-assignment pass: `applied_clause`, `clause`, `ctype`,
+  `event_id`, `result`. None is confined.
+- **What else moved.** Four imports are repeated at a stage's head:
+  - `treaty_clauses_of` at `_ratify_snapshot_and_vassal`'s;
+  - `burden_on_nation` and `_UPGRADE_ORDER` at `_ratify_transition_and_record`'s;
+  - `take_status_quo_titled as _take_sq` at `_ratify_player_events`'s.
+  Each original line stays where it was.
+- **The tool needed one more road.** `world_state.py`'s typing line
+  (`from typing import Dict, List, Optional, Tuple, Any, Set`) was not one of
+  the four the tool knew, so the dataclasses import now goes above ANY
+  one-line `from typing import`, with `Any` added when it is absent. The known
+  four keep their old path, so S10's three outputs cannot change.
+- **Sizes.** Stages run 41–298 lines, and the driver is 52. **Functions over
+  500 lines 30 → 29**, and `FUNCTIONS_OVER_500_CAP` is lowered to match.
+- **The F2 class is empty.** None of the 61 local imports binds a
+  module-level name of `world_state.py`.
+
+**The net:**
+- `score_run.py check` against `2026_10_05_sfr` gives stdout identical to the
+  same check on `a0d1b9d1`.
+- The 164 test files of the family: DD-1's six (`test_dd1_*`, the sweep, the
+  fuzzer, the shuffle among them), the 42 settlement suites, every test
+  naming `ratify` or `BASELINE_SERIES`, and the variance arm. Result: 6,362
+  passed and 2 failed, the two below; both pass once re-pointed. No re-record.
+- **Five pins were re-pointed, each with the same assertion where the code now
+  lives.** Three were found before the run:
+  - FA slice 10's ally-penalty census reads
+    `burden_on_nation(ctx.treaty_clauses, penalty_target)`;
+  - the Aug 30 review's corridor order reads the staged source in run order
+    (`open_evacuation_corridor(self, ctx.proposer, ctx.target_nation)` still
+    after the cessions);
+  - the IQ1 chest census names `_ratify_one_time_clauses`. It keys on the
+    function holding a `nation_gold` subtraction; it would have failed
+    loudly, not vacuously.
+- **Two more were found by the family run, not before it.** IGR-D's
+  carve-route pin and IQ-3's treaty-elimination pin call
+  `inspect.getsource(WorldState._ratify_treaty)` with the function on the
+  NEXT line. The one-line grep missed them, and their literals survive
+  unchanged in the stages, so the literal scan could not see them either.
+  Both now read `tests/_staged_functions.staged_source`. The class to check
+  next time: **any reference to the function object**, not only its name as
+  a string.
+
+**The shape is pinned** in `tests/test_code2c_the_ratifier_is_staged.py` (18):
+- the nine stages in order, and the driver's body `[Assign, For, Return]`;
+- the identity test, and the signature unchanged;
+- no stage over 500 lines;
+- no caller outside `world_state.py` names a stage, and only the driver's
+  last call is made with parentheses;
+- a letter naming no court answers `None` and writes nothing (driven);
+- the context's slots and no-default contract;
+- nothing on the wire from a real 1805 France–Prussia peace;
+- no stage-local import shadowing a module name.
+
 ## CODE-3 — Every broad except speaks (1 session, with DD-C)
 
 **The rule.** `except Exception` is allowed only through

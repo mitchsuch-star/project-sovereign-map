@@ -261,7 +261,9 @@ UNRECORDED_OUTFLOWS = {
     ("backend/game_logic/coalition.py", "_process_british_subsidy"),
     ("backend/game_logic/diplomacy.py", "apply_continental_system"),
     ("backend/game_logic/instruments.py", "process_instruments"),
-    ("backend/models/world_state.py", "_ratify_treaty"),
+    # CODE-2c (October 13, 2026): `_ratify_treaty` is staged; its one-time
+    # clauses — the gold among them — run in this stage.
+    ("backend/models/world_state.py", "_ratify_one_time_clauses"),
     ("backend/models/world_state.py", "_process_treaty_clauses"),
     # IQ1-2 REVIEW ROUND: two more, visible only once the census learned to
     # see a LOCAL ALIAS. Both are settlement TRANSFERS that already write

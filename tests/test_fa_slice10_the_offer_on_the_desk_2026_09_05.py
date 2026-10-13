@@ -1050,4 +1050,6 @@ class TestTheRecordStoresOneSidesBurden:
         source = (ROOT / "backend" / "models" / "world_state.py").read_text(
             encoding="utf-8")
         block = source.split("apply_separate_peace_penalties")[1][:900]
-        assert "burden_on_nation(treaty_clauses, penalty_target)" in block
+        # CODE-2c (October 13, 2026): the ratifier is staged; the clauses ride
+        # its context, so the call reads `ctx.treaty_clauses` — the same call.
+        assert "burden_on_nation(ctx.treaty_clauses, penalty_target)" in block

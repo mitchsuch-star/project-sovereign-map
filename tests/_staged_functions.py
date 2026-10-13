@@ -62,3 +62,17 @@ def strategic_command():
     """`StrategicExecutor._execute_strategic_command`: (owner, driver, prefix)."""
     from backend.commands.strategic_executor import StrategicExecutor
     return StrategicExecutor, "_execute_strategic_command", "_strategic_"
+
+
+# ── the two drivers CODE-2c cuts (the two DD-1 left whole) ──────────────────
+
+def ratify_treaty():
+    """`WorldState._ratify_treaty`: (owner, driver, prefix)."""
+    from backend.models.world_state import WorldState
+    return WorldState, "_ratify_treaty", "_ratify_"
+
+
+def dialogue_choice():
+    """`DiplomaticExecutor._process_dialogue_choice`: (owner, driver, prefix)."""
+    from backend.commands.diplomatic_executor import DiplomaticExecutor
+    return DiplomaticExecutor, "_process_dialogue_choice", "_choice_"

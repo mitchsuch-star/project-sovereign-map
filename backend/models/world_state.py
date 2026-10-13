@@ -12,6 +12,7 @@ Includes Disobedience System (Phase 2):
 import copy  # noqa: F401 - used in to_dict() for deepcopy
 import os
 from collections import deque
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any, Set
 
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
@@ -1249,6 +1250,39 @@ def reconcile_saved_registry_corrections(world) -> Dict[str, int]:
 # the class reads through `WorldState._dispersion_lever()` (see the rule at
 # `WorldState.CROWDING_FREE_CORPS`). False = the shipped press and scan.
 DISPERSION_IS_NOT_PUNISHED = True
+
+
+# CODE-2c (October 2026): what the stages of `WorldState._ratify_treaty`
+# share. Built once at the driver's head, never on the wire. The parameters
+# are init fields; every other field is set by the stage that first assigns
+# it — `slots` with no default, so a read before any assignment raises as
+# the local it replaced did.
+_NEXT_STAGE = object()
+
+
+@dataclass(slots=True, repr=False, eq=False)
+class RatifyTreatyContext:
+    proposal: Any
+    proposer: Any = field(init=False)
+    target_nation: Any = field(init=False)
+    is_player_treaty: Any = field(init=False)
+    proposal_type: Any = field(init=False)
+    diplo_key: Any = field(init=False)
+    current_state: Any = field(init=False)
+    target_state: Any = field(init=False)
+    player_counterpart: Any = field(init=False)
+    treaty_clauses: Any = field(init=False)
+    war_bargain_clauses: Any = field(init=False)
+    _is_war_ending: Any = field(init=False)
+    _is_peace_ratification: Any = field(init=False)
+    _player_was_vassal: Any = field(init=False)
+    _pre_cleanup_data: Any = field(init=False)
+    _pre_cleanup_cancelled_orders: Any = field(init=False)
+    bargain_breach_events: Any = field(init=False)
+    treaty: Any = field(init=False)
+    applied_treaty_clauses: Any = field(init=False)
+    _forced_alliance_clauses: Any = field(init=False)
+    _clients_followed: Any = field(init=False)
 
 
 class WorldState:
@@ -12349,7 +12383,58 @@ class WorldState:
 
         R107/R108: Unified path for both player and AI-AI treaties.
         Extracts nations from proposal fields (proposer_nation/target_nation).
+
+        CODE-2c (October 2026): a driver of named stages behind one
+        `RatifyTreatyContext`. A stage returns `_NEXT_STAGE` to continue or the
+        result to stop; nothing on the context reaches the wire.
+
+         1. `_ratify_open` — The two courts, the target state, and the one
+            verdict (`treaty.can_sign`, DD-1 S7 Slice B) — a refused letter
+            stops here.
+         2. `_ratify_snapshot_and_vassal` — The clauses built; the war's data
+            snapshotted before anything clears it (BPH-D, GE-1); a VASSAL
+            treaty creates its vassal first.
+         3. `_ratify_transition_and_record` — The state transition (R2), the
+            armistice cooldown (R5b), open borders, the treaty stored and
+            remembered for harshness.
+         4. `_ratify_one_time_clauses` — Every one-time clause applied,
+            cessions and payments first among them.
+         5. `_ratify_alliances_and_carves` — WPS-C's forced alliance and
+            liberation clauses, the client carved (NA-6c), the Tilsit clause,
+            the war bargains' commitments (WB-A).
+         6. `_ratify_titles_and_elimination` — The punitive record (AI-5b(i)),
+            the titles and the Humbled Peace (GE-1), a court eliminated by its
+            cessions (R81).
+         7. `_ratify_war_end` — The war's end cleaned up (WPS-A, WB-B), the
+            clients follow (SR-1b), the forced alliance set (WPS-C §9.2), the
+            corridor (WIN-D3), the volte-face (AI-5b(ii)).
+         8. `_ratify_player_events` — France's own treaty: its events, notices
+            and reply.
+         9. `_ratify_ai_ai_events` — Two other courts: relations, the dispatch,
+            the log, the pair's cooldown (R43), the result.
         """
+        ctx = RatifyTreatyContext(
+            proposal=proposal,
+        )
+        for stage in (
+                self._ratify_open,
+                self._ratify_snapshot_and_vassal,
+                self._ratify_transition_and_record,
+                self._ratify_one_time_clauses,
+                self._ratify_alliances_and_carves,
+                self._ratify_titles_and_elimination,
+                self._ratify_war_end,
+                self._ratify_player_events,
+        ):
+            result = stage(ctx)
+            if result is not _NEXT_STAGE:
+                return result
+        return self._ratify_ai_ai_events(ctx)
+
+    def _ratify_open(self, ctx: RatifyTreatyContext):
+        """Stage 1 of `_ratify_treaty`: The two courts, the target state, and
+        the one verdict (`treaty.can_sign`, DD-1 S7 Slice B) — a refused letter
+        stops here."""
         from backend.game_logic.diplomatic_templates import (
             burden_on_nation,
             calculate_treaty_harshness,
@@ -12357,15 +12442,15 @@ class WorldState:
         from backend.game_logic.diplomacy import _UPGRADE_ORDER
 
         # Extract nations from proposal
-        proposer = proposal.get("proposer_nation") or proposal.get("proposer", "")
-        target_nation = proposal.get("target_nation") or proposal.get("target", "")
-        if not proposer or not target_nation:
+        ctx.proposer = ctx.proposal.get("proposer_nation") or ctx.proposal.get("proposer", "")
+        ctx.target_nation = ctx.proposal.get("target_nation") or ctx.proposal.get("target", "")
+        if not ctx.proposer or not ctx.target_nation:
             return None
-        is_player_treaty = (proposer == self.player_nation or target_nation == self.player_nation)
+        ctx.is_player_treaty = (ctx.proposer == self.player_nation or ctx.target_nation == self.player_nation)
 
-        proposal_type = proposal.get("type", "peace")
-        diplo_key = self._make_diplo_key(proposer, target_nation)
-        current_state = self.get_diplomatic_state(proposer, target_nation)
+        ctx.proposal_type = ctx.proposal.get("type", "peace")
+        ctx.diplo_key = self._make_diplo_key(ctx.proposer, ctx.target_nation)
+        ctx.current_state = self.get_diplomatic_state(ctx.proposer, ctx.target_nation)
 
         # Map proposal type to target state
         state_map = {
@@ -12379,11 +12464,11 @@ class WorldState:
             "non_aggression": "NON_AGGRESSION",
             "vassalage": "VASSAL",
         }
-        target_state = state_map.get(proposal_type, "PEACE")
+        ctx.target_state = state_map.get(ctx.proposal_type, "PEACE")
 
-        player_counterpart = ""
-        if is_player_treaty:
-            player_counterpart = target_nation if proposer == self.player_nation else proposer
+        ctx.player_counterpart = ""
+        if ctx.is_player_treaty:
+            ctx.player_counterpart = ctx.target_nation if ctx.proposer == self.player_nation else ctx.proposer
 
         # DD-1 Slice B (October 11, 2026): THE ONE VERDICT. The guard
         # sequence that lived here — the no-downgrade ladder, the relation
@@ -12395,94 +12480,107 @@ class WorldState:
         from backend.game_logic.treaty import (
             can_sign, refusal_dict, treaty_clauses_of,
         )
-        verdict = can_sign(self, proposal)
+        verdict = can_sign(self, ctx.proposal)
         if not verdict.ok:
-            if is_player_treaty and not verdict.silent:
-                return refusal_dict(verdict, fallback_target=target_nation)
+            if ctx.is_player_treaty and not verdict.silent:
+                return refusal_dict(verdict, fallback_target=ctx.target_nation)
             return None  # AI-AI: silent skip
+        return _NEXT_STAGE
 
+    def _ratify_snapshot_and_vassal(self, ctx: RatifyTreatyContext):
+        """Stage 2 of `_ratify_treaty`: The clauses built; the war's data
+        snapshotted before anything clears it (BPH-D, GE-1); a VASSAL treaty
+        creates its vassal first."""
+        from backend.game_logic.treaty import treaty_clauses_of
         # Build treaty clauses before vassalage validation so WPS-B can project
         # same-package territory cessions before applying the VASSAL state.
-        treaty_clauses = treaty_clauses_of(proposal, proposer, target_nation)
-        war_bargain_clauses = [
-            clause for clause in treaty_clauses
+        ctx.treaty_clauses = treaty_clauses_of(ctx.proposal, ctx.proposer, ctx.target_nation)
+        ctx.war_bargain_clauses = [
+            clause for clause in ctx.treaty_clauses
             if clause.get("type") == "war_bargain"
         ]
 
         # BPH-D: capture war data before set_diplomatic_state() or cleanup_war_end()
         # clear war_start_turns, battle records, and war scores.
-        _is_war_ending = current_state in ("WAR", "ARMISTICE") and target_state != "WAR"
-        _is_peace_ratification = current_state in ("WAR", "ARMISTICE") and target_state == "PEACE"
+        ctx._is_war_ending = ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state != "WAR"
+        ctx._is_peace_ratification = ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state == "PEACE"
         # GE-1: the Humbled Peace reads whether THIS treaty made the player
         # a vassal — snapshot before any mutation.
-        _player_was_vassal = self.player_nation in (getattr(self, "vassals", {}) or {})
-        _pre_cleanup_data: Dict = {}
-        _pre_cleanup_cancelled_orders: List[Dict] = []
-        bargain_breach_events: List[Dict] = []
-        if _is_war_ending and is_player_treaty:
+        ctx._player_was_vassal = self.player_nation in (getattr(self, "vassals", {}) or {})
+        ctx._pre_cleanup_data: Dict = {}
+        ctx._pre_cleanup_cancelled_orders: List[Dict] = []
+        ctx.bargain_breach_events: List[Dict] = []
+        if ctx._is_war_ending and ctx.is_player_treaty:
             from backend.game_logic.diplomacy import (
                 _capture_pre_cleanup_war_data,
                 _collect_peace_order_cancellations,
             )
-            _pre_cleanup_data = _capture_pre_cleanup_war_data(self, proposer, target_nation)
-            _pre_cleanup_cancelled_orders = (
-                _collect_peace_order_cancellations(self, proposer, target_nation)
-                + _collect_peace_order_cancellations(self, target_nation, proposer)
+            ctx._pre_cleanup_data = _capture_pre_cleanup_war_data(self, ctx.proposer, ctx.target_nation)
+            ctx._pre_cleanup_cancelled_orders = (
+                _collect_peace_order_cancellations(self, ctx.proposer, ctx.target_nation)
+                + _collect_peace_order_cancellations(self, ctx.target_nation, ctx.proposer)
             )
 
         # Vassal creation: when treaty ratifies VASSAL state, create vassal entry + assimilate
         # Must run BEFORE state transition so create_vassal_treaty sees the pre-VASSAL state
-        if target_state == "VASSAL":
+        if ctx.target_state == "VASSAL":
             # The cap and the creator's pre-checks were read by the verdict
             # above (`vassal.vassal_treaty_refusal` — the creator's own
             # predicate); the creator re-reads them on its way in.
             from backend.game_logic.vassal import create_vassal_treaty, assimilate_vassal_marshals
             vassal_result = create_vassal_treaty(
-                self, proposer, target_nation, terms=treaty_clauses
+                self, ctx.proposer, ctx.target_nation, terms=ctx.treaty_clauses
             )
             if not vassal_result.get("success"):
-                if is_player_treaty:
+                if ctx.is_player_treaty:
                     return {
                         "type": "diplomatic_treaty_failed",
-                        "target": player_counterpart or target_nation,
+                        "target": ctx.player_counterpart or ctx.target_nation,
                         "message": vassal_result.get(
                             "message",
-                            f"Cannot vassalize {player_counterpart or target_nation}.",
+                            f"Cannot vassalize {ctx.player_counterpart or ctx.target_nation}.",
                         ),
                     }
                 return None
-            assimilate_vassal_marshals(self, target_nation)
+            assimilate_vassal_marshals(self, ctx.target_nation)
+        return _NEXT_STAGE
 
+    def _ratify_transition_and_record(self, ctx: RatifyTreatyContext):
+        """Stage 3 of `_ratify_treaty`: The state transition (R2), the
+        armistice cooldown (R5b), open borders, the treaty stored and
+        remembered for harshness."""
+        from backend.game_logic.diplomatic_templates import burden_on_nation
+        from backend.game_logic.diplomacy import _UPGRADE_ORDER
         # Apply state transition (R2: centralized setter)
         # SR-1a: drop any retention entry an earlier peace this turn left
         # unread (an AI-AI pair's), so this treaty's summary speaks only for
         # its own pair; the setter writes the titles and the stash.
         from backend.game_logic.game_end import take_status_quo_titled as _take_sq
         _take_sq(self)
-        if self.get_diplomatic_state(proposer, target_nation) != target_state:
+        if self.get_diplomatic_state(ctx.proposer, ctx.target_nation) != ctx.target_state:
             from backend.game_logic.diplomacy import set_diplomatic_state
-            set_diplomatic_state(self, proposer, target_nation, target_state, "treaty_ratification")
+            set_diplomatic_state(self, ctx.proposer, ctx.target_nation, ctx.target_state, "treaty_ratification")
 
         # R5b: Set armistice cooldown when entering ARMISTICE
-        if target_state == "ARMISTICE":
-            self.armistice_cooldowns[diplo_key] = 5
+        if ctx.target_state == "ARMISTICE":
+            self.armistice_cooldowns[ctx.diplo_key] = 5
 
         # Handle open_borders clause (R2: centralized setter)
-        if "open_borders" in proposal.get("clauses", []):
-            if self.get_diplomatic_state(proposer, target_nation) not in ("OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
-                curr_state = self.diplomatic_states.get(diplo_key, "PEACE")
+        if "open_borders" in ctx.proposal.get("clauses", []):
+            if self.get_diplomatic_state(ctx.proposer, ctx.target_nation) not in ("OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                curr_state = self.diplomatic_states.get(ctx.diplo_key, "PEACE")
                 if curr_state in _UPGRADE_ORDER:
                     curr_idx = _UPGRADE_ORDER.index(curr_state)
                     ob_idx = _UPGRADE_ORDER.index("OPEN_BORDERS")
                     if ob_idx > curr_idx:
                         from backend.game_logic.diplomacy import set_diplomatic_state
-                        set_diplomatic_state(self, proposer, target_nation, "OPEN_BORDERS", "open_borders_clause")
+                        set_diplomatic_state(self, ctx.proposer, ctx.target_nation, "OPEN_BORDERS", "open_borders_clause")
 
-        treaty = {
-            "nations": [proposer, target_nation],
-            "type": proposal_type,
-            "state_transition": f"{current_state}_TO_{target_state}",
-            "clauses": treaty_clauses,
+        ctx.treaty = {
+            "nations": [ctx.proposer, ctx.target_nation],
+            "type": ctx.proposal_type,
+            "state_transition": f"{ctx.current_state}_TO_{ctx.target_state}",
+            "clauses": ctx.treaty_clauses,
             "turn_signed": int(self.current_turn),
             # FA-N45 (slice 10): what this treaty cost the party it was
             # asked of. The old read summed BOTH sides' clauses through the
@@ -12491,20 +12589,24 @@ class WorldState:
             # fired; and which, with them, would have booked the AI's own
             # CONCESSION to France as harshness against the pair. One side's
             # burden is the number both consumers want.
-            "harshness": burden_on_nation(treaty_clauses, target_nation),
+            "harshness": burden_on_nation(ctx.treaty_clauses, ctx.target_nation),
         }
 
         # Store treaty
-        self.active_treaties[diplo_key] = treaty
+        self.active_treaties[ctx.diplo_key] = ctx.treaty
 
         # Track for escalating harshness
-        if diplo_key not in self.previous_treaties:
-            self.previous_treaties[diplo_key] = []
-        self.previous_treaties[diplo_key].append(treaty.copy())
+        if ctx.diplo_key not in self.previous_treaties:
+            self.previous_treaties[ctx.diplo_key] = []
+        self.previous_treaties[ctx.diplo_key].append(ctx.treaty.copy())
+        return _NEXT_STAGE
 
+    def _ratify_one_time_clauses(self, ctx: RatifyTreatyContext):
+        """Stage 4 of `_ratify_treaty`: Every one-time clause applied, cessions
+        and payments first among them."""
         # Apply one-time clauses (shared)
-        applied_treaty_clauses: List[Dict] = []
-        for clause_index, clause in enumerate(treaty_clauses):
+        ctx.applied_treaty_clauses: List[Dict] = []
+        for clause_index, clause in enumerate(ctx.treaty_clauses):
             ctype = clause.get("type", "")
             amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
             from_nation = clause.get("from", "")
@@ -12525,7 +12627,7 @@ class WorldState:
                     if transfer > 0:
                         applied_clause = clause.copy()
                         applied_clause["amount"] = int(transfer)
-                        applied_treaty_clauses.append(applied_clause)
+                        ctx.applied_treaty_clauses.append(applied_clause)
                         # Imperial Settlement B2: emit `war_support_delivered` for
                         # gold transferred between same-side allies. Spec §9.2 line
                         # 658 / impl plan B2 "Treaty-clause gold / AP / manpower
@@ -12564,7 +12666,7 @@ class WorldState:
                 if cede_from and regions:
                     cede_from_regions = set(self.get_nation_regions(cede_from))
                     if cede_from_regions and len(cede_from_regions - set(regions)) == 0:
-                        ws_key = self._make_diplo_key(proposer, target_nation)
+                        ws_key = self._make_diplo_key(ctx.proposer, ctx.target_nation)
                         ws = abs(getattr(self, 'war_scores', {}).get(ws_key, 0))
                         if ws < 90:
                             continue  # Skip this clause — insufficient war score for elimination
@@ -12598,7 +12700,7 @@ class WorldState:
                     # starting-controller map (legacy or Europe — Map Slice 5)
                     # because the Region class does not retain the starting
                     # controller after init.
-                    if from_nation and to_nation and to_nation != proposer:
+                    if from_nation and to_nation and to_nation != ctx.proposer:
                         starting_controllers = (
                             getattr(self, "_starting_controllers", None)
                             or get_starting_controllers()
@@ -12631,7 +12733,7 @@ class WorldState:
                 if transferred_regions:
                     applied_clause = clause.copy()
                     applied_clause["regions"] = transferred_regions
-                    applied_treaty_clauses.append(applied_clause)
+                    ctx.applied_treaty_clauses.append(applied_clause)
                 if transferred_count > 0:
                     self.invalidate_active_nations_cache()
                 # Coalition threat: +8 per region ACTUALLY annexed (§2a) —
@@ -12645,18 +12747,23 @@ class WorldState:
                     from backend.game_logic.coalition import reduce_threat
                     reduce_threat(self, 5 * transferred_count, "territory_return",
                                   target=from_nation)
+        return _NEXT_STAGE
 
+    def _ratify_alliances_and_carves(self, ctx: RatifyTreatyContext):
+        """Stage 5 of `_ratify_treaty`: WPS-C's forced alliance and liberation
+        clauses, the client carved (NA-6c), the Tilsit clause, the war
+        bargains' commitments (WB-A)."""
         # ═══ WPS-C: Forced alliance + liberation clause handling ═══
-        _forced_alliance_clauses: List[Dict] = []
-        for clause in treaty_clauses:
+        ctx._forced_alliance_clauses: List[Dict] = []
+        for clause in ctx.treaty_clauses:
             ctype = clause.get("type", "")
 
             if ctype == "forced_alliance":
                 fa_from = clause.get("from", "")  # defeated nation being forced
                 fa_to = clause.get("to", "")       # victor imposing alliance
                 if fa_from and fa_to:
-                    _forced_alliance_clauses.append(clause.copy())
-                    applied_treaty_clauses.append(clause.copy())
+                    ctx._forced_alliance_clauses.append(clause.copy())
+                    ctx.applied_treaty_clauses.append(clause.copy())
 
             elif ctype == "prisoner_return":
                 # W6-7 Marshal Fates §9.2: a ratified prisoner_return clause
@@ -12667,13 +12774,13 @@ class WorldState:
                 pr_marshal = clause.get("marshal", "")
                 if pr_marshal and self.release_captured_marshal(
                         pr_marshal, reason="ransom"):
-                    applied_treaty_clauses.append(clause.copy())
+                    ctx.applied_treaty_clauses.append(clause.copy())
 
             elif ctype == "liberation":
                 lib_vassal = clause.get("vassal_nation", "") or clause.get("from", "")
-                lib_from = clause.get("lord_nation", "") or clause.get("to", "") or proposer
+                lib_from = clause.get("lord_nation", "") or clause.get("to", "") or ctx.proposer
                 lib_liberator = clause.get("liberator", "") or (
-                    target_nation if proposer == lib_from else proposer
+                    ctx.target_nation if ctx.proposer == lib_from else ctx.proposer
                 )
                 if lib_vassal and lib_vassal in self.vassals:
                     # Capture the freed vassal's regions BEFORE release so the
@@ -12740,7 +12847,7 @@ class WorldState:
                     applied_clause["vassal_nation"] = lib_vassal
                     applied_clause["lord_nation"] = lib_from
                     applied_clause["liberator"] = lib_liberator
-                    applied_treaty_clauses.append(applied_clause)
+                    ctx.applied_treaty_clauses.append(applied_clause)
                     self.log_event({
                         "type": "vassal_liberated",
                         "vassal_nation": lib_vassal,
@@ -12760,7 +12867,7 @@ class WorldState:
         # Runs AFTER the loops above so an earlier `territory_cede` in the
         # same package has already moved its soil, matching the settlement
         # route's ordering discipline.
-        for clause in treaty_clauses:
+        for clause in ctx.treaty_clauses:
             if clause.get("type") != "create_client":
                 continue
             cc_from = str(clause.get("from") or "")
@@ -12807,7 +12914,7 @@ class WorldState:
                 # `build_peace_ratification_summary` renders as "what was
                 # actually signed". Omitting it would leave the client state
                 # off the one surface that reports the treaty.
-                applied_treaty_clauses.append(cc_applied)
+                ctx.applied_treaty_clauses.append(cc_applied)
 
         # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6
         # item 5): a peace that enrols the beaten court in the Continental
@@ -12817,7 +12924,7 @@ class WorldState:
         # imposer (`FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE`,
         # one source). A clause the predicate now refuses is left unapplied
         # and kept off the summary, the carve's rule.
-        for clause in treaty_clauses:
+        for clause in ctx.treaty_clauses:
             if clause.get("type") != "continental_system_join":
                 continue
             from backend.game_logic.diplomacy import (
@@ -12836,30 +12943,35 @@ class WorldState:
                 )
                 from backend.game_logic.coalition import add_threat as _at
                 _at(self, int(_CS), "continental_system", target=cs_to)
-                applied_treaty_clauses.append({
+                ctx.applied_treaty_clauses.append({
                     "type": "continental_system_join",
                     "from": cs_from,
                     "to": cs_to,
                 })
 
         # WB-A: War bargain clause → create commitment record
-        for clause in war_bargain_clauses:
+        for clause in ctx.war_bargain_clauses:
             from backend.game_logic.diplomacy import create_war_bargain_commitment
             wb_named = clause.get("named_enemy", "")
             wb_region = clause.get("claim_region", "")
             if wb_named and wb_region:
                 create_war_bargain_commitment(
                     self,
-                    promiser=proposer,
-                    beneficiary=target_nation,
+                    promiser=ctx.proposer,
+                    beneficiary=ctx.target_nation,
                     target_enemy=wb_named,
                     claim_region=wb_region,
                     origin_mode="treaty_clause",
-                    source_treaty_key=diplo_key,
+                    source_treaty_key=ctx.diplo_key,
                     validate=False,
                 )
-                applied_treaty_clauses.append(clause.copy())
+                ctx.applied_treaty_clauses.append(clause.copy())
+        return _NEXT_STAGE
 
+    def _ratify_titles_and_elimination(self, ctx: RatifyTreatyContext):
+        """Stage 6 of `_ratify_treaty`: The punitive record (AI-5b(i)), the
+        titles and the Humbled Peace (GE-1), a court eliminated by its cessions
+        (R81)."""
         # AI-5b(i) (§3.6): a bilateral treaty that strips a court leaves
         # the durable punitive record too — the ultimatum-tribute path and
         # the harsh peace both run through here. APPLIED clauses only.
@@ -12867,7 +12979,7 @@ class WorldState:
             collect_cessions_from_clauses, record_punitive_cessions,
         )
         record_punitive_cessions(
-            self, collect_cessions_from_clauses(applied_treaty_clauses))
+            self, collect_cessions_from_clauses(ctx.applied_treaty_clauses))
 
         # GE-1: once per ratification — titles for every SIGNED cession
         # (occupied provinces included), the player's peace and cessions
@@ -12875,25 +12987,25 @@ class WorldState:
         # Paris, half its homeland or its crown (ENDGAME_PLAN §3).
         from backend.game_logic import game_end as _ge
         _ge_counterparts = []
-        if self.player_nation in (proposer, target_nation):
-            _ge_counterparts = [n for n in (proposer, target_nation)
+        if self.player_nation in (ctx.proposer, ctx.target_nation):
+            _ge_counterparts = [n for n in (ctx.proposer, ctx.target_nation)
                                 if n != self.player_nation]
         _ge.note_ratification(
             self,
-            signed_terms=treaty_clauses,
-            applied_clauses=applied_treaty_clauses,
-            was_vassal=_player_was_vassal,
+            signed_terms=ctx.treaty_clauses,
+            applied_clauses=ctx.applied_treaty_clauses,
+            was_vassal=ctx._player_was_vassal,
             counterparts=_ge_counterparts,
             # A truce is not a peace (review round): WAR -> ARMISTICE ends
             # no war; the ARMISTICE -> PEACE that follows (by treaty here, or
             # by expiry — `game_end.count_peace`) is the one peace counted.
-            war_ending=bool(_is_war_ending and target_state != "ARMISTICE"),
+            war_ending=bool(ctx._is_war_ending and ctx.target_state != "ARMISTICE"),
             source="treaty",
         )
 
         # R81: Check for elimination after territory cessions
         ceded_from = set()
-        for clause in treaty_clauses:
+        for clause in ctx.treaty_clauses:
             if clause.get("type") == "territory_cede":
                 fn = clause.get("from", "")
                 if fn and fn != self.player_nation:
@@ -12901,53 +13013,58 @@ class WorldState:
         for nation in ceded_from:
             if not self.get_nation_regions(nation):
                 self._eliminate_nation(nation, by_treaty=True)
+        return _NEXT_STAGE
 
+    def _ratify_war_end(self, ctx: RatifyTreatyContext):
+        """Stage 7 of `_ratify_treaty`: The war's end cleaned up (WPS-A, WB-B),
+        the clients follow (SR-1b), the forced alliance set (WPS-C §9.2), the
+        corridor (WIN-D3), the volte-face (AI-5b(ii))."""
         # War-end cleanup (shared — for both player and AI-AI).
         # WPS-A: ARMISTICE pauses objectives; PEACE concludes them.
         # WB-B: Run explicit French-breach checks after treaty clauses apply so
         # same-treaty claim transfers can fulfill instead of being breached.
-        final_state = self.get_diplomatic_state(proposer, target_nation)
+        final_state = self.get_diplomatic_state(ctx.proposer, ctx.target_nation)
         if final_state in (
             "NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE",
         ):
             from backend.game_logic.diplomacy import detect_bargain_breach_on_treaty_change
-            bargain_breach_events.extend(
+            ctx.bargain_breach_events.extend(
                 detect_bargain_breach_on_treaty_change(
-                    self, proposer, target_nation, final_state,
+                    self, ctx.proposer, ctx.target_nation, final_state,
                 )
             )
-        if current_state in ("WAR", "ARMISTICE") and final_state in ("PEACE", "ARMISTICE"):
+        if ctx.current_state in ("WAR", "ARMISTICE") and final_state in ("PEACE", "ARMISTICE"):
             from backend.game_logic.diplomacy import detect_bargain_breach_on_peace
-            bargain_breach_events.extend(
-                detect_bargain_breach_on_peace(self, proposer, target_nation)
+            ctx.bargain_breach_events.extend(
+                detect_bargain_breach_on_peace(self, ctx.proposer, ctx.target_nation)
             )
 
-        if current_state in ("WAR", "ARMISTICE") and target_state != "WAR":
+        if ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
             cleanup_war_end(
                 self,
-                diplo_key,
-                conclude_objectives=(target_state != "ARMISTICE"),
+                ctx.diplo_key,
+                conclude_objectives=(ctx.target_state != "ARMISTICE"),
             )
 
         # SR-1b: the client's war is the lord's war — every client pair
         # that follows this treaty (the lord's satellites against the court,
         # the court's satellites against the lord's bloc) takes the SAME
         # state by the same road. Read for the summary below.
-        _clients_followed: List[Dict] = []
-        if _is_war_ending:
+        ctx._clients_followed: List[Dict] = []
+        if ctx._is_war_ending:
             from backend.game_logic.diplomacy import follow_the_lord as _follow
-            _clients_followed = _follow(self, proposer, target_nation,
-                                        target_state, "treaty_ratification")
+            ctx._clients_followed = _follow(self, ctx.proposer, ctx.target_nation,
+                                        ctx.target_state, "treaty_ratification")
 
         # WPS-C §9.2: Forced alliance post-cleanup state transition.
         # After cleanup_war_end clears war data, set state to ALLIANCE,
         # reset relation to 0, add to Continental System, set origin tag,
         # and generate coalition threat.
-        if _forced_alliance_clauses:
+        if ctx._forced_alliance_clauses:
             from backend.game_logic.diplomacy import set_diplomatic_state as _set_ds
             from backend.game_logic.diplomacy import cleanup_war_end as _cleanup_war_end
-            for fa_clause in _forced_alliance_clauses:
+            for fa_clause in ctx._forced_alliance_clauses:
                 fa_target = fa_clause.get("from", "")  # defeated nation being forced
                 fa_imposer = fa_clause.get("to", "")   # victor imposing alliance
                 if not fa_target or not fa_imposer:
@@ -12960,7 +13077,7 @@ class WorldState:
                 # up while the pair still read WAR, and a forced alliance
                 # out of a truce left the instance claiming the pair paused.
                 _set_ds(self, fa_imposer, fa_target, "ALLIANCE", "forced_alliance")
-                if fa_key != diplo_key and fa_state in ("WAR", "ARMISTICE"):
+                if fa_key != ctx.diplo_key and fa_state in ("WAR", "ARMISTICE"):
                     _cleanup_war_end(self, fa_key, conclude_objectives=True)
                 self.nation_relations[fa_key] = 0
                 includes_cs = bool(
@@ -13021,7 +13138,7 @@ class WorldState:
         try:
             from backend.game_logic.withdrawal import open_evacuation_corridor
             if final_state not in ("WAR",):
-                open_evacuation_corridor(self, proposer, target_nation)
+                open_evacuation_corridor(self, ctx.proposer, ctx.target_nation)
         except Exception as exc:
             report(exc, "world_state.WorldState._ratify_treaty: import backend.game_logic.withdrawal")
 
@@ -13034,15 +13151,20 @@ class WorldState:
             from backend.game_logic.emergent_designs import (
                 maybe_fire_volte_face,
             )
-            maybe_fire_volte_face(self, proposer, target_nation)
+            maybe_fire_volte_face(self, ctx.proposer, ctx.target_nation)
+        return _NEXT_STAGE
 
+    def _ratify_player_events(self, ctx: RatifyTreatyContext):
+        """Stage 8 of `_ratify_treaty`: France's own treaty: its events,
+        notices and reply."""
+        from backend.game_logic.game_end import take_status_quo_titled as _take_sq
         # ═══ Player-specific events ═══
-        if is_player_treaty:
+        if ctx.is_player_treaty:
             self.log_event({
                 "type": "diplomatic_treaty_signed",
-                "nations": [proposer, target_nation],
-                "treaty_type": proposal_type,
-                "state_transition": f"{current_state}_TO_{target_state}",
+                "nations": [ctx.proposer, ctx.target_nation],
+                "treaty_type": ctx.proposal_type,
+                "state_transition": f"{ctx.current_state}_TO_{ctx.target_state}",
             })
 
             from backend.display_names import proposal_display_name, with_indefinite_article
@@ -13052,7 +13174,7 @@ class WorldState:
             # PF-5: collapse a re-signed treaty with the SAME counterparty to the
             # latest notice (they otherwise pile up and re-render every turn).
             # Distinct counterparties keep distinct notices.
-            _treaty_counterpart = player_counterpart or target_nation
+            _treaty_counterpart = ctx.player_counterpart or ctx.target_nation
             self.notifications.dismiss_by_type(
                 TREATY_SIGNED,
                 filter_fn=lambda n, c=_treaty_counterpart: (
@@ -13061,31 +13183,31 @@ class WorldState:
                 TREATY_SIGNED,
                 NotificationPriority.NORMAL,
                 f"Treaty with {_treaty_counterpart}",
-                f"{proposer} and {target_nation} have signed {with_indefinite_article(proposal_display_name(proposal_type))}.",
+                f"{ctx.proposer} and {ctx.target_nation} have signed {with_indefinite_article(proposal_display_name(ctx.proposal_type))}.",
                 int(self.current_turn),
                 details={"counterpart": _treaty_counterpart},
             ))
 
             from backend.game_logic.dispatch import queue_dispatch_event
             queue_dispatch_event(self, "diplomatic_treaty_signed",
-                                {"nation_a": proposer, "nation_b": target_nation,
-                                 "treaty_type": proposal_display_name(proposal_type)},
+                                {"nation_a": ctx.proposer, "nation_b": ctx.target_nation,
+                                 "treaty_type": proposal_display_name(ctx.proposal_type)},
                                 "partial_on_nation")
 
             # BPH-A + BPH-D: Emit peace_ratified with war outcome data
-            if _is_war_ending:
+            if ctx._is_war_ending:
                 from backend.game_logic.diplomatic_templates import annotate_peace_terms
-                annotated = annotate_peace_terms(proposal, proposer, target_nation)
+                annotated = annotate_peace_terms(ctx.proposal, ctx.proposer, ctx.target_nation)
 
                 # BPH-D: Classify war outcome for log one-liner
-                _ws = int(_pre_cleanup_data.get("war_score", 0))
+                _ws = int(ctx._pre_cleanup_data.get("war_score", 0))
                 _terr_gained = [
-                    c.get("regions", []) for c in applied_treaty_clauses
+                    c.get("regions", []) for c in ctx.applied_treaty_clauses
                     if c.get("type") == "territory_cede" and c.get("to") == self.player_nation
                 ]
                 _terr_gained_flat = [r for rs in _terr_gained for r in rs]
                 _terr_lost = [
-                    c.get("regions", []) for c in applied_treaty_clauses
+                    c.get("regions", []) for c in ctx.applied_treaty_clauses
                     if c.get("type") == "territory_cede" and c.get("from") == self.player_nation
                 ]
                 _terr_lost_flat = [r for rs in _terr_lost for r in rs]
@@ -13097,19 +13219,19 @@ class WorldState:
                 # state as a WHITE PEACE: "nothing happened".
                 _client_erected = any(
                     c.get("type") == "create_client"
-                    for c in applied_treaty_clauses
+                    for c in ctx.applied_treaty_clauses
                 )
                 # The Tilsit clause: joining the System is a material term.
                 _system_joined = any(
                     c.get("type") == "continental_system_join"
-                    for c in applied_treaty_clauses
+                    for c in ctx.applied_treaty_clauses
                 )
                 _gold_in = sum(
-                    abs(int(c.get("amount", 0))) for c in applied_treaty_clauses
+                    abs(int(c.get("amount", 0))) for c in ctx.applied_treaty_clauses
                     if c.get("type") == "gold_lump" and c.get("to") == self.player_nation
                 )
                 _gold_out = sum(
-                    abs(int(c.get("amount", 0))) for c in applied_treaty_clauses
+                    abs(int(c.get("amount", 0))) for c in ctx.applied_treaty_clauses
                     if c.get("type") == "gold_lump" and c.get("from") == self.player_nation
                 )
                 if _ws >= 30:
@@ -13124,24 +13246,24 @@ class WorldState:
 
                 peace_event = {
                     "type": "peace_ratified",
-                    "proposer_nation": proposer,
-                    "target_nation": player_counterpart or target_nation,
-                    "ratifying_nations": [proposer, target_nation],
-                    "original_target_nation": target_nation,
-                    "state_transition": f"{current_state}_TO_{target_state}",
+                    "proposer_nation": ctx.proposer,
+                    "target_nation": ctx.player_counterpart or ctx.target_nation,
+                    "ratifying_nations": [ctx.proposer, ctx.target_nation],
+                    "original_target_nation": ctx.target_nation,
+                    "state_transition": f"{ctx.current_state}_TO_{ctx.target_state}",
                     "annotated_terms": annotated,
                     "turn": int(self.current_turn),
-                    "harshness": treaty.get("harshness", 0),
+                    "harshness": ctx.treaty.get("harshness", 0),
                     "war_outcome": _war_outcome,
                     "territory_gained": _terr_gained_flat,
                     "territory_lost": _terr_lost_flat,
                     "final_war_score": int(_ws),
-                    "war_duration_turns": int(_pre_cleanup_data.get("war_duration", 0)),
+                    "war_duration_turns": int(ctx._pre_cleanup_data.get("war_duration", 0)),
                     "gold_received": int(_gold_in),
                     "gold_paid": int(_gold_out),
                 }
                 self.log_event(peace_event)
-                if target_state == "ARMISTICE":
+                if ctx.target_state == "ARMISTICE":
                     # SR quick win AAR-15: a truce is announced as a truce —
                     # the dispatch's rail row and headline had read "peace
                     # ratified" / "the war ends" for WAR → ARMISTICE (the
@@ -13157,48 +13279,48 @@ class WorldState:
                     # DD-1 S8 Step 3 (SFR-D28's announce half): the truce's
                     # own sentence — whom it binds, whose war runs on.
                     _followers = truce_followers_line(
-                        self, self.player_nation, player_counterpart or target_nation)
+                        self, self.player_nation, ctx.player_counterpart or ctx.target_nation)
                     queue_dispatch_event(self, "armistice_ratified", {
-                        "proposer_nation": proposer, "target_nation": target_nation,
-                        "other": _fdn(self, player_counterpart or target_nation),
+                        "proposer_nation": ctx.proposer, "target_nation": ctx.target_nation,
+                        "other": _fdn(self, ctx.player_counterpart or ctx.target_nation),
                         "turns": int(ARMISTICE_DURATION),
                         "thaw": int(ARMISTICE_AUTO_PEACE_RELATION),
                         "followers": (" " + _followers) if _followers else "",
                     }, "always")
                 else:
                     queue_dispatch_event(self, "peace_ratified",
-                                        {"proposer_nation": proposer, "target_nation": target_nation},
+                                        {"proposer_nation": ctx.proposer, "target_nation": ctx.target_nation},
                                         "always")
 
             # BPH-C §9.3: Apply separate-peace relation penalties
             applied_penalties: List[Dict] = []
-            if current_state in ("WAR", "ARMISTICE") and target_state == "PEACE":
+            if ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state == "PEACE":
                 from backend.game_logic.diplomacy import apply_separate_peace_penalties
                 from backend.game_logic.diplomatic_templates import burden_on_nation
                 penalty_actor = self.player_nation
-                penalty_target = target_nation if proposer == self.player_nation else proposer
+                penalty_target = ctx.target_nation if ctx.proposer == self.player_nation else ctx.proposer
                 # FA-N45: the allies' anger is about how lightly the COMMON
                 # ENEMY got off, so the harshness that doubles their penalty
                 # below 0.2 must be the burden on that enemy — not the sum of
                 # both sides' clauses, which counted France's own concessions
                 # as if they had been extracted from him.
-                harshness = burden_on_nation(treaty_clauses, penalty_target)
+                harshness = burden_on_nation(ctx.treaty_clauses, penalty_target)
                 applied_penalties = apply_separate_peace_penalties(self, penalty_actor, penalty_target, harshness)
 
             # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
-            if current_state == "WAR" and target_state != "WAR":
+            if ctx.current_state == "WAR" and ctx.target_state != "WAR":
                 from backend.game_logic.diplomacy import calculate_war_score
                 from backend.game_logic.coalition import reduce_threat as _reduce_threat
                 france_war_score = calculate_war_score(
-                    self.player_nation, player_counterpart or target_nation, self
+                    self.player_nation, ctx.player_counterpart or ctx.target_nation, self
                 )
                 has_sweeteners = any(
                     c.get("from") == self.player_nation
-                    for c in treaty_clauses
+                    for c in ctx.treaty_clauses
                 )
                 has_territory_demands = any(
                     c.get("type") == "territory_cede" and c.get("to") == self.player_nation
-                    for c in treaty_clauses
+                    for c in ctx.treaty_clauses
                 )
                 if france_war_score > 20 and has_sweeteners and not has_territory_demands:
                     _reduce_threat(self, 3, "generous_peace")
@@ -13214,7 +13336,7 @@ class WorldState:
 
             # BPH-D §11: Build ratification summary and store in log
             peace_ratification_summary = None
-            if _is_peace_ratification:
+            if ctx._is_peace_ratification:
                 from backend.game_logic.diplomacy import build_peace_ratification_summary
                 from backend.game_logic.diplomatic_templates import annotate_peace_terms as _ann
                 # IGR-D: annotate what was RATIFIED, not what was asked for.
@@ -13229,23 +13351,23 @@ class WorldState:
                 # treaty that erected nothing — the exact silent lie this
                 # slice exists to kill, one surface downstream.
                 _applied_carve_tags = {
-                    str(c.get("tag") or "") for c in applied_treaty_clauses
+                    str(c.get("tag") or "") for c in ctx.applied_treaty_clauses
                     if c.get("type") == "create_client"
                 }
-                _summary_proposal = proposal
+                _summary_proposal = ctx.proposal
                 _refused_carves = [
-                    d for d in (proposal.get("demands") or [])
+                    d for d in (ctx.proposal.get("demands") or [])
                     if isinstance(d, dict) and d.get("type") == "create_client"
                     and str(d.get("tag") or "") not in _applied_carve_tags
                 ]
                 if _refused_carves:
-                    _summary_proposal = dict(proposal)
+                    _summary_proposal = dict(ctx.proposal)
                     _summary_proposal["demands"] = [
-                        d for d in (proposal.get("demands") or [])
+                        d for d in (ctx.proposal.get("demands") or [])
                         if d not in _refused_carves
                     ]
                 _annotated_for_summary = _ann(
-                    _summary_proposal, proposer, target_nation)
+                    _summary_proposal, ctx.proposer, ctx.target_nation)
                 # ...and say so out loud. Dropping the row would stop the
                 # lie; naming the loss is what lets the player understand
                 # why the nation they drafted is not on the map.
@@ -13253,15 +13375,15 @@ class WorldState:
                 # SR-1b: the clients that followed the lord out of the war
                 # — named on the aftermath so the table says who fights on
                 # (an ally, by its own fallout line) and who does not.
-                if _clients_followed:
+                if ctx._clients_followed:
                     from backend.game_logic.formations import formed_display_name as _fdn
-                    _ours = sorted({n for row in _clients_followed for n in row["nations"]
+                    _ours = sorted({n for row in ctx._clients_followed for n in row["nations"]
                                     if n != self.player_nation
                                     and self._top_overlord(n) == self.player_nation})
-                    _theirs = sorted({n for row in _clients_followed for n in row["nations"]
-                                      if n not in (proposer, target_nation)
+                    _theirs = sorted({n for row in ctx._clients_followed for n in row["nations"]
+                                      if n not in (ctx.proposer, ctx.target_nation)
                                       and self._top_overlord(n) != self.player_nation})
-                    _noun = "the truce" if target_state == "ARMISTICE" else "the peace"
+                    _noun = "the truce" if ctx.target_state == "ARMISTICE" else "the peace"
                     if _ours:
                         applied_penalties.append({"display": (
                             f"Our clients follow us into {_noun}: "
@@ -13281,18 +13403,18 @@ class WorldState:
                             f"the treaty was signed"
                         ),
                     })
-                summary_treaty = treaty.copy()
-                summary_treaty["clauses"] = [c.copy() for c in applied_treaty_clauses]
+                summary_treaty = ctx.treaty.copy()
+                summary_treaty["clauses"] = [c.copy() for c in ctx.applied_treaty_clauses]
                 peace_ratification_summary = build_peace_ratification_summary(
-                    self, proposer, player_counterpart or target_nation, summary_treaty,
+                    self, ctx.proposer, ctx.player_counterpart or ctx.target_nation, summary_treaty,
                     _annotated_for_summary, applied_penalties,
-                    _pre_cleanup_cancelled_orders, _pre_cleanup_data,
+                    ctx._pre_cleanup_cancelled_orders, ctx._pre_cleanup_data,
                 )
                 # SR-1a: the status quo the treaty signed for — what stays
                 # ours (titled) and what stays theirs — on the terms list
                 # the terminal, the ledger and the R screen print.
                 from backend.game_logic.game_end import status_quo_summary_lines
-                _sq_entries = _take_sq(self, [diplo_key])
+                _sq_entries = _take_sq(self, [ctx.diplo_key])
                 _sq_lines = status_quo_summary_lines(self, _sq_entries, self.player_nation)
                 # RS-D1: "Recognition: Austria will recognize the order at the
                 # Congress — Vienna stays ours by this treaty."
@@ -13313,40 +13435,44 @@ class WorldState:
             # (with its article) are the one source for both (R7).
             from backend.display_names import STATE_DISPLAY, with_definite_article
             from backend.game_logic.formations import formed_display_name
-            _court = player_counterpart or target_nation
+            _court = ctx.player_counterpart or ctx.target_nation
             result = {
                 "type": "diplomatic_treaty_signed",
-                "target": player_counterpart or target_nation,
-                "treaty_type": proposal_type,
+                "target": ctx.player_counterpart or ctx.target_nation,
+                "treaty_type": ctx.proposal_type,
                 "message": (
-                    f"Treaty signed: {STATE_DISPLAY.get(current_state, current_state)} → "
-                    f"{STATE_DISPLAY.get(target_state, target_state)} "
+                    f"Treaty signed: {STATE_DISPLAY.get(ctx.current_state, ctx.current_state)} → "
+                    f"{STATE_DISPLAY.get(ctx.target_state, ctx.target_state)} "
                     f"with {with_definite_article(formed_display_name(self, _court))}."
                 ),
             }
             if peace_ratification_summary:
                 result["peace_ratification_summary"] = peace_ratification_summary
-            if bargain_breach_events:
-                result["bargain_breach_events"] = bargain_breach_events
+            if ctx.bargain_breach_events:
+                result["bargain_breach_events"] = ctx.bargain_breach_events
             return result
+        return _NEXT_STAGE
 
+    def _ratify_ai_ai_events(self, ctx: RatifyTreatyContext):
+        """Stage 9 of `_ratify_treaty`: Two other courts: relations, the
+        dispatch, the log, the pair's cooldown (R43), the result."""
         # ═══ AI-AI-specific events ═══
         # Improve relations
-        self.modify_nation_relation(proposer, target_nation, 10)
+        self.modify_nation_relation(ctx.proposer, ctx.target_nation, 10)
 
         from backend.display_names import proposal_display_name
-        treaty_type_display = proposal_display_name(proposal_type)
+        treaty_type_display = proposal_display_name(ctx.proposal_type)
 
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(self, "diplomatic_ai_ai_treaty",
-                            {"nation_a": proposer, "nation_b": target_nation,
+                            {"nation_a": ctx.proposer, "nation_b": ctx.target_nation,
                              "treaty_type": treaty_type_display},
                             "partial_on_nation")
 
         self.log_event({
             "type": "diplomatic_ai_ai_treaty",
-            "nation_a": proposer,
-            "nation_b": target_nation,
+            "nation_a": ctx.proposer,
+            "nation_b": ctx.target_nation,
             "treaty_type": treaty_type_display,
             "turn": int(self.current_turn),
         })
@@ -13354,19 +13480,19 @@ class WorldState:
         # R43: Set per-pair cooldown to prevent rapid AI-AI upgrades
         from backend.game_logic.ai_diplomacy import _get_cooldowns, _set_cooldowns
         cooldowns = _get_cooldowns(self)
-        cooldowns[f"ai_ai|{diplo_key}"] = 5
+        cooldowns[f"ai_ai|{ctx.diplo_key}"] = 5
         _set_cooldowns(self, cooldowns)
 
         from backend.display_names import with_indefinite_article
         result = {
             "type": "ai_ai_treaty",
-            "nation_a": proposer,
-            "nation_b": target_nation,
+            "nation_a": ctx.proposer,
+            "nation_b": ctx.target_nation,
             "treaty_type": treaty_type_display,
-            "message": f"{proposer} and {target_nation} have signed {with_indefinite_article(treaty_type_display)}.",
+            "message": f"{ctx.proposer} and {ctx.target_nation} have signed {with_indefinite_article(treaty_type_display)}.",
         }
-        if bargain_breach_events:
-            result["bargain_breach_events"] = bargain_breach_events
+        if ctx.bargain_breach_events:
+            result["bargain_breach_events"] = ctx.bargain_breach_events
         return result
 
     def _process_treaty_clauses(self) -> None:

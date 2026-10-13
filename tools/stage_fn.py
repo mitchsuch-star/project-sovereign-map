@@ -168,6 +168,40 @@ TARGETS = {
              "acknowledgement, the reply."),
         ],
     ),
+    "_ratify_treaty": dict(
+        src="backend/models/world_state.py", cls="WorldState", func="_ratify_treaty",
+        params=["proposal"], prefix="_ratify_", ctx_class="RatifyTreatyContext",
+        mode="body", slice_name="CODE-2c", confine=True,
+        stages=[
+            ("open", "# Extract nations from proposal",
+             "The two courts, the target state, and the one verdict "
+             "(`treaty.can_sign`, DD-1 S7 Slice B) — a refused letter stops here."),
+            ("snapshot_and_vassal", "# Build treaty clauses before vassalage validation",
+             "The clauses built; the war's data snapshotted before anything "
+             "clears it (BPH-D, GE-1); a VASSAL treaty creates its vassal first."),
+            ("transition_and_record", "# Apply state transition (R2: centralized setter)",
+             "The state transition (R2), the armistice cooldown (R5b), open "
+             "borders, the treaty stored and remembered for harshness."),
+            ("one_time_clauses", "# Apply one-time clauses (shared)",
+             "Every one-time clause applied, cessions and payments first among "
+             "them."),
+            ("alliances_and_carves", "WPS-C: Forced alliance + liberation clause handling",
+             "WPS-C's forced alliance and liberation clauses, the client carved "
+             "(NA-6c), the Tilsit clause, the war bargains' commitments (WB-A)."),
+            ("titles_and_elimination", "a bilateral treaty that strips a court leaves",
+             "The punitive record (AI-5b(i)), the titles and the Humbled Peace "
+             "(GE-1), a court eliminated by its cessions (R81)."),
+            ("war_end", "# War-end cleanup (shared",
+             "The war's end cleaned up (WPS-A, WB-B), the clients follow (SR-1b), "
+             "the forced alliance set (WPS-C §9.2), the corridor (WIN-D3), the "
+             "volte-face (AI-5b(ii))."),
+            ("player_events", "Player-specific events",
+             "France's own treaty: its events, notices and reply."),
+            ("ai_ai_events", "AI-AI-specific events",
+             "Two other courts: relations, the dispatch, the log, the pair's "
+             "cooldown (R43), the result."),
+        ],
+    ),
 }
 
 SCOPES =(ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef,
@@ -917,6 +951,7 @@ def main(target: str, apply: bool):
 
     # imports
     if "from dataclasses import dataclass, field" not in new_text:
+        typing_node = None
         for old in ("from typing import Optional", "from typing import Dict, Optional",
                     "from typing import Dict, List, Optional", "from typing import Any, Dict, Optional"):
             if (old + nl) in new_text:
@@ -925,6 +960,21 @@ def main(target: str, apply: bool):
                 new_text = new_text.replace(old + nl, "from dataclasses import dataclass, field"
                                             + nl + rep + nl, 1)
                 break
+        else:
+            typing_node = next((n for n in tree.body if isinstance(n, ast.ImportFrom)
+                                and n.module == "typing" and n.lineno == n.end_lineno), None)
+        if "from dataclasses import dataclass, field" in new_text:
+            pass
+        elif typing_node is not None:
+            # CODE-2c (world_state.py): any other one-line typing import — the
+            # dataclasses line goes above it, `Any` joins it when absent
+            line = lines[typing_node.lineno - 1]
+            rep = line if any(a.name == "Any" for a in typing_node.names) \
+                else line.replace("from typing import ", "from typing import Any, ", 1)
+            if (nl + line + nl) not in new_text:
+                die("could not add imports")
+            new_text = new_text.replace(nl + line + nl, nl + "from dataclasses import dataclass, field"
+                                        + nl + rep + nl, 1)
         else:
             # no typing line to extend (campaign_log.py): both imports go
             # after the module's first import statement
