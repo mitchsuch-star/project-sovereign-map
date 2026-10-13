@@ -1,0 +1,18 @@
+{"reader": 2, "group": "menu_and_settings",
+ "marks": {
+  "main_menu": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu__1920x1080.png", "why": "The first-run card 'CAN YOU READ THIS COMFORTABLY?' is the one bright, bordered box in the centre over the dimmed menu, and the eye goes to it after the INK & IRON title."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu__1920x1080.png", "why": "Begin, The School of War, Continue and Load are greyed with no tooltip and no reason beside them; only a red status line at the foot of the screen hints that the war office does not answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu__1920x1080.png", "why": "The card asks one thing and offers it in plain view: drag the slider, 'Size for this screen' or 'Looks right'."}
+  },
+  "main_menu_settings": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "The SETTINGS panel is the centred, bordered box with no card over it, DISPLAY and INTERFACE first in it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "The probe finds Settings, Connect and Disconnect SILENT, and the four greyed campaign buttons give no reason."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "Each setting is a visible dropdown, slider or button, with Back at the foot."}
+  },
+  "war_room_pause_settings": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "The CAMPAIGN MENU holds the centre over the dimmed war room and its unfolded Settings, DISPLAY and the INTERFACE slider, is its largest block, not a sliver."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "The probe finds the Connect and Disconnect buttons in the Settings list SILENT."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "The scale slider, 'Size for this screen' and the other settings are visible controls, with Main Menu and Quit below."}
+  }
+ }}

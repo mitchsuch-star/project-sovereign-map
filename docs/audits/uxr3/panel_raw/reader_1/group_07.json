@@ -1,0 +1,46 @@
+{"reader": 1, "group": "enemy_phase_and_diorama",
+ "marks": {
+  "enemy_phase_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "Under the red ENEMY PHASE title, Austria's action in prose and its battle block are the first content."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "The underlined '⚔ View the field' hands off and the bordered Continue closes; nothing else looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "It informs; View the field and the full-width Continue are visible."}
+  },
+  "enemy_phase_collapse": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "The AI's moves in prose and the Battle of Franconia block with both sides' casualties lead the dialog."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "The field link hands off and Continue closes."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "It informs; View the field and Continue are visible."}
+  },
+  "enemy_phase_iq5": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "The battle block leads, with 'Ney's army: 6,567 casualties — Ney's own corps: 15,471 remaining' among its first lines."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "The field link hands off and Continue closes."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "It informs; View the field and Continue are visible."},
+   "R4_note": "The action line reads '- unknown' above the battle name."
+  },
+  "diorama_aadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "The banner verdict 'A BLOODY STALEMATE' and the order of battle with each corps' own losses fill the baize, with Berthier's verdict beneath."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "Replay and Close are bordered buttons and both answer; the seal and the crossed swords read as ornament."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "It informs and Close is visible."},
+   "R4_note": "The Close button sits on top of the frame's bottom-right corner ornament and the wax seal overlaps the plaque's edge."
+  },
+  "diorama_dadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "The red banner 'THE FIELD IS LOST' and the order of battle with each side's losses dominate."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "Replay and Close both answer and nothing else poses as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "It informs and Close is visible."}
+  },
+  "diorama_rout_conquest": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "The banner with its 'Swabia falls to France' sub-line and the red ROUTED under the broken line are the eye's first stops."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "Replay and Close both answer; the laurels and seal are ornament."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "It informs and Close is visible."}
+  },
+  "diorama_four_contingents": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "The four ranks a side, each named with its strength, fill the baize under the banner, with the reserve tails at the foot."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "Replay and Close both answer and nothing else poses as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "It informs and Close is visible."},
+   "R4_note": "Flags sit on top of the strength lines (Ney's and Davout's figures), and Kutuzov wears Austria's colours while Archduke Charles wears Russia's."
+  },
+  "diorama_naval": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_naval__1920x1080.png", "why": "The red banner 'THE FLEET IS BROKEN', the two lines of hulls with STRUCK beneath and the sail counts fill the scene."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_naval__1920x1080.png", "why": "Replay and Close both answer and nothing else poses as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_naval__1920x1080.png", "why": "It informs and Close is visible."}
+  }
+ }}

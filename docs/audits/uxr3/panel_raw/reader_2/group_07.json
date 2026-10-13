@@ -1,0 +1,45 @@
+{"reader": 2, "group": "enemy_phase_and_diorama",
+ "marks": {
+  "enemy_phase_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "Under the red ENEMY PHASE title, Austria's action in prose and its battle lines with '⚔ View the field' are the first and largest block."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "The underlined 'View the field' link hands off and the bordered Continue button answers; nothing else is styled as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "An informing report with a full-width Continue button at its foot."}
+  },
+  "enemy_phase_collapse": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "Archduke Charles's two actions in prose, then the battle with both sides' casualties and its field link, lead the dialog."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "The field link looks like a link and hands off; Continue answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "Continue is visible at the foot."}
+  },
+  "enemy_phase_iq5": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "The first entry is the battle and its casualty rows, with the defender's labelled by scope ('Ney's army … Ney's own corps') near the top of it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "The field link hands off and Continue answers; nothing inert looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "Continue is visible at the foot."},
+   "R4_note": "The action line under BRITAIN reads '- unknown' where the other boards name the move."
+  },
+  "diorama_aadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "The banner verdict and the order of battle on the baize, each contingent with its own strength-to-loss line, are the largest and first element."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "Replay and Close look like buttons and both answer; the sealed title plaque reads as a label."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "An informing scene whose Close button is visible."},
+   "R4_note": "The Close button runs into the panel's bottom-right corner ornament."
+  },
+  "diorama_dadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "THE FIELD IS LOST over the order of battle, each contingent's losses beside it, leads and fills the panel."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "Replay and Close look like buttons and both answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "Close is visible."}
+  },
+  "diorama_rout_conquest": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "A DECISIVE VICTORY with 'Swabia falls to France.' directly under it leads, and the red ROUTED sits under Mack's broken line."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "Replay and Close look like buttons and both answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "Close is visible."}
+  },
+  "diorama_four_contingents": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "Four named ranks a side receding across the baize, under the banner, fill the panel, with the reserve tails in its corners."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "Replay and Close look like buttons and both answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "Close is visible."}
+  },
+  "diorama_naval": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_naval__1920x1080.png", "why": "THE FLEET IS BROKEN over the two lines of battle at sea, STRUCK under the French hulls and the sail counts beside each admiral, fills the panel."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_naval__1920x1080.png", "why": "Replay and Close look like buttons and both answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diorama_naval__1920x1080.png", "why": "Close is visible."}
+  }
+ }}

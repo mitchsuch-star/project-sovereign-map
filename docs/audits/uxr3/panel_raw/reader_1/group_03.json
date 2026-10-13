@@ -1,0 +1,44 @@
+{"reader": 1, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_boot__1920x1080.png", "why": "The first thing under the title is a character sheet, the Emperor's card with his portrait, and its skill bars follow; the eye lands on the portrait."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_boot__1920x1080.png", "why": "The X closes, the order and Commission links are boxed and underlined and answer or hand off, and the skill bars read as gauges, not buttons."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_boot__1920x1080.png", "why": "The screen informs; the X and 'Press G to close' are in view and a scrollbar leads to the ladder below."},
+   "R4_note": "The bordered expand-icon grip sits outside the panel's bottom-right corner, as on the reading screens."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_t20__1920x1080.png", "why": "OUR DOCTRINE leads, the ladder under it shows empty bars and zeros, and the grievances and trust bars of the played roster are below the fold, with only a cut-off portrait at the bottom."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_t20__1920x1080.png", "why": "The boxed 'Commission a Marshal…' link and the X answer, and the ladder bars do not pose as controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_t20__1920x1080.png", "why": "It informs; the X and 'Press G to close' are visible and Commission a Marshal is offered in view."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "The frame shows only the Emperor's card; the captured marshal and his captor are nowhere in view."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "The X closes and the links answer or hand off; nothing visible is inert."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "An informing screen whose X and 'Press G to close' are visible, though the prisoner is only reachable by scrolling."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The Emperor's own card, portrait, Seat ('at the Tuileries with the Guard') and strength, is the first and largest block."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The X closes and every link answers or hands off; nothing visible is inert."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "It informs and the X and 'Press G to close' are in view."}
+  },
+  "generals_np_field": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_field__1920x1080.png", "why": "The frame is the same long Emperor biography; no Presence figure 'as applied' and no dimming star can be found in view."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_field__1920x1080.png", "why": "The X closes and every link answers or hands off; nothing visible is inert."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_field__1920x1080.png", "why": "It informs and the way out (X, G) is visible."}
+  },
+  "generals_np_captive": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "Nothing in view names him a captive: the card still says 'at the Tuileries with the Guard' and 'You, in the field', and only a red 'Strength 0' hints at it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "The X closes and every link answers or hands off; nothing visible is inert."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "It informs and the X and 'Press G to close' are visible."}
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The played ladder, glory bars and red 'envious of' marks, is the largest block in view and draws the eye, though the doctrine sits above it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The gold-boxed Commission link and the X answer and the ladder bars read as gauges."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "It informs; the X, 'Press G to close' and Commission a Marshal are visible."}
+  },
+  "generals_doctrine": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "OUR DOCTRINE is not in view at all; the Emperor's card fills the frame."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "The X closes and every link answers or hands off; nothing visible is inert."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "It informs and the X and 'Press G to close' are visible."}
+  }
+ }}

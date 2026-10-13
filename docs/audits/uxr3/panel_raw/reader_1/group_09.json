@@ -1,0 +1,20 @@
+{"reader": 1, "group": "menu_and_settings",
+ "marks": {
+  "main_menu": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu__1920x1080.png", "why": "The large INK & IRON title block heads the menu and the gold-bordered 'CAN YOU READ THIS COMFORTABLY?' card sits centred over everything, where the eye goes."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu__1920x1080.png", "why": "The four greyed campaign buttons (Begin, School of War, Continue, Load) carry no tooltip and no reason beside them; the only hint is a small red developer line at the screen's foot naming a python command."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu__1920x1080.png", "why": "The card says what to do (drag the slider) and its slider, 'Size for this screen' and 'Looks right' are visible."}
+  },
+  "main_menu_settings": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "The centred SETTINGS panel, DISPLAY and INTERFACE first, is the focal box of the frame with no card over it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "The probe records Settings, Connect and Disconnect as SILENT, and the four greyed campaign buttons give no reason."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "The settings controls are in view with a scrollbar to the rest, and Back is visible."},
+   "R4_note": "At 5120 the High contrast hint is cut in half by the bottom of the scroll area above Back."
+  },
+  "war_room_pause_settings": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "The CAMPAIGN MENU panel stands over the dimmed war room and its unfolded Settings, with the Interface slider readable, is the panel's largest band."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "The probe records Connect and Disconnect as SILENT."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "The Interface slider and its buttons are visible, with a scrollbar to the sound rows."},
+   "R4_note": "The pause panel has no Resume or close control; only Main Menu and Quit to Desktop end it."
+  }
+ }}

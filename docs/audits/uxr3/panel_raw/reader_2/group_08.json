@@ -1,0 +1,54 @@
+{"reader": 2, "group": "popups",
+ "marks": {
+  "objection_dialog": {
+   "R2": {"pass": false, "cite": "none", "why": "No frame: the surface has never been shot, so its hierarchy cannot be judged."},
+   "R5": {"pass": false, "cite": "none", "why": "No frame and no probe record: no control can be seen or shown to work."},
+   "R8": {"pass": false, "cite": "none", "why": "No frame: nothing shows whether its key action is reachable."}
+  },
+  "talleyrand_objection": {
+   "R2": {"pass": false, "cite": "none", "why": "No frame: the surface has never been shot, so its hierarchy cannot be judged."},
+   "R5": {"pass": false, "cite": "none", "why": "No frame and no probe record: no control can be seen or shown to work."},
+   "R8": {"pass": false, "cite": "none", "why": "No frame: nothing shows whether its key action is reachable."}
+  },
+  "interrupt_last_stand": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\interrupt_last_stand__1920x1080.png", "why": "NEY REPORTS heads a compact box whose cornered line leads straight into the two full-width choices, which take the eye."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\interrupt_last_stand__1920x1080.png", "why": "Fight to the Last and Attempt a Breakout are drawn as buttons and both answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\interrupt_last_stand__1920x1080.png", "why": "Both answers to the question are visible buttons."}
+  },
+  "capture_choice": {
+   "R2": {"pass": false, "cite": "none", "why": "No frame: the surface has never been shot, so its hierarchy cannot be judged."},
+   "R5": {"pass": false, "cite": "none", "why": "No frame and no probe record: no control can be seen or shown to work."},
+   "R8": {"pass": false, "cite": "none", "why": "No frame: nothing shows whether plunder or secure is reachable."}
+  },
+  "petition_popup": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_popup__1920x1080.png", "why": "Under A CLIENT'S PETITION the court is named, then 'The petition:' sets out Grant's and Refuse's terms as the largest block."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_popup__1920x1080.png", "why": "Grant, Refuse and Not Now look like buttons and all answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_popup__1920x1080.png", "why": "Grant and Refuse are visible buttons whose terms are spelled out above."}
+  },
+  "petition_popup_no_dp": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_popup_no_dp__1920x1080.png", "why": "The red 'Grant unavailable: France cannot spare the diplomatic point …' is the first line under the title, and the greyed Grant sits at the foot."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_popup_no_dp__1920x1080.png", "why": "The disabled Grant states its reason in its tooltip and in the red line at the top, and Refuse and Not Now answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_popup_no_dp__1920x1080.png", "why": "The red line names the next step ('keep 1 DP to grant it, or refuse it') and Refuse is a visible button."}
+  },
+  "petition_command_closed": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_command_closed__1920x1080.png", "why": "The closed arm's reason is the single first line under the header, followed by Murat's plea and the choices."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_command_closed__1920x1080.png", "why": "Every enabled choice answers, and the disabled 'Give him a command' states why in its tooltip and in the line under the header."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\petition_command_closed__1920x1080.png", "why": "Let it stand, Promise Glory and Later are visible buttons, each with its consequence beneath."},
+   "R4_note": "Only two of the four choices fit the scrolled list above the fold (Rebuke and the closed command lie below), and this popup alone uses a brown-black panel with a salmon border."
+  },
+  "mailbox_boot": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\mailbox_boot__1920x1080.png", "why": "There is no envoy row to judge; the frame is a near-full-screen empty panel with one small grey 'No pending envoys.' line."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\mailbox_boot__1920x1080.png", "why": "Close is the only control and answers; nothing else looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\mailbox_boot__1920x1080.png", "why": "An empty letter-book whose Close button is visible."}
+  },
+  "mailbox_petition": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\mailbox_petition__1920x1080.png", "why": "The petition row ('ACTIVE Switzerland … Incoming proposal: Client's Petition') is the first and only card under the header."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\mailbox_petition__1920x1080.png", "why": "The row is drawn as a bordered card and the subtitle says 'Select a row to reopen or activate it', yet the probe finds no control there, only Close."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\mailbox_petition__1920x1080.png", "why": "The subtitle names the step ('Select a row to reopen or activate it') and the row is in view."}
+  },
+  "proclamation_warsaw": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\proclamation_warsaw__1920x1080.png", "why": "The Duchy of Warsaw's flag over 'A NATION IS PROCLAIMED / Duchy of Warsaw' leads and is the largest element."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\proclamation_warsaw__1920x1080.png", "why": "Acknowledge is the one control, drawn as a button, and it answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\proclamation_warsaw__1920x1080.png", "why": "Acknowledge is visible at the foot."}
+  }
+ }}

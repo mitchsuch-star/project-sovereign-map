@@ -1,0 +1,15 @@
+{"reader": 3, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__5120x1440.png", "why": "The School of War card is a modest box in the top-right corner while the map takes the eye; on the 5120x1440 frame it shrinks to a small panel at the far right edge, far from where the eye lands."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The probe found Execute, the zoom-out button and the Fit Europe button SILENT, and the boxed corner icons on the command window and the war HUD look like buttons but are no controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The card names the next step and offers the quill 'economy' chip ('Click the quill to place the order on your command line'), 'Skip this lesson' and Skip, beside a visible command line."}
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "THE SCHOOL OF WAR 1 of 20 heads the card and the bold 'I. The Situation' with its body fills it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The boxed quill and Skip-this-lesson chips and the header's minimise dash and Skip all answered VISIBLE; nothing is disabled."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The quill chip is explained in a line beneath it and the skip roads are visible."},
+   "R4_note": "The header's minimise '-' and 'Skip' are bare text while the body's chips are boxed."
+  }
+ }
+}

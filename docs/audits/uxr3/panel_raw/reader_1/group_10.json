@@ -1,0 +1,41 @@
+{"reader": 1, "group": "campaign_end",
+ "marks": {
+  "campaign_end_verdict": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_verdict__1920x1080.png", "why": "THE VERDICT OF HISTORY is the largest text, and the tier heading with its three lines and closing comes first in the body, then THE RECORD."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_verdict__1920x1080.png", "why": "The one bordered Continue button answers and nothing else looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_verdict__1920x1080.png", "why": "It informs and Continue is visible."}
+  },
+  "campaign_end_imperial": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_imperial__1920x1080.png", "why": "The gold THE IMPERIAL PEACE title and 'Europe accepts the order of the French Empire.' lead, then the record and the tier."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_imperial__1920x1080.png", "why": "Both bordered buttons answer and nothing else looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_imperial__1920x1080.png", "why": "The closing line names both choices and 'Continue the reign' / 'Retire to the Tuileries' are visible."}
+  },
+  "campaign_end_imperial_congress": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_imperial_congress__1920x1080.png", "why": "The gold title and its line lead, then THE CONGRESS OF PARIS with the four flags SIGNED in green and the all-ticked sitting strip."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_imperial_congress__1920x1080.png", "why": "Both bordered buttons answer and nothing else looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_imperial_congress__1920x1080.png", "why": "'Continue the reign' and 'Retire to the Tuileries' are visible."},
+   "R4_note": "THE RECORD's last line is cut by the scroll edge above the buttons at 5120."
+  },
+  "campaign_end_humbled": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_humbled__1920x1080.png", "why": "The crimson-grey title and 'The Emperor has signed a peace that humbles the Empire.' lead, then THE PEACE naming Paris."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_humbled__1920x1080.png", "why": "The one Continue answers and nothing else looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_humbled__1920x1080.png", "why": "It informs and Continue is visible."},
+   "R4_note": "The next heading (THE VERDICT OF HISTORY) is cut in half at the scroll edge."
+  },
+  "campaign_end_fall_funeral": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_funeral__1920x1080.png", "why": "The crimson THE FALL OF THE EMPIRE, the date and 'The Emperor is dead.' lead, then THE FUNERAL."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_funeral__1920x1080.png", "why": "The two bordered buttons look like buttons; the probe leaves them unpressed as scene changes and finds nothing silent or disabled."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_funeral__1920x1080.png", "why": "'Load a campaign' and 'Main Menu' are visible."},
+   "R4_note": "THE RECORD's 'Provinces taken' line is cut at the scroll edge."
+  },
+  "campaign_end_fall_chains": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_chains__1920x1080.png", "why": "The crimson title and 'The Emperor, a prisoner these 10 turns, is deposed.' lead, then THE EXILE naming Olmütz and Metternich's line."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_chains__1920x1080.png", "why": "The two bordered buttons look like buttons; the probe leaves them unpressed as scene changes and finds nothing silent or disabled."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_chains__1920x1080.png", "why": "'Load a campaign' and 'Main Menu' are visible."}
+  },
+  "campaign_end_fall_abdication": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_abdication__1920x1080.png", "why": "The crimson title and its lead line come first, then THE EXILE naming Fontainebleau and Elba, though the lead line reads 'No soil remains to the Emperor' rather than 'Brittany alone'."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_abdication__1920x1080.png", "why": "The two bordered buttons look like buttons; the probe leaves them unpressed as scene changes and finds nothing silent or disabled."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\campaign_end_fall_abdication__1920x1080.png", "why": "'Load a campaign' and 'Main Menu' are visible."}
+  }
+ }}

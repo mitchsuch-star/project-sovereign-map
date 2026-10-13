@@ -1,0 +1,195 @@
+{"reader": 3, "group": "diplomacy",
+ "marks": {
+  "wizard_step1": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1__1920x1080.png", "why": "The prompt asks 'which nation requires our diplomatic attention?' but not one court is in the frame; the Congress checklist fills the whole list area and the courts sit below the fold."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1__1920x1080.png", "why": "Every bordered button answered VISIBLE, and the greyed Summon button has its reason printed right beneath it ('cannot be summoned on 35 titled provinces - 45 are needed')."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1__1920x1080.png", "why": "The courts are reachable through the visible scrollbar, and X and Cancel show the way out."}
+  },
+  "wizard_step2_austria": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step2_austria__1920x1080.png", "why": "Under Talleyrand's short assessment, the stack of full-width action chips is the largest element and the eye lands on it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step2_austria__1920x1080.png", "why": "The enabled chips answered VISIBLE and the greyed Buy Off and Guarantee chips carry 'France is at war with this court' as tooltip and reason line."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step2_austria__1920x1080.png", "why": "Each action is a labelled chip with its cost, with Back and Cancel below."},
+   "R4_note": "Talleyrand's 'Recommendation' line is cut in half where the chip list's scroll area begins; two scroll regions overlap."
+  },
+  "wizard_step2_prussia": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step2_prussia__1920x1080.png", "why": "The three instrument chips, Sponsor Their Design among them, are not in the frame; the visible chips stop at a half-cut Gather Intel."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step2_prussia__1920x1080.png", "why": "Enabled chips answered VISIBLE; the disabled Undermine and Buy Off chips state 'No alliance to undermine' and 'Their price is 1128g - the treasury holds 800g'."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step2_prussia__1920x1080.png", "why": "The chip list visibly scrolls on to the remaining instruments."}
+  },
+  "wizard_step1_congress_gate": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_gate__1920x1080.png", "why": "The Congress of Paris row heads the list with its bold title, its terms checklist, the greyed Summon button and View the table."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_gate__1920x1080.png", "why": "The disabled Summon prints its reason directly beneath it and every enabled button answered VISIBLE."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_gate__1920x1080.png", "why": "The gate's terms, the reason and the View the table button are all in view."}
+  },
+  "wizard_step1_congress_ready": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_ready__1920x1080.png", "why": "The all-green checklist leads straight into the enabled 'Summon the Congress of Paris' button with its cost, the first button in the list."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_ready__1920x1080.png", "why": "Every button looks like one and answered VISIBLE; nothing is disabled."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_ready__1920x1080.png", "why": "The Summon button is visible and labelled with its price."},
+   "R4_note": "The live Summon button is styled exactly like 'View the table' and 'Formable Nations'; nothing marks it as the primary action."
+  },
+  "wizard_step1_congress_sitting": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_sitting__1920x1080.png", "why": "The amber 'THE CONGRESS SITS - turn 2 of 8' line leads the list, followed by the greyed Summon and its 'already sits' reason and View the table."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_sitting__1920x1080.png", "why": "The disabled Summon says 'The Congress already sits - turn 2 of 8.' beneath it; all other buttons answered."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_step1_congress_sitting__1920x1080.png", "why": "'View the table - the courts' answers, the hold, the days' is a visible button."}
+  },
+  "wizard_formables_entry": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_formables_entry__1920x1080.png", "why": "Neither the Formable Nations entry nor the nation list is in the frame; the Congress checklist fills the list area."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_formables_entry__1920x1080.png", "why": "All controls answered VISIBLE and the greyed Summon states its reason beneath it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_formables_entry__1920x1080.png", "why": "The entry is one scroll away down a visibly scrollable list."}
+  },
+  "wizard_formables_step3": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_formables_step3__1920x1080.png", "why": "Right under the two-line quote, the list of formable states with bold gold names and their gate terms fills the panel."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_formables_step3__1920x1080.png", "why": "X, Back and Cancel are the only controls and all answered; the rows read as information, not buttons."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\wizard_formables_step3__1920x1080.png", "why": "It informs, and Back, Cancel and X are visible."}
+  },
+  "confirm_peace_losing": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\confirm_peace_losing__1920x1080.png", "why": "The War Summary and its long red 'They hold' list take the top and the eye; the Proposed Terms start below it and are cut off, and no acceptance components or agenda modifier are in view."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\confirm_peace_losing__1920x1080.png", "why": "The four enabled buttons answered VISIBLE, and the greyed 'Send as suggested' gives its reason in its tooltip."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\confirm_peace_losing__1920x1080.png", "why": "Adjust terms, Harsher terms, More generous and Not Now are visible roads forward."}
+  },
+  "settlement_three_courts": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_three_courts__1920x1080.png", "why": "The Press/Ease/Drop block sits near the bottom; a dense bold gold paragraph and the red 'Will NOT carry' line lead and take the eye."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_three_courts__1920x1080.png", "why": "The blue underlined '+ Add demand' lines and the underlined 'Austria >' / 'Britain >' / 'Russia >' names look like links but are not among the probe's controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_three_courts__1920x1080.png", "why": "Per-court Press/Ease/Drop buttons and Submit for Review are visible."},
+   "R4_note": "Three stacked scroll regions each clip a line at their edges (the Treasury line, a 'courts hold out' line, the Warnings row)."
+  },
+  "settlement_white_review_ratify": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_white_review_ratify__1920x1080.png", "why": "The bold lead says the peace is ready ('Ratify and the field falls quiet'), the green 'Will carry as drafted' follows in the first lines, and Ratify White Peace is the first button."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_white_review_ratify__1920x1080.png", "why": "All three buttons look like buttons and answered VISIBLE."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_white_review_ratify__1920x1080.png", "why": "Ratify White Peace is a visible, live button."},
+   "R4_note": "Large empty bands separate the sections, and the verdict sits far from the Ratify button."
+  },
+  "settlement_white_review_holdout": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_white_review_holdout__1920x1080.png", "why": "The bold lead ('cannot be sealed as it stands') and the red bold 'Will NOT carry as drafted' open the review, and no Ratify button appears."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_white_review_holdout__1920x1080.png", "why": "All five buttons look like buttons and answered VISIBLE."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\settlement_white_review_holdout__1920x1080.png", "why": "The roads that remain (Return to terms, the separate peace, the armistice) are visible buttons."}
+  },
+  "incoming_peace_losing": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\incoming_peace_losing__1920x1080.png", "why": "'Terms:' is followed by nothing in view, and the War Summary with its red province list dominates, so the offer's terms and direction are not what the eye finds."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\incoming_peace_losing__1920x1080.png", "why": "Accept, Counter, Reject and Not Now look like buttons and all answered VISIBLE."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\incoming_peace_losing__1920x1080.png", "why": "The answer buttons are visible along the bottom."}
+  },
+  "diplo_boot_nations": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_nations__1920x1080.png", "why": "The lit NATIONS tab's overview leads the page under its gold heading (no Cabinet block appears in this frame)."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_nations__1920x1080.png", "why": "The probe found the NATIONS tab button SILENT when pressed, and the boxed corner icon looks like a button but is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_nations__1920x1080.png", "why": "It states 'Press F1 to treat; D closes this ledger' and shows the X."}
+  },
+  "diplo_boot_treaties": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_treaties__1920x1080.png", "why": "ACTIVE TREATIES and its 'No active treaties.' are the only content and come first."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_treaties__1920x1080.png", "why": "The probe found the lit TREATIES tab SILENT, and the boxed corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_treaties__1920x1080.png", "why": "It informs and the X close is visible."}
+  },
+  "diplo_boot_balance": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_balance__1920x1080.png", "why": "BALANCE OF EUROPE leads with the red coalition line and the threat bar, the most graphic element on the page."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_balance__1920x1080.png", "why": "The lit THREAT & COALITION tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_balance__1920x1080.png", "why": "It informs and the X close is visible."},
+   "R4_note": "'[Formed]' in square brackets reads like a raw tag."
+  },
+  "diplo_boot_talleyrand": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_talleyrand__1920x1080.png", "why": "Talleyrand's header, the Assess chip and CURRENT MISSION 'Idle' sit at the top of the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_talleyrand__1920x1080.png", "why": "The lit TALLEYRAND tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_talleyrand__1920x1080.png", "why": "The 'Assess the Situation' chip and the X are visible."}
+  },
+  "diplo_boot_bargains": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_bargains__1920x1080.png", "why": "WAR BARGAINS with 'No war bargains recorded.' is the only content and leads."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_bargains__1920x1080.png", "why": "The lit WAR BARGAINS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_bargains__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "diplo_boot_vassals": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_vassals__1920x1080.png", "why": "CLIENT STATES and the first client's card with its loyalty bar lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_vassals__1920x1080.png", "why": "The lit VASSALS tab was SILENT in the probe (the unavailable Invest and Cede lines do state their reasons)."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_vassals__1920x1080.png", "why": "Loosen Rein, Tighten Rein and Release are visible chips with their effects."}
+  },
+  "diplo_boot_congress": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_congress__1920x1080.png", "why": "THE CONGRESS OF PARIS leads, with its bold clock line and THE SUMMONS checklist."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_congress__1920x1080.png", "why": "The lit CONGRESS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_boot_congress__1920x1080.png", "why": "The clock line names the step ('summon from the Cabinet (F1)')."}
+  },
+  "diplo_laws_rival_nations": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_laws_rival_nations__1920x1080.png", "why": "Britain's Laws line is one line deep inside Britain's card, below two whole sections; the eye meets the gold section headings long before it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_laws_rival_nations__1920x1080.png", "why": "The lit NATIONS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_laws_rival_nations__1920x1080.png", "why": "It informs; 'D closes this ledger' and the X are visible."}
+  },
+  "diplo_collapse_one_nations": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_one_nations__1920x1080.png", "why": "The collapse line 'Read as: A broken power - France holds a single province' is the first content line under How Europe Reads France."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_one_nations__1920x1080.png", "why": "The lit NATIONS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_one_nations__1920x1080.png", "why": "It informs; the exit is stated and visible."}
+  },
+  "diplo_collapse_cooldown_talleyrand": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_cooldown_talleyrand__1920x1080.png", "why": "No spent-league cooldown counsel appears anywhere in the frame; it reads like the boot Talleyrand page."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_cooldown_talleyrand__1920x1080.png", "why": "The lit TALLEYRAND tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_cooldown_talleyrand__1920x1080.png", "why": "It informs; the Assess chip, the scrollbar and the X are visible."}
+  },
+  "diplo_collapse_none_vassals": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_none_vassals__1920x1080.png", "why": "The client cards lead, each with its gold Standing line and its chips near the top."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_none_vassals__1920x1080.png", "why": "The lit VASSALS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_collapse_none_vassals__1920x1080.png", "why": "The vassal chips are visible."}
+  },
+  "diplo_mission_court_talleyrand": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_court_talleyrand__1920x1080.png", "why": "CURRENT MISSION 'Courting -> Denmark' with its figures sits high on the tab and is the fullest block in view."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_court_talleyrand__1920x1080.png", "why": "The lit TALLEYRAND tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_court_talleyrand__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "diplo_mission_undermine_talleyrand": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_undermine_talleyrand__1920x1080.png", "why": "CURRENT MISSION 'Undermining Alliance -> Austria' and its amber forecast sit near the top."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_undermine_talleyrand__1920x1080.png", "why": "The lit TALLEYRAND tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_undermine_talleyrand__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "diplo_mission_recalled_talleyrand": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_recalled_talleyrand__1920x1080.png", "why": "CURRENT MISSION 'Idle' is the first section under Talleyrand's header."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_recalled_talleyrand__1920x1080.png", "why": "The lit TALLEYRAND tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_mission_recalled_talleyrand__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "diplo_petition_granted_vassals": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_petition_granted_vassals__1920x1080.png", "why": "The first card's gold Standing 'nothing to ask for' and its Bond line sit in the card's opening lines and catch the eye."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_petition_granted_vassals__1920x1080.png", "why": "The lit VASSALS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_petition_granted_vassals__1920x1080.png", "why": "It informs; the chips and the X are visible."}
+  },
+  "diplo_t20_nations": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_nations__1920x1080.png", "why": "The played board's nation overview leads under the lit NATIONS tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_nations__1920x1080.png", "why": "The lit NATIONS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_nations__1920x1080.png", "why": "It informs; F1 and D are named and the X is visible."}
+  },
+  "diplo_t20_treaties": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_treaties__1920x1080.png", "why": "The two treaties, each with a bold type, are the tab's first and only content."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_treaties__1920x1080.png", "why": "The lit TREATIES tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_treaties__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "diplo_t20_balance": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_balance__1920x1080.png", "why": "BALANCE OF EUROPE leads with the threat bar and the sources list."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_balance__1920x1080.png", "why": "The lit THREAT & COALITION tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_balance__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "diplo_t20_vassals": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_vassals__1920x1080.png", "why": "The two client cards lead, with loyalty bars and the Invest/Rein chips."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_vassals__1920x1080.png", "why": "The lit VASSALS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_t20_vassals__1920x1080.png", "why": "Invest, Loosen Rein, Tighten Rein and Release are visible chips."}
+  },
+  "diplo_congress_gate": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_gate__1920x1080.png", "why": "The bold gold clock line and THE SUMMONS checklist with its cost and 'Not yet' line fill the top, with THE TABLE opening beneath."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_gate__1920x1080.png", "why": "The lit CONGRESS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_gate__1920x1080.png", "why": "The clock line names the step: 'summon from the Cabinet (F1)'."}
+  },
+  "diplo_congress_sitting": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_sitting__1920x1080.png", "why": "The bold amber 'THE CONGRESS SITS - turn 2 of 8' line, THE SITTING strip and THE HOLD's green checklist dominate the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_sitting__1920x1080.png", "why": "The lit CONGRESS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_sitting__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "diplo_congress_sitting_table": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_sitting_table__1920x1080.png", "why": "THE TABLE's four court cards with flags and coloured REFUSES / SUES / RECOGNIZES verdicts fill the frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_sitting_table__1920x1080.png", "why": "The lit CONGRESS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_congress_sitting_table__1920x1080.png", "why": "Each card has a visible 'Open the Cabinet at ...' link and Prussia's card names the typed order."},
+   "R4_note": "A cut-off line of text peeks out under the tab bar at the top."
+  },
+  "diplo_doctrine_nations": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_doctrine_nations__1920x1080.png", "why": "Only Britain's card is in view and its Doctrine line is one dim line deep in it; Austria's 'cured since turn 1' line is not in the frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_doctrine_nations__1920x1080.png", "why": "The lit NATIONS tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_doctrine_nations__1920x1080.png", "why": "It informs; the scrollbar and the X are visible."}
+  },
+  "diplo_balance_next_league": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_balance_next_league__1920x1080.png", "why": "THE NEXT LEAGUE fills the view: the amber summary line, then a red row per court with her price."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_balance_next_league__1920x1080.png", "why": "The lit THREAT & COALITION tab was SILENT in the probe, and the corner icon is no control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\diplo_balance_next_league__1920x1080.png", "why": "It informs and the X is visible."}
+  }
+ }
+}

@@ -495,6 +495,28 @@ _CENSUS_WORDS = ("FIXED", "CLOSED", "LANDED", "BUILT", "RULED", "DECIDED", "TAKE
                  "REMAINDER", "ROUTED", "DEFERRED")
 
 
+# What the conductor verified against the source while filing a ✗ (the
+# readers judged the frame; this says where the defect lives). Never a mark.
+VERIFIED = {
+    ("incoming_peace_losing", "R2"): (
+        "Verified against the source while filing: the terms ARE rendered, under a second heading, "
+        "\"Proposed Terms\", after the War Summary and below the fold; on the war-context road the "
+        "\"Terms:\" header at the top (`incoming_proposal_popup.gd:95`) is left empty "
+        "(`_build_peace_preview_section`)."),
+}
+
+
+# Where a never-shot surface's payload is already staged (S12's first fix).
+GAP_STAGING = {
+    "objection_dialog": ("The board exists: `tests/test_b4b_the_one_tail.py::_payloads` stages a marshal's "
+                         "objection the player overrides, through the real endpoints."),
+    "capture_choice": ("The board exists: the same B4b board's overridden attack takes a province, and the "
+                       "backend asks Plunder or Secure (`pending_capture_choice`)."),
+    "talleyrand_objection": ("The popup's payload shape is pinned in `tests/test_deep_audit_session6.py` "
+                             "(the `talleyrand_objection` dict main.gd routes)."),
+}
+
+
 def frame_name(sid: str, res: str) -> str:
     return f"docs/audits/uxr3/frames/UXR3_{sid.upper()}_{res}.jpg"
 
@@ -676,10 +698,12 @@ def render_row(r: dict) -> str:
     sids = r["surfaces"]
     what = ", ".join(f"{i} {ITEM_NAMES[i]}" for i in items)
     if r["failures"][0]["cause"] == ("harness_gap",):
-        head = (f"**`{sids[0]}` — the capture harness has never shot it, so {len(items)} of 8 items "
-                f"cannot be evidenced ({what}).**")
+        blind = [i for i in items if i != "R4"]
+        head = (f"**`{sids[0]}` — the capture harness has never shot it, so {len(blind)} of 8 items "
+                f"cannot be evidenced ({', '.join(f'{i} {ITEM_NAMES[i]}' for i in blind)})"
+                + (", and R4, read off its files, fails" if "R4" in items else "") + ".**")
         fix = ("First fix: an IQ-10 shot (a staged payload and a `SHOTS` row under this id) and the action "
-               "probe's record; then each item re-read.")
+               "probe's record; then each item re-read. " + GAP_STAGING.get(sids[0], ""))
     else:
         head = f"**`{r['scene']}` — {what} fails on {len(sids)} surface(s).**"
         fix = ""
@@ -688,7 +712,9 @@ def render_row(r: dict) -> str:
         spread = f" ({f['spread']})" if f.get("spread") else ""
         frames = (" Frame: " + ", ".join(f"`{p}`" for p, _res in f.get("frames") or []) + "."
                   if f["cause"] != ("harness_gap",) and f.get("frames") else "")
-        body.append(f"`{f['sid']}`{spread}: " + " / ".join(_safe(x) for x in f["lines"][:4]) + "." + frames)
+        note = VERIFIED.get((f["sid"], f["items"][0]))
+        body.append(f"`{f['sid']}`{spread}: " + " / ".join(_safe(x) for x in f["lines"][:4]) + "." + frames
+                    + (" " + note if note else ""))
     if r["errors"]:
         body.append("SCRIPT ERROR on a click: " + _safe(r["errors"][0]))
     status = (f"OPEN — owner S12 (\"UXR-3 fixes\"); completion: {', '.join(items)} re-read ✓ on "

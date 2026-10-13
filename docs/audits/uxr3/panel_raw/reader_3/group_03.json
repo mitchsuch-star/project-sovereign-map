@@ -1,0 +1,45 @@
+{"reader": 3, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_boot__1920x1080.png", "why": "The first thing under the title is a character sheet, the Emperor's card with its portrait, ending in the skill bars; the portrait is where the eye lands."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_boot__1920x1080.png", "why": "The close X answers, but the boxed expand-arrows icon on the bottom-right corner looks like a button and is not among the probe's controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_boot__1920x1080.png", "why": "The screen informs; it says 'Press G to close', shows the X, and its scrollbar leads on to the ladder and the grievances."},
+   "R4_note": "The Emperor's card opens with a dense multi-paragraph block that pushes the skill bars to the bottom edge."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_t20__1920x1080.png", "why": "The doctrine block comes first and the ladder below it shows only empty bars at 0; the roster's cards with their trust bars and grievances start only at the frame's bottom edge, so the eye lands on the doctrine's coloured lines and the bright Commission button instead."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_t20__1920x1080.png", "why": "The X and the Commission a Marshal chip answer, but the boxed corner icon looks like a button and is no control in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_t20__1920x1080.png", "why": "It informs, says 'Press G to close', shows the X, and scrolls on to the cards."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "The captured marshal appears nowhere in the frame; the Emperor's card fills it exactly as on the boot board."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "The boxed corner icon looks like a button and is no control in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "An informing screen with a visible scrollbar, X and 'Press G to close'."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The Emperor's own card leads the screen, with the Seat ('at the Tuileries with the Guard'), the sovereign rules and the Guard's 10,000 strength in view."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The boxed corner icon looks like a button and is no control in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "It informs and the way out (X, 'Press G to close') is visible."}
+  },
+  "generals_np_field": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_field__1920x1080.png", "why": "Neither the applied Presence figure nor a dimming star is in the frame; the card's portrait and long sovereign paragraph take the eye, and the card still says he is 'at the Tuileries'."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_field__1920x1080.png", "why": "The boxed corner icon looks like a button and is no control in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_field__1920x1080.png", "why": "It informs; the scrollbar, X and 'Press G to close' are visible."}
+  },
+  "generals_np_captive": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "Nothing in the frame names the Emperor a captive; the only hint is a small red '0' strength, while the card still reads 'at the Tuileries with the Guard'."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "The boxed corner icon looks like a button and is no control in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "It informs and its exits (X, 'Press G to close') are visible."}
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The played ladder, with filled glory bars and red 'envious of' notes, is the largest block and is where the eye goes."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The X and Commission chip answer, but the boxed corner icon looks like a button and is no control in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "It informs and the X, 'Press G to close' and the Commission chip are visible."}
+  },
+  "generals_doctrine": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "OUR DOCTRINE is not in either frame; the Emperor's card fills the view."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "The boxed corner icon looks like a button and is no control in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "It informs; the scrollbar, X and 'Press G to close' are visible."}
+  }
+ }
+}

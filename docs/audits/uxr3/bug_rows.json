@@ -1,0 +1,1178 @@
+[
+ {
+  "id": "UXR3-1",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "notification_bar.tscn",
+  "surfaces": [
+   "rail_mission_court",
+   "rail_mission_improve",
+   "rail_mission_gather"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-2",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "top_bar.tscn",
+  "surfaces": [
+   "top_bar_boot",
+   "top_bar_mission_court"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-3",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "region_panel.tscn",
+  "surfaces": [
+   "region_paris",
+   "region_rhineland",
+   "region_amsterdam",
+   "region_milan",
+   "region_vienna",
+   "region_doctrine_posen",
+   "region_paris_build_open"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-4",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "region_panel.tscn",
+  "surfaces": [
+   "region_doctrine_tyrol"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-5",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "war_detail_popup.tscn",
+  "surfaces": [
+   "war_detail_boot",
+   "war_detail_coalition_boot",
+   "war_detail_coalition_t20"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-6",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "war_detail_popup.tscn",
+  "surfaces": [
+   "war_detail_collapse_one",
+   "war_detail_collapse_none",
+   "war_detail_t20"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-7",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_boot"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-8",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "notification_bar.tscn",
+  "surfaces": [
+   "rail_mission_court",
+   "rail_mission_improve",
+   "rail_mission_gather",
+   "rail_t20",
+   "rail_counter_punch"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-9",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "top_bar.tscn",
+  "surfaces": [
+   "top_bar_boot",
+   "top_bar_admiralty",
+   "top_bar_mission_court"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-10",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "war_detail_popup.tscn",
+  "surfaces": [
+   "war_detail_boot",
+   "war_detail_collapse_one",
+   "war_detail_collapse_none",
+   "war_detail_t20",
+   "war_detail_coalition_boot",
+   "war_detail_coalition_t20"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-11",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "war_status_panel.tscn",
+  "surfaces": [
+   "war_status_boot",
+   "war_status_collapse_one",
+   "war_status_collapse_none",
+   "war_status_t20"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-12",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_boot",
+   "war_room_tutorial",
+   "war_room_pause_settings"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-13",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "war_detail_popup.tscn",
+  "surfaces": [
+   "war_detail_coalition_boot",
+   "war_detail_coalition_t20"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-14",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "war_status_panel.tscn",
+  "surfaces": [
+   "war_status_boot",
+   "war_status_collapse_one",
+   "war_status_collapse_none",
+   "war_status_t20"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-15",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_boot",
+   "war_room_tutorial"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-16",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "region_panel.tscn",
+  "surfaces": [
+   "region_paris",
+   "region_rhineland",
+   "region_amsterdam",
+   "region_milan",
+   "region_doctrine_tyrol",
+   "region_paris_build_open"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-17",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "top_bar.tscn",
+  "surfaces": [
+   "top_bar_boot",
+   "top_bar_admiralty",
+   "top_bar_mission_court"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-18",
+  "sev": "P2",
+  "items": [
+   "R8"
+  ],
+  "scene": "notification_bar.tscn",
+  "surfaces": [
+   "rail_mission_court",
+   "rail_mission_improve",
+   "rail_mission_gather"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-19",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "dispatch_view.tscn",
+  "surfaces": [
+   "dispatch_congress_clock"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-20",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "gazette_view.tscn",
+  "surfaces": [
+   "gazette_congress"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-21",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "dispatch_view.tscn",
+  "surfaces": [
+   "dispatch_boot_today",
+   "dispatch_t20",
+   "dispatch_collapse",
+   "dispatch_fall_clock",
+   "dispatch_congress_clock",
+   "dispatch_front_page",
+   "dispatch_front_page_league"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-22",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "gazette_view.tscn",
+  "surfaces": [
+   "gazette_t20",
+   "gazette_congress"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-23",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "dispatch_view.tscn",
+  "surfaces": [
+   "dispatch_boot_today"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-24",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "marshal_management.tscn",
+  "surfaces": [
+   "generals_t20",
+   "generals_prisoner",
+   "generals_np_field",
+   "generals_np_captive",
+   "generals_doctrine"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-25",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "marshal_management.tscn",
+  "surfaces": [
+   "generals_boot",
+   "generals_t20",
+   "generals_prisoner",
+   "generals_np_seat",
+   "generals_np_field",
+   "generals_np_captive",
+   "generals_flagship_t12",
+   "generals_doctrine"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-26",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "marshal_management.tscn",
+  "surfaces": [
+   "generals_boot",
+   "generals_t20",
+   "generals_prisoner",
+   "generals_np_seat",
+   "generals_np_field",
+   "generals_np_captive",
+   "generals_flagship_t12",
+   "generals_doctrine"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-27",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "marshal_management.tscn",
+  "surfaces": [
+   "generals_boot",
+   "generals_t20",
+   "generals_prisoner",
+   "generals_np_seat",
+   "generals_np_field",
+   "generals_np_captive",
+   "generals_flagship_t12",
+   "generals_doctrine"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-28",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "diplomacy_wizard.tscn",
+  "surfaces": [
+   "wizard_step1",
+   "wizard_step2_prussia",
+   "wizard_formables_entry"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-29",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_laws_rival_nations",
+   "diplo_collapse_cooldown_talleyrand",
+   "diplo_doctrine_nations"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-30",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "incoming_proposal_popup.tscn",
+  "surfaces": [
+   "incoming_peace_losing"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-31",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "proposal_confirm_popup.tscn",
+  "surfaces": [
+   "confirm_peace_losing",
+   "settlement_three_courts"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-32",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "diplomacy_wizard.tscn",
+  "surfaces": [
+   "wizard_formables_step3"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-33",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_boot_nations",
+   "diplo_boot_balance",
+   "diplo_laws_rival_nations",
+   "diplo_collapse_one_nations",
+   "diplo_collapse_cooldown_talleyrand",
+   "diplo_t20_nations",
+   "diplo_t20_balance",
+   "diplo_doctrine_nations",
+   "diplo_balance_next_league"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-34",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_boot_treaties",
+   "diplo_boot_talleyrand",
+   "diplo_boot_bargains",
+   "diplo_boot_congress",
+   "diplo_mission_court_talleyrand",
+   "diplo_mission_undermine_talleyrand",
+   "diplo_mission_recalled_talleyrand",
+   "diplo_t20_treaties",
+   "diplo_congress_gate",
+   "diplo_congress_sitting",
+   "diplo_congress_sitting_table"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-35",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_boot_vassals",
+   "diplo_collapse_none_vassals",
+   "diplo_petition_granted_vassals",
+   "diplo_t20_vassals"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-36",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "diplomacy_wizard.tscn",
+  "surfaces": [
+   "wizard_step1",
+   "wizard_step2_austria",
+   "wizard_step2_prussia",
+   "wizard_step1_congress_gate",
+   "wizard_step1_congress_ready",
+   "wizard_step1_congress_sitting",
+   "wizard_formables_entry",
+   "wizard_formables_step3"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-37",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_boot_nations",
+   "diplo_boot_treaties",
+   "diplo_boot_balance",
+   "diplo_boot_talleyrand",
+   "diplo_boot_bargains",
+   "diplo_boot_vassals",
+   "diplo_boot_congress",
+   "diplo_laws_rival_nations",
+   "diplo_collapse_one_nations",
+   "diplo_collapse_cooldown_talleyrand",
+   "diplo_collapse_none_vassals",
+   "diplo_mission_court_talleyrand",
+   "diplo_mission_undermine_talleyrand",
+   "diplo_mission_recalled_talleyrand",
+   "diplo_petition_granted_vassals",
+   "diplo_t20_nations",
+   "diplo_t20_treaties",
+   "diplo_t20_balance",
+   "diplo_t20_vassals",
+   "diplo_congress_gate",
+   "diplo_congress_sitting",
+   "diplo_congress_sitting_table",
+   "diplo_doctrine_nations",
+   "diplo_balance_next_league"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-38",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "proposal_confirm_popup.tscn",
+  "surfaces": [
+   "settlement_three_courts"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-39",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_boot_nations",
+   "diplo_boot_treaties",
+   "diplo_boot_balance",
+   "diplo_boot_bargains",
+   "diplo_laws_rival_nations",
+   "diplo_collapse_one_nations",
+   "diplo_t20_nations",
+   "diplo_t20_treaties",
+   "diplo_t20_balance",
+   "diplo_doctrine_nations",
+   "diplo_balance_next_league"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-40",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_boot_talleyrand",
+   "diplo_boot_vassals",
+   "diplo_boot_congress",
+   "diplo_collapse_cooldown_talleyrand",
+   "diplo_collapse_none_vassals",
+   "diplo_mission_court_talleyrand",
+   "diplo_mission_undermine_talleyrand",
+   "diplo_mission_recalled_talleyrand",
+   "diplo_petition_granted_vassals",
+   "diplo_t20_vassals",
+   "diplo_congress_gate",
+   "diplo_congress_sitting",
+   "diplo_congress_sitting_table"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-41",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "strategic_ledger.tscn",
+  "surfaces": [
+   "ledger_ceiling_calm_economy",
+   "ledger_ceiling_above_economy",
+   "ledger_ceiling_unbounded_economy",
+   "ledger_collapse_one_economy",
+   "ledger_collapse_none_economy",
+   "ledger_mission_court_forces",
+   "ledger_mission_improve_forces",
+   "ledger_mission_gather_forces",
+   "ledger_mission_undermine_forces",
+   "ledger_mission_transit_forces",
+   "ledger_mission_starved_forces",
+   "ledger_mission_recalled_forces",
+   "ledger_np_seat_forces",
+   "ledger_laws_train"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-42",
+  "sev": "P2",
+  "items": [
+   "R3"
+  ],
+  "scene": "strategic_ledger.tscn",
+  "surfaces": [
+   "ledger_boot_forces",
+   "ledger_boot_territories",
+   "ledger_boot_economy",
+   "ledger_boot_intel",
+   "ledger_boot_manpower",
+   "ledger_boot_orders",
+   "ledger_boot_admiralty",
+   "ledger_boot_laws",
+   "ledger_spent_economy",
+   "ledger_ceiling_calm_economy",
+   "ledger_ceiling_above_economy",
+   "ledger_ceiling_unbounded_economy",
+   "ledger_collapse_one_economy",
+   "ledger_collapse_none_economy",
+   "ledger_laws_staff",
+   "ledger_laws_forecast",
+   "ledger_mission_court_forces",
+   "ledger_mission_improve_forces",
+   "ledger_mission_gather_forces",
+   "ledger_mission_undermine_forces",
+   "ledger_mission_transit_forces",
+   "ledger_mission_starved_forces",
+   "ledger_mission_recalled_forces",
+   "ledger_t20_forces",
+   "ledger_t20_economy",
+   "ledger_t20_orders",
+   "ledger_t20_admiralty",
+   "ledger_np_seat_forces",
+   "ledger_fall_clock_territories",
+   "ledger_congress_clock_territories",
+   "ledger_laws_train",
+   "ledger_orders_display"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-43",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "strategic_ledger.tscn",
+  "surfaces": [
+   "ledger_boot_forces",
+   "ledger_boot_territories",
+   "ledger_boot_economy",
+   "ledger_boot_intel",
+   "ledger_boot_manpower",
+   "ledger_boot_orders",
+   "ledger_boot_admiralty",
+   "ledger_boot_laws",
+   "ledger_spent_economy",
+   "ledger_ceiling_calm_economy",
+   "ledger_ceiling_above_economy",
+   "ledger_ceiling_unbounded_economy",
+   "ledger_collapse_one_economy",
+   "ledger_collapse_none_economy",
+   "ledger_laws_staff",
+   "ledger_laws_forecast",
+   "ledger_mission_court_forces",
+   "ledger_mission_improve_forces",
+   "ledger_mission_gather_forces",
+   "ledger_mission_undermine_forces",
+   "ledger_mission_transit_forces",
+   "ledger_mission_starved_forces",
+   "ledger_mission_recalled_forces",
+   "ledger_t20_forces",
+   "ledger_t20_economy",
+   "ledger_t20_orders",
+   "ledger_t20_admiralty",
+   "ledger_np_seat_forces",
+   "ledger_fall_clock_territories",
+   "ledger_congress_clock_territories",
+   "ledger_laws_train",
+   "ledger_orders_display"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-44",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "strategic_ledger.tscn",
+  "surfaces": [
+   "ledger_boot_forces",
+   "ledger_boot_territories",
+   "ledger_boot_economy",
+   "ledger_boot_intel",
+   "ledger_boot_manpower",
+   "ledger_boot_orders",
+   "ledger_spent_economy",
+   "ledger_ceiling_calm_economy",
+   "ledger_ceiling_above_economy",
+   "ledger_ceiling_unbounded_economy",
+   "ledger_collapse_one_economy",
+   "ledger_collapse_none_economy",
+   "ledger_mission_court_forces",
+   "ledger_mission_improve_forces",
+   "ledger_mission_gather_forces",
+   "ledger_mission_undermine_forces",
+   "ledger_mission_transit_forces",
+   "ledger_mission_starved_forces",
+   "ledger_mission_recalled_forces",
+   "ledger_t20_forces",
+   "ledger_t20_economy",
+   "ledger_t20_orders",
+   "ledger_np_seat_forces",
+   "ledger_fall_clock_territories",
+   "ledger_congress_clock_territories"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-45",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "strategic_ledger.tscn",
+  "surfaces": [
+   "ledger_boot_admiralty",
+   "ledger_boot_laws",
+   "ledger_laws_staff",
+   "ledger_laws_forecast",
+   "ledger_t20_admiralty",
+   "ledger_laws_train",
+   "ledger_orders_display"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-46",
+  "sev": "P3",
+  "items": [
+   "R2"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_tutorial"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-47",
+  "sev": "P3",
+  "items": [
+   "R3"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_tutorial"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-48",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_tutorial"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-49",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "tutorial_overlay.tscn",
+  "surfaces": [
+   "tutorial_card"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-50",
+  "sev": "P3",
+  "items": [
+   "R3"
+  ],
+  "scene": "battle_diorama.tscn",
+  "surfaces": [
+   "diorama_aadj",
+   "diorama_dadj"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-51",
+  "sev": "P3",
+  "items": [
+   "R3"
+  ],
+  "scene": "battle_diorama.tscn",
+  "surfaces": [
+   "diorama_rout_conquest",
+   "diorama_four_contingents",
+   "diorama_naval"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-52",
+  "sev": "P3",
+  "items": [
+   "R3"
+  ],
+  "scene": "enemy_phase_dialog.tscn",
+  "surfaces": [
+   "enemy_phase_t20",
+   "enemy_phase_collapse",
+   "enemy_phase_iq5"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-53",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "battle_diorama.tscn",
+  "surfaces": [
+   "diorama_aadj",
+   "diorama_dadj",
+   "diorama_rout_conquest",
+   "diorama_four_contingents",
+   "diorama_naval"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-54",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "enemy_phase_dialog.tscn",
+  "surfaces": [
+   "enemy_phase_t20",
+   "enemy_phase_collapse",
+   "enemy_phase_iq5"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-55",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "enemy_phase_dialog.tscn",
+  "surfaces": [
+   "enemy_phase_t20",
+   "enemy_phase_collapse",
+   "enemy_phase_iq5"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-56",
+  "sev": "P3",
+  "items": [
+   "R1",
+   "R2",
+   "R3",
+   "R4",
+   "R5",
+   "R6",
+   "R7",
+   "R8"
+  ],
+  "scene": "capture_choice_dialog.tscn",
+  "surfaces": [
+   "capture_choice"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-57",
+  "sev": "P3",
+  "items": [
+   "R1",
+   "R2",
+   "R3",
+   "R4",
+   "R5",
+   "R6",
+   "R7",
+   "R8"
+  ],
+  "scene": "objection_dialog.tscn",
+  "surfaces": [
+   "objection_dialog"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-58",
+  "sev": "P3",
+  "items": [
+   "R1",
+   "R2",
+   "R3",
+   "R5",
+   "R6",
+   "R7",
+   "R8"
+  ],
+  "scene": "talleyrand_objection_popup.tscn",
+  "surfaces": [
+   "talleyrand_objection"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-59",
+  "sev": "P3",
+  "items": [
+   "R2"
+  ],
+  "scene": "mailbox_panel.tscn",
+  "surfaces": [
+   "mailbox_boot"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-60",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "mailbox_panel.tscn",
+  "surfaces": [
+   "mailbox_boot",
+   "mailbox_petition"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-61",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "marshal_petition_dialog.tscn",
+  "surfaces": [
+   "petition_command_closed"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-62",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "proclamation_popup.tscn",
+  "surfaces": [
+   "proclamation_warsaw"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-63",
+  "sev": "P3",
+  "items": [
+   "R5"
+  ],
+  "scene": "mailbox_panel.tscn",
+  "surfaces": [
+   "mailbox_petition"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-64",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_pause_settings"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-65",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "main_menu.tscn",
+  "surfaces": [
+   "main_menu"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-66",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "main_menu.tscn",
+  "surfaces": [
+   "main_menu_settings"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-67",
+  "sev": "P3",
+  "items": [
+   "R5"
+  ],
+  "scene": "main_menu.tscn",
+  "surfaces": [
+   "main_menu"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-68",
+  "sev": "P3",
+  "items": [
+   "R5"
+  ],
+  "scene": "main_menu.tscn",
+  "surfaces": [
+   "main_menu_settings"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-69",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "main.tscn",
+  "surfaces": [
+   "war_room_pause_settings"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-70",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "main_menu.tscn",
+  "surfaces": [
+   "main_menu"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-71",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "main_menu.tscn",
+  "surfaces": [
+   "main_menu_settings"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-72",
+  "sev": "P3",
+  "items": [
+   "R4"
+  ],
+  "scene": "campaign_end.tscn",
+  "surfaces": [
+   "campaign_end_verdict",
+   "campaign_end_imperial",
+   "campaign_end_imperial_congress",
+   "campaign_end_humbled",
+   "campaign_end_fall_funeral",
+   "campaign_end_fall_chains",
+   "campaign_end_fall_abdication"
+  ],
+  "errors": []
+ },
+ {
+  "id": "UXR3-73",
+  "sev": "P3",
+  "items": [
+   "R6"
+  ],
+  "scene": "campaign_end.tscn",
+  "surfaces": [
+   "campaign_end_fall_funeral",
+   "campaign_end_fall_chains",
+   "campaign_end_fall_abdication"
+  ],
+  "errors": []
+ }
+]

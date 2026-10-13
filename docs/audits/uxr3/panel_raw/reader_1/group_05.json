@@ -1,0 +1,164 @@
+{"reader": 1, "group": "strategic_ledger",
+ "marks": {
+  "ledger_boot_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "Under the lit FORCES tab, the muster (authority, then each marshal's corps) is the first and only content."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "The probe records the lit FORCES tab as SILENT: drawn as a button, it does nothing when pressed."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "It informs; the intro names keys 1–8 and 'press T to close it', and the X is visible."}
+  },
+  "ledger_boot_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "The titled-provinces count and then the province list fill the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "The lit TERRITORIES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_boot_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "The treasury's books, treasury, income and every charge down to Net and Ceiling, are the first block."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_boot_intel": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "Known Enemy Forces with their confirmed or partial tags lead, then the nation summary."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "The lit INTELLIGENCE tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_boot_manpower": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "The three levy pools, each with pool, regen and recruit price, are the whole content."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "The lit MANPOWER tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_boot_orders": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "STANDING ORDERS, THE CABINET and each marshal's order line are the first and only content."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "The lit ORDERS tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "It names the next step ('Press F1, choose a court, and send him on a mission') and the X is visible."}
+  },
+  "ledger_boot_admiralty": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "The fleet's state and the Orders to the Admiralty chips lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "The lit ADMIRALTY tab is SILENT in the probe, though the order chips hand off and the greyed Commission Oudinot says why."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "Blockade, the Grand Diversion and Lay down ships are visible chips."}
+  },
+  "ledger_boot_laws": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "THE LAWS OF STATE opens straight onto each law with its effect, price and Enact chip."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "The lit LAWS tab is SILENT in the probe, though the greyed Enact chips state the shortfall beside them."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "Each law's Enact chip is visible with the reason it is closed."}
+  },
+  "ledger_spent_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "The gold 'Charges of Empire: -492g' and its explanation are the first tinted entry of the books, right under the income rows."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_ceiling_calm_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_calm_economy__1920x1080.png", "why": "The ceiling line this frame is for is below the fold; the charges paragraph and surcharges fill the view."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_calm_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_calm_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_ceiling_above_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_above_economy__1920x1080.png", "why": "The ceiling line that should say it is above its bound is not in view at 1920 or at 5120."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_above_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_above_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_ceiling_unbounded_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "The 'Ceiling: none' line is the dimmed last line of the books, under the green Net, so the eye passes over it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_collapse_one_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "The red Net (-2256g) and red Ceiling line, with 'Paris is in Austria's hands', are the strongest marks of the books and tell the collapse at a glance."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_collapse_none_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "Income +0g, the red Net and the red Ceiling line carry the collapse in the first block."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_laws_staff": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The Grand Quartier Général row is first, with the green 'In force since turn 1' and its Repeal chip saying what it loses."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The lit LAWS tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The Repeal and Enact chips are visible with their costs."}
+  },
+  "ledger_laws_forecast": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The bold gold FORECAST line and the 'Repeal the Code Abroad instead' chip are the first thing under the heading."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The lit LAWS tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The remedy is a visible chip right under the forecast."}
+  },
+  "ledger_mission_court_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_court_forces__1920x1080.png", "why": "No Cabinet block is in view at either size; the frame is the ordinary Forces muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_court_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_court_forces__1920x1080.png", "why": "It informs and the way out (X, 'press T to close it') is visible, though the block it is for is not on screen."}
+  },
+  "ledger_mission_improve_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "No Cabinet block, and so no effect, drift or net line, is in view; the Forces muster fills the frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_mission_gather_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "No Cabinet block or effect text is in view; the Forces muster fills the frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_mission_undermine_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "The pair the mission moves is nowhere in view; the frame is the Forces muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_mission_transit_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_transit_forces__1920x1080.png", "why": "No paused-mission line is in view; the frame is the Forces muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_transit_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_transit_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_mission_starved_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "No suspended mission or its DP cost is in view; the frame is the Forces muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_mission_recalled_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "No Cabinet block saying the desk is free is in view; the frame is the Forces muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_t20_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "The 1806 muster, authority then each corps, leads the lit tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_t20_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "The played treasury and its heavy Charges of Empire lead the books."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "The lit ECONOMY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_t20_orders": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "The standing orders, the Cabinet line and each marshal's line are the whole content."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "The lit ORDERS tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "It names the F1 road for the Cabinet and the X is visible."}
+  },
+  "ledger_t20_admiralty": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "The fleet's state and the order chips, the expedition's march chips among them, lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "The lit ADMIRALTY tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "The naval orders and the two march chips are visible."}
+  },
+  "ledger_np_seat_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_np_seat_forces__1920x1080.png", "why": "Neither the Emperor's corps nor the Seat's +1 DP is in view; Ney, Davout and Soult fill the frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_np_seat_forces__1920x1080.png", "why": "The lit FORCES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_np_seat_forces__1920x1080.png", "why": "It informs and the X and 'press T to close it' are visible."}
+  },
+  "ledger_fall_clock_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "The red collapse note and the two clock lines, the dimmed chains clock and the amber soil clock, lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "The lit TERRITORIES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "It informs, names the way out ('retake a province or make peace'), and the X is visible."}
+  },
+  "ledger_congress_clock_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "The amber 'THE CONGRESS SITS — turn 2 of 8' line sits right under the dateline, the first thing in the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "The lit TERRITORIES tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "It informs and the X is visible."}
+  },
+  "ledger_laws_train": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The Train row's gold cure line ('1 corps drawing 80% now') is the only tinted body line in view and draws the eye."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The lit LAWS tab is SILENT in the probe."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The Enact chips are visible with the reason they are closed."}
+  },
+  "ledger_orders_display": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "Lannes's 'PURSUE Archduke John' order is the first order in the list, set apart by a rule from the idle marshals."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "The lit ORDERS tab is SILENT in the probe, though [Cancel] hands off."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "The order and its [Cancel] are visible."},
+   "R4_note": "[Cancel] is a red bracketed underlined word, unlike the boxed chips the other ledger tabs use for their actions."
+  }
+ }}

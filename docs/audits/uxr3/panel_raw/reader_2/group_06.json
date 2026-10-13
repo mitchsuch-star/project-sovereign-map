@@ -1,0 +1,14 @@
+{"reader": 2, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__5120x1440.png", "why": "At 1920 the tutor card holds the top-right, but on the user's 5120 it is a small panel in the far corner while the map fills the middle, so the eye lands on the map, not 'I. The Situation'."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The probe finds Execute and the map's zoom-out and Fit-Europe buttons SILENT, enabled, button-drawn controls that did nothing."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The card names the first step and offers it as a visible quill chip ('economy', 'Click the quill to place the order'), with 'Skip this lesson' beneath."}
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "Under THE SCHOOL OF WAR · 1 of 20, the bold gold 'I. The Situation' and its body are the card's largest block and the eye lands on them."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The quill and 'Skip this lesson' chips are boxed and underlined, the corner '–' and 'Skip' sit where window controls go, and all four answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The quill chip is visible with the line 'Click the quill to place the order on your command line'."},
+   "R4_note": "The header's '–' and 'Skip' are bare text, unlike the boxed chips in the body."
+  }
+ }}

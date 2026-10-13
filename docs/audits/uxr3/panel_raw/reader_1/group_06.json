@@ -1,0 +1,14 @@
+{"reader": 1, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__5120x1440.png", "why": "The tutor card is neither the largest nor the first element: the centred map takes the eye, and on the 5120 monitor the card is a small block in the far top-right corner."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The probe records Execute, the map's zoom-out and the Fit Europe house as SILENT: they look like buttons and nothing happens."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The lesson names its next step and offers it as visible chips ('✎ economy', 'Skip this lesson ▸'), with the command line below."},
+   "R4_note": "The IMPERIAL COMMAND header box again covers half a line of the briefing beneath it; the tutor card's '–' and 'Skip' are bare words without the chip chrome its other two controls wear."
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "THE SCHOOL OF WAR · 1 of 20, the bold 'I. The Situation' and its body are the first and largest content of the card."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The quill and skip-lesson chips are boxed and underlined, '–' and 'Skip' sit where window controls sit, and all four answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s11\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The card says 'Click the quill to place the order' and the quill chip is right there."}
+  }
+ }}
