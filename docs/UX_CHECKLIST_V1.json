@@ -1,0 +1,1106 @@
+{
+ "version": "1.0",
+ "title": "The UX checklist, version 1 — UXR-3, the look-and-feel review (docs/UX_UI_REVIEW_PLAN.md §UXR-3)",
+ "frozen": "October 13, 2026, Pre-Deploy S11 Part 1, before the first reading. The rules are the S11 hand-off's 'Decided in advance' (docs/NEXT_SESSION_PROMPT.md), made under the user's October 13, 2026 delegation ('make all decisions … nothing hanging'). No edit after this commit: tests/test_uxr3_checklist_frozen.py pins the ids, the surface order and the SHA of the canonical JSON. A new version is a new file.",
+ "routing": "docs/PRE_DEPLOY_PLAN.md §2: row S11 reads; row S12 ('UXR-3 fixes') fixes, worst surfaces first",
+ "kinds": {
+  "instrument": "read off the shoot's machine records by a tool, the same way every time",
+  "reader": "three blind readers; the mark two of the three give (the user's marks at UXR-4, S15, override)",
+  "driven": "a driven record: the action probe, the Mode C session, an existing driven test"
+ },
+ "items": [
+  {
+   "id": "R1",
+   "name": "Readable",
+   "text": "0 RED rows in UXR-0 at all five resolutions",
+   "judge": "instrument",
+   "instrument": "tools/uxr0_readability_report.py (run with -X utf8) over the shoot's index.json",
+   "pass_rule": "✓ iff the surface has an ok reading (the harness's `ok`: no shot error, a non-blank frame) at each of the five resolutions and every reading counts 0 RED and 0 P1 rows by the instrument's own classify(): body-class text RED under 16 physical px em and P1 under 13; caption-class (Caption / CaptionRich / CaptionButton) RED under 14 and P1 under 12. The map's world-space tier is counted beside the floor (map_small) and never scored. A missing or failed reading at any resolution is ✗: it cannot be evidenced. Decided: §UXR-3 says four resolutions; the instrument reads five and the fifth is the user's own monitor, so the stricter reading holds."
+  },
+  {
+   "id": "R2",
+   "name": "Hierarchy",
+   "text": "The one thing the surface is for is the largest or first element; the eye lands on it in the frame",
+   "judge": "reader",
+   "pass_rule": "Each of the three blind readers marks ✓ or ✗ from the surface's frames (the 1920×1080 frame and the user's 5120×1440 frame; any of the five may be opened). The surface's purpose is its name and its IQ-10 must_show line. ✓ iff that one thing is the largest or the first element and the eye lands on it. A reader who cannot judge from the evidence marks ✗ and says why. The item's mark is the one two of the three give."
+  },
+  {
+   "id": "R3",
+   "name": "Contrast",
+   "text": "Body text ≥ 4.5:1 against its panel, captions ≥ 3:1 (measured off the frame)",
+   "judge": "instrument",
+   "instrument": "tools/uxr2b_contrast_report.py (run with -X utf8) over the shoot's index.json, with High contrast OFF: the default a new player sees",
+   "pass_rule": "✓ iff the surface has an ok reading at each of the five resolutions, and each reading measures at least one text row and finds 0 rows under the floor: body-class ≥ 4.5 : 1, caption-class ≥ 3 : 1. The ratio is WCAG's, between the text's declared colours (font colour, BBCode spans and chip pairs, times the modulate chain) and the frame's median background under the row's rect. Disabled buttons, the disabled chip (Utils.bb_chip_disabled) and the map tier are not measured, as the instrument defines. A missing or failed reading is ✗. High contrast ON is shot and recorded beside it and never scores."
+  },
+  {
+   "id": "R4",
+   "name": "Consistency",
+   "text": "Chrome, chips, close-X, headings and spacing match the theme (no one-off colours or sizes; the override census)",
+   "judge": "instrument + reader",
+   "instrument": "tools/uxr3_consistency_census.py (built in Part 2 to this rule) over the surface's own files",
+   "pass_rule": "✓ iff the census finds 0 hits in the surface's own files. A hit is one of two kinds. (a) A ONE-OFF SIZE: a raw font-size override as tests/test_uxr2_override_diet.py's raw_sites counts it (the RAW_RATCHET census: a scene's theme_override_font_sizes/* line; a script's add_theme_font_size_override( call, literal or computed; the set(...) and string-call dodges), or a BBCode [font_size= in script code. Each is a size outside the named theme steps, and a named exemption of that test still counts. (b) A ONE-OFF GREY: a colour in Utils.is_dim's class (chroma ≤ 0.12 and 0.15 ≤ luminance ≤ luminance(UI_TEXT_DIM) + 0.02, where luminance = 0.2126 r + 0.7152 g + 0.0722 b on the authored values) written as a literal and not routed through Utils.toned / toned_hex / the COLOR tokens. In script code (comments and docstrings dropped) that is a Color(r, g, b[, a]) of numeric literals, a Color(\"…\") or Color.html(\"…\") hex, a [color=…] hex, a bare 6- or 8-digit hex string literal, or a named Godot grey (Color.GRAY and kin), outside any toned( / toned_hex( call. In a scene it is a theme_override_colors/*, modulate or self_modulate value that is not a step of Utils.DIM_LADDER (±1/255 per channel): the High-contrast chokepoint raises a ladder value, so an off-ladder grey is a one-off. The surface's own files are the scene files and scripts (with their base scripts) of every node visible in its frames, plus the shot's own scene and root script. They never include scripts/utils.gd (the palette's home, where the tokens live), scripts/ui_settings.gd, the theme .tres, tools/** or the engine's built-ins. An unreachable surface's files are its scene, the scripts that scene attaches and their bases: the census needs no frame. A reader's 'looks inconsistent' note is recorded beside the mark and never fails the item without a census hit."
+  },
+  {
+   "id": "R5",
+   "name": "Affordance",
+   "text": "Everything clickable looks clickable and everything that looks clickable is; disabled states say why (honest availability)",
+   "judge": "reader + driven",
+   "pass_rule": "✗ when the driven record (the action probe) finds a SILENT control: enabled, visible, pressed, and nothing at all happened. It looks clickable and is not. Otherwise each blind reader marks ✓ or ✗ from the frames and the probe's record of the surface's controls: every control, its class, whether it answered and how, and every disabled control with its tooltip and the text beside it. ✓ iff everything that is a control looks like one, nothing that looks clickable is inert, and every disabled control states why (its tooltip, a reason line beside it, or the chip's own reason). The reader mark is the one two of the three give. A surface the probe cannot reach is ✗: the driven half cannot be evidenced."
+  },
+  {
+   "id": "R6",
+   "name": "Feedback",
+   "text": "Every action answers within the frame (a chip echoes, a send acknowledges, a save confirms)",
+   "judge": "driven",
+   "pass_rule": "✓ iff the driven record shows every action of the surface answering within the frame. Every enabled control the action probe presses must answer VISIBLE: within 500 ms and 30 frames of the press something on screen changed (a visible text, a node shown or hidden, a control's rect, a button's pressed or disabled state, the focus owner, the map's camera), or the surface closed, or another surface opened. A HANDOFF control (its only answer an API call or an outward signal) counts as answering only where a live-backend driven record shows that road's visible answer: the Mode C session or an existing driven test, cited by name. A NOT PRESSED control (a scene change, quit, save, load, new game) counts only the same way. Unproven is ✗: a SILENT control, an uncited HANDOFF or NOT PRESSED control, a surface with no enumerable control, or a surface the probe cannot reach. The row's fix is the driven proof plus whatever it finds."
+  },
+  {
+   "id": "R7",
+   "name": "Fit",
+   "text": "Nothing clipped, nothing overflowing, nothing under a modal; works at 1920 and 3840",
+   "judge": "instrument",
+   "instrument": "tools/uxr3_fit_report.py (built in Part 2) over the shoot's frame records; the capture harness gains the records it reads in Part 2, before the shoot",
+   "pass_rule": "✓ iff the surface has an ok reading at 1920×1080, 3840×2160 and the user's 5120×1440, and none of the three frames records any of the following. (1) CLIPPED text: a RichTextLabel whose content is taller than its box, outside a ScrollContainer and without its own scrollbar (the harness's clipped_text); or a Label or Button whose text is cut, meaning one with clip_text on or a text_overrun_behavior other than no-trimming whose single-line text is wider than its content box, or an autowrapped Label showing fewer lines than it holds (truncated_text). (2) OVERFLOWING text or buttons: a text row or button outside the logical viewport, a scrolled list judged by its ScrollContainer's rect (buttons_offscreen, text_offscreen). (3) Anything UNDER A MODAL: a visible text row or button of the live frame (outside the map's SubViewport) whose centre lies inside the rect of a visible drawing Control (a Panel, PanelContainer, ColorRect, NinePatchRect or TextureRect that is not fully transparent) on a strictly higher CanvasLayer. The live frame is the layers at and above the topmost modal layer. A modal layer is one that holds a visible Control with a mouse filter other than IGNORE covering ≥ 95 % of the logical viewport; the content beneath a modal is suspended by it, by design, and is not read."
+  },
+  {
+   "id": "R8",
+   "name": "Discoverability",
+   "text": "The surface's key action is reachable without the manual (the IQ-10 must_show line, re-read as a new player)",
+   "judge": "reader",
+   "pass_rule": "Each blind reader re-reads the surface's IQ-10 must_show line as a new player who has not read the manual, and marks ✓ iff the surface's key action (what the surface asks of the player, or the one thing it offers) is reachable from what the frame shows: a visible control, a stated key, or a named next step. A surface whose purpose is to inform passes when the way to leave it is visible. A reader who cannot judge from the evidence marks ✗ and says why. The mark is the one two of the three give."
+  }
+ ],
+ "scoring": {
+  "mark": "Every item of every surface is marked ✓ or ✗; none is skipped. An item a surface cannot evidence (no frame, no record) is ✗ and is filed with the gap as the row's first fix.",
+  "reader_marks": "R2, R8 and R5's reader half come from three blind readers: Agent-tool subagents launched in one message. None sees another's marks. Each is given this file, the frames and the instrument and driven records, and is told nothing the records do not say. Each returns a mark and a cited frame per surface and reader-judged item, and may note R4 observations. The item's mark is the one two of the three give (tools/score_panel.py eyes's rule; here no reader may abstain). The spread is recorded as 3–0 or 2–1.",
+  "disagreement": "The two-of-three mark stands. A 2–1 ✗ is filed like a 3–0 ✗, with the spread on the row.",
+  "score": "A surface's score is its count of ✓, out of 8.",
+  "worst_five": "The five lowest scores. A tie goes to the surface earlier in the review order, the one with more time on screen.",
+  "filing": "Every ✗ becomes a docs/BUG_FIXES.md row in a new section '§UXR-3 — the review', with its frame(s), tagged ⟨SF step=pre-deploy S12 · UXR-3 <surface> · pillar=ui_ux⟩. The owner is S12 ('UXR-3 fixes'); the completion is the item re-read ✓ on that surface. ✗s of one item with one cause on several surfaces of one scene share a row that names every surface and its frame. Rows already owned (UXR-X9, UXR-X28) are cross-referenced, not re-filed. A crash or a P1 found while reading heads the list as a P1, owner S12.",
+  "no_fix": "Nothing is fixed in S11, not even a one-liner, so the reading stays S12's clean baseline.",
+  "top_five": "'The top five by time on screen' are the first five groups below: the war room, the morning dispatch, the Generals screen, the diplomacy wizard with the settlement table, and the Strategic Ledger.",
+  "s11_done_when": [
+   "every surface in the order has a reading (all eight items marked)",
+   "every ✗ is filed with owner S12",
+   "the worst five are named"
+  ],
+  "s12_done_when": "§UXR-3's own done-when belongs to S12: every surface of the top five groups reads 8 of 8, and no surface reads under 6 of 8. S12 re-reads only the flipped items, against this file. Where the S11 reading already meets it on a surface, the review records that.",
+  "side_desk": "UXR-D4, the Side Desk, does not exist at S11. It lands at S12b with its own census and is not scored here.",
+  "users_eyes": "UXR-4 at S15: the user's own marks at 5120×1440 override the readers'."
+ },
+ "evidence": {
+  "tree": "the committed master at this file's commit; every record names its client_commit",
+  "payloads": "tools/iq10_capture_payloads.py, re-captured on that tree into the session's scratch directory (the mock parser, sandboxed saves; the player's 8005 never touched)",
+  "shoot": "tools/iq10_run_captures.py --physical --physical-scale auto over the whole manifest at the five resolutions, Text size 100 %, HUD width Full, High contrast off; one engine at a time; the window parked off the desktop with OS input disabled; each frame's stray_input and focus are read before it is trusted",
+  "resolutions": [
+   [
+    1920,
+    1080
+   ],
+   [
+    2560,
+    1440
+   ],
+   [
+    3440,
+    1440
+   ],
+   [
+    5120,
+    1440
+   ],
+   [
+    3840,
+    2160
+   ]
+  ],
+  "fit_resolutions": [
+   [
+    1920,
+    1080
+   ],
+   [
+    3840,
+    2160
+   ],
+   [
+    5120,
+    1440
+   ]
+  ],
+  "high_contrast_on": "the same shoot with --high-contrast, recorded beside R3, never scored",
+  "reader_frames": "each surface's 1920×1080 and 5120×1440 frames (a surface that does not fill the screen is cropped to its own top-level rects, never scaled); any of the five may be opened",
+  "action_probe": "tools/uxr3_action_probe.py with tools/uxr3_action_probe.gd, built in Part 2 in the IQ-10 pattern: the same payloads, scenes, entry methods and steps, at 1920×1080 and the derived scale 1.0, with every API stubbed. In the live frame (R7's), every visible BaseButton, every visible Control showing the pointing-hand cursor and every BBCode [url] link of a visible RichTextLabel is a control. Each enabled control is pressed in a fresh instance of the surface: a button or pointing-hand control by a click at its centre as the player gives it (a synthetic press and release; where another control would take that click, the probe records what took it and presses the control by its own signal), a link by its label's meta_clicked. The frame is read before the press and again 2 frames and 500 ms (at least 30 frames) after it; what changes on its own over 500 ms with no press is read once per surface and set aside. The answer is VISIBLE when something on screen changed (see R6); HANDOFF when the only response is an API call the stub records or a signal the surface emits; SILENT when nothing at all happened. Controls that change the scene, quit, save, load or start a new game, and links to an outside address, are NOT PRESSED. Disabled controls are listed with their tooltip and the text beside them.",
+  "live_records": "the Mode C session (tools/mode_c_driven_session.py: the real main.tscn against a sandboxed backend on an unused port; every screen key, typed orders, four end-turn roads, every modal answered) and the existing driven tests, each cited by name per surface",
+  "committed": "the records under docs/audits/uxr3/ and every frame a row cites (force-added); the regenerable bulk stays out of git"
+ },
+ "groups": [
+  {
+   "order": 1,
+   "key": "war_room",
+   "name": "The war room — map, terminal and top bar, with the HUD drawn on it (war status, war detail, notice rail, region panel)",
+   "top_five": true,
+   "surfaces": [
+    {
+     "id": "war_room_boot",
+     "shot": "war_room_boot",
+     "scene": "res://scenes/main.tscn",
+     "surface": "The war room — map, command window, top bar (Begin the 1805 campaign)"
+    },
+    {
+     "id": "top_bar_boot",
+     "shot": "top_bar_boot",
+     "scene": "res://scenes/top_bar.tscn",
+     "surface": "Top bar — diplomatic fields"
+    },
+    {
+     "id": "top_bar_admiralty",
+     "shot": "top_bar_admiralty",
+     "scene": "res://scenes/top_bar.tscn",
+     "surface": "Top bar — the Admiralty chip (a naval board, boot blockade)"
+    },
+    {
+     "id": "top_bar_mission_court",
+     "shot": "top_bar_mission_court",
+     "scene": "res://scenes/top_bar.tscn",
+     "surface": "Top bar — a mission standing"
+    },
+    {
+     "id": "war_status_boot",
+     "shot": "war_status_boot",
+     "scene": "res://scenes/war_status_panel.tscn",
+     "surface": "War Status HUD (boot)"
+    },
+    {
+     "id": "war_status_collapse_one",
+     "shot": "war_status_collapse_one",
+     "scene": "res://scenes/war_status_panel.tscn",
+     "surface": "War Status HUD (one province left)"
+    },
+    {
+     "id": "war_status_collapse_none",
+     "shot": "war_status_collapse_none",
+     "scene": "res://scenes/war_status_panel.tscn",
+     "surface": "War Status HUD (no province left)"
+    },
+    {
+     "id": "war_status_t20",
+     "shot": "war_status_t20",
+     "scene": "res://scenes/war_status_panel.tscn",
+     "surface": "War Status HUD (t20 fixture)"
+    },
+    {
+     "id": "war_detail_boot",
+     "shot": "war_detail_boot",
+     "scene": "res://scenes/war_detail_popup.tscn",
+     "surface": "War Detail popup (boot)"
+    },
+    {
+     "id": "war_detail_collapse_one",
+     "shot": "war_detail_collapse_one",
+     "scene": "res://scenes/war_detail_popup.tscn",
+     "surface": "War Detail popup (one province left)"
+    },
+    {
+     "id": "war_detail_collapse_none",
+     "shot": "war_detail_collapse_none",
+     "scene": "res://scenes/war_detail_popup.tscn",
+     "surface": "War Detail popup (no province left)"
+    },
+    {
+     "id": "war_detail_t20",
+     "shot": "war_detail_t20",
+     "scene": "res://scenes/war_detail_popup.tscn",
+     "surface": "War Detail popup (t20 fixture)"
+    },
+    {
+     "id": "war_detail_coalition_boot",
+     "shot": "war_detail_coalition_boot",
+     "scene": "res://scenes/war_detail_popup.tscn",
+     "surface": "War Detail popup (the coalition, boot)"
+    },
+    {
+     "id": "war_detail_coalition_t20",
+     "shot": "war_detail_coalition_t20",
+     "scene": "res://scenes/war_detail_popup.tscn",
+     "surface": "War Detail popup (the coalition, t20 fixture)"
+    },
+    {
+     "id": "rail_mission_court",
+     "shot": "rail_mission_court",
+     "scene": "res://scenes/notification_bar.tscn",
+     "surface": "Notice rail — the mission row (court)"
+    },
+    {
+     "id": "rail_mission_improve",
+     "shot": "rail_mission_improve",
+     "scene": "res://scenes/notification_bar.tscn",
+     "surface": "Notice rail — the mission row (improve)"
+    },
+    {
+     "id": "rail_mission_gather",
+     "shot": "rail_mission_gather",
+     "scene": "res://scenes/notification_bar.tscn",
+     "surface": "Notice rail — the mission row (gather)"
+    },
+    {
+     "id": "rail_t20",
+     "shot": "rail_t20",
+     "scene": "res://scenes/notification_bar.tscn",
+     "surface": "Notice rail (t20 fixture)"
+    },
+    {
+     "id": "rail_counter_punch",
+     "shot": "rail_counter_punch",
+     "scene": "res://scenes/notification_bar.tscn",
+     "surface": "Notice rail — the counter-punch row opened, with its button (slice 8)"
+    },
+    {
+     "id": "region_paris",
+     "shot": "region_paris",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Paris (own soil, Soult present)"
+    },
+    {
+     "id": "region_rhineland",
+     "shot": "region_rhineland",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Rhineland (own soil, Davout present, Murat in range)"
+    },
+    {
+     "id": "region_amsterdam",
+     "shot": "region_amsterdam",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Amsterdam (a vassal's province, Bernadotte present)"
+    },
+    {
+     "id": "region_milan",
+     "shot": "region_milan",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Milan (a vassal's province, Massena present)"
+    },
+    {
+     "id": "region_vienna",
+     "shot": "region_vienna",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Vienna (an enemy capital)"
+    },
+    {
+     "id": "region_doctrine_posen",
+     "shot": "region_doctrine_posen",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Posen (Prussian, unscouted — the poor mark is geography)"
+    },
+    {
+     "id": "region_doctrine_tyrol",
+     "shot": "region_doctrine_tyrol",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Tyrol (Austrian, stripped by war, FULL)"
+    },
+    {
+     "id": "region_paris_build_open",
+     "shot": "region_paris_build_open",
+     "scene": "res://scenes/region_panel.tscn",
+     "surface": "Region Action Panel — Paris, the Build rows unfolded (WO-V-D1)"
+    }
+   ]
+  },
+  {
+   "order": 2,
+   "key": "dispatch",
+   "name": "The morning dispatch — with the turn's two other reading books, Le Moniteur and the campaign log",
+   "top_five": true,
+   "surfaces": [
+    {
+     "id": "dispatch_boot_today",
+     "shot": "dispatch_boot_today",
+     "scene": "res://scenes/dispatch_view.tscn",
+     "surface": "Dispatch re-read (the boot briefing's TODAY)"
+    },
+    {
+     "id": "dispatch_t20",
+     "shot": "dispatch_t20",
+     "scene": "res://scenes/dispatch_view.tscn",
+     "surface": "Dispatch re-read (t20 fixture)"
+    },
+    {
+     "id": "dispatch_collapse",
+     "shot": "dispatch_collapse",
+     "scene": "res://scenes/dispatch_view.tscn",
+     "surface": "Dispatch re-read (collapse board)"
+    },
+    {
+     "id": "dispatch_fall_clock",
+     "shot": "dispatch_fall_clock",
+     "scene": "res://scenes/dispatch_view.tscn",
+     "surface": "Dispatch re-read (the fall clock on the banner)"
+    },
+    {
+     "id": "dispatch_congress_clock",
+     "shot": "dispatch_congress_clock",
+     "scene": "res://scenes/dispatch_view.tscn",
+     "surface": "Dispatch re-read (the Congress clock on the banner)"
+    },
+    {
+     "id": "dispatch_front_page",
+     "shot": "dispatch_front_page",
+     "scene": "res://scenes/dispatch_view.tscn",
+     "surface": "Dispatch re-read (the front page of the peace)"
+    },
+    {
+     "id": "dispatch_front_page_league",
+     "shot": "dispatch_front_page_league",
+     "scene": "res://scenes/dispatch_view.tscn",
+     "surface": "Dispatch re-read (the next league under COALITION THREAT)"
+    },
+    {
+     "id": "gazette_t20",
+     "shot": "gazette_t20",
+     "scene": "res://scenes/gazette_view.tscn",
+     "surface": "Le Moniteur (t20 fixture)"
+    },
+    {
+     "id": "gazette_congress",
+     "shot": "gazette_congress",
+     "scene": "res://scenes/gazette_view.tscn",
+     "surface": "Le Moniteur — the Congress column"
+    },
+    {
+     "id": "campaign_log_glyphs",
+     "shot": "campaign_log_glyphs",
+     "scene": "res://scenes/campaign_log.tscn",
+     "surface": "Campaign log — glyph prefixes (LV-16)"
+    },
+    {
+     "id": "campaign_log_tiers",
+     "shot": "campaign_log_tiers",
+     "scene": "res://scenes/campaign_log.tscn",
+     "surface": "Campaign log — the importance tiers on a played board (EAS-2 client half)"
+    }
+   ]
+  },
+  {
+   "order": 3,
+   "key": "generals",
+   "name": "The Generals screen",
+   "top_five": true,
+   "surfaces": [
+    {
+     "id": "generals_boot",
+     "shot": "generals_boot",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals (Marshal Management)"
+    },
+    {
+     "id": "generals_t20",
+     "shot": "generals_t20",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals (t20 fixture)"
+    },
+    {
+     "id": "generals_prisoner",
+     "shot": "generals_prisoner",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals — a captured marshal"
+    },
+    {
+     "id": "generals_np_seat",
+     "shot": "generals_np_seat",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals — Napoleon in the Seat (NP-5)"
+    },
+    {
+     "id": "generals_np_field",
+     "shot": "generals_np_field",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals — Napoleon in the field"
+    },
+    {
+     "id": "generals_np_captive",
+     "shot": "generals_np_captive",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals — the Eagle in Chains"
+    },
+    {
+     "id": "generals_flagship_t12",
+     "shot": "generals_flagship_t12",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals — the flagship t12 board"
+    },
+    {
+     "id": "generals_doctrine",
+     "shot": "generals_doctrine",
+     "scene": "res://scenes/marshal_management.tscn",
+     "surface": "Generals — OUR DOCTRINE above the ladder"
+    }
+   ]
+  },
+  {
+   "order": 4,
+   "key": "diplomacy",
+   "name": "The diplomacy wizard and the settlement table — with the Diplomatic Ledger, the diplomacy desk's book",
+   "top_five": true,
+   "surfaces": [
+    {
+     "id": "wizard_step1",
+     "shot": "wizard_step1",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "Diplomacy wizard — step 1, the nation list (LV-20)"
+    },
+    {
+     "id": "wizard_step2_austria",
+     "shot": "wizard_step2_austria",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "Diplomacy wizard — step 2, Austria (at war)"
+    },
+    {
+     "id": "wizard_step2_prussia",
+     "shot": "wizard_step2_prussia",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "Diplomacy wizard — step 2, Prussia (at peace)"
+    },
+    {
+     "id": "wizard_step1_congress_gate",
+     "shot": "wizard_step1_congress_gate",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "Diplomacy wizard — step 1, the Congress row (the gate)"
+    },
+    {
+     "id": "wizard_step1_congress_ready",
+     "shot": "wizard_step1_congress_ready",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "Diplomacy wizard — step 1, the Congress row (every term met)"
+    },
+    {
+     "id": "wizard_step1_congress_sitting",
+     "shot": "wizard_step1_congress_sitting",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "Diplomacy wizard — step 1, the Congress row (the Congress sitting)"
+    },
+    {
+     "id": "wizard_formables_entry",
+     "shot": "wizard_formables_entry",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "The Cabinet wizard — step 1 with the Formable Nations entry (NA-6d §11.6-8)"
+    },
+    {
+     "id": "wizard_formables_step3",
+     "shot": "wizard_formables_step3",
+     "scene": "res://scenes/diplomacy_wizard.tscn",
+     "surface": "The Cabinet wizard — step 3, the Formable Nations (SF7-X28)"
+    },
+    {
+     "id": "confirm_peace_losing",
+     "shot": "confirm_peace_losing",
+     "scene": "res://scenes/proposal_confirm_popup.tscn",
+     "surface": "Proposal confirm — drafted peace (losing France)"
+    },
+    {
+     "id": "settlement_three_courts",
+     "shot": "settlement_three_courts",
+     "scene": "res://scenes/proposal_confirm_popup.tscn",
+     "surface": "Settlement table — three courts, Vienna held (LV-14b)"
+    },
+    {
+     "id": "settlement_white_review_ratify",
+     "shot": "settlement_white_review_ratify",
+     "scene": "res://scenes/proposal_confirm_popup.tscn",
+     "surface": "The white peace's review — Austria beaten and alone at the table (SF-V2's eyes-on check)"
+    },
+    {
+     "id": "settlement_white_review_holdout",
+     "shot": "settlement_white_review_holdout",
+     "scene": "res://scenes/proposal_confirm_popup.tscn",
+     "surface": "The white peace's review — the whole-war table at the same score (SF-V2's eyes-on check)"
+    },
+    {
+     "id": "incoming_peace_losing",
+     "shot": "incoming_peace_losing",
+     "scene": "res://scenes/incoming_proposal_popup.tscn",
+     "surface": "Incoming settlement offer (losing France)"
+    },
+    {
+     "id": "diplo_boot_nations",
+     "shot": "diplo_boot_nations",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Nations tab"
+    },
+    {
+     "id": "diplo_boot_treaties",
+     "shot": "diplo_boot_treaties",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Treaties tab"
+    },
+    {
+     "id": "diplo_boot_balance",
+     "shot": "diplo_boot_balance",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Balance tab"
+    },
+    {
+     "id": "diplo_boot_talleyrand",
+     "shot": "diplo_boot_talleyrand",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Talleyrand tab"
+    },
+    {
+     "id": "diplo_boot_bargains",
+     "shot": "diplo_boot_bargains",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Bargains tab"
+    },
+    {
+     "id": "diplo_boot_vassals",
+     "shot": "diplo_boot_vassals",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Vassals tab"
+    },
+    {
+     "id": "diplo_boot_congress",
+     "shot": "diplo_boot_congress",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Congress tab"
+    },
+    {
+     "id": "diplo_laws_rival_nations",
+     "shot": "diplo_laws_rival_nations",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Nations (a rival's laws)"
+    },
+    {
+     "id": "diplo_collapse_one_nations",
+     "shot": "diplo_collapse_one_nations",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Nations (one province left)"
+    },
+    {
+     "id": "diplo_collapse_cooldown_talleyrand",
+     "shot": "diplo_collapse_cooldown_talleyrand",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Talleyrand (coalition cooldown)"
+    },
+    {
+     "id": "diplo_collapse_none_vassals",
+     "shot": "diplo_collapse_none_vassals",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Vassals (no province left)"
+    },
+    {
+     "id": "diplo_mission_court_talleyrand",
+     "shot": "diplo_mission_court_talleyrand",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Talleyrand (courting)"
+    },
+    {
+     "id": "diplo_mission_undermine_talleyrand",
+     "shot": "diplo_mission_undermine_talleyrand",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Talleyrand (undermining)"
+    },
+    {
+     "id": "diplo_mission_recalled_talleyrand",
+     "shot": "diplo_mission_recalled_talleyrand",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Talleyrand (recalled)"
+    },
+    {
+     "id": "diplo_petition_granted_vassals",
+     "shot": "diplo_petition_granted_vassals",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Vassals after a granted petition"
+    },
+    {
+     "id": "diplo_t20_nations",
+     "shot": "diplo_t20_nations",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Nations (t20 fixture)"
+    },
+    {
+     "id": "diplo_t20_treaties",
+     "shot": "diplo_t20_treaties",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Treaties (t20 fixture)"
+    },
+    {
+     "id": "diplo_t20_balance",
+     "shot": "diplo_t20_balance",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Balance (t20 fixture)"
+    },
+    {
+     "id": "diplo_t20_vassals",
+     "shot": "diplo_t20_vassals",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Vassals (t20 fixture)"
+    },
+    {
+     "id": "diplo_congress_gate",
+     "shot": "diplo_congress_gate",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — CONGRESS (the gate at the 1805 boot)"
+    },
+    {
+     "id": "diplo_congress_sitting",
+     "shot": "diplo_congress_sitting",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — CONGRESS (the sitting, turn 2 of 8)"
+    },
+    {
+     "id": "diplo_congress_sitting_table",
+     "shot": "diplo_congress_sitting_table",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — CONGRESS (the sitting — the table)"
+    },
+    {
+     "id": "diplo_doctrine_nations",
+     "shot": "diplo_doctrine_nations",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Nations (every court's doctrine)"
+    },
+    {
+     "id": "diplo_balance_next_league",
+     "shot": "diplo_balance_next_league",
+     "scene": "res://scenes/diplomatic_ledger.tscn",
+     "surface": "Diplomatic Ledger — Balance of Europe (THE NEXT LEAGUE)"
+    }
+   ]
+  },
+  {
+   "order": 5,
+   "key": "strategic_ledger",
+   "name": "The Strategic Ledger — its eight tabs at boot, then every board the manifest stages",
+   "top_five": true,
+   "surfaces": [
+    {
+     "id": "ledger_boot_forces",
+     "shot": "ledger_boot_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Forces tab"
+    },
+    {
+     "id": "ledger_boot_territories",
+     "shot": "ledger_boot_territories",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Territories tab"
+    },
+    {
+     "id": "ledger_boot_economy",
+     "shot": "ledger_boot_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy tab"
+    },
+    {
+     "id": "ledger_boot_intel",
+     "shot": "ledger_boot_intel",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Intel tab"
+    },
+    {
+     "id": "ledger_boot_manpower",
+     "shot": "ledger_boot_manpower",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Manpower tab"
+    },
+    {
+     "id": "ledger_boot_orders",
+     "shot": "ledger_boot_orders",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Orders tab"
+    },
+    {
+     "id": "ledger_boot_admiralty",
+     "shot": "ledger_boot_admiralty",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Admiralty tab"
+    },
+    {
+     "id": "ledger_boot_laws",
+     "shot": "ledger_boot_laws",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Laws tab"
+    },
+    {
+     "id": "ledger_spent_economy",
+     "shot": "ledger_spent_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy (the chest spent)"
+    },
+    {
+     "id": "ledger_ceiling_calm_economy",
+     "shot": "ledger_ceiling_calm_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy (60% of the ceiling)"
+    },
+    {
+     "id": "ledger_ceiling_above_economy",
+     "shot": "ledger_ceiling_above_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy (150% of the ceiling)"
+    },
+    {
+     "id": "ledger_ceiling_unbounded_economy",
+     "shot": "ledger_ceiling_unbounded_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy (the legacy world)"
+    },
+    {
+     "id": "ledger_collapse_one_economy",
+     "shot": "ledger_collapse_one_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy (one province left)"
+    },
+    {
+     "id": "ledger_collapse_none_economy",
+     "shot": "ledger_collapse_none_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy (no province left)"
+    },
+    {
+     "id": "ledger_laws_staff",
+     "shot": "ledger_laws_staff",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Laws (the Staff in force)"
+    },
+    {
+     "id": "ledger_laws_forecast",
+     "shot": "ledger_laws_forecast",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Laws (a doomed law)"
+    },
+    {
+     "id": "ledger_mission_court_forces",
+     "shot": "ledger_mission_court_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — the Cabinet block (COURT_NATION running)"
+    },
+    {
+     "id": "ledger_mission_improve_forces",
+     "shot": "ledger_mission_improve_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — the Cabinet block (IMPROVE_RELATIONS running)"
+    },
+    {
+     "id": "ledger_mission_gather_forces",
+     "shot": "ledger_mission_gather_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — the Cabinet block (GATHER_INTEL running)"
+    },
+    {
+     "id": "ledger_mission_undermine_forces",
+     "shot": "ledger_mission_undermine_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — the Cabinet block (UNDERMINE_ALLIANCE running)"
+    },
+    {
+     "id": "ledger_mission_transit_forces",
+     "shot": "ledger_mission_transit_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — the Cabinet block (in transit with a proposal)"
+    },
+    {
+     "id": "ledger_mission_starved_forces",
+     "shot": "ledger_mission_starved_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — the Cabinet block (starved of DP)"
+    },
+    {
+     "id": "ledger_mission_recalled_forces",
+     "shot": "ledger_mission_recalled_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — the Cabinet block (recalled)"
+    },
+    {
+     "id": "ledger_t20_forces",
+     "shot": "ledger_t20_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Forces (t20 fixture)"
+    },
+    {
+     "id": "ledger_t20_economy",
+     "shot": "ledger_t20_economy",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Economy (t20 fixture)"
+    },
+    {
+     "id": "ledger_t20_orders",
+     "shot": "ledger_t20_orders",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Orders (t20 fixture)"
+    },
+    {
+     "id": "ledger_t20_admiralty",
+     "shot": "ledger_t20_admiralty",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Admiralty (t20 fixture)"
+    },
+    {
+     "id": "ledger_np_seat_forces",
+     "shot": "ledger_np_seat_forces",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Forces (Napoleon in the Seat)"
+    },
+    {
+     "id": "ledger_fall_clock_territories",
+     "shot": "ledger_fall_clock_territories",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Territories (the fall clock, two arms)"
+    },
+    {
+     "id": "ledger_congress_clock_territories",
+     "shot": "ledger_congress_clock_territories",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Territories (the Congress clock)"
+    },
+    {
+     "id": "ledger_laws_train",
+     "shot": "ledger_laws_train",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Laws (the Train's cure line)"
+    },
+    {
+     "id": "ledger_orders_display",
+     "shot": "ledger_orders_display",
+     "scene": "res://scenes/strategic_ledger.tscn",
+     "surface": "Strategic Ledger — Orders tab, a pursuit of an Archduke (NPC-12, slice 7)"
+    }
+   ]
+  },
+  {
+   "order": 6,
+   "key": "tutorial",
+   "name": "The tutorial — the School of War",
+   "top_five": false,
+   "surfaces": [
+    {
+     "id": "war_room_tutorial",
+     "shot": "war_room_tutorial",
+     "scene": "res://scenes/main.tscn",
+     "surface": "The war room — the School of War's first morning, tutor card top-right"
+    },
+    {
+     "id": "tutorial_card",
+     "shot": "tutorial_card",
+     "scene": "res://scenes/tutorial_overlay.tscn",
+     "surface": "The School of War card alone (tutorial_overlay.tscn)"
+    }
+   ]
+  },
+  {
+   "order": 7,
+   "key": "enemy_phase_and_diorama",
+   "name": "The enemy-phase dialog and the battle diorama",
+   "top_five": false,
+   "surfaces": [
+    {
+     "id": "enemy_phase_t20",
+     "shot": "enemy_phase_t20",
+     "scene": "res://scenes/enemy_phase_dialog.tscn",
+     "surface": "Enemy-phase dialog (t20 fixture)"
+    },
+    {
+     "id": "enemy_phase_collapse",
+     "shot": "enemy_phase_collapse",
+     "scene": "res://scenes/enemy_phase_dialog.tscn",
+     "surface": "Enemy-phase dialog (collapse board)"
+    },
+    {
+     "id": "enemy_phase_iq5",
+     "shot": "enemy_phase_iq5",
+     "scene": "res://scenes/enemy_phase_dialog.tscn",
+     "surface": "Enemy-phase dialog (IQ-5 scope board)"
+    },
+    {
+     "id": "diorama_aadj",
+     "shot": "diorama_aadj",
+     "scene": "res://scenes/battle_diorama.tscn",
+     "surface": "Battle Diorama (attacker adjusted)"
+    },
+    {
+     "id": "diorama_dadj",
+     "shot": "diorama_dadj",
+     "scene": "res://scenes/battle_diorama.tscn",
+     "surface": "Battle Diorama (defender adjusted)"
+    },
+    {
+     "id": "diorama_rout_conquest",
+     "shot": "diorama_rout_conquest",
+     "scene": "res://scenes/battle_diorama.tscn",
+     "surface": "Battle Diorama (a rout and a conquest)"
+    },
+    {
+     "id": "diorama_four_contingents",
+     "shot": "diorama_four_contingents",
+     "scene": "res://scenes/battle_diorama.tscn",
+     "surface": "Battle Diorama (four contingents a side)"
+    },
+    {
+     "id": "diorama_naval",
+     "shot": "diorama_naval",
+     "scene": "res://scenes/battle_diorama.tscn",
+     "surface": "Battle Diorama (a fleet action)"
+    }
+   ]
+  },
+  {
+   "order": 8,
+   "key": "popups",
+   "name": "The popups — objection, interrupt, capture, petition, letter-book, and the one other popup the manifest shoots (the Proclamation)",
+   "top_five": false,
+   "surfaces": [
+    {
+     "id": "objection_dialog",
+     "shot": null,
+     "scene": "res://scenes/objection_dialog.tscn",
+     "surface": "A marshal's objection to an order (objection_dialog.tscn)",
+     "reach": "no IQ-10 shot: the harness cannot reach it (S12's first fix is the shot, under this id)"
+    },
+    {
+     "id": "talleyrand_objection",
+     "shot": null,
+     "scene": "res://scenes/talleyrand_objection_popup.tscn",
+     "surface": "Talleyrand's objection to a proposal (talleyrand_objection_popup.tscn)",
+     "reach": "no IQ-10 shot: the harness cannot reach it (S12's first fix is the shot, under this id)"
+    },
+    {
+     "id": "interrupt_last_stand",
+     "shot": "interrupt_last_stand",
+     "scene": "res://scenes/interrupt_popup.tscn",
+     "surface": "The last-stand question (SF7-X27)"
+    },
+    {
+     "id": "capture_choice",
+     "shot": null,
+     "scene": "res://scenes/capture_choice_dialog.tscn",
+     "surface": "The capture choice — plunder or secure a taken province (capture_choice_dialog.tscn)",
+     "reach": "no IQ-10 shot: the harness cannot reach it (S12's first fix is the shot, under this id)"
+    },
+    {
+     "id": "petition_popup",
+     "shot": "petition_popup",
+     "scene": "res://scenes/incoming_proposal_popup.tscn",
+     "surface": "Client's Petition popup"
+    },
+    {
+     "id": "petition_popup_no_dp",
+     "shot": "petition_popup_no_dp",
+     "scene": "res://scenes/incoming_proposal_popup.tscn",
+     "surface": "Client's Petition popup — the lord cannot pay"
+    },
+    {
+     "id": "petition_command_closed",
+     "shot": "petition_command_closed",
+     "scene": "res://scenes/marshal_petition_dialog.tscn",
+     "surface": "Marshal petition — the command arm closed (LV-5)"
+    },
+    {
+     "id": "mailbox_boot",
+     "shot": "mailbox_boot",
+     "scene": "res://scenes/mailbox_panel.tscn",
+     "surface": "Mailbox / letter-book"
+    },
+    {
+     "id": "mailbox_petition",
+     "shot": "mailbox_petition",
+     "scene": "res://scenes/mailbox_panel.tscn",
+     "surface": "Envoys — a petition waiting"
+    },
+    {
+     "id": "proclamation_warsaw",
+     "shot": "proclamation_warsaw",
+     "scene": "res://scenes/proclamation_popup.tscn",
+     "surface": "The Proclamation — a client carved at the peace table (NA-6c)"
+    }
+   ]
+  },
+  {
+   "order": 9,
+   "key": "menu_and_settings",
+   "name": "The main menu and Settings",
+   "top_five": false,
+   "surfaces": [
+    {
+     "id": "main_menu",
+     "shot": "main_menu",
+     "scene": "res://scenes/main_menu.tscn",
+     "surface": "The main menu (first boot)"
+    },
+    {
+     "id": "main_menu_settings",
+     "shot": "main_menu_settings",
+     "scene": "res://scenes/main_menu.tscn",
+     "surface": "The main menu — Settings open"
+    },
+    {
+     "id": "war_room_pause_settings",
+     "shot": "war_room_pause_settings",
+     "scene": "res://scenes/main.tscn",
+     "surface": "The war room — the pause menu open on Settings (UXR-X2)"
+    }
+   ]
+  },
+  {
+   "order": 10,
+   "key": "campaign_end",
+   "name": "The campaign-end card — its seven registers",
+   "top_five": false,
+   "surfaces": [
+    {
+     "id": "campaign_end_verdict",
+     "shot": "campaign_end_verdict",
+     "scene": "res://scenes/campaign_end.tscn",
+     "surface": "The end screen — THE VERDICT OF HISTORY"
+    },
+    {
+     "id": "campaign_end_imperial",
+     "shot": "campaign_end_imperial",
+     "scene": "res://scenes/campaign_end.tscn",
+     "surface": "The end screen — THE IMPERIAL PEACE (GE-3's register, STAGED through record_ending)"
+    },
+    {
+     "id": "campaign_end_imperial_congress",
+     "shot": "campaign_end_imperial_congress",
+     "scene": "res://scenes/campaign_end.tscn",
+     "surface": "The end screen — THE IMPERIAL PEACE through a real Congress"
+    },
+    {
+     "id": "campaign_end_humbled",
+     "shot": "campaign_end_humbled",
+     "scene": "res://scenes/campaign_end.tscn",
+     "surface": "The end screen — THE HUMBLED PEACE"
+    },
+    {
+     "id": "campaign_end_fall_funeral",
+     "shot": "campaign_end_fall_funeral",
+     "scene": "res://scenes/campaign_end.tscn",
+     "surface": "The end screen — THE FALL OF THE EMPIRE (the Emperor dead, the command road)"
+    },
+    {
+     "id": "campaign_end_fall_chains",
+     "shot": "campaign_end_fall_chains",
+     "scene": "res://scenes/campaign_end.tscn",
+     "surface": "The end screen — THE FALL OF THE EMPIRE (the Eagle in chains)"
+    },
+    {
+     "id": "campaign_end_fall_abdication",
+     "shot": "campaign_end_fall_abdication",
+     "scene": "res://scenes/campaign_end.tscn",
+     "surface": "The end screen — THE FALL OF THE EMPIRE (no soil — Brittany alone)"
+    }
+   ]
+  }
+ ],
+ "outside_the_order": {
+  "why": "§UXR-3 orders ten groups, and its popups group names five kinds. These popup scenes are in neither the plan's order nor the IQ-10 manifest, so the review does not score them. They meet a fresh eye in DD-B's three played campaigns in the client (S13).",
+  "scenes": [
+   "res://scenes/clarification_popup.tscn",
+   "res://scenes/commitment_paradox_popup.tscn",
+   "res://scenes/glorious_charge_dialog.tscn",
+   "res://scenes/load_dialog.tscn",
+   "res://scenes/redemption_dialog.tscn",
+   "res://scenes/reward_dialog.tscn",
+   "res://scenes/sabotage_discovery_popup.tscn",
+   "res://scenes/strategic_report_popup.tscn",
+   "res://scenes/vassal_rebellion_popup.tscn"
+  ]
+ }
+}
