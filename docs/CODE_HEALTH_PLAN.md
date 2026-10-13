@@ -1030,7 +1030,8 @@ nothing still owned the split. They are re-homed as **CODE-2c**, below.
 **CODE-2c — the two DD-1 left whole (the user's ruling, October 13, 2026:
 row S10b, the next session, before UXR-3).**
 - **Owner row:** `PRE_DEPLOY_PLAN.md` §2 S10b.
-- **Landing slices:** two, one commit each, with the review pause between.
+- **Landing slices:** two, one commit each, run straight through: the user's
+  October 13 ruling made every decision in advance, so there is no review pause.
   - **Slice 1: `WorldState._ratify_treaty`** (`backend/models/world_state.py`,
     1,024 lines). It runs as top-level statements (a state map, the clause
     loops, the forced-alliance block, the 292-line `if is_player_treaty:`),
@@ -1047,6 +1048,36 @@ row S10b, the next session, before UXR-3).**
     - an arm that falls off its end still returns `None` from the driver.
 
     It carries 73 local imports, so the F2 check matters most here.
+
+    **Measured October 13, 2026, and the design decided on it:**
+    - **The shape.** The chain has 73 arms. The largest is 187 lines
+      (`execute_ultimatum`), so none needs a cut of its own. No arm's test binds
+      a name (no walrus). The chain ends in its own `else`, the unknown-action
+      reply. Its head is three `from … import`s and
+      `target_nation = dialogue.get("target_nation", "")`.
+    - **The stage.** Each stage is one `if t_k: … elif …` run with a synthetic
+      final `else: return _NEXT_STAGE`. The arm bodies move UNTOUCHED: a
+      matched arm that falls off its end falls off the stage, which returns
+      `None` exactly as the old function did. No `return None` is appended.
+    - **The last stage** keeps the original `else` and gets no synthetic one.
+    - **The proof** checks four things:
+      - every arm body is AST-equal to the old one, with the shared names as
+        `ctx.<name>`;
+      - the tests appear in the old order;
+      - each non-final stage's only addition is the synthetic `else`;
+      - the original `else` is in the last stage.
+    - **Shared names.** Only one arm runs per call, so no arm can read another
+      arm's binding. The context therefore holds only the parameters plus
+      `target_nation`, and the head's imports take the tool's existing
+      repeat-per-stage road.
+    - **Naming.** The prefix is `_choice_` and the context class
+      `DialogueChoiceContext`. Runs are cut at the arms' family boundaries
+      (settlement, proposal, ultimatum, modify, mission, alliance), each
+      stage under 500 lines.
+
+    The ratifier (slice 1) has 76 top-level statements and 61 local imports;
+    its largest statement is the 292-line `if is_player_treaty:`. Its prefix is
+    `_ratify_`, and its context class `RatifyTreatyContext`.
 - **The tool:** `tools/stage_fn.py`, with `tools/pin_scan.py` and
   `tools/oneliner_sweep.py`. They were moved out of S10's scratchpad on
   October 13, 2026, and the moved tool rebuilds slice 3 byte-identical from
@@ -1294,6 +1325,12 @@ last, what the user still owes) are answered on the first screen of STATUS.
 
 ## CODE-5 — File splits (1 session each, after CODE-2)
 
+**Landing (ruled October 13, 2026 under the user's delegation):**
+Pre-Deploy S17a–d, after the deploy, one file per session in the order
+below. Done when `score_run check` is identical and the re-exports are
+removed one session later with the tests re-pointed. The pin is a per-file
+line cap in `tests/test_code_health_ratchet.py`.
+
 Only after the functions are staged; splitting a file around a 3,945-line
 function moves the problem. Candidates and their natural seams:
 
@@ -1314,6 +1351,11 @@ monkeypatch-singleton rule holds: patch `type(obj)`, never a method on the
 module's executor instance.
 
 ## CODE-6 — The client's `main.gd` (1 session, after UXR-2)
+
+**Landing (ruled October 13, 2026 under the user's delegation):**
+Pre-Deploy S16, the first session after the deploy, because the first
+post-deploy patches land in the client. Done when the gate below reads clean.
+The pin is a `main.gd` line cap in `tests/test_code_health_ratchet.py`.
 
 8,655 lines, one script, every route's result rendering and every popup's
 stash-and-raise tail. The split follows the surfaces: `command_road.gd`

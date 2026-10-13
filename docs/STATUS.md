@@ -11,7 +11,17 @@
 > - **The cut:** `execute_command` is a driver of **fifteen `_command_*` stages** behind one `CommandContext` (18 fields; slots, no defaults past `request`). It is the `/command` route in `backend/main.py`, not in `executor.py` as the hand-off said. The door (the relay pop, the trace, `_relay_question`) still runs before the `try`, where the prelude always ran, and the `except` is still the route's one error reply, verbatim. **Functions over 500 lines 33 → 32.** The largest stage is `_command_ordinary_road`, 372 lines.
 > - **The proof:** a rebuilt staging tool cuts at the `try` body's statement boundaries. It refuses unless each stage's statements dump AST-equal to the old body's, with the shared names as `ctx.<name>`: "moved, not rewritten" as a check. One line was deleted, not moved: `_stamp_relay`'s `nonlocal _relay_obj`, because the name rides the context.
 > - **The net held:** `score_run check` is identical before and after. The full suite passed 30,647. Five failures were source pins reading the route as one function's text; they are re-pointed through `tests/_command_stages.py`, none weakened. Two more fail on any tree when the shell sets `PYTHONDONTWRITEBYTECODE=1` (this session's did), and pass without it.
-> - **▶ NEXT = S10b, CODE-2c**: `_ratify_treaty` (body mode), then `_process_dialogue_choice` (one `elif` chain: the tool needs an elif-chain mode), one commit each with the review pause between. S11 UXR-3 follows. `docs/NEXT_SESSION_PROMPT.md` holds the hand-off. ⚠ **Your eyes = UXR-4.**
+> - **After the close, October 13, two more commits.**
+  - **The tool moved:** `tools/stage_fn.py`, with `pin_scan.py` and `oneliner_sweep.py`. From slice 3's parent commit it rebuilds slice 3 byte-identical.
+  - **Every open decision ruled under your delegation ("make all decisions"):**
+    - EG-D1: re-band AI C1 in checklist v1.2 (S14, SF-RR6).
+    - EG-D2: keep the road and campaign pay, F1 unamended.
+    - EG-D3: build the bench for Spain, Sweden and Bavaria (S14, SF-RR4).
+    - UXR-D4 the Side Desk: built non-modal as a new row **S12b**.
+    - CODE-6: lands at S16, after the deploy; CODE-5 at S17a–d.
+    - S10b runs straight through, with no review pause.
+  - The design ledger reads **0 open**.
+- **▶ NEXT = S10b, CODE-2c**: `_ratify_treaty` (body mode), then `_process_dialogue_choice` (73 arms, the largest 187 lines; the elif-chain mode puts a synthetic `else: return _NEXT_STAGE` on each run and moves every arm untouched). One commit each, run straight through. Then S11 UXR-3, S12 its fixes, S12b the Side Desk, S13 DD-B, S14 the residue, S15 UXR-4 + the deploy. `docs/NEXT_SESSION_PROMPT.md` holds the hand-off. ⚠ **Yours alone: UXR-4, your eyes at S15.**
 
 > **▶ ▶ ▶ PRE-DEPLOY S9b — UXR-2's ADJUSTABILITY EXTRAS — ✅ LANDED October 13, 2026; S9b STRUCK** (four commits: A `1f91f761` Text size, B `a472497f` HUD width + `[− ⌂ +]`, C `786839b9` the map's furniture, D High contrast) (your plan rulings: a `[− ⌂ +]` map cluster at the band's bottom-centre; a screen-space floor for the map's labels; Text size 100–175 %. Slices A Text size → B HUD width + ⌂ → C the map's furniture → D High contrast. Landing record `docs/UX_UI_REVIEW_PLAN.md` §UXR-2, the S9b record; rules `SYSTEMS_REFERENCE.md` §112.1; rows `BUG_FIXES.md` §UXR-2's extras)
 > - **A — Text size:** Settings → INTERFACE → *Text size* scales the theme's named sizes alone, through one `Theme.merge_with` from the authored sizes; 100 % is a no-op. At 150 % on Interface Scale 1.0 the five named surfaces read **RED 0 / P1 0**, with **550 of 550 text rows scaled exactly**, 0 clipped and 0 off-screen, and the clamped screens unmoved. 175 % reads clean too. Driven: a click on the slider re-themes the live war room and Reset layout returns 100 %.

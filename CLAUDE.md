@@ -38,7 +38,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 - **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112). **NEXT = S10, CODE-2b**.
 - **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (allowlist 0); six screens + the war HUD gripped (`ResizeGrip`); font overrides 72 → 18; 0 RED / 0 P1 (§111).
 
-**Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
+**Open with the user:** UXR-4 alone (the eyes-on sign-off at 5120×1440, S15). Every design row was ruled Oct 13 (S12b = UXR-D4).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 
