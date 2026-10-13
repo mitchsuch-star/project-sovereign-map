@@ -209,6 +209,8 @@ var dialog_manager = null
 
 # Objection Dialog
 var objection_dialog = null
+# Its response → dialog mapping (UXR3-X1): one home, the dialog's script.
+const ObjectionDialogScript := preload("res://scripts/objection_dialog.gd")
 
 # Redemption Dialog
 var redemption_dialog = null
@@ -5605,37 +5607,14 @@ func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
 	# Strategic objections (Phase M) nest data in response.objection
 	# Tactical objections have data at top level
-	var is_strategic = response.has("pending_objection") and response.pending_objection == true
-	var objection = response.get("objection", {}) if is_strategic else response
-
-	var marshal_name = objection.get("marshal", response.get("marshal", "Unknown"))
+	# The response → dialog mapping lives in the dialog (UXR3-X1, S12): it
+	# handles both the tactical (top-level) and strategic (nested) shapes.
+	var objection_data = ObjectionDialogScript.data_from_response(response)
+	var marshal_name = str(objection_data.get("marshal", "Unknown"))
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_MARSHAL + "]⚠ Marshal " + marshal_name + " raises concerns...[/color]")
 	add_output("")
-
-	# Prepare objection data for dialog
-	# Handle both tactical (top-level) and strategic (nested in objection) formats
-	var objection_data = {
-		"marshal": marshal_name,
-		"personality": objection.get("personality", response.get("personality", "unknown")),
-		"message": objection.get("message", response.get("message", "I have concerns about this order, Sire.")),
-		"trust": response.get("trust", 70),
-		"trust_label": response.get("trust_label", "Unknown"),
-		"vindication": response.get("vindication", 0),
-		"authority": response.get("authority", 100),
-		"suggested_alternative": objection.get("suggested_alternative", response.get("suggested_alternative")),
-		"compromise": objection.get("compromise", response.get("compromise")),
-		# Strategic objections have options array instead of suggested_alternative/compromise
-		"options": objection.get("options", []),
-		"is_strategic": is_strategic,
-		# V2a fields: tone, concern_level, trust change previews
-		"tone": objection.get("tone", response.get("tone", "firm")),
-		"concern_level": objection.get("concern_level", response.get("concern_level", "MODERATE")),
-		"trust_gain": objection.get("trust_gain", response.get("trust_gain", 3)),
-		"insist_penalty": objection.get("insist_penalty", response.get("insist_penalty", -10)),
-		"compromise_gain": objection.get("compromise_gain", response.get("compromise_gain", 3)),
-	}
 
 	if objection_dialog == null:
 		push_error("objection_dialog is NULL! Cannot show dialog.")

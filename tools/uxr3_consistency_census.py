@@ -276,7 +276,9 @@ def run(index_path: pathlib.Path | None) -> dict:
               "excluded": sorted(EXCLUDED) + ["the theme .tres", "tools/**"], "surfaces": {}, "files": {}}
     for group in checklist["groups"]:
         for s in group["surfaces"]:
-            sid, shot = s["id"], s["shot"]
+            # §113.1: a surface the checklist names with no shot is read under
+            # its own id once the manifest shoots it (S12, UXR3-56 … 58).
+            sid, shot = s["id"], s["shot"] or s["id"]
             if shot is not None and frames.get(shot):
                 files = own(frames[shot])
                 road = "frames"

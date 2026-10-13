@@ -10337,3 +10337,13 @@ A shot may carry **`settle_ms`**: the capture waits that much REAL time after it
 - **`report`** groups every ✗ into `BUG_FIXES.md` rows: one item, one cause, one scene per row; a surface the harness never shot gets one row for all its items.
 - **`frames`** writes every cited frame as a JPEG crop under `docs/audits/uxr3/frames/`.
 - `tests/test_uxr3_the_review.py` holds the reading to its committed records: the marks re-derive the same way, the readers aggregate two of three, and every ✗ is filed.
+
+### 113.6 S12's additions — the never-shot popups, and what the fixes rest on (Pre-Deploy S12, October 13, 2026)
+
+- **A null shot reads under its own id.** The frozen checklist names three popups with `shot: null`. `uxr3_review.shot_of` (and the census's road) reads such a surface under the checklist's id as soon as `iq10_run_captures.SHOTS` holds a row of that id; the checklist itself is never edited.
+- **The three shots** (UXR3-56 … 58) are `objection_dialog`, `capture_choice` and `talleyrand_objection`. Each is opened alone, by the method main.gd opens it with, on a payload of the capture group `popups_s12`:
+  - B4b's staged board, imported from `tests/test_b4b_the_one_tail.py::_payloads`: the objection the player overrides, and the Plunder / Secure question its attack carries;
+  - the unstaged 1805 boot's declaration on Prussia (threat 70, war purpose 1), for Talleyrand's objection.
+- **The objection dialog maps its own input** (UXR3-X1). `ObjectionDialog.data_from_response(response)` (static, `objection_dialog.gd`) reads the tactical (top-level) and strategic (nested) shapes and carries every key `show_objection` reads. `main.gd` and the shot both go through it.
+- **A centred popup may shrink to its content** (UXR3-X2). `Utils.shrink_centered_panel_to_content(panel)` is SF7-X27's fit as one helper: after `clamp_centered_panel` it waits two frames for the containers to sort, then shrinks the panel to its combined minimum height and re-centres it. It never grows a panel. A popup that uses it calls it again from `refit()`.
+

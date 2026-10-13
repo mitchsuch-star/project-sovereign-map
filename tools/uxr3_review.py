@@ -51,11 +51,23 @@ def checklist() -> dict:
     return json.loads(CHECKLIST.read_text(encoding="utf-8"))
 
 
+def shot_of(s: dict) -> str | None:
+    """The IQ-10 shot a checklist surface is read from. The frozen checklist
+    names three popups with `shot: null` (the manifest had never shot them);
+    a surface the manifest gains later is read under the id the checklist
+    already gives it (SYSTEMS_REFERENCE §113.1; Pre-Deploy S12, UXR3-56 … 58)."""
+    if s.get("shot"):
+        return s["shot"]
+    import iq10_run_captures as R
+    return s["id"] if any(x["id"] == s["id"] for x in R.SHOTS) else None
+
+
 def surfaces(cl: dict) -> list[dict]:
     out = []
     for g in cl["groups"]:
         for s in g["surfaces"]:
-            out.append(dict(s, group=g["key"], group_order=g["order"], top_five=g["top_five"]))
+            out.append(dict(s, shot=shot_of(s), group=g["key"], group_order=g["order"],
+                            top_five=g["top_five"]))
     return out
 
 
@@ -373,7 +385,7 @@ def build_packets(records: pathlib.Path, index_path: pathlib.Path, packet: pathl
         lines = [f"# Group {g['order']} — {g['name']}", ""]
         for s in g["surfaces"]:
             n += 1
-            sid, shot = s["id"], s["shot"]
+            sid, shot = s["id"], shot_of(s)
             lines.append(f"## {n}. `{sid}` — {s['surface']}")
             lines.append("")
             if shot is None:

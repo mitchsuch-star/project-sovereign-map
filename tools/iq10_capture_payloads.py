@@ -1846,7 +1846,57 @@ def cap_war_room():
     fresh()
 
 
+def cap_popups_s12():
+    """Pre-Deploy S12 (UXR3-56 … 58): the three popups the UXR-3 checklist
+    names that the manifest had never shot, each off its row's OWN board.
+
+    * `objection_dialog` + `capture_choice` — B4b's staged board
+      (`tests/test_b4b_the_one_tail.py::_payloads`, imported, never re-typed):
+      Archduke John cut to a remnant on Tyrol, the objection forced STRONG at
+      the executor's own seam, the player insists, and the attack takes the
+      province — so the ANSWER carries the Plunder / Secure question.
+    * `talleyrand_objection` — the declaration road the deep-audit pins
+      (`tests/test_deep_audit_session6.py` Fix 1) on the UNSTAGED 1805 boot:
+      France is at peace with Prussia and Europe's alarm stands at 70, so
+      "declare war on Prussia" and the war purpose (1, Conquest) bring
+      Talleyrand's STRONG objection."""
+    import pytest
+    T = test_module("test_b4b_the_one_tail")
+    with pytest.MonkeyPatch.context() as mp:
+        T.C.board_env(mp)
+        payloads = T._payloads(mp)
+    asked = payloads["asked"]
+    nested = asked.get("objection") or {}
+    record("objection_dialog", asked,
+           source="POST /command 'Massena, attack Archduke John' (B4b's board)",
+           staging="1805 boot (POST /new_game); ArchdukeJohn WRITTEN to 600 men on Tyrol, every other "
+                   "Austrian corps moved to Vienna; executor.evaluate_situation forced STRONG and "
+                   "apply_mood_variance the identity (B4b's seam); random.seed(7)",
+           facts={"marshal": asked.get("marshal"), "tone": nested.get("tone", asked.get("tone")),
+                  "message": nested.get("message", asked.get("message")),
+                  "trust": asked.get("trust"), "trust_label": asked.get("trust_label"),
+                  "suggested_alternative": (nested.get("suggested_alternative")
+                                            or asked.get("suggested_alternative")),
+                  "compromise": nested.get("compromise") or asked.get("compromise")})
+    insisted = payloads["objection_capture"]
+    record("capture_choice", insisted,
+           source="POST /respond_to_objection {choice: insist} (B4b's board, after the objection above)",
+           staging="the same board: the player insists, the attack takes Tyrol, and the answer carries "
+                   "pending_capture_choice + capture_data",
+           facts={"capture_data": insisted.get("capture_data"),
+                  "pending_capture_choice": insisted.get("pending_capture_choice")})
+    world, c = fresh()             # the adopt swaps the world, the parser and the client together
+    cmd(c, "declare war on Prussia")
+    answer = cmd(c, "1")
+    record("talleyrand_objection", answer,
+           source="POST /command 'declare war on Prussia', then POST /command '1' (Conquest)",
+           staging="the unstaged 1805 boot: France at peace with Prussia, threat 70 (> 50)",
+           facts={"diplomatic_objection": answer.get("diplomatic_objection")})
+    fresh()
+
+
 CAPTURES = {
+    "popups_s12": cap_popups_s12,
     "war_room": cap_war_room,
     "front_page": cap_front_page,
     "screen_says": cap_screen_says,

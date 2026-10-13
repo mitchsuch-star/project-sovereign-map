@@ -1195,6 +1195,51 @@ SHOTS += [
 ]
 
 
+# ═══ Pre-Deploy S12 (UXR3-56 … 58): the three popups the UXR-3 checklist names ═══
+# that the manifest had never shot. Each id IS the checklist's id (the frozen
+# checklist reads a surface the manifest gains later under the id it already
+# gives it, SYSTEMS_REFERENCE §113.1). The payloads are `cap_popups_s12`'s:
+# B4b's staged board for the objection and the capture question, the unstaged
+# 1805 boot's declaration road for Talleyrand's objection. Each popup is shot
+# alone, opened by the method main.gd opens it with.
+SHOTS += [
+    {
+        "id": "objection_dialog",
+        "surface": "A marshal's objection to an order (objection_dialog.tscn)",
+        "payload": "objection_dialog",
+        "scene": "res://scenes/objection_dialog.tscn",
+        "mode": "call", "method": "show_from_response",
+        "steps": [{"wait": 6}],
+        "must_show": "MASSENA'S CONCERN in the tone's colour; his objection in his own words; "
+                     "personality, trust, track record and authority; three answers — trust him "
+                     "(his alternative named), proceed as ordered, compromise — each with its "
+                     "trust price",
+    },
+    {
+        "id": "capture_choice",
+        "surface": "The capture choice — plunder or secure a taken province (capture_choice_dialog.tscn)",
+        "payload": "capture_choice",
+        "scene": "res://scenes/capture_choice_dialog.tscn",
+        "mode": "call", "method": "show_capture_choice",
+        "args": ["$payload.capture_data"],
+        "steps": [{"wait": 6}],
+        "must_show": "REGION CAPTURED!; who took which province; the question; PLUNDER with the "
+                     "gold it pays and SECURE with its stability — each consequence on its button",
+    },
+    {
+        "id": "talleyrand_objection",
+        "surface": "Talleyrand's objection to a proposal (talleyrand_objection_popup.tscn)",
+        "payload": "talleyrand_objection",
+        "scene": "res://scenes/talleyrand_objection_popup.tscn",
+        "mode": "call", "method": "show_objection",
+        "args": ["$payload.diplomatic_objection"],
+        "steps": [{"wait": 6}],
+        "must_show": "TALLEYRAND OBJECTS with its STRONG level; his reason (the alarm at 70); the "
+                     "defiance risk and what it regards; Proceed Anyway / Modify / Cancel",
+    },
+]
+
+
 def load_manifest(payload_dir: pathlib.Path) -> dict:
     m = json.loads((payload_dir / "manifest.json").read_text(encoding="utf-8"))
     return {c["name"]: c for c in m["captures"]}

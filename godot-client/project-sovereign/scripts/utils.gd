@@ -868,6 +868,30 @@ static func text_px(authored: int, factor := -1.0) -> int:
 
 # === Layout Helpers ===
 
+static func shrink_centered_panel_to_content(panel: Control) -> void:
+	"""SF7-X27's fit as one helper (Pre-Deploy S12, UXR3-X2): after the
+	clamp, a centre-anchored popup shrinks to the height its content needs —
+	never past the clamp (it only ever SHRINKS) — and stays centred. The
+	objection and capture dialogs were authored as fixed rects, so a two-line
+	question sat over a band of empty panel below its buttons.
+
+	A coroutine: it waits two frames for the containers to sort (the frame
+	the text is set, a wrapping label has no width yet and its minimum is
+	thousands of px tall — the interrupt popup measured this). Call it after
+	`clamp_centered_panel`, without awaiting."""
+	if panel == null:
+		return
+	await panel.get_tree().process_frame
+	await panel.get_tree().process_frame
+	if not is_instance_valid(panel) or not panel.visible:
+		return
+	var have: float = panel.offset_bottom - panel.offset_top
+	var need: float = panel.get_combined_minimum_size().y
+	if need > 0.0 and need < have:
+		panel.offset_top = -need / 2.0
+		panel.offset_bottom = need / 2.0
+
+
 static func clamp_centered_panel(panel: Control) -> void:
 	"""Fit a centre-anchored fixed-size panel inside the CURRENT logical
 	viewport. The layer-50 screens and every modal popup are authored as fixed

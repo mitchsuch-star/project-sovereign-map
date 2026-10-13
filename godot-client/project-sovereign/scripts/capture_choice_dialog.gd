@@ -114,6 +114,14 @@ func show_capture_choice(data: Dictionary):
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
 	visible = true
+	# UXR3-X2 (Pre-Deploy S12): then shrink to the content (SF7-X27's fit).
+	Utils.shrink_centered_panel_to_content($PanelContainer)
+
+func refit() -> void:
+	"""UXR-2's live-refit hook (`Utils.refit_surface`): the clamp, then the
+	shrink to content, exactly as on open."""
+	Utils.clamp_centered_panel($PanelContainer)
+	Utils.shrink_centered_panel_to_content($PanelContainer)
 
 func _on_plunder_pressed():
 	"""Player chooses the first option (plunder / confiscate)."""

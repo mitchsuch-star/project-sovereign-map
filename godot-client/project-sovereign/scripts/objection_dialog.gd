@@ -27,14 +27,6 @@ var current_marshal: String = ""
 var has_alternative: bool = false
 var has_compromise: bool = false
 
-# Napoleonic color palette
-const COLOR_TEXT = "eee"
-const COLOR_BACKGROUND = "16213e"
-const COLOR_PANEL = "1a1a2e"
-const COLOR_TRUST = "2d5a27"    # Green
-const COLOR_INSIST = "8b0000"   # Dark red
-const COLOR_COMPROMISE = "4a4a4a"  # Gray
-
 # V2a tone-based border colors
 const TONE_COLORS = {
 	"respectful": Utils.UI_GOLD,  # Gold
@@ -83,6 +75,46 @@ func _apply_tone_styling(tone: String):
 
 	# Header label color matches border
 	marshal_name_label.add_theme_color_override("font_color", border_color)
+
+static func data_from_response(response: Dictionary) -> Dictionary:
+	"""The dialog's input, read off a `/command` (or post-objection) response.
+	Strategic objections (Phase M) nest their data in `response.objection`;
+	tactical ones carry it at the top level. Pre-Deploy S12 (UXR3-X1): this
+	mapping lived in main.gd and dropped three keys the dialog reads — the
+	insist arm's price (`insist_ap_cost` + `insist_note`, AAR-23) and the
+	trust damper (`trust_gain_modifier`, WO-D12) — so neither line ever
+	reached the player. One home now, used by main.gd and the IQ-10 shot."""
+	var is_strategic = response.has("pending_objection") and response.pending_objection == true
+	var objection = response.get("objection", {}) if is_strategic else response
+	if not (objection is Dictionary):
+		objection = {}
+	return {
+		"marshal": objection.get("marshal", response.get("marshal", "Unknown")),
+		"personality": objection.get("personality", response.get("personality", "unknown")),
+		"message": objection.get("message", response.get("message", "I have concerns about this order, Sire.")),
+		"trust": response.get("trust", 70),
+		"trust_label": response.get("trust_label", "Unknown"),
+		"vindication": response.get("vindication", 0),
+		"authority": response.get("authority", 100),
+		"suggested_alternative": objection.get("suggested_alternative", response.get("suggested_alternative")),
+		"compromise": objection.get("compromise", response.get("compromise")),
+		# Strategic objections have options array instead of suggested_alternative/compromise
+		"options": objection.get("options", []),
+		"is_strategic": is_strategic,
+		# V2a fields: tone, concern_level, trust change previews
+		"tone": objection.get("tone", response.get("tone", "firm")),
+		"concern_level": objection.get("concern_level", response.get("concern_level", "MODERATE")),
+		"trust_gain": objection.get("trust_gain", response.get("trust_gain", 3)),
+		"insist_penalty": objection.get("insist_penalty", response.get("insist_penalty", -10)),
+		"compromise_gain": objection.get("compromise_gain", response.get("compromise_gain", 3)),
+		"trust_gain_modifier": objection.get("trust_gain_modifier", response.get("trust_gain_modifier", 1.0)),
+		"insist_ap_cost": objection.get("insist_ap_cost", response.get("insist_ap_cost", 0)),
+		"insist_note": objection.get("insist_note", response.get("insist_note", "")),
+	}
+
+func show_from_response(response: Dictionary):
+	"""Open the dialog on a backend response (the one road main.gd takes)."""
+	show_objection(data_from_response(response))
 
 func show_objection(objection_data: Dictionary):
 	"""Display objection dialog with data from backend."""
@@ -174,6 +206,15 @@ func show_objection(objection_data: Dictionary):
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
+	# UXR3-X2 (Pre-Deploy S12): then shrink to the content — the authored
+	# rect left a band of empty panel under the three answers.
+	Utils.shrink_centered_panel_to_content($PanelContainer)
+
+func refit() -> void:
+	"""UXR-2's live-refit hook (`Utils.refit_surface`): the clamp, then the
+	shrink to content, exactly as on open."""
+	Utils.clamp_centered_panel($PanelContainer)
+	Utils.shrink_centered_panel_to_content($PanelContainer)
 
 func _describe_order(order: Dictionary) -> String:
 	"""Create human-readable description of an order."""
