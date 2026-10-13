@@ -1,0 +1,2694 @@
+{
+ "date": "s9b_mapa",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\97f5b384-16c4-46c3-a965-6014730cfa15\\scratchpad\\m_after\\index.json",
+ "surfaces": {
+  "war_room_boot": {
+   "surface": "The war room — map, command window, top bar (Begin the 1805 campaign)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@261",
+       "text": "10k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@258",
+       "text": "12k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@256",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@254",
+       "text": "12k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@252",
+       "text": "25k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@250",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@248",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@234",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@227",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@259",
+       "text": "Massena",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@246",
+       "text": "Murat",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@245",
+       "text": "Lannes",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@244",
+       "text": "Napoleon",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@243",
+       "text": "Soult",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@242",
+       "text": "ArchdukeJohn",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@241",
+       "text": "?",
+       "size": 29,
+       "em": 19.58
+      },
+      {
+       "path": "@Label@239",
+       "text": "Davout",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@238",
+       "text": "Ney",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@237",
+       "text": "Mack",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@236",
+       "text": "?",
+       "size": 29,
+       "em": 19.58
+      },
+      {
+       "path": "@Label@232",
+       "text": "Brunswick",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@231",
+       "text": "?",
+       "size": 29,
+       "em": 19.58
+      },
+      {
+       "path": "@Label@229",
+       "text": "Deroy",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@228",
+       "text": "Bernadotte",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 27,
+       "em": 18.23
+      }
+     ]
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@529",
+       "text": "10k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@526",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@524",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@522",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@520",
+       "text": "25k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@518",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@516",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@502",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@495",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@527",
+       "text": "Massena",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@514",
+       "text": "Murat",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@513",
+       "text": "Lannes",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@512",
+       "text": "Napoleon",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@511",
+       "text": "Soult",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@510",
+       "text": "ArchdukeJohn",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@509",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@507",
+       "text": "Davout",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@506",
+       "text": "Ney",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@505",
+       "text": "Mack",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@504",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@500",
+       "text": "Brunswick",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@499",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@497",
+       "text": "Deroy",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@496",
+       "text": "Bernadotte",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 24,
+       "em": 21.6
+      }
+     ]
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@797",
+       "text": "10k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@794",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@792",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@790",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@788",
+       "text": "25k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@786",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@784",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@770",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@763",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@795",
+       "text": "Massena",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@782",
+       "text": "Murat",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@781",
+       "text": "Lannes",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@780",
+       "text": "Napoleon",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@779",
+       "text": "Soult",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@778",
+       "text": "ArchdukeJohn",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@777",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@775",
+       "text": "Davout",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@774",
+       "text": "Ney",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@773",
+       "text": "Mack",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@772",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@768",
+       "text": "Brunswick",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@767",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@765",
+       "text": "Deroy",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@764",
+       "text": "Bernadotte",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 24,
+       "em": 21.6
+      }
+     ]
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1065",
+       "text": "10k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1062",
+       "text": "12k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1060",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1058",
+       "text": "12k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1056",
+       "text": "25k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1054",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1052",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1038",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1031",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@1063",
+       "text": "Massena",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1050",
+       "text": "Murat",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1049",
+       "text": "Lannes",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1048",
+       "text": "Napoleon",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1047",
+       "text": "Soult",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1046",
+       "text": "ArchdukeJohn",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1045",
+       "text": "?",
+       "size": 30,
+       "em": 26.98
+      },
+      {
+       "path": "@Label@1043",
+       "text": "Davout",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1042",
+       "text": "Ney",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1041",
+       "text": "Mack",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1040",
+       "text": "?",
+       "size": 30,
+       "em": 26.98
+      },
+      {
+       "path": "@Label@1036",
+       "text": "Brunswick",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1035",
+       "text": "?",
+       "size": 30,
+       "em": 26.98
+      },
+      {
+       "path": "@Label@1033",
+       "text": "Deroy",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@1032",
+       "text": "Bernadotte",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 28,
+       "em": 25.18
+      }
+     ]
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1333",
+       "text": "10k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1330",
+       "text": "12k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1328",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1326",
+       "text": "12k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1324",
+       "text": "25k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1322",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1320",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1306",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1299",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@1331",
+       "text": "Massena",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1318",
+       "text": "Murat",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1317",
+       "text": "Lannes",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1316",
+       "text": "Napoleon",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1315",
+       "text": "Soult",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1314",
+       "text": "ArchdukeJohn",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1313",
+       "text": "?",
+       "size": 23,
+       "em": 31.05
+      },
+      {
+       "path": "@Label@1311",
+       "text": "Davout",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1310",
+       "text": "Ney",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1309",
+       "text": "Mack",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1308",
+       "text": "?",
+       "size": 23,
+       "em": 31.05
+      },
+      {
+       "path": "@Label@1304",
+       "text": "Brunswick",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1303",
+       "text": "?",
+       "size": 23,
+       "em": 31.05
+      },
+      {
+       "path": "@Label@1301",
+       "text": "Deroy",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@1300",
+       "text": "Bernadotte",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 21,
+       "em": 28.35
+      }
+     ]
+    }
+   }
+  },
+  "war_room_tutorial": {
+   "surface": "The war room — the School of War's first morning, tutor card top-right",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 47,
+      "red": 0,
+      "p1": 0,
+      "ok": 47,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1582",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1580",
+       "text": "25k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1577",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1575",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1573",
+       "text": "12k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1578",
+       "text": "Soult",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@1571",
+       "text": "Senarmont",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@1570",
+       "text": "Davout",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@1569",
+       "text": "Ney",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@1568",
+       "text": "Kienmayer",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@1567",
+       "text": "?",
+       "size": 29,
+       "em": 19.58
+      }
+     ]
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 47,
+      "red": 0,
+      "p1": 0,
+      "ok": 47,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1832",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@1830",
+       "text": "25k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@1827",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@1825",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@1823",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@1828",
+       "text": "Soult",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@1821",
+       "text": "Senarmont",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@1820",
+       "text": "Davout",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@1819",
+       "text": "Ney",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@1818",
+       "text": "Kienmayer",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@1817",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      }
+     ]
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 47,
+      "red": 0,
+      "p1": 0,
+      "ok": 47,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2082",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@2080",
+       "text": "25k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@2077",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@2075",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@2073",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@2078",
+       "text": "Soult",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@2071",
+       "text": "Senarmont",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@2070",
+       "text": "Davout",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@2069",
+       "text": "Ney",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@2068",
+       "text": "Kienmayer",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@2067",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      }
+     ]
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 47,
+      "red": 0,
+      "p1": 0,
+      "ok": 47,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2332",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@2330",
+       "text": "25k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@2327",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@2325",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@2323",
+       "text": "12k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@2328",
+       "text": "Soult",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@2321",
+       "text": "Senarmont",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@2320",
+       "text": "Davout",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@2319",
+       "text": "Ney",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@2318",
+       "text": "Kienmayer",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@2317",
+       "text": "?",
+       "size": 30,
+       "em": 26.98
+      }
+     ]
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 47,
+      "red": 0,
+      "p1": 0,
+      "ok": 47,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2582",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@2580",
+       "text": "25k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@2577",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@2575",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@2573",
+       "text": "12k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@2578",
+       "text": "Soult",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@2571",
+       "text": "Senarmont",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@2570",
+       "text": "Davout",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@2569",
+       "text": "Ney",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@2568",
+       "text": "Kienmayer",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@2567",
+       "text": "?",
+       "size": 23,
+       "em": 31.05
+      }
+     ]
+    }
+   }
+  },
+  "war_room_pause_settings": {
+   "surface": "The war room — the pause menu open on Settings (UXR-X2)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 91,
+      "red": 0,
+      "p1": 0,
+      "ok": 91,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2851",
+       "text": "10k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2848",
+       "text": "12k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2846",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2844",
+       "text": "12k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2842",
+       "text": "25k",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2840",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2838",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2824",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2817",
+       "text": "?",
+       "size": 24,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@2849",
+       "text": "Massena",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2836",
+       "text": "Murat",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2835",
+       "text": "Lannes",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2834",
+       "text": "Napoleon",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2833",
+       "text": "Soult",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2832",
+       "text": "ArchdukeJohn",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2831",
+       "text": "?",
+       "size": 29,
+       "em": 19.58
+      },
+      {
+       "path": "@Label@2829",
+       "text": "Davout",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2828",
+       "text": "Ney",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2827",
+       "text": "Mack",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2826",
+       "text": "?",
+       "size": 29,
+       "em": 19.58
+      },
+      {
+       "path": "@Label@2822",
+       "text": "Brunswick",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2821",
+       "text": "?",
+       "size": 29,
+       "em": 19.58
+      },
+      {
+       "path": "@Label@2819",
+       "text": "Deroy",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "@Label@2818",
+       "text": "Bernadotte",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 27,
+       "em": 18.23
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 27,
+       "em": 18.23
+      }
+     ]
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 91,
+      "red": 0,
+      "p1": 0,
+      "ok": 91,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@3120",
+       "text": "10k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3117",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3115",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3113",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3111",
+       "text": "25k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3109",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3107",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3093",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3086",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3118",
+       "text": "Massena",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3105",
+       "text": "Murat",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3104",
+       "text": "Lannes",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3103",
+       "text": "Napoleon",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3102",
+       "text": "Soult",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3101",
+       "text": "ArchdukeJohn",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3100",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@3098",
+       "text": "Davout",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3097",
+       "text": "Ney",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3096",
+       "text": "Mack",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3095",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@3091",
+       "text": "Brunswick",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3090",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@3088",
+       "text": "Deroy",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3087",
+       "text": "Bernadotte",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 24,
+       "em": 21.6
+      }
+     ]
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 91,
+      "red": 0,
+      "p1": 0,
+      "ok": 91,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@3389",
+       "text": "10k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3386",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3384",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3382",
+       "text": "12k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3380",
+       "text": "25k",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3378",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3376",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3362",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3355",
+       "text": "?",
+       "size": 22,
+       "em": 19.8
+      },
+      {
+       "path": "@Label@3387",
+       "text": "Massena",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3374",
+       "text": "Murat",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3373",
+       "text": "Lannes",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3372",
+       "text": "Napoleon",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3371",
+       "text": "Soult",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3370",
+       "text": "ArchdukeJohn",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3369",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@3367",
+       "text": "Davout",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3366",
+       "text": "Ney",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3365",
+       "text": "Mack",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3364",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@3360",
+       "text": "Brunswick",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3359",
+       "text": "?",
+       "size": 26,
+       "em": 23.4
+      },
+      {
+       "path": "@Label@3357",
+       "text": "Deroy",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "@Label@3356",
+       "text": "Bernadotte",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 24,
+       "em": 21.6
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 24,
+       "em": 21.6
+      }
+     ]
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 91,
+      "red": 0,
+      "p1": 0,
+      "ok": 91,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@3658",
+       "text": "10k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3655",
+       "text": "12k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3653",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3651",
+       "text": "12k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3649",
+       "text": "25k",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3647",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3645",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3631",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3624",
+       "text": "?",
+       "size": 25,
+       "em": 22.48
+      },
+      {
+       "path": "@Label@3656",
+       "text": "Massena",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3643",
+       "text": "Murat",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3642",
+       "text": "Lannes",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3641",
+       "text": "Napoleon",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3640",
+       "text": "Soult",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3639",
+       "text": "ArchdukeJohn",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3638",
+       "text": "?",
+       "size": 30,
+       "em": 26.98
+      },
+      {
+       "path": "@Label@3636",
+       "text": "Davout",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3635",
+       "text": "Ney",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3634",
+       "text": "Mack",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3633",
+       "text": "?",
+       "size": 30,
+       "em": 26.98
+      },
+      {
+       "path": "@Label@3629",
+       "text": "Brunswick",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3628",
+       "text": "?",
+       "size": 30,
+       "em": 26.98
+      },
+      {
+       "path": "@Label@3626",
+       "text": "Deroy",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "@Label@3625",
+       "text": "Bernadotte",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 28,
+       "em": 25.18
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 28,
+       "em": 25.18
+      }
+     ]
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 91,
+      "red": 0,
+      "p1": 0,
+      "ok": 91,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@3927",
+       "text": "10k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3924",
+       "text": "12k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3922",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3920",
+       "text": "12k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3918",
+       "text": "25k",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3916",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3914",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3900",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3893",
+       "text": "?",
+       "size": 19,
+       "em": 25.65
+      },
+      {
+       "path": "@Label@3925",
+       "text": "Massena",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3912",
+       "text": "Murat",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3911",
+       "text": "Lannes",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3910",
+       "text": "Napoleon",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3909",
+       "text": "Soult",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3908",
+       "text": "ArchdukeJohn",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3907",
+       "text": "?",
+       "size": 23,
+       "em": 31.05
+      },
+      {
+       "path": "@Label@3905",
+       "text": "Davout",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3904",
+       "text": "Ney",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3903",
+       "text": "Mack",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3902",
+       "text": "?",
+       "size": 23,
+       "em": 31.05
+      },
+      {
+       "path": "@Label@3898",
+       "text": "Brunswick",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3897",
+       "text": "?",
+       "size": 23,
+       "em": 31.05
+      },
+      {
+       "path": "@Label@3895",
+       "text": "Deroy",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "@Label@3894",
+       "text": "Bernadotte",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Naples",
+       "text": "5",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Sweden",
+       "text": "10",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Portugal",
+       "text": "10",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Holland",
+       "text": "12",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Ottoman",
+       "text": "15",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Denmark",
+       "text": "18",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Russia",
+       "text": "20",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Spain",
+       "text": "30",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_France",
+       "text": "45",
+       "size": 21,
+       "em": 28.35
+      },
+      {
+       "path": "SailCount_Britain",
+       "text": "100",
+       "size": 21,
+       "em": 28.35
+      }
+     ]
+    }
+   }
+  }
+ },
+ "client_commit": "a472497f",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

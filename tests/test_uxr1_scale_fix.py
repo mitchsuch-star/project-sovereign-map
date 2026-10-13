@@ -213,7 +213,7 @@ FLOOR = 14
 # could not see them (nor the diorama's `_mk_label` sizes). UXR-2 Slice A
 # (October 12, 2026) gave both the theme's Caption; the computed-size loophole
 # is closed by UXR-2's override census.
-GD_EXEMPT = {"map_renderer_base.gd"}
+GD_EXEMPT: set = set()   # map_renderer_base.gd's exemption RETIRED by UXR-X4 (S9b)
 
 
 class TestTheThemeFloor:
@@ -245,13 +245,13 @@ class TestTheThemeFloor:
                     offenders.append((script.name, m.group(0)))
         assert offenders == [], offenders
 
-    def test_the_exemption_is_real_and_bounded(self):
-        """The map renderer's world-space labels keep their sizes (UXR-X4);
-        the count is pinned so a new one cannot hide under the exemption."""
+    def test_the_exemption_is_retired(self):
+        """UXR-X4 (Pre-Deploy S9b): the map renderer's five small literal sizes
+        were the sweep's one exemption; the furniture now sizes through
+        per-kind Themes and a screen-space scale term, and no raw size is left."""
+        assert GD_EXEMPT == set()
         text = _read(SCENES / "map_renderer_base.gd")
-        small = [m.group(0) for m in re.finditer(
-            r'add_theme_font_size_override\("font_size", *(\d+)\)', text) if int(m.group(1)) < FLOOR]
-        assert len(small) == 5, small
+        assert "add_theme_font_size_override" not in text
 
     def test_the_floor_is_used_not_just_declared(self):
         """The sweep's variations are referenced across the client."""

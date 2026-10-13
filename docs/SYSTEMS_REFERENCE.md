@@ -10239,3 +10239,22 @@ What stands outside a scroll is named, with a proof: the tutor body and the rail
   - − / + are `zoom_step`. ⌂ is `fit_europe()`: the boot's contain-fit zoom and the map's centre. Home only re-centres.
   - Both kill a zoom still easing in first (UXR-X25).
 - **The proof.** `tools/uxr2_grip_harness.gd` in band mode (`UXR2_MODE=band`, `UXR2_RES`, `UXR2_SCALE`, `UXR2_HUD`) boots the real war room in a 5120×1440 window at scale 1.4 and reads every HUD rect against the band, Centred and Full. `tests/test_uxr2b_hud_band.py` holds the result.
+
+### 112.3 The map's own furniture follows the screen (UXR-X4, Slice C)
+
+- **What it covers.** The marshals' names and stacks, the fogged "?" chips, the garrison chips, the sail counts and the legacy region labels. These are world-space Labels in the map's SubViewport.
+- **The sizes.** Their sizes are one named table: `FURNITURE_PX`, in world px at the authored zoom.
+  - Each kind is styled through its own Theme (`_style_furniture`), never a raw override. The diet's ratchet is 11.
+- **The floor.** `_wanted_furniture_scale()` is the factor that puts the smallest kind (10 px) at `FURNITURE_FLOOR_PX` (16) logical px on screen: the camera zoom is physical px per world px, and the floor is 16 × the Interface Scale.
+  - It is never under 1, so zoomed in the furniture is world-space as before. It is quantized to 1/8.
+  - Chips grow with their text about their centres. A label's bottom keeps its authored place and grows upward.
+- **When it rebuilds.**
+  - `_set_camera_zoom_level` and `refresh_viewport_scale` mark it.
+  - `_process` applies it once a zoom's ease has ended: `_sync_furniture_scale` rewrites the kind Themes, then the dynamic nodes are rebuilt and the sail counts re-laid out.
+  - `_rebuild_dynamic_nodes` always syncs first.
+- **The sail count** is the ship piece's sibling, not its child, which the piece's 0.21 self-scale had shrunk to 2 px (UXR-X27).
+- **The hover tooltip** (`map_tooltip_layer.gd`, `draw_string`): its body draws at Caption 14 and its title at Lead 18, both × Text size (`line_px`). The box widens by the same ratio, and a line's height is the font's own. The renderer's three dead copies of the tooltip helpers are gone.
+- **The instrument.** A SubViewport node's census row multiplies its canvas scale by its display's physical px per SubViewport px, not by the window's content scale (UXR-X26). `uxr0_readability_report.py --keep-map` keeps the map tier's rows.
+- **The proof.** `tests/test_uxr2b_map_furniture.py` reads `docs/audits/uxr0/readability_map_{before,after}_2026_10_12.json`.
+  - `map_small` was 34 of 34 before. It is 0 after, at every resolution with the derived scale.
+  - The sail counts went from 2.1 px to 25 px on the user's panel.

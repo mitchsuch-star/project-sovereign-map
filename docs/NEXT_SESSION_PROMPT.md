@@ -13,7 +13,7 @@
 > Records: `docs/UX_UI_REVIEW_PLAN.md` §UXR-2 landing record; rules `SYSTEMS_REFERENCE.md` §111; rows `BUG_FIXES.md` §UXR-2 (UXR-X5 … X20).
 > Routing authority: `docs/PRE_DEPLOY_PLAN.md` §2 (S9 STRUCK; **S9b is NEXT**), with `docs/STATUS.md` ▶ NEXT UP and the `CLAUDE.md` LIVE STATE line pointing there. The Score Finish residue (`SCORE_FINISH_SPEC.md` §3 Step 9) stays PAUSED until S14.
 >
-> **⏸ RESUME NOTE (October 12, 2026, mid-S9b):** Slices A (UXR-D1, Text size) and B (UXR-D3, HUD width + `[− ⌂ +]`) LANDED on master. The approved plan runs on: **C the map's furniture** (a screen-space floor, the user's ruling; the census's map-tier double count; the sail counts; the tooltip's sizes) → **D High contrast** (with the contrast instrument). Read `docs/UX_UI_REVIEW_PLAN.md` §UXR-2's S9b landing record and `BUG_FIXES.md` §UXR-2's extras first. **Capture runs: ONE engine at a time.** Two concurrent shoots ran this machine out of memory (Vulkan swap-chain / `mem` null crashes, exit 0xC0000005).
+> **⏸ RESUME NOTE (October 12, 2026, mid-S9b):** Slices A (UXR-D1, Text size), B (UXR-D3, HUD width + `[− ⌂ +]`) and C (UXR-X4, the map's furniture, + UXR-X26 / X27) LANDED on master. The approved plan's last slice is **D High contrast** (with the contrast instrument), then the hand-off to S10. Read `docs/UX_UI_REVIEW_PLAN.md` §UXR-2's S9b landing record and `BUG_FIXES.md` §UXR-2's extras first. **Capture runs: ONE engine at a time.** Two concurrent shoots ran this machine out of memory (Vulkan swap-chain / `mem` null crashes, exit 0xC0000005).
 >
 > Paste everything below the line as the opening message of a fresh session.
 

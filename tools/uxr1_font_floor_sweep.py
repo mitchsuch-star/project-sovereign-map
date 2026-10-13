@@ -8,7 +8,7 @@ The rule: no raw font-size override under 14 logical px survives in the client.
     * every other Label / Button / RichTextLabel under 14 takes the theme's
       Caption family (`theme_type_variation` Caption / CaptionButton /
       CaptionRich = 14) — badges, hints, tab buttons, counters, version lines.
-    * EXEMPT, with a reason: the map's world-space furniture in
+    * (RETIRED by UXR-X4, Pre-Deploy S9b) the map's world-space furniture in
       `scenes/map_renderer_base.gd` (name stacks, garrison chips, sail counts —
       scaled by the camera, not the interface; UXR-X4 owns them). (The
       war-detail popup's two COMPUTED sizes were listed here too, but they
@@ -45,7 +45,10 @@ BODY_NODES = {
 }
 VARIATION = {"Label": "Caption", "Button": "CaptionButton", "RichTextLabel": "CaptionRich",
              "LineEdit": None}
-GD_EXEMPT = {"map_renderer_base.gd"}
+# UXR-X4 (Pre-Deploy S9b) retired the map renderer's exemption: its furniture
+# takes its sizes from a named table through per-kind Themes and a screen-space
+# scale term — no raw override is left to exempt.
+GD_EXEMPT: set = set()
 
 # The sites authored at exactly 14 (scene, node) → "drop" (the theme's size) or
 # "caption" (the Caption family). Every 14 in the client is listed; one that is

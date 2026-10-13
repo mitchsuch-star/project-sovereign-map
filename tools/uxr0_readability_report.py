@@ -109,7 +109,7 @@ def _compact(row: dict) -> dict:
 
 
 def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
-             keep_flagged: int | None = None) -> dict:
+             keep_flagged: int | None = None, keep_map: bool = False) -> dict:
     """index.json (the runner's) → {surface_id: {"WxH@S": {counts, rows}}}.
     `keep_flagged` caps the flagged rows kept per reading (the whole-client
     record is counts plus the worst few; the named record keeps every row)."""
@@ -135,6 +135,7 @@ def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
                 key += "/T%.2f" % text_size
             texts = frames[-1].get("texts") or []
             flagged = []
+            map_rows = []
             counts = {"rows": 0, "red": 0, "p1": 0, "ok": 0, "map": 0, "map_small": 0}
             for t in texts:
                 if "em_px" not in t:
@@ -144,6 +145,12 @@ def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
                     counts["map"] += 1
                     if float(t.get("em_px", 0.0)) < BODY_RED:
                         counts["map_small"] += 1
+                    if keep_map:
+                        # UXR-X4 (Pre-Deploy S9b): the map tier row by row.
+                        map_rows.append({"path": str(t.get("path", "")).split("/")[-1],
+                                         "text": str(t.get("text", ""))[:24],
+                                         "size": t.get("font_size"),
+                                         "em": round(float(t.get("em_px", 0.0)), 2)})
                     continue
                 counts["rows"] += 1
                 counts[verdict] += 1
@@ -160,6 +167,8 @@ def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
                 "window": [int(win[0]), int(win[1])], "scale": scale, "text_size": text_size,
                 "ok": res.get("ok", False), "counts": counts, "flagged": flagged,
             }
+            if keep_map:
+                surf["readings"][key]["map_rows"] = map_rows
     return out
 
 
@@ -222,6 +231,8 @@ def main(argv=None) -> int:
     ap.add_argument("--keep-flagged", type=int, default=None,
                     help="cap the flagged rows kept per reading in the record (the "
                          "whole-client record: counts + the worst few)")
+    ap.add_argument("--keep-map", action="store_true",
+                    help="UXR-X4: keep the map tier's rows (path, text, size, em) per reading")
     ap.add_argument("--compare", nargs=2, metavar=("BEFORE", "AFTER"))
     ap.add_argument("--derive", nargs=2, type=int, metavar=("W", "H"),
                     help="print the derived scale for a screen (dpi 96)")
@@ -237,7 +248,7 @@ def main(argv=None) -> int:
     if not args.index:
         ap.error("an index.json, --compare or --derive is required")
     surfaces = {s.strip() for s in args.surfaces.split(",") if s.strip()} or None
-    record = read_run(pathlib.Path(args.index), surfaces, args.keep_flagged)
+    record = read_run(pathlib.Path(args.index), surfaces, args.keep_flagged, args.keep_map)
     print_table(record)
     if args.record:
         p = pathlib.Path(args.record)

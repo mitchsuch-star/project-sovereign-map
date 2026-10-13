@@ -47,6 +47,22 @@ const GARRISON_Y_OFFSET: float = 38.0
 # provinces and read as part of the colliding province labels.
 const FORCE_NAME_OUTLINE_COLOR := Color(0.09, 0.07, 0.05, 0.9)
 const FORCE_NAME_OUTLINE_SIZE: int = 4
+# UXR-X4 (Pre-Deploy S9b): the map's own furniture — the marshals' names and
+# stacks, the fogged chips, the garrison chips, the sail counts — follows the
+# screen. Its authored sizes (WORLD px at the authored zoom) are this named
+# table. At a zoom where the smallest would read under FURNITURE_FLOOR_PX
+# logical px on screen, every one — chips with their text — grows by one
+# factor, times the Interface Scale: the province names' own rule
+# (screen-space, with a floor). At the whole-map view they read 6.75–9 px.
+# Sized through one Theme per kind (no per-node override — the diet's census)
+# and quantized, so a zoom eases through a rebuild or two, not one a frame.
+const FURNITURE_PX := {"region": 14, "name": 11, "fog_chip": 12, "garrison": 10, "sail": 11}
+const FURNITURE_SMALLEST_PX := 10.0
+const FURNITURE_FLOOR_PX := 16.0
+const FURNITURE_SCALE_STEP := 0.125
+var _furniture_scale := 1.0
+var _furniture_themes := {}
+var _furniture_rescale_pending := false
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
@@ -1411,7 +1427,7 @@ func _build_region_nodes():
 		label.size = Vector2(REGION_LABEL_WIDTH, REGION_LABEL_HEIGHT)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.add_theme_font_size_override("font_size", 14)
+		_style_furniture(label, "region")
 		label.text = region_name
 		region_layer.add_child(label)
 
@@ -1464,7 +1480,95 @@ func _refresh_region_visual(region_name: String):
 	nodes["label"].add_theme_color_override("font_color", label_color)
 
 
+const SAIL_LABEL_WIDTH := 60.0
+
+
+func _layout_sail_label(sail: Label, anchor: Vector2) -> void:
+	"""The sail count sits just above its ship's hull (the hover box is the
+	hull's 0.62 of the frame), centred on the ship, at the furniture scale."""
+	var frame := WAR_PIECE_FRAME_PX * FLEET_PIECE_SCALE
+	var w := _furn(SAIL_LABEL_WIDTH)
+	var h := _furn(14.0)
+	sail.size = Vector2(w, h)
+	sail.position = anchor + Vector2(-w / 2.0, -frame * 0.62 - 2.0 - h)
+
+
+func _layout_sail_labels() -> void:
+	for nation in _fleet_sail_labels:
+		var sail = _fleet_sail_labels[nation]
+		var piece = _fleet_pieces.get(nation, null)
+		if sail != null and is_instance_valid(sail) and piece != null and is_instance_valid(piece):
+			_layout_sail_label(sail, piece.position)
+
+
+func _furniture_theme(kind: String) -> Theme:
+	var theme: Theme = _furniture_themes.get(kind, null)
+	if theme == null:
+		theme = Theme.new()
+		theme.set_font_size("font_size", "Label", _furn_px(kind))
+		_furniture_themes[kind] = theme
+	return theme
+
+
+func _style_furniture(label: Label, kind: String) -> void:
+	"""A furniture label takes its size from its kind's Theme (the one the
+	scale term rewrites), never a raw override."""
+	label.theme = _furniture_theme(kind)
+
+
+func _furn_px(kind: String) -> int:
+	# ceil: the floor is a floor — never a half pixel under it.
+	return int(ceil(float(FURNITURE_PX[kind]) * _furniture_scale - 0.001))
+
+
+func _furn(length: float) -> float:
+	"""A furniture length (a line height, a stagger, a chip's side) at the
+	current scale — positions grow with the text they hold."""
+	return length * _furniture_scale
+
+
+func _wanted_furniture_scale() -> float:
+	"""The smallest kind on screen at FURNITURE_FLOOR_PX logical px: the
+	camera's zoom is physical px per world px (the SubViewport renders at
+	physical resolution), the floor physical is its logical px x the
+	Interface Scale. Never under 1 — zoomed in, the furniture is world-space
+	as it always was."""
+	var zoom := maxf(_zoom_level, 0.001)
+	var s := FURNITURE_FLOOR_PX * _target_content_scale() / (FURNITURE_SMALLEST_PX * zoom)
+	return ceilf(maxf(s, 1.0) / FURNITURE_SCALE_STEP) * FURNITURE_SCALE_STEP
+
+
+func _sync_furniture_scale() -> bool:
+	"""Adopt the scale the zoom wants; true when it moved."""
+	var want := _wanted_furniture_scale()
+	if is_equal_approx(want, _furniture_scale):
+		return false
+	_furniture_scale = want
+	for kind in _furniture_themes:
+		(_furniture_themes[kind] as Theme).set_font_size("font_size", "Label", _furn_px(kind))
+	return true
+
+
+func _check_furniture_scale() -> void:
+	# Called on every zoom step and scale change; the rebuild waits for the
+	# zoom's ease to end (_process), so it happens once, not every frame.
+	if not is_equal_approx(_wanted_furniture_scale(), _furniture_scale):
+		_furniture_rescale_pending = true
+
+
+func _apply_pending_furniture_scale() -> void:
+	if not _furniture_rescale_pending:
+		return
+	if zoom_tween != null and zoom_tween.is_running():
+		return
+	_furniture_rescale_pending = false
+	if _sync_furniture_scale():
+		_rebuild_dynamic_nodes()
+		_layout_sail_labels()
+
+
 func _rebuild_dynamic_nodes():
+	_sync_furniture_scale()
 	_clear_children(force_layer)
 	_clear_children(garrison_layer)
 	marshal_hitboxes.clear()
@@ -1562,7 +1666,9 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 		var nation = str(marshal.get("nation", "Neutral"))
 		var in_collapsed_group := (pieces_active
 				and int(nation_counts.get(nation, 0)) > 3)
-		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
+		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
+		# UXR-X4: a label's BOTTOM keeps its authored place; it grows upward.
+		var name_h := _furn(14.0)
 
 		# label_anchor_world = top-left of the name label (WORLD coords);
 		# hitbox_rect = the hover target (WORLD coords).
@@ -1575,7 +1681,7 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			# colored square; float the name above the standee and size the hover
 			# box to its footprint.
 			var slot := _marshal_slot_offset_2d(i, marshals.size())
-			var name_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0 + i * 13.0)
+			var name_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0 + _furn(i * 13.0)) + 14.0 - name_h
 			label_anchor_world = region_pos + Vector2(slot.x - name_width / 2.0, name_y)
 			var box_w := maxf(WAR_PIECE_SLOT_SPACING, 34.0)
 			var box_h := WAR_PIECE_FRAME_PX * 0.62
@@ -1591,21 +1697,21 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			icon_panel.size = MARSHAL_ICON_SIZE
 			icon_panel.add_theme_stylebox_override("panel", _make_box_style(colors.get(nation, Color(1.0, 0.0, 1.0)), Color.BLACK, 2.0, 2))
 			force_layer.add_child(icon_panel)
-			label_anchor_world = icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - i * 14.0)
+			label_anchor_world = icon_pos + Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, _furn(-15.0 - i * 14.0) + 14.0 - name_h)
 			hitbox_rect = Rect2(icon_pos, MARSHAL_ICON_SIZE)
 
 		if not in_collapsed_group:
 			var name_label = Label.new()
 			name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			name_label.position = _world_to_layer_position(label_anchor_world)
-			name_label.size = Vector2(name_width, 14.0)
+			name_label.size = Vector2(name_width, name_h)
 			name_label.text = marshal_name
-			name_label.add_theme_font_size_override("font_size", 11)
+			_style_furniture(name_label, "name")
 			name_label.add_theme_color_override("font_color", Color.WHITE)
 			name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
 			name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			force_layer.add_child(name_label)
-			_label_avoid_world_rects.append(Rect2(label_anchor_world, Vector2(name_width, 14.0)))
+			_label_avoid_world_rects.append(Rect2(label_anchor_world, Vector2(name_width, name_h)))
 
 		# The hover hitbox is appended for EVERY marshal — collapsed or not —
 		# so the tooltip still identifies each individual piece. Review-fix
@@ -1632,23 +1738,24 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 					lead_name = Utils.display_marshal_name(str(m.get("name", "?")))  # LV-2
 					break
 			var stack_text := "%s +%d" % [lead_name, group_size - 1]
-			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
+			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
+			var stack_h := _furn(14.0)
 			var rear_ranks := 1 if marshals.size() <= 4 else 2
 			var stack_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0
 					+ float(rear_ranks) * WAR_PIECE_RANK_DEPTH
-					+ float(stack_row) * 13.0)
+					+ _furn(float(stack_row) * 13.0)) + 14.0 - stack_h
 			var stack_anchor := region_pos + Vector2(-stack_width / 2.0, stack_y)
 			var stack_label = Label.new()
 			stack_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			stack_label.position = _world_to_layer_position(stack_anchor)
-			stack_label.size = Vector2(stack_width, 14.0)
+			stack_label.size = Vector2(stack_width, stack_h)
 			stack_label.text = stack_text
-			stack_label.add_theme_font_size_override("font_size", 11)
+			_style_furniture(stack_label, "name")
 			stack_label.add_theme_color_override("font_color", Color.WHITE)
 			stack_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
 			stack_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			force_layer.add_child(stack_label)
-			_label_avoid_world_rects.append(Rect2(stack_anchor, Vector2(stack_width, 14.0)))
+			_label_avoid_world_rects.append(Rect2(stack_anchor, Vector2(stack_width, stack_h)))
 			stack_row += 1
 
 
@@ -1761,7 +1868,11 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		var force_nation = str(force.get("nation", "Unknown"))
 		var fog_level = str(force.get("fog_level", "partial"))
 		var slot = regular_marshal_offset + i
-		var icon_pos = region_pos + Vector2(start_x + slot * (MARSHAL_ICON_SIZE.x + MARSHAL_ICON_SPACING), MARSHAL_ICON_Y_OFFSET)
+		var slot_pos = region_pos + Vector2(start_x + slot * (MARSHAL_ICON_SIZE.x + MARSHAL_ICON_SPACING), MARSHAL_ICON_Y_OFFSET)
+		# UXR-X4: the "?" chip holds text, so it grows with it about its own
+		# centre (the slot keeps its authored place).
+		var chip_size: Vector2 = MARSHAL_ICON_SIZE * _furniture_scale
+		var icon_pos = slot_pos + (MARSHAL_ICON_SIZE - chip_size) / 2.0
 		var layer_icon_pos = _world_to_layer_position(icon_pos)
 		var nation_color = colors.get(force_nation, Color(0.5, 0.5, 0.5))
 		var fill_color = nation_color.darkened(0.5 if fog_level == "partial" else 0.7)
@@ -1770,29 +1881,30 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		var icon_panel = Panel.new()
 		icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon_panel.position = layer_icon_pos
-		icon_panel.size = MARSHAL_ICON_SIZE
+		icon_panel.size = chip_size
 		icon_panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, Color(0.4, 0.4, 0.45, 0.6), 1.5, 2))
 		force_layer.add_child(icon_panel)
 
 		var icon_label = Label.new()
 		icon_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon_label.position = layer_icon_pos
-		icon_label.size = MARSHAL_ICON_SIZE
+		icon_label.size = chip_size
 		icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		icon_label.text = "?"
-		icon_label.add_theme_font_size_override("font_size", 12)
+		_style_furniture(icon_label, "fog_chip")
 		icon_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.8))
 		force_layer.add_child(icon_label)
 
-		var name_width = font.get_string_size(force_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0
-		var name_offset := Vector2(MARSHAL_ICON_SIZE.x / 2.0 - name_width / 2.0, -15.0 - slot * 14.0)
+		var name_width = font.get_string_size(force_name, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
+		var name_h := _furn(14.0)
+		var name_offset := Vector2(chip_size.x / 2.0 - name_width / 2.0, _furn(-15.0 - slot * 14.0) + 14.0 - name_h)
 		var name_label = Label.new()
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_label.position = layer_icon_pos + name_offset
-		name_label.size = Vector2(name_width, 14.0)
+		name_label.size = Vector2(name_width, name_h)
 		name_label.text = force_name
-		name_label.add_theme_font_size_override("font_size", 11)
+		_style_furniture(name_label, "name")
 		name_label.add_theme_color_override(
 			"font_color",
 			Color(0.7, 0.7, 0.75, 0.7) if fog_level == "partial" else Color(0.5, 0.5, 0.55, 0.5)
@@ -1802,11 +1914,11 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		force_layer.add_child(name_label)
 
 		fogged_force_hitboxes.append({
-			"rect": Rect2(icon_pos, MARSHAL_ICON_SIZE),
+			"rect": Rect2(icon_pos, chip_size),
 			"force": force,
 		})
-		_label_avoid_world_rects.append(Rect2(icon_pos, MARSHAL_ICON_SIZE))
-		_label_avoid_world_rects.append(Rect2(icon_pos + name_offset, Vector2(name_width, 14.0)))
+		_label_avoid_world_rects.append(Rect2(icon_pos, chip_size))
+		_label_avoid_world_rects.append(Rect2(icon_pos + name_offset, Vector2(name_width, name_h)))
 
 
 func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String):
@@ -1833,12 +1945,13 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 		text_color = Color(0.85, 0.85, 0.85)
 		border_color = Color(0.7, 0.7, 0.7)
 
-	var label_font_size = 10
+	# UXR-X4: the chip and its text grow together (the chip's centre keeps
+	# its authored place below the province's anchor).
 	var font = ThemeDB.fallback_font
-	var panel_width = GARRISON_SIZE.x
+	var panel_width = _furn(GARRISON_SIZE.x)
 	if font != null:
-		panel_width = max(GARRISON_SIZE.x, font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, label_font_size).x + 10.0)
-	var panel_size = Vector2(panel_width, GARRISON_SIZE.y)
+		panel_width = max(_furn(GARRISON_SIZE.x), font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, _furn_px("garrison")).x + _furn(10.0))
+	var panel_size = Vector2(panel_width, _furn(GARRISON_SIZE.y))
 
 	var panel = Panel.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1856,7 +1969,7 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.text = label_text
-	label.add_theme_font_size_override("font_size", label_font_size)
+	_style_furniture(label, "garrison")
 	label.add_theme_color_override("font_color", text_color)
 	panel.add_child(label)
 
@@ -1933,6 +2046,7 @@ func refresh_viewport_scale() -> void:
 	_refresh_map_viewport_resolution()
 	_update_zoom_floor()
 	_update_camera_limits()
+	_check_furniture_scale()
 	queue_redraw()
 
 
@@ -2010,6 +2124,7 @@ func _set_camera_position(target: Vector2):
 func _set_camera_zoom_level(value: float):
 	_zoom_level = clamp(value, min_zoom, max_zoom)
 	_sync_camera_zoom()
+	_check_furniture_scale()
 	if map_camera != null:
 		map_camera.position = _clamp_camera_position(map_camera.position)
 	if map_label_layer != null:
@@ -2069,6 +2184,7 @@ func focus_on_region(region_name: String):
 
 
 func _process(delta: float):
+	_apply_pending_furniture_scale()
 	# SF7-X21: a hover set before a screen or modal opened is cleared at once
 	# — only a mouse motion used to clear it, so a still cursor kept its
 	# tooltip on screen under the dialog, or beside the open ledger.
@@ -2424,33 +2540,9 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 	)
 
 
-func _clamp_tooltip_pos(pos: Vector2, tooltip_size: Vector2) -> Vector2:
-	var viewport_size = get_viewport_rect().size
-	if pos.x + tooltip_size.x > viewport_size.x:
-		pos.x = viewport_size.x - tooltip_size.x
-	if pos.y + tooltip_size.y > viewport_size.y:
-		pos.y = mouse_position.y - tooltip_size.y - 5.0
-	return pos
-
-
 func _draw_tooltip_lines(lines: Array, width: float, panel_color: Color, border_color: Color):
 	if tooltip_layer != null:
 		tooltip_layer.show_tooltip(lines, width, panel_color, border_color, mouse_position)
-
-
-func _measure_tooltip(lines: Array, width: float) -> Vector2:
-	var padding = 10.0
-	var height = padding * 2.0
-	for line in lines:
-		if line.get("spacer", false):
-			height += float(line.get("height", 8.0))
-		else:
-			height += _tooltip_line_height(int(line.get("size", 11)))
-	return Vector2(width, height)
-
-
-func _tooltip_line_height(font_size: int) -> float:
-	return 20.0 if font_size >= 14 else 16.0
 
 
 func _push_tooltip_line(lines: Array, text: String, color: Color, size: int = 11):
@@ -3104,6 +3196,9 @@ func _update_fleet_pieces() -> void:
 			var gone: Node = _fleet_pieces[nation]
 			if is_instance_valid(gone):
 				gone.queue_free()
+			var gone_sail = _fleet_sail_labels.get(nation, null)
+			if gone_sail != null and is_instance_valid(gone_sail):
+				gone_sail.queue_free()
 			_fleet_pieces.erase(nation)
 			_fleet_sail_labels.erase(nation)
 	var frame := WAR_PIECE_FRAME_PX * FLEET_PIECE_SCALE
@@ -3119,12 +3214,16 @@ func _update_fleet_pieces() -> void:
 			pieces_layer.add_child(piece)
 			piece.setup("ship", "l", nation_color, frame)
 			_fleet_pieces[nation] = piece
+			# UXR-X27 (Pre-Deploy S9b): the count is the piece's SIBLING. As
+			# its child it inherited the standee's 64 x 0.85 / 256 = 0.21 scale
+			# and drew at ~2.3 world px — a smudge on every screen.
 			var sail := Label.new()
-			sail.name = "SailCount"
-			sail.add_theme_font_size_override("font_size", 11)
+			sail.name = "SailCount_" + nation
+			_style_furniture(sail, "sail")
 			sail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			sail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			piece.add_child(sail)
+			sail.z_index = 1
+			pieces_layer.add_child(sail)
 			_fleet_sail_labels[nation] = sail
 		else:
 			piece.set_faction(nation_color)
@@ -3140,8 +3239,9 @@ func _update_fleet_pieces() -> void:
 			if bool(entry.get("is_player", false)) and str(entry.get("blockaded_by", "")) != "":
 				tint = Color(0.9, 0.45, 0.4, 1.0)
 			sail_label.add_theme_color_override("font_color", tint)
-			sail_label.size = Vector2(60.0, 14.0)
-			sail_label.position = Vector2(-30.0, -frame * 0.62 - 14.0)
+			sail_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
+			sail_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+			_layout_sail_label(sail_label, anchor)
 		fleet_hitboxes.append({
 			"rect": Rect2(world_anchor + Vector2(-frame * 0.35, -frame * 0.62),
 				Vector2(frame * 0.7, frame * 0.62)),

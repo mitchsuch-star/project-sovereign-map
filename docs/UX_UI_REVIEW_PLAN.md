@@ -495,6 +495,28 @@ The run had 0 SCRIPT ERROR, 0 clipped text and 0 buttons off-screen, and the war
 
 *Frame:* `docs/audits/uxr0/UXR2B_HUD_FULL_CENTRED_WAR_ROOM_TUTORIAL_5120x1440_2026_10_12.jpg` (the user's panel at 1.4, Full above Centred).
 
+**Slice C — UXR-X4, the map's own furniture follows the screen.**
+
+*The instrument first (UXR-X26).* The census multiplied a SubViewport node's canvas scale by the window's content scale. The map renders its SubViewport at physical resolution, so that counted the scale twice (1.4x on the user's panel); at 4K it called 24 of 34 map labels "not small". The multiplier is now the display's physical px per SubViewport px (1.0 for the map). The BEFORE was re-read through the fixed instrument from the pristine pre-S9b worktree (`c8e65997`).
+
+*The floor* (the user's ruling: screen-space, the province names' own rule).
+- The furniture's sizes are one named table, styled through one Theme per kind, with no override left. The five raw sizes left the diet's exemption (its ratchet 18 → 11) and the floor sweep's.
+- A scale term grows every kind, chips with their text, until the smallest reads 16 logical px on screen × the Interface Scale. Zoomed in it is world-space as before.
+- It rebuilds once a zoom's ease ends, quantized.
+- **UXR-X27.** The sail counts were children of a ship standee that scales itself by 0.21, so they drew at **2.1 px** on the user's panel. They are the piece's siblings now.
+- *The tooltip.* Its `draw_string` body and title read at Caption 14 and Lead 18 × Text size, where they were raw 11 / 14 px, and the box widens with them.
+
+*The reading* (the war room's three surfaces × the five resolutions, the derived scale):
+
+| | `map_small` |
+|---|---|
+| BEFORE | **34 of 34** at four resolutions, 31 at 4K |
+| AFTER | **0** everywhere |
+
+The sail counts went from 2.1 px to 25 px (18 logical) on the user's panel, with 0 SCRIPT ERROR (`readability_map_{before,after}_2026_10_12.json`, `tests/test_uxr2b_map_furniture.py`).
+
+*For the user's eyes:* `docs/audits/uxr0/UXR2B_MAP_FURNITURE_BEFORE_AFTER_{5120x1440,1920x1080}_2026_10_12.jpg`. The furniture now reads at the whole-map view, and Central Europe is busier. Where the boot masses corps, the names brush the province names, and at Venetia a fogged "?" chip overlaps Masséna's name. Filed as **UXR-X28**, owner UXR-3's fixes (S12), with a rect-overlap census as its test.
+
 ## UXR-3 — The look-and-feel review (1 session to review, 1 to fix)
 
 The "full look feel ux review", run the way the score was run: a fixed

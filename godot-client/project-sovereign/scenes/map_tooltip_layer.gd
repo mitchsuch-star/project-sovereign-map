@@ -26,6 +26,34 @@ func clear_tooltip():
 	queue_redraw()
 
 
+# UXR-X4 (Pre-Deploy S9b): the hover tooltip's two tiers read at the theme's
+# sizes — the body at Caption (14), the title at Lead (18), both times Text
+# size — where they were raw 11 / 14 px draw_string text (the body under the
+# caption floor, and seen by no census, since a draw call is not a node). The
+# callers keep asking for 11 (the body) or 14 (a title); the box widens with
+# the type, and a line's height is the font's own.
+const BODY_DESIGN_PX := 11
+const TITLE_DESIGN_PX := 14
+const BODY_PX := 14
+const TITLE_PX := 18
+
+
+static func line_px(design_size: int) -> int:
+	return Utils.text_px(TITLE_PX if design_size >= TITLE_DESIGN_PX else BODY_PX)
+
+
+static func type_ratio() -> float:
+	"""How much wider the box draws than the width its caller authored for
+	the 11-px body."""
+	return float(line_px(BODY_DESIGN_PX)) / float(BODY_DESIGN_PX)
+
+
+func _line_height(design_size: int) -> float:
+	var font = ThemeDB.fallback_font
+	var px := line_px(design_size)
+	return (font.get_height(px) if font != null else float(px) * 1.3) + 2.0
+
+
 func _draw():
 	if not _visible_tooltip or _lines.is_empty():
 		return
@@ -45,15 +73,15 @@ func _draw():
 			text_y += float(line.get("height", 8.0))
 			continue
 
-		var font_size = int(line.get("size", 11))
-		var line_height = _tooltip_line_height(font_size)
+		var design_size = int(line.get("size", BODY_DESIGN_PX))
+		var line_height = _line_height(design_size)
 		draw_string(
 			font,
-			Vector2(text_x, text_y + line_height - 2.0),
+			Vector2(text_x, text_y + line_height - 4.0),
 			str(line.get("text", "")),
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
-			font_size,
+			line_px(design_size),
 			line.get("color", Color.WHITE)
 		)
 		text_y += line_height
@@ -66,12 +94,8 @@ func _measure_tooltip(lines: Array, width: float) -> Vector2:
 		if line.get("spacer", false):
 			height += float(line.get("height", 8.0))
 		else:
-			height += _tooltip_line_height(int(line.get("size", 11)))
-	return Vector2(width, height)
-
-
-func _tooltip_line_height(font_size: int) -> float:
-	return 20.0 if font_size >= 14 else 16.0
+			height += _line_height(int(line.get("size", BODY_DESIGN_PX)))
+	return Vector2(width * type_ratio(), height)
 
 
 func _clamp_tooltip_pos(pos: Vector2, tooltip_size: Vector2) -> Vector2:

@@ -874,7 +874,17 @@ func _add_text_metrics(entry: Dictionary, n: Control, font: Font, font_size: int
 	# PHYSICAL size: the em, and the cap/x heights read off the font's own
 	# "H" and "x" glyph bitmaps through the TextServer.
 	var canvas_scale: float = n.get_global_transform_with_canvas().get_scale().y
-	var mult: float = canvas_scale * maxf(root.content_scale_factor, 0.01)
+	var view_mult := maxf(root.content_scale_factor, 0.01)
+	var sv := _subviewport_of(n)
+	if sv != null:
+		# UXR-X26 (Pre-Deploy S9b): a SubViewport node's canvas transform is in
+		# the SubViewport's OWN pixels; what reaches the screen is that times
+		# the physical px its display gives each SubViewport px. The map renders
+		# its SubViewport at physical resolution (1.0), so multiplying by the
+		# window's content scale counted the scale twice and over-read every
+		# map row by it (1.4x on the user's panel).
+		view_mult = _subviewport_display_scale(sv)
+	var mult: float = canvas_scale * view_mult
 	entry["font_size"] = font_size
 	entry["canvas_scale"] = canvas_scale
 	entry["em_px"] = float(font_size) * mult
@@ -895,6 +905,39 @@ func _add_text_metrics(entry: Dictionary, n: Control, font: Font, font_size: int
 	var ratios := _glyph_ratios(font, font_size)
 	entry["cap_px"] = float(ratios.get("cap", 0.0)) * mult
 	entry["x_px"] = float(ratios.get("x", 0.0)) * mult
+
+
+func _subviewport_of(n: Node) -> SubViewport:
+	var p: Node = n.get_parent()
+	while p != null:
+		if p is SubViewport:
+			return p
+		p = p.get_parent()
+	return null
+
+
+var _sv_display_cache: Dictionary = {}
+
+
+func _subviewport_display_scale(sv: SubViewport) -> float:
+	"""Physical screen px per SubViewport px: the displaying control's
+	logical width x the window's content scale / the SubViewport's width."""
+	var csf := maxf(root.content_scale_factor, 0.01)
+	var shown: Control = null
+	if sv.get_parent() is SubViewportContainer:
+		shown = sv.get_parent()
+	else:
+		shown = _sv_display_cache.get(sv.get_instance_id(), null)
+		if shown == null or not is_instance_valid(shown):
+			var tex := sv.get_texture()
+			for c in _all_nodes(root):
+				if c is TextureRect and (c as TextureRect).texture == tex:
+					shown = c
+					break
+			_sv_display_cache[sv.get_instance_id()] = shown
+	if shown == null or sv.size.x <= 0:
+		return csf
+	return shown.get_global_rect().size.x * csf / float(sv.size.x)
 
 
 func _inside_subviewport(n: Node) -> bool:

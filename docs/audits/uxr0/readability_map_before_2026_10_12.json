@@ -1,0 +1,2694 @@
+{
+ "date": "s9b_mapb",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\97f5b384-16c4-46c3-a965-6014730cfa15\\scratchpad\\m_before\\index.json",
+ "surfaces": {
+  "war_room_boot": {
+   "surface": "The war room — map, command window, top bar (Begin the 1805 campaign)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@248",
+       "text": "10k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@245",
+       "text": "12k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@243",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@241",
+       "text": "12k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@239",
+       "text": "25k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@237",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@235",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@221",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@214",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@246",
+       "text": "Massena",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@233",
+       "text": "Murat",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@232",
+       "text": "Lannes",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@231",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@230",
+       "text": "Soult",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@229",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@228",
+       "text": "?",
+       "size": 12,
+       "em": 8.1
+      },
+      {
+       "path": "@Label@226",
+       "text": "Davout",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@225",
+       "text": "Ney",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@224",
+       "text": "Mack",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@223",
+       "text": "?",
+       "size": 12,
+       "em": 8.1
+      },
+      {
+       "path": "@Label@219",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@218",
+       "text": "?",
+       "size": 12,
+       "em": 8.1
+      },
+      {
+       "path": "@Label@216",
+       "text": "Deroy",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@215",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 1.58
+      }
+     ]
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@503",
+       "text": "10k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@500",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@498",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@496",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@494",
+       "text": "25k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@492",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@490",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@476",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@469",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@501",
+       "text": "Massena",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@488",
+       "text": "Murat",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@487",
+       "text": "Lannes",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@486",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@485",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@484",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@483",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@481",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@480",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@479",
+       "text": "Mack",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@478",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@474",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@473",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@471",
+       "text": "Deroy",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@470",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 2.1
+      }
+     ]
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@758",
+       "text": "10k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@755",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@753",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@751",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@749",
+       "text": "25k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@747",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@745",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@731",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@724",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@756",
+       "text": "Massena",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@743",
+       "text": "Murat",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@742",
+       "text": "Lannes",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@741",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@740",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@739",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@738",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@736",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@735",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@734",
+       "text": "Mack",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@733",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@729",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@728",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@726",
+       "text": "Deroy",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@725",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 2.1
+      }
+     ]
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1013",
+       "text": "10k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@1010",
+       "text": "12k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@1008",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@1006",
+       "text": "12k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@1004",
+       "text": "25k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@1002",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@1000",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@986",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@979",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@1011",
+       "text": "Massena",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@998",
+       "text": "Murat",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@997",
+       "text": "Lannes",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@996",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@995",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@994",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@993",
+       "text": "?",
+       "size": 12,
+       "em": 10.79
+      },
+      {
+       "path": "@Label@991",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@990",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@989",
+       "text": "Mack",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@988",
+       "text": "?",
+       "size": 12,
+       "em": 10.79
+      },
+      {
+       "path": "@Label@984",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@983",
+       "text": "?",
+       "size": 12,
+       "em": 10.79
+      },
+      {
+       "path": "@Label@981",
+       "text": "Deroy",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@980",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 2.1
+      }
+     ]
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 42,
+      "red": 0,
+      "p1": 0,
+      "ok": 42,
+      "map": 34,
+      "map_small": 31
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1268",
+       "text": "10k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1265",
+       "text": "12k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1263",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1261",
+       "text": "12k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1259",
+       "text": "25k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1257",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1255",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1241",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1234",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@1266",
+       "text": "Massena",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1253",
+       "text": "Murat",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1252",
+       "text": "Lannes",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1251",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1250",
+       "text": "Soult",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1249",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1248",
+       "text": "?",
+       "size": 12,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1246",
+       "text": "Davout",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1245",
+       "text": "Ney",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1244",
+       "text": "Mack",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1243",
+       "text": "?",
+       "size": 12,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1239",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1238",
+       "text": "?",
+       "size": 12,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@1236",
+       "text": "Deroy",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@1235",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 3.16
+      }
+     ]
+    }
+   }
+  },
+  "war_room_tutorial": {
+   "surface": "The war room — the School of War's first morning, tutor card top-right",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "map_small": 11
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1504",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@1502",
+       "text": "25k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@1499",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@1497",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@1495",
+       "text": "12k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@1500",
+       "text": "Soult",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@1493",
+       "text": "Senarmont",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@1492",
+       "text": "Davout",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@1491",
+       "text": "Ney",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@1490",
+       "text": "Kienmayer",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@1489",
+       "text": "?",
+       "size": 12,
+       "em": 8.1
+      }
+     ]
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "map_small": 11
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1741",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1739",
+       "text": "25k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1736",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1734",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1732",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1737",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1730",
+       "text": "Senarmont",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1729",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1728",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1727",
+       "text": "Kienmayer",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1726",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      }
+     ]
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "map_small": 11
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@1978",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1976",
+       "text": "25k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1973",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1971",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1969",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@1974",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1967",
+       "text": "Senarmont",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1966",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1965",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1964",
+       "text": "Kienmayer",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@1963",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      }
+     ]
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "map_small": 11
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2215",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@2213",
+       "text": "25k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@2210",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@2208",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@2206",
+       "text": "12k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@2211",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@2204",
+       "text": "Senarmont",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@2203",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@2202",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@2201",
+       "text": "Kienmayer",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@2200",
+       "text": "?",
+       "size": 12,
+       "em": 10.79
+      }
+     ]
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 44,
+      "red": 0,
+      "p1": 0,
+      "ok": 44,
+      "map": 11,
+      "map_small": 10
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2452",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@2450",
+       "text": "25k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@2447",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@2445",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@2443",
+       "text": "12k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@2448",
+       "text": "Soult",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@2441",
+       "text": "Senarmont",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@2440",
+       "text": "Davout",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@2439",
+       "text": "Ney",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@2438",
+       "text": "Kienmayer",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@2437",
+       "text": "?",
+       "size": 12,
+       "em": 16.2
+      }
+     ]
+    }
+   }
+  },
+  "war_room_pause_settings": {
+   "surface": "The war room — the pause menu open on Settings (UXR-X2)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 83,
+      "red": 0,
+      "p1": 0,
+      "ok": 83,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2708",
+       "text": "10k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2705",
+       "text": "12k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2703",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2701",
+       "text": "12k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2699",
+       "text": "25k",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2697",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2695",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2681",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2674",
+       "text": "?",
+       "size": 10,
+       "em": 6.75
+      },
+      {
+       "path": "@Label@2706",
+       "text": "Massena",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2693",
+       "text": "Murat",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2692",
+       "text": "Lannes",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2691",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2690",
+       "text": "Soult",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2689",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2688",
+       "text": "?",
+       "size": 12,
+       "em": 8.1
+      },
+      {
+       "path": "@Label@2686",
+       "text": "Davout",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2685",
+       "text": "Ney",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2684",
+       "text": "Mack",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2683",
+       "text": "?",
+       "size": 12,
+       "em": 8.1
+      },
+      {
+       "path": "@Label@2679",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2678",
+       "text": "?",
+       "size": 12,
+       "em": 8.1
+      },
+      {
+       "path": "@Label@2676",
+       "text": "Deroy",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "@Label@2675",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 7.43
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 1.58
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 1.58
+      }
+     ]
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 83,
+      "red": 0,
+      "p1": 0,
+      "ok": 83,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@2964",
+       "text": "10k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2961",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2959",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2957",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2955",
+       "text": "25k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2953",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2951",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2937",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2930",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@2962",
+       "text": "Massena",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2949",
+       "text": "Murat",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2948",
+       "text": "Lannes",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2947",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2946",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2945",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2944",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@2942",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2941",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2940",
+       "text": "Mack",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2939",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@2935",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2934",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@2932",
+       "text": "Deroy",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@2931",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 2.1
+      }
+     ]
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 83,
+      "red": 0,
+      "p1": 0,
+      "ok": 83,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@3220",
+       "text": "10k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3217",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3215",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3213",
+       "text": "12k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3211",
+       "text": "25k",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3209",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3207",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3193",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3186",
+       "text": "?",
+       "size": 10,
+       "em": 9.0
+      },
+      {
+       "path": "@Label@3218",
+       "text": "Massena",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3205",
+       "text": "Murat",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3204",
+       "text": "Lannes",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3203",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3202",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3201",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3200",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@3198",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3197",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3196",
+       "text": "Mack",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3195",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@3191",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3190",
+       "text": "?",
+       "size": 12,
+       "em": 10.8
+      },
+      {
+       "path": "@Label@3188",
+       "text": "Deroy",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "@Label@3187",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 9.9
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 2.1
+      }
+     ]
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 83,
+      "red": 0,
+      "p1": 0,
+      "ok": 83,
+      "map": 34,
+      "map_small": 34
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@3476",
+       "text": "10k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3473",
+       "text": "12k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3471",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3469",
+       "text": "12k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3467",
+       "text": "25k",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3465",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3463",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3449",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3442",
+       "text": "?",
+       "size": 10,
+       "em": 8.99
+      },
+      {
+       "path": "@Label@3474",
+       "text": "Massena",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3461",
+       "text": "Murat",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3460",
+       "text": "Lannes",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3459",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3458",
+       "text": "Soult",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3457",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3456",
+       "text": "?",
+       "size": 12,
+       "em": 10.79
+      },
+      {
+       "path": "@Label@3454",
+       "text": "Davout",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3453",
+       "text": "Ney",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3452",
+       "text": "Mack",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3451",
+       "text": "?",
+       "size": 12,
+       "em": 10.79
+      },
+      {
+       "path": "@Label@3447",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3446",
+       "text": "?",
+       "size": 12,
+       "em": 10.79
+      },
+      {
+       "path": "@Label@3444",
+       "text": "Deroy",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "@Label@3443",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 9.89
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 2.1
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 2.1
+      }
+     ]
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 83,
+      "red": 0,
+      "p1": 0,
+      "ok": 83,
+      "map": 34,
+      "map_small": 31
+     },
+     "flagged": [],
+     "map_rows": [
+      {
+       "path": "@Label@3732",
+       "text": "10k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3729",
+       "text": "12k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3727",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3725",
+       "text": "12k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3723",
+       "text": "25k",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3721",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3719",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3705",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3698",
+       "text": "?",
+       "size": 10,
+       "em": 13.5
+      },
+      {
+       "path": "@Label@3730",
+       "text": "Massena",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3717",
+       "text": "Murat",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3716",
+       "text": "Lannes",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3715",
+       "text": "Napoleon",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3714",
+       "text": "Soult",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3713",
+       "text": "ArchdukeJohn",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3712",
+       "text": "?",
+       "size": 12,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@3710",
+       "text": "Davout",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3709",
+       "text": "Ney",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3708",
+       "text": "Mack",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3707",
+       "text": "?",
+       "size": 12,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@3703",
+       "text": "Brunswick",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3702",
+       "text": "?",
+       "size": 12,
+       "em": 16.2
+      },
+      {
+       "path": "@Label@3700",
+       "text": "Deroy",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "@Label@3699",
+       "text": "Bernadotte",
+       "size": 11,
+       "em": 14.85
+      },
+      {
+       "path": "SailCount",
+       "text": "5",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "10",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "12",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "15",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "18",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "20",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "30",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "45",
+       "size": 11,
+       "em": 3.16
+      },
+      {
+       "path": "SailCount",
+       "text": "100",
+       "size": 11,
+       "em": 3.16
+      }
+     ]
+    }
+   }
+  }
+ },
+ "client_commit": "c8e65997",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

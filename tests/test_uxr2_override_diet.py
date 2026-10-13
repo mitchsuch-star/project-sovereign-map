@@ -31,15 +31,15 @@ from tests import _godot_scenes as G
 
 # The raw overrides that survive, per file, with the reason each stays raw.
 EXEMPT = {
-    "map_renderer_base.gd": 7,   # the map's world-space furniture, sized by the camera (UXR-X4, S9b)
+    # map_renderer_base.gd's 7 RETIRED by UXR-X4 (Pre-Deploy S9b): the map's
+    # furniture sizes through per-kind Themes and a screen-space scale term.
     "europe_map_smoke.gd": 1,    # the developer smoke scene — no player sees it
     "main_menu.gd": 5,           # the title screen's display type on its own runtime FontVariations
     "battle_diorama.gd": 5,      # the tableau's engraved display: clash 26, odometers 24, banner 30, plate 19
 }
-RAW_RATCHET = 18                 # 72 at S9's start → 18; it may fall, never rise
+RAW_RATCHET = 11                 # 72 at S9's start → 18 → 11 (UXR-X4, S9b); it may fall, never rise
 # Sizes passed as an expression, not a literal — each named, nowhere else.
 NON_LITERAL = {
-    "map_renderer_base.gd": 1,   # label_font_size, the camera's zoom tier
     "main_menu.gd": 1,           # the prominent / plain menu button
 }
 BBCODE_SIZE_RATCHET = 2          # main.gd's end heading 24, proclamation_popup.gd's 26
@@ -124,7 +124,7 @@ class TestTheRatchet:
     def test_no_raw_size_below_the_body_floor_outside_the_map(self, files):
         low = []
         for name, text in files.items():
-            if name == "map_renderer_base.gd" or not name.endswith(".gd"):
+            if not name.endswith(".gd"):
                 continue
             for args in G.call_args(G.code_lines(text), "add_theme_font_size_override"):
                 if len(args) > 1 and re.fullmatch(r"\d+", args[1]) and int(args[1]) < 16:

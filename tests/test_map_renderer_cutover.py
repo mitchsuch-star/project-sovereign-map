@@ -165,7 +165,9 @@ def test_update_region_accepts_legacy_and_new_payload_shapes():
 def test_garrison_badge_sizes_to_text():
     source = _read(BASE_GD)
     assert "font.get_string_size(label_text" in source
-    assert "panel_width = max(GARRISON_SIZE.x" in source
+    # UXR-X4 (Pre-Deploy S9b): the badge still sizes to its text — at the
+    # map furniture's screen-space scale (the chip grows with its text).
+    assert "panel_width = max(_furn(GARRISON_SIZE.x)" in source
     assert "label.position = Vector2.ZERO" in source
     assert "panel.add_child(label)" in source
 
