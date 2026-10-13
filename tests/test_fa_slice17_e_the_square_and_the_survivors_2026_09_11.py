@@ -231,7 +231,10 @@ class TestFAN64TheOverrideOutcomeIsDelivered:
 
     def test_the_send_site_records_pending_not_a_verdict(self):
         src = (REPO / "backend" / "commands" / "diplomatic_executor.py").read_text(encoding="utf-8")
-        calls = re.findall(r'record_override\(world, proposal_type, "([a-z_]+)"\)', src)
+        # CODE-2c (October 13, 2026): the send arm is a `_choice_*` stage and
+        # the world rides its context, so `ctx.world` is the same world.
+        calls = re.findall(
+            r'record_override\((?:ctx\.)?world, proposal_type, "([a-z_]+)"\)', src)
         assert calls == ["pending"], calls
 
     def test_an_accepted_and_ratified_override_is_good_news(self, monkeypatch):

@@ -1050,7 +1050,9 @@ row S10b, the next session, before UXR-3).**
     It carries 73 local imports, so the F2 check matters most here.
 
     **Measured October 13, 2026, and the design decided on it:**
-    - **The shape.** The chain has 73 arms. The largest is 187 lines
+    - **The shape.** The chain has 72 arms and its `else` (measured at first
+      as "73 arms", the `else` counted as one; corrected by slice 2's own
+      pin). The largest is 187 lines
       (`execute_ultimatum`), so none needs a cut of its own. No arm's test binds
       a name (no walrus). The chain ends in its own `else`, the unknown-action
       reply. Its head is three `from … import`s and
@@ -1171,6 +1173,100 @@ exactly as before:
 - the context's slots and no-default contract;
 - nothing on the wire from a real 1805 France–Prussia peace;
 - no stage-local import shadowing a module name.
+
+**CODE-2c LANDING RECORD, SLICE 2 — `DiplomaticExecutor._process_dialogue_choice`
+(Pre-Deploy S10b, October 13, 2026).** *The stage list, written before the cut
+(recipe step 1).* The method (`backend/commands/diplomatic_executor.py`, 2,210
+lines, 73 local imports) is a head (three imports and `target_nation`) and then
+ONE chain: `if action == "dismiss": … elif …`, 72 arms and an `else`. The
+tool's new **elif mode** cuts it into runs of arms at their families' seams.
+Each stage is a method `_choice_<family>(self, ctx)`: one `if … elif …` run
+ending in a synthetic `else: return _NEXT_STAGE`. The last stage keeps the
+chain's own `else`.
+
+| # | Stage | Its first arm (or banner) | The arms |
+|---|---|---|---|
+| 1 | `_choice_desk_settlement_and_war` | `if action == "dismiss":` (the head too) | dismiss, ask later, reconsider; the settlement's table, offers and petitions; the ally's entry; a bargain repudiated; a war objective or purpose; a war forced, a treaty broken |
+| 2 | `_choice_proposal` | `execute_proposal` / `send` | the proposal sent; `modify_harsh` |
+| 3 | `_choice_ultimatum` | `execute_ultimatum` | the ultimatum and its wizard (gold, territory, manpower, start over) |
+| 4 | `_choice_generous_and_suggestions` | `modify_generous` | softened, options expanded, a suggestion taken, the terms adjusted |
+| 5 | `_choice_terms_wizard` | `territory_yes` | provinces offered or skipped, gold, actions |
+| 6 | `_choice_missions_and_ai_letters` | `start_mission` | a mission started or recalled; an AI court's proposal or ultimatum answered; a letter expanded |
+| 7 | `_choice_counsel` | "GAP-1: ELABORATE / REVIEW_COUNTER / ACCEPT_WITH_CONFLICT" | GAP-1, sabotage (R37), the drafting pushback (PL-23), the pre-proposal override (R42) |
+| 8 | `_choice_counters_and_rebellion` | "R2: COUNTER-OFFER RESPONSE HANDLERS" | the counter-offer (R2), the vassal's rebellion (R74) |
+| 9 | `_choice_alliance_paradox` | "R12: ALLIANCE PARADOX HANDLERS" | honour or break (R12), and the chain's `else`: an unknown action refused |
+
+The plan said five to eight stages. The first cut had eight, but
+`generous_and_terms` came to 538 lines, so it was cut again at
+`territory_yes`, where the terms wizard begins.
+
+*The outcome (✅ LANDED October 13, 2026).*
+- **The context is exactly what the design predicted.** Of 223 locals, **5
+  ride `DialogueChoiceContext`**: the four parameters and `target_nation`.
+  41 names are confined, each bound only inside an arm; none is split.
+- **The mode's own refusals found nothing.** No name crosses arms, and no
+  stage reads an import that only another stage's arm binds. Five import
+  statements are repeated at stage heads, all from the head's three.
+- **Sizes.** Stages run 154–349 lines, and the driver is 57. **Functions over
+  500 lines 29 → 28**, and `FUNCTIONS_OVER_500_CAP` is lowered to match.
+- **F2.** The class lists `copy`. Two arms (`modify_harsh`, `modify_generous`)
+  imported `copy` locally before the cut, and still do inside their own
+  stages. The symtable proof shows no stage reads `copy` without binding it.
+  The shape pin holds that set exactly, so a new shadow fails.
+- **The tool.** `tools/stage_fn.py` gained `mode="elif"`. The proof checks
+  three things per stage:
+  - each run's chain, with its synthetic `else` taken off, is AST-equal to
+    the old arms (shared names as `ctx.<name>`);
+  - the tests appear in the old order;
+  - the last stage ends in the old `else`.
+
+  The `elif` → `if` swap on a run's first arm is the only text the mode
+  writes inside the arms.
+
+**The net:**
+- `score_run.py check` against `2026_10_05_sfr` gives stdout identical to
+  slice 1's.
+- **A before/after sweep, `tools/dialogue_choice_sweep.py`.** Every action
+  string the chain tests (112, with a no-such action) goes through the method
+  with a bare and a filled `selected` / `dialogue`. Each call runs on a fresh
+  1805 world with the RNG seeded, recording the reply (or the exception) and
+  a digest of the world afterwards. All **224 calls are identical**,
+  including the 10 that raise.
+  - The sweep's first run was not deterministic: a notification's id is a
+    fresh `uuid4`, so the digest blanks UUIDs. It was confirmed on two runs
+    of the same tree before it was trusted.
+- The 162 test files of the family: DD-1's six, the 42 settlement suites,
+  every test naming the executor, a dialogue response or `BASELINE_SERIES`,
+  and the variance arm. 6,376 passed, no re-record.
+- **Seven pin sites in four files were re-pointed before the run, and the
+  family found none more.** Six came from the literal scan. Every arm's test
+  now reads `ctx.action`, so these anchor `elif ctx.action …`, the same
+  lines:
+  - the four dispatch-tuple extractors in `test_godot_parse_harness.py`;
+  - the force-declare-war window (`test_ingame_review_fixes_2026_07_25.py`);
+  - the harsh-terms window (`test_sr2a_one_verdict_per_screen.py`).
+
+  The seventh came from reading every test that loads the module's text. FA
+  slice 17's `record_override(world, …)` regex accepts `ctx.world`, the same
+  world. This is the equality class slice 3 of CODE-2b met, found this time
+  before the run.
+
+**The shape is pinned** in
+`tests/test_code2c_the_dialogue_choice_is_staged.py` (21):
+- the nine stages in order, and the driver's body `[Assign, For, Return]`;
+- the identity test, and the signature unchanged;
+- no stage over 500 lines;
+- every stage but the last ends in `return _NEXT_STAGE`, and only the last
+  answers an unknown action;
+- 72 arms in all, each testing `ctx.action`, no action string claimed twice;
+- `dismiss` and an unknown action driven to their answers;
+- the context's five fields, no defaults;
+- nothing on the wire from a real `reconsider`;
+- only the two old `copy` shadows.
+
+**CODE-2c is DONE, and with it CODE-2** (S10b STRUCK, October 13, 2026).
+**None of the eight functions CODE-2 named is over 500 lines**, and the census
+reads 28. No rule moved, so `SYSTEMS_REFERENCE.md` gains no section.
 
 ## CODE-3 — Every broad except speaks (1 session, with DD-C)
 

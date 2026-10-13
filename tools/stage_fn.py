@@ -6,6 +6,17 @@ CONTAINER: the function body ("body" mode) or the body of the function's one
 trailing top-level `try` ("try" mode, whose prelude becomes stage 0, called by
 the driver BEFORE the `try`, and whose handlers stay in the driver verbatim).
 
+"elif" mode (CODE-2c, `_process_dialogue_choice`): the body past its head is
+ONE `if … elif …` chain, which no top-level cut can split. Each stage is a
+run of its arms (the run's first `elif` becomes `if`) with a synthetic
+`else: return _NEXT_STAGE`; the last stage keeps the chain's own `else`.
+Every arm body moves untouched. A matched arm that falls off its end falls
+off its stage and answers `None`, as it fell off the old chain. Only the
+parameters and what the head binds may cross a stage: the mode refuses a name
+an arm reads that only another arm binds, because that read raised
+`UnboundLocalError` in the old function and a ctx field or a repeated import
+would quietly mend the crash.
+
 A name used in more than one stage (or a parameter) moves onto a slots
 context with no default (an unassigned read raises like the local did); a
 name used in one stage stays a plain local there. A non-final stage that
@@ -25,7 +36,8 @@ f-string `{x=}`, `global`, `locals()`), and a per-stage AST-equality proof.
 Moved here from the S10 session's scratchpad (October 13, 2026) so S10b
 (CODE-2c) inherits it; the slice records are `docs/CODE_HEALTH_PLAN.md`
 §CODE-2b and §CODE-2c. `pin_scan.py` (test literals a cut loses) and
-`oneliner_sweep.py` (slice 2's before/after sweep, a model) came with it.
+`oneliner_sweep.py` (slice 2's before/after sweep, a model) came with it;
+`dialogue_choice_sweep.py` is CODE-2c slice 2's.
 """
 from __future__ import annotations
 
@@ -200,6 +212,42 @@ TARGETS = {
             ("ai_ai_events", "AI-AI-specific events",
              "Two other courts: relations, the dispatch, the log, the pair's "
              "cooldown (R43), the result."),
+        ],
+    ),
+    "_process_dialogue_choice": dict(
+        src="backend/commands/diplomatic_executor.py", cls="DiplomaticExecutor",
+        func="_process_dialogue_choice",
+        params=["action", "selected", "dialogue", "world"], prefix="_choice_",
+        ctx_class="DialogueChoiceContext", mode="elif", slice_name="CODE-2c",
+        confine=True,
+        stages=[
+            ("desk_settlement_and_war", 'if action == "dismiss":',
+             "The letter set aside or reconsidered; the settlement's table, offers "
+             "and petitions; the ally's entry; a war bargain repudiated; a war "
+             "objective or purpose chosen; a war forced or a treaty broken."),
+            ("proposal", 'elif action in ("execute_proposal", "send"):',
+             "The proposal sent as drafted, or hardened (`modify_harsh`)."),
+            ("ultimatum", 'elif action == "execute_ultimatum":',
+             "The ultimatum delivered, and its wizard: gold, territory, "
+             "manpower, start over."),
+            ("generous_and_suggestions", 'elif action == "modify_generous":',
+             "The proposal softened, the options expanded, a suggestion taken, "
+             "the terms adjusted."),
+            ("terms_wizard", 'elif action == "territory_yes":',
+             "The terms wizard: provinces offered or skipped, gold, actions."),
+            ("missions_and_ai_letters", 'elif action == "start_mission":',
+             "A mission started or recalled; an AI court's proposal or ultimatum "
+             "accepted, rejected or countered; a letter expanded to a proposal."),
+            ("counsel", "# GAP-1: ELABORATE / REVIEW_COUNTER / ACCEPT_WITH_CONFLICT",
+             "Talleyrand's counsel: elaborate, review a counter, accept a "
+             "conflict (GAP-1); sabotage confronted (R37); the drafting "
+             "pushback (PL-23); the pre-proposal objection overridden (R42)."),
+            ("counters_and_rebellion", "# R2: COUNTER-OFFER RESPONSE HANDLERS",
+             "A counter-offer accepted or rejected (R2); a vassal's rebellion "
+             "answered with gold, a garrison, or acceptance (R74)."),
+            ("alliance_paradox", "# R12: ALLIANCE PARADOX HANDLERS",
+             "The alliance paradox: honour the defender or break with him "
+             "(R12); an unknown action is refused."),
         ],
     ),
 }
@@ -451,6 +499,38 @@ def main(target: str, apply: bool):
         c_first = tr.lineno + 1
         c_last = tr.handlers[0].lineno - 1
         inner_dedent = 4
+    elif MODE == "elif":
+        # CODE-2c slice 2: the body past its head is ONE `if … elif …` chain.
+        # Each stage is a run of its arms with a synthetic final
+        # `else: return _NEXT_STAGE`; the last stage keeps the chain's own
+        # `else`. Only one arm runs per call, so a matched arm that falls off
+        # its end falls off its stage, which returns `None` as the old
+        # function did, and no arm body is touched.
+        prelude_stmts = None
+        chain = body[-1]
+        if not isinstance(chain, ast.If) or len(body) < 2:
+            die("elif mode needs the body to end in an if/elif chain")
+        head_stmts = body[1:-1]
+        arms = []
+        node = chain
+        while True:
+            arms.append(node)
+            nxt = node.orelse
+            if len(nxt) == 1 and isinstance(nxt[0], ast.If) \
+                    and lines[nxt[0].lineno - 1].lstrip().startswith("elif"):
+                node = nxt[0]
+                continue
+            final_else = nxt
+            break
+        for a in arms:
+            if any(isinstance(x, ast.NamedExpr) for x in ast.walk(a.test)):
+                die(f"a walrus in the arm's test at {a.lineno}")
+        if final_else and not lines[final_else[0].lineno - 2].lstrip().startswith("else"):
+            die("the chain's last orelse is not a plain `else:`")
+        container = None
+        c_first = doc_node.end_lineno + 1
+        c_last = fn.end_lineno
+        inner_dedent = 0
     else:
         prelude_stmts = None
         container = body[1:]
@@ -471,16 +551,52 @@ def main(target: str, apply: bool):
         die(f"stages out of order: {starts}")
     ends = [s - 1 for s in starts[1:]] + [c_last]
     stage_stmts = [[] for _ in STAGES]
-    for s in container:
-        idx = max(i for i, a in enumerate(starts) if a <= s.lineno)
-        if s.end_lineno > ends[idx]:
-            die(f"statement {s.lineno}-{s.end_lineno} crosses the cut at {ends[idx]}")
-        stage_stmts[idx].append(s)
-    for i, ss in enumerate(stage_stmts):
-        if not ss:
-            die(f"stage {STAGES[i][0]} is empty")
-    if not isinstance(stage_stmts[-1][-1], ast.Return):
-        die("the last stage does not end in a return")
+    first_arm_line = {}
+    if MODE == "elif":
+        if any(s.end_lineno >= starts[1] for s in head_stmts):
+            die("the head crosses the first cut")
+        runs = [[] for _ in STAGES]
+        for a in arms:
+            idx = max(i for i, st in enumerate(starts) if st <= a.lineno)
+            if a.body[-1].end_lineno > ends[idx]:
+                die(f"arm {a.lineno} crosses the cut at {ends[idx]}")
+            runs[idx].append(a)
+        for i, run in enumerate(runs):
+            if not run:
+                die(f"stage {STAGES[i][0]} holds no arm")
+            if i:
+                first_arm_line[i] = run[0].lineno
+                between = [lines[k - 1].strip() for k in range(starts[i], run[0].lineno)]
+                if any(x and not x.startswith("#") for x in between):
+                    die(f"code between stage {STAGES[i][0]}'s cut and its first arm")
+                if not lines[run[0].lineno - 1].lstrip().startswith("elif "):
+                    die(f"stage {STAGES[i][0]} does not open on an `elif`")
+
+        def run_chain(run, tail):
+            # an `if`/`elif` chain over the ORIGINAL arm nodes (tests and
+            # bodies shared, never copied), ending in `tail`
+            nxt = tail
+            for a in reversed(run):
+                n = ast.If(test=a.test, body=a.body, orelse=nxt)
+                ast.copy_location(n, a)
+                n.end_lineno = (nxt[-1].end_lineno if nxt else a.body[-1].end_lineno)
+                n.end_col_offset = 0
+                nxt = [n]
+            return nxt[0]
+        for i, run in enumerate(runs):
+            tail = final_else if i == len(runs) - 1 else []
+            stage_stmts[i] = (list(head_stmts) if i == 0 else []) + [run_chain(run, tail)]
+    else:
+        for s in container:
+            idx = max(i for i, a in enumerate(starts) if a <= s.lineno)
+            if s.end_lineno > ends[idx]:
+                die(f"statement {s.lineno}-{s.end_lineno} crosses the cut at {ends[idx]}")
+            stage_stmts[idx].append(s)
+        for i, ss in enumerate(stage_stmts):
+            if not ss:
+                die(f"stage {STAGES[i][0]} is empty")
+        if not isinstance(stage_stmts[-1][-1], ast.Return):
+            die("the last stage does not end in a return")
 
     # unify: the prelude (try mode) is stage 0
     all_stages = list(STAGES)
@@ -710,6 +826,22 @@ def main(target: str, apply: bool):
     for nm in shared:
         if nm in import_bind:
             die(f"{nm} is bound by an import AND shared by assignment")
+    if MODE == "elif":
+        # only one arm runs per call, so nothing but the parameters and what
+        # the head binds may cross a stage: a name an arm reads that only
+        # ANOTHER arm binds raised `UnboundLocalError` in the old function,
+        # and a repeated import or a ctx field would quietly mend that crash
+        head_bound = set()
+        for s in head_stmts:
+            head_bound |= binds(s)
+        odd = sorted(nm for nm in shared if nm not in PARAMS and nm not in head_bound)
+        if odd:
+            die(f"elif: names cross the arms: {odd}")
+        for nm in sorted(import_only):
+            binding = {si for si, _, _ in import_bind[nm]}
+            for si in sorted(used[nm] - binding):
+                if nm not in head_bound:
+                    die(f"elif: stage {si} reads {nm}, imported only by another stage's arm")
     shared_defs = {nm for nm in def_bind if nm in shared}
     for nm in shared_defs:
         for (si, node) in def_bind[nm]:
@@ -858,6 +990,14 @@ def main(target: str, apply: bool):
         out_lines.append(ind + "ran; inside it, a stage returns `_NEXT_STAGE` to continue or the")
         out_lines.append(ind + "response to stop, and the `except` is still the route's one error")
         out_lines.append(ind + "reply. Nothing on the context reaches the wire.")
+    elif MODE == "elif":
+        out_lines.append(ind + f"{cfg['slice_name']} (October 2026): a driver of named stages behind one")
+        out_lines.append(ind + f"`{CTXC}`. Each stage is a run of the old `if action == …`")
+        out_lines.append(ind + "chain's arms, tried in the old order: a stage none of whose tests")
+        out_lines.append(ind + "holds returns `_NEXT_STAGE`, and a matched arm's return — or its")
+        out_lines.append(ind + "`None`, falling off the stage as it fell off the chain — ends the")
+        out_lines.append(ind + "call. The last stage keeps the chain's own `else`. Nothing on the")
+        out_lines.append(ind + "context reaches the wire.")
     else:
         out_lines.append(ind + f"{cfg['slice_name']} (October 2026): a driver of named stages behind one")
         out_lines.append(ind + f"`{CTXC}`. A stage returns `_NEXT_STAGE` to continue or the")
@@ -915,12 +1055,24 @@ def main(target: str, apply: bool):
         for ln in range(a, b + 1):
             if ln in drop_lines:
                 continue
-            out_lines.append(emit_line(ln, dedents[i]))
+            line_out = emit_line(ln, dedents[i])
+            if MODE == "elif" and first_arm_line.get(i) == ln:
+                # the run's first arm opens its own chain: `elif` -> `if`
+                lead = line_out[:len(line_out) - len(line_out.lstrip())]
+                if not line_out.lstrip().startswith("elif "):
+                    die(f"line {ln} is not an `elif`")
+                line_out = lead + line_out.lstrip()[2:]
+            out_lines.append(line_out)
             if ln in defs_here:
                 out_lines.append(ind + f"ctx.{defs_here[ln]} = {defs_here[ln]}")
         is_last = i == n_st - 1
         is_door = MODE == "try" and i == 0
-        if not is_last and not is_door and not isinstance(all_stmts[i][-1], ast.Return):
+        if MODE == "elif":
+            if not is_last:
+                arm_ind = " " * chain.col_offset
+                out_lines.append(arm_ind + "else:")
+                out_lines.append(arm_ind + "    return _NEXT_STAGE")
+        elif not is_last and not is_door and not isinstance(all_stmts[i][-1], ast.Return):
             out_lines.append(ind + "return _NEXT_STAGE")
         stage_sizes[s] = len(out_lines) - start_idx
 
@@ -1029,7 +1181,23 @@ def main(target: str, apply: bool):
         nb = list(new_fn.body[1:])                       # past the docstring
         k = len(head_imports.get(i, []))
         nb = nb[k:]
-        if nb and isinstance(nb[-1], ast.Return) and isinstance(nb[-1].value, ast.Name) \
+        if MODE == "elif":
+            # the run's chain, its synthetic `else: return _NEXT_STAGE` taken
+            # off (every stage but the last), must equal the old arms' chain
+            nb = copy.deepcopy(nb)
+            if not nb or not isinstance(nb[-1], ast.If):
+                die(f"stage {meth(s)} does not end in its chain")
+            if i < n_st - 1:
+                n = nb[-1]
+                while len(n.orelse) == 1 and isinstance(n.orelse[0], ast.If):
+                    n = n.orelse[0]
+                tail = n.orelse
+                if not (len(tail) == 1 and isinstance(tail[0], ast.Return)
+                        and isinstance(tail[0].value, ast.Name)
+                        and tail[0].value.id == "_NEXT_STAGE"):
+                    die(f"stage {meth(s)} lacks its synthetic else")
+                n.orelse = []
+        elif nb and isinstance(nb[-1], ast.Return) and isinstance(nb[-1].value, ast.Name) \
                 and nb[-1].value.id == "_NEXT_STAGE":
             nb = nb[:-1]
         nb = [x for x in nb if not (

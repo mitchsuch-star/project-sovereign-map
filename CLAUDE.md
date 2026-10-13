@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 13, 2026).** The three most recent landed rows:
-- **S10 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages; `format_event_oneliner` = 12 `_oneliner_*`; `_execute_strategic_command` = 11 `_strategic_*`. **Funcs over 500 lines 33 → 30; score arms identical** (`CODE_HEALTH_PLAN.md` §CODE-2b). **NEXT = S10b CODE-2c**: `_ratify_treaty` = 9 `_ratify_*` (slice 1); `_process_dialogue_choice` next.
-- **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112). **NEXT = S10, CODE-2b**.
-- **S9 (October 12, 2026) — UXR-2 "THE LAYOUT LAW" — LANDED.** Every CanvasLayer anchored or clamped (allowlist 0); six screens + the war HUD gripped (`ResizeGrip`); font overrides 72 → 18; 0 RED / 0 P1 (§111).
+- **S10b (October 13, 2026) — CODE-2c — LANDED.** `_ratify_treaty` = 9 `_ratify_*` stages; `_process_dialogue_choice` = 9 `_choice_*` (elif mode). **Funcs over 500 lines 30 → 28; CODE-2 DONE** (`CODE_HEALTH_PLAN.md` §CODE-2c). **NEXT = S11 UXR-3**.
+- **S10 (October 13, 2026) — CODE-2b — LANDED.** `execute_command` = 15 `_command_*` stages; `format_event_oneliner` = 12 `_oneliner_*`; `_execute_strategic_command` = 11 `_strategic_*`. **Funcs over 500 lines 33 → 30** (`CODE_HEALTH_PLAN.md` §CODE-2b).
+- **S9b (October 13, 2026) — UXR-2's extras — LANDED.** Text size (theme sizes alone, 150 %: 0 RED); HUD width Centred (2560-px band, driven) + `[− ⌂ +]`; the map's furniture floor (`map_small` 34 → 0); High contrast (contrast under floor 20 → 0) (§112).
 
 **Open with the user:** UXR-4 alone (the eyes-on sign-off at 5120×1440, S15). Every design row was ruled Oct 13 (S12b = UXR-D4).
 
@@ -62,7 +62,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `backend/commands/executor.py` | Action execution, dispatch, objection routing (~1.5k lines) |
 | `backend/commands/combat_executor.py` | Combat execution + coordination: attack, bombardment, charge, garrison, form_square, post-combat pipeline, multi-marshal coordination, reinforcements, overwatch, auto-dispatch combat (~4.7k lines, R10A+R10B) |
 | `backend/commands/strategic_executor.py` | Strategic order execution: MOVE_TO, PURSUE, HOLD, SUPPORT, cancel, objection messages, target resolution, first-step blocking (~1.8k lines, R11) |
-| `backend/commands/diplomatic_executor.py` | Diplomatic execution: proposals, dialogue state machine, missions, trust reactions, AI proposal accept/reject/counter, terms guidance wizard (~2.3k lines, R11) |
+| `backend/commands/diplomatic_executor.py` | Diplomatic execution: proposals, dialogue state machine (`_process_dialogue_choice` = 9 `_choice_*` stages), missions, trust reactions, AI proposal accept/reject/counter, terms guidance wizard (R11) |
 | `backend/commands/economy_executor.py` | Economy execution: economy report, recruit, garrison, build, watchtower, repair (~800 lines, R13A) |
 | `backend/commands/tactical_executor.py` | Tactical execution: defend, wait, drill, fortify, unfortify, stance_change, restrain, auto_break_square (~715 lines, R13A) |
 | `backend/commands/movement_executor.py` | Movement execution: move, scout, auto_assign_scout, retreat, movement attrition (~680 lines, R13B) |
@@ -184,7 +184,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI, `open_for_nation()`), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |
 | War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD), `war_detail_popup.gd` (detail), `main.gd` (_process_active_wars) |
 | Suggested terms / smart suggestions | `diplomatic_templates.py` (generate_suggested_terms 5-stage pipeline), `diplomatic_dialogue.py`, `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
-| Diplomacy execution | `diplomatic_executor.py` (_execute_diplomatic*, handle_diplomatic_dialogue_response, trust reactions, AI proposal handlers) |
+| Diplomacy execution | `diplomatic_executor.py` (_execute_diplomatic*, handle_diplomatic_dialogue_response, `_choice_*` stages, trust reactions, AI proposal handlers); `world_state._ratify_treaty` = 9 `_ratify_*` |
 | Dialogue state (R12, PL-27) | `dialogue_manager.py` (push/pop/peek, PL-27 taxonomy: HARD_STOP/SOFT_STOP/HYBRID/LOCAL_PLANNING types), `world_state.py` (transparent properties). Only hard-stop dialogues block commands. Endpoints: `GET /mailbox`, `POST /mailbox/activate` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `docs/COALITION_SPEC.md`, `diplomacy.py`, `diplomat.py`, `diplomatic_dialogue.py`, `diplomatic_templates.py`, `ai_diplomacy.py`, `diplomatic_advisory.py`, `vassal.py`, `diplomatic_defiance.py`, `coalition.py` |
 | Memory and Pressure substrate (hegemony / betrayal memory / paradox / reliability) | `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v2.4.3 — §8.8 holds the DG-4 call-to-arms episode contract, §8.6.1a authors the Make Amends grievance variant, §8.8.7a authors the existing-alliance termination on defensive refusal; `docs/SCALE_READINESS_PLAN.md` §DG-4 Amendment is the source of truth), `docs/RELIABILITY_IMPLEMENTATION_PLAN.md`, `docs/COMMITMENTS_PRESENTATION_SPEC.md`, `docs/DIPLOMAT_VOICE_BIBLE.md`, `docs/COALITION_SPEC.md`, `diplomacy.py`, `world_state.py` (`betrayal_history`, `next_episode_id`), `commitments` logic within `diplomatic_templates.py`, `campaign_log.py`, `coalition.py` (hegemony engine when landed) |

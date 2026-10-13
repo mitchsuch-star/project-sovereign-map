@@ -6,7 +6,8 @@ Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
 import copy
 import re
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 
 from backend.nation_config import get_player_diplomat, get_player_nation
 from backend.models.world_state import WorldState
@@ -229,6 +230,23 @@ def _reissue_displaced_hybrid(world, requested_id) -> str:
 # an option the dialogue marked closed is refused with that option's own
 # reason. False = the option is processed and refused downstream, as shipped.
 A_DISABLED_OPTION_REFUSES_WITH_ITS_REASON = True
+
+
+# CODE-2c (October 2026): what the stages of `DiplomaticExecutor._process_dialogue_choice`
+# share. Built once at the driver's head, never on the wire. The parameters
+# are init fields; every other field is set by the stage that first assigns
+# it — `slots` with no default, so a read before any assignment raises as
+# the local it replaced did.
+_NEXT_STAGE = object()
+
+
+@dataclass(slots=True, repr=False, eq=False)
+class DialogueChoiceContext:
+    action: Any
+    selected: Any
+    dialogue: Any
+    world: Any
+    target_nation: Any = field(init=False)
 
 
 class DiplomaticExecutor:
@@ -4375,7 +4393,67 @@ class DiplomaticExecutor:
 
     def _process_dialogue_choice(self, action: str, selected: Dict,
                                   dialogue: Dict, world) -> Dict:
-        """Process a player's dialogue choice."""
+        """Process a player's dialogue choice.
+
+        CODE-2c (October 2026): a driver of named stages behind one
+        `DialogueChoiceContext`. Each stage is a run of the old `if action == …`
+        chain's arms, tried in the old order: a stage none of whose tests
+        holds returns `_NEXT_STAGE`, and a matched arm's return — or its
+        `None`, falling off the stage as it fell off the chain — ends the
+        call. The last stage keeps the chain's own `else`. Nothing on the
+        context reaches the wire.
+
+         1. `_choice_desk_settlement_and_war` — The letter set aside or
+            reconsidered; the settlement's table, offers and petitions; the
+            ally's entry; a war bargain repudiated; a war objective or purpose
+            chosen; a war forced or a treaty broken.
+         2. `_choice_proposal` — The proposal sent as drafted, or hardened
+            (`modify_harsh`).
+         3. `_choice_ultimatum` — The ultimatum delivered, and its wizard:
+            gold, territory, manpower, start over.
+         4. `_choice_generous_and_suggestions` — The proposal softened, the
+            options expanded, a suggestion taken, the terms adjusted.
+         5. `_choice_terms_wizard` — The terms wizard: provinces offered or
+            skipped, gold, actions.
+         6. `_choice_missions_and_ai_letters` — A mission started or recalled;
+            an AI court's proposal or ultimatum accepted, rejected or
+            countered; a letter expanded to a proposal.
+         7. `_choice_counsel` — Talleyrand's counsel: elaborate, review a
+            counter, accept a conflict (GAP-1); sabotage confronted (R37); the
+            drafting pushback (PL-23); the pre-proposal objection overridden
+            (R42).
+         8. `_choice_counters_and_rebellion` — A counter-offer accepted or
+            rejected (R2); a vassal's rebellion answered with gold, a garrison,
+            or acceptance (R74).
+         9. `_choice_alliance_paradox` — The alliance paradox: honour the
+            defender or break with him (R12); an unknown action is refused.
+        """
+        ctx = DialogueChoiceContext(
+            action=action,
+            selected=selected,
+            dialogue=dialogue,
+            world=world,
+        )
+        for stage in (
+                self._choice_desk_settlement_and_war,
+                self._choice_proposal,
+                self._choice_ultimatum,
+                self._choice_generous_and_suggestions,
+                self._choice_terms_wizard,
+                self._choice_missions_and_ai_letters,
+                self._choice_counsel,
+                self._choice_counters_and_rebellion,
+        ):
+            result = stage(ctx)
+            if result is not _NEXT_STAGE:
+                return result
+        return self._choice_alliance_paradox(ctx)
+
+    def _choice_desk_settlement_and_war(self, ctx: DialogueChoiceContext):
+        """Stage 1 of `_process_dialogue_choice`: The letter set aside or
+        reconsidered; the settlement's table, offers and petitions; the ally's
+        entry; a war bargain repudiated; a war objective or purpose chosen; a
+        war forced or a treaty broken."""
         from backend.game_logic.diplomacy import (
             get_available_war_objectives,
             get_dp_cost,
@@ -4386,32 +4464,32 @@ class DiplomaticExecutor:
         )
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
 
-        target_nation = dialogue.get("target_nation", "")
+        ctx.target_nation = ctx.dialogue.get("target_nation", "")
 
-        if action == "dismiss":
-            world.dialogue_manager.pop()
+        if ctx.action == "dismiss":
+            ctx.world.dialogue_manager.pop()
             return {
                 "success": True,
                 "message": "Very well, Sire.",
                 "suppress_proposal_result_popup": True,
             }
 
-        elif action == "ask_later":
+        elif ctx.action == "ask_later":
             return {
                 "success": True,
                 "message": "Very well, Sire. The envoy will wait in the diplomatic mailbox.",
                 "awaiting_diplomatic_response": True,
             }
 
-        elif action == "reconsider":
-            world.dialogue_manager.pop()
+        elif ctx.action == "reconsider":
+            ctx.world.dialogue_manager.pop()
             return {
                 "success": True,
                 "message": "Of course, Sire. Take your time.",
                 "suppress_proposal_result_popup": True,
             }
 
-        elif action in (
+        elif ctx.action in (
             "confirm_settlement",
             "revise_settlement_terms",
             "back_out_settlement",
@@ -4489,10 +4567,10 @@ class DiplomaticExecutor:
                 handle_settlement_dialogue_action,
             )
             return handle_settlement_dialogue_action(
-                world, action=action, dialogue=dialogue, action_params=selected,
+                ctx.world, action=ctx.action, dialogue=ctx.dialogue, action_params=ctx.selected,
             )
 
-        elif action in (
+        elif ctx.action in (
             "accept_settlement_offer",
             "reject_settlement_offer",
             "request_settlement_revision",
@@ -4501,10 +4579,10 @@ class DiplomaticExecutor:
                 handle_incoming_settlement_offer_action,
             )
             return handle_incoming_settlement_offer_action(
-                world, action=action, dialogue=dialogue,
+                ctx.world, action=ctx.action, dialogue=ctx.dialogue,
             )
 
-        elif action in (
+        elif ctx.action in (
             "acknowledge_ally_settlement_petition",
             # Slice H (approved July 3, 2026) full-agency petition verbs:
             # Grant injects the carried clause through the demand-add /
@@ -4519,44 +4597,44 @@ class DiplomaticExecutor:
                 handle_ally_settlement_petition_action,
             )
             return handle_ally_settlement_petition_action(
-                world, action=action, dialogue=dialogue,
+                ctx.world, action=ctx.action, dialogue=ctx.dialogue,
             )
 
-        elif action in ("ally_entry_accept_all", "ally_entry_proceed_without", "ally_entry_back_out"):
-            return self._resolve_ally_entry_review_choice(action, dialogue, world)
+        elif ctx.action in ("ally_entry_accept_all", "ally_entry_proceed_without", "ally_entry_back_out"):
+            return self._resolve_ally_entry_review_choice(ctx.action, ctx.dialogue, ctx.world)
 
-        elif action == "confirm_repudiate_bargain":
-            return self._confirm_repudiate_bargain_from_dialogue(selected, dialogue, world)
+        elif ctx.action == "confirm_repudiate_bargain":
+            return self._confirm_repudiate_bargain_from_dialogue(ctx.selected, ctx.dialogue, ctx.world)
 
-        elif action == "select_war_objective":
+        elif ctx.action == "select_war_objective":
             # WPS-A: Player selected objective from War Purpose popup
-            world.dialogue_manager.pop()
-            objective_type = selected.get("objective_type")
-            obj_target = selected.get("target_nation") or dialogue.get("target_nation")
+            ctx.world.dialogue_manager.pop()
+            objective_type = ctx.selected.get("objective_type")
+            obj_target = ctx.selected.get("target_nation") or ctx.dialogue.get("target_nation")
             if not obj_target:
                 return {"success": False, "message": "No target nation specified."}
-            if dialogue.get("is_defensive_set"):
-                return self._set_war_purpose_inner(obj_target, objective_type, world)
+            if ctx.dialogue.get("is_defensive_set"):
+                return self._set_war_purpose_inner(obj_target, objective_type, ctx.world)
             return self._execute_diplomatic_declare_war(
-                {"target_nation": obj_target, "war_objective": objective_type}, world)
+                {"target_nation": obj_target, "war_objective": objective_type}, ctx.world)
 
-        elif action == "confirm_set_war_purpose":
+        elif ctx.action == "confirm_set_war_purpose":
             # WPS-A: Player confirmed war purpose for defensive war
-            world.dialogue_manager.pop()
-            objective_type = selected.get("objective_type")
-            obj_target = selected.get("target_nation") or dialogue.get("target_nation")
-            return self._set_war_purpose_inner(obj_target, objective_type, world)
+            ctx.world.dialogue_manager.pop()
+            objective_type = ctx.selected.get("objective_type")
+            obj_target = ctx.selected.get("target_nation") or ctx.dialogue.get("target_nation")
+            return self._set_war_purpose_inner(obj_target, objective_type, ctx.world)
 
-        elif action == "force_declare_war":
+        elif ctx.action == "force_declare_war":
             # Player confirmed war declaration despite existing treaty
-            world.dialogue_manager.pop()
-            fw_target = selected.get("target_nation") or target_nation
+            ctx.world.dialogue_manager.pop()
+            fw_target = ctx.selected.get("target_nation") or ctx.target_nation
             if not fw_target:
                 return {"success": False, "message": "No target nation specified."}
-            fw_objective = selected.get("war_objective") or dialogue.get("war_objective")
+            fw_objective = ctx.selected.get("war_objective") or ctx.dialogue.get("war_objective")
             if not fw_objective:
                 available_objectives = [
-                    obj for obj in get_available_war_objectives(world, world.player_nation, fw_target)
+                    obj for obj in get_available_war_objectives(ctx.world, ctx.world.player_nation, fw_target)
                     if obj.get("available")
                 ]
                 preferred = next(
@@ -4569,25 +4647,25 @@ class DiplomaticExecutor:
                     "target_nation": fw_target,
                     "war_objective": fw_objective,
                     "origin_episode_id": (
-                        dialogue.get("origin_episode_id")
-                        or (dialogue.get("breach_preview") or {}).get("episode_id")
+                        ctx.dialogue.get("origin_episode_id")
+                        or (ctx.dialogue.get("breach_preview") or {}).get("episode_id")
                     ),
                     "_treaty_warning_resolved": True,
                     # Mirror of the popup fix: if Talleyrand's objection was
                     # already answered before the treaty warning appeared,
                     # do not raise it a second time.
                     "confirmed_objection": bool(
-                        selected.get("confirmed_objection")
-                        or dialogue.get("confirmed_objection")
+                        ctx.selected.get("confirmed_objection")
+                        or ctx.dialogue.get("confirmed_objection")
                     ),
                 },
-                world,
+                ctx.world,
             )
 
-        elif action == "force_break_treaty":
+        elif ctx.action == "force_break_treaty":
             # Player confirmed manual treaty break after the reliability preview.
-            world.dialogue_manager.pop()
-            fb_target = selected.get("target_nation") or target_nation
+            ctx.world.dialogue_manager.pop()
+            fb_target = ctx.selected.get("target_nation") or ctx.target_nation
             if not fb_target:
                 return {"success": False, "message": "No target nation specified."}
             return self._execute_diplomatic_break(
@@ -4595,24 +4673,34 @@ class DiplomaticExecutor:
                     "target_nation": fb_target,
                     "confirmed_break": True,
                     "origin_episode_id": (
-                        dialogue.get("origin_episode_id")
-                        or (dialogue.get("breach_preview") or {}).get("episode_id")
+                        ctx.dialogue.get("origin_episode_id")
+                        or (ctx.dialogue.get("breach_preview") or {}).get("episode_id")
                     ),
                 },
-                world,
+                ctx.world,
             )
+        else:
+            return _NEXT_STAGE
 
-        elif action in ("execute_proposal", "send"):
-            terms = selected.get("terms", {})
+    def _choice_proposal(self, ctx: DialogueChoiceContext):
+        """Stage 2 of `_process_dialogue_choice`: The proposal sent as drafted,
+        or hardened (`modify_harsh`)."""
+        from backend.game_logic.diplomacy import (
+            get_dp_cost,
+            get_transition_dp_cost,
+        )
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        if ctx.action in ("execute_proposal", "send"):
+            terms = ctx.selected.get("terms", {})
             proposal_type = (terms.get("proposal_type") or terms.get("type")
-                             or dialogue.get("context", {}).get("proposal_type")
+                             or ctx.dialogue.get("context", {}).get("proposal_type")
                              or "peace")  # PL-13-B
 
             # Build proposal for acceptance formula
             proposal = {
                 "type": proposal_type,
-                "proposer_nation": get_player_nation(world),
-                "target_nation": target_nation,
+                "proposer_nation": get_player_nation(ctx.world),
+                "target_nation": ctx.target_nation,
                 "sweeteners": terms.get("sweeteners", []),
                 "demands": terms.get("demands", []),
                 "clauses": terms.get("clauses", []),
@@ -4621,13 +4709,13 @@ class DiplomaticExecutor:
             if proposal_type == "vassalage":
                 from backend.game_logic.diplomacy import check_vassalage_power_cap
                 cap = check_vassalage_power_cap(
-                    world, get_player_nation(world), target_nation, terms=proposal
+                    ctx.world, get_player_nation(ctx.world), ctx.target_nation, terms=proposal
                 )
                 if not cap["allowed"]:
                     return {
                         "success": False,
-                        "message": f"Cannot vassalize {target_nation}: {cap['reason']}.",
-                        "diplomatic_dialogue": dialogue,
+                        "message": f"Cannot vassalize {ctx.target_nation}: {cap['reason']}.",
+                        "diplomatic_dialogue": ctx.dialogue,
                     }
 
             # Slice G1 / D-G1-1 (user-approved July 2, 2026): the BPH-C
@@ -4648,136 +4736,136 @@ class DiplomaticExecutor:
             # table would refuse never departs; nothing goes stale in
             # transit for a reason known today (SFR-B5).
             from backend.game_logic.treaty import can_sign
-            _verdict = can_sign(world, proposal, at_send=True)
+            _verdict = can_sign(ctx.world, proposal, at_send=True)
             if not _verdict.ok:
                 return {
                     "success": False,
                     "message": _verdict.message or "This proposal cannot be sent as it stands.",
                     "clause": _verdict.clause,
-                    "diplomatic_dialogue": dialogue,
+                    "diplomatic_dialogue": ctx.dialogue,
                 }
 
             # Deduct DP (with jump cost for multi-step transitions)
-            talleyrand = get_player_diplomat(world)
+            talleyrand = get_player_diplomat(ctx.world)
             skill = talleyrand.skill if talleyrand else 5
             dp_action = f"propose_{proposal_type}"
             # R98: Compute cumulative DP for jump transitions
             _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
                           "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS",
                           "armistice": "ARMISTICE", "vassalage": "VASSAL"}
-            current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
+            current_diplo = ctx.world.get_diplomatic_state(ctx.world.player_nation, ctx.target_nation) if ctx.target_nation else "PEACE"
             target_diplo = _state_map.get(proposal_type, "PEACE")
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
             cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
-            if world.diplomatic_points < cost:
-                world.dialogue_manager.pop()
+            if ctx.world.diplomatic_points < cost:
+                ctx.world.dialogue_manager.pop()
                 return {
                     "success": False,
-                    "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
+                    "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(ctx.world.diplomatic_points)}.",
                     "diplomatic_dialogue": None,
                     "awaiting_diplomatic_response": False,
                 }
-            world.diplomatic_points -= cost
+            ctx.world.diplomatic_points -= cost
 
             # Fix 6: Diplomatic defiance check — Talleyrand may sabotage delivery
             # PL-23: Skip defiance if pushback already fired during drafting (mutual exclusion)
-            _pushback_fired = dialogue.get("context", {}).get("objection_resolved", False)
-            talleyrand = world.diplomats.get(world.player_nation)
-            if talleyrand and getattr(world, 'talleyrand_defiance_cooldown', 0) <= 0 and not _pushback_fired:
+            _pushback_fired = ctx.dialogue.get("context", {}).get("objection_resolved", False)
+            talleyrand = ctx.world.diplomats.get(ctx.world.player_nation)
+            if talleyrand and getattr(ctx.world, 'talleyrand_defiance_cooldown', 0) <= 0 and not _pushback_fired:
                 from backend.commands.diplomatic_defiance import (
                     calculate_diplomatic_defiance_chance, apply_diplomatic_sabotage,
                 )
                 import random
-                defiance_chance = calculate_diplomatic_defiance_chance(talleyrand, world)
+                defiance_chance = calculate_diplomatic_defiance_chance(talleyrand, ctx.world)
                 if random.random() < defiance_chance:
-                    sabotage_result = apply_diplomatic_sabotage(proposal, talleyrand, world)
-                    world.pending_talleyrand_sabotage = sabotage_result
+                    sabotage_result = apply_diplomatic_sabotage(proposal, talleyrand, ctx.world)
+                    ctx.world.pending_talleyrand_sabotage = sabotage_result
                     proposal = sabotage_result.get("modified_proposal", proposal)
-                    world.talleyrand_defiance_cooldown = 3
+                    ctx.world.talleyrand_defiance_cooldown = 3
 
             # Set Talleyrand in transit
             # Pause mission if active
-            mission = getattr(world, 'active_diplomatic_mission', None)
+            mission = getattr(ctx.world, 'active_diplomatic_mission', None)
             _mission_paused_now = False
             if mission and not mission.get("paused"):
                 mission["paused"] = True
                 _mission_paused_now = True
 
-            world.talleyrand_state = "IN_TRANSIT"
+            ctx.world.talleyrand_state = "IN_TRANSIT"
             if _mission_paused_now:
                 # IQ-4: the rail's `paused_transit` beat (after the state is
                 # IN_TRANSIT — the status reads it to name the pause).
                 from backend.game_logic.diplomatic_dialogue import (
                     mission_is_live as _live, restate_mission_notice as _restate,
                 )
-                if _live(world):
-                    _restate(world, beat="paused_transit")
-            turn_sent = int(world.current_turn)
+                if _live(ctx.world):
+                    _restate(ctx.world, beat="paused_transit")
+            turn_sent = int(ctx.world.current_turn)
             # Fix 13: "stalled" sabotage adds delivery delay
-            sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
+            sabotage = getattr(ctx.world, 'pending_talleyrand_sabotage', None)
             if sabotage and sabotage.get("defiance_type") == "stalled":
                 turn_sent += 1
 
             # PL-9 Part B: Snapshot acceptance score at send time for tolerance band
             from backend.game_logic.diplomacy import calculate_acceptance as _calc_acceptance
-            _snapshot_result = _calc_acceptance(proposal, world)
+            _snapshot_result = _calc_acceptance(proposal, ctx.world)
             _acceptance_snapshot = int(_snapshot_result.get("score", 0))
 
-            world.proposal_in_transit = {
-                "target": target_nation,
+            ctx.world.proposal_in_transit = {
+                "target": ctx.target_nation,
                 "proposal": proposal,
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
-                "diplomatic_state_at_send": world.get_diplomatic_state(get_player_nation(world), target_nation),  # PL-13-A
+                "diplomatic_state_at_send": ctx.world.get_diplomatic_state(get_player_nation(ctx.world), ctx.target_nation),  # PL-13-A
             }
 
             # Log event
-            world.log_event({
+            ctx.world.log_event({
                 "type": "diplomatic_proposal_sent",
-                "target": target_nation,
+                "target": ctx.target_nation,
                 "proposal_type": proposal_type,
             })
 
             # R29: Log to diplomatic history
-            diplomatic_history = getattr(world, 'diplomatic_history', [])
+            diplomatic_history = getattr(ctx.world, 'diplomatic_history', [])
             diplomatic_history.append({
-                "turn": int(world.current_turn),
+                "turn": int(ctx.world.current_turn),
                 "type": "proposal_sent",
-                "target": target_nation,
+                "target": ctx.target_nation,
                 "proposal_type": proposal_type,
             })
             if len(diplomatic_history) > 20:
                 diplomatic_history[:] = diplomatic_history[-20:]
-            world.diplomatic_history = diplomatic_history
+            ctx.world.diplomatic_history = diplomatic_history
 
             # Dispatch event (Session 8D)
             from backend.game_logic.dispatch import queue_dispatch_event
-            queue_dispatch_event(world, "diplomatic_proposal_sent",
-                                {"nation": target_nation}, "always")
+            queue_dispatch_event(ctx.world, "diplomatic_proposal_sent",
+                                {"nation": ctx.target_nation}, "always")
 
-            world.dialogue_manager.pop()
+            ctx.world.dialogue_manager.pop()
             return {
                 "success": True,
                 "message": (
-                    f"Talleyrand departs for the {target_nation} court with your {_proposal_display_name(proposal_type)} proposal. "
+                    f"Talleyrand departs for the {ctx.target_nation} court with your {_proposal_display_name(proposal_type)} proposal. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
                 ),
             }
 
-        elif action == "modify_harsh":
+        elif ctx.action == "modify_harsh":
             # Build on PREVIOUS terms (not fresh) so each iteration escalates.
-            terms = selected.get("terms", {})
+            terms = ctx.selected.get("terms", {})
             proposal_type = (terms.get("proposal_type")
-                             or dialogue.get("context", {}).get("proposal_type")
-                             or dialogue.get("_proposal_type")
+                             or ctx.dialogue.get("context", {}).get("proposal_type")
+                             or ctx.dialogue.get("_proposal_type")
                              or "peace")
 
             import copy
-            suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(target_nation, proposal_type, world)
+            suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(ctx.target_nation, proposal_type, ctx.world)
             # Ensure proposal metadata
-            suggested["proposer_nation"] = suggested.get("proposer_nation", get_player_nation(world))
-            suggested["target_nation"] = suggested.get("target_nation", target_nation)
+            suggested["proposer_nation"] = suggested.get("proposer_nation", get_player_nation(ctx.world))
+            suggested["target_nation"] = suggested.get("target_nation", ctx.target_nation)
             # Preserve war-score variant type (e.g. armistice_winning/armistice_losing)
             # from terms if available — overwriting with generic proposal_type
             # changes BASE_DISPOSITION and can invert acceptance odds.
@@ -4796,21 +4884,21 @@ class DiplomaticExecutor:
             suggested = harden_proposal_terms(
                 suggested,
                 proposal_type=proposal_type,
-                round_num=int(dict(dialogue.get("context", {})).get("modify_count", 0) or 0) + 1,
-                target_nation=target_nation,
+                round_num=int(dict(ctx.dialogue.get("context", {})).get("modify_count", 0) or 0) + 1,
+                target_nation=ctx.target_nation,
             )
             # The cap arms below (friendship 1 / war 2 modifications) read
             # the same classification the transform used.
             _is_friendship = proposal_type in HARSH_FRIENDSHIP_TYPES
 
             # ── PL-23: Drafting pushback — roll BEFORE incrementing modify_count (AM-23.2) ──
-            context = dict(dialogue.get("context", {}))
+            context = dict(ctx.dialogue.get("context", {}))
             from backend.commands.diplomatic_defiance import roll_drafting_pushback, apply_pen_nudge_personality
-            if roll_drafting_pushback(suggested, context, world):
-                nudged = apply_pen_nudge_personality(suggested, world)
+            if roll_drafting_pushback(suggested, context, ctx.world):
+                nudged = apply_pen_nudge_personality(suggested, ctx.world)
                 pushback_dialogue = {
                     "type": "pushback_confirm",
-                    "target_nation": target_nation,
+                    "target_nation": ctx.target_nation,
                     "talleyrand_text": (
                         "I have drafted the terms, Sire — though I took the liberty of "
                         "adjusting certain impractical demands. The essence of your "
@@ -4837,12 +4925,12 @@ class DiplomaticExecutor:
                         },
                     ],
                     "context": {**context, "original_terms": suggested, "nudged_terms": nudged},
-                    "turn_created": int(world.current_turn),
+                    "turn_created": int(ctx.world.current_turn),
                     "blocking": False,
                 }
                 from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-                pushback_dialogue = _enrich_proposal_summary(pushback_dialogue, target_nation, proposal_type, world)
-                world.dialogue_manager.replace(pushback_dialogue)
+                pushback_dialogue = _enrich_proposal_summary(pushback_dialogue, ctx.target_nation, proposal_type, ctx.world)
+                ctx.world.dialogue_manager.replace(pushback_dialogue)
                 return {
                     "success": True,
                     "message": pushback_dialogue["talleyrand_text"],
@@ -4881,50 +4969,55 @@ class DiplomaticExecutor:
 
             new_dialogue = {
                 "type": "proposal_confirm",
-                "target_nation": target_nation,
+                "target_nation": ctx.target_nation,
                 "talleyrand_text": (
-                    f"As you wish, Sire. I have drafted harsher terms for {target_nation}.{cap_msg}"
+                    f"As you wish, Sire. I have drafted harsher terms for {ctx.target_nation}.{cap_msg}"
                 ),
                 "options": options,
                 "context": context,
-                "turn_created": int(world.current_turn),
+                "turn_created": int(ctx.world.current_turn),
                 "blocking": False,
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-            world.dialogue_manager.replace(new_dialogue)
+            new_dialogue = _enrich_proposal_summary(new_dialogue, ctx.target_nation, proposal_type, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
                 "diplomatic_dialogue": new_dialogue,
             }
+        else:
+            return _NEXT_STAGE
 
-        elif action == "execute_ultimatum":
+    def _choice_ultimatum(self, ctx: DialogueChoiceContext):
+        """Stage 3 of `_process_dialogue_choice`: The ultimatum delivered, and
+        its wizard: gold, territory, manpower, start over."""
+        if ctx.action == "execute_ultimatum":
             # PL-14 §6a: Deliver ultimatum — immediate resolution
             from backend.game_logic.diplomacy import calculate_acceptance
             from backend.game_logic.coalition import add_threat
 
-            terms = selected.get("terms", dialogue.get("terms", {}))
+            terms = ctx.selected.get("terms", ctx.dialogue.get("terms", {}))
             demands = terms.get("demands", [])
 
             # DP check (deducted now, at delivery time)
             dp_cost = 2
-            if world.diplomatic_points < dp_cost:
-                world.dialogue_manager.pop()
+            if ctx.world.diplomatic_points < dp_cost:
+                ctx.world.dialogue_manager.pop()
                 return {
                     "success": False,
-                    "message": f"Insufficient Diplomatic Points. Need {dp_cost}, have {int(world.diplomatic_points)}.",
+                    "message": f"Insufficient Diplomatic Points. Need {dp_cost}, have {int(ctx.world.diplomatic_points)}.",
                 }
-            world.diplomatic_points -= dp_cost
+            ctx.world.diplomatic_points -= dp_cost
 
             import math
             from backend.game_logic.diplomacy import analyze_territory_demands, DEMAND_VALUES as _DV
 
-            player = world.player_nation
-            diplo_key = world._make_diplo_key(player, target_nation)
+            player = ctx.world.player_nation
+            diplo_key = ctx.world._make_diplo_key(player, ctx.target_nation)
 
             # ── PL-19 §A: Compute dynamic relation penalty ──
-            t_analysis = analyze_territory_demands(demands, target_nation, world)
+            t_analysis = analyze_territory_demands(demands, ctx.target_nation, ctx.world)
 
             # Territory penalty: flat -5 × income_weight per region, capital ×2
             # (distinct from PL-20's escalating acceptance cost)
@@ -4968,13 +5061,13 @@ class DiplomaticExecutor:
             proposal = {
                 "type": "ultimatum_demand",
                 "proposer_nation": player,
-                "target_nation": target_nation,
+                "target_nation": ctx.target_nation,
                 "sweeteners": [],
                 "demands": demands,
                 "clauses": [],
             }
             try:
-                acceptance_result = calculate_acceptance(proposal, world)
+                acceptance_result = calculate_acceptance(proposal, ctx.world)
                 score = int(acceptance_result.get("score", 0))
             except Exception as exc:
                 report(exc, "diplomatic_executor.DiplomaticExecutor._process_dialogue_choice: calculate_acceptance")
@@ -4987,11 +5080,11 @@ class DiplomaticExecutor:
             from backend.game_logic.statecraft import (
                 coercion_acceptance_delta,
             )
-            score += coercion_acceptance_delta(world, target_nation)
+            score += coercion_acceptance_delta(ctx.world, ctx.target_nation)
             accepted = score >= 50
 
             # §3a: Dynamic relation penalty to target (PL-19)
-            world.modify_nation_relation(player, target_nation, int(total_penalty))
+            ctx.world.modify_nation_relation(player, ctx.target_nation, int(total_penalty))
 
             # §3b: Splash damage to bystanders (PL-19 §C: severity multiplier)
             _SPLASH_TIERS = {
@@ -5002,78 +5095,78 @@ class DiplomaticExecutor:
             }
             splash_multiplier = max(1.0, min(2.5, abs(total_penalty) / 10))
             splash_applied = []
-            for nation in world.get_active_nations():
-                if nation == player or nation == target_nation:
+            for nation in ctx.world.get_active_nations():
+                if nation == player or nation == ctx.target_nation:
                     continue
-                nation_state_with_target = world.get_diplomatic_state(nation, target_nation)
+                nation_state_with_target = ctx.world.get_diplomatic_state(nation, ctx.target_nation)
                 base_splash = _SPLASH_TIERS.get(nation_state_with_target, 0)
                 if base_splash > 0:
                     scaled_splash = int(math.floor(-base_splash * splash_multiplier))
-                    world.modify_nation_relation(player, nation, scaled_splash)
+                    ctx.world.modify_nation_relation(player, nation, scaled_splash)
                     splash_applied.append((nation, scaled_splash))
 
             # §3c: Dynamic threat on delivery (PL-19 §E)
             delivery_threat = max(10, min(30, 15 + abs(int(demand_penalty)) // 3))
-            add_threat(world, delivery_threat, "ultimatum_issued")
+            add_threat(ctx.world, delivery_threat, "ultimatum_issued")
 
             # PL-20 §D: Territory threat amplifier
             if t_analysis["is_annex"]:
-                add_threat(world, 25, "ultimatum_annex_attempt")
+                add_threat(ctx.world, 25, "ultimatum_annex_attempt")
             elif t_analysis["is_rump"]:
-                add_threat(world, 18, "ultimatum_rump_state")
+                add_threat(ctx.world, 18, "ultimatum_rump_state")
             elif t_analysis["demanded_count"] >= 4:
-                add_threat(world, 12, "ultimatum_major_territorial")
+                add_threat(ctx.world, 12, "ultimatum_major_territorial")
             elif t_analysis["demanded_count"] >= 2:
-                add_threat(world, 5, "ultimatum_significant_territorial")
+                add_threat(ctx.world, 5, "ultimatum_significant_territorial")
 
             if accepted:
                 # §6: Apply demands, NO state change
-                transfer_desc = self._apply_ultimatum_demands(demands, target_nation, world)
-                add_threat(world, 5, "ultimatum_accepted")
-                world.ultimatum_global_cooldown = 5
+                transfer_desc = self._apply_ultimatum_demands(demands, ctx.target_nation, ctx.world)
+                add_threat(ctx.world, 5, "ultimatum_accepted")
+                ctx.world.ultimatum_global_cooldown = 5
                 desc_text = "; ".join(transfer_desc) if transfer_desc else "compliance"
-                outcome_msg = (f"{target_nation} has bowed to our ultimatum! "
+                outcome_msg = (f"{ctx.target_nation} has bowed to our ultimatum! "
                                f"Concessions: {desc_text}. (+{delivery_threat + 5} threat)")
             else:
                 # PL-19 §B: Rejection penalty scales with demand severity
                 rejection_penalty = max(-15, min(-5, math.floor(-5 + demand_penalty * 0.3)))
-                world.modify_nation_relation(player, target_nation, int(rejection_penalty))
-                world.casus_belli[diplo_key] = True
-                world.ultimatum_global_cooldown = 5
-                outcome_msg = (f"{target_nation} has rejected our ultimatum! "
+                ctx.world.modify_nation_relation(player, ctx.target_nation, int(rejection_penalty))
+                ctx.world.casus_belli[diplo_key] = True
+                ctx.world.ultimatum_global_cooldown = 5
+                outcome_msg = (f"{ctx.target_nation} has rejected our ultimatum! "
                                f"We now have casus belli — war declaration penalties will be halved. (+{delivery_threat} threat)")
 
             # Pop dialogue
-            world.dialogue_manager.pop()
+            ctx.world.dialogue_manager.pop()
 
             # R23: Marshal trust reactions
-            self._apply_diplomatic_trust_reactions(world, "ultimatum_issued", target_nation)
+            self._apply_diplomatic_trust_reactions(ctx.world, "ultimatum_issued", ctx.target_nation)
 
             # Log diplomatic history
-            diplomatic_history = getattr(world, 'diplomatic_history', [])
+            diplomatic_history = getattr(ctx.world, 'diplomatic_history', [])
             diplomatic_history.append({
-                "turn": int(world.current_turn),
+                "turn": int(ctx.world.current_turn),
                 "type": "ultimatum_issued",
-                "target": target_nation,
+                "target": ctx.target_nation,
                 "accepted": accepted,
                 "demands": len(demands),
             })
             if len(diplomatic_history) > 20:
                 diplomatic_history[:] = diplomatic_history[-20:]
-            world.diplomatic_history = diplomatic_history
+            ctx.world.diplomatic_history = diplomatic_history
 
             # Log campaign event
             event_type = "ultimatum_accepted" if accepted else "ultimatum_rejected"
-            world.log_event({
+            ctx.world.log_event({
                 "type": event_type,
-                "target": target_nation,
+                "target": ctx.target_nation,
                 "accepted": accepted,
             })
 
             # PL-14: Set proposal_result_popup so outcome shows as Godot popup,
             # not terminal text. Same pattern as proposal acceptance/rejection.
-            world.proposal_result_popup = {
-                "target_nation": target_nation,
+            ctx.world.proposal_result_popup = {
+                "target_nation": ctx.target_nation,
                 "proposal_type": "Ultimatum",
                 "outcome": "ACCEPT" if accepted else "REJECT",
                 "message": outcome_msg,
@@ -5087,44 +5180,44 @@ class DiplomaticExecutor:
                 "dp_cost": dp_cost,
             }
 
-        elif action == "ultimatum_customize":
+        elif ctx.action == "ultimatum_customize":
             # PL-15: Enter demand wizard — gold → territory → manpower → confirm
-            return self._enter_ultimatum_wizard(dialogue, world)
+            return self._enter_ultimatum_wizard(ctx.dialogue, ctx.world)
 
-        elif action == "ultimatum_demand_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_demand_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             gold = int(context.get("gold_amount", 50))
             gold_mode = context.get("gold_mode", "per_turn")
             dtype = "gold_per_turn" if gold_mode == "per_turn" else "gold_lump"
             context["approved_demands"].append({"type": dtype, "value": int(gold)})
-            return self._build_ultimatum_territory_step(context, world, dialogue)
+            return self._build_ultimatum_territory_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_more_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_more_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             gold_mode = context.get("gold_mode", "per_turn")
             cap = 300 if gold_mode == "per_turn" else 500
             context["gold_amount"] = min(cap, int(context.get("gold_amount", 50) * 1.5))
-            return self._build_ultimatum_gold_step(context, world, dialogue, rebuild=True)
+            return self._build_ultimatum_gold_step(context, ctx.world, ctx.dialogue, rebuild=True)
 
-        elif action == "ultimatum_less_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_less_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["gold_amount"] = max(25, int(context.get("gold_amount", 50) * 0.7))
-            return self._build_ultimatum_gold_step(context, world, dialogue, rebuild=True)
+            return self._build_ultimatum_gold_step(context, ctx.world, ctx.dialogue, rebuild=True)
 
-        elif action == "ultimatum_skip_gold":
-            context = self._copy_guidance_context(dialogue)
-            return self._build_ultimatum_territory_step(context, world, dialogue)
+        elif ctx.action == "ultimatum_skip_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
+            return self._build_ultimatum_territory_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_territory_yes":
-            context = self._copy_guidance_context(dialogue)
-            return self._build_ultimatum_region_pick(context, world, dialogue)
+        elif ctx.action == "ultimatum_territory_yes":
+            context = self._copy_guidance_context(ctx.dialogue)
+            return self._build_ultimatum_region_pick(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_skip_territory":
-            context = self._copy_guidance_context(dialogue)
-            return self._build_ultimatum_manpower_step(context, world, dialogue)
+        elif ctx.action == "ultimatum_skip_territory":
+            context = self._copy_guidance_context(ctx.dialogue)
+            return self._build_ultimatum_manpower_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_demand_region":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_demand_region":
+            context = self._copy_guidance_context(ctx.dialogue)
             ranked = context.get("ranked_candidates", [])
             idx = context.get("candidate_index", 0)
             if idx < len(ranked):
@@ -5135,80 +5228,86 @@ class DiplomaticExecutor:
                 context["candidate_index"] = idx + 1
             max_t = context.get("max_territory", 1)
             if context.get("territory_demanded", 0) >= max_t or context.get("candidate_index", 0) >= len(ranked):
-                return self._build_ultimatum_manpower_step(context, world, dialogue)
-            return self._build_ultimatum_region_pick(context, world, dialogue)
+                return self._build_ultimatum_manpower_step(context, ctx.world, ctx.dialogue)
+            return self._build_ultimatum_region_pick(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_skip_region":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_skip_region":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["candidate_index"] = context.get("candidate_index", 0) + 1
             ranked = context.get("ranked_candidates", [])
             if context["candidate_index"] >= len(ranked):
-                return self._build_ultimatum_manpower_step(context, world, dialogue)
-            return self._build_ultimatum_region_pick(context, world, dialogue)
+                return self._build_ultimatum_manpower_step(context, ctx.world, ctx.dialogue)
+            return self._build_ultimatum_region_pick(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_enough_territory":
-            context = self._copy_guidance_context(dialogue)
-            return self._build_ultimatum_manpower_step(context, world, dialogue)
+        elif ctx.action == "ultimatum_enough_territory":
+            context = self._copy_guidance_context(ctx.dialogue)
+            return self._build_ultimatum_manpower_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_pick_manpower_type":
-            context = self._copy_guidance_context(dialogue)
-            unit_type = (selected.get("terms") or {}).get("unit_type", "infantry")
+        elif ctx.action == "ultimatum_pick_manpower_type":
+            context = self._copy_guidance_context(ctx.dialogue)
+            unit_type = (ctx.selected.get("terms") or {}).get("unit_type", "infantry")
             context["current_manpower_type"] = unit_type
-            return self._build_ultimatum_manpower_amount_step(context, world, dialogue)
+            return self._build_ultimatum_manpower_amount_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_demand_manpower":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_demand_manpower":
+            context = self._copy_guidance_context(ctx.dialogue)
             unit_type = context.get("current_manpower_type", "infantry")
             amount = int(context.get("manpower_amount", 500))
             context["approved_demands"].append(
                 {"type": f"manpower_{unit_type}", "value": int(amount)})
             context.setdefault("demanded_manpower_types", []).append(unit_type)
             # Check if more types available
-            return self._build_ultimatum_manpower_another(context, world, dialogue)
+            return self._build_ultimatum_manpower_another(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_more_manpower":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_more_manpower":
+            context = self._copy_guidance_context(ctx.dialogue)
             unit_type = context.get("current_manpower_type", "infantry")
-            target_pool = world.manpower_pools.get(target_nation, {}).get(unit_type, 0)
+            target_pool = ctx.world.manpower_pools.get(ctx.target_nation, {}).get(unit_type, 0)
             cap = min(5000, target_pool)
             context["manpower_amount"] = min(cap, int(context.get("manpower_amount", 500) * 1.5))
-            return self._build_ultimatum_manpower_amount_step(context, world, dialogue, rebuild=True)
+            return self._build_ultimatum_manpower_amount_step(context, ctx.world, ctx.dialogue, rebuild=True)
 
-        elif action == "ultimatum_less_manpower":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "ultimatum_less_manpower":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["manpower_amount"] = max(300, int(context.get("manpower_amount", 500) * 0.7))
-            return self._build_ultimatum_manpower_amount_step(context, world, dialogue, rebuild=True)
+            return self._build_ultimatum_manpower_amount_step(context, ctx.world, ctx.dialogue, rebuild=True)
 
-        elif action == "ultimatum_skip_manpower":
-            context = self._copy_guidance_context(dialogue)
-            return self._build_ultimatum_confirm_step(context, world, dialogue)
+        elif ctx.action == "ultimatum_skip_manpower":
+            context = self._copy_guidance_context(ctx.dialogue)
+            return self._build_ultimatum_confirm_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_another_type":
-            context = self._copy_guidance_context(dialogue)
-            return self._build_ultimatum_manpower_step(context, world, dialogue)
+        elif ctx.action == "ultimatum_another_type":
+            context = self._copy_guidance_context(ctx.dialogue)
+            return self._build_ultimatum_manpower_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_done_manpower":
-            context = self._copy_guidance_context(dialogue)
-            return self._build_ultimatum_confirm_step(context, world, dialogue)
+        elif ctx.action == "ultimatum_done_manpower":
+            context = self._copy_guidance_context(ctx.dialogue)
+            return self._build_ultimatum_confirm_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "ultimatum_start_over":
-            return self._enter_ultimatum_wizard(dialogue, world)
+        elif ctx.action == "ultimatum_start_over":
+            return self._enter_ultimatum_wizard(ctx.dialogue, ctx.world)
+        else:
+            return _NEXT_STAGE
 
-        elif action == "modify_generous":
-            terms = selected.get("terms", {})
+    def _choice_generous_and_suggestions(self, ctx: DialogueChoiceContext):
+        """Stage 4 of `_process_dialogue_choice`: The proposal softened, the
+        options expanded, a suggestion taken, the terms adjusted."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        if ctx.action == "modify_generous":
+            terms = ctx.selected.get("terms", {})
             proposal_type = (terms.get("proposal_type")
-                             or dialogue.get("context", {}).get("proposal_type")
-                             or dialogue.get("_proposal_type")
+                             or ctx.dialogue.get("context", {}).get("proposal_type")
+                             or ctx.dialogue.get("_proposal_type")
                              or "peace")
 
             # Build on PREVIOUS terms (not fresh) so each iteration escalates.
             # First click: terms come from the original suggested terms on the button.
             # Second click: terms come from round 1's modified terms on the button.
             import copy
-            suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(target_nation, proposal_type, world)
+            suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(ctx.target_nation, proposal_type, ctx.world)
             # Ensure proposal metadata
-            suggested["proposer_nation"] = suggested.get("proposer_nation", get_player_nation(world))
-            suggested["target_nation"] = suggested.get("target_nation", target_nation)
+            suggested["proposer_nation"] = suggested.get("proposer_nation", get_player_nation(ctx.world))
+            suggested["target_nation"] = suggested.get("target_nation", ctx.target_nation)
             # Preserve war-score variant type from terms if available
             if not suggested.get("type"):
                 suggested["type"] = proposal_type
@@ -5222,7 +5321,7 @@ class DiplomaticExecutor:
             # Peace/armistice -> gold_per_turn (ongoing commitment)
             # Alliance/NAP/other -> gold_lump (signing bonus)
             if not [s for s in suggested.get("sweeteners", []) if "gold" in s.get("type", "")]:
-                player_gold = getattr(world, 'gold', 500)
+                player_gold = getattr(ctx.world, 'gold', 500)
                 offer = max(100, min(500, int(player_gold * 0.1)))
                 if proposal_type in ("peace", "armistice", "armistice_losing", "armistice_winning"):
                     suggested.setdefault("sweeteners", []).append({"type": "gold_per_turn", "value": int(offer)})
@@ -5230,7 +5329,7 @@ class DiplomaticExecutor:
                     suggested.setdefault("sweeteners", []).append({"type": "gold_lump", "value": int(offer)})
 
             # Round 2 escalation: add AP if not already present (creative variety)
-            context_pre = dict(dialogue.get("context", {}))
+            context_pre = dict(ctx.dialogue.get("context", {}))
             round_num = context_pre.get("modify_count", 0) + 1
             if round_num >= 2:
                 has_ap = any(s.get("type") == "ap_per_turn" for s in suggested.get("sweeteners", []))
@@ -5242,16 +5341,16 @@ class DiplomaticExecutor:
 
             # Bug 5 fix: Use nation-specific smart commentary
             from backend.game_logic.diplomatic_templates import _get_smart_commentary
-            suggested["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_generous")
+            suggested["talleyrand_commentary"] = _get_smart_commentary(ctx.target_nation, "modified_generous")
 
             # ── PL-23: Drafting pushback — roll BEFORE incrementing modify_count (AM-23.2) ──
-            context = dict(dialogue.get("context", {}))
+            context = dict(ctx.dialogue.get("context", {}))
             from backend.commands.diplomatic_defiance import roll_drafting_pushback, apply_pen_nudge_personality
-            if roll_drafting_pushback(suggested, context, world):
-                nudged = apply_pen_nudge_personality(suggested, world)
+            if roll_drafting_pushback(suggested, context, ctx.world):
+                nudged = apply_pen_nudge_personality(suggested, ctx.world)
                 pushback_dialogue = {
                     "type": "pushback_confirm",
-                    "target_nation": target_nation,
+                    "target_nation": ctx.target_nation,
                     "talleyrand_text": (
                         "You wished for generosity? I have crafted terms that balance "
                         "dignity with pragmatism, Sire."
@@ -5277,12 +5376,12 @@ class DiplomaticExecutor:
                         },
                     ],
                     "context": {**context, "original_terms": suggested, "nudged_terms": nudged},
-                    "turn_created": int(world.current_turn),
+                    "turn_created": int(ctx.world.current_turn),
                     "blocking": False,
                 }
                 from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-                pushback_dialogue = _enrich_proposal_summary(pushback_dialogue, target_nation, proposal_type, world)
-                world.dialogue_manager.replace(pushback_dialogue)
+                pushback_dialogue = _enrich_proposal_summary(pushback_dialogue, ctx.target_nation, proposal_type, ctx.world)
+                ctx.world.dialogue_manager.replace(pushback_dialogue)
                 return {
                     "success": True,
                     "message": pushback_dialogue["talleyrand_text"],
@@ -5319,30 +5418,30 @@ class DiplomaticExecutor:
 
             new_dialogue = {
                 "type": "proposal_confirm",
-                "target_nation": target_nation,
+                "target_nation": ctx.target_nation,
                 "talleyrand_text": (
-                    f"A magnanimous approach, Sire. More generous terms for {target_nation}.{cap_msg}"
+                    f"A magnanimous approach, Sire. More generous terms for {ctx.target_nation}.{cap_msg}"
                 ),
                 "options": options,
                 "context": context,
-                "turn_created": int(world.current_turn),
+                "turn_created": int(ctx.world.current_turn),
                 "blocking": False,
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-            world.dialogue_manager.replace(new_dialogue)
+            new_dialogue = _enrich_proposal_summary(new_dialogue, ctx.target_nation, proposal_type, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
                 "diplomatic_dialogue": new_dialogue,
             }
 
-        elif action == "expand_options":
+        elif ctx.action == "expand_options":
             # Show available proposal types for a target nation
-            terms = selected.get("terms", {})
-            expand_target = terms.get("target_nation", target_nation)
+            terms = ctx.selected.get("terms", {})
+            expand_target = terms.get("target_nation", ctx.target_nation)
             if not expand_target:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": True, "message": "Very well, Sire."}
 
             # Re-route as a vague proposal with the target set
@@ -5360,25 +5459,25 @@ class DiplomaticExecutor:
             from backend.game_logic.diplomatic_dialogue import (
                 classify_diplomatic_intent, generate_dialogue,
             )
-            intent = classify_diplomatic_intent(diplomatic_data, world)
-            new_dialogue = generate_dialogue(intent, diplomatic_data, world)
-            world.dialogue_manager.replace(new_dialogue)
+            intent = classify_diplomatic_intent(diplomatic_data, ctx.world)
+            new_dialogue = generate_dialogue(intent, diplomatic_data, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue.get("talleyrand_text", ""),
                 "diplomatic_dialogue": new_dialogue,
             }
 
-        elif action == "execute_suggestion":
+        elif ctx.action == "execute_suggestion":
             # W6-9: the war-room assessment's ONE recommendation ends in an
             # executable option (R117). The advisory arm composed the ready
             # suggestion — deterministic, same executors as the typed route
             # (GR5/GR6); each target executor charges its own costs exactly
             # as the typed command would.
-            terms = selected.get("terms", {}) or {}
+            terms = ctx.selected.get("terms", {}) or {}
             suggestion = terms.get("suggestion") or {}
             kind = suggestion.get("kind", "")
-            world.dialogue_manager.pop()
+            ctx.world.dialogue_manager.pop()
 
             # PT-J4: `recruit_marshal` is an ADMIN_ACTION — the typed
             # route charges 1 admin AP at executor.py's pre-flight, but
@@ -5396,7 +5495,7 @@ class DiplomaticExecutor:
             # DP-priced in-executor and stays untouched.
             _ADMIN_AP_KINDS = ("commission_marshal",)
             if kind in _ADMIN_AP_KINDS:
-                if world.admin_actions_remaining < 1:
+                if ctx.world.admin_actions_remaining < 1:
                     return {
                         "success": False,
                         "message": ("No administrative actions remaining "
@@ -5407,7 +5506,7 @@ class DiplomaticExecutor:
             if kind == "request_terms":
                 result = self._execute_request_terms(
                     {"target_nation": suggestion.get("target_nation", "")},
-                    {"world": world})
+                    {"world": ctx.world})
                 result.pop("new_state", None)  # circular refs (R4 warning)
                 return result
             if kind == "invest_vassal":
@@ -5415,7 +5514,7 @@ class DiplomaticExecutor:
                 # 1 DP + 200g in-executor, never AP. No mirror here.
                 result = self._executor._vassal._execute_invest_vassal(
                     {"target": suggestion.get("target", "")},
-                    {"world": world})
+                    {"world": ctx.world})
                 result.pop("new_state", None)
                 return result
             if kind == "commission_marshal":
@@ -5425,62 +5524,62 @@ class DiplomaticExecutor:
                 # costs, so a stale recommendation refuses honestly.
                 result = self._executor._economy._execute_recruit_marshal(
                     {"target": suggestion.get("target", "")},
-                    {"world": world})
+                    {"world": ctx.world})
                 if result.get("success"):
-                    world.admin_actions_remaining = int(
-                        world.admin_actions_remaining) - 1
+                    ctx.world.admin_actions_remaining = int(
+                        ctx.world.admin_actions_remaining) - 1
                     # executor.py:1806's mirror: spending the last admin
                     # AP with 0 military AP auto-ends the turn on the
                     # typed route; the button matches.
                     result["should_end_turn"] = bool(
-                        world.actions_remaining <= 0
-                        and world.admin_actions_remaining <= 0)
+                        ctx.world.actions_remaining <= 0
+                        and ctx.world.admin_actions_remaining <= 0)
                 result.pop("new_state", None)
                 return result
             return {"success": False,
                     "message": "Sire, that recommendation has lapsed."}
 
-        elif action == "adjust_terms":
+        elif ctx.action == "adjust_terms":
             # Entry point for conversational terms guidance
             from backend.game_logic.diplomatic_templates import rank_cession_candidates
             from backend.game_logic.diplomacy import get_war_score_for
 
-            context = dict(dialogue.get("context", {}))
-            proposal_type = context.get("proposal_type") or dialogue.get("proposal_type", "")
+            context = dict(ctx.dialogue.get("context", {}))
+            proposal_type = context.get("proposal_type") or ctx.dialogue.get("proposal_type", "")
             # Get proposal_type from selected option if available
-            sel_terms = selected.get("terms", {})
+            sel_terms = ctx.selected.get("terms", {})
             if sel_terms.get("proposal_type"):
                 proposal_type = sel_terms["proposal_type"]
             # Scan sibling options as fallback (T6 "Send as suggested" carries terms)
             if not proposal_type:
-                for opt in dialogue.get("options", []):
+                for opt in ctx.dialogue.get("options", []):
                     pt = (opt.get("terms") or {}).get("proposal_type")
                     if pt:
                         proposal_type = pt
                         break
             proposal_type = proposal_type or "peace"
             context["proposal_type"] = proposal_type
-            context["target_nation"] = target_nation
+            context["target_nation"] = ctx.target_nation
             context["approved_regions"] = []
             context["approved_sweeteners"] = []
             context["candidate_index"] = 0
             context["gold_amount"] = 0
 
-            diplo_key = world._make_diplo_key(world.player_nation, target_nation)
-            relation = world.nation_relations.get(diplo_key, 0)
-            war_score = get_war_score_for(world, world.player_nation, target_nation)
+            diplo_key = ctx.world._make_diplo_key(ctx.world.player_nation, ctx.target_nation)
+            relation = ctx.world.nation_relations.get(diplo_key, 0)
+            war_score = get_war_score_for(ctx.world, ctx.world.player_nation, ctx.target_nation)
 
             # Determine if territory is relevant (losing or hostile)
             needs_territory = war_score < 0 or relation < -50
 
             if needs_territory:
-                ranked = rank_cession_candidates(world, world.player_nation, target_nation)
+                ranked = rank_cession_candidates(ctx.world, ctx.world.player_nation, ctx.target_nation)
                 context["ranked_candidates"] = ranked
 
                 if not ranked:
                     # No non-capital regions to offer
                     context["guidance_state"] = "gold"
-                    return self._build_gold_step(context, world, dialogue,
+                    return self._build_gold_step(context, ctx.world, ctx.dialogue,
                                                  intro="We have nothing to offer but our capital, Sire. ")
                 else:
                     max_cede = 1 if war_score >= -40 else 2
@@ -5488,7 +5587,7 @@ class DiplomaticExecutor:
                     context["guidance_state"] = "territory"
                     new_dialogue = {
                         "type": "terms_guidance",
-                        "target_nation": target_nation,
+                        "target_nation": ctx.target_nation,
                         "talleyrand_text": "Shall we discuss concessions, Sire?",
                         "options": [
                             {"label": "Yes, discuss territory", "description": "Let me suggest regions to offer.",
@@ -5499,10 +5598,10 @@ class DiplomaticExecutor:
                              "action": "territory_no_ap"},
                         ],
                         "context": context,
-                        "turn_created": int(world.current_turn),
+                        "turn_created": int(ctx.world.current_turn),
                         "blocking": False,
                     }
-                    world.dialogue_manager.replace(new_dialogue)
+                    ctx.world.dialogue_manager.replace(new_dialogue)
                     return {
                         "success": True,
                         "message": new_dialogue["talleyrand_text"],
@@ -5513,10 +5612,15 @@ class DiplomaticExecutor:
                 context["ranked_candidates"] = []
                 context["regions_needed"] = 0
                 context["guidance_state"] = "gold"
-                return self._build_gold_step(context, world, dialogue)
+                return self._build_gold_step(context, ctx.world, ctx.dialogue)
+        else:
+            return _NEXT_STAGE
 
-        elif action == "territory_yes":
-            context = self._copy_guidance_context(dialogue)
+    def _choice_terms_wizard(self, ctx: DialogueChoiceContext):
+        """Stage 5 of `_process_dialogue_choice`: The terms wizard: provinces
+        offered or skipped, gold, actions."""
+        if ctx.action == "territory_yes":
+            context = self._copy_guidance_context(ctx.dialogue)
             ranked = context.get("ranked_candidates", [])
             idx = context.get("candidate_index", 0)
             if idx < len(ranked):
@@ -5525,13 +5629,13 @@ class DiplomaticExecutor:
                 # ES-7 second pass (§0.6.8 item 3): Talleyrand flags a
                 # marshal's estate BEFORE the player approves the cession.
                 from backend.game_logic.dotation import estate_cession_warning
-                _estate_text = estate_cession_warning(world, candidate_name)
+                _estate_text = estate_cession_warning(ctx.world, candidate_name)
                 _suggest_line = f"I suggest {candidate_name} — {reason}"
                 if _estate_text:
                     _suggest_line += f" A caution, Sire: {_estate_text}"
                 new_dialogue = {
                     "type": "terms_guidance",
-                    "target_nation": context.get("target_nation", target_nation),
+                    "target_nation": context.get("target_nation", ctx.target_nation),
                     "talleyrand_text": _suggest_line,
                     "options": [
                         {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
@@ -5542,10 +5646,10 @@ class DiplomaticExecutor:
                          "action": "enough_territory"},
                     ],
                     "context": context,
-                    "turn_created": int(world.current_turn),
+                    "turn_created": int(ctx.world.current_turn),
                     "blocking": False,
                 }
-                world.dialogue_manager.replace(new_dialogue)
+                ctx.world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
@@ -5554,10 +5658,10 @@ class DiplomaticExecutor:
             else:
                 # No candidates at all
                 context["guidance_state"] = "gold"
-                return self._build_gold_step(context, world, dialogue)
+                return self._build_gold_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "offer_region":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "offer_region":
+            context = self._copy_guidance_context(ctx.dialogue)
             ranked = context.get("ranked_candidates", [])
             idx = context.get("candidate_index", 0)
             if idx < len(ranked):
@@ -5579,13 +5683,13 @@ class DiplomaticExecutor:
                 # §0.6.8 review fix: EVERY candidate prompt flags an estate,
                 # not just the first (territory_yes) one.
                 from backend.game_logic.dotation import estate_cession_warning
-                _estate_text = estate_cession_warning(world, candidate_name)
+                _estate_text = estate_cession_warning(ctx.world, candidate_name)
                 _next_line = f"Very good. I also suggest {candidate_name} — {reason}"
                 if _estate_text:
                     _next_line += f" A caution, Sire: {_estate_text}"
                 new_dialogue = {
                     "type": "terms_guidance",
-                    "target_nation": context.get("target_nation", target_nation),
+                    "target_nation": context.get("target_nation", ctx.target_nation),
                     "talleyrand_text": _next_line,
                     "options": [
                         {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
@@ -5596,10 +5700,10 @@ class DiplomaticExecutor:
                          "action": "enough_territory"},
                     ],
                     "context": context,
-                    "turn_created": int(world.current_turn),
+                    "turn_created": int(ctx.world.current_turn),
                     "blocking": False,
                 }
-                world.dialogue_manager.replace(new_dialogue)
+                ctx.world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
@@ -5608,10 +5712,10 @@ class DiplomaticExecutor:
             else:
                 # Enough regions or no more candidates — move to gold
                 context["guidance_state"] = "gold"
-                return self._build_gold_step(context, world, dialogue)
+                return self._build_gold_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "skip_region":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "skip_region":
+            context = self._copy_guidance_context(ctx.dialogue)
             ranked = context.get("ranked_candidates", [])
             context["candidate_index"] = context.get("candidate_index", 0) + 1
             next_idx = context["candidate_index"]
@@ -5622,13 +5726,13 @@ class DiplomaticExecutor:
                 # §0.6.8 review fix: the skip path's next candidate is
                 # flagged too.
                 from backend.game_logic.dotation import estate_cession_warning
-                _estate_text = estate_cession_warning(world, candidate_name)
+                _estate_text = estate_cession_warning(ctx.world, candidate_name)
                 _skip_line = f"Very well. What about {candidate_name}? {reason}"
                 if _estate_text:
                     _skip_line += f" A caution, Sire: {_estate_text}"
                 new_dialogue = {
                     "type": "terms_guidance",
-                    "target_nation": context.get("target_nation", target_nation),
+                    "target_nation": context.get("target_nation", ctx.target_nation),
                     "talleyrand_text": _skip_line,
                     "options": [
                         {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
@@ -5639,10 +5743,10 @@ class DiplomaticExecutor:
                          "action": "enough_territory"},
                     ],
                     "context": context,
-                    "turn_created": int(world.current_turn),
+                    "turn_created": int(ctx.world.current_turn),
                     "blocking": False,
                 }
-                world.dialogue_manager.replace(new_dialogue)
+                ctx.world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
@@ -5653,7 +5757,7 @@ class DiplomaticExecutor:
                 context["guidance_state"] = "gold"
                 new_dialogue = {
                     "type": "terms_guidance",
-                    "target_nation": context.get("target_nation", target_nation),
+                    "target_nation": context.get("target_nation", ctx.target_nation),
                     "talleyrand_text": "There are no more suitable regions to offer, Sire.",
                     "options": [
                         {"label": "Offer gold", "description": "Move to gold terms.",
@@ -5664,96 +5768,106 @@ class DiplomaticExecutor:
                          "action": "skip_ap"},
                     ],
                     "context": context,
-                    "turn_created": int(world.current_turn),
+                    "turn_created": int(ctx.world.current_turn),
                     "blocking": False,
                 }
-                world.dialogue_manager.replace(new_dialogue)
+                ctx.world.dialogue_manager.replace(new_dialogue)
                 return {
                     "success": True,
                     "message": new_dialogue["talleyrand_text"],
                     "diplomatic_dialogue": new_dialogue,
                 }
 
-        elif action == "enough_territory":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "enough_territory":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["guidance_state"] = "gold"
-            return self._build_gold_step(context, world, dialogue)
+            return self._build_gold_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "territory_no_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "territory_no_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["guidance_state"] = "gold"
-            return self._build_gold_step(context, world, dialogue)
+            return self._build_gold_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "territory_no_ap":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "territory_no_ap":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["guidance_state"] = "ap"
-            return self._build_ap_step(context, world, dialogue)
+            return self._build_ap_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "offer_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "offer_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             gold = int(context.get("gold_amount", 50))
             context["approved_sweeteners"].append({"type": "gold_per_turn", "value": int(gold)})
             context["guidance_state"] = "ap"
-            return self._build_ap_step(context, world, dialogue)
+            return self._build_ap_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "more_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "more_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             gold = context.get("gold_amount", 50)
             context["gold_amount"] = int(min(500, gold * 1.5))
             context["guidance_state"] = "gold"
-            return self._build_gold_step(context, world, dialogue, rebuild=True)
+            return self._build_gold_step(context, ctx.world, ctx.dialogue, rebuild=True)
 
-        elif action == "less_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "less_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             gold = context.get("gold_amount", 50)
             context["gold_amount"] = int(max(25, gold * 0.7))
             context["guidance_state"] = "gold"
-            return self._build_gold_step(context, world, dialogue, rebuild=True)
+            return self._build_gold_step(context, ctx.world, ctx.dialogue, rebuild=True)
 
-        elif action == "skip_gold":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "skip_gold":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["guidance_state"] = "ap"
-            return self._build_ap_step(context, world, dialogue)
+            return self._build_ap_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "offer_ap":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "offer_ap":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["approved_sweeteners"].append({"type": "ap_per_turn", "value": 1})
             context["guidance_state"] = "confirm"
-            return self._build_confirm_step(context, world, dialogue)
+            return self._build_confirm_step(context, ctx.world, ctx.dialogue)
 
-        elif action == "skip_ap":
-            context = self._copy_guidance_context(dialogue)
+        elif ctx.action == "skip_ap":
+            context = self._copy_guidance_context(ctx.dialogue)
             context["guidance_state"] = "confirm"
-            return self._build_confirm_step(context, world, dialogue)
+            return self._build_confirm_step(context, ctx.world, ctx.dialogue)
+        else:
+            return _NEXT_STAGE
 
-        elif action == "start_mission":
-            terms = selected.get("terms", {})
+    def _choice_missions_and_ai_letters(self, ctx: DialogueChoiceContext):
+        """Stage 6 of `_process_dialogue_choice`: A mission started or
+        recalled; an AI court's proposal or ultimatum accepted, rejected or
+        countered; a letter expanded to a proposal."""
+        from backend.game_logic.diplomatic_dialogue import (
+            MISSION_DP_COSTS,
+            MISSION_DESCRIPTIONS,
+        )
+        if ctx.action == "start_mission":
+            terms = ctx.selected.get("terms", {})
             mission_type = terms.get("mission_type", "IMPROVE_RELATIONS")
-            mission_target = terms.get("target_nation", target_nation)
+            mission_target = terms.get("target_nation", ctx.target_nation)
 
             if not mission_target:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "Which nation, Sire?"}
 
             # Check DP
             cost = MISSION_DP_COSTS.get(mission_type, 1)
-            if world.diplomatic_points < cost:
-                world.dialogue_manager.pop()
+            if ctx.world.diplomatic_points < cost:
+                ctx.world.dialogue_manager.pop()
                 return {
                     "success": False,
                     "message": f"Insufficient DP. Mission costs {int(cost)} DP per turn.",
                 }
 
             # Cancel existing mission
-            diplo_key = world._make_diplo_key(world.player_nation, mission_target)
+            diplo_key = ctx.world._make_diplo_key(ctx.world.player_nation, mission_target)
             mission_dict = {
                 "type": mission_type,
                 "target": mission_target,
                 "turns_active": 0,
                 "paused": False,
                 "paused_turns": 0,
-                "started_turn": int(getattr(world, 'current_turn', 1)),
-                "initial_relation": int(world.nation_relations.get(diplo_key, 0) or 0),
+                "started_turn": int(getattr(ctx.world, 'current_turn', 1)),
+                "initial_relation": int(ctx.world.nation_relations.get(diplo_key, 0) or 0),
             }
             # DLF-2: Store target_ally for UNDERMINE_ALLIANCE
             if mission_type == "UNDERMINE_ALLIANCE":
@@ -5769,8 +5883,8 @@ class DiplomaticExecutor:
                 # moment it is the baseline.
                 if target_ally:
                     mission_dict["initial_pair_relation"] = int(
-                        world.nation_relations.get(
-                            world._make_diplo_key(mission_target, target_ally),
+                        ctx.world.nation_relations.get(
+                            ctx.world._make_diplo_key(mission_target, target_ally),
                             0) or 0)
             # IQ-4: a live mission replaced by this one ENDS here — it gets
             # its `diplomatic_mission_ended` row like every other end, before
@@ -5778,16 +5892,16 @@ class DiplomaticExecutor:
             from backend.game_logic.diplomatic_dialogue import (
                 mission_is_live as _prior_live, record_mission_end as _prior_end,
             )
-            _replaced = (dict(world.active_diplomatic_mission)
-                         if _prior_live(world) else None)
-            world.active_diplomatic_mission = mission_dict
-            world.talleyrand_state = "ON_MISSION"
+            _replaced = (dict(ctx.world.active_diplomatic_mission)
+                         if _prior_live(ctx.world) else None)
+            ctx.world.active_diplomatic_mission = mission_dict
+            ctx.world.talleyrand_state = "ON_MISSION"
 
             description = MISSION_DESCRIPTIONS.get(mission_type, "conduct diplomacy with")
             if _replaced:
-                _prior_end(world, _replaced, "replaced")
+                _prior_end(ctx.world, _replaced, "replaced")
 
-            world.log_event({
+            ctx.world.log_event({
                 "type": "diplomatic_mission_started",
                 "mission_type": mission_type,
                 "target": mission_target,
@@ -5797,9 +5911,9 @@ class DiplomaticExecutor:
             from backend.game_logic.diplomatic_dialogue import (
                 restate_mission_notice as _restate_mission,
             )
-            _restate_mission(world, beat="begun")
+            _restate_mission(ctx.world, beat="begun")
 
-            world.dialogue_manager.pop()
+            ctx.world.dialogue_manager.pop()
             _start_result = {
                 "success": True,
                 "message": f"Talleyrand begins efforts to {description} {mission_target}. ({int(cost)} DP/turn)",
@@ -5813,19 +5927,19 @@ class DiplomaticExecutor:
             _start_result["suppress_proposal_result_popup"] = True
             return _start_result
 
-        elif action == "cancel_mission":
-            existing = getattr(world, 'active_diplomatic_mission', None)
+        elif ctx.action == "cancel_mission":
+            existing = getattr(ctx.world, 'active_diplomatic_mission', None)
             if not existing:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "No active mission to cancel."}
             from backend.game_logic.diplomatic_dialogue import (
                 mission_is_live as _live, record_mission_end as _record_end,
             )
-            _was_live = _live(world)
+            _was_live = _live(ctx.world)
             if not _was_live:
                 # IQ-4 §3.5: a completed mission is a record, not a recall.
                 from backend.display_names import display_nation as _dn
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {
                     "success": False,
                     "message": (f"Talleyrand has no mission running — his last, "
@@ -5834,12 +5948,12 @@ class DiplomaticExecutor:
                 }
             old_target = existing.get("target", "unknown")
             _snapshot = dict(existing)
-            world.active_diplomatic_mission = None
-            if not (getattr(world, 'talleyrand_state', '') == "IN_TRANSIT"):
-                world.talleyrand_state = "IDLE"
-            world.dialogue_manager.pop()
+            ctx.world.active_diplomatic_mission = None
+            if not (getattr(ctx.world, 'talleyrand_state', '') == "IN_TRANSIT"):
+                ctx.world.talleyrand_state = "IDLE"
+            ctx.world.dialogue_manager.pop()
             if _was_live:   # IQ-4: the log's end row + the rail's recalled beat
-                _record_end(world, _snapshot, "recalled")
+                _record_end(ctx.world, _snapshot, "recalled")
             _cancel_result = {
                 "success": True,
                 "message": f"Talleyrand's mission to {old_target} has been cancelled.",
@@ -5848,26 +5962,26 @@ class DiplomaticExecutor:
             _cancel_result["suppress_proposal_result_popup"] = True
             return _cancel_result
 
-        elif action == "accept_ai_proposal":
-            return self._handle_accept_ai_proposal(dialogue, world)
+        elif ctx.action == "accept_ai_proposal":
+            return self._handle_accept_ai_proposal(ctx.dialogue, ctx.world)
 
-        elif action == "reject_ai_proposal":
-            return self._handle_reject_ai_proposal(dialogue, world)
+        elif ctx.action == "reject_ai_proposal":
+            return self._handle_reject_ai_proposal(ctx.dialogue, ctx.world)
 
-        elif action == "counter_ai_proposal":
-            return self._handle_counter_ai_proposal(dialogue, world)
+        elif ctx.action == "counter_ai_proposal":
+            return self._handle_counter_ai_proposal(ctx.dialogue, ctx.world)
 
-        elif action == "accept_ai_ultimatum":
-            return self._handle_accept_ai_ultimatum(dialogue, world)
+        elif ctx.action == "accept_ai_ultimatum":
+            return self._handle_accept_ai_ultimatum(ctx.dialogue, ctx.world)
 
-        elif action == "reject_ai_ultimatum":
-            return self._handle_reject_ai_ultimatum(dialogue, world)
+        elif ctx.action == "reject_ai_ultimatum":
+            return self._handle_reject_ai_ultimatum(ctx.dialogue, ctx.world)
 
-        elif action == "expand_to_proposal":
+        elif ctx.action == "expand_to_proposal":
             # Advisory drill-down: re-route to proposal dialogue for a nation
-            expand_target = dialogue.get("target_nation", target_nation)
+            expand_target = ctx.dialogue.get("target_nation", ctx.target_nation)
             if not expand_target:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": True, "message": "Very well, Sire."}
             diplomatic_data = {
                 "action": "diplomatic_proposal",
@@ -5883,29 +5997,40 @@ class DiplomaticExecutor:
             from backend.game_logic.diplomatic_dialogue import (
                 classify_diplomatic_intent, generate_dialogue as gen_dlg,
             )
-            intent = classify_diplomatic_intent(diplomatic_data, world)
-            new_dialogue = gen_dlg(intent, diplomatic_data, world)
-            world.dialogue_manager.replace(new_dialogue)
+            intent = classify_diplomatic_intent(diplomatic_data, ctx.world)
+            new_dialogue = gen_dlg(intent, diplomatic_data, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue.get("talleyrand_text", ""),
                 "diplomatic_dialogue": new_dialogue,
             }
+        else:
+            return _NEXT_STAGE
 
+    def _choice_counsel(self, ctx: DialogueChoiceContext):
+        """Stage 7 of `_process_dialogue_choice`: Talleyrand's counsel:
+        elaborate, review a counter, accept a conflict (GAP-1); sabotage
+        confronted (R37); the drafting pushback (PL-23); the pre-proposal
+        objection overridden (R42)."""
+        from backend.game_logic.diplomacy import (
+            get_dp_cost,
+            get_transition_dp_cost,
+        )
         # ═══════════════════════════════════════════════════════
         # GAP-1: ELABORATE / REVIEW_COUNTER / ACCEPT_WITH_CONFLICT
         # ═══════════════════════════════════════════════════════
-        elif action == "elaborate":
+        if ctx.action == "elaborate":
             # Same behavior as expand_to_proposal — drill down to proposal for nation
-            return self._process_dialogue_choice("expand_to_proposal", selected, dialogue, world)
+            return self._process_dialogue_choice("expand_to_proposal", ctx.selected, ctx.dialogue, ctx.world)
 
-        elif action == "review_counter":
+        elif ctx.action == "review_counter":
             # Show counter-offer terms from context for player review
-            context = dialogue.get("context", {})
+            context = ctx.dialogue.get("context", {})
             counter_terms = context.get("counter_terms", {})
-            source_nation = context.get("source_nation", target_nation)
+            source_nation = context.get("source_nation", ctx.target_nation)
             if not counter_terms:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": True, "message": "No counter-offer terms to review, Sire."}
             # Build a new confirmation dialogue showing the counter terms
             from backend.game_logic.diplomatic_dialogue import _format_terms_for_display
@@ -5930,44 +6055,44 @@ class DiplomaticExecutor:
                     {"label": "Dismiss", "description": "Set this aside.", "action": "dismiss"},
                 ],
                 "context": context,
-                "turn_created": int(world.current_turn),
+                "turn_created": int(ctx.world.current_turn),
                 "blocking": False,
                 "proposal_terms_summary": terms_display,
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-            new_dialogue = _enrich_proposal_summary(new_dialogue, source_nation, proposal_type, world)
-            world.dialogue_manager.replace(new_dialogue)
+            new_dialogue = _enrich_proposal_summary(new_dialogue, source_nation, proposal_type, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
                 "diplomatic_dialogue": new_dialogue,
             }
 
-        elif action == "accept_with_conflict":
+        elif ctx.action == "accept_with_conflict":
             # Accept AI proposal despite alliance conflict warning
-            return self._handle_accept_ai_proposal(dialogue, world)
+            return self._handle_accept_ai_proposal(ctx.dialogue, ctx.world)
 
         # ═══════════════════════════════════════════════════════
         # R37: SABOTAGE CONFRONTATION HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif action in ("confront_sabotage", "overlook_sabotage"):
+        elif ctx.action in ("confront_sabotage", "overlook_sabotage"):
             from backend.commands.diplomatic_defiance import resolve_confrontation
-            talleyrand = get_player_diplomat(world)
+            talleyrand = get_player_diplomat(ctx.world)
             if not talleyrand:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "No diplomat available."}
             try:
-                result = resolve_confrontation(action, talleyrand, world)
+                result = resolve_confrontation(ctx.action, talleyrand, ctx.world)
             except Exception:
                 import logging
                 logging.getLogger(__name__).exception("Error in sabotage confrontation")
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "An error occurred resolving the confrontation."}
-            world.dialogue_manager.pop()
-            world.diplomatic_sabotage = None
+            ctx.world.dialogue_manager.pop()
+            ctx.world.diplomatic_sabotage = None
             # Dismiss stale sabotage notification
             from backend.notifications import SABOTAGE_DISCOVERED
-            world.notifications.dismiss_by_type(SABOTAGE_DISCOVERED)
+            ctx.world.notifications.dismiss_by_type(SABOTAGE_DISCOVERED)
             return {
                 "success": True,
                 "message": result.get("message", "The matter has been resolved."),
@@ -5976,15 +6101,15 @@ class DiplomaticExecutor:
         # ═══════════════════════════════════════════════════════
         # PL-23: DRAFTING PUSHBACK HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif action == "accept_nudge":
+        elif ctx.action == "accept_nudge":
             # Player accepts Talleyrand's softened terms
-            context = dict(dialogue.get("context", {}))
+            context = dict(ctx.dialogue.get("context", {}))
             # AM-23.7: Increment modify_count (deferred from pushback intercept)
             context["modify_count"] = context.get("modify_count", 0) + 1
             context["objection_resolved"] = True  # One pushback per proposal
             context["pushback_accepted"] = True  # Mutual exclusion with §3a defiance
 
-            nudged_terms = selected.get("terms", context.get("nudged_terms", {}))
+            nudged_terms = ctx.selected.get("terms", context.get("nudged_terms", {}))
             proposal_type = nudged_terms.get("proposal_type", context.get("proposal_type", "peace"))
 
             # Build normal confirm dialogue with nudged terms
@@ -5999,32 +6124,32 @@ class DiplomaticExecutor:
             ]
             new_dialogue = {
                 "type": "proposal_confirm",
-                "target_nation": target_nation,
+                "target_nation": ctx.target_nation,
                 "talleyrand_text": "Very well, Sire. I shall present my version of your terms.",
                 "options": options,
                 "context": context,
-                "turn_created": int(world.current_turn),
+                "turn_created": int(ctx.world.current_turn),
                 "blocking": False,
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-            world.dialogue_manager.replace(new_dialogue)
+            new_dialogue = _enrich_proposal_summary(new_dialogue, ctx.target_nation, proposal_type, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
                 "diplomatic_dialogue": new_dialogue,
             }
 
-        elif action == "insist_original":
+        elif ctx.action == "insist_original":
             # Player overrules Talleyrand — authority -3
-            context = dict(dialogue.get("context", {}))
+            context = dict(ctx.dialogue.get("context", {}))
             context["modify_count"] = context.get("modify_count", 0) + 1
             context["objection_resolved"] = True
             context["pushback_accepted"] = False  # Player insisted, still skip §3a
 
-            world.authority_tracker.modify_authority(-3)
+            ctx.world.authority_tracker.modify_authority(-3)
 
-            original_terms = selected.get("terms", context.get("original_terms", {}))
+            original_terms = ctx.selected.get("terms", context.get("original_terms", {}))
             proposal_type = original_terms.get("proposal_type", context.get("proposal_type", "peace"))
 
             options = [
@@ -6038,33 +6163,33 @@ class DiplomaticExecutor:
             ]
             new_dialogue = {
                 "type": "proposal_confirm",
-                "target_nation": target_nation,
+                "target_nation": ctx.target_nation,
                 "talleyrand_text": "As you wish, Sire. Your terms shall be presented exactly as stated. [Authority -3]",
                 "options": options,
                 "context": context,
-                "turn_created": int(world.current_turn),
+                "turn_created": int(ctx.world.current_turn),
                 "blocking": False,
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-            world.dialogue_manager.replace(new_dialogue)
+            new_dialogue = _enrich_proposal_summary(new_dialogue, ctx.target_nation, proposal_type, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
                 "diplomatic_dialogue": new_dialogue,
             }
 
-        elif action == "cancel_pushback":
+        elif ctx.action == "cancel_pushback":
             # Player cancels — return to pre-pushback state (AM-23.2: modify_count unchanged)
-            context = dict(dialogue.get("context", {}))
+            context = dict(ctx.dialogue.get("context", {}))
             context["objection_resolved"] = True  # Don't re-roll
 
-            pre_terms = selected.get("terms", {})
+            pre_terms = ctx.selected.get("terms", {})
             proposal_type = pre_terms.get("proposal_type", context.get("proposal_type", "peace"))
 
             # Rebuild confirm dialogue with the pre-escalation terms
             from backend.game_logic.diplomatic_templates import _get_smart_commentary
-            pre_terms["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_harsh")
+            pre_terms["talleyrand_commentary"] = _get_smart_commentary(ctx.target_nation, "modified_harsh")
 
             modify_count = context.get("modify_count", 0)
             _FRIENDSHIP_TYPES = {"non_aggression", "open_borders", "defensive_alliance", "alliance"}
@@ -6090,16 +6215,16 @@ class DiplomaticExecutor:
 
             new_dialogue = {
                 "type": "proposal_confirm",
-                "target_nation": target_nation,
+                "target_nation": ctx.target_nation,
                 "talleyrand_text": "Very well. The terms remain as you last directed.",
                 "options": options,
                 "context": context,
-                "turn_created": int(world.current_turn),
+                "turn_created": int(ctx.world.current_turn),
                 "blocking": False,
             }
             from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
-            world.dialogue_manager.replace(new_dialogue)
+            new_dialogue = _enrich_proposal_summary(new_dialogue, ctx.target_nation, proposal_type, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
@@ -6109,24 +6234,24 @@ class DiplomaticExecutor:
         # ═══════════════════════════════════════════════════════
         # R42: PRE-PROPOSAL OBJECTION OVERRIDE HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif action in ("send_override", "send_suggested"):
-            terms = selected.get("terms", {})
-            if action == "send_suggested":
+        elif ctx.action in ("send_override", "send_suggested"):
+            terms = ctx.selected.get("terms", {})
+            if ctx.action == "send_suggested":
                 # Use Talleyrand's suggested terms from context
-                terms = terms or dialogue.get("context", {}).get("suggested_terms", {})
+                terms = terms or ctx.dialogue.get("context", {}).get("suggested_terms", {})
             else:
                 # Use original terms from context
-                terms = terms or dialogue.get("context", {}).get("original_proposal", {})
+                terms = terms or ctx.dialogue.get("context", {}).get("original_proposal", {})
 
             proposal_type = (terms.get("proposal_type") or terms.get("type")
-                             or dialogue.get("context", {}).get("proposal_type")
+                             or ctx.dialogue.get("context", {}).get("proposal_type")
                              or "peace")  # PL-13-B
 
             # Build proposal and send (reuse execute_proposal path)
             proposal = {
                 "type": proposal_type,
-                "proposer_nation": get_player_nation(world),
-                "target_nation": target_nation,
+                "proposer_nation": get_player_nation(ctx.world),
+                "target_nation": ctx.target_nation,
                 "sweeteners": terms.get("sweeteners", []),
                 "demands": terms.get("demands", []),
                 "clauses": terms.get("clauses", []),
@@ -6135,70 +6260,70 @@ class DiplomaticExecutor:
             if proposal_type == "vassalage":
                 from backend.game_logic.diplomacy import check_vassalage_power_cap
                 cap = check_vassalage_power_cap(
-                    world, get_player_nation(world), target_nation, terms=proposal
+                    ctx.world, get_player_nation(ctx.world), ctx.target_nation, terms=proposal
                 )
                 if not cap["allowed"]:
                     return {
                         "success": False,
-                        "message": f"Cannot vassalize {target_nation}: {cap['reason']}.",
-                        "diplomatic_dialogue": dialogue,
+                        "message": f"Cannot vassalize {ctx.target_nation}: {cap['reason']}.",
+                        "diplomatic_dialogue": ctx.dialogue,
                     }
 
             # Deduct DP (with jump cost for multi-step transitions)
-            talleyrand = get_player_diplomat(world)
+            talleyrand = get_player_diplomat(ctx.world)
             skill = talleyrand.skill if talleyrand else 5
             dp_action = f"propose_{proposal_type}"
             # R98: Compute cumulative DP for jump transitions
             _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
                           "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS",
                           "armistice": "ARMISTICE", "vassalage": "VASSAL"}
-            current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
+            current_diplo = ctx.world.get_diplomatic_state(ctx.world.player_nation, ctx.target_nation) if ctx.target_nation else "PEACE"
             target_diplo = _state_map.get(proposal_type, "PEACE")
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
             cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
-            if world.diplomatic_points < cost:
-                world.dialogue_manager.pop()
+            if ctx.world.diplomatic_points < cost:
+                ctx.world.dialogue_manager.pop()
                 return {
                     "success": False,
-                    "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
+                    "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(ctx.world.diplomatic_points)}.",
                     "diplomatic_dialogue": None,
                     "awaiting_diplomatic_response": False,
                 }
-            world.diplomatic_points -= cost
+            ctx.world.diplomatic_points -= cost
 
             # Set Talleyrand in transit
-            mission = getattr(world, 'active_diplomatic_mission', None)
+            mission = getattr(ctx.world, 'active_diplomatic_mission', None)
             _mission_paused_now = False
             if mission and not mission.get("paused"):
                 mission["paused"] = True
                 _mission_paused_now = True
 
-            world.talleyrand_state = "IN_TRANSIT"
+            ctx.world.talleyrand_state = "IN_TRANSIT"
             if _mission_paused_now:
                 # IQ-4: the rail's `paused_transit` beat (see the sibling site).
                 from backend.game_logic.diplomatic_dialogue import (
                     mission_is_live as _live, restate_mission_notice as _restate,
                 )
-                if _live(world):
-                    _restate(world, beat="paused_transit")
-            turn_sent = int(world.current_turn)
+                if _live(ctx.world):
+                    _restate(ctx.world, beat="paused_transit")
+            turn_sent = int(ctx.world.current_turn)
             # Fix 13: "stalled" sabotage adds delivery delay
-            sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
+            sabotage = getattr(ctx.world, 'pending_talleyrand_sabotage', None)
             if sabotage and sabotage.get("defiance_type") == "stalled":
                 turn_sent += 1
 
             # PL-9 Part B: Snapshot acceptance score at send time for tolerance band
             from backend.game_logic.diplomacy import calculate_acceptance as _calc_acceptance
-            _snapshot_result = _calc_acceptance(proposal, world)
+            _snapshot_result = _calc_acceptance(proposal, ctx.world)
             _acceptance_snapshot = int(_snapshot_result.get("score", 0))
 
-            world.proposal_in_transit = {
-                "target": target_nation,
+            ctx.world.proposal_in_transit = {
+                "target": ctx.target_nation,
                 "proposal": proposal,
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
-                "diplomatic_state_at_send": world.get_diplomatic_state(get_player_nation(world), target_nation),  # PL-13-A
+                "diplomatic_state_at_send": ctx.world.get_diplomatic_state(get_player_nation(ctx.world), ctx.target_nation),  # PL-13-A
             }
 
             # Record override if player overrode Talleyrand's objection.
@@ -6207,60 +6332,66 @@ class DiplomaticExecutor:
             # only place the outcome is known. This used to write the literal
             # "override", which the only reader (`get_override_dispatch_note`)
             # matched against "good"/"bad" — so the payoff never fired.
-            if action == "send_override":
+            if ctx.action == "send_override":
                 from backend.commands.diplomatic_defiance import record_override
-                record_override(world, proposal_type, "pending")
+                record_override(ctx.world, proposal_type, "pending")
 
-            world.log_event({
+            ctx.world.log_event({
                 "type": "diplomatic_proposal_sent",
-                "target": target_nation,
+                "target": ctx.target_nation,
                 "proposal_type": proposal_type,
             })
 
             from backend.game_logic.dispatch import queue_dispatch_event
-            queue_dispatch_event(world, "diplomatic_proposal_sent",
-                                {"nation": target_nation}, "always")
+            queue_dispatch_event(ctx.world, "diplomatic_proposal_sent",
+                                {"nation": ctx.target_nation}, "always")
 
-            world.dialogue_manager.pop()
-            override_note = " despite Talleyrand's objections" if action == "send_override" else " with Talleyrand's suggested terms"
+            ctx.world.dialogue_manager.pop()
+            override_note = " despite Talleyrand's objections" if ctx.action == "send_override" else " with Talleyrand's suggested terms"
             return {
                 "success": True,
                 "message": (
-                    f"Talleyrand departs for the {target_nation} court{override_note}. "
+                    f"Talleyrand departs for the {ctx.target_nation} court{override_note}. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
                 ),
             }
+        else:
+            return _NEXT_STAGE
 
+    def _choice_counters_and_rebellion(self, ctx: DialogueChoiceContext):
+        """Stage 8 of `_process_dialogue_choice`: A counter-offer accepted or
+        rejected (R2); a vassal's rebellion answered with gold, a garrison, or
+        acceptance (R74)."""
         # ═══════════════════════════════════════════════════════
         # R2: COUNTER-OFFER RESPONSE HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif action == "accept_counter_offer":
-            context = dialogue.get("context", {})
+        if ctx.action == "accept_counter_offer":
+            context = ctx.dialogue.get("context", {})
             counter_terms = context.get("counter_terms", {})
-            source_nation = context.get("source_nation", target_nation)
+            source_nation = context.get("source_nation", ctx.target_nation)
             if not source_nation or not counter_terms:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: counter-offer data missing."}
             # Ratify treaty with counter terms (0 DP cost — already paid on original proposal)
             if "proposer_nation" not in counter_terms:
                 counter_terms["proposer_nation"] = source_nation
             if "target_nation" not in counter_terms:
-                counter_terms["target_nation"] = world.player_nation
-            treaty_event = world._ratify_treaty(counter_terms)
-            world.dialogue_manager.pop()
-            world.incoming_proposal_popup = None
+                counter_terms["target_nation"] = ctx.world.player_nation
+            treaty_event = ctx.world._ratify_treaty(counter_terms)
+            ctx.world.dialogue_manager.pop()
+            ctx.world.incoming_proposal_popup = None
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            ctx.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             # PL-7/PL-5C: Apply acceptance cooldown (same as _handle_accept_ai_proposal)
             from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
-            apply_acceptance_cooldown(source_nation, world)
+            apply_acceptance_cooldown(source_nation, ctx.world)
             treaty_msg = treaty_event.get("message", "") if treaty_event else ""
             # G4F-13: a failed ratification must not read as "accepted".
             # The generator now refuses to author gate-vetoed counters, but
             # the world can drift between authoring and the click.
             if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
-                world.log_event({
+                ctx.world.log_event({
                     "type": "counter_offer_rejected",
                     "source": source_nation,
                     "proposal_type": counter_terms.get("type", "unknown"),
@@ -6273,7 +6404,7 @@ class DiplomaticExecutor:
                         f"ratified: {treaty_msg}"
                     ),
                 }
-            world.log_event({
+            ctx.world.log_event({
                 "type": "counter_offer_accepted",
                 "source": source_nation,
                 "proposal_type": counter_terms.get("type", "unknown"),
@@ -6287,7 +6418,7 @@ class DiplomaticExecutor:
                 "success": True,
                 "message": (
                     f"You have accepted "
-                    f"{with_definite_article(formed_display_name(world, source_nation))}'s "
+                    f"{with_definite_article(formed_display_name(ctx.world, source_nation))}'s "
                     f"counter-proposal. {treaty_msg}"),
             }
             if treaty_event and treaty_event.get("peace_ratification_summary"):
@@ -6296,27 +6427,27 @@ class DiplomaticExecutor:
                 ]
             return result
 
-        elif action == "reject_counter_offer":
-            context = dialogue.get("context", {})
-            source_nation = context.get("source_nation", target_nation)
+        elif ctx.action == "reject_counter_offer":
+            context = ctx.dialogue.get("context", {})
+            source_nation = context.get("source_nation", ctx.target_nation)
             original = context.get("original_proposal", {})
             ptype = original.get("type", "unknown")
             # Apply rejection cooldowns and relation penalty
             if source_nation:
-                world.modify_nation_relation(get_player_nation(world), source_nation, -5)
-                world.player_proposal_cooldowns[source_nation] = 3
+                ctx.world.modify_nation_relation(get_player_nation(ctx.world), source_nation, -5)
+                ctx.world.player_proposal_cooldowns[source_nation] = 3
                 if ptype:
-                    world.player_proposal_cooldowns[f"{source_nation}_{ptype}"] = 5
-            world.dialogue_manager.pop()
-            world.incoming_proposal_popup = None
+                    ctx.world.player_proposal_cooldowns[f"{source_nation}_{ptype}"] = 5
+            ctx.world.dialogue_manager.pop()
+            ctx.world.incoming_proposal_popup = None
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            ctx.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             # PL-7/PL-5C: Apply AI rejection cooldown (prevents immediate re-proposal)
             from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
             if source_nation and ptype:
-                apply_rejection_cooldowns(source_nation, ptype, world)
-            world.log_event({
+                apply_rejection_cooldowns(source_nation, ptype, ctx.world)
+            ctx.world.log_event({
                 "type": "counter_offer_rejected",
                 "source": source_nation,
                 "proposal_type": ptype,
@@ -6328,48 +6459,48 @@ class DiplomaticExecutor:
                 "success": True,
                 "message": (
                     f"You have rejected "
-                    f"{with_definite_article(formed_display_name(world, source_nation))}'s "
+                    f"{with_definite_article(formed_display_name(ctx.world, source_nation))}'s "
                     f"counter-proposal. Relations cooled slightly."),
             }
 
         # ═══════════════════════════════════════════════════════
         # R74: VASSAL REBELLION IMMINENT HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif action == "invest_vassal_rebellion":
-            context = dialogue.get("context", {})
+        elif ctx.action == "invest_vassal_rebellion":
+            context = ctx.dialogue.get("context", {})
             vassal_name = context.get("vassal_name", "")
             if not vassal_name:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "No vassal specified."}
             from backend.game_logic.vassal import (
                 dismiss_rebellion_row,
                 invest_in_vassal, rebellion_popup_for_dialogue,
             )
-            result = invest_in_vassal(world, vassal_name)
+            result = invest_in_vassal(ctx.world, vassal_name)
             # WO-32 (SR-2c): the decision is retired by SUCCESS. A refused
             # Invest (cooldown / gold / DP) used to pop the dialogue and
             # dismiss every rebellion row anyway — Garrison and Accept Risk
             # gone for the turn on a vassal one tick from rebellion.
             if result.get("success"):
-                world.dialogue_manager.pop()
-                world.vassal_rebellion_imminent_popup = None
-                dismiss_rebellion_row(world, vassal_name)
+                ctx.world.dialogue_manager.pop()
+                ctx.world.vassal_rebellion_imminent_popup = None
+                dismiss_rebellion_row(ctx.world, vassal_name)
             else:
                 result["vassal_rebellion_retained"] = True
-                world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
-                    world, dialogue, refusal=str(result.get("message") or ""))
+                ctx.world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
+                    ctx.world, ctx.dialogue, refusal=str(result.get("message") or ""))
             return result
 
-        elif action == "garrison_vassal_rebellion":
-            context = dialogue.get("context", {})
+        elif ctx.action == "garrison_vassal_rebellion":
+            context = ctx.dialogue.get("context", {})
             vassal_name = context.get("vassal_name", "")
             if not vassal_name:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "No vassal specified."}
             # Guard: vassal may have been removed between popup and response
-            if vassal_name not in world.vassals:
-                world.dialogue_manager.pop()
-                world.vassal_rebellion_imminent_popup = None
+            if vassal_name not in ctx.world.vassals:
+                ctx.world.dialogue_manager.pop()
+                ctx.world.vassal_rebellion_imminent_popup = None
                 return {"success": False, "message": f"{vassal_name} is no longer a vassal."}
             # Show the flag: +10 loyalty, costs 2 AP — NO corps moves.
             # IQ-7 review [21] (R3's sibling): the option's copy said "No
@@ -6379,29 +6510,29 @@ class DiplomaticExecutor:
             from backend.display_names import display_nation
             from backend.game_logic.vassal import lord_garrison_present
             _court = display_nation(vassal_name)
-            if world.actions_remaining < 2:
+            if ctx.world.actions_remaining < 2:
                 from backend.game_logic.vassal import (
                     rebellion_popup_for_dialogue,
                 )
                 _refusal = (f"Insufficient AP. Showing the flag in {_court} "
-                            f"costs 2 AP, you have {int(world.actions_remaining)}.")
+                            f"costs 2 AP, you have {int(ctx.world.actions_remaining)}.")
                 # WO-32 (SR-2c): the sibling arm — a refused Garrison kept
                 # the popup slot and the rail row but popped the dialogue,
                 # which is what kills the decision.
-                world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
-                    world, dialogue, refusal=_refusal)
+                ctx.world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
+                    ctx.world, ctx.dialogue, refusal=_refusal)
                 return {"success": False, "message": _refusal,
                         "vassal_rebellion_retained": True}
-            world.actions_remaining -= 2
-            vassal_state = world.vassals.get(vassal_name, {})
+            ctx.world.actions_remaining -= 2
+            vassal_state = ctx.world.vassals.get(vassal_name, {})
             old_loyalty = vassal_state.get("loyalty", 0)
             vassal_state["loyalty"] = min(100, old_loyalty + 10)
-            world.dialogue_manager.pop()
-            world.vassal_rebellion_imminent_popup = None
+            ctx.world.dialogue_manager.pop()
+            ctx.world.vassal_rebellion_imminent_popup = None
             from backend.game_logic.vassal import dismiss_rebellion_row
-            dismiss_rebellion_row(world, vassal_name)
-            _capital = str(world.get_nation_capital(vassal_name) or "their capital")
-            if lord_garrison_present(world, world.player_nation, _capital):
+            dismiss_rebellion_row(ctx.world, vassal_name)
+            _capital = str(ctx.world.get_nation_capital(vassal_name) or "their capital")
+            if lord_garrison_present(ctx.world, ctx.world.player_nation, _capital):
                 _tail = (f"No corps moves — ours already stands in {_capital}, "
                          f"worth +2 a turn.")
             else:
@@ -6416,14 +6547,14 @@ class DiplomaticExecutor:
                 ),
             }
 
-        elif action == "accept_vassal_rebellion":
-            world.dialogue_manager.pop()
-            world.vassal_rebellion_imminent_popup = None
-            context = dialogue.get("context", {})
+        elif ctx.action == "accept_vassal_rebellion":
+            ctx.world.dialogue_manager.pop()
+            ctx.world.vassal_rebellion_imminent_popup = None
+            context = ctx.dialogue.get("context", {})
             vassal_name = context.get("vassal_name", "")
             # WO-32 (SR-2c): this vassal's row, not every rebellion row.
             from backend.game_logic.vassal import dismiss_rebellion_row
-            dismiss_rebellion_row(world, vassal_name)
+            dismiss_rebellion_row(ctx.world, vassal_name)
             return {
                 "success": True,
                 "message": (
@@ -6431,38 +6562,43 @@ class DiplomaticExecutor:
                     f"rebellion will follow."
                 ),
             }
+        else:
+            return _NEXT_STAGE
 
+    def _choice_alliance_paradox(self, ctx: DialogueChoiceContext):
+        """Stage 9 of `_process_dialogue_choice`: The alliance paradox: honour
+        the defender or break with him (R12); an unknown action is refused."""
         # ═══════════════════════════════════════════════════════
         # R12: ALLIANCE PARADOX HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif action == "honor_defender":
-            terms = selected.get("terms", {})
+        if ctx.action == "honor_defender":
+            terms = ctx.selected.get("terms", {})
             attacker_nation = terms.get("attacker", "")
             defender_nation = terms.get("defender", "")
             if not attacker_nation or not defender_nation:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: paradox data missing."}
             from backend.game_logic.diplomacy import (
                 declare_war as _paradox_declare_war,
                 _allocate_episode_id as _paradox_episode_id,
             )
             paradox_episode = (
-                dialogue.get("origin_episode_id")
-                or (dialogue.get("honor_defender_preview") or {}).get("episode_id")
-                or (dialogue.get("breach_preview") or {}).get("episode_id")
+                ctx.dialogue.get("origin_episode_id")
+                or (ctx.dialogue.get("honor_defender_preview") or {}).get("episode_id")
+                or (ctx.dialogue.get("breach_preview") or {}).get("episode_id")
             )
             if not paradox_episode:
-                paradox_episode = _paradox_episode_id(world)
-            honor_preview = dict(dialogue.get("honor_defender_preview") or {})
+                paradox_episode = _paradox_episode_id(ctx.world)
+            honor_preview = dict(ctx.dialogue.get("honor_defender_preview") or {})
             # Honor alliance with defender: declare war on attacker
             war_result = _paradox_declare_war(
-                world,
-                world.player_nation,
+                ctx.world,
+                ctx.world.player_nation,
                 attacker_nation,
                 origin_episode_id=paradox_episode,
             )
             if war_result.get("success"):
-                world.log_event({
+                ctx.world.log_event({
                     "type": "commitment_paradox_resolved",
                     "episode_id": paradox_episode,
                     "chosen_nation": defender_nation,
@@ -6475,24 +6611,24 @@ class DiplomaticExecutor:
                     "reliability_after": honor_preview.get("reliability_after"),
                     "applied_reliability_delta": honor_preview.get("applied_reliability_delta", 0),
                 })
-            world.dialogue_manager.pop()
-            world.commitment_paradox_popup = None
+            ctx.world.dialogue_manager.pop()
+            ctx.world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification
             from backend.notifications import ALLIANCE_CASCADE_WAR
-            world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
+            ctx.world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
             msg = (
-                f"{get_player_nation(world)} honors its alliance with {defender_nation} and declares war on {attacker_nation}!"
+                f"{get_player_nation(ctx.world)} honors its alliance with {defender_nation} and declares war on {attacker_nation}!"
             )
             if war_result.get("message"):
                 msg += f" {war_result['message']}"
             return {"success": True, "message": msg}
 
-        elif action == "break_defender_alliance":
-            terms = selected.get("terms", {})
+        elif ctx.action == "break_defender_alliance":
+            terms = ctx.selected.get("terms", {})
             attacker_nation = terms.get("attacker", "")
             defender_nation = terms.get("defender", "")
             if not attacker_nation or not defender_nation:
-                world.dialogue_manager.pop()
+                ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "Error: paradox data missing."}
             from backend.game_logic.diplomacy import (
                 execute_downgrade as _paradox_downgrade,
@@ -6501,27 +6637,27 @@ class DiplomaticExecutor:
                 _allocate_episode_id as _paradox_episode_id,
             )
             # Break alliance with defender: downgrade step by step to PEACE
-            player = world.player_nation
-            diplo_key = world._make_diplo_key(player, defender_nation)
-            treaty_snapshot = getattr(world, 'active_treaties', {}).get(diplo_key)
+            player = ctx.world.player_nation
+            diplo_key = ctx.world._make_diplo_key(player, defender_nation)
+            treaty_snapshot = getattr(ctx.world, 'active_treaties', {}).get(diplo_key)
             paradox_episode = (
-                dialogue.get("origin_episode_id")
-                or (dialogue.get("break_defender_preview") or {}).get("episode_id")
-                or (dialogue.get("breach_preview") or {}).get("episode_id")
+                ctx.dialogue.get("origin_episode_id")
+                or (ctx.dialogue.get("break_defender_preview") or {}).get("episode_id")
+                or (ctx.dialogue.get("breach_preview") or {}).get("episode_id")
             )
             if not paradox_episode:
-                paradox_episode = _paradox_episode_id(world)
+                paradox_episode = _paradox_episode_id(ctx.world)
             breach_preview = dict(
-                dialogue.get("break_defender_preview")
-                or dialogue.get("breach_preview")
+                ctx.dialogue.get("break_defender_preview")
+                or ctx.dialogue.get("breach_preview")
                 or {}
             ) or None
-            if treaty_snapshot or world.get_diplomatic_state(player, defender_nation) in (
+            if treaty_snapshot or ctx.world.get_diplomatic_state(player, defender_nation) in (
                 "ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"
             ):
                 if not breach_preview:
                     breach_preview = _get_treaty_breach_preview(
-                        world,
+                        ctx.world,
                         player,
                         defender_nation,
                         treaty=treaty_snapshot,
@@ -6529,22 +6665,22 @@ class DiplomaticExecutor:
                         fault_nation=player,
                         episode_id=paradox_episode,
                     )
-            current = world.diplomatic_states.get(diplo_key, "PEACE")
+            current = ctx.world.diplomatic_states.get(diplo_key, "PEACE")
             while current in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"):
-                dg_result = _paradox_downgrade(world, player, defender_nation)
+                dg_result = _paradox_downgrade(ctx.world, player, defender_nation)
                 if not dg_result.get("success"):
                     break
                 current = dg_result.get("new_state", "PEACE")
             # Also remove active treaty
-            active_treaties = getattr(world, 'active_treaties', {})
+            active_treaties = getattr(ctx.world, 'active_treaties', {})
             active_treaties.pop(diplo_key, None)
             # GE-1 verification round: the paradox's forced repudiation ends
             # what the pair signed, as a manual `break treaty` does.
             from backend.game_logic.game_end import break_signed_titles
-            break_signed_titles(world, player, defender_nation)
+            break_signed_titles(ctx.world, player, defender_nation)
             if breach_preview:
                 _record_treaty_breach(
-                    world,
+                    ctx.world,
                     breach_preview,
                     new_state=current,
                     trigger_context={
@@ -6554,7 +6690,7 @@ class DiplomaticExecutor:
                         "episode_id": paradox_episode,
                     },
                 )
-            world.log_event({
+            ctx.world.log_event({
                 "type": "commitment_paradox_resolved",
                 "episode_id": paradox_episode,
                 "chosen_nation": attacker_nation,
@@ -6567,22 +6703,22 @@ class DiplomaticExecutor:
                 "reliability_after": (breach_preview or {}).get("reliability_after"),
                 "applied_reliability_delta": (breach_preview or {}).get("applied_reliability_delta", 0),
             })
-            world.dialogue_manager.pop()
-            world.commitment_paradox_popup = None
+            ctx.world.dialogue_manager.pop()
+            ctx.world.commitment_paradox_popup = None
             # Dismiss stale alliance cascade notification
             from backend.notifications import ALLIANCE_CASCADE_WAR
-            world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
+            ctx.world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
             return {
                 "success": True,
                 "message": (
-                    f"{get_player_nation(world)} abandons its alliance with {defender_nation}. "
+                    f"{get_player_nation(ctx.world)} abandons its alliance with {defender_nation}. "
                     f"We side with {attacker_nation} in this conflict."
                 ),
             }
 
         else:
-            world.dialogue_manager.pop()
-            return {"success": False, "message": f"Unknown dialogue action: {action}"}
+            ctx.world.dialogue_manager.pop()
+            return {"success": False, "message": f"Unknown dialogue action: {ctx.action}"}
 
     # ═══════════════════════════════════════════════════════════
     # CONVERSATIONAL TERMS GUIDANCE HELPERS

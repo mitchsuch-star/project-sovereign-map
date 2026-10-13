@@ -77,7 +77,9 @@ class TestDeclareWarSoftLock:
         """The mirror half: the treaty-warning 'Proceed' must not discard an
         objection the player already answered."""
         src = self._source()
-        idx = src.index('elif action == "force_declare_war":')
+        # CODE-2c (October 13, 2026): the dialogue chain is staged; its arms
+        # test `ctx.action`.
+        idx = src.index('elif ctx.action == "force_declare_war":')
         block = src[idx:idx + 1800]
         assert '"confirmed_objection"' in block, (
             "force_declare_war must carry confirmed_objection through, or an "

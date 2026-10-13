@@ -524,7 +524,9 @@ class TestHardenProposalTerms:
 
     def test_the_executor_calls_the_single_source(self):
         src = (REPO / "backend" / "commands" / "diplomatic_executor.py").read_text(encoding="utf-8")
-        start = src.index('elif action == "modify_harsh":')
+        # CODE-2c (October 13, 2026): the dialogue chain is staged; its arms
+        # test `ctx.action`.
+        start = src.index('elif ctx.action == "modify_harsh":')
         body = src[start:start + 3000]
         assert "harden_proposal_terms(" in body
         assert "Escalate existing demands by 1.5x" not in body

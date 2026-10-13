@@ -226,13 +226,16 @@ def _extract_post_hud_route_ids(source: str) -> List[str]:
 
 
 def _extract_executor_settlement_dispatch_actions(source: str) -> List[str]:
+    # CODE-2c (October 13, 2026): `_process_dialogue_choice` is a driver of
+    # `_choice_*` stages behind one context, so each arm's test reads
+    # `ctx.action`; the three dispatch arms stay `elif`s in the first stage.
     handler_anchor = (
         "from backend.game_logic.settlement_actions import (\n"
         "                handle_settlement_dialogue_action,\n"
         "            )"
     )
     pre_handler = source.split(handler_anchor, 1)[0]
-    elif_open = pre_handler.rfind("elif action in (")
+    elif_open = pre_handler.rfind("elif ctx.action in (")
     assert elif_open != -1
     tuple_block = pre_handler[elif_open:]
     tuple_body = tuple_block.split("):", 1)[0]
@@ -246,7 +249,7 @@ def _extract_executor_incoming_offer_dispatch_actions(source: str) -> List[str]:
         "            )"
     )
     pre_handler = source.split(handler_anchor, 1)[0]
-    elif_open = pre_handler.rfind("elif action in (")
+    elif_open = pre_handler.rfind("elif ctx.action in (")
     assert elif_open != -1
     tuple_block = pre_handler[elif_open:]
     tuple_body = tuple_block.split("):", 1)[0]
@@ -263,7 +266,7 @@ def _extract_executor_ally_petition_dispatch_actions(source: str) -> List[str]:
         "            )"
     )
     pre_handler = source.split(handler_anchor, 1)[0]
-    elif_open = pre_handler.rfind("elif action in (")
+    elif_open = pre_handler.rfind("elif ctx.action in (")
     assert elif_open != -1
     tuple_block = pre_handler[elif_open:]
     tuple_body = tuple_block.split("):", 1)[0]
@@ -519,7 +522,7 @@ def test_process_dialogue_choice_dispatches_every_settlement_action_to_handler()
     pre_handler = text.split(handler_anchor, 1)[0]
     # Take the last `elif action in (...)` block before the import; the
     # tuple body sits between the opening `(` and the closing `):`.
-    elif_open = pre_handler.rfind("elif action in (")
+    elif_open = pre_handler.rfind("elif ctx.action in (")
     assert elif_open != -1, (
         "Could not locate the `elif action in (` dispatch tuple "
         "immediately above the handle_settlement_dialogue_action import."

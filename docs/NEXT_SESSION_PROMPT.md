@@ -1,152 +1,128 @@
-# NEXT SESSION PROMPT — Pre-Deploy S10b: CODE-2c, the two DD-1 left whole
+# NEXT SESSION PROMPT — Pre-Deploy S11: UXR-3, the look-and-feel review
 
 > Overwritten each time a session hands off. Current hand-off: **October 13,
-> 2026, after S10 (CODE-2b) closed and every open decision was ruled.**
-> `execute_command`, `format_event_oneliner` and `_execute_strategic_command`
-> are each a driver of named stages; functions over 500 lines 33 → 30;
-> `score_run check` identical at every cut. The staging tool now lives in
-> `tools/`.
->
-> **Closing S10 found the gap this session fills.** CODE-2 named eight
-> functions and DD-1 was to absorb two of them. It never split them:
-> `DiplomaticExecutor._process_dialogue_choice` is still 2,210 lines and
-> `WorldState._ratify_treaty` 1,024. The user ruled them **S10b, CODE-2c**,
-> before UXR-3.
+> 2026, after S10b (CODE-2c) closed.** `_ratify_treaty` and
+> `_process_dialogue_choice` are drivers of nine stages each. Functions over 500
+> lines read 28, and **CODE-2 is DONE**: none of its eight named functions is
+> over 500 lines.
 >
 > **Nothing waits on the user.** On October 13 the user said "make all
-> decisions". EG-D1 … D3, UXR-D4 (now row S12b) and CODE-5 / CODE-6 (S16–S17,
-> after the deploy) are ruled, and the design ledger reads 0 open. UXR-4, the
-> user's own eyes, is scheduled at S15 with the deploy.
+> decisions … nothing hanging". Every fork this session could meet is decided
+> below. UXR-4, the user's own eyes at 5120×1440, is scheduled at S15 with the
+> deploy, and their marks override the readers' there.
 >
-> Records: `docs/CODE_HEALTH_PLAN.md` §CODE-2b landing records (slices 1–3)
-> and §CODE-2c (the contract, with the elif-chain design decided on
-> measurement). Routing authority: `docs/PRE_DEPLOY_PLAN.md` §2, row S10b. The
-> Score Finish residue stays PAUSED until S14.
+> Records: `docs/UX_UI_REVIEW_PLAN.md` §UXR-3 (the contract), §UXR-0 … §UXR-2
+> (the instruments and their landing records). Routing authority:
+> `docs/PRE_DEPLOY_PLAN.md` §2, row S11. The Score Finish residue stays PAUSED
+> until S14.
 >
 > Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-**Pre-Deploy S10b — CODE-2c, the two monster functions DD-1 left whole.** Routing authority is `docs/PRE_DEPLOY_PLAN.md` §2, row S10b.
-- Work directly on master per `CLAUDE.md`, and commit and push each slice.
+**Pre-Deploy S11 — UXR-3, the look-and-feel review.** Routing authority is `docs/PRE_DEPLOY_PLAN.md` §2, row S11.
+- Work directly on master per `CLAUDE.md`, and commit and push each part.
 - Run `git fetch origin` first and read `git log -5 --stat` before touching anything.
 - **Every decision is already made** (the user's ruling, October 13, 2026: "make all decisions … nothing hanging"). This prompt is the approved plan:
-  - Do not stop for Plan Mode approval, and do not pause between slices.
-  - Run slice 1, commit and push, then slice 2, commit and push, then close.
-  - The rules under "If something breaks" settle every fork; ask the user nothing.
+  - Do not stop for Plan Mode approval, and do not pause between parts.
+  - The rules under "Decided in advance" settle every fork; ask the user nothing.
+- **No CODE-1 batch at this session's head:** October has not closed. The November batch takes the head of the first session that starts on or after November 1, 2026.
 
-**The work.** `docs/CODE_HEALTH_PLAN.md` §CODE-2 holds the recipe and the earlier records; §CODE-2c holds this row's contract.
-- **Slice 1: `WorldState._ratify_treaty`** (`backend/models/world_state.py`, 1,024 lines).
-  - Shape: 76 top-level statements, 61 local imports, one nested `try`, three bare `return None`s. The largest statement is the 292-line `if is_player_treaty:`.
-  - Its `TARGETS` entry: `src="backend/models/world_state.py"`, `cls="WorldState"`, `func="_ratify_treaty"`, `params=["proposal"]`, `prefix="_ratify_"`, `ctx_class="RatifyTreatyContext"`, `mode="body"`, `confine=True`.
-  - Cut at the statement families: the state map, the clause loops, the forced-alliance block, the player-treaty block and the close. Name each stage after its family.
-  - Its guard sequence already lives in `treaty.can_sign` (DD-1 S7 Slice B); do not move it back.
-- **Slice 2: `DiplomaticExecutor._process_dialogue_choice`** (`backend/commands/diplomatic_executor.py`, 2,210 lines).
-  - Shape: 73 local imports. Its head is a docstring, three `from … import`s and `target_nation = dialogue.get("target_nation", "")`.
-  - Then ONE `if action == "dismiss": … elif …` chain: 2,195 lines and 73 arms. The largest arm is 187 lines (`execute_ultimatum`). No test binds a name, and the chain ends in its own `else` (the unknown-action reply).
-  - **Build the elif-chain mode** in `tools/stage_fn.py` (`mode="elif"`) to the design `CODE_HEALTH_PLAN.md` §CODE-2c records:
-    - Each stage is one `if t_k: … elif …` run, with a synthetic final `else: return _NEXT_STAGE`.
-    - Every arm body moves UNTOUCHED. A matched arm that falls off its end returns `None`, as the old function did, so no `return None` is appended.
-    - The last stage keeps the original `else` and gets no synthetic one.
-  - **The proof refuses unless:**
-    - every arm body is AST-equal to the old one, with the shared names as `ctx.<name>`;
-    - the tests appear in the old order;
-    - each non-final stage's only addition is its synthetic `else`;
-    - the original `else` sits in the last stage;
-    - no stage is over 500 lines.
-  - **The context.** Only one arm runs per call, so it holds only `action`, `selected`, `dialogue`, `world` and `target_nation`. The three head imports take the tool's existing repeat-per-stage road. The symtable check still refuses any stage that reads an old local it never bound; that is how the F2 class (a local import shadowing a module name) surfaces, so keep it on.
-  - **Naming.** The `TARGETS` entry takes `prefix="_choice_"` and `ctx_class="DialogueChoiceContext"`, with `cls="DiplomaticExecutor"` and `params=["action", "selected", "dialogue", "world"]`. Cut the runs at the arms' family boundaries (settlement, proposal, ultimatum, modify, mission, alliance, the rest), about 5–8 stages, each named after its family.
-- **Done when:**
-  - neither function is over 500 lines;
-  - `FUNCTIONS_OVER_500_CAP` in `tests/test_code_health_ratchet.py` reads 28 (30 now);
-  - CODE-2's own done-when (none of the eight named over 500) is recorded as MET.
+**What this session is.** A REVIEW, not a fix session:
+- read every surface against a frozen checklist;
+- name the worst five;
+- file every ✗ as a row owned by S12.
 
-**The tool:** `tools/stage_fn.py`, plus `tools/pin_scan.py` and, as a model, `tools/oneliner_sweep.py`.
-- **How it runs:**
-  - `.venv/Scripts/python.exe tools/stage_fn.py <target>` is a dry run that writes the gitignored `tools/stage_fn_out/<target>_staged.py`.
-  - `--apply` writes the source; `--no-confine` compares against slice 1's rule.
-  - Each target is a `TARGETS` entry.
-- **What it proves:** every stage AST-equal to the old body, with the shared names as `ctx.<name>`. A symtable check refuses any stage that reads an old local it never bound.
-- **S10's four changes are in it:**
-  - `confine=True` turns on two rules:
-    - **confine:** a name bound only inside branches that always return or raise stays local;
-    - **split:** a name every stage binds before reading stays local.
-  - an import road for a module with no `typing` line;
-  - the `{x=}` refusal reads the f-string's source text;
-  - the proof expects `simple=0` on an annotated `ctx.` target.
-- **Already checked for both targets:** neither module uses `field`, `dataclass` or `_NEXT_STAGE` as a name, and both already import `typing`, so the tool's default imports apply.
+It changes nothing a player sees. S12 ("UXR-3 fixes") takes the rows, worst surfaces first.
 
-**Read first, in this order:**
-- `CODE_HEALTH_PLAN.md` §CODE-2, the CODE-2b slice 2–3 records and §CODE-2c.
-- `tests/test_code2b_the_strategic_order_is_staged.py`, the method-driver shape pin to model `tests/test_code2c_the_ratifier_is_staged.py` and `tests/test_code2c_the_dialogue_choice_is_staged.py` on.
-- `tests/_staged_functions.py`, the generic helper: add an owner tuple per new driver, as `strategic_command()` does.
-- `tests/test_code_health_ratchet.py` and `tools/_code_health_census.py`.
+**Part 1 — freeze the checklist, its own commit, before any reading.**
+- Write `docs/UX_CHECKLIST_V1.json`: the eight items R1–R8 of §UXR-3, each with its judge (instrument / reader / driven) and its exact pass rule as decided below.
+- Write the surface list: the ten groups in §UXR-3's order, each split into the concrete surfaces the IQ-10 manifest (`tools/iq10_capture_payloads.py`) already names.
+- Add a pin, `tests/test_uxr3_checklist_frozen.py`. It checks the file's eight ids, its surface order, and a SHA of its canonical JSON recorded in the test, so an edit after the reading fails.
+- Commit and push. Every reading after this reads THAT file.
 
-**The net.** A split that passes all of these byte-for-byte has not changed behaviour:
-- DD-1's own instruments: `tests/test_dd1_sign_ability_sweep.py`, `test_dd1_treaty_fuzzer.py`, `test_dd1_answer_binding_shuffle.py`, `test_dd1_s7_can_sign.py`, `test_dd1_s7_one_exit.py`, `test_dd1_s8_the_verbs.py`;
-- the settlement suites;
-- `score_run check`:
-  - run `tools/score_run.py check --run docs/audits/score_runs/2026_10_05_sfr` (about 7 s);
-  - it rewrites four archive files, so run `git checkout -- docs/audits/score_runs/2026_10_05_sfr/` after each run;
-  - diff the stdout before and after the cut.
-- `BASELINE_SERIES` + M1–M7.
-- For slice 2, also a before/after dialogue sweep modelled on `tools/oneliner_sweep.py`:
-  - every `action` string the chain tests, through `_process_dialogue_choice`, on a fresh 1805 world with a stub dialogue;
-  - outputs and exceptions written to JSON on the tree before the cut and after, the two files identical.
+**Part 2 — the evidence.**
+- **The frames:** `tools/iq10_run_captures.py` over the whole manifest at the five `PHYSICAL_RESOLUTIONS` of `tools/uxr0_readability_report.py` (1920×1080, 2560×1440, 3440×1440, **5120×1440**, 3840×2160).
+- **The instruments:**
+  - R1: `tools/uxr0_readability_report.py` (run with `-X utf8`);
+  - R3: `tools/uxr2b_contrast_report.py`;
+  - R4: the override census (`RAW_RATCHET` in `tests/test_uxr2_override_diet.py`) and the theme-token reading;
+  - R7: the readability record's clipped / off-screen / under-a-modal flags.
+- **The driven records (R5 and R6):** the existing driven harnesses (`tools/mode_c_driven_session.py` and the per-surface `.gd` harnesses in `tools/`). A surface with no driven record yet gets one in the same pattern.
 
-**Find the pins BEFORE the run — S10 found four of its five this way; the hook found the fifth:**
-- `tools/pin_scan.py <src> <staged>` lists every test string literal that matched the file before the cut and not after. A shared local now reads `ctx.world`, so a pin on `world.get_marshal(target)` must name `ctx.world.get_marshal(ctx.target)`. Same assertion, where the code now lives.
-- Grep the tests for each function's name AS A STRING. A census that selects functions by name (S10's NPC-12) passes VACUOUSLY over a short driver. Name the stages, read off the driver.
-- Grep the tests for censuses that EXTRACT an expression and compare it for equality (S10's WO-17 `passable_for` census wanted `marshal.location` exactly). The literal scan cannot see these, because the old text survives as a substring of the `ctx.` form.
+**Part 3 — the reading.**
+- **Three blind readers**, as Agent-tool subagents launched in ONE message so they run in parallel. Each gets:
+  - the frozen checklist;
+  - the frames;
+  - the instrument and driven records.
 
-**If something breaks — decided in advance:**
-- **The proof refuses a stage:** move the cut or fix the tool's rule. Never hand-edit moved code to satisfy the proof.
-- **A pin fails on text:** re-point it to where the code now lives, with the same assertion. Never weaken it or delete it.
-- **A net moves by a byte:** the cut is wrong. Revert the apply, find the cause, cut again. Never re-record a series and never re-score.
-- **A stage is over 500 lines:** cut that run finer.
-- **The hook dies with a `MemoryError`:** retry it plainly.
-- **Any other failure:** fix the cause and commit again; never use `--no-verify`.
-- **If slice 2's elif mode cannot be proven inside the session:**
-  - land slice 1 alone;
-  - record slice 2's state in §CODE-2c, with the tool's progress committed;
-  - rewrite this file for slice 2.
-  - The row is not struck until both functions land.
+  None sees the others' marks, and none is told what the instruments concluded beyond the records themselves.
+- Each returns a mark and a cited frame per surface × reader-judged item. Aggregate two-of-three as `tools/score_panel.py eyes` does, and record the spread (3–0 or 2–1).
+- Write `docs/audits/UXR3_REVIEW_2026_10_<day>.md`:
+  - the surface × item table;
+  - each surface's score out of 8;
+  - the worst five named;
+  - the spread per mark;
+  - every frame cited.
+- **File every ✗** as a `docs/BUG_FIXES.md` row in a new section `§UXR-3 — the review`, each with its frame. The tag is `⟨SF step=pre-deploy S12 · UXR-3 <surface> · pillar=ui_ux⟩`, so `test_score_finish_step0.py` accepts it. The owner is S12 ("UXR-3 fixes"); the completion is the item re-read ✓ on that surface. Already-owned rows (UXR-X9, UXR-X28) are cross-referenced, not re-filed.
+- Commit and push, then close (the records below).
+
+**Decided in advance:**
+- **The user's role.** The user's eyes are UXR-4 at S15, where their marks override. This session never waits for them.
+- **R1 runs at all five resolutions.** §UXR-3 says "four", but the instrument reads five and the fifth is the user's own monitor. The stricter reading wins: 0 RED rows at each of the five.
+- **R7 covers 1920×1080, 3840×2160 and the user's 5120×1440.**
+- **R3 thresholds:** body text ≥ 4.5:1 and captions ≥ 3:1, measured by `uxr2b_contrast_report.py` with High contrast OFF (the default a new player sees). High contrast ON is recorded beside it but never scores.
+- **R4 fails on a one-off colour or size** found by the census (an override outside the named theme steps, a grey not routed through `Utils.toned` / `toned_hex` / the COLOR tokens). A reader's "looks inconsistent" without a census hit is recorded but does not fail the item.
+- **R6 unproven is ✗.** No driven record showing the answer within the frame means the item fails, and the row's fix is the driven proof plus whatever it finds.
+- **Disagreement:** the two-of-three mark stands. A 2–1 ✗ is filed like a 3–0 ✗, with the spread recorded on the row.
+- **"Top five by time on screen"** means §UXR-3's first five groups: the war room, the morning dispatch, the Generals screen, the diplomacy wizard with the settlement table, and the Strategic Ledger.
+- **The Side Desk (UXR-D4)** does not exist yet; it lands at S12b with its own census. This review does not score it.
+- **S11's own done-when:**
+  - every surface in the order has a reading;
+  - every ✗ is filed with owner S12;
+  - the worst five are named.
+
+  §UXR-3's done-when (the top five at 8 of 8, none under 6 of 8) belongs to S12. If the reading already meets it on a surface, record that.
+- **A surface the capture harness cannot reach** gets a ✗ on every item it cannot evidence, filed with the harness gap as the row's first fix. It never gets a "skipped".
+- **No fix lands in S11,** not even a one-liner, so the reading stays a clean baseline for S12's re-read. A crash or a P1 found while reading is the exception: file it as a P1 with owner S12 at the top of the list.
 
 **Traps — earlier sessions paid for each of these:**
-- **`PYTHONDONTWRITEBYTECODE=1` in the shell** fails two `test_fa_slice8_…` stale-bytecode pins on any tree. Check `env | grep PYTHON` first, and run pytest and `git commit` with `env -u PYTHONDONTWRITEBYTECODE`.
-- **Line endings.** Working copies can be CRLF while the blobs are LF (`core.autocrlf=true`; some test files are CRLF on disk, some LF). An edit script must detect the file's own newline. A `sed` replacement carrying `\r` mixes them.
-- **Memory is thin on this machine** (about 1–6 GB free). Never run two Godot engines at once.
-- **The hook.** It runs ruff and the full parallel suite (about 6 min; 30,723 tests on October 13).
-  - Commit with `run_in_background: true` from Bash, using a message file.
+- **Never run two Godot engines at once.** Two shoots crashed with 0xC0000005 (memory is 1–6 GB free). Chain the shoots sequentially in ONE background command.
+- **Capture windows take the user's keystrokes** when they open foreground. The IQ-10 harness sets `root.gui_disable_input` and records `stray_input` / `focus`; read those fields before trusting a frame.
+- **Never touch the user's live 8005 backend.**
+  - A driven harness stubs its api clients (the top bar's too) and refuses `:8005`.
+  - Run any backend you need with `SOVEREIGN_PORT=8006` and `INK_IRON_SAVE_DIR` set, or it rewrites the user's autosave.
+- **A headless Godot root viewport is 64×64.** A driven layout harness needs `--windowed --resolution 1600x900 --position 5200,20`, and `root.mode/size` set on its first tick.
+- **`iq10_capture_payloads.py --only X` rewrites the manifest.** Never edit a `.gd` during a shoot.
+- **`PYTHONDONTWRITEBYTECODE=1` in the shell** fails two stale-bytecode pins. Run pytest and `git commit` with `env -u PYTHONDONTWRITEBYTECODE`.
+- **The hook** runs ruff and the full parallel suite (about 6–8 min; about 30,760 tests at S10b).
+  - Commit with `run_in_background: true` from Bash, using a message file and never `--no-verify`.
   - Make no tracked edit while it runs.
   - Read the hook log's `[pre-commit]` and `EXIT=` lines before believing a commit.
-- **Shell.** A Bash heredoc mangles backslashes, and `sed` escapes are a trap. Write scripts with the Write tool and run them by path.
-- **Git.** Never `git add -A`; stage by name.
-- **Ledgers.** A new OPEN row in `BUG_FIXES.md` needs an `⟨SF step=… · pillar=…⟩` tag (`test_score_finish_step0.py`).
-- **Running things.** `ruff` is not on Bash's PATH: use `".venv/Scripts/python.exe" -m ruff check backend/`. Never kill a `-m backend.main` process.
+- **Shell.** A Bash heredoc mangles backslashes and apostrophes. Write scripts with the Write tool and run them by path.
+- **Git.** Never `git add -A`; stage by name. Frames a record names are force-added (`git add -f`); the regenerable bulk under `docs/audits/score_runs/**/frames/` is ignored.
+- **Line endings.** Working copies can be CRLF while the blobs are LF. An edit script must detect the file's own newline.
 - **Docs caps.**
-  - `CLAUDE.md` sits at 61,981 / 62,000 B: pay for every new word by trimming the oldest LIVE STATE row.
+  - `CLAUDE.md` sits at 61,982 / 62,000 B: pay for every new word by trimming the oldest LIVE STATE row.
   - `STATUS.md` keeps seven ▶ blocks at most; the oldest goes to `docs/archive/STATUS_2026_Q4.md`, newest first.
 
 **Code-health rules in force:**
-- A new lever lives one session past its attribution, then retires at the next slice's head (`tools/retire_lever.py`). CODE-1's November batch takes its head once October closes.
+- A new font size is a theme step, not an override (`RAW_RATCHET` 11). Any dim grey goes through `Utils.toned` / `toned_hex` / the COLOR tokens.
 - A fix lands in the stage that owns it:
   - a combat fix in its `_attack_<stage>`;
   - a standing-order fix in its `_strategic_<stage>`;
   - a log line in its `_oneliner_<family>`;
-  - and, after this session, a dialogue answer in its `_choice_<family>` and a ratification clause in its `_ratify_<stage>`.
-- A new font size is a theme step, not an override (`RAW_RATCHET` 11). Any dim grey goes through `Utils.toned` / `toned_hex` / the COLOR tokens.
+  - a dialogue answer in its `_choice_<family>`;
+  - a ratification clause in its `_ratify_<stage>`.
+- A new lever lives one session past its attribution, then retires at the next slice's head (`tools/retire_lever.py`).
 
-**The records each commit carries:**
-- `CODE_HEALTH_PLAN.md`: a CODE-2c landing record per function, with the stage list written BEFORE the cut.
-- `PRE_DEPLOY_PLAN.md` §2: the S10b row, struck when both land.
-- `STATUS.md` ▶ NEXT UP.
-- `CLAUDE.md`:
-  - the LIVE STATE line;
-  - the File Reference row for `diplomatic_executor.py`;
-  - the "Before Modifying" rows for diplomacy execution and the settlement's ratifier.
-- At the close, this file rewritten for S11 (UXR-3, `UX_UI_REVIEW_PLAN.md` §UXR-3), with every S11 decision made in it as this one was, so nothing waits on the user.
+**The records the close carries:**
+- `UX_UI_REVIEW_PLAN.md` §UXR-3: the landing record, with the reading's numbers and the worst five.
+- `PRE_DEPLOY_PLAN.md` §2: the S11 row, struck.
+- `STATUS.md` ▶ NEXT UP: a new S11 block.
+- `CLAUDE.md`: the LIVE STATE line.
+- This file, rewritten for S12 (UXR-3 fixes, worst five first), with every S12 decision made in it as this one was, so nothing waits on the user.
 
 **Open with the user:** nothing. UXR-4 (their eyes at 5120×1440) is scheduled at S15 with the deploy.
 
-**Do not:** change balance, re-score, touch the Score Finish residue, add a lever, weaken a gate or a ratchet, re-record a series without a stated reason, or tune an instrument to a fix.
+**Do not:** change balance, re-score, touch the Score Finish residue, add a lever, weaken a gate or a ratchet, edit the checklist after Part 1's commit, or fix during the reading.
