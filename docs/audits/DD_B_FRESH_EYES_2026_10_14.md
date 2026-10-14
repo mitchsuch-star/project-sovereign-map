@@ -264,7 +264,9 @@ deliberately does not hold. Neither class is a P1.
 
 **Ruled the same day** (after this write-up, under the user's delegation "make
 design calls please do research …"): all nine are decided in
-`docs/audits/DD_B_RULINGS_2026_10_14.md`, their builds homed to S13b (now five
+`docs/audits/DD_B_RULINGS_2026_10_14.md`, their builds homed to S13b (four
 parts), SFR-B3 moved to S14's head, and the plan's guarantee (every open row
-has a session; the sibling sweep; S13c if the re-measure misses; the release
-build waits for 0 open defect rows) written into `PRE_DEPLOY_PLAN.md` §2.
+has a session; the sibling sweep; the release build waits for 0 open defect
+rows) written into `PRE_DEPLOY_PLAN.md` §2. The same day the user brought VP-1,
+the events and the table lesson before the deploy (S14b … S14d); the
+re-measure follows them as S14e, its rows S14f.

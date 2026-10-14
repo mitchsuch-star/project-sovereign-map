@@ -4,7 +4,7 @@ similar errors they find while working").
 
 `docs/PRE_DEPLOY_PLAN.md` §2 states the guarantee: every open row has a
 session; the sibling sweep files what a fix finds; the re-measure's rows
-become S13c; the release build waits for 0 open defect rows. This pin holds
+become S14f; the release build waits for 0 open defect rows. This pin holds
 the first clause on the ledgers themselves: every OPEN row of
 `docs/BUG_FIXES.md` and `docs/DESIGN_REFINEMENT.md` (read by the ONE census,
 `tools/defect_census.py`, archives included) names a session of the plan in
@@ -23,7 +23,7 @@ from tools import defect_census as census  # noqa: E402
 
 # The sessions left in the plan's §2 table, and the slice names that live in
 # them (the Score Finish residue's SF-RR slices are S14's).
-SESSION = re.compile(r"\bS13b\b|\bS13c\b|\bS14\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
+SESSION = re.compile(r"\bS13b\b|\bS14[b-f]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
 
 
 def _open_rows():
@@ -50,13 +50,24 @@ class TestThePlanHomesEveryRow:
         claude = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
         assert "10. **Sibling sweep**" in claude
 
+    def test_the_items_brought_before_the_deploy_have_their_rows(self):
+        """The user, October 14, 2026: "add events to plan as well … i agree with
+        rest … make sure everything reflects future plans"."""
+        plan = (REPO / "docs" / "PRE_DEPLOY_PLAN.md").read_text(encoding="utf-8")
+        for row in ("| S14b ", "| S14c ", "| S14d ", "| S14e ", "| S14f "):
+            assert row in plan, row
+        assert "**Code signing**" in plan
+        roadmap = (REPO / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        assert "## ▶ WHERE THE FUTURE WORK LIVES" in roadmap
+        assert "Pre-Deploy S14c" in roadmap and "Pre-Deploy S14b" in roadmap
+
     def test_the_dd_b_design_rows_are_ruled_and_their_builds_open(self):
         rows = census.collect()
         for n in range(1, 10):
             assert rows[f"DDB-D{n}"]["state"] == "closed", f"DDB-D{n} is ruled"
         # A build is tracked as a defect row: OPEN until it lands, then closed by
         # its FIXED / BUILT line — never disposed, never dropped.
-        for rid in [f"DDB-R{n}" for n in range(1, 8)] + [f"DDB-X{n}" for n in range(1, 5)] + ["SFR-B3"]:
+        for rid in [f"DDB-R{n}" for n in range(1, 8)] + [f"DDB-X{n}" for n in range(1, 7)] + ["SFR-B3"]:
             assert rid in rows and rows[rid]["state"] in ("OPEN", "partial", "closed"), rid
             if rows[rid]["state"] != "closed":
                 assert SESSION.search(str(rows[rid].get("owner") or "") + " " + str(rows[rid].get("finding") or "")), rid

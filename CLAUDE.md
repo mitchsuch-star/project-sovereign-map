@@ -35,11 +35,11 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 14, 2026).** The three most recent landed rows:
-- **S13 (October 14, 2026) — DD-B the fresh-eyes campaign — LANDED; done-when NOT met.** 3 roads × 20 turns in the client: 69 causes, 11.5 per 10 turns, 3 P1; 62 rows → S13b; 9 design rows ruled (`docs/audits/DD_B_RULINGS_2026_10_14.md`). **NEXT = S13b part 1.**
+- **S13 (October 14, 2026) — DD-B the fresh-eyes campaign — LANDED; done-when NOT met.** 69 causes, 11.5 per 10 turns, 3 P1 → S13b; 9 design rows ruled; VP-1, events and the table lesson brought before the deploy (S14b–d; `docs/audits/DD_B_RULINGS_2026_10_14.md`). **NEXT = S13b part 1.**
 - **S12b (October 14, 2026) — UXR-D4 the Side Desk + UXR-X28 — LANDED.** Six screens pin beside a live map; map furniture 71 → 0.
-- **S12 part 2 (October 14, 2026) — UXR-3 fixes closed — LANDED; S12 STRUCK.** Re-read 977 → 1,149 ✓; 11 R2 marks to UXR-4.
+- **S12 part 2 (October 14, 2026) — UXR-3 fixes — LANDED; S12 STRUCK.** Re-read 977 → 1,149 ✓.
 
-**Open with the user:** UXR-4 alone (the eyes-on sign-off at 5120×1440, S15, with S12's 11 R2 marks).
+**Open with the user:** UXR-4 (their eyes at 5120×1440, S15, with S12's 11 R2 marks) and a code-signing certificate before S15.
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

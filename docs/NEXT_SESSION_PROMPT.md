@@ -20,21 +20,28 @@
 > the table):
 > - every open row has a session;
 > - the sibling sweep holds in every part;
-> - the re-measure feeds S13c if needed;
+> - the re-measure (S14e, after the new features) feeds S14f if needed;
 > - the release build waits for 0 open defect rows.
 >
-> **Nothing waits on the user.** Paste everything below the line as the opening message of a fresh session.
+> **Brought before the deploy the same day (the user: "add events to plan as well … i agree with rest"):**
+> VP-1 "The Emperor's Designs" (S14b), the events system (S14c), the table lesson (S14d), DW-2 (DDB-X5, in
+> this part), the naval rail alerts (DDB-X6, part 4) and code signing (S15). `docs/ROADMAP.md` §"Where the
+> future work lives" is the reconciled map of everything after the deploy.
+>
+> **Nothing waits on the user** (a code-signing certificate is theirs before S15, not before this part). Paste
+> everything below the line as the opening message of a fresh session.
 
 ---
 
-**Pre-Deploy S13b part 1 — DD-B fixes: the three P1s (S13b-1, with DDB-D8 and DDB-D9's mechanics built), then the table's P2s (DDB-4 … 12).**
+**Pre-Deploy S13b part 1 — DD-B fixes: the three P1s (S13b-1, with DDB-D8 and DDB-D9's mechanics built), then the table's P2s (DDB-4 … 12) and DW-2 (DDB-X5).**
 
-Routing authority is `docs/PRE_DEPLOY_PLAN.md` §2, row S13b (five parts):
+Routing authority is `docs/PRE_DEPLOY_PLAN.md` §2, row S13b (four parts):
 - **part 1** — this prompt;
 - **part 2** — the table's P3s and the field (DDB-13 … 20, 22 … 44);
 - **part 3** — the rulings and their siblings (DDB-R1 … R7, X1 … X3);
-- **part 4** — the voice, the client and the sea (DDB-21, 45 … 62);
-- **part 5** — the re-measure.
+- **part 4** — the voice, the client and the sea (DDB-21, 45 … 62) and the naval rail alerts (DDB-X6).
+
+After S13b: S14 (SF-RR7 + the Score Finish residue), S14b VP-1, S14c the events, S14d the table lesson, S14e DD-B's re-measure (S14f its rows), S15 UXR-4 + code signing + the deploy.
 
 Each row in `docs/BUG_FIXES.md` §DD-B carries its cause (file:line) and its **decided fix**: that is the spec, so implement it as written. The rulings' research is `docs/audits/DD_B_RULINGS_2026_10_14.md` §2; read the D8 and D9 sections before DDB-2 and DDB-3.
 
@@ -199,10 +206,16 @@ Each row gets one class, `TestDDB<n>`, as its completion names it. Drive the rea
 
 **DDB-12:** a co-belligerent's homeland province, retaken from the enemy by an ally, is titled back to its home nation by the status quo. A province's home nation is its `starting_controller`. The review lists it.
 
+**DDB-X5 (DW-2, brought before the deploy by the user):**
+- Find the bilateral acceptance's war-dominance credit (×0.3) and the settlement scorer's (×0.65); set the bilateral constant to the settlement's felt weight. It is one constant.
+- Retune the pins that depend on it, re-verify the G4F-9 ladder, and re-pin any moved series with "DDB-X5 (DW-2)" as the reason.
+- Land it with DDB-11, so the per-court chip's bilateral estimate and the table agree on the same terms.
+- **Test:** `tests/test_ddb_s13b_the_rulings.py::TestDDBX5` — the sea #15 shape (Britain at the table) scores the same terms within the band at both.
+
 ### The close
 
 **Rows:**
-- S13b-1 and DDB-4 … 12 FIXED in `BUG_FIXES.md` §DD-B (commits and tests).
+- S13b-1, DDB-4 … 12 and DDB-X5 FIXED in `BUG_FIXES.md` §DD-B (commits and tests).
 - `DESIGN_REFINEMENT.md` DDB-D8 / D9: "✅ BUILT" with the commit.
 - Any found rows FIXED.
 

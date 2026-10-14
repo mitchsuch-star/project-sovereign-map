@@ -1,5 +1,7 @@
 # Seasons & Weather — "The General Winter" (HC-6)
 
+> **⚑ October 14, 2026 — the home:** **content update 2, after Early Access** (`ROADMAP.md` §"Where the future work lives" §3), its §6 questions still the user's; the display-only SW-0 may come earlier on the user's word. It is not in the pre-deploy plan.
+
 > **⚑ September 27, 2026 (later) — the UI/UX plan and the fun review are added.** This is build contract only; no §6 question is ruled here, and they still wait for the build session.
 > - §7 plans every season surface on screen, with its file and its proof.
 > - §8 states the decisions, the moments, the anti-frustration rules and the falsifiable fun targets.

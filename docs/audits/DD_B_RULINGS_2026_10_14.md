@@ -373,10 +373,27 @@ immunity" (Pressburg). The row is P2, filed October 5 and homed to ROADMAP 13, a
    on the other courts, dialogues, popups and roads, and the AI's side of the same executor.
    - Each sibling found is filed as a found row with its tag and fixed in the same slice, with its own test.
    - A sibling too large for the slice heads the next part. Nothing found is ever homed after the deploy.
-3. **The re-measure.** S13b's last part re-plays the three roads with fresh players. Its new rows are filed by
-   DD-B's rule. If the done-when is not met, they become **S13c**, sized at that close, before S14.
+3. **The re-measure.** Fresh players re-play the three roads. Its new rows are filed by DD-B's rule. If the done-when
+   is not met, they become a fix row sized at that close, before the deploy. *(Moved the same day, after the user
+   brought VP-1, the events and the table lesson before the deploy: the re-measure is **S14e**, after them, so it
+   reads the game Round 0 will meet, and its rows become **S14f** before S15 — `PRE_DEPLOY_PLAN.md` §2.)*
 4. **The deploy gate.** S15's release build does not start while any defect row is OPEN. The UXR-4 marks are read
    and fixed at S15's head, before the build.
+
+## 5. Brought before the deploy (the same day)
+
+After an inventory of everything scheduled after the deploy, weighed against the fresh-eyes evidence, the user ruled ("add events to plan as well and update doc i agree with rest make sure everything reflects future plans"):
+
+| Item | From | Now |
+|---|---|---|
+| **VP-1 "The Emperor's Designs"** — France's own objectives and a decisive-peace triumph; absorbs WO-D4(b) and SF-ECON-1 | ROADMAP 12 | Pre-Deploy **S14b** (gate + build, ≈ 3.0) |
+| **Events and historical moments** — the engine and a first 1805–07 deck; the Diplomacy & Flavor Content Menu picked at its gate | ROADMAP §8.5, the August 3 cut list | Pre-Deploy **S14c** (gate + build, ≈ 4.0) |
+| **The table lesson** — R159 (screens name their mechanic) and the School's second lesson | 8.EVAL's Pre-EA Onboarding pass | Pre-Deploy **S14d** (≈ 1.5) |
+| **DW-2** — the bilateral scorer's victory weight | 8.EVAL's Pre-EA Balance pass | **DDB-X5**, S13b part 1 |
+| **The naval rail alerts** | `NAVAL_SPEC.md` §17.3 / §18.4 | **DDB-X6**, S13b part 4 |
+| **Code signing** | ROADMAP 16 | Pre-Deploy **S15** (the user's certificate owed before it) |
+
+DD-B's re-measure moved after them (**S14e**, its rows **S14f**), so it reads the game Round 0 will meet. The plan grows to about 31–32 sessions before the deploy. Everything else after the deploy has its home in `ROADMAP.md` §"Where the future work lives" (reconciled the same day: the road to EA, content update 1 — the LLM narration bundle and DEF-15 — content update 2 — Seasons — and the later ideas, each behind its own gate).
 
 ## Sources
 

@@ -2,7 +2,47 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** August 3, 2026 — **DEF-5 naval BUILT COMPLETE (NV-0..NV-11 + NV-V) and DP-1 fixed August 3**; **the AI Intent phase CLOSED August 1** (Stages A–G + the AI-V sweep). HEAD `e3edb4e`, suite 15,901/3, ruff clean. The forward queue is **§Current Phase Queue** below; see `docs/STATUS.md` §Next Steps for the live session pointer.
+> **Last Updated:** October 14, 2026 — **the forward plan is reconciled in §"Where the future work lives" directly below** (the user: "add events to plan as well … i agree with rest … make sure everything reflects future plans"). Until the deploy, the routing authority is `docs/PRE_DEPLOY_PLAN.md` §2 and `docs/STATUS.md` ▶ NEXT UP; after it, §"The road to Early Access" (rows 11–18). Everything else in this file is the history of how the game got here.
+
+---
+
+## ▶ WHERE THE FUTURE WORK LIVES (reconciled October 14, 2026)
+
+> **This section is the one answer to "is it planned, and when?"** Every forward item has a home here. A table
+> further down that still reads "Planned" for something this section does not name is history: that item is an
+> idea, not a promise, and no store copy or player-facing text may promise it (Golden Rule 9).
+
+### 1. Before the deploy — `docs/PRE_DEPLOY_PLAN.md` §2 (the build external testers get first)
+
+| Session | What lands |
+|---|---|
+| **S13b** (four parts) | DD-B's 62 fixes, the nine design rulings' builds (`docs/audits/DD_B_RULINGS_2026_10_14.md`), their siblings; **DW-2** (the bilateral scorer's victory weight, DDB-X5) and **the naval rail alerts** (blockade begins / lifts, a diversion window opens, DDB-X6) brought forward October 14 |
+| **S14** | **SF-RR7 "the morning of the peace"** (SFR-B3, brought from row 13), then the Score Finish residue SF-RR1 (ii) … RR6 |
+| **S14b** | **VP-1 "The Emperor's Designs"** (brought from row 12): France's own objectives, the decisive-peace triumph short of the Congress; absorbs WO-D4(b) (winning by economic dominance) and SF-ECON-1 (Acts of the Empire). This is "Campaign Objectives" |
+| **S14c** | **Events and historical moments** (brought from §8.5 and the August 3 cut list by the user, October 14): the event engine on the mailbox transport, a first authored 1805–07 deck, paced by the one-crisis tempo rule; the **Diplomacy & Flavor Content Menu** is picked at its gate; the "Positive Events" table below is weighed there too |
+| **S14d** | **The table lesson** — the onboarding pass (R159: every core screen names its mechanic) and the School's second lesson, "The Table" |
+| **S14e / S14f** | DD-B's re-measure (three fresh players in the client) and, if needed, its rows |
+| **S15** | UXR-4 (the user's eyes at 5120×1440), **code signing** (brought from row 16), the release build and the clean-machine run. The release build waits for 0 open defect rows |
+| S16, S17a–d | After the deploy: CODE-6 (the `main.gd` split) and CODE-5 (the four largest files) — byte-identical refactors |
+
+### 2. After the deploy, before Early Access — §"The road to Early Access" below
+
+| Row | What lands |
+|---|---|
+| **11** | Playtest Round 0: 3–5 outside testers on the signed build, with their typed transcripts |
+| **13** | VP-2's remainder: the Napoleon Comparison, HC-D1's mechanical half (glory as a diplomatic term), NPC-D2 (the Seat), NP-D7 (the designs read the Emperor's state), and showing the campaign seed when a campaign begins. The Imperial Peace, the Verdict, the Fall and "Continue the reign" are built; SFR-B3 moved to S14 |
+| **14** | The Steam page (the copy describes the build that exists; it does not promise arguing with generals until row 15 lands) |
+| **15** | CR-6 proper: arguing back with an objecting marshal in plain English (its LLM gate first) |
+| **16** | Pre-EA hardening + Playtest Round 1: AUD-f (a side-effect-free AI evaluator), AUD-d (AI counter-offers that cede real provinces), the S5-D3 hygiene batch, the NAD-1…4 / VP-D2 / VP-D3 sweeps, Settings completed, 8–12 testers |
+| **17, 18** | The trailer; **Early Access** |
+
+### 3. After Early Access — content updates (each lands with its own gate; none is promised in the EA copy)
+
+| Update | What it carries |
+|---|---|
+| **Content update 1** | **The LLM narration bundle**, its toggle / cost / fallback contract written first: Marshal Voice Tier 2 (LLM drama) and Tier 3 (Full Flavor, opt-in with a cost warning), per-feature LLM toggles and the cost display, Napoleon's Desk, Grouchy's inner monologue, intercepted dispatches, marshal memory, command echoing, the diplomat-voice features, the Gazette's LLM polish. **DEF-15** the Low Countries (Amsterdam on the sea), unless a store screenshot pulls it earlier |
+| **Content update 2** | **HC-6 Seasons & Weather** (`SEASONS_WEATHER_SPEC.md`, gate Q1–Q7 pending; its display-only SW-0 may come earlier on the user's word) with NV-D7 (weather on expeditions) and NV-D8 (the AI's own expeditions) |
+| **Later, each behind its own gate** | Imperial Governance (marshals as governors; needs a spec), the Advisors' stat half and the full system (VISION Layer 1), local-model parsing (decided at its probe), the Battle Gallery, NP-6 "The Three Emperors", AI-3b's sealed articles and AI mediation, NV-D1 / D2 / D5 / D6, the LLM mechanical expansion (a Golden Rule 6 amendment gate), creative-command rewards, Steam achievements and cloud saves, difficulty settings, per-nation music, colour-blind mode and key rebinding, at-will autonomy / administrator / salary, other playable nations, the coalition player, further start dates, Britain playable, Egypt, the campaign editor, the Workshop, multiplayer, courier delay |
 
 ---
 
@@ -100,12 +140,12 @@ Standing deferred rows that survive this staging with owners: DEF-4 (behind the 
 | **SR** *(inserted Sept 26, 2026 by user direction — "make the mandate raising the score in all sections, especially the weakest, and order the chunks by category, leaving bandwidth for quick wins; then technology, asymmetry / national flavor, AP and DP gaps — needs design")* | **THE SCORE MANDATE — `docs/SCORE_MANDATE_PLAN.md` IS THE ROUTING AUTHORITY.** Every pillar rises and none falls, weakest first; nine chunks by category (1 THE ENDING — the road to the Congress, which no prior plan contained: status quo is a cession, the client's war is the lord's war, the gate line teaches the road, PR-D1b, the re-measure → 2 DIPLOMACY → 3 FIRST CONTACT & COMMAND → 4 COMBAT LEGIBILITY & MARSHAL DRAMA → 5 ECONOMY & NAVAL → 6 NARRATION → 7 AI ALIVENESS & LIVING BALANCE → 8 VASSALS & AGENDAS → 9 UI/UX → 3b the rest of CRT), each with 30% reserved for the quick-win bank; then three design gates (SR-D1 technology as reforms, SR-D2 asymmetry / national flavor, SR-D3 the AP and DP gaps). **Absorbs row UPD's Updates 1–5 by category (plan §6); the spine from 11 onward is unchanged.** **⚑ Re-ruled September 26, 2026 (evening) (plan header, §4, §5):** SR-D3 RULED — (c) first as SR-2e "standing orders reliable", no free AP scaling, new points only through SR-D1's Staff reform on both boards; L-D approved; SR-D1 at Chunk 5's gate, SR-D2 (+ HC-6) at Chunk 7's; ONE exit per session and ONE full re-score at the end of the mandate. | ≈22.5 sessions + 3 gates (the gates' builds add ≈2.8 for SR-5r The Laws and ≈2.5 for SR-7d The Doctrines, with their client work sized by the September 27 UI/UX pass — `REFORMS_SPEC.md` §8a, `DOCTRINES_SPEC.md` §4a) | The two played reviews of September 23 and 25 scored the ending at 5.5 and diplomacy at 6.0 with the road to the Congress not on the board; the mandate is to raise every score, weakest first, and to put that road in the plan by name. |
 | **SF** *(inserted Sept 28, 2026 by user direction — "lay out plan to hit all defects, these pillars … then a rescore at the end with improved methods")* | **THE SCORE FINISH — `docs/SCORE_FINISH_SPEC.md` ROUTES THE REST OF ROW SR.** The ledgers are counted by `tools/defect_census.py` and verified at `c20d5bba`: 99 live defect rows, each given a slice; 29 stale defect rows and 45 stale design rows for SF-0 to strike. The build order is nine steps: 0 the ledger + the instrument + the baseline reading · 1 "The peace holds" · 2 Chunk 6 rebuilt · 3 Chunk 7 as one balance block · 4 the three misses' second pass (SF-CL-1, SF-CMD-1, Chunk 3b) · 5 Chunk 8 + agendas · 6 naval/economy close-out · 7 Chunk 9 · 7b the front page of the peace (added Sept 28, 2026) · 8 SF-R the final reading. **The score becomes an instrument:** a fixed benchmark, eight binary items per pillar, a frozen rule and three blind scorers, read once at the baseline and once at the end, with item flips reported at every session exit. The spine from 11 onward is unchanged. **✅ Step 8 READ October 5, 2026** (memo `docs/audits/SCORE_FINAL_2026_10_05.md`): directional 6.71 → 7.50 over 13 of 14; 8 of 14 pillars at target; command capped by one P1 the reading found (SFR-D11); **the done-when is NOT met** — the reading filed 77 rows, homed to **Step 9 "the residue of the final reading"** (≈4.0, SF-RR1 … RR6) and ROADMAP 13. | ≈27.5 sessions + the user's rulings (§6); + Step 9 ≈4.0 | The Sept 28 re-score held ten of fourteen pillars. Six belonged to unstarted chunks, and the score itself was one anchored impression swinging ±0.5 against +0.5 chunk targets. The mandate needed a list of every defect and a ruler that can see a quarter point. |
 | **11** *(was 9, orig 5)* | **Playtest Round 0** — 3–5 testers on the exported build, **three** questions: *could you launch it*, *did you know what to do in ten minutes*, and — added Aug 3 — **keep your typed transcript**: roughly what fraction of your orders were misread, and paste the worst five. *(Aug 7: the build they get now carries sound, a balanced economy, a main menu, a tutorial, dictation if 8(a) verified, and marshals in three voices — the answers measure the game, not its absences.)* Zero build cost. Do **not** set a pass bar; PARSE-NEG shows it is already breached. | non-coding | Every measurement in this project's history has been the developer or an agent. Cheapest possible falsification of positions 12–17. Expect the unsigned-executable SmartScreen flag here — no test in the suite can see it. |
-| **12** *(was 10, orig 6)* | **⚑ Sept 23, 2026:**<br>• **Carved out:** the loss condition and a date-based game end now belong to row **GE** (`docs/GAME_END_SPEC.md`).<br>• ~~**New gate item:** this gate also owns **PB-D1 "the long peace"** (`DESIGN_REFINEMENT.md`). Even with PR-D1b, 29 quiet turns follow the opening war on the commanded-accept arm; France's designs are the first answer.~~ **⚑ Sept 28, 2026:** PB-D1 was RULED via SR-G7 as "The Armed Peace" (`SCORE_FINISH_SPEC.md` §6.2) and is built in the Finish's Step 3. This gate no longer owns it; France's designs remain this gate's own answer.<br>— **Victory & Objectives — GATE, then VP-1 "The Emperor's Designs"** (France's own agenda deck on the NA substrate). Into the gate: objective-shaped **not** a region race; 2–3 paths; branch irreversible; **mark the triumph and continue** (protects EC-6); defeat rides existing W6-7 attrition. Carry the churn number: **42 test files, 115 `game_over` assertions.** *(Aug 7: CA8-D2's settlement half is already landed at 3.8 — the war-score→terms→ending chain this gate inherits now starts from war-level leverage.)* | gate + multi-session | **The game cannot end** — `turn_manager.py:1099` returns `game_over: False` on every Europe world. Unblocked one day ago: `NATION_AGENDAS_SPEC` §9's own blocker was *"design the pass after DEF-5 lands"*, and DEF-5 landed Aug 2. Unblocks All-Dead Loss, Napoleon Comparison and 8.5 Campaign Objectives — and honest store copy. |
-| **13** *(was 11, orig 7)* | **VP-2 "The Ending"** — **⚑ Sept 23, 2026: row GE (`docs/GAME_END_SPEC.md`) takes this row's loss condition and a date-based game end** ("The Verdict of History", marked and continued).<br>• **What remains here:** the objective-shaped triumph, the decisive-peace victory, the Napoleon Comparison (which may anchor on GE's Tilsit date), HC-D1, NPC-D2, NP-D7 and the Emperor's death.<br>• **Reuse:** VP triumphs reuse GE's `record_ending` seam.<br>• **Churn count corrected:** it is 20 test files / 97 lines, not 42 / 115 (that figure counted `__pycache__` and fixtures).<br>— un-gate `_check_victory_conditions` for **design satisfaction only**, triumph screen, keep-playing arm, Napoleon Comparison, the chosen loss condition. **Surface the replay frame:** Stage A's seed + authored variance bands already make every Europe open differently and the game has never told anyone. | multi-session | The arc closes. Split from VP-1 so each lands green against those 115 assertions. Three replay drivers, two already paid for. |
+| **12** *(was 10, orig 6)* | **⚑ Sept 23, 2026:**<br>• **Carved out:** the loss condition and a date-based game end now belong to row **GE** (`docs/GAME_END_SPEC.md`).<br>• ~~**New gate item:** this gate also owns **PB-D1 "the long peace"** (`DESIGN_REFINEMENT.md`). Even with PR-D1b, 29 quiet turns follow the opening war on the commanded-accept arm; France's designs are the first answer.~~ **⚑ Sept 28, 2026:** PB-D1 was RULED via SR-G7 as "The Armed Peace" (`SCORE_FINISH_SPEC.md` §6.2) and is built in the Finish's Step 3. This gate no longer owns it; France's designs remain this gate's own answer.<br>— **⚑ October 14, 2026: VP-1 BROUGHT BEFORE THE DEPLOY as Pre-Deploy S14b (gate + build) by user direction; this row is carried there.** **Victory & Objectives — GATE, then VP-1 "The Emperor's Designs"** (France's own agenda deck on the NA substrate). Into the gate: objective-shaped **not** a region race; 2–3 paths; branch irreversible; **mark the triumph and continue** (protects EC-6); defeat rides existing W6-7 attrition. Carry the churn number: **42 test files, 115 `game_over` assertions.** *(Aug 7: CA8-D2's settlement half is already landed at 3.8 — the war-score→terms→ending chain this gate inherits now starts from war-level leverage.)* | gate + multi-session | **The game cannot end** — `turn_manager.py:1099` returns `game_over: False` on every Europe world. Unblocked one day ago: `NATION_AGENDAS_SPEC` §9's own blocker was *"design the pass after DEF-5 lands"*, and DEF-5 landed Aug 2. Unblocks All-Dead Loss, Napoleon Comparison and 8.5 Campaign Objectives — and honest store copy. |
+| **13** *(was 11, orig 7)* | **VP-2 "The Ending"** — **⚑ October 14, 2026: what remains here is listed in §"Where the future work lives" §2 (SFR-B3 moved to Pre-Deploy S14; VP-1 to S14b).** **⚑ Sept 23, 2026: row GE (`docs/GAME_END_SPEC.md`) takes this row's loss condition and a date-based game end** ("The Verdict of History", marked and continued).<br>• **What remains here:** the objective-shaped triumph, the decisive-peace victory, the Napoleon Comparison (which may anchor on GE's Tilsit date), HC-D1, NPC-D2, NP-D7 and the Emperor's death.<br>• **Reuse:** VP triumphs reuse GE's `record_ending` seam.<br>• **Churn count corrected:** it is 20 test files / 97 lines, not 42 / 115 (that figure counted `__pycache__` and fixtures).<br>— un-gate `_check_victory_conditions` for **design satisfaction only**, triumph screen, keep-playing arm, Napoleon Comparison, the chosen loss condition. **Surface the replay frame:** Stage A's seed + authored variance bands already make every Europe open differently and the game has never told anyone. | multi-session | The arc closes. Split from VP-1 so each lands green against those 115 assertions. Three replay drivers, two already paid for. |
 | **14** *(was 12, orig 10)* | **STEAM PAGE GOES LIVE.** **Written constraint (added Aug 3):** the copy describes the build that exists at **14**, not the one CR-6 delivers at 15. Headline verb is *"command your marshals by typing orders"* — which is true; *"or speak them"* is ALSO true (the 8(a) live spoken check passed Aug 8, 2026). *"Argue with your generals"* is **not** true at 12 (CR-5b flavour is live-only; `delegation.py` mode-gates personality bias). The LLM is a **named optional mode**, disclosed. **AI provisioning/monetization plan of record = `docs/audits/LLM_MONETIZATION_RESEARCH_2026_08_14.md`** (Aug 14, 2026, 5-agent research workflow over shipped Steam AI games + Valve policy + cost model + sentiment): **v1 = mock-default + reframed BYOK ("Connect your Anthropic account", never "API key"), sell NOTHING AI-related in EA; token packs are NEVER built (the AI2U retreat); a parser subscription is never built (AI Dungeon's review profile); local-model parsing is the v2 flagship; a bounded dev-paid courtesy tier only if EA telemetry shows BYOK friction.** The memo carries the store-page AI-disclosure draft, the Steam Content Survey guardrail story, the three Settings-copy fear-answers, and six §6 owner questions (BYOK on day one? lead with "no AI required"? telemetry? local-model gate timing? flavor-line toggle? Anthropic-terms re-check). | non-coding | All four real prerequisites now exist: Steamworks account (2), a build that runs elsewhere (8), a sentence about what a campaign is *for* (10–11), screenshots from the shipping export (8) — now with sound under them. |
 | **15** *(was 13, orig 11)* | **CR-6 *proper* — Conversational Objection Negotiation.** Gate first: may the LLM classify a free-text rebuttal into the **existing deterministic** Insist/Trust/Compromise buckets? That is the GR6 boundary case and the user's call. Mock fallback = today's three buttons. | gate + multi-session | The most VISION-central unbuilt feature in the repo. Placed after the voiced build deliberately: if the gate returns *no*, the trailer is already made of positions 4 + 7 and nothing is stranded. **Note: the CR-6 gate slot was consumed once by the S5-D1 bare-attack mini-gate — this is the other CR-6.** **And (September 23, 2026):** the typed-road defect rows that were routed to "CR-6 proper" (IQ9-X1..X3, IQ7-X7, the September-19 review verdicts) were never this feature's work. The CR-6 triage re-homed every one to slices **CRT-1 … CRT-11** (`COMMAND_ROBUSTNESS_SPEC.md` §12). This row is the feature and its gate only. |
 | ~~**14-old**~~ | ~~**Tutorial System**~~ **MOVED to position 7 by the Aug-7 second amendment** (user direction: main menu + tutorial immediately after econ). The old rationale ("late on purpose: a tutorial teaches *final* mechanics") is recorded on the new row as consciously overruled. | — | Provenance row only. |
-| **16** *(was 15, orig 13)* | **Pre-EA hardening + Playtest Round 1** — ~~UI-2d-1 first (the only open soft-lock class)~~ *(PB-7, Sept 26 2026: UI-2d-1 CLOSED by F3 + IQ-10 — the decision modals clamp; the soft-lock class is empty)*; *(Aug 7: the CA8 backlog clause is DISCHARGED — the section closed at 3.8; IGR-X9 + EWC-F1/F2 moved to position 5's gate)*; S5-4; sweep NAD-1..4, VP-D2/D3, S5-D3; complete Settings; **code signing** so an unsigned PyInstaller server does not trip SmartScreen; 8–12 external testers. | multi-session | The open defect list is genuinely small and all P2/P3 — this codebase is in unusually good repair. |
+| **16** *(was 15, orig 13)* | **Pre-EA hardening + Playtest Round 1** — ~~UI-2d-1 first (the only open soft-lock class)~~ *(PB-7, Sept 26 2026: UI-2d-1 CLOSED by F3 + IQ-10 — the decision modals clamp; the soft-lock class is empty)*; *(Aug 7: the CA8 backlog clause is DISCHARGED — the section closed at 3.8; IGR-X9 + EWC-F1/F2 moved to position 5's gate)*; S5-4; sweep NAD-1..4, VP-D2/D3, S5-D3; complete Settings; ~~**code signing**~~ *(**moved to Pre-Deploy S15 October 14, 2026**, so Round 0 already gets a signed build)*; 8–12 external testers. | multi-session | The open defect list is genuinely small and all P2/P3 — this codebase is in unusually good repair. |
 | **17** *(was 16, orig 14)* | **Trailer** — commissioned at 9, delivered here, onto a page that has been accumulating wishlists since 14. | non-coding | Its true prerequisites — audio (4), personality lines (9), a payoff moment, a validated loop — are all landed by here. |
 | **18** *(was 17, orig 15)* | **EARLY ACCESS** | — | Ships a game that runs on a stranger's computer, ends, teaches itself, has sound and music, opens on a real front door, can take spoken orders, and whose marshals speak in three voices. |
 
@@ -114,7 +154,7 @@ Standing deferred rows that survive this staging with owners: DEF-4 (behind the 
 2. **The ending before all content polish, and it is mark-and-continue, never a race.** A game that cannot end is not shippable, and three rows are *blocked* behind `sandbox_mode`.
 3. **The narrative budget goes to the pitch (CR-6, Marshal Voice), not the newspaper (Gazette) or the stat block (Advisors).** `backend/game_logic/` contains **zero LLM calls today** — the Gazette is not a content slice, it is an architecture slice (the row being cut, `ROADMAP:601`, says *"via single LLM call"*, so the objection is aimed at exactly the thing being cut). **And it is redundant with the Morning Dispatch**, which already prints a scored headline, a foreign-affairs column and a signed editorial every turn — `ROADMAP:601` scopes the EA gazette as *"written from French perspective"*, which is what the Dispatch already is.
 
-**Cut to post-EA, each with a named owner row** (memo §4): Events System · ~~Gazette "Le Moniteur"~~ *(**un-cut Aug 14, 2026 by user direction — now slice HC-G of row HC**, re-scoped DETERMINISTIC so the Aug-3 objection — "first `game_logic` LLM call" — no longer applies; gate record `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7a)* · Imperial Governance (merge the duplicated `:548`/`:725` rows first) · ~~Voice-to-Text~~ *(un-cut Aug 7, 2026 by user direction — now position 8 after the second renumbering, approach-gated)* · the Advisors stat half.
+**Cut to post-EA, each with a named owner row** (memo §4): ~~Events System~~ *(**un-cut October 14, 2026 by user direction — "add events to plan as well" — now Pre-Deploy S14c**)* · ~~Gazette "Le Moniteur"~~ *(**un-cut Aug 14, 2026 by user direction — now slice HC-G of row HC**, re-scoped DETERMINISTIC so the Aug-3 objection — "first `game_logic` LLM call" — no longer applies; gate record `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7a)* · Imperial Governance (merge the duplicated `:548`/`:725` rows first) · ~~Voice-to-Text~~ *(un-cut Aug 7, 2026 by user direction — now position 8 after the second renumbering, approach-gated)* · the Advisors stat half.
 
 **The dissent, kept because it may be right** (memo §5): the measured floor is not packaging, it is **the enemy phase as theater at 5.5** — the lowest score any pillar has received, never re-measured since its five fixes landed Aug 1. **Position 1 arbitrated it on August 3, 2026 and the dissent WON:** the re-measure came back **6.0**, below the 6.5 target, so the composition slice **has moved to position 3, ahead of the shippable build**, exactly as this clause provided. The clause is now spent — see the queue.
 
@@ -615,28 +655,31 @@ Player: "I offer Austria peace if they cede Tyrol"
 
 ## Phase 8.5: Events, Goals & National Identity
 
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
+
 **Goal:** Campaigns have narrative, nations feel distinct, player has objectives beyond "conquer."
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **Events System** | Random + historical events with choices | High | Planned |
+| **Events System** | Random + historical events with choices | High | **▶ Pre-Deploy S14c** (October 14, 2026) |
 | **National Goals** | AI nation intent + formables ("Redeem Italy", the Risorgimento formation; "Unite Germany" REJECTED as post-period) | Medium | **SPECCED July 17, 2026; NA-0+NA-1 BUILT July 17, 2026** — `NATION_AGENDAS_SPEC.md` v1.2 (NA-0..3 core + NA-5 ultimatums + NA-6 Formable Dreams; Free Ireland → DEF-5); player-France goals → Pre-Ship Victory & Objectives Pass (agenda-substrate seed, spec §9) |
 | **National Flavor** | ~~France FEELS different from Austria~~ **National doctrines** (SR-D2, RULED September 27, 2026 by the user; `docs/DOCTRINES_SPEC.md`): a strength and a flaw for each of the five great powers, each flaw cured by a reform law | Medium | **RULED** — built at the Score Mandate's Chunk 7 (SR-7d) |
 | **Light Tech/Reforms** | ~~Simple upgrades: conscription, tactics, administration~~ **"Reforms of State" — laws with upkeep** (SR-D1, RULED September 27, 2026 by the user; `docs/REFORMS_SPEC.md`): a named 1805 act bought once and paid for in gold every turn; the Staff is the only road to a fifth action point, on both boards | Medium | **RULED** — built at the Score Mandate's Chunk 5 head (SR-5r) |
-| **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | Planned |
+| **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | **▶ Pre-Deploy S14b** — VP-1 "The Emperor's Designs" (October 14, 2026) |
 | **Battle History Screen** | Detailed past-battle viewer (ledger sub-tab or standalone). Full modifier breakdowns including coordination stats (combined arms %, per-ally %, dedicated %, adjacent %, total). Replaces coordination data removed from Berthier's Report modifier snapshots in Gate 4. | Low | Planned |
-| Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | Planned |
+| Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | **▶ Pre-Deploy S14c**, the 1805–07 moments (October 14, 2026) |
 | **Imperial Governance Events** | Marshal-as-governor events, personality-driven regional outcomes. See `FUTURE_DESIGN.md`. | Medium | Planned |
 | **Gazette System** | ~~Period newspaper every 3-5 turns, LLM-generated~~ **SUPERSEDED Aug 14, 2026 → slice HC-G of row HC** (deterministic v1, every 5 turns + forced specials, dated by the HC-0 calendar; contract = `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7a) | Medium | **▶ Queued (row HC)** |
-| **Marshal Voice (Tier 1)** | Template personality responses for all events | Low | Planned |
-| **Marshal Voice (Tier 2)** | LLM personality for high-drama moments | Medium | Planned |
-| **Music & Sound (Core)** | Battle drums, march, tension, ambient | Medium | Planned |
+| **Marshal Voice (Tier 1)** | Template personality responses for all events | Low | ✅ **BUILT August 8, 2026** (row 9) |
+| **Marshal Voice (Tier 2)** | LLM personality for high-drama moments | Medium | Content update 1 (the LLM narration bundle) |
+| **Music & Sound (Core)** | Battle drums, march, tension, ambient | Medium | ✅ **BUILT August 7, 2026** (row 4; `MUSIC_SOUND_SPEC.md` §3) |
 | **Grouchy Moment LLM** | LLM narrates Grouchy's inner monologue when ignoring cannon fire | Low | Planned |
 | **Intercepted Dispatches** | Scout results as captured enemy letters | Low | Planned |
 | **Marshal Memory** | Similar situation recurs -> marshal references last time | Low | Planned |
 | **Napoleon's Desk** | Turn-start LLM briefing from chief of staff | Low | Planned |
 | **Command Echoing** | Combat reports reference player's original phrasing | Low | Planned |
-| **Napoleon Comparison** | Post-game: compare your campaign to real Napoleon | Low | Planned |
+| **Napoleon Comparison** | Post-game: compare your campaign to real Napoleon | Low | Row 13 (VP-2's remainder, after the deploy) |
 
 ### Gazette System ("Le Moniteur")
 
@@ -793,6 +836,9 @@ citing it as a blocker.
 
 ## Phase 9: Advisors (Minimal)
 
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
+
 **Goal:** Empire feels run by people. Advisors provide stats + flavor, not action gating.
 
 | Feature | Description | Complexity | Status |
@@ -818,6 +864,9 @@ Example: Metternich as Austria's advisor gives Diplomacy +2 (better peace terms,
 
 ## Phase 10: Character & People (Minimal)
 
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
+
 **Goal:** Marshals feel like people who live, die, and can be replaced. If all marshals die, you lose.
 
 | Feature | Description | Complexity | Status |
@@ -839,6 +888,9 @@ The condition arrived at the Marshal Content Pass and the evaluation ran at its 
 ---
 
 ## Phase 11: Vassals & Britain
+
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
 
 **Goal:** Client states work, France's empire makes geographic sense, and Britain threatens through subsidies/naval pressure once the relevant map and movement rules exist.
 
@@ -873,28 +925,31 @@ To beat Britain: exhaust their willingness to fund coalitions (war score / diplo
 
 ## Pre-EA Polish
 
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
+
 **Goal:** Game is shippable, onboardable, monetizable.
 
 **Tutorial policy:** TUTORIAL_SCRIPT.md is updated every phase (3-5 rows per feature). `TutorialManager` infrastructure + Short Waterloo Scenario scripting happens here, built against stable Map Renderer scene tree + final mechanics. See TUTORIAL_SCRIPT.md "Update Policy" section.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Tutorial System + Content | Build `TutorialManager` (deferred from Phase 6.5) + populate from TUTORIAL_SCRIPT.md. Build against stable Map Renderer scene tree. | Medium | Planned |
-| **LLM Monetization** | BYOK + token tiers + payment | High | CRITICAL |
+| Tutorial System + Content | Build `TutorialManager` (deferred from Phase 6.5) + populate from TUTORIAL_SCRIPT.md. Build against stable Map Renderer scene tree. | Medium | ✅ **BUILT August 8, 2026** — the School of War (row 7); its second lesson "The Table" is Pre-Deploy S14d |
+| **LLM Monetization** | BYOK + token tiers + payment | High | Plan of record: mock-default + BYOK, **nothing AI-related sold in EA; token packs never built** (`docs/audits/LLM_MONETIZATION_RESEARCH_2026_08_14.md`) |
 | **LLM Feature Toggles** | Per-feature model/on-off selection in settings | Low | Planned |
 | At-will Autonomy | Grant autonomy anytime (gold-gated, one admin slot) | Low | Planned |
 | At-will Administrator | Sideline marshal for +1 AP (gold-gated) | Low | Planned |
 | Increase Salary | Gold -> Trust conversion | Low | Planned |
 | Modding Polish | Finish tools, docs, examples | Low | Nearly done |
 | LLM Efficiency | Caching, optimization | Medium | Planned |
-| Settings Menu | Audio, display, controls, LLM settings | Low | Planned |
+| Settings Menu | Audio, display, controls, LLM settings | Low | ✅ **BUILT** (S1b, October 9, 2026, and S9b); completed at row 16 |
 | Steam Integration | Achievements, cloud saves | Medium | Planned |
 | **Music & Sound (Polish)** | Full period orchestral, per-nation themes | Medium | Planned |
 | Difficulty Settings | AI bonuses, player handicaps | Low | Planned |
 | **Full Flavor Toggle** | Tier 3 marshal voice (opt-in with cost warning) | Low | Planned |
 | **LLM Cost Display** | Per-feature token usage in settings | Low | Planned |
-| **Voice-to-Text** | Speak orders naturally — feeds into existing parser pipeline | Medium | Planned |
-| **Short Waterloo Scenario** | 10-15 turn tutorial scenario, 3 marshals, reuse current 19-region data | Medium | Planned |
+| **Voice-to-Text** | Speak orders naturally — feeds into existing parser pipeline | Medium | ✅ **v1 BUILT August 8, 2026** (OS dictation, row 8) |
+| **Short Waterloo Scenario** | 10-15 turn tutorial scenario, 3 marshals, reuse current 19-region data | Medium | Superseded by the School of War's Danube lesson (row 7) |
 
 ### LLM Settings UI
 
@@ -930,6 +985,9 @@ Killer feature for the "talk to your marshals" fantasy. Player speaks commands, 
 ---
 
 ## 1805 Campaign Launch (Early Access)
+
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
 
 **Goal:** Option C — commission full Europe map, wire partial regions, expand over EA updates.
 
@@ -1000,9 +1058,12 @@ EA v1: Western + Central Europe (~80 regions). EA updates add Eastern Europe, ex
 
 ## Post-EA Expansion
 
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
+
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| **Full Europe (120+ regions)** | HIGH | Wire remaining provinces from existing art |
+| **Full Europe (120+ regions)** | HIGH | ✅ **Shipped July 2, 2026** — 126 provinces, fully wired |
 | Multi-Nation Play | HIGH | Play as Austria, Russia, etc. |
 | Coalition Player | HIGH | Lead coalition against France |
 | Additional Start Dates | HIGH | 1809, 1812, 1815 scenarios |
@@ -1011,11 +1072,11 @@ EA v1: Western + Central Europe (~80 regions). EA updates add Eastern Europe, ex
 | **Communication / Courier Delay** | MEDIUM | Distance-based turn lag, Napoleon's HQ location matters, player-only (Option A) |
 | **Full Advisor System** | MEDIUM | Action gating, trust, dismissal (VISION Layer 1) |
 | **North Africa / Egypt** | MEDIUM | Expansion map art, Egyptian campaign scenario |
-| Weather System | MEDIUM | Russian winter, mud season |
+| Weather System | MEDIUM | Content update 2 — HC-6 Seasons & Weather (`SEASONS_WEATHER_SPEC.md`, gate pending) |
 | Campaign Editor | MEDIUM | Player-made scenarios |
 | Steam Workshop | MEDIUM | Mod sharing |
 | **Multi-Nation Battle Reports** | LOW | Thread player_nation from world state through combat resolver. Currently hardcoded to France. Tests document exact wiring point. |
-| Accessibility | MEDIUM | Colorblind, fonts, keybinding |
+| Accessibility | MEDIUM | Text size and High contrast ✅ **BUILT** (S9b, October 2026); colour-blind mode and key rebinding later, behind their own gate |
 | Mobile Port | LOW | Touch UI |
 | Multiplayer | LOW | Co-op? Competitive? |
 
@@ -1026,6 +1087,9 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 ---
 
 ## Critical Path to EA
+
+> **Reconciled October 14, 2026:** the statuses in this section are history. Each item's live home is §"Where the future work lives" at the top of this file; an item that section does not name is an idea, not a promise.
+
 
 1. COMPLETE: Strategic Commands, Enemy AI, Serialization/Modding
 2. COMPLETE: V2a Objection System Refactor (all 7 units)
@@ -1046,7 +1110,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 13. Phase 11: Vassals (loyalty + authority), Britain (naval/subsidy pressure)
 14. Pre-EA: Tutorial content, LLM monetization, **LLM feature toggles**, **Voice-to-Text**, **Waterloo scenario**, Steam integration
 15. ~~Wire ~80-100 regions from commissioned map~~ — **SUPERSEDED July 2, 2026**: all 126 provinces shipped fully wired with the real-map cutover.
-16. **TBD 2026: Early Access**
+16. **TBD 2026: Early Access** — the live path is §"Where the future work lives" at the top of this file (October 14, 2026)
 
 ---
 

@@ -3,6 +3,7 @@
 > **CONCEPTUAL DESIGNS** — not yet implemented. Phase scheduling lives in ROADMAP.md.
 > **Entries here are CONCEPTS, not promises.** Nothing in this file ships without an owner row/spec per CLAUDE.md Golden Rule 9; implemented systems are removed from this file as they land.
 > **Last Updated:** July 2, 2026 (Landed systems removed: Phase 8 diplomacy, vassals, coalition triggers, war goals & peace terms)
+> **⚑ October 14, 2026:** each concept's home, if it has one, is `ROADMAP.md` §"Where the future work lives". Events and Campaign Objectives are now Pre-Deploy rows (S14c, S14b); Imperial Governance stays a concept that needs a spec; "AI-AI Strategic Intent" below was DELIVERED by the AI Intent phase (July 24 – August 1, 2026).
 
 ---
 
