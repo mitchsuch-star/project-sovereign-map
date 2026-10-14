@@ -141,6 +141,10 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	panel.set_meta("is_active", is_active)
 	panel.set_meta("item_type", item_type)
 	panel.gui_input.connect(_on_row_gui_input.bind(panel))
+	# UXR3-63 (Pre-Deploy S12): the row opens its letter, so it shows the hand
+	# and says "Open ▸" — it was a card with no visible press.
+	panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	panel.tooltip_text = "Open this letter"
 
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.12, 0.18, 0.96) if is_active else Color(0.07, 0.08, 0.12, 0.94)
@@ -197,6 +201,13 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	type_label.theme_type_variation = &"Caption"
 	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))
 	top_row.add_child(type_label)
+
+	var open_label = Label.new()
+	open_label.text = "Open ▸"
+	open_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	open_label.theme_type_variation = &"Caption"
+	open_label.add_theme_color_override("font_color", Utils.UI_GOLD)
+	top_row.add_child(open_label)
 
 	var turn_label = Label.new()
 	turn_label.text = "Turn %d" % arrival_turn

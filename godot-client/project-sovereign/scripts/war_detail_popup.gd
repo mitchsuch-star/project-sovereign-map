@@ -577,7 +577,9 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 			line += "  WE:" + str(int(float(we)))
 		line += "  " + army
 		if opp_name == leader:
-			line = "[u]" + line + "[/u]"
+			# UXR3-13 (Pre-Deploy S12): an underline read as a link and the row
+			# is no control; the leader is marked in words.
+			line = "[b]" + line + "[/b]  [color=" + COLOR_GOLD + "]— leads the coalition[/color]"
 		bbcode += "  " + line + "\n"
 
 	# Coordination

@@ -11,6 +11,9 @@ extends CanvasLayer
 
 signal closed
 signal open_envoys_requested
+# UXR3-23 (Pre-Deploy S12): a TODAY order chip types its order into the
+# command line; the dispatch closes onto it.
+signal order_typed(command: String)
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -30,7 +33,15 @@ func _ready():
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
 	# before its parent can scroll. PASS still delivers _gui_input.
 	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	content_label.meta_clicked.connect(_on_meta_clicked)
 	hide()
+
+
+func _on_meta_clicked(meta) -> void:
+	var m := str(meta)
+	if m.begins_with("type:"):
+		order_typed.emit(m.substr(5))
+		close_view()
 
 func open(api_client):
 	"""Fetch dispatch from backend and display it."""
@@ -544,7 +555,9 @@ func _on_dispatch_received(response):
 			var today_header = str(today.get("orders_header", "Orders the board will take at once:"))
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_header + "[/color]\n"
 			for order in today_orders:
-				bbcode += "[color=#" + Utils.COLOR_COMMAND + "]    • " + str(order) + "[/color]\n"
+				# UXR3-23 (S12): a chip that types the order (it never sends).
+				bbcode += "    " + Utils.bb_button_chip("type:" + str(order), str(order),
+						Utils.COLOR_COMMAND, "233043") + "\n"
 		var today_doors = str(today.get("doors", ""))
 		if today_doors != "":
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_doors + "[/color]\n"

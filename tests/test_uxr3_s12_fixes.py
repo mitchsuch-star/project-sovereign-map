@@ -286,3 +286,124 @@ class TestColouredTextKeepsItsHueAndClearsTheFloor:
         title = GS.node_block(scene, "TitleLabel")
         assert "theme_override_colors/font_color = Color(0.82, 0.41, 0.41, 1)" in title
         assert CR.ratio((0.82, 0.41, 0.41), CR._hex("1a1a2e")) >= CR.BODY_FLOOR
+
+
+# ═══ Part 3 — R5 / R6, the controls that answer nothing ═══════════════════════
+# (UXR3-12 … 14, 23, 37, 38, 43, 63, 67, 68, and R6's SILENT halves)
+#
+# Decided (honest availability): a control that cannot act in the current
+# state is DISABLED, with its reason as a tooltip. The readers' inert-looking
+# controls are drawn as what they are, or stop looking like links.
+
+def _code(rel: str) -> str:
+    return GS.code_lines(GS.read(PROJECT / rel))
+
+
+class TestTheOpenBooksTabIsSelectedAndDisabled:
+    def test_the_shared_rule(self):
+        body = _func(_src("scripts/utils.gd"), "mark_active_tab")
+        assert "tab.disabled = active" in body
+        assert 'const ACTIVE_TAB_TIP := "You are reading this book"' in _src("scripts/utils.gd")
+        assert "tab.tooltip_text = ACTIVE_TAB_TIP" in body
+        # it keeps the selected look, never the greyed disabled one
+        assert 'tab.add_theme_stylebox_override("disabled", active_style)' in body
+        assert 'tab.add_theme_color_override("font_disabled_color", tab.get_theme_color("font_color"))' in body
+
+    @pytest.mark.parametrize("script", ["strategic_ledger.gd", "diplomatic_ledger.gd"])
+    def test_both_ledgers_mark_it(self, script):
+        body = _func(_src(f"scripts/{script}"), "_update_tab_highlights")
+        assert "Utils.mark_active_tab(tab_buttons[i], i == current_tab, _active_tab_style)" in body
+
+
+class TestTheWarRoomsControlsSayWhenTheyCannotAct:
+    def test_execute_waits_for_an_order(self):
+        main = _code("scripts/main.gd")
+        assert "command_input.draw.connect(_refresh_send_button)" in main
+        assert 'const EXECUTE_EMPTY_TIP := "Type an order first"' in main
+        assert "send_button.disabled = not enabled" not in main
+        enable = _func(_src("scripts/main.gd"), "set_input_enabled")
+        assert "_input_open = enabled" in enable and "_refresh_send_button()" in enable
+        refresh = _func(_src("scripts/main.gd"), "_refresh_send_button")
+        assert "Utils.set_available(send_button, _input_open and not empty" in refresh
+
+    def test_the_map_reports_its_view(self):
+        rend = _code("scenes/map_renderer_base.gd")
+        assert "signal view_changed" in rend
+        for name in ("_set_camera_zoom_level", "_set_camera_position", "_update_zoom_floor"):
+            assert "view_changed.emit()" in _func(_src("scenes/map_renderer_base.gd"), name), name
+        assert "func is_at_min_zoom() -> bool:" in rend and "func is_fit_view() -> bool:" in rend
+
+    def test_zoom_out_and_fit_follow_the_view(self):
+        main = _src("scripts/main.gd")
+        assert "map_area.view_changed.connect(_refresh_map_controls)" in main
+        body = _func(main, "_refresh_map_controls")
+        assert "not map_area.is_at_min_zoom()" in body and "ZOOM_OUT_FLOOR_TIP" in body
+        assert "not map_area.is_fit_view()" in body and "FIT_EUROPE_DONE_TIP" in body
+
+    def test_the_helper_writes_only_on_change(self):
+        body = _func(_src("scripts/utils.gd"), "set_available")
+        assert "if button.disabled == available:" in body
+        assert "if button.tooltip_text != tip:" in body
+
+
+class TestSettingsAndTheTitleScreen:
+    def test_connect_needs_a_key_and_disconnect_a_connection(self):
+        src = _src("scripts/settings_panel.gd")
+        body = _func(src, "_refresh_key_buttons")
+        assert 'Utils.set_available(_connect_btn, _key_edit.text.strip_edges() != ""' in body
+        assert 'Utils.set_available(_disconnect_btn, UiSettings.get_api_key() != ""' in body
+        assert "_refresh_key_buttons()" in _func(src, "_show_stored_parser_state")
+        for name in ("_on_apply_key", "_on_clear_key"):
+            assert "_refresh_key_buttons()" in _func(src, name), name
+        assert "_key_edit.text_changed.connect(func(_t): _refresh_key_buttons())" in src
+
+    def test_the_menus_settings_answers_while_open(self):
+        src = _src("scripts/main_menu.gd")
+        assert '_add_menu_button("settings", "Settings", _toggle_settings, false)' in src
+        body = _func(src, "_toggle_settings")
+        assert "_close_settings()" in body and "_open_settings()" in body
+
+    def test_a_waiting_campaign_button_says_why(self):
+        src = _src("scripts/main_menu.gd")
+        assert "const WAITING_TIP := \"Waiting for the game's server…\"" in src
+        body = _func(src, "_apply_backend_state")
+        assert body.count("WAITING_TIP") >= 3 and "NO_SAVES_TIP" in body
+
+
+class TestTheInertLookingControls:
+    def test_the_war_huds_header_and_rows_are_drawn_as_controls(self):
+        src = _src("scripts/war_status_panel.gd")
+        chrome = _func(src, "_give_row_chrome")
+        assert "btn.flat = false" in chrome
+        assert "btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND" in chrome
+        for name in ('"normal"', '"hover"', '"pressed"'):
+            assert f"btn.add_theme_stylebox_override({name}" in chrome, name
+        assert "_give_row_chrome(btn)" in _func(src, "_add_coalition_header")
+        assert "_give_row_chrome(row_btn)" in _func(src, "_add_war_entry")
+
+    def test_the_coalition_leader_is_marked_in_words_not_an_underline(self):
+        body = _func(_src("scripts/war_detail_popup.gd"), "_render_coalition_detail")
+        assert "[u]" not in body and "— leads the coalition" in body
+
+    def test_the_settlement_tables_links_live_in_the_labels_text(self):
+        """Its names and '+ Add demand' were always [url] links; append_text
+        left the labels' `text` empty, so the probe read them as absent."""
+        code = _code("scripts/proposal_confirm_popup.gd")
+        for label in ("content_label", "per_court_table", "footer_label"):
+            assert f"{label}.append_text(" not in code, label
+        assert "per_court_table.text = Utils.humanize_nation_keys_in_text(" in code
+
+    def test_todays_orders_are_chips_that_type_the_order(self):
+        src = _src("scripts/dispatch_view.gd")
+        assert 'Utils.bb_button_chip("type:" + str(order), str(order)' in src
+        body = _func(src, "_on_meta_clicked")
+        assert "order_typed.emit(m.substr(5))" in body and "close_view()" in body
+        main = _src("scripts/main.gd")
+        assert "dispatch_view.order_typed.connect(_on_tutorial_suggest_command)" in main
+        fill = _func(main, "_on_tutorial_suggest_command")
+        assert "command_input.text = cmd" in fill and "send_command" not in fill   # never sends
+
+    def test_a_mailbox_row_is_a_press(self):
+        body = _func(_src("scripts/mailbox_panel.gd"), "_build_item_row")
+        assert "panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND" in body
+        assert 'open_label.text = "Open ▸"' in body

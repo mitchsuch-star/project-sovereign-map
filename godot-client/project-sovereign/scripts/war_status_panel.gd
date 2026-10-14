@@ -195,13 +195,39 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 
 func _add_coalition_header(coalition_name: String):
 	var btn = Button.new()
-	btn.text = " " + coalition_name.to_upper()
-	btn.flat = true
+	btn.text = " " + coalition_name.to_upper() + "  ▸"
 	btn.custom_minimum_size = Vector2(0, 18)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", COLOR_GOLD)
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.tooltip_text = "Open the coalition's detail"
+	_give_row_chrome(btn)
 	btn.pressed.connect(func(): coalition_header_clicked.emit())
 	vbox.add_child(btn)
+
+
+func _give_row_chrome(btn: Button) -> void:
+	"""UXR3-14 (Pre-Deploy S12): the header and the war rows open the detail,
+	so they are drawn as controls — a faint card with a hairline border at
+	rest, a gold fill on hover and press, and the pointing hand — never as a
+	plain heading and a status bar."""
+	btn.flat = false
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var rest := StyleBoxFlat.new()
+	rest.bg_color = Color(Utils.UI_GOLD, 0.05)
+	rest.border_color = Color(Utils.UI_GOLD, 0.28)
+	rest.set_border_width_all(1)
+	rest.set_corner_radius_all(3)
+	rest.set_content_margin_all(2)
+	var hover := rest.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(Utils.UI_GOLD, 0.16)
+	hover.border_color = Color(Utils.UI_GOLD, 0.7)
+	var pressed := hover.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(Utils.UI_GOLD, 0.24)
+	btn.add_theme_stylebox_override("normal", rest)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
+	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
 
 func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
@@ -216,10 +242,9 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 	# Whole card is a flat Button for full clickability
 	var row_btn = Button.new()
-	row_btn.flat = true
 	row_btn.custom_minimum_size = Vector2(0, 36)
 	row_btn.pressed.connect(func(): card_clicked.emit(opponent, "war", str(war_data.get("war_instance_id", ""))))
-	row_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_give_row_chrome(row_btn)
 	row_btn.tooltip_text = _build_war_tooltip(war_data)
 
 	# Inner VBox: [name row] over [bar]. Passes mouse through to the button.

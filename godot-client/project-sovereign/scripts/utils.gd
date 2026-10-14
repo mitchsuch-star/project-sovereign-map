@@ -869,6 +869,46 @@ static func text_px(authored: int, factor := -1.0) -> int:
 	return int(round(float(authored) * f))
 
 
+# === Honest availability (UXR-3 fixes, Pre-Deploy S12) ===
+
+const ACTIVE_TAB_TIP := "You are reading this book"
+
+
+static func mark_active_tab(tab: Button, active: bool, active_style: StyleBox) -> void:
+	"""UXR3-37 / UXR3-43 (Pre-Deploy S12): a control that cannot act is
+	disabled, with its reason. The open book's tab is selected AND disabled —
+	pressing it answered nothing — with "You are reading this book" as its
+	tooltip; it keeps the selected look (the active fill, its own text
+	colour), never the greyed disabled one, and the arrow cursor."""
+	if tab == null:
+		return
+	if not tab.has_meta("_tab_tip"):
+		tab.set_meta("_tab_tip", tab.tooltip_text)
+		tab.set_meta("_tab_cursor", tab.mouse_default_cursor_shape)
+	tab.disabled = active
+	if active:
+		tab.add_theme_stylebox_override("disabled", active_style)
+		tab.add_theme_color_override("font_disabled_color", tab.get_theme_color("font_color"))
+		tab.tooltip_text = ACTIVE_TAB_TIP
+		tab.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	else:
+		tab.tooltip_text = str(tab.get_meta("_tab_tip"))
+		tab.mouse_default_cursor_shape = int(tab.get_meta("_tab_cursor"))
+
+
+static func set_available(button: BaseButton, available: bool, tip_on: String, tip_off: String) -> void:
+	"""UXR-3 fixes (S12): a control that cannot act in the current state is
+	DISABLED, its reason the tooltip; when it can, it carries its own tip.
+	Writes only on change, so a caller may run it every frame the state moves."""
+	if button == null:
+		return
+	if button.disabled == available:
+		button.disabled = not available
+	var tip := tip_on if available else tip_off
+	if button.tooltip_text != tip:
+		button.tooltip_text = tip
+
+
 # === Layout Helpers ===
 
 static func shrink_centered_panel_to_content(panel: Control) -> void:

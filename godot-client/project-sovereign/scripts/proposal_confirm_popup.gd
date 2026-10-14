@@ -158,10 +158,12 @@ func show_dialogue(data: Dictionary):
 				bbcode = _build_peace_preview_content(data)
 			else:
 				bbcode = _build_content(data)
-	content_label.text = ""
 	# Backend prose (Voice Bible lines, clause strings) can embed raw
 	# multi-word nation keys — humanize once at the render chokepoint.
-	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
+	# UXR3-38 (Pre-Deploy S12): written through `text`, never `append_text`,
+	# so the label's own text holds its [url] links (append_text leaves it
+	# empty, and the action probe read the table's links as absent).
+	var content_bbcode := Utils.humanize_nation_keys_in_text(bbcode)
 
 	# GT-Slice-3 + UX-5: the settlement_confirm surface renders in three
 	# regions — header (ContentLabel), the scrollable per-court table
@@ -195,11 +197,12 @@ func show_dialogue(data: Dictionary):
 		# viewport holds only the court rows — at 2 courts the second
 		# court and the Add demand affordances were below the fold and the
 		# guided authoring surface read as missing.
-		content_label.append_text(Utils.humanize_nation_keys_in_text(_build_settlement_table_preamble(data)))
+		content_bbcode += Utils.humanize_nation_keys_in_text(_build_settlement_table_preamble(data))
+	content_label.text = content_bbcode
+	if is_settlement_table:
 		_render_per_court_table()
 		if footer_label:
-			footer_label.text = ""
-			footer_label.append_text(Utils.humanize_nation_keys_in_text(_build_settlement_footer(data)))
+			footer_label.text = Utils.humanize_nation_keys_in_text(_build_settlement_footer(data))
 
 	# Create buttons dynamically from dialogue options
 	_clear_buttons()
@@ -794,8 +797,7 @@ func _render_per_court_table():
 	# preamble (G4F-3) lives in the header label, so toggles never repaint it.
 	if per_court_table == null:
 		return
-	per_court_table.text = ""
-	per_court_table.append_text(Utils.humanize_nation_keys_in_text(_build_settlement_per_court_block(current_data)))
+	per_court_table.text = Utils.humanize_nation_keys_in_text(_build_settlement_per_court_block(current_data))
 
 
 func _build_settlement_table_preamble(data: Dictionary) -> String:

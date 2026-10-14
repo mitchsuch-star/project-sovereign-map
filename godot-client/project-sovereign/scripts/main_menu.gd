@@ -340,7 +340,7 @@ func _build_menu_column() -> void:
 	_add_menu_button("tutorial", "The School of War — a guided campaign", _on_tutorial_pressed, false)
 	_add_menu_button("continue", "Continue", _on_continue_pressed, false)
 	_add_menu_button("load", "Load a Campaign…", _on_load_pressed, false)
-	_add_menu_button("settings", "Settings", _open_settings, false)
+	_add_menu_button("settings", "Settings", _toggle_settings, false)
 	_add_menu_button("quit", "Quit to Desktop", _on_quit_pressed, false)
 	# UXR-1 (the regression at Interface Scale 2.0 on a 1600x900 window): the
 	# column hangs from 40% of the height, and on a short logical viewport
@@ -520,6 +520,15 @@ func _open_settings() -> void:
 	AudioManager.play("panel_open")
 
 
+func _toggle_settings() -> void:
+	"""UXR3-68 (Pre-Deploy S12): the column's Settings answers while Settings
+	is open — it closes it (it was a press that changed nothing)."""
+	if _settings_view != null and _settings_view.visible:
+		_close_settings()
+	else:
+		_open_settings()
+
+
 func _close_settings() -> void:
 	_settings_view.visible = false
 	AudioManager.play("panel_close")
@@ -668,6 +677,11 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
 		_apply_backend_state()
 
 
+# UXR3-67 (Pre-Deploy S12): a waiting campaign button says why it waits.
+const WAITING_TIP := "Waiting for the game's server…"
+const NO_SAVES_TIP := "No saved campaign yet"
+
+
 func _apply_backend_state() -> void:
 	if _status_label == null:
 		return
@@ -690,8 +704,10 @@ func _apply_backend_state() -> void:
 		match id:
 			"begin", "return", "tutorial":
 				b.disabled = not _backend_up
+				b.tooltip_text = "" if _backend_up else WAITING_TIP
 			"continue":
 				b.disabled = not (_backend_up and has_saves)
+				b.tooltip_text = "" if not b.disabled else (WAITING_TIP if not _backend_up else NO_SAVES_TIP)
 				if has_saves:
 					var meta: Dictionary = _saves[0].get("metadata", {})
 					var turn := int(meta.get("turn", 0))
@@ -703,6 +719,7 @@ func _apply_backend_state() -> void:
 						b.text = "Continue" + ("  ·  Turn %d" % turn if turn > 0 else "")
 			"load":
 				b.disabled = not (_backend_up and has_saves)
+				b.tooltip_text = "" if not b.disabled else (WAITING_TIP if not _backend_up else NO_SAVES_TIP)
 	if not _backend_up:
 		_confirm_box.visible = false
 

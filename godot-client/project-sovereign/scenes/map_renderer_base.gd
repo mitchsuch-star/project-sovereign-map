@@ -13,6 +13,9 @@ signal map_dismiss_requested
 # FA-S13-1(b) (slice 17): the bare M key's report. The renderer has no
 # terminal; main.gd prints the mode through ONE handler the Alt route shares.
 signal map_mode_changed(mode: String)
+# UXR3-12 (Pre-Deploy S12): the camera's zoom or position moved — main.gd's
+# map chips read is_at_min_zoom / is_fit_view on it (honest availability).
+signal view_changed
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
@@ -1164,6 +1167,25 @@ func fit_europe() -> void:
 	_center_view_on_map()
 
 
+func is_at_min_zoom() -> bool:
+	"""UXR3-12 (S12): the view cannot zoom out any further."""
+	return _zoom_level <= min_zoom + 0.0001
+
+
+func is_fit_view() -> bool:
+	"""UXR3-12 (S12): the view ⌂ would produce — the contain-fit zoom with the
+	map centred — is the view on screen. (At the fit the camera's clamp
+	centres both axes, so the zoom decides it; the position is read too.)"""
+	if map_camera == null:
+		return true
+	if absf(_zoom_level - _get_initial_zoom_level()) > 0.0001:
+		return false
+	if map_canvas_size == Vector2.ZERO:
+		return false
+	var centre: Vector2 = _clamp_camera_position(map_origin + map_canvas_size / 2.0)
+	return map_camera.position.distance_to(centre) < 1.0
+
+
 func zoom_step(zoom_in: bool) -> void:
 	"""FA-N56: the public door for +/- and Alt+/-. Zooms about the same
 	screen centre the unfocused arm uses, so both routes agree."""
@@ -2074,6 +2096,7 @@ func _update_zoom_floor():
 	min_zoom = clampf(_get_fit_zoom_level(), 0.05, max_zoom)
 	if _zoom_level < min_zoom:
 		_set_camera_zoom_level(min_zoom)
+	view_changed.emit()
 
 
 func _get_initial_zoom_level() -> float:
@@ -2119,6 +2142,7 @@ func _set_camera_position(target: Vector2):
 		map_label_layer.queue_redraw()
 	_refresh_hover_state()
 	queue_redraw()
+	view_changed.emit()
 
 
 func _set_camera_zoom_level(value: float):
@@ -2131,6 +2155,7 @@ func _set_camera_zoom_level(value: float):
 		map_label_layer.set_zoom_level(_zoom_level)
 	_refresh_hover_state()
 	queue_redraw()
+	view_changed.emit()
 
 
 func _update_camera_limits():

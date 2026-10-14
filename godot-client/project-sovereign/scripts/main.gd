@@ -681,6 +681,9 @@ func _ready():
 				dispatch_view = instance
 				if dispatch_view.has_signal("open_envoys_requested"):
 					dispatch_view.open_envoys_requested.connect(_on_dispatch_open_envoys_requested)
+				# UXR3-23 (S12): a TODAY chip fills the command line, never sends.
+				if dispatch_view.has_signal("order_typed"):
+					dispatch_view.order_typed.connect(_on_tutorial_suggest_command)
 			elif config[0] == "generals":
 				# ES-7 second pass (§0.6.8): the card's [Reward…] link
 				if instance.has_signal("reward_requested"):
@@ -762,6 +765,13 @@ func _ready():
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
 		send_button.pressed.connect(_on_send_button_pressed)
+	# UXR3-12 (Pre-Deploy S12): Execute is available only with an order on the
+	# line. The line's own redraw reaches the refresh (a typed key, and a line
+	# filled by code — a chip, the history, a relayed order — alike), so no
+	# site that writes the line has to remember to call it.
+	if not command_input.draw.is_connected(_refresh_send_button):
+		command_input.draw.connect(_refresh_send_button)
+	_refresh_send_button()
 
 	if not command_input.text_submitted.is_connected(_on_command_submitted):
 		command_input.text_submitted.connect(_on_command_submitted)
@@ -1741,14 +1751,44 @@ func _build_map_controls() -> void:
 		var btn := Button.new()
 		btn.name = chip[0]
 		btn.tooltip_text = chip[2]
+		btn.set_meta("tip", chip[2])
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.custom_minimum_size = Vector2(MAP_CONTROL_SIZE, MAP_CONTROL_SIZE)
 		Utils.apply_icon_only_button(btn, Utils.ICON_PHOSPHOR + chip[1])
 		btn.pressed.connect(chip[3])
 		row.add_child(btn)
+		if chip[0] == "ZoomOutButton":
+			_map_zoom_out_btn = btn
+		elif chip[0] == "FitEuropeButton":
+			_map_fit_btn = btn
 	add_child(map_controls)
 	map_controls.resized.connect(_queue_fit_map_controls)
 	_queue_fit_map_controls()
+	# UXR3-12 (Pre-Deploy S12): the chips follow the view.
+	if map_area and map_area.has_signal("view_changed") \
+			and not map_area.view_changed.is_connected(_refresh_map_controls):
+		map_area.view_changed.connect(_refresh_map_controls)
+	_refresh_map_controls()
+
+
+var _map_zoom_out_btn: Button = null
+var _map_fit_btn: Button = null
+const ZOOM_OUT_FLOOR_TIP := "Zoomed out as far as the map goes — the whole theatre is in view"
+const FIT_EUROPE_DONE_TIP := "The whole theatre is already in view"
+
+
+func _refresh_map_controls() -> void:
+	"""UXR3-12 (Pre-Deploy S12): honest availability on the map's chips —
+	Zoom out is disabled at the minimum zoom and ⌂ at the fit (the contain-fit
+	zoom, centred), each with its reason as the tooltip."""
+	if map_area == null or not map_area.has_method("is_fit_view"):
+		return
+	if _map_zoom_out_btn != null:
+		Utils.set_available(_map_zoom_out_btn, not map_area.is_at_min_zoom(),
+			str(_map_zoom_out_btn.get_meta("tip", "")), ZOOM_OUT_FLOOR_TIP)
+	if _map_fit_btn != null:
+		Utils.set_available(_map_fit_btn, not map_area.is_fit_view(),
+			str(_map_fit_btn.get_meta("tip", "")), FIT_EUROPE_DONE_TIP)
 
 
 func _on_map_zoom_out() -> void:
@@ -5581,6 +5621,21 @@ func _trim_old_messages():
 
 	message_count = new_lines.size()
 
+const EXECUTE_EMPTY_TIP := "Type an order first"
+var _input_open := true
+
+
+func _refresh_send_button() -> void:
+	"""UXR3-12 (Pre-Deploy S12): honest availability — Execute is disabled
+	while the command line is empty ("Type an order first") and while input
+	is closed (a request in flight, a modal's answer awaited, the Fall)."""
+	if send_button == null or command_input == null:
+		return
+	var empty: bool = str(command_input.text).strip_edges() == ""
+	Utils.set_available(send_button, _input_open and not empty, "",
+		EXECUTE_EMPTY_TIP if (_input_open and empty) else "")
+
+
 func set_input_enabled(enabled: bool):
 	"""Enable or disable command input and buttons."""
 	# GE-2 (R3): after the Fall the command line never reopens — every
@@ -5589,7 +5644,8 @@ func set_input_enabled(enabled: bool):
 	if enabled and _campaign_over:
 		enabled = false
 	command_input.editable = enabled
-	send_button.disabled = not enabled
+	_input_open = enabled
+	_refresh_send_button()
 	end_turn_button.disabled = not enabled
 	diplomacy_button.disabled = not enabled
 

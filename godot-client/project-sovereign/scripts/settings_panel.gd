@@ -77,6 +77,12 @@ var _contrast_toggle: CheckButton
 var _volume_sliders: Dictionary = {}   # bus name -> HSlider
 var _battle_toggle: CheckButton
 var _key_edit: LineEdit
+# UXR3-68 / 69 (Pre-Deploy S12): honest availability — Connect needs a key on
+# the line, Disconnect a key connected.
+var _connect_btn: Button
+var _disconnect_btn: Button
+const CONNECT_TIP_OFF := "Paste an Anthropic API key above first"
+const DISCONNECT_TIP_OFF := "No key is connected"
 var _parser_status: Label
 var _http: HTTPRequest
 var _http_busy := false
@@ -503,6 +509,7 @@ func _build_parser_section() -> void:
 	apply.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	apply.pressed.connect(_on_apply_key)
 	btn_row.add_child(apply)
+	_connect_btn = apply
 	var clear := Button.new()
 	clear.text = "Disconnect"
 	clear.custom_minimum_size = Vector2(0, 32)
@@ -510,6 +517,8 @@ func _build_parser_section() -> void:
 	clear.pressed.connect(_on_clear_key)
 	btn_row.add_child(clear)
 	add_child(btn_row)
+	_disconnect_btn = clear
+	_key_edit.text_changed.connect(func(_t): _refresh_key_buttons())
 
 	_add_hint("Your orders are read by a fast offline parser that needs no key. "
 		+ "Connect your own Anthropic account and the orders it is unsure of are "
@@ -534,6 +543,7 @@ func _on_apply_key() -> void:
 	UiSettings.set_api_key(key)
 	_key_edit.text = ""
 	_key_edit.placeholder_text = _key_placeholder()
+	_refresh_key_buttons()
 	_push_key(key)
 
 
@@ -541,10 +551,20 @@ func _on_clear_key() -> void:
 	UiSettings.set_api_key("")
 	_key_edit.text = ""
 	_key_edit.placeholder_text = _key_placeholder()
+	_refresh_key_buttons()
 	_push_key("")
 
 
+func _refresh_key_buttons() -> void:
+	"""UXR3-68 / 69 (S12): Connect is disabled with no key on the line,
+	Disconnect while no key is connected — each with its reason."""
+	if _key_edit != null:
+		Utils.set_available(_connect_btn, _key_edit.text.strip_edges() != "", "", CONNECT_TIP_OFF)
+	Utils.set_available(_disconnect_btn, UiSettings.get_api_key() != "", "", DISCONNECT_TIP_OFF)
+
+
 func _show_stored_parser_state() -> void:
+	_refresh_key_buttons()
 	if _parser_status == null:
 		return
 	var stored := UiSettings.get_api_key()

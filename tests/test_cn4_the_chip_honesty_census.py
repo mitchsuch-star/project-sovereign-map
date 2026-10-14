@@ -1074,6 +1074,8 @@ REVIEWED = {
     # observe-only — neither reaches /command.
     ("tutorial_overlay.gd", '"skipstep:"'): "releases the current card with a word; sends nothing",
     ("tutorial_overlay.gd", '"open:" + str(step["open"])'): "asks main.gd to open the real Cabinet on the named court (open_cabinet), or the Strategic Ledger on the named book (open_ledger — RF-4c's LAWS card); sends nothing",
+    # dispatch_view.gd — UXR3-23 (Pre-Deploy S12): the TODAY orders, chips now
+    ("dispatch_view.gd", '"type:" + str(order)'): "fills the command line with the briefing's own order and closes the dispatch onto it (main.gd's _on_tutorial_suggest_command); never sends",
 }
 
 

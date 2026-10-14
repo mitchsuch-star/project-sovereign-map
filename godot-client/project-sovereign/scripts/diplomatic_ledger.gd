@@ -286,6 +286,9 @@ func _update_tab_highlights():
 			tab_buttons[i].add_theme_stylebox_override("normal", _active_tab_style)
 		else:
 			tab_buttons[i].add_theme_stylebox_override("normal", _normal_tab_style)
+		# UXR3-43 / 37 (Pre-Deploy S12): the open book's tab is selected and
+		# disabled ("You are reading this book") — its press answered nothing.
+		Utils.mark_active_tab(tab_buttons[i], i == current_tab, _active_tab_style)
 
 
 func _render_current_tab():
