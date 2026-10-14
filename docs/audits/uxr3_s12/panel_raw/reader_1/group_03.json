@@ -1,0 +1,45 @@
+{"reader": 1, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__1920x1080.png", "why": "The first content is a character sheet, the Emperor's portrait card with its skill bars, and the eye lands on the portrait. The glory ladder and GLORY & GRIEVANCES sit below the fold."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__1920x1080.png", "why": "The close X is clear, but the bordered expand-arrow icon at the panel's bottom-right corner looks like a button and the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__1920x1080.png", "why": "The screen informs. The close X is visible and the header line says 'Press G to close'."},
+   "R4_note": "The skill bars' value numbers are coloured green or grey while the bars themselves are green or grey, and the two do not always agree in weight."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__1920x1080.png", "why": "OUR DOCTRINE comes first. The ladder below it reads every marshal at 0 with empty bars, and the played roster's grievances and trust bars are not in either frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__1920x1080.png", "why": "The Commission chip and the close X are real controls, but the bordered expand-arrow icon at the corner looks clickable and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__1920x1080.png", "why": "The screen informs. The close X and 'Press G to close' are visible, and 'Commission a Marshal...' is a visible chip."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "The captured marshal appears nowhere in either frame. The view is the Emperor's ordinary card, so the prisoner and his captor are neither first nor visible."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "The bordered expand-arrow icon at the bottom-right corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "The screen informs, and its exit (the X, or G) is visible, with a scrollbar showing more below."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The Emperor's own card leads, with the portrait, 'at the Tuileries with the Guard - 10,000 men', the sovereign rules and the skill bars."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The card informs, and the close X and 'Press G to close' are visible."}
+  },
+  "generals_np_field": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__5120x1440.png", "why": "Neither the Presence figure as APPLIED nor a dimming star is in view. The long biography fills the card and still reads 'at the Tuileries', so the eye finds nothing of the field state."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__5120x1440.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__5120x1440.png", "why": "The screen informs, and its exit is visible."}
+  },
+  "generals_np_captive": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "No line in view names the Emperor a captive. The card reads 'at the Tuileries with the Guard', and only a small red 'Strength: 0' hints that anything is wrong."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "The screen informs, and the close X is visible."}
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The played roster's ladder, with filled glory bars and red 'envious of' tags, is the largest block and draws the eye, right under the short doctrine block."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The Commission chip and the close X are real controls, but the bordered expand-arrow icon at the corner looks like a button and is not in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The screen informs. The close X, 'Press G to close' and the Commission chip are visible."}
+  },
+  "generals_doctrine": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "OUR DOCTRINE is not in either frame. The view opens on the Emperor's card, so the doctrine block and THE LAURELS are neither first nor visible."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "The bordered expand-arrow icon at the bottom-right corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "The screen informs, and the close X is visible."},
+   "R4_note": "This frame appears identical to generals_boot. The doctrine board seems to open on the Emperor's card rather than at the doctrine."
+  }
+ }}

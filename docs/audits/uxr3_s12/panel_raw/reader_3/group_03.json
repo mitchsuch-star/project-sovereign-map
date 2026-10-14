@@ -1,0 +1,45 @@
+{"reader": 3, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__5120x1440.png", "why": "The first character sheet (THE EMPEROR, his portrait, name and skill bars) leads the screen and the portrait anchors the eye; the ladder and GLORY & GRIEVANCES follow in the scroll."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__5120x1440.png", "why": "The close X and the order/commission links are recorded controls, but the bordered expand-glyph square outside the bottom-right corner looks like a button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__1920x1080.png", "why": "An informing screen: the close X is visible and the first line says 'Press G to close'; a scrollbar shows there is more."},
+   "R4_note": "A wall of dim body prose under the portrait outweighs the sheet's own structure; the corner filigree sits over the bottom row's bar."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__5120x1440.png", "why": "The doctrine block comes first and the ladder beneath it reads all zeros with empty bars; the played roster's grievances and trust bars are not in the frame, so the eye lands on the doctrine and the gold Commission chip."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__5120x1440.png", "why": "The corner expand-glyph square looks like a button and is not among the probe's 13 recorded controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__1920x1080.png", "why": "The close X, 'Press G to close' and the Commission a Marshal... chip are all visible."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "The captured marshal does not appear in the frame at all; the Emperor's card fills it, identical to the boot frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "The corner expand-glyph square looks like a button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "The surface informs; the close X and 'Press G to close' are visible, and the scrollbar shows the roster continues."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__5120x1440.png", "why": "The Emperor's own card leads with his portrait, the Seat ('at the Tuileries with the Guard - 10,000 men') and the sovereign kit's paragraph."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__5120x1440.png", "why": "The corner expand-glyph square looks clickable and is not in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "An informing card with the close X and 'Press G to close' visible."}
+  },
+  "generals_np_field": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__5120x1440.png", "why": "No Presence figure and no dimming star are visible; the frame shows the same Emperor biography (still 'at the Tuileries'), so the thing this surface is for is not where the eye lands."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__5120x1440.png", "why": "The corner expand-glyph square looks like a button and has no control in the record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__1920x1080.png", "why": "An informing screen with the close X and the close key stated."}
+  },
+  "generals_np_captive": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__5120x1440.png", "why": "Nothing in view names the Emperor a captive; the card still says 'at the Tuileries' and 'Sovereign: You, in the field', with only a red 0 strength hinting at it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__5120x1440.png", "why": "The corner expand-glyph square looks like a button and is absent from the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "An informing screen with a visible close X and 'Press G to close'."}
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__5120x1440.png", "why": "The played roster's ladder, with filled glory bars and red 'envious of' notes, occupies the upper half and is where the eye goes, directly under the short doctrine block."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__5120x1440.png", "why": "The corner expand-glyph square looks like a button and is not among the probe's 21 controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The Commission a Marshal... chip and the close X are visible."}
+  },
+  "generals_doctrine": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__5120x1440.png", "why": "OUR DOCTRINE — The Corps System is not in the frame at all; the Emperor's card fills it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__5120x1440.png", "why": "The corner expand-glyph square looks clickable and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "An informing screen with the close X and the close key visible."},
+   "R4_note": "This frame orders THE EMPEROR above the doctrine while the t20 and flagship frames put OUR DOCTRINE first."
+  }
+ }}

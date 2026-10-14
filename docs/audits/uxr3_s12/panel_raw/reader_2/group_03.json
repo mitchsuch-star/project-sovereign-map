@@ -1,0 +1,45 @@
+{"reader": 2, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__5120x1440.png", "why": "The first thing under the title is a character sheet, THE EMPEROR with his portrait, bio and skill bars, and the eye lands on the portrait; the ladder and GLORY & GRIEVANCES lie below the fold."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__5120x1440.png", "why": "The close X is honest, but the bordered four-arrow 'expand' icon outside the bottom-right corner looks like a button and the probe records no control for it (if it is a drag grip, its look does not say so)."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_boot__1920x1080.png", "why": "It informs; the close X and 'Press G to close' are in view and the scrollbar shows more sheets below."},
+   "R4_note": "Napoleon's name is gold like a link but is plain text; the leaf ornaments in the lower corners overlap the last skill row."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__5120x1440.png", "why": "OUR DOCTRINE leads the frame; of the played roster only the laurels ladder shows, every bar empty at 0, and no trust bar or grievance is in view."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__5120x1440.png", "why": "'Commission a Marshal...' is an honest filled link, but the bordered 'expand' icon outside the bottom-right corner looks clickable with no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_t20__1920x1080.png", "why": "The close X, 'Press G to close' and the Commission link are visible."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "The frame is the Emperor's card; the captured marshal, named as a prisoner with his captor, is nowhere in view."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "The bordered 'expand' icon outside the bottom-right corner looks like a button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "It informs; the close X and 'Press G to close' are visible and the scrollbar leads down the roster."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__5120x1440.png", "why": "The Emperor's own card leads, portrait first, with 'at the Tuileries with the Guard - 10,000 men' and the sovereign kit in the bio and his skill bars."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__5120x1440.png", "why": "The bordered 'expand' icon outside the bottom-right corner looks clickable and the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "It informs; the close X and 'Press G to close' are visible."},
+   "R4_note": "The Seat card still says 'Sovereign: You, in the field' while its bio puts him at the Tuileries."
+  },
+  "generals_np_field": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__5120x1440.png", "why": "I cannot find the Presence figure as applied or a dimming star anywhere in the frame; the card reads like the Seat card with a lower strength, so the one thing it is for is not the element the eye meets."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__5120x1440.png", "why": "The bordered 'expand' icon outside the bottom-right corner looks like a button with no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_field__1920x1080.png", "why": "It informs; the close X and 'Press G to close' are visible."}
+  },
+  "generals_np_captive": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__5120x1440.png", "why": "Nothing in the frame names the Emperor a captive: the card still reads 'Sovereign: You, in the field' and only a red 'Strength: 0' hints at it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__5120x1440.png", "why": "The bordered 'expand' icon outside the bottom-right corner looks clickable and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "It informs; the close X and 'Press G to close' are visible."}
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__5120x1440.png", "why": "The played laurels ladder, with filled glory bars and red 'envious of' marks, is the largest block and draws the eye, under a short doctrine block."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__5120x1440.png", "why": "The bordered 'expand' icon outside the bottom-right corner looks like a button and has no control in the probe's record; the Commission link is honest."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The Commission link, the close X and 'Press G to close' are visible."}
+  },
+  "generals_doctrine": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__5120x1440.png", "why": "The frame opens on THE EMPEROR's card; OUR DOCTRINE and THE LAURELS, the things this surface is for, are not in view at all."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__5120x1440.png", "why": "The bordered 'expand' icon outside the bottom-right corner looks clickable and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "It informs; the close X and 'Press G to close' are visible."}
+  }
+ }}

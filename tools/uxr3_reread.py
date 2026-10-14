@@ -70,11 +70,65 @@ def compare(before: dict, after: dict, rows: list[dict]) -> dict:
             "worst_five": after["worst_five"], "rows": row_state, "done_when": done}
 
 
+NAMES = {"R1": "Readable", "R2": "Hierarchy", "R3": "Contrast", "R4": "Consistency",
+         "R5": "Affordance", "R6": "Feedback", "R7": "Fit", "R8": "Discoverability"}
+
+
+def markdown(out: dict, after: dict, frames_dir: str) -> str:
+    """The re-read's tables, for its write-up: the items, the groups, the
+    scores, the flips that broke, the rows still open, and every surface."""
+    sys.path.insert(0, str(REPO / "tools"))
+    import uxr3_review as RV
+    RV.FRAMES_DIR = frames_dir
+    lines = ["### The items", "", "| Item | ✓ of 145 at S11 | ✓ of 145 now |", "|---|---|---|"]
+    for item in ITEMS:
+        it = out["items"][item]
+        lines.append(f"| {item} {NAMES[item]} | {it['before']} | **{it['after']}** |")
+    t = out["ticks"]
+    lines += ["", f"Marks: **{t['before']} → {t['after']}** ✓ of 1,160.", "",
+              "### The groups", "",
+              "| # | Group | Surfaces | Mean (S11 → now) | Lowest | At 8/8 | Under 6/8 |",
+              "|---|---|---|---|---|---|---|"]
+    before = {g["key"]: g for g in out["groups"]["before"]}
+    for g in out["groups"]["after"]:
+        b = before[g["key"]]
+        lines.append(f"| {g['order']} | `{g['key']}`{' (top five)' if g['top_five'] else ''} | {g['surfaces']} | "
+                     f"{b['mean']:.2f} → **{g['mean']:.2f}** | {b['min']} → {g['min']} | "
+                     f"{b['eight_of_eight']} → **{g['eight_of_eight']}** | {b['under_six']} → **{g['under_six']}** |")
+    hist = out["score_histogram"]
+    lines += ["", "### The scores", "", "| Score | " + " | ".join(str(k) for k in range(9)) + " |",
+              "|---" * 10 + "|", "| Surfaces | " + " | ".join(str(hist[str(k)]) for k in range(9)) + " |", ""]
+    broke = out["flips"]["broke"]
+    lines += ["### What flipped", "",
+              f"{len(out['flips']['fixed'])} marks went ✗ → ✓ and {len(broke)} went ✓ → ✗."]
+    if broke:
+        lines += ["", "| Surface | Item | Why now |", "|---|---|---|"]
+        for f in broke:
+            why = f["why_after"]
+            reader = (after["surfaces"][f["surface"]].get("readers") or {}).get(f["item"])
+            if reader:
+                no = [v["why"] for v in reader["votes"] if not v["pass"]]
+                why = f"{why}: {no[0]}" if no else why
+            lines.append(f"| `{f['surface']}` | {f['item']} | {why[:240]} |")
+    open_rows = [r for r in out["rows"] if r["state"] == "OPEN"]
+    lines += ["", "### The rows", "",
+              f"{sum(1 for r in out['rows'] if r['state'] == 'FIXED')} of {len(out['rows'])} rows read ✓ on every "
+              f"(surface, item) they name; {len(open_rows)} stay open for part 2:", "",
+              "| Row | Still ✗ |", "|---|---|"]
+    for r in open_rows:
+        still = ", ".join(r["still"][:6]) + (f" (+{len(r['still']) - 6} more)" if len(r["still"]) > 6 else "")
+        lines.append(f"| {r['id']} | {still} |")
+    lines += ["", "### Every surface, every item", "", RV.render_table(after)]
+    return "\n".join(lines) + "\n"
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--before", default=str(REPO / "docs" / "audits" / "uxr3"))
     ap.add_argument("--after", required=True)
     ap.add_argument("--write", action="store_true")
+    ap.add_argument("--markdown", default="", help="write the re-read's tables to this file")
+    ap.add_argument("--frames-dir", default="docs/audits/uxr3_s12/frames")
     args = ap.parse_args(argv)
     before_dir, after_dir = pathlib.Path(args.before), pathlib.Path(args.after)
     out = compare(load(before_dir / "review.json"), load(after_dir / "review.json"),
@@ -90,6 +144,10 @@ def main(argv=None) -> int:
         (after_dir / "reread.json").write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n",
                                                encoding="utf-8")
         print("wrote", after_dir / "reread.json")
+    if args.markdown:
+        pathlib.Path(args.markdown).write_text(markdown(out, load(after_dir / "review.json"), args.frames_dir),
+                                               encoding="utf-8")
+        print("wrote", args.markdown)
     return 0
 
 

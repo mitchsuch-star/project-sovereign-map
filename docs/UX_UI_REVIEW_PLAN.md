@@ -637,6 +637,43 @@ surfaces by time on screen read 8 of 8; no surface reads under 6 of 8.
 
 **The done-when.** S11's own is **MET**: every surface in the order has a reading, every ✗ is filed with owner S12, and the worst five are named. §UXR-3's done-when (the top five at 8 of 8, none under 6) is **S12's**. Today 4 of the top five's 115 surfaces read 8 of 8 and 82 surfaces read under 6. "None under 6" already holds on the dispatch group and the campaign-end card.
 
+### Landing record — UXR-3 fixes, part 1 (Pre-Deploy S12 part 1, October 13, 2026)
+
+> Six commits on master and the close:
+> - `de86a83c` the three popups never shot;
+> - `f1687538` R3 by token;
+> - `09e65a0a` R5 / R6, the controls that answered nothing;
+> - `337b8621` R4 by file;
+> - `46f668ef` what the re-read's own first shoot found, plus every popup writing through `text`.
+>
+> The re-read is `docs/audits/UXR3_REREAD_2026_10_13.md`; records `docs/audits/uxr3_s12/`; rules `SYSTEMS_REFERENCE.md` §113.6; rows `BUG_FIXES.md` §UXR-3; pins `tests/test_uxr3_s12_fixes.py` (the fixes) and `tests/test_uxr3_s12_reread.py` (the reading). Run straight through under the user's "make all decisions … nothing hanging".
+
+**The classes, each by the rule the S12 hand-off decided:**
+- **The never-shot popups** (UXR3-56 … 58) are shot under the checklist's own ids. All three read 8 of 8. Shooting them found UXR3-X1 (the objection dialog lost its price and damper lines) and X2 (two popups on a box twice their content), both fixed.
+- **R3 by token.** No body line names a dim step under the floor, and coloured text keeps its hue at a lighter value. **R3 45 → 145.**
+- **R5 / R6, honest availability.** A control that cannot act is disabled with its reason. The war HUD's rows look like controls, and what looked like a link is one or loses the look. Outside the top bar shot alone, the probe's SILENT controls went 67 → 0. **R6 58 → 97.**
+- **R4 by file.** Every literal grey is a named token, every scene grey sits on the ladder, and the display sizes are named steps. `RAW_RATCHET` 11 → 1, `BBCODE_SIZE_RATCHET` 2 → 0. **R4 84 → 145.**
+- **Found re-reading:** the instrument's blind spot. A label filled by `append_text` hides its colours and links from the census and the probe. Every popup now writes through `text`; the war-room log is UXR3-X4.
+
+**The re-read.** The same frozen checklist and the same tools, on committed trees. Three fresh blind readers gave 410 of their 435 marks 3–0.
+
+| Item | ✓ of 145, S11 → now | Item | ✓ of 145, S11 → now |
+|---|---|---|---|
+| R1 Readable | 142 → **145** | R5 Affordance | 72 → **59** |
+| R2 Hierarchy | 105 → **101** | R6 Feedback | 58 → **97** |
+| R3 Contrast | 45 → **145** | R7 Fit | 142 → **145** |
+| R4 Consistency | 84 → **145** | R8 Discoverability | 139 → **140** |
+
+- **Marks 787 → 977 of 1,160.** 226 went ✗ → ✓ and 36 went ✓ → ✗; every ✓ → ✗ is on an element part 1 did not change.
+- **R5 fell** for one reason. Fresh readers judged UXR-2's resize grip (unchanged since S9; the probe's record omits drag controls) a button with no control, on 81 surfaces. The tableau's nameplate failed on 5. Nothing else fails R5.
+- **Surfaces under 6: 82 → 9.** At 8 of 8: 7 → 32. Every popup reads 8 of 8. Group means: the war room 6.96, the dispatch 6.82, the Generals 5.38, diplomacy 6.54, the Strategic Ledger 6.44, the tutorial 6.50, the enemy phase and diorama 7.00, the popups 8.00, the menu 7.00, the end card 7.57.
+- **The rows:**
+  - 45 of the review's 73 are FIXED with the re-read; 28 stay open for part 2.
+  - The 36 new ✗ are filed as UXR3-74 … 78 (the grip, the plate, the region panel, the boot books, the wizard's fold), each with its fix decided.
+  - Found while fixing: UXR3-X1, X2 fixed; X3 (the grip proof's one failure in the hook) and X4 (the log's colours) open for part 2.
+
+**The done-when.** Part 1's own is **MET**: the classes landed, every flipped item was re-read with the same tools against the same checklist, and every row is FIXED with its re-read or open with what still reads ✗. §UXR-3's (the top five groups at 8 of 8, none under 6) is **not met**: 17 of the top five's 115 surfaces read 8 of 8, and 9 surfaces read under 6. Part 2 owns it, with every fork decided in `docs/NEXT_SESSION_PROMPT.md`.
+
 ## UXR-4 — The user's eyes (0.5 session, the last before the deploy)
 
 The sign-off convention stands: the user, at their monitor, in the real client.

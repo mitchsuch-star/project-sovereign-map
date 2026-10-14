@@ -1,0 +1,47 @@
+{"reader": 1, "group": "enemy_phase_and_diorama",
+ "marks": {
+  "enemy_phase_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "Under the large red 'ENEMY PHASE - Turn 21' title, the AI action prose ('Archduke John attacks Deroy') and its battle lines with '⚔ View the field' come first."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "The underlined '⚔ View the field' link and the bordered Continue button are both real controls, and nothing inert poses as one."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "The dialog informs. Continue spans the foot and 'View the field' sits beside the battle."}
+  },
+  "enemy_phase_collapse": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "The AI actions in prose, both sides' casualties and the red result lead under the title, with the battle's '⚔ View the field' link."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "The link and Continue are real controls that look like controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "The dialog informs, and Continue is visible."}
+  },
+  "enemy_phase_iq5": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "The scoped defender line ('Ney's army: 6,567 casualties — Ney's own corps: 15,471 remaining') sits in the first battle block under the title."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "'View the field' and Continue are real controls, and nothing else poses as one."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "The dialog informs, and Continue is visible."},
+   "R4_note": "The action line under BRITAIN reads '- unknown', a placeholder word where the action should be."
+  },
+  "diorama_aadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "The large 'A BLOODY STALEMATE' banner heads the field, and the order of battle with each contingent's own strength line and Berthier's verdict follow."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "Replay and Close are bordered buttons, and the seal and corner filigree read as decoration, not controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "The diorama informs, and Close and Replay are visible."},
+   "R4_note": "The Close button sits over the bottom-right corner filigree. At 5120x1440 the card is small in the centre, with wide black margins."
+  },
+  "diorama_dadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "The large red 'THE FIELD IS LOST' banner leads, with the order of battle and the faith caption beneath it, and Berthier's verdict below."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "Replay and Close are bordered buttons, and nothing decorative poses as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "The diorama informs, and Close is visible."}
+  },
+  "diorama_rout_conquest": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "'A DECISIVE VICTORY' with its sub-banner 'Swabia falls to France.' heads the field, and ROUTED is printed under the beaten line."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "Replay and Close are bordered buttons that answer, and the laurels and seal are decoration."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "The diorama informs, and Close is visible."},
+   "R4_note": "ROUTED is small red caption text at the field's lower edge, easy to miss beside the large banner."
+  },
+  "diorama_four_contingents": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "The banner, then four ranks a side receding with each name and strength, fill the field, with the reserve tails along its foot."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "Replay and Close are the only controls and both look like buttons."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "The diorama informs, and Close is visible."},
+   "R4_note": "The flags overlap the name and strength lines of the rear ranks (Lannes, Davout, Kutuzov, Archduke Charles)."
+  },
+  "diorama_naval": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_naval__1920x1080.png", "why": "'THE FLEET IS BROKEN', the sail-lost counts, then the line of battle with STRUCK under the hulls, read in that order."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_naval__1920x1080.png", "why": "Replay and Close are bordered buttons, and nothing else poses as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_naval__1920x1080.png", "why": "The diorama informs, and Close is visible."}
+  }
+ }}

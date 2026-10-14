@@ -1,0 +1,5065 @@
+{
+ "war_room_boot": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 14 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Envoys [handoff: envoy_clicked: get_mailbox]",
+   "detail": {
+    "visible": 16,
+    "handoff_cited": 0,
+    "unproven": [
+     "Envoys [handoff: envoy_clicked: get_mailbox]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "top_bar_boot": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Envoys [handoff: envoy_clicked]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Envoys [handoff: envoy_clicked]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "top_bar_admiralty": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Envoys [handoff: envoy_clicked]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "Envoys [handoff: envoy_clicked]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "top_bar_mission_court": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Envoys (2) [handoff: envoy_clicked]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Envoys (2) [handoff: envoy_clicked]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_status_boot": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_status_collapse_one": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_status_collapse_none": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_status_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_detail_boot": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_detail_collapse_one": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_detail_collapse_none": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_detail_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_detail_coalition_boot": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_detail_coalition_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "rail_mission_court": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "rail_mission_improve": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "rail_mission_gather": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "rail_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "6 control(s) answer on screen",
+   "detail": {
+    "visible": 6,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "rail_counter_punch": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_paris": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "5 unproven: Fortify [handoff: region_command]; Drill [handoff: region_command]; Scout [handoff: region_command]; Infantry [handoff: region_command]; Buy Substitutes [handoff: region_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: region_command]",
+     "Drill [handoff: region_command]",
+     "Scout [handoff: region_command]",
+     "Infantry [handoff: region_command]",
+     "Buy Substitutes [handoff: region_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_rhineland": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "7 unproven: Fortify [handoff: region_command]; Scout [handoff: region_command]; Fortify [handoff: region_command]; Scout [handoff: region_command]; Infantry [handoff: region_command]; Cavalry [handoff: region_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: region_command]",
+     "Scout [handoff: region_command]",
+     "Fortify [handoff: region_command]",
+     "Scout [handoff: region_command]",
+     "Infantry [handoff: region_command]",
+     "Cavalry [handoff: region_command]",
+     "Buy Substitutes [handoff: region_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_amsterdam": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "5 unproven: Fortify [handoff: region_command]; Drill [handoff: region_command]; Scout [handoff: region_command]; Buy Substitutes [handoff: region_command]; Negotiate with Holland [handoff: negotiate_requested]",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: region_command]",
+     "Drill [handoff: region_command]",
+     "Scout [handoff: region_command]",
+     "Buy Substitutes [handoff: region_command]",
+     "Negotiate with Holland [handoff: negotiate_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_milan": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "4 unproven: Fortify [handoff: region_command]; Scout [handoff: region_command]; Buy Substitutes [handoff: region_command]; Negotiate with Kingdom of Italy [handoff: negotiate_requested]",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: region_command]",
+     "Scout [handoff: region_command]",
+     "Buy Substitutes [handoff: region_command]",
+     "Negotiate with Kingdom of Italy [handoff: negotiate_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_vienna": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_doctrine_posen": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_doctrine_tyrol": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "3 unproven: Scout [handoff: region_command]; Attack Archduke John [handoff: region_command]; Negotiate with Austria [handoff: negotiate_requested]",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [
+     "Scout [handoff: region_command]",
+     "Attack Archduke John [handoff: region_command]",
+     "Negotiate with Austria [handoff: negotiate_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "region_paris_build_open": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "11 unproven: Fortify [handoff: region_command]; Drill [handoff: region_command]; Scout [handoff: region_command]; Infantry [handoff: region_command]; Buy Substitutes [handoff: region_command]; Depot 300g [handoff: region_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: region_command]",
+     "Drill [handoff: region_command]",
+     "Scout [handoff: region_command]",
+     "Infantry [handoff: region_command]",
+     "Buy Substitutes [handoff: region_command]",
+     "Depot 300g [handoff: region_command]",
+     "Fort 400g [handoff: region_command]",
+     "Training Ground 250g [handoff: region_command]",
+     "Market 350g [handoff: region_command]",
+     "Stables 300g [handoff: region_command]",
+     "Watchtower 250g [handoff: region_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "dispatch_boot_today": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "5 control(s) answer on screen",
+   "detail": {
+    "visible": 5,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "dispatch_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "dispatch_collapse": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "dispatch_fall_clock": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "dispatch_congress_clock": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "dispatch_front_page": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "dispatch_front_page_league": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "gazette_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "gazette_congress": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_log_glyphs": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_log_tiers": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "18 control(s) answer on screen",
+   "detail": {
+    "visible": 18,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_boot": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "8 unproven: Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "11 unproven: Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_prisoner": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "7 unproven: Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_np_seat": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "14 unproven: Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_np_field": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "14 unproven: Fortify [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Unfortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Unfortify [handoff: order_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_np_captive": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "14 unproven: Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_flagship_t12": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "19 unproven: Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]",
+     "Reward — estate or rente… [handoff: reward_requested]",
+     "Fortify [handoff: order_command]",
+     "Drill [handoff: order_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "generals_doctrine": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "8 unproven: Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]",
+     "Fortify [handoff: order_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_step1": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "23 control(s) answer on screen",
+   "detail": {
+    "visible": 23,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_step2_austria": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_step2_prussia": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "11 control(s) answer on screen",
+   "detail": {
+    "visible": 11,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_step1_congress_gate": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "23 control(s) answer on screen",
+   "detail": {
+    "visible": 23,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_step1_congress_ready": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "24 control(s) answer on screen",
+   "detail": {
+    "visible": 24,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_step1_congress_sitting": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "23 control(s) answer on screen",
+   "detail": {
+    "visible": 23,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_formables_entry": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "23 control(s) answer on screen",
+   "detail": {
+    "visible": 23,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "wizard_formables_step3": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "confirm_peace_losing": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "settlement_three_courts": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "19 control(s) answer on screen",
+   "detail": {
+    "visible": 19,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "settlement_white_review_ratify": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "settlement_white_review_holdout": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "5 control(s) answer on screen",
+   "detail": {
+    "visible": 5,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "incoming_peace_losing": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_boot_nations": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_boot_treaties": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_boot_balance": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_boot_talleyrand": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Assess the Situation [handoff: assess_requested]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Assess the Situation [handoff: assess_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_boot_bargains": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_boot_vassals": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "9 unproven: Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_boot_congress": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Open the Cabinet at London → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Vienna → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Berlin → [handoff: open_diplomacy_for]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_laws_rival_nations": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_collapse_one_nations": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_collapse_cooldown_talleyrand": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Assess the Situation [handoff: assess_requested]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Assess the Situation [handoff: assess_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_collapse_none_vassals": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "9 unproven: Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_mission_court_talleyrand": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Assess the Situation [handoff: assess_requested]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Assess the Situation [handoff: assess_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_mission_undermine_talleyrand": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Assess the Situation [handoff: assess_requested]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Assess the Situation [handoff: assess_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_mission_recalled_talleyrand": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Assess the Situation [handoff: assess_requested]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Assess the Situation [handoff: assess_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_petition_granted_vassals": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "9 unproven: Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_t20_nations": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_t20_treaties": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_t20_balance": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_t20_vassals": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "8 unproven: Invest [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Invest [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Invest [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]",
+     "Invest [handoff: vassal_command]",
+     "Loosen Rein [handoff: vassal_command]",
+     "Tighten Rein [handoff: vassal_command]",
+     "Release [handoff: vassal_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_congress_gate": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Open the Cabinet at London → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Vienna → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Berlin → [handoff: open_diplomacy_for]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_congress_sitting": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Open the Cabinet at London → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Vienna → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Berlin → [handoff: open_diplomacy_for]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_congress_sitting_table": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [
+     "Open the Cabinet at London → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Vienna → [handoff: open_diplomacy_for]",
+     "Open the Cabinet at Berlin → [handoff: open_diplomacy_for]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_doctrine_nations": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diplo_balance_next_league": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "7 control(s) answer on screen",
+   "detail": {
+    "visible": 7,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_territories": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_intel": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_manpower": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_orders": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_admiralty": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "3 unproven: Blockade the enemy [handoff: naval_command]; The Grand Diversion [handoff: naval_command]; Lay down ships (400g at Bordelais) [handoff: naval_command]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "Blockade the enemy [handoff: naval_command]",
+     "The Grand Diversion [handoff: naval_command]",
+     "Lay down ships (400g at Bordelais) [handoff: naval_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_boot_laws": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "3 unproven: Enact [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "Enact [handoff: naval_command]",
+     "Enact [handoff: naval_command]",
+     "Enact [handoff: naval_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_spent_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_ceiling_calm_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_ceiling_above_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_ceiling_unbounded_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_collapse_one_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_collapse_none_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_laws_staff": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "6 unproven: Repeal [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]; Repeal [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "Repeal [handoff: naval_command]",
+     "Enact [handoff: naval_command]",
+     "Enact [handoff: naval_command]",
+     "Repeal [handoff: naval_command]",
+     "Enact [handoff: naval_command]",
+     "Enact [handoff: naval_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_laws_forecast": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "5 unproven: Repeal the Code Abroad instead [handoff: naval_command]; Repeal [handoff: naval_command]; Repeal [handoff: naval_command]; Enact [handoff: naval_command]; Repeal [handoff: naval_command]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "Repeal the Code Abroad instead [handoff: naval_command]",
+     "Repeal [handoff: naval_command]",
+     "Repeal [handoff: naval_command]",
+     "Enact [handoff: naval_command]",
+     "Repeal [handoff: naval_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_mission_court_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_mission_improve_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_mission_gather_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_mission_undermine_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_mission_transit_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_mission_starved_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_mission_recalled_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_t20_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_t20_economy": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_t20_orders": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_t20_admiralty": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "5 unproven: Blockade the enemy [handoff: naval_command]; The Grand Diversion [handoff: naval_command]; Lay down ships (400g at Bordelais) [handoff: naval_command]; Murat, march to Normandy [handoff: naval_command]; Lannes, march to Normandy [handoff: naval_command]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "Blockade the enemy [handoff: naval_command]",
+     "The Grand Diversion [handoff: naval_command]",
+     "Lay down ships (400g at Bordelais) [handoff: naval_command]",
+     "Murat, march to Normandy [handoff: naval_command]",
+     "Lannes, march to Normandy [handoff: naval_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_np_seat_forces": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_fall_clock_territories": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_congress_clock_territories": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "8 control(s) answer on screen",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_laws_train": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "3 unproven: Enact [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "Enact [handoff: naval_command]",
+     "Enact [handoff: naval_command]",
+     "Enact [handoff: naval_command]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "ledger_orders_display": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: cancel:Lannes [handoff: cancel_strategic_order]",
+   "detail": {
+    "visible": 8,
+    "handoff_cited": 0,
+    "unproven": [
+     "cancel:Lannes [handoff: cancel_strategic_order]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_room_tutorial": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 16 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Envoys [handoff: envoy_clicked: get_mailbox]",
+   "detail": {
+    "visible": 18,
+    "handoff_cited": 0,
+    "unproven": [
+     "Envoys [handoff: envoy_clicked: get_mailbox]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "tutorial_card": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "enemy_phase_t20": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: ⚔ View the field [handoff: view_field_requested]",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [
+     "⚔ View the field [handoff: view_field_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "enemy_phase_collapse": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: ⚔ View the field [handoff: view_field_requested]",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [
+     "⚔ View the field [handoff: view_field_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "enemy_phase_iq5": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: ⚔ View the field [handoff: view_field_requested]",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [
+     "⚔ View the field [handoff: view_field_requested]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diorama_aadj": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 5 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diorama_dadj": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 5 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diorama_rout_conquest": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 5 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diorama_four_contingents": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 5 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "diorama_naval": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 5 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "objection_dialog": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "talleyrand_objection": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "interrupt_last_stand": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "capture_choice": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "petition_popup": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "3 control(s) answer on screen",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "petition_popup_no_dp": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "petition_command_closed": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "4 control(s) answer on screen",
+   "detail": {
+    "visible": 4,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "mailbox_boot": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "mailbox_petition": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 2 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "proclamation_warsaw": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "main_menu": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Quit to Desktop [not pressed]",
+   "detail": {
+    "visible": 3,
+    "handoff_cited": 0,
+    "unproven": [
+     "Quit to Desktop [not pressed]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "main_menu_settings": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 4 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Quit to Desktop [not pressed]",
+   "detail": {
+    "visible": 10,
+    "handoff_cited": 0,
+    "unproven": [
+     "Quit to Desktop [not pressed]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "war_room_pause_settings": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 18 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "5 unproven: Save Game [not pressed]; Load Game [not pressed]; New Campaign [not pressed]; Main Menu [not pressed]; Quit to Desktop [not pressed]",
+   "detail": {
+    "visible": 9,
+    "handoff_cited": 0,
+    "unproven": [
+     "Save Game [not pressed]",
+     "Load Game [not pressed]",
+     "New Campaign [not pressed]",
+     "Main Menu [not pressed]",
+     "Quit to Desktop [not pressed]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_end_verdict": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_end_imperial": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_end_imperial_congress": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "2 control(s) answer on screen",
+   "detail": {
+    "visible": 2,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_end_humbled": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": true,
+   "why": "1 control(s) answer on screen",
+   "detail": {
+    "visible": 1,
+    "handoff_cited": 0,
+    "unproven": [],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_end_fall_funeral": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Main Menu [not pressed]",
+   "detail": {
+    "visible": 0,
+    "handoff_cited": 1,
+    "unproven": [
+     "Main Menu [not pressed]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_end_fall_chains": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Main Menu [not pressed]",
+   "detail": {
+    "visible": 0,
+    "handoff_cited": 1,
+    "unproven": [
+     "Main Menu [not pressed]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ },
+ "campaign_end_fall_abdication": {
+  "R1": {
+   "pass": true,
+   "why": "0 RED / 0 P1 at all five resolutions"
+  },
+  "R3": {
+   "pass": true,
+   "why": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+  },
+  "R7": {
+   "pass": true,
+   "why": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+  },
+  "R4": {
+   "pass": true,
+   "why": "0 one-off sizes or greys in 3 file(s) (frames)"
+  },
+  "R6": {
+   "pass": false,
+   "why": "1 unproven: Main Menu [not pressed]",
+   "detail": {
+    "visible": 0,
+    "handoff_cited": 1,
+    "unproven": [
+     "Main Menu [not pressed]"
+    ],
+    "silent": [],
+    "errors": []
+   }
+  },
+  "R5_auto": {
+   "pass": null,
+   "why": "no SILENT control (the readers judge the rest)"
+  }
+ }
+}

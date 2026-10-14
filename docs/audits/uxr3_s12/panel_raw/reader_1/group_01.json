@@ -1,0 +1,146 @@
+{"reader": 1, "group": "war_room",
+ "marks": {
+  "war_room_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_boot__1920x1080.png", "why": "The labelled 1805 map fills the frame and is where the eye lands, with the command window, the top bar and the war HUD placed around it at the edges."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_boot__1920x1080.png", "why": "The bordered four-corner icons on the terminal's top-right corner and on the war HUD's top-left corner look like expand buttons, but the probe records no control for either. Everything else is fine: the buttons look like buttons, and the disabled Execute and map-zoom buttons state why in their tooltips."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_boot__1920x1080.png", "why": "The 'Type command...' field, End Turn (E), Diplomacy and the top bar's nav buttons with their keys are all visible, so a new player can see how to give the first order."},
+   "R4_note": "At 5120x1440 the map sits in the centre third, with wide bare brown margins either side, and the menu gear at the top bar's far right is almost invisible, dark on dark."
+  },
+  "top_bar_boot": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_boot__1920x1080.png", "why": "The Cabinet line 'Talleyrand: Idle' is body-sized plain text in the middle of the right-hand cluster. It is neither first nor largest, and the eye goes to the left nav buttons and the red [THREAT!]."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_boot__1920x1080.png", "why": "The nav buttons and Envoys are bordered buttons, the gear reads as a menu icon, and the plain text fields (DP, Talleyrand, Turn) do not pose as controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_boot__1920x1080.png", "why": "The Cabinet line is there to inform, and it is readable in place. The way to act on it, Diplomacy (D), is a visible button with its key."},
+   "R4_note": "In the 5120x1440 crop the menu gear at the far right is nearly invisible, dark grey on the dark bar."
+  },
+  "top_bar_admiralty": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_admiralty__1920x1080.png", "why": "The bordered, coloured '45 sail · BLOCKADED' chip leads the right-hand cluster and is the most distinctive element on the bar, so the eye lands on it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_admiralty__1920x1080.png", "why": "The Admiralty chip is drawn as a bordered button and the probe shows it opening the ledger. The other controls look like controls and no plain text poses as one."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_admiralty__1920x1080.png", "why": "The chip itself is the visible control that leads on to the Admiralty."},
+   "R4_note": "The must_show line says crimson-bordered, but at both resolutions the border reads amber or gold, with only the text in red."
+  },
+  "top_bar_mission_court": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_mission_court__1920x1080.png", "why": "'Talleyrand: Courting → Denmark' is plain body text between the red [THREAT!] and the gold-bordered Envoys (2), and those two take the eye ahead of it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_mission_court__1920x1080.png", "why": "The nav buttons, Envoys (2) and the gear are all drawn as controls, and the Cabinet text does not pose as one."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\top_bar_mission_court__1920x1080.png", "why": "The line informs in place, and the roads to act on it, Diplomacy (D) and Envoys (2), are visible buttons."}
+  },
+  "war_status_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_boot__5120x1440.png", "why": "Under the ACTIVE WARS header, the THIRD COALITION row is the first row, and the tug-of-war bar below it fills its track."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_boot__5120x1440.png", "why": "The bordered four-corner icon above the panel's top-left corner looks like an expand button, yet the probe records only the coalition row and the war card. The war card's plain bordered row also hints only faintly that it can be clicked."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_boot__5120x1440.png", "why": "The 'THIRD COALITION ▸' chevron row is a visible way into the coalition's detail."}
+  },
+  "war_status_collapse_one": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_collapse_one__5120x1440.png", "why": "The war rows are the panel's first content, and the red -60 fill draws the eye straight to the losing war."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_collapse_one__5120x1440.png", "why": "The same bordered four-corner icon at the top-left corner looks clickable, but the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_collapse_one__5120x1440.png", "why": "The panel informs, and the 'THIRD COALITION ▸' row offers a visible way into the detail."}
+  },
+  "war_status_collapse_none": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_collapse_none__5120x1440.png", "why": "The war rows with their red losing fill are the first and dominant content of the HUD."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_collapse_none__5120x1440.png", "why": "The bordered four-corner icon above the panel looks like a button, but the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_collapse_none__5120x1440.png", "why": "The panel informs, and the chevron row is a visible way into the detail."}
+  },
+  "war_status_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_t20__5120x1440.png", "why": "The rows of several wars, each with a bar tracking its track, make up the whole panel, and the eye goes straight to them."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_t20__5120x1440.png", "why": "The bordered four-corner icon looks like an expand button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_status_t20__5120x1440.png", "why": "The panel informs, and its rows include the visible chevron row leading to the detail."},
+   "R4_note": "At 1920x1080, 'T:19' on the first war row touches the panel's right border."
+  },
+  "war_detail_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_boot__1920x1080.png", "why": "Under the war's title come the score bar first and then the gold 'Score Breakdown' with its Campaign and Blood rows, so the eye lands on the score."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_boot__1920x1080.png", "why": "The close X and the three bordered buttons are clear controls. The greyed Request Terms gives its reason in its tooltip: no court names terms this early, 2 turns remaining."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_boot__1920x1080.png", "why": "The popup informs, and the close X plus Negotiate Peace and Open Settlement are visible."}
+  },
+  "war_detail_collapse_one": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_collapse_one__1920x1080.png", "why": "The red -60 bar sits directly under the title, and the breakdown and 'Harsh Peace (theirs to impose)' follow, so the losing score is the first thing read."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_collapse_one__1920x1080.png", "why": "The buttons and the close X look like controls, and the disabled Request Terms states why in its tooltip."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_collapse_one__1920x1080.png", "why": "The popup informs, and the close X and the peace buttons are visible."},
+   "R4_note": "The bar's centre tick is drawn through the score label (-60), which makes the number hard to read."
+  },
+  "war_detail_collapse_none": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_collapse_none__5120x1440.png", "why": "The red losing bar heads the popup, and the breakdown, Harsh Peace and 'The homeland is lost' follow in reading order, with no cheerful wording."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_collapse_none__5120x1440.png", "why": "The controls look like controls, and the disabled Request Terms carries its reason in its tooltip."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_collapse_none__5120x1440.png", "why": "The popup informs, and the close X and the peace buttons are visible."}
+  },
+  "war_detail_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_t20__5120x1440.png", "why": "The played war's red -78 bar and its Score Breakdown are the first content under the title, so the eye lands on the score, though the exposure and weariness rows sit below the fold of the scrolled body."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_t20__5120x1440.png", "why": "The close X, Negotiate Peace and Open Settlement all look like controls and all answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_t20__5120x1440.png", "why": "The popup informs, the way out (X) is visible, and the scrollbar shows there is more to read below."}
+  },
+  "war_detail_coalition_boot": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_coalition_boot__1920x1080.png", "why": "One named bar per member (Britain, Austria, Russia) comes straight under the title, as the first content."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_coalition_boot__1920x1080.png", "why": "The three bordered buttons and the close X are clear controls, and nothing inert poses as clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_coalition_boot__1920x1080.png", "why": "Open Whole-War Settlement and the Target buttons are visible and named."}
+  },
+  "war_detail_coalition_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_coalition_t20__5120x1440.png", "why": "The members' bars, with their fills drawn (Britain red, Austria white), head the popup."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_coalition_t20__5120x1440.png", "why": "The buttons and the close X look like controls and all answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_detail_coalition_t20__5120x1440.png", "why": "The settlement and target buttons are visible and named."},
+   "R4_note": "The bars' centre tick runs through the score digits (-54, -26)."
+  },
+  "rail_mission_court": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_court__1920x1080.png", "why": "The mission is only the small, unlabelled blue book tile at the far right end of a long strip. The first element is the 'Imperial Box' label, and neither the court's name nor a Recall appears in the frame."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_court__1920x1080.png", "why": "The three tiles are bordered, filled buttons and each one answers. Nothing else on the strip poses as a control."},
+   "R8": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_court__1920x1080.png", "why": "A new player sees three icon-only tiles with no text. Nothing names the court or shows a Recall, so the key action, recalling the mission, cannot be found from the frame."}
+  },
+  "rail_mission_improve": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_improve__1920x1080.png", "why": "The mission row is a lone unlabelled blue tile at the strip's far right, after three envoy tiles, and no court or Recall is visible."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_improve__1920x1080.png", "why": "Every tile is drawn as a button and answers when pressed."},
+   "R8": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_improve__1920x1080.png", "why": "Nothing in the frame says which tile is Talleyrand's mission, names Prussia or offers a Recall, so the key action is hidden behind an unlabelled icon."}
+  },
+  "rail_mission_gather": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_gather__1920x1080.png", "why": "The mission is the last of four small unlabelled tiles on a long empty strip. It is neither first nor largest, and no court or Recall is shown."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_gather__1920x1080.png", "why": "The tiles look like buttons and every one answers."},
+   "R8": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_mission_gather__1920x1080.png", "why": "The frame shows no text naming Austria or offering a Recall. A new player has no visible cue to the mission's key action."}
+  },
+  "rail_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_t20__1920x1080.png", "why": "The tray's first tile is the red CRITICAL one, and each tile carries its own glyph, so the eye lands on the critical notice first."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_t20__1920x1080.png", "why": "The six tiles are bordered buttons that all answer, and the '+24' overflow count is plain dim text that does not pose as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_t20__1920x1080.png", "why": "The tray informs, and its tiles are visible buttons that open each notice."}
+  },
+  "rail_counter_punch": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_counter_punch__1920x1080.png", "why": "The opened detail panel, 'Davout — free attack!', is the only content under the strip, and its full-width 'Strike Mack — free' button is the panel's largest control."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_counter_punch__1920x1080.png", "why": "Strike Mack, Keep and Acknowledge are bordered buttons and the shield tile is a button. All of them answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\rail_counter_punch__1920x1080.png", "why": "The message names Mack within reach at Swabia, and the strike is a visible, named button."}
+  },
+  "region_paris": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_paris__1920x1080.png", "why": "The title 'Paris' is body-sized, low-key beige, and the recruit chips the surface exists for sit mid-panel beneath a description, the stats and FORCES PRESENT. The eye lands on the blue Fortify/Drill/Scout chips instead."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_paris__1920x1080.png", "why": "The underlined chip links and the '▸ Build' row are real controls. The dimmed Cavalry and Artillery chips each carry their reason and remedy beside them, and the close X is clear."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_paris__1920x1080.png", "why": "The Infantry recruit chip, Buy Substitutes and '▸ Build — 6 works' are visible, named controls."},
+   "R4_note": "The panel title is smaller and dimmer than the gold section headers below it."
+  },
+  "region_rhineland": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_rhineland__1920x1080.png", "why": "The Infantry and Cavalry chips the surface exists to show sit in the panel's lower half, below two FORCES PRESENT rows of chips, and the body-sized title does not hold the eye."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_rhineland__1920x1080.png", "why": "The enabled chips are underlined links that answer. The dimmed Drill and Artillery chips have their reason beside them (Mack one region away; commission Marmont)."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_rhineland__1920x1080.png", "why": "The Infantry and Cavalry recruit chips are visible and name their man and price."}
+  },
+  "region_amsterdam": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_amsterdam__1920x1080.png", "why": "The Substitutes row and the dimmed recruit row this surface exists for sit mid-panel under the stats and the forces chips. The eye lands on the blue Fortify/Drill/Scout row first."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_amsterdam__1920x1080.png", "why": "The three dimmed recruit chips share the one stated reason ('not our soil...'), and the enabled chips are underlined links that answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_amsterdam__1920x1080.png", "why": "Buy Substitutes and 'Negotiate with Holland' are visible controls."}
+  },
+  "region_milan": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_milan__1920x1080.png", "why": "The court is named in bold near the top, but the Substitutes row and the dimmed recruit row this surface is for sit in the lower half, and the eye lands on the forces chips."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_milan__1920x1080.png", "why": "The dimmed chips state their reasons (Archduke John one region away; not our soil), and the live links answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_milan__1920x1080.png", "why": "Buy Substitutes and the negotiate link are visible controls."}
+  },
+  "region_vienna": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_vienna__1920x1080.png", "why": "In a short panel, the owner line and the honest fog ('No intelligence...', 'Stripped? unknown') are the first content under the title, with no levy rows."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_vienna__1920x1080.png", "why": "The only control is the close X, and the gold 'scout it' line is not drawn as a link chip."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_vienna__1920x1080.png", "why": "The panel informs, the close X is visible, and it names the next step (scout or advance)."}
+  },
+  "region_doctrine_posen": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_doctrine_posen__1920x1080.png", "why": "The gold 'Poor country — a French army here draws 80%' line is the only coloured line in a short panel, and the eye lands on it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_doctrine_posen__1920x1080.png", "why": "The only control is the close X, and no text poses as one."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_doctrine_posen__1920x1080.png", "why": "The panel informs, and its close X is visible."},
+   "R4_note": "The must_show line expects Income / Stability / Supply reading Unknown, but the frame shows no stat line at all, only 'No intelligence'."
+  },
+  "region_doctrine_tyrol": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_doctrine_tyrol__1920x1080.png", "why": "The gold 'Stripped by war (35%)' line sits in the top block, right under the Supply line and beside War damage, and draws the eye."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_doctrine_tyrol__1920x1080.png", "why": "The dimmed Fortify and Drill chips give the reason ('Archduke John stands here — attack or retreat first'), and the live links answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_doctrine_tyrol__1920x1080.png", "why": "The panel informs, and the close X plus Scout, Attack and Negotiate are visible."}
+  },
+  "region_paris_build_open": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_paris_build_open__1920x1080.png", "why": "The '▾ Build' header and its rows sit at the very foot of a long panel, below four other blocks, and the header itself is a small body-size link."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_paris_build_open__1920x1080.png", "why": "Every build row is an underlined chip link that answers, and the dimmed recruit chips carry their reasons."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\region_paris_build_open__1920x1080.png", "why": "Each work is a visible chip naming its price and its effect."}
+  }
+ }}

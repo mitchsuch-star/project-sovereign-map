@@ -1,0 +1,47 @@
+{"reader": 2, "group": "enemy_phase_and_diorama",
+ "marks": {
+  "enemy_phase_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_t20__5120x1440.png", "why": "Under the red title the AI's action in prose ('Archduke John attacks Deroy') and its battle block with the field link are the first and main content."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "'View the field' is an underlined link with a crossed-swords glyph and Continue is a full-width bordered button; both answer and nothing else poses as clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_t20__1920x1080.png", "why": "It informs; Continue is the visible way on and the field link is in view."}
+  },
+  "enemy_phase_collapse": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_collapse__5120x1440.png", "why": "The AI's moves in prose lead under AUSTRIA, the battle block with its result and field link follows."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "The field link and Continue are the only controls and look like controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_collapse__1920x1080.png", "why": "It informs; Continue and 'View the field' are visible."},
+   "R4_note": "Deroy's casualty line carries no army/corps scope label here, where the card asks for IQ-5's scope on both sides."
+  },
+  "enemy_phase_iq5": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_iq5__5120x1440.png", "why": "The scoped casualty line ('Ney's army: 6,567 casualties — Ney's own corps: 15,471 remaining') is in the first battle block at the top of the dialog."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "The field link and Continue look like controls and answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\enemy_phase_iq5__1920x1080.png", "why": "It informs; Continue is visible."},
+   "R4_note": "The action line under BRITAIN reads '- unknown' instead of a verb."
+  },
+  "diorama_aadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "The banner 'A BLOODY STALEMATE' is the largest and first element, over the order of battle with each contingent's losses and Berthier's verdict beneath."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "Replay and Close answer, but the gold-filled, bordered 'THE GREAT BATTLE OF SWABIA' plaque sits in the same row as those buttons and looks like the primary button, and the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_aadj__1920x1080.png", "why": "It informs; Close is visible."},
+   "R4_note": "At 5120x1440 the frame is not cropped and the diorama sits small in the middle of a black field."
+  },
+  "diorama_dadj": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "The red banner 'THE FIELD IS LOST' leads, then the order of battle and the verdict."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "The gold-filled 'THE GREAT BATTLE OF PARIS' plaque in the button row looks like a button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_dadj__1920x1080.png", "why": "It informs; Close is visible."}
+  },
+  "diorama_rout_conquest": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "'A DECISIVE VICTORY' leads with 'Swabia falls to France.' under it, and ROUTED sits in red under the beaten line."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "The gold-filled 'BATTLE OF ULM' plaque in the button row looks like a button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_rout_conquest__1920x1080.png", "why": "It informs; Close is visible."}
+  },
+  "diorama_four_contingents": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "The banner leads and the four ranks a side recede with names, strengths, the reserve tails and the faith caption on the baize."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "The gold-filled 'BATTLE OF AUSTERLITZ' plaque in the button row looks like a button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_four_contingents__1920x1080.png", "why": "It informs; Close is visible."},
+   "R4_note": "The flags overlap the strength figures of Davout, Ney and Archduke Charles, and the plaque reads 'SWABIA · TURN 1' under Austerlitz."
+  },
+  "diorama_naval": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_naval__1920x1080.png", "why": "'THE FLEET IS BROKEN' leads, then the line of battle with STRUCK under the hulls and the sail counts."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_naval__1920x1080.png", "why": "The gold-filled 'THE GREAT FLEET ACTION' plaque in the button row looks like a button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\diorama_naval__1920x1080.png", "why": "It informs; Close is visible."}
+  }
+ }}

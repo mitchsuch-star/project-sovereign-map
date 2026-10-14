@@ -1,0 +1,11 @@
+{
+ "rule": "docs/UX_CHECKLIST_V1.json R6: a HANDOFF or NOT PRESSED control counts as answering only where a live-backend driven record shows that road's visible answer — the Mode C session or an existing driven test, cited by name",
+ "citations": [
+  {
+   "scene": "campaign_end.tscn",
+   "match": {"text": "Load a campaign"},
+   "cite": "tests/test_ge2_the_client.py::TestTheClientDriven::test_load_steps_the_card_aside_and_a_cancel_brings_it_back",
+   "evidence": "tools/ge2_campaign_end_harness.gd boots the real main.tscn and hands it the backend's own fall payload: the card's primary 'Load a campaign' raises the Load dialog and the card steps aside (funeral_load_dialog_raised, funeral_screen_hidden_for_load), and a cancelled load brings it back. One road serves all three fall registers (the funeral, the chains, the abdication)."
+  }
+ ]
+}

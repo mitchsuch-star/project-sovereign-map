@@ -1,0 +1,166 @@
+{"reader": 1, "group": "strategic_ledger",
+ "marks": {
+  "ledger_boot_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "The lit FORCES tab opens on its own header and then the corps muster, which is the first and dominant content."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "The tabs and the X are clear controls, and the lit tab's tooltip says 'You are reading this book'. But the bordered four-arrow icon at the panel's bottom-right corner reads as an expand button and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "The tab informs. The X is visible and the text states 'Keys 1–8 turn the ledger's books; press T to close it'."}
+  },
+  "ledger_boot_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "The TERRITORIES header, the Congress clock line and the province rows lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "The tab informs, and the X and the other tabs are visible."}
+  },
+  "ledger_boot_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "The ECONOMY header and the treasury's figures, Treasury first, fill the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_boot_intel": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "Known Enemy Forces, with its confirmed/partial tags, is the first block of the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_boot_manpower": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "The three pools (INFANTRY, CAVALRY, ARTILLERY), each with its pool, regen and price, are the whole tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_boot_orders": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "STANDING ORDERS and THE CABINET lead, then one row per marshal with his orders."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "The tab informs, and it names the road ('Press F1, choose a court, and send him on a mission'). The X is visible."}
+  },
+  "ledger_boot_admiralty": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "THE ADMIRALTY header, the fleet line and 'Orders to the Admiralty' lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "The order chips are real links, and the greyed 'Commission Oudinot' states why beside it ('the treasury holds 800g'). But the bordered expand-arrow icon at the corner has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "Blockade, The Grand Diversion and Lay down ships are visible, named chips."}
+  },
+  "ledger_boot_laws": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "THE LAWS OF STATE and the first law's bold title lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "The greyed Enact chips state their reasons beside them ('costs 9,000 gold; the treasury holds 800'), but the bordered expand-arrow icon at the corner has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "Each law's Enact chip is visible with its price."}
+  },
+  "ledger_spent_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "In the top block, the Treasury of 15,988g and then the gold 'Charges of Empire: -492g' line, with its explanation, are the first coloured line and catch the eye."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_ceiling_calm_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_calm_economy__5120x1440.png", "why": "The ceiling line this board exists to show is below the fold at both resolutions. The frame ends at the depot line."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_calm_economy__5120x1440.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_calm_economy__5120x1440.png", "why": "The tab informs. The X is visible, and the scrollbar shows more below."}
+  },
+  "ledger_ceiling_above_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_above_economy__5120x1440.png", "why": "The ceiling line, and the words saying it is above its bound, are not in either frame. They sit below the fold."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_above_economy__5120x1440.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_above_economy__5120x1440.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_ceiling_unbounded_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "'Ceiling: none — ...' is visible but drawn in dim grey as the last figure row, under the green Net. It is neither first nor where the eye lands."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "The tab informs, and the X is visible."},
+   "R4_note": "This legacy-world board drops the dateline that every other ledger tab prints."
+  },
+  "ledger_collapse_one_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "The collapse is named only near the foot of the figures ('The depot at Paris is closed — Paris is in Austria's hands', red Net). The list opens like an ordinary treasury, with no collapse line first."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_collapse_none_economy": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "As with one province left, the zero-province state shows only as 'Income: +0g' and the red Net and Ceiling near the bottom. No line names the collapse first."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_laws_staff": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The Staff (Grand Quartier Général) is the first law, with green 'In force since turn 1.' and its Repeal chip saying what it loses."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The Repeal and Enact chips are real links, but the bordered expand-arrow icon at the corner has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The Repeal and Enact chips are visible, each with its consequence."}
+  },
+  "ledger_laws_forecast": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The bold gold FORECAST, naming the Staff and the 100 gold that saves it, is the first block, with its 'Repeal the Code Abroad instead' chip directly below."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The chips are real links, but the bordered expand-arrow icon at the corner looks clickable and has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The 'Repeal the Code Abroad instead' chip is visible right under the forecast."}
+  },
+  "ledger_mission_court_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_court_forces__5120x1440.png", "why": "No Cabinet block appears in either frame. The view is the ordinary corps muster, so the running mission, its court and its DP are not shown."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_court_forces__5120x1440.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_court_forces__5120x1440.png", "why": "The tab informs. The X and 'press T to close it' are visible."}
+  },
+  "ledger_mission_improve_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "The Cabinet block's effect / drift / net arm is not in the frame. Only the corps muster is shown."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_mission_gather_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "No Cabinet block or effect text is in the frame. The view is the corps muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_mission_undermine_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "The pair the mission moves is not shown. No Cabinet block is in the frame."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_mission_transit_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_transit_forces__5120x1440.png", "why": "The paused mission is not in either frame. The view is the corps muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_transit_forces__5120x1440.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_transit_forces__5120x1440.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_mission_starved_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "The suspended mission and its cost are not in the frame. Only the corps muster is shown."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_mission_recalled_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "The empty desk is not shown. No Cabinet block is in the frame, which is the corps muster."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "The board's offer is that the desk is free to send again, but nothing in the frame names that next step or shows a road to it."}
+  },
+  "ledger_t20_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "The played board's muster (July 1806, Authority 80) leads the Forces tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_t20_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "The played board's treasury and its charges lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_t20_orders": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "STANDING ORDERS, THE CABINET and the marshal rows lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "The tab informs. It names the road (Press F1), and the X is visible."}
+  },
+  "ledger_t20_admiralty": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "THE ADMIRALTY, the fleet at readiness 50 and the orders chips lead the tab."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "The chips are real links, but the bordered expand-arrow icon at the corner has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "The orders and the expedition's march chips are visible and named."}
+  },
+  "ledger_np_seat_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_np_seat_forces__5120x1440.png", "why": "The Emperor's corps and the Seat's +1 DP are not in either frame. The muster opens on Ney, Davout and Soult."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_np_seat_forces__5120x1440.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_np_seat_forces__5120x1440.png", "why": "The tab informs, and the X is visible."}
+  },
+  "ledger_fall_clock_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "The red collapse note leads, followed directly by the two clock lines: the paused chains clock dimmed and undated, the soil clock amber and dated."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks clickable, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "The tab informs, the X is visible, and the note names the next step ('unless we retake a province or make peace')."}
+  },
+  "ledger_congress_clock_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "The amber 'THE CONGRESS SITS — turn 2 of 8 · 50 of 45 titled ...' line is the first content under the dateline."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "The tab informs, and the X is visible."},
+   "R4_note": "The must_show line expects '50 of 50 titled', but the frame reads '50 of 45 titled'."
+  },
+  "ledger_laws_train": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The Train's cure line is mid-panel inside the second law's card, under the Grand Quartier Général. It is neither first nor largest, though its gold colour draws some attention."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The greyed Enact chips state their reasons beside them, but the bordered expand-arrow icon at the corner has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The cure line names its next step (the Grand Quartier Général in force), and the Enact chips are visible."}
+  },
+  "ledger_orders_display": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "Lannes's 'PURSUE Archduke John | tracking [Cancel]' is the first order row, set apart above a rule."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "The red '[Cancel]' link is a real control, but the bordered expand-arrow icon at the corner looks clickable and has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "The order's [Cancel] link is visible beside it."},
+   "R4_note": "Cancel is drawn as a bracketed red link, where every other ledger action is a boxed chip."
+  }
+ }}

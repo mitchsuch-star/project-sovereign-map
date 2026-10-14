@@ -1,0 +1,63 @@
+{"reader": 1, "group": "dispatch",
+ "marks": {
+  "dispatch_boot_today": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_boot_today__1920x1080.png", "why": "The frame opens scrolled to TODAY: its gold header, the 'choose among them; they share one treasury and one army' line and the four blue order chips are the strongest mass under the title, with no headline above them."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_boot_today__1920x1080.png", "why": "The order chips and the close X are real controls. But the bordered four-arrow icon at the panel's bottom-right corner reads as a maximise button, and the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_boot_today__1920x1080.png", "why": "Each of the four orders is a visible underlined chip that types the order, and the next steps ('what can I do', F1) are stated."},
+   "R4_note": "The top line of the scrolled body is cut in half by the scroll region's top edge."
+  },
+  "dispatch_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_t20__1920x1080.png", "why": "After the banner, the gold headline ('Berry, Burgundy, Corsica and 4 more lie in enemy hands') leads, with the beats beneath it."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_t20__1920x1080.png", "why": "The close X and Open Envoys (2) are clear controls, but the bordered expand-arrow icon at the bottom-right corner looks clickable and has no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_t20__1920x1080.png", "why": "The dispatch informs, and the close X and Open Envoys (2) are visible, with 'Press R to reread it' stated."}
+  },
+  "dispatch_collapse": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_collapse__1920x1080.png", "why": "The gold collapse headline ('France holds no province of her own. Paris is in Austria's hands') is the first item under the banner."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_collapse__1920x1080.png", "why": "The bordered expand-arrow icon at the panel's corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_collapse__1920x1080.png", "why": "The dispatch informs, and the close X and Open Envoys (3) are visible."}
+  },
+  "dispatch_fall_clock": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_fall_clock__1920x1080.png", "why": "In the scrolled view, the gold THE FALL OF THE EMPIRE heading is the first section, followed by the warning prose and the clock line."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_fall_clock__1920x1080.png", "why": "The bordered expand-arrow icon at the bottom-right corner looks clickable, but the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_fall_clock__1920x1080.png", "why": "The page informs. The close X and Open Envoys are visible, and the Congress line names its road ('summon from the Cabinet (F1)')."},
+   "R4_note": "The clock is printed twice in a row: once inside the prose in capitals, then again as its own line."
+  },
+  "dispatch_congress_clock": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_congress_clock__1920x1080.png", "why": "THE CONGRESS OF PARIS is the third section in view, near the panel's foot. The red coalition-threat lines and the WAR PURPOSE block above it take the eye first."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_congress_clock__1920x1080.png", "why": "The bordered expand-arrow icon at the panel's corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_congress_clock__1920x1080.png", "why": "The page informs, and the close X is visible."},
+   "R4_note": "The top line ('Threat: 60/100 [Formed]') is half cut by the scroll region's top edge."
+  },
+  "dispatch_front_page": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_front_page__1920x1080.png", "why": "The league's own news ('London now pays Vienna 500 gold a turn against us', with the price to keep her out) leads in gold under the banner."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_front_page__1920x1080.png", "why": "The bordered expand-arrow icon at the bottom-right corner reads as clickable, but the probe records only the close X."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_front_page__1920x1080.png", "why": "The page informs, the close X is visible, and the headline names the next step (Talleyrand, or buying off her design)."}
+  },
+  "dispatch_front_page_league": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_front_page_league__1920x1080.png", "why": "The view opens on COALITION THREAT: the threat line, then 'At this pace the courts consult on turn 32', then one row per court with its price."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_front_page_league__1920x1080.png", "why": "The bordered expand-arrow icon at the corner looks like a button, but no control for it is recorded."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\dispatch_front_page_league__1920x1080.png", "why": "The page informs and its close X is visible. Each court's row names the price that keeps her out."},
+   "R4_note": "A stray clipped row of punctuation shows along the top edge of the scroll region."
+  },
+  "gazette_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\gazette_t20__1920x1080.png", "why": "The issue banner with its caption ('SPECIAL EDITION — a capital stormed') heads the paper, and the columns follow."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\gazette_t20__1920x1080.png", "why": "The disabled 'Later issue >' is explained by 'Issue 5 of 5' beside it, but the bordered expand-arrow icon at the corner looks clickable and is not in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\gazette_t20__1920x1080.png", "why": "'< Earlier issue' and the close X are visible, and the text says 'Page through the archive below'."}
+  },
+  "gazette_congress": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\gazette_congress__1920x1080.png", "why": "The CONGRESS OF PARIS column is the second section, in the lower half, with the same weight as THE COURTS above it, so it is neither first nor where the eye lands."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\gazette_congress__1920x1080.png", "why": "Both issue buttons are disabled with 'Issue 1 of 1' beside them, which is fine, but the bordered expand-arrow icon at the corner looks clickable and has no recorded control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\gazette_congress__1920x1080.png", "why": "The paper informs, and the close X is visible."}
+  },
+  "campaign_log_glyphs": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_log_glyphs__5120x1440.png", "why": "The opened turn's rows, each with its glyph, are the first content under the title."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_log_glyphs__5120x1440.png", "why": "The turn headers are bordered buttons and the boxed X closes, but the bordered expand-arrow icon at the corner looks like a button and is not in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_log_glyphs__5120x1440.png", "why": "The log informs. The X is visible, and the '>' turn headers plainly unfold."},
+   "R4_note": "The close control here is a boxed letter 'X', where the dispatch and the Moniteur use a thin x icon. The turn chevrons are the typed letters 'v' and '>'. Every glyph in view is the same handshake."
+  },
+  "campaign_log_tiers": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_log_tiers__1920x1080.png", "why": "The lead row ('Coalition against France has dissolved...') is the largest, bold text on the surface and the eye lands on it, with notable rows mid-size and routine rows small."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_log_tiers__1920x1080.png", "why": "The bordered expand-arrow icon at the bottom-right corner looks clickable, but the probe records no control for it."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_log_tiers__1920x1080.png", "why": "The log informs. The X is visible and the turn headers unfold."}
+  }
+ }}

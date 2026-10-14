@@ -1,0 +1,88 @@
+[
+ {
+  "id": "UXR3-74",
+  "sev": "P2",
+  "items": [
+   "R5"
+  ],
+  "scene": "resize_grip.gd",
+  "surfaces": [
+   "dispatch_t20",
+   "dispatch_collapse",
+   "dispatch_fall_clock",
+   "dispatch_congress_clock",
+   "dispatch_front_page",
+   "dispatch_front_page_league",
+   "gazette_t20",
+   "gazette_congress",
+   "campaign_log_glyphs",
+   "campaign_log_tiers",
+   "generals_boot",
+   "generals_t20",
+   "generals_prisoner",
+   "generals_np_seat",
+   "generals_np_field",
+   "generals_np_captive",
+   "generals_flagship_t12",
+   "generals_doctrine"
+  ]
+ },
+ {
+  "id": "UXR3-75",
+  "sev": "P3",
+  "items": [
+   "R5"
+  ],
+  "scene": "battle_diorama.tscn",
+  "surfaces": [
+   "diorama_aadj",
+   "diorama_dadj",
+   "diorama_rout_conquest",
+   "diorama_four_contingents",
+   "diorama_naval"
+  ]
+ },
+ {
+  "id": "UXR3-76",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "region_panel.tscn",
+  "surfaces": [
+   "region_paris",
+   "region_rhineland",
+   "region_amsterdam",
+   "region_milan",
+   "region_paris_build_open"
+  ]
+ },
+ {
+  "id": "UXR3-77",
+  "sev": "P2",
+  "items": [
+   "R2"
+  ],
+  "scene": "diplomatic_ledger.tscn",
+  "surfaces": [
+   "diplo_boot_nations",
+   "diplo_boot_treaties",
+   "diplo_boot_balance",
+   "diplo_boot_bargains",
+   "diplo_boot_vassals",
+   "diplo_boot_congress"
+  ]
+ },
+ {
+  "id": "UXR3-78",
+  "sev": "P2",
+  "items": [
+   "R8"
+  ],
+  "scene": "diplomacy_wizard.tscn",
+  "surfaces": [
+   "wizard_step1",
+   "wizard_formables_entry"
+  ]
+ }
+]

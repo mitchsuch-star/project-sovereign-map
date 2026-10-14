@@ -1,0 +1,15 @@
+{"reader": 1, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The map fills the frame, and the gold-bordered SCHOOL OF WAR card in the top-right, reading 'I. The Situation', is the strongest panel on it, so the eye lands there next to the command window."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The card's chips and the war-room buttons are real controls. But the bordered four-corner icons on the terminal's top-right corner and the war HUD's top-left corner look like buttons and have no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The card names the next step ('Click the quill to place the order on your command line'), with the '✎ economy' chip and 'Skip this lesson ▸' visible."},
+   "R4_note": "At 5120x1440 the card sits small in the far top-right corner, far from the centred map, and its body reads much smaller than the terminal text."
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__5120x1440.png", "why": "'THE SCHOOL OF WAR 1 of 20' heads the card, and the bold 'I. The Situation' title and its body follow as the main mass."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__5120x1440.png", "why": "The quill and Skip-lesson chips are boxed, underlined links, and the header's '–' and gold 'Skip' read as title-bar controls. All four answer in the record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__5120x1440.png", "why": "The card says what to do ('Click the quill to place the order ...'), and the chips are visible."},
+   "R4_note": "The header's '–' and 'Skip' are bare text, while the card's other two controls are boxed chips. The two kinds of control are drawn differently on one card."
+  }
+ }}

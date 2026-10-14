@@ -1,0 +1,15 @@
+{"reader": 3, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__5120x1440.png", "why": "The SCHOOL OF WAR card is a small panel tucked in the top-right corner with a small dim-gold title; at 5120 it is a sliver of the frame and the eye lands on the map and the command window, not on the lesson."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The tutor's chips and the war room's buttons are recorded controls, but the bordered expand-glyph squares on the command window's and the Active Wars panel's corners look like buttons and have no control in the probe's record."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The card names the next step ('Click the quill to place the order') with the '✎ economy' chip, offers 'Skip this lesson ▸', and the command field is visible."},
+   "R4_note": "The tutor card's '–' and 'Skip' are bare text with no button chrome, unlike every other close or skip control in the client."
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__5120x1440.png", "why": "The card leads with THE SCHOOL OF WAR · 1 of 20, then the bold 'I. The Situation' and its body, with the quill and Skip chips beneath."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__5120x1440.png", "why": "The two underlined chips and the '–' / 'Skip' header items are all recorded controls that answer; the gold keywords in the body are not underlined and not drawn as links."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The quill chip and its instruction line state the next step, and 'Skip this lesson ▸' is visible."},
+   "R4_note": "The header '–' is a bare dash that reads weakly as a minimise control."
+  }
+ }}

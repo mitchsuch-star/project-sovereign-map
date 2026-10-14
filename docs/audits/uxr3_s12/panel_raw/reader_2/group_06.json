@@ -1,0 +1,14 @@
+{"reader": 2, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__5120x1440.png", "why": "At the player's 5120x1440 the School of War card is a small panel tucked in the top-right corner of a very wide frame and the map takes the eye; the card the surface is for is neither largest nor first."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The bordered four-arrow 'expand' icons on the command window and the war HUD look like buttons but the probe records no control for them, and the card's '–' and 'Skip' are bare header text unlike its filled chips."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The card names the next step (type 'economy', click the quill chip) and 'Skip this lesson' is a visible chip; the command line is in view."},
+   "R4_note": "The card's close row uses bare text ('–', 'Skip') while its actions are filled chips; the command window's first visible line is half-hidden under its header box."
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__5120x1440.png", "why": "THE SCHOOL OF WAR · 1 of 20 heads the card and the bold 'I. The Situation' with its body is the main block."},
+   "R5": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__5120x1440.png", "why": "The quill chip and 'Skip this lesson' look like controls, but the header's '–' (minimise) is a bare dash that reads as punctuation and 'Skip' is bare text, so two live controls do not look like controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The card says 'Click the quill to place the order on your command line' and the quill chip is right there."}
+  }
+ }}

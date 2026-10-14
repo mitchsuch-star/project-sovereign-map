@@ -1,0 +1,42 @@
+{"reader": 1, "group": "campaign_end",
+ "marks": {
+  "campaign_end_verdict": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_verdict__1920x1080.png", "why": "The large 'THE VERDICT OF HISTORY' heading leads. The tier 'AN EMPIRE CONTESTED', its three lines and the closing follow, then THE RECORD."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_verdict__1920x1080.png", "why": "The single bordered Continue is the only control, and it looks like one."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_verdict__1920x1080.png", "why": "The card informs, and Continue is visible."}
+  },
+  "campaign_end_imperial": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_imperial__1920x1080.png", "why": "The gold 'THE IMPERIAL PEACE' heading and 'Europe accepts the order of the French Empire.' lead, with the record and the tier below."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_imperial__1920x1080.png", "why": "'Continue the reign' and 'Retire to the Tuileries' are bordered buttons, and nothing inert poses as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_imperial__1920x1080.png", "why": "The closing line names both roads, and both buttons are visible."}
+  },
+  "campaign_end_imperial_congress": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_imperial_congress__1920x1080.png", "why": "The gold heading and 'Europe accepts the order ...' lead. THE CONGRESS OF PARIS, with the four flags SIGNED in green, opens the body, and THE SITTING strip follows."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_imperial_congress__1920x1080.png", "why": "The two buttons are bordered controls, and the flags and checkmarks are plainly not clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_imperial_congress__1920x1080.png", "why": "'Continue the reign' and 'Retire to the Tuileries' are visible, with a scrollbar showing the rest of the record."},
+   "R4_note": "The must_show line expects '50 of 50 titled provinces', but the frame reads '50 of 45 titled provinces'. THE VERDICT and the Moniteur line sit below the scroll fold."
+  },
+  "campaign_end_humbled": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_humbled__1920x1080.png", "why": "'THE HUMBLED PEACE' in the crimson-grey register and 'The Emperor has signed a peace that humbles the Empire.' lead, and THE PEACE paragraph naming Paris opens the body."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_humbled__1920x1080.png", "why": "The single Continue is a bordered button."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_humbled__1920x1080.png", "why": "The card informs, and Continue is visible."},
+   "R4_note": "The 'THE VERDICT OF HISTORY' heading is cut in half by the scroll region's foot."
+  },
+  "campaign_end_fall_funeral": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_funeral__1920x1080.png", "why": "The crimson 'THE FALL OF THE EMPIRE', the date and 'The Emperor is dead.' lead, and THE FUNERAL paragraphs follow."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_funeral__1920x1080.png", "why": "'Load a campaign' and 'Main Menu' are bordered buttons (not pressed by the probe, as they leave the scene), and nothing inert poses as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_funeral__1920x1080.png", "why": "Both exits are visible, named buttons."},
+   "R4_note": "The last visible record line is cut at the scroll region's foot."
+  },
+  "campaign_end_fall_chains": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_chains__1920x1080.png", "why": "The crimson heading and 'The Emperor, a prisoner these 10 turns, is deposed.' lead. THE EXILE, naming Olmütz and with Metternich's line, opens the body."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_chains__1920x1080.png", "why": "The two exit buttons are bordered controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_chains__1920x1080.png", "why": "'Load a campaign' and 'Main Menu' are visible."}
+  },
+  "campaign_end_fall_abdication": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_abdication__1920x1080.png", "why": "The crimson heading and its one-line summary lead, and THE EXILE naming Fontainebleau and Elba opens the body."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_abdication__1920x1080.png", "why": "The two exit buttons are bordered controls."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12\\reread\\packet\\frames\\campaign_end_fall_abdication__1920x1080.png", "why": "'Load a campaign' and 'Main Menu' are visible."},
+   "R4_note": "The must_show line expects 'The Empire is reduced to Brittany alone — a province, not a realm.', but the frame reads 'No soil remains to the Emperor ...' and '0 provinces of 126'."
+  }
+ }}
