@@ -805,18 +805,18 @@ func _render() -> void:
 		and not advance_name.begins_with("_pred_turn_gte") \
 		and advance_name != "_pred_never"
 	if waiting:
-		lines.append("[color=#" + Utils.COLOR_DIMMED + "]Berthier resumes with the morning dispatch — end the turn when ready.[/color]")
+		lines.append("[color=#" + Utils.COLOR_INFO + "]Berthier resumes with the morning dispatch — end the turn when ready.[/color]")
 	elif str(step["suggest"]) != "":
 		lines.append(Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), CHIP_TEXT_HEX, CHIP_BG_HEX))
-		lines.append("[color=#" + Utils.COLOR_DIMMED + "]Click the quill to place the order on your command line — you give the word.[/color]")
+		lines.append("[color=#" + Utils.COLOR_INFO + "]Click the quill to place the order on your command line — you give the word.[/color]")
 	if not waiting and step.has("open"):
 		# Sept 23, 2026: a door, not an order — the chip opens the real
 		# screen (the Cabinet) on the court the card names.
 		lines.append(Utils.bb_button_chip("open:" + str(step["open"]), str(step.get("open_label", "Open ▸")), CHIP_TEXT_HEX, CHIP_BG_HEX))
 	if overdue:
-		lines.append("[color=#" + Utils.COLOR_DIMMED + "]The war has outrun this page — fight it as you find it; end the turn and the school will move on.[/color]")
+		lines.append("[color=#" + Utils.COLOR_INFO + "]The war has outrun this page — fight it as you find it; end the turn and the school will move on.[/color]")
 	if _released_note != "":
-		lines.append("[color=#" + Utils.COLOR_DIMMED + "]" + _released_note + "[/color]")
+		lines.append("[color=#" + Utils.COLOR_INFO + "]" + _released_note + "[/color]")
 	if str(step["id"]) == "handoff":
 		lines.append(Utils.bb_button_chip("skipdone:", "Conclude the lesson", CHIP_TEXT_HEX, CHIP_BG_HEX))
 	else:

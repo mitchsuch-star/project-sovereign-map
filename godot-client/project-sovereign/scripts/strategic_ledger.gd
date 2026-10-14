@@ -212,7 +212,7 @@ func _dated_line() -> String:
 	var cal = str(cached_data.get("calendar_label", ""))
 	if cal == "":
 		return ""
-	return "[color=#" + Utils.COLOR_DIMMED + "]" + cal + "[/color]\n"
+	return "[color=#" + Utils.COLOR_INFO + "]" + cal + "[/color]\n"
 
 
 func _collapse_note_line() -> String:
@@ -252,7 +252,7 @@ func _fall_clock_lines() -> String:
 		if severity == "critical":
 			tint = Utils.COLOR_ERROR
 		elif severity == "paused":
-			tint = Utils.COLOR_DIMMED
+			tint = Utils.COLOR_INFO
 		bbcode += "[color=#" + tint + "]" + line + "[/color]\n"
 	if bbcode != "":
 		bbcode += "\n"
@@ -281,7 +281,7 @@ func _congress_clock_line() -> String:
 		elif severity == "warning":
 			tint = Utils.COLOR_BATTLE
 		elif severity == "paused":
-			tint = Utils.COLOR_DIMMED
+			tint = Utils.COLOR_INFO
 	var out: String = "[color=#" + tint + "]" + str(line) + "[/color]\n"
 	# SR-1c: at the gate, each held province's road to title under the
 	# clock (the backend's `held_roads`; at most four here — the Diplomatic
@@ -294,10 +294,10 @@ func _congress_clock_line() -> String:
 				break
 			if not (r is Dictionary):
 				continue
-			out += "[color=#" + Utils.COLOR_GREY + "]  • " + str(r.get("text", "")) + "[/color]\n"
+			out += "[color=#" + Utils.COLOR_INFO + "]  • " + str(r.get("text", "")) + "[/color]\n"
 			shown += 1
 		if roads.size() > shown:
-			out += "[color=#" + Utils.COLOR_GREY + "]  … and " + str(roads.size() - shown) + " more on the Diplomatic Ledger's CONGRESS tab (D, then 7).[/color]\n"
+			out += "[color=#" + Utils.COLOR_INFO + "]  … and " + str(roads.size() - shown) + " more on the Diplomatic Ledger's CONGRESS tab (D, then 7).[/color]\n"
 	return out + "\n"
 
 
@@ -333,7 +333,7 @@ func _render_forces():
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.[/color]\n\n"
 	bbcode += _collapse_note_line()
 
 	# Authority — global player stat (V2b)
@@ -377,7 +377,7 @@ func _render_forces():
 			"drilling":
 				status_color = Utils.COLOR_BLUE
 			"idle":
-				status_color = Utils.COLOR_GREY
+				status_color = Utils.COLOR_INFO
 
 		bbcode += "  Status: [color=#" + status_color + "]" + status.replace("_", " ").capitalize() + "[/color]"
 		# FA-32 (slice 11): this tab listed a PRISONER as an idle corps standing
@@ -436,7 +436,7 @@ func _render_territories():
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ TERRITORIES ═══[/color]\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n"
 	bbcode += _collapse_note_line()
 	bbcode += _fall_clock_lines()
 	bbcode += _congress_clock_line()
@@ -513,7 +513,7 @@ func _render_economy():
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ ECONOMY ═══[/color]\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The treasury's books — income against upkeep, and every charge with its name on it.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The treasury's books — income against upkeep, and every charge with its name on it.[/color]\n\n"
 
 	var treasury = int(econ.get("treasury", 0))
 	var income = int(econ.get("income", 0))
@@ -579,7 +579,7 @@ func _render_economy():
 				var left = int(st.get("turns_remaining", 0))
 				if left > 0:
 					line += ", " + str(left) + " turn" + ("s" if left != 1 else "") + " left"
-				bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + line + ")[/color]\n"
+				bbcode += "    [color=#" + Utils.COLOR_INFO + "](" + line + ")[/color]\n"
 	# ES-2 (Economy Revisit S6): recurring cost of holding non-homeland
 	# soil — a signed Net component of its own (Income stays gross), so it
 	# must render for the visible lines to sum to Net (SC-33 invariant).
@@ -618,11 +618,11 @@ func _render_economy():
 			var terms_text = ", ".join(PackedStringArray(term_bits))
 			if rate_note != "":
 				terms_text += " — " + rate_note
-			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + terms_text + ")[/color]\n"
+			bbcode += "    [color=#" + Utils.COLOR_INFO + "](" + terms_text + ")[/color]\n"
 		# SR-5a question (c): why the draw moved since the last charged turn.
 		var charges_delta_note = str(econ.get("state_charges_delta_note", ""))
 		if charges_delta_note != "":
-			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + charges_delta_note + ")[/color]\n"
+			bbcode += "    [color=#" + Utils.COLOR_INFO + "](" + charges_delta_note + ")[/color]\n"
 	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
 	# estates — a signed Net component of its own (Income stays gross), so
 	# it must render for the visible lines to sum to Net (SC-33 invariant).
@@ -664,7 +664,7 @@ func _render_economy():
 	# informational: dimmed, and NOT part of the SC-33 sum above.
 	var materiel = int(econ.get("materiel", 0))
 	if materiel > 0:
-		bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]Materiel: -" + str(materiel) + "g  (guns, horses and stores lost with the fallen this turn — paid at the field, outside Net)[/color]\n"
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Materiel: -" + str(materiel) + "g  (guns, horses and stores lost with the fallen this turn — paid at the field, outside Net)[/color]\n"
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).
@@ -681,7 +681,7 @@ func _render_economy():
 	# the note says how the bill moved since the last turn it was charged.
 	var upkeep_note = str(econ.get("upkeep_note", ""))
 	if upkeep_note != "":
-		bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + upkeep_note + ")[/color]\n"
+		bbcode += "    [color=#" + Utils.COLOR_INFO + "](" + upkeep_note + ")[/color]\n"
 	if over_limit_surcharge > 0:
 		var force_limit = int(econ.get("force_limit", 0))
 		var army_total = int(econ.get("army_strength_total", 0))
@@ -739,7 +739,7 @@ func _render_economy():
 	# yesterday's accounts, and why — the backend's sentence, verbatim.
 	var moves_note = str(econ.get("net_moves_note", ""))
 	if moves_note != "":
-		bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + moves_note + ")[/color]\n"
+		bbcode += "    [color=#" + Utils.COLOR_INFO + "](" + moves_note + ")[/color]\n"
 
 	# IQ-1 SW-0 "The Chest Speaks". Both lines are informational and sit
 	# BELOW Net on purpose: `Spent` is money already gone this turn (the
@@ -748,7 +748,7 @@ func _render_economy():
 	# now in force — a destination, not a flow.
 	var spent = int(econ.get("spent", 0))
 	if spent > 0:
-		bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]Spent:    -" + str(spent) + "g  (orders paid for this turn)[/color]\n"
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Spent:    -" + str(spent) + "g  (orders paid for this turn)[/color]\n"
 	# IQ1-2: the ceiling had ONE sentence for three states, and the zero
 	# sentinel meant the line VANISHED exactly when the chest was largest
 	# (the charge had exceeded the gross, so the old post-charge argument
@@ -759,7 +759,7 @@ func _render_economy():
 		# Review round: name the CHARGES, not "the chest". This prints ~20
 		# lines under an "Upkeep: -865g" line that IS drawing on the chest, so
 		# "nothing is drawing on the chest" contradicted the payload above it.
-		bbcode += "  [color=#" + Utils.COLOR_DIMMED \
+		bbcode += "  [color=#" + Utils.COLOR_INFO \
 			+ "]Ceiling:  none — the charges of empire do not draw at this rate[/color]\n"
 	elif ceiling_state == "no_surplus":
 		# Review round: the COLOUR was inverted. This is the worst economic
@@ -784,7 +784,7 @@ func _render_economy():
 				+ _format_number(ceiling) \
 				+ "g  — the chest is above it; the charges are drawing it down[/color]\n"
 		else:
-			var ceil_color = Utils.COLOR_DIMMED
+			var ceil_color = Utils.COLOR_INFO
 			if treasury > 0 and ceiling > treasury * 4:
 				ceil_color = Utils.COLOR_WARNING
 			bbcode += "  [color=#" + ceil_color + "]Ceiling:  " + _format_number(ceiling) \
@@ -833,7 +833,7 @@ func _render_economy():
 	# The economy page keeps its signed naval lines and points across.
 	var adm_ptr = cached_data.get("admiralty", {})
 	if adm_ptr is Dictionary and adm_ptr.get("active", false):
-		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]→ THE ADMIRALTY has its own book — press 7.[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]→ THE ADMIRALTY has its own book — press 7.[/color]\n"
 
 	content_area.text = bbcode
 
@@ -843,7 +843,7 @@ func _render_admiralty_tab():
 	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n"
 	var adm = cached_data.get("admiralty", {})
 	if not (adm is Dictionary) or not adm.get("active", false):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]This campaign has no naval theatre.[/color]\n"
@@ -907,7 +907,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		else:
 			# NV-5: below the lowest notch the percentage is true and inert.
 			# Say so, and say what closes the next one.
-			cs_line += " — [color=#" + Utils.COLOR_GREY + "]not yet biting[/color]"
+			cs_line += " — [color=#" + Utils.COLOR_INFO + "]not yet biting[/color]"
 		bbcode += cs_line + "\n"
 		# The Tilsit clause (Score Finish Step 7 slice 4): the courts that
 		# keep the System as members, named with their ports.
@@ -920,7 +920,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]" + decree_line + ".[/color]\n"
 		var next_pct = cs.get("next_tier_pct")
 		if next_pct != null:
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Next notch at " + str(int(next_pct)) + "% — " + Utils.plural(int(cs.get("ports_to_next_tier", 0)), "more port") + " closed to them.[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]Next notch at " + str(int(next_pct)) + "% — " + Utils.plural(int(cs.get("ports_to_next_tier", 0)), "more port") + " closed to them.[/color]\n"
 		# SR5B-D1 (ruled Sept 28, 2026): the System's endgame use — the
 		# Congress's SHUT OUT reading — and which of her corps keeps the
 		# Continent open today, named where it stands (the backend's ONE
@@ -959,7 +959,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		# on an attempted march; the map has no legend at all).
 		var legend = str(adm.get("crossings_legend", ""))
 		if legend != "":
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + legend + "[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + legend + "[/color]\n"
 	var div_terms = adm.get("diversion_terms", [])
 	if div_terms is Array and div_terms.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Grand Diversion[/color]  (\"order the diversion\")\n"
@@ -984,12 +984,12 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			bbcode += "  " + mark + " " + str(term.get("text", ""))
 			var detail = str(term.get("detail", ""))
 			if detail != "":
-				bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + detail + "[/color]"
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + detail + "[/color]"
 			bbcode += "\n"
 		var notes = adm.get("expedition_notes", [])
 		if notes is Array:
 			for note in notes:
-				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· " + str(note) + "[/color]\n"
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]· " + str(note) + "[/color]\n"
 	return bbcode
 
 
@@ -1018,7 +1018,7 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 		# A blank line first: a chip's pill padding overlaps the line above
 		# it (the house style — see the region panel's ACTIONS), and the
 		# sub-header must not sit under the last order's pill.
-		bbcode += "\n  [color=#" + Utils.COLOR_GREY + "]The expedition — the next step:[/color]\n"
+		bbcode += "\n  [color=#" + Utils.COLOR_INFO + "]The expedition — the next step:[/color]\n"
 		for chip in road:
 			bbcode += _chip_row(chip)
 	if ready is Array and ready.size() > 0:
@@ -1033,7 +1033,7 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 		var where := " — click a coastal province to choose the landing."
 		if has_road:
 			where = " — or click any coastal province for another landing."
-		bbcode += "  [color=#" + Utils.COLOR_GREY + "]Ready to embark: " \
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Ready to embark: " \
 			+ ", ".join(names) + where + "[/color]\n"
 	return bbcode
 
@@ -1053,9 +1053,9 @@ func _chip_row(chip) -> String:
 			label, Utils.COLOR_GOLD, _NAVAL_CHIP_BG)
 		var note = str(chip.get("note", ""))
 		if note != "":
-			row += "  [color=#" + Utils.COLOR_GREY + "]" + note + "[/color]"
+			row += "  [color=#" + Utils.COLOR_INFO + "]" + note + "[/color]"
 	else:
-		row += Utils.bb_chip_disabled(label) + "  [color=#" + Utils.COLOR_GREY + "]" \
+		row += Utils.bb_chip_disabled(label) + "  [color=#" + Utils.COLOR_INFO + "]" \
 			+ str(chip.get("reason", "not available")) + "[/color]"
 	return row + "\n"
 
@@ -1072,7 +1072,7 @@ func _render_laws_tab():
 	var bbcode = "[color=#" + Utils.COLOR_HEADER + "][b]THE LAWS OF STATE[/b][/color]\n"
 	bbcode += _dated_line()
 	if not (laws is Dictionary) or laws.is_empty():
-		bbcode += "[color=#" + Utils.COLOR_DIMMED + "]This campaign has no laws of state.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]This campaign has no laws of state.[/color]\n"
 		content_area.text = bbcode
 		return
 	# RF-4b / RF-4c (REFORMS_SPEC §8 "The forecast"): the lapse the ledger's
@@ -1091,7 +1091,7 @@ func _render_laws_tab():
 		bbcode += "\n[color=#" + Utils.COLOR_GOLD + "][b]" + str(row.get("name", "")) + "[/b][/color]"
 		var date = str(row.get("date", ""))
 		if date != "":
-			bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]" + date + "[/color]"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + date + "[/color]"
 		bbcode += "\n"
 		var says = str(row.get("says", ""))
 		if says != "":
@@ -1103,12 +1103,12 @@ func _render_laws_tab():
 		var cure_line = str(row.get("cure_line", ""))
 		if cure_line != "" and cure_line != "<null>":
 			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]• " + cure_line + "[/color]\n"
-		bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + str(row.get("price_words", "")) \
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(row.get("price_words", "")) \
 			+ " to enact · " + Utils.format_number(int(row.get("upkeep", 0))) + " gold a turn[/color]\n"
 		# A refused row's reason is the chip's own — said once, beside the chip.
 		var status = str(row.get("status", ""))
 		if status != "refused":
-			var status_color = Utils.COLOR_GREY
+			var status_color = Utils.COLOR_INFO
 			if status == "in_force":
 				status_color = Utils.COLOR_SUCCESS
 			elif status == "lapsed":
@@ -1125,7 +1125,7 @@ func _render_intel():
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ INTELLIGENCE ═══[/color]\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]What the fog concedes — enemy armies as your scouts and towers last saw them, aging as reports go stale.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]What the fog concedes — enemy armies as your scouts and towers last saw them, aging as reports go stale.[/color]\n\n"
 
 	var enemies = intel_data.get("known_enemies", [])
 	var unknown_count = int(intel_data.get("unknown_region_count", 0))
@@ -1174,14 +1174,14 @@ func _render_intel():
 			bbcode += ", " + str(sregions) + " regions\n"
 
 	if unknown_count > 0:
-		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]" + Utils.plural(int(unknown_count), "region") + " with no intel.[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]" + Utils.plural(int(unknown_count), "region") + " with no intel.[/color]\n"
 
 	# AI-0b: the campaign seed, shown and shareable (top-level ledger key).
 	# Review fix [4]: the seed is a raw user-supplied string (SOVEREIGN_SEED
 	# env / pasted shares) — strip bbcode brackets before rendering.
 	var campaign_seed = str(cached_data.get("campaign_seed", "historical"))
 	campaign_seed = campaign_seed.replace("[", "").replace("]", "")
-	bbcode += "\n[color=#" + Utils.COLOR_GREY + "]Campaign seed: " + campaign_seed + "[/color]\n"
+	bbcode += "\n[color=#" + Utils.COLOR_INFO + "]Campaign seed: " + campaign_seed + "[/color]\n"
 
 	content_area.text = bbcode
 
@@ -1191,7 +1191,7 @@ func _render_manpower():
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ MANPOWER ═══[/color]\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The levy pools your recruits draw on — spent men return with time, not gold.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The levy pools your recruits draw on — spent men return with time, not gold.[/color]\n\n"
 
 	for pool_type in ["infantry", "cavalry", "artillery"]:
 		var pool = mp.get(pool_type, {})
@@ -1257,7 +1257,7 @@ func _render_orders():
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]Orders that march without you — each executes itself at dawn until done, or cancelled here.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]Orders that march without you — each executes itself at dawn until done, or cancelled here.[/color]\n\n"
 
 	# IQ-4 S3b — THE CABINET: Talleyrand's mission, read from the ledger's
 	# `cabinet` block (built from diplomatic_dialogue.mission_status — ONE
@@ -1273,13 +1273,13 @@ func _render_orders():
 	if cabinet is Dictionary:
 		bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CABINET ═══[/color]\n"
 		if not cabinet.get("live", false):
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Talleyrand is at the Cabinet. Press F1, choose a court, and send him on a mission.[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]Talleyrand is at the Cabinet. Press F1, choose a court, and send him on a mission.[/color]\n"
 			var last = cabinet.get("last")
 			if last is Dictionary and not last.is_empty():
 				var last_phrase = _cabinet_str(last, "reason_phrase")
 				if last_phrase == "":
 					last_phrase = _cabinet_str(last, "reason")
-				bbcode += "  [color=#" + Utils.COLOR_GREY + "]Last mission: " + _cabinet_str(last, "type_display") + " — " + _cabinet_str(last, "target_display") + ", " + last_phrase + ".[/color]\n"
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]Last mission: " + _cabinet_str(last, "type_display") + " — " + _cabinet_str(last, "target_display") + ", " + last_phrase + ".[/color]\n"
 		else:
 			var paused = false
 			if cabinet.get("paused", false):
@@ -1342,7 +1342,7 @@ func _render_orders():
 		return
 
 	if not can_cancel:
-		bbcode += "[color=#" + Utils.COLOR_GREY + "]No actions remaining — cancel unavailable this turn.[/color]\n\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]No actions remaining — cancel unavailable this turn.[/color]\n\n"
 
 	var has_active = false
 	var has_idle = false
@@ -1376,7 +1376,7 @@ func _render_orders():
 		if can_cancel:
 			bbcode += "  [url=cancel:" + mname + "][color=#" + Utils.COLOR_ERROR + "][Cancel][/color][/url]"
 		else:
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "][Cancel][/color]"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "][Cancel][/color]"
 		bbcode += "\n\n"
 
 	# Separator between active and idle
@@ -1386,7 +1386,7 @@ func _render_orders():
 				has_idle = true
 				break
 		if has_idle:
-			bbcode += "[color=#" + Utils.COLOR_GREY + "]─────────────────────────────────────────────────────[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]─────────────────────────────────────────────────────[/color]\n"
 
 	# Idle marshals
 	for o in orders:
@@ -1405,7 +1405,7 @@ func _render_orders():
 				bbcode += " — " + quarry
 			bbcode += "[/color]\n"
 			continue
-		bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + mname
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + mname
 		bbcode += " at " + location
 		bbcode += "  │ No active orders"
 		bbcode += "[/color]\n"

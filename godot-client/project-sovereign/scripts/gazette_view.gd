@@ -110,7 +110,7 @@ func _render_issue():
 		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  SPECIAL EDITION — " + str(issue.get("special_reason", "")) + "[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	# R159: each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The capital's press — the continent's story as printed, issue by issue. Page through the archive below.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The capital's press — the continent's story as printed, issue by issue. Page through the archive below.[/color]\n\n"
 
 	# The lead — the press's voice.
 	var lead = str(issue.get("lead", ""))

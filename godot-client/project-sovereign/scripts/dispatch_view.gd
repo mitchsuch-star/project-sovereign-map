@@ -88,7 +88,7 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]What changed overnight, before you spend a single order. Press R to reread it any time.[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]What changed overnight, before you spend a single order. Press R to reread it any time.[/color]\n"
 	bbcode += "\n"
 
 	# ═══ W6-3 HEADLINE — the turn's top story, then up to 2 sub-beats ═══
@@ -509,7 +509,7 @@ func _on_dispatch_received(response):
 					if severity == "critical":
 						tint = Utils.COLOR_ERROR
 					elif severity == "paused":
-						tint = Utils.COLOR_DIMMED
+						tint = Utils.COLOR_INFO
 					bbcode += "[color=#" + tint + "]  " + clock_line + "[/color]\n"
 			bbcode += "\n"
 
@@ -529,7 +529,7 @@ func _on_dispatch_received(response):
 				elif cc_sev == "warning":
 					cc_tint = Utils.COLOR_BATTLE
 				elif cc_sev == "paused":
-					cc_tint = Utils.COLOR_DIMMED
+					cc_tint = Utils.COLOR_INFO
 			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]THE CONGRESS OF PARIS[/color]\n"
 			bbcode += "[color=#" + cc_tint + "]  " + cc_line + "[/color]\n\n"
 

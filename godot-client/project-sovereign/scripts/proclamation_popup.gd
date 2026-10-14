@@ -57,7 +57,7 @@ func show_proclamation(data: Dictionary):
 	# The old name, struck through — "a country ended, a country began".
 	if old_name != "" and old_name != new_name:
 		bbcode += "[center]%s[/center]\n" % Utils.bbcode_color(
-			"[s]%s[/s]" % old_name, Utils.COLOR_DIMMED)
+			"[s]%s[/s]" % old_name, Utils.COLOR_INFO)
 	bbcode += "[center][font_size=26]%s[/font_size][/center]\n\n" % (
 		Utils.bbcode_color("[b]%s[/b]" % new_name, Utils.COLOR_GOLD))
 
@@ -88,7 +88,7 @@ func show_proclamation(data: Dictionary):
 	var subtitle := str(data.get("subtitle", ""))
 	if subtitle != "":
 		bbcode += "\n[center]%s[/center]" % Utils.bbcode_color(
-			"[i]%s[/i]" % subtitle, Utils.COLOR_DIMMED)
+			"[i]%s[/i]" % subtitle, Utils.COLOR_INFO)
 
 	content_label.text = ""
 	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))

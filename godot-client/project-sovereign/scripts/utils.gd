@@ -152,6 +152,9 @@ const COLOR_GOLD = "d9c08c"
 const COLOR_COMMAND = "7eb8da"
 const COLOR_SUCCESS = "8fbc8f"
 const COLOR_ERROR = "cd6b6b"
+# S12 (UXR3-4, UXR3-35): COLOR_ERROR read 3.75 : 1 as chip text on the chip
+# fill 233043; a red chip label takes the same hue, lighter (4.83 : 1).
+const COLOR_ERROR_CHIP = "d68686"
 const COLOR_BATTLE = "daa06d"
 # UXR-D2 (Pre-Deploy S9b): the DIM tokens are static — High contrast raises
 # them (Utils.apply_contrast); every other colour stays a constant.

@@ -21,7 +21,8 @@ signal view_field_requested(payload: Dictionary)
 
 # Color palette (matching main.gd). Nation header tints come from
 # Utils.NATION_COLORS (single source, all 20 nations) — see _get_nation_color.
-const COLOR_ERROR = "cd5c5c"
+# S12 (UXR3-52): cd5c5c read 4.29 : 1 on the dialog's panel; the same hue, lighter.
+const COLOR_ERROR = "d16969"
 
 # IQ-2 (Sept 14, 2026) flip lever — true: a province taken FROM the player
 # renders as a loss. Measured in the played collapse campaigns: France losing

@@ -193,3 +193,96 @@ class TestThePopupsFitTheirContent:
         body = _func(_src("scripts/utils.gd"), "shrink_centered_panel_to_content")
         assert "if need > 0.0 and need < have:" in body
         assert body.count("await panel.get_tree().process_frame") == 2
+
+
+# ═══ Part 2 — R3 Contrast, by token (UXR3-3 … 6, 21, 22, 25, 32 … 35, 42, 47, 50 … 52) ═══
+#
+# Decided: a body-class row never takes a dim step below the floor step a0a0a8
+# (`Utils.DIM_FLOOR_INDEX`). Every body use of COLOR_DIM (666670) and
+# COLOR_DIMMED / COLOR_GREY (808080) became COLOR_INFO; a caption-class row
+# keeps 808080 only where it reads >= 3 : 1 on its panel. Coloured text under
+# the floor keeps its hue and lightens until it reads >= 4.5 : 1 (body) or
+# >= 3 : 1 (caption) on its own panel. High contrast still raises every step.
+
+import uxr2b_contrast_report as CR  # noqa: E402
+from tests import _godot_scenes as GS  # noqa: E402
+
+_DIM_TOKEN = re.compile(r'Utils\.COLOR_(?:DIMMED|GREY|DIM)\b|toned_hex\("(?:808080|666670)"\)')
+# The one allowance: the tableau's two engraved Caption labels (the skip hint
+# on the tray and a side's tail line), 808080 at >= 4.1 : 1 on its dark field.
+CAPTION_KEEPS = {"battle_diorama.gd": 2}
+
+
+class TestNoBodyLineTakesADimStepUnderTheFloor:
+    def test_the_dim_tokens_survive_only_on_the_named_captions(self):
+        found = {}
+        for p in GS.client_scripts():
+            if p.name == "utils.gd":
+                continue
+            n = len(_DIM_TOKEN.findall(GS.code_lines(GS.read(p))))
+            if n:
+                found[p.name] = n
+        assert found == CAPTION_KEEPS, found
+
+    def test_the_kept_ones_are_caption_labels(self):
+        code = GS.code_lines(GS.read(SCRIPTS / "battle_diorama.gd"))
+        for m in re.finditer(r"Color\(Utils\.COLOR_DIMMED\)", code):
+            call = code[code.rfind("_mk_label(", 0, m.start()):m.end()]
+            assert '&"Caption"' in call, call
+
+    def test_the_floor_step_reads_on_every_panel_the_review_measured(self):
+        info = CR._hex("a0a0a8")
+        for bg in ("141926", "1a1a2e", "1f181d", "2a1e14", "1a1d27", "233043"):
+            assert CR.ratio(info, CR._hex(bg)) >= CR.BODY_FLOOR, bg
+        # 808080 kept on a caption still clears the caption floor there
+        for bg in ("111b14", "0d141c", "131b24"):
+            assert CR.ratio(CR._hex("808080"), CR._hex(bg)) >= CR.CAPTION_FLOOR, bg
+
+
+# Each lightened colour, the panels the review measured it on, and its floor.
+LIGHTENED = [
+    # (file, the source line, new hex, panels, floor)
+    ("diplomatic_ledger.gd", 'const COLOR_RED = "d16969"', "d16969", ("141926",), 4.5),
+    ("enemy_phase_dialog.gd", 'const COLOR_ERROR = "d16969"', "d16969", ("1a1a2e",), 4.5),
+    ("utils.gd", 'const COLOR_ERROR_CHIP = "d68686"', "d68686", ("233043",), 4.5),
+    ("battle_diorama.gd", "const CRIMSON := Color(0.843, 0.388, 0.369, 1.0)", "d7635e",
+     ("0d141c", "0e141c", "111a23", "111b14", "121b14", "121c15", "131b24"), 4.5),
+    ("war_detail_popup.gd", 'const COLOR_RED = "#c36969"', "c36969", ("14141f",), 4.5),
+    # the side tags and the ⚔ at full alpha
+    ("war_detail_popup.gd", 'enemy_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5, 1.0))',
+     "cc8080", ("2c2a32", "2f2e33", "2f2f33", "332e36", "393133"), 3.0),
+    ("war_detail_popup.gd", 'france_lbl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8, 1.0))',
+     "8099cc", ("282a33", "2a2e33", "2c2d36"), 3.0),
+    ("battle_diorama.gd", '_clash_label.add_theme_color_override("font_color", Utils.UI_GOLD)',
+     "d9bf8c", ("374935", "2f3b45"), 4.5),
+]
+
+
+class TestColouredTextKeepsItsHueAndClearsTheFloor:
+    @pytest.mark.parametrize("name, line, new, panels, floor", LIGHTENED,
+                             ids=[f"{r[0]}:{r[2]}" for r in LIGHTENED])
+    def test_the_new_value_is_in_the_source_and_reads(self, name, line, new, panels, floor):
+        assert line in GS.code_lines(GS.read(SCRIPTS / name)), (name, line)
+        for bg in panels:
+            assert CR.ratio(CR._hex(new), CR._hex(bg)) >= floor, (new, bg)
+
+    def test_the_red_chips_use_the_chip_red(self):
+        for name in ("diplomatic_ledger.gd", "region_panel.gd"):
+            code = GS.code_lines(GS.read(SCRIPTS / name))
+            assert "Utils.COLOR_ERROR_CHIP" in code, name
+        region = GS.code_lines(GS.read(SCRIPTS / "region_panel.gd"))
+        assert not re.search(r"bb_button_chip\([^\n]*Utils\.COLOR_ERROR,", region)
+
+    def test_the_old_values_are_gone(self):
+        for name, old in (("diplomatic_ledger.gd", '"cd5c5c"'), ("enemy_phase_dialog.gd", '"cd5c5c"'),
+                          ("war_detail_popup.gd", '"#a44"'), ("war_detail_popup.gd", "0.5, 0.6, 0.8, 0.6"),
+                          ("war_detail_popup.gd", "0.8, 0.5, 0.5, 0.6"),
+                          ("battle_diorama.gd", "Color(Utils.UI_GOLD, 0.55)"),
+                          ("battle_diorama.gd", "Color(0.72, 0.20, 0.18, 1.0)")):
+            assert old not in GS.code_lines(GS.read(SCRIPTS / name)), (name, old)
+
+    def test_the_enemy_phase_title_takes_the_dialogs_lighter_red(self):
+        scene = GS.read(SCENES / "enemy_phase_dialog.tscn")
+        title = GS.node_block(scene, "TitleLabel")
+        assert "theme_override_colors/font_color = Color(0.82, 0.41, 0.41, 1)" in title
+        assert CR.ratio((0.82, 0.41, 0.41), CR._hex("1a1a2e")) >= CR.BODY_FLOOR

@@ -78,7 +78,9 @@ const BAIZE_EDGE := Color(0.086, 0.145, 0.104, 1.0)
 const BRASS := Color(0.72, 0.60, 0.36, 1.0)
 const BRASS_DARK := Color(0.42, 0.33, 0.17, 1.0)
 const ENGRAVE := Color(0.18, 0.13, 0.06, 1.0)           # cut into brass
-const CRIMSON := Color(0.72, 0.20, 0.18, 1.0)
+# S12 (UXR3-50, 51): b8332e read 2.93 : 1 on the tableau's dark field; the
+# same crimson hue, lighter (d7635e, 4.82 : 1). CRIMSON is text only.
+const CRIMSON := Color(0.843, 0.388, 0.369, 1.0)
 const BONE_HEX := "c9c2b2"
 const GOLD_HEX := "d9c08c"
 
@@ -338,8 +340,9 @@ func _build_stage() -> void:
 	_clash_label = Label.new()
 	_clash_label.text = "⚔"
 	_clash_label.add_theme_font_size_override("font_size", 26)
-	_clash_label.add_theme_color_override(
-		"font_color", Color(Utils.UI_GOLD, 0.55))
+	# S12 (UXR3-50, 51): at 55 % alpha the ⚔ read 2.77 : 1 on the field; full
+	# alpha (5.44 : 1).
+	_clash_label.add_theme_color_override("font_color", Utils.UI_GOLD)
 	_clash_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stage.add_child(_clash_label)
 
@@ -1411,7 +1414,7 @@ func _verdict_bbcode() -> String:
 		if text != "":
 			text += "\n"
 		text += "[center][i]%s[/i][/center]" % Utils.bbcode_color(
-			voice, Utils.COLOR_DIMMED)
+			voice, Utils.COLOR_INFO)
 	return text
 
 

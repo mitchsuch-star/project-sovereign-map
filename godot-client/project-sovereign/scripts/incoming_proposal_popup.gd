@@ -367,7 +367,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			shown += 1
 		var overflow = consequence_items.size() - shown
 		if overflow > 0:
-			bbcode += "  [color=#" + Utils.toned_hex("808080") + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
 	return bbcode
 

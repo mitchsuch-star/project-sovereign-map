@@ -300,7 +300,7 @@ func _record_block(summary: Dictionary, style: Dictionary) -> String:
 	var since = summary.get("record_since_turn")
 	if since != null:
 		out += Utils.bbcode_color("(The record was kept from turn " + str(int(since))
-			+ " only.)", Utils.COLOR_DIMMED) + "\n"
+			+ " only.)", Utils.COLOR_INFO) + "\n"
 	var held := int(summary.get("provinces_held", 0))
 	var total := int(summary.get("total_regions", 0))
 	if total > 0:
@@ -372,7 +372,7 @@ func _congress_stance_hex(stance: String) -> String:
 			return "8fa3b8"
 		"REFUSES":
 			return Utils.COLOR_ERROR
-	return Utils.COLOR_GREY
+	return Utils.COLOR_INFO
 
 
 func _congress_block(congress, style: Dictionary) -> String:
@@ -396,7 +396,7 @@ func _congress_block(congress, style: Dictionary) -> String:
 		out += _heading("THE CONGRESS OF PARIS", style)
 		var number := _n(congress, "number")
 		if number > 1:
-			out += Utils.bbcode_color("Summoned " + str(number) + " times before Europe signed.", Utils.COLOR_DIMMED) + "\n"
+			out += Utils.bbcode_color("Summoned " + str(number) + " times before Europe signed.", Utils.COLOR_INFO) + "\n"
 		for row in courts:
 			if not (row is Dictionary):
 				continue
@@ -432,15 +432,15 @@ func _sitting_strip(rows: Array) -> String:
 	if days.is_empty():
 		return ""
 	var out := "[table=" + str(days.size() + 1) + "]"
-	out += "[cell]" + Utils.bbcode_color("Day  ", Utils.COLOR_DIMMED) + "[/cell]"
+	out += "[cell]" + Utils.bbcode_color("Day  ", Utils.COLOR_INFO) + "[/cell]"
 	for row in days:
 		out += "[cell] " + str(_n(row, "day")) + " [/cell]"
-	out += "[cell]" + Utils.bbcode_color("Hold  ", Utils.COLOR_DIMMED) + "[/cell]"
+	out += "[cell]" + Utils.bbcode_color("Hold  ", Utils.COLOR_INFO) + "[/cell]"
 	for row in days:
 		var held: bool = row.get("held") is bool and row.get("held")
 		out += "[cell]" + Utils.bbcode_color(" ✓ " if held else " ✗ ",
 			Utils.COLOR_SUCCESS if held else Utils.COLOR_ERROR) + "[/cell]"
-	out += "[cell]" + Utils.bbcode_color("Signed  ", Utils.COLOR_DIMMED) + "[/cell]"
+	out += "[cell]" + Utils.bbcode_color("Signed  ", Utils.COLOR_INFO) + "[/cell]"
 	for row in days:
 		var stances = row.get("stances")
 		if stances is Dictionary and not (stances as Dictionary).is_empty():
@@ -480,13 +480,13 @@ func _battle_line(row: Dictionary, key: String) -> String:
 func _what_now_line() -> String:
 	match _register:
 		"fall":
-			return Utils.bbcode_color("[i]The campaign is over. Load another, or return to the Main Menu.[/i]", Utils.COLOR_DIMMED)
+			return Utils.bbcode_color("[i]The campaign is over. Load another, or return to the Main Menu.[/i]", Utils.COLOR_INFO)
 		"humbled_peace":
-			return Utils.bbcode_color("[i]The reign goes on, under the terms every court in Europe has read. The Verdict of History will grade it as an eclipse.[/i]", Utils.COLOR_DIMMED)
+			return Utils.bbcode_color("[i]The reign goes on, under the terms every court in Europe has read. The Verdict of History will grade it as an eclipse.[/i]", Utils.COLOR_INFO)
 		"imperial_peace":
-			return Utils.bbcode_color("[i]The order of the French Empire stands. Continue the reign, or retire to the Tuileries.[/i]", Utils.COLOR_DIMMED)
+			return Utils.bbcode_color("[i]The order of the French Empire stands. Continue the reign, or retire to the Tuileries.[/i]", Utils.COLOR_INFO)
 		_:
-			return Utils.bbcode_color("[i]The reign goes on; the Empire can still fall.[/i]", Utils.COLOR_DIMMED)
+			return Utils.bbcode_color("[i]The reign goes on; the Empire can still fall.[/i]", Utils.COLOR_INFO)
 
 
 func _n(totals: Dictionary, key: String) -> int:

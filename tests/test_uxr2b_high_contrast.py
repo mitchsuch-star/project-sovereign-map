@@ -137,9 +137,12 @@ class TestTheToggle:
         body = G.func_body(src, "apply_contrast")
         for token in ("COLOR_DIM", "COLOR_DIMMED", "COLOR_GREY", "COLOR_INFO"):
             assert f"{token} = toned_hex(" in body, token
-        # the Generals' local faintest grey is the shared token now
+        # the Generals' local faintest grey is the shared token now — and since
+        # Pre-Deploy S12 (UXR3-25) every body line sits at the floor step,
+        # COLOR_INFO, so the screen names no step under it
         mm = G.read(SCRIPTS / "marshal_management.gd")
-        assert 'const COLOR_DIM = "666670"' not in mm and "Utils.COLOR_DIM" in mm
+        assert 'const COLOR_DIM = "666670"' not in mm and "Utils.COLOR_INFO" in mm
+        assert "Utils.COLOR_DIM" not in G.code_lines(mm)
 
     def test_one_chokepoint_raises_and_restores(self):
         src = G.read(SCRIPTS / "utils.gd")

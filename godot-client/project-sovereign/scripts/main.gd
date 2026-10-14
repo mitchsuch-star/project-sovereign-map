@@ -983,7 +983,7 @@ func _maybe_print_parser_hint(response) -> void:
 	if UiSettings.get_parser_hint_seen():
 		return
 	UiSettings.set_parser_hint_seen(true)
-	add_output("[color=#" + Utils.COLOR_DIMMED + "]Berthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Berthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"[/color]")
 
 
 func _push_stored_llm_key() -> void:
@@ -998,10 +998,10 @@ func _push_stored_llm_key() -> void:
 
 func _on_llm_key_pushed(response) -> void:
 	if response.success:
-		add_output("[color=#" + Utils.COLOR_DIMMED + "]Berthier's aide holds your parser key (…"
+		add_output("[color=#" + Utils.COLOR_INFO + "]Berthier's aide holds your parser key (…"
 			+ UiSettings.get_api_key().right(4) + ") — live parsing armed.[/color]")
 	else:
-		add_output("[color=#" + Utils.COLOR_DIMMED + "]Your stored parser key was not accepted; the backend keeps its .env configuration.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Your stored parser key was not accepted; the backend keeps its .env configuration.[/color]")
 
 
 func _consume_menu_boot_action() -> void:
@@ -3163,7 +3163,7 @@ func _add_fall_clock_lines(warning: Dictionary) -> void:
 		if severity == "critical":
 			tint = Utils.COLOR_ERROR
 		elif severity == "paused":
-			tint = Utils.COLOR_DIMMED
+			tint = Utils.COLOR_INFO
 		add_output("[color=#" + tint + "]  " + line + "[/color]")
 
 
@@ -3177,7 +3177,7 @@ static func congress_clock_tint(severity: String) -> String:
 		"warning":
 			return Utils.COLOR_BATTLE
 		"paused":
-			return Utils.COLOR_DIMMED
+			return Utils.COLOR_INFO
 	return Utils.COLOR_GOLD
 
 
@@ -3705,7 +3705,7 @@ func _on_command_result(response):
 		# the backend will not say twice.
 		var _parser_notice = response.get("parser_notice", null)
 		if _parser_notice is String and _parser_notice != "":
-			add_output("[color=#" + Utils.COLOR_DIMMED + "]" + _parser_notice + "[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]" + _parser_notice + "[/color]")
 		# SF-CMD-1 W3 (Oct 3, 2026): "reward Lannes" — the Reward desk's answer
 		# prints below, and his Reward dialog opens on the key the desk sets.
 		var _reward_for = response.get("open_reward_for", null)
@@ -4719,7 +4719,7 @@ func _render_law_forecast(forecast, indent: String) -> void:
 	add_output("[color=#" + Utils.COLOR_WARNING + "]" + indent + "THE LAWS: " + str(forecast.get("line", "")) + "[/color]")
 	var rescue = forecast.get("repeal_instead", null)
 	if rescue is Dictionary and bool(rescue.get("enabled", false)):
-		add_output(indent + "  " + Utils.bb_button_chip("do:" + str(rescue.get("command", "")), str(rescue.get("label", "")), Utils.COLOR_GOLD, "233043") + "  [color=#" + Utils.COLOR_GREY + "]" + str(rescue.get("note", "")) + "[/color]")
+		add_output(indent + "  " + Utils.bb_button_chip("do:" + str(rescue.get("command", "")), str(rescue.get("label", "")), Utils.COLOR_GOLD, "233043") + "  [color=#" + Utils.COLOR_INFO + "]" + str(rescue.get("note", "")) + "[/color]")
 
 
 func _display_morning_dispatch(data: Dictionary):
@@ -5217,7 +5217,7 @@ func _show_game_over_screen(game_state: Dictionary, ending = null):
 		if turn > 0:
 			date_bits.append("turn " + str(turn))
 		if not date_bits.is_empty():
-			add_output("[center][color=#" + Utils.COLOR_DIMMED + "]" + " · ".join(date_bits) + "[/color][/center]")
+			add_output("[center][color=#" + Utils.COLOR_INFO + "]" + " · ".join(date_bits) + "[/color][/center]")
 		var cause := str(ending.get("cause_line", "")).strip_edges()
 		if cause != "":
 			add_output("[center][color=#" + Utils.COLOR_INFO + "][i]" + Utils.humanize_nation_keys_in_text(cause) + "[/i][/color][/center]")
@@ -5358,7 +5358,7 @@ func _note_the_end_of_the_day() -> void:
 		if THE_DAY_SAYS_WHAT_WAITS:
 			call_deferred("_say_the_end_of_the_day")
 		else:
-			add_output("[color=#" + Utils.COLOR_DIMMED + "]" + AUTO_END_WARNING + "[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]" + AUTO_END_WARNING + "[/color]")
 
 
 func _say_the_end_of_the_day() -> void:
@@ -5375,7 +5375,7 @@ func _say_the_end_of_the_day() -> void:
 	client's `_current_lapsing_count` counts exactly the CURRENT_TURN_OFFER
 	_TYPES the deferral test (`has_current_turn_offers`) counts."""
 	var text := AUTO_END_WAITS_WARNING if _current_lapsing_count > 0 else AUTO_END_WARNING
-	add_output("[color=#" + Utils.COLOR_DIMMED + "]" + text + "[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]" + text + "[/color]")
 
 
 func _update_diplomatic_top_bar(response: Dictionary):
@@ -7866,7 +7866,7 @@ func _on_wizard_structured_command_selected(command: String, data: Dictionary):
 	add_output("")
 	var echo_line := "[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]"
 	if echo_note != "":
-		echo_line += "  [color=#" + Utils.COLOR_DIMMED + "](" + echo_note + ")[/color]"
+		echo_line += "  [color=#" + Utils.COLOR_INFO + "](" + echo_note + ")[/color]"
 	add_output(echo_line)
 
 	set_input_enabled(false)
@@ -8911,10 +8911,10 @@ func _render_suggestions() -> void:
 		if i == _suggestion_index:
 			parts.append(Utils.bbcode_color("[" + line + "]", Utils.COLOR_GOLD))
 		else:
-			parts.append(Utils.bbcode_color(line, Utils.COLOR_DIMMED))
+			parts.append(Utils.bbcode_color(line, Utils.COLOR_INFO))
 	var hint := "(Tab)" if _suggestions.size() < 2 else "(Tab · ↓)"
 	_suggestion_row.text = ("  " + "   ".join(parts) + "  "
-		+ Utils.bbcode_color(hint, Utils.COLOR_DIMMED))
+		+ Utils.bbcode_color(hint, Utils.COLOR_INFO))
 	_suggestion_row.visible = true
 
 

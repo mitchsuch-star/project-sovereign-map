@@ -37,7 +37,7 @@ var _suggestion_options_expanded: Dictionary = {}
 const COLOR_GOLD = "#d9c08c"
 # UXR-D2: the dim grey through High contrast (a getter, not a const).
 var COLOR_DIMMED: String:
-	get: return "#" + Utils.toned_hex("808080")
+	get: return "#" + Utils.COLOR_INFO
 const COLOR_RED = "#e04040"
 # IGR-G1: the settlement authoring surface is a DOCUMENT (treasury preamble +
 # the per-court table + footer + tier-2 affordance rails), not a dialog — on a
@@ -572,11 +572,11 @@ func _build_settlement_footer(data: Dictionary) -> String:
 					stamps.append("rewarded")
 				var stamp_text = ""
 				if stamps.size() > 0:
-					stamp_text = " [color=#" + Utils.toned_hex("808080") + "](" + ", ".join(PackedStringArray(stamps)) + ")[/color]"
+					stamp_text = " [color=#" + Utils.COLOR_INFO + "](" + ", ".join(PackedStringArray(stamps)) + ")[/color]"
 				bbcode += "  [color=#e0c070]*[/color] %s - %s%s\n" % [Utils.display_nation_name(nation), standing, stamp_text]
 			var overflow = int(allies.get("overflow_count", 0))
 			if overflow > 0:
-				bbcode += "  [color=#" + Utils.toned_hex("808080") + "]+%d more participants in the ledger[/color]\n" % overflow
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]+%d more participants in the ledger[/color]\n" % overflow
 			bbcode += "\n"
 
 	# G4F-12 (Gate-4 smoke): this footer block is the LEAD COURT's score
@@ -688,7 +688,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 				bbcode += "\n"
 			var overflow_warns = warnings.get("overflow", [])
 			if overflow_warns is Array and overflow_warns.size() > 0:
-				bbcode += "  [color=#" + Utils.toned_hex("808080") + "]+%d more warnings in the ledger[/color]\n" % overflow_warns.size()
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]+%d more warnings in the ledger[/color]\n" % overflow_warns.size()
 			bbcode += "\n"
 
 	var terms = sections.get("terms", {}) if sections is Dictionary else {}
@@ -705,7 +705,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 					bbcode += "  [color=#e0c070]*[/color] %s\n" % label
 			var term_overflow = int(terms.get("overflow_count", 0))
 			if term_overflow > 0:
-				bbcode += "  [color=#" + Utils.toned_hex("808080") + "]+%d more terms in the ledger[/color]\n" % term_overflow
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]+%d more terms in the ledger[/color]\n" % term_overflow
 			bbcode += "\n"
 
 	# SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
@@ -771,7 +771,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		var withheld_reason = _safe_str(opt.get("disabled_reason_display"))
 		if withheld_reason == "":
 			continue
-		withheld_lines += "  [color=#" + Utils.toned_hex("808080") + "]%s — %s[/color]\n" % [_safe_str(opt.get("label")), withheld_reason]
+		withheld_lines += "  [color=#" + Utils.COLOR_INFO + "]%s — %s[/color]\n" % [_safe_str(opt.get("label")), withheld_reason]
 	if withheld_lines != "":
 		bbcode += "[b]Not available now[/b]\n" + withheld_lines
 
@@ -986,7 +986,7 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 			var tag_color = "#e09040" if tag == "Demanded" else ("#80c0a0" if tag == "Conceded" else "#e0c070")
 			var authored_suffix = ""
 			if str(line.get("authored_by", "")) == "player":
-				authored_suffix = " [color=#" + Utils.toned_hex("808080") + "](yours)[/color]"
+				authored_suffix = " [color=#" + Utils.COLOR_INFO + "](yours)[/color]"
 			bbcode += "      [color=%s]%s[/color] · %s%s" % [
 				tag_color, tag, _safe_str(line.get("line_display")), authored_suffix,
 			]
@@ -1009,7 +1009,7 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 	if not bool(row.get("can_author", false)):
 		var disabled_reason = _safe_str(row.get("authoring_disabled_reason_display"))
 		if disabled_reason != "":
-			bbcode += "      [color=#" + Utils.toned_hex("808080") + "]+ Add demand — %s[/color]\n" % disabled_reason
+			bbcode += "      [color=#" + Utils.COLOR_INFO + "]+ Add demand — %s[/color]\n" % disabled_reason
 		return bbcode
 	var suggestions = row.get("demand_suggestions", [])
 	if not (suggestions is Array) or suggestions.size() == 0:
@@ -1067,7 +1067,7 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 		var gate = _safe_str(sugg.get("gate_terms"))
 		var why = _safe_str(sugg.get("disabled_reason_display"))
 		var line = "          [color=#%s]%s — unavailable" % [
-			Utils.COLOR_GREY, _safe_str(sugg.get("label")),
+			Utils.COLOR_INFO, _safe_str(sugg.get("label")),
 		]
 		if gate != "" and gate != "null":
 			line += " (%s)" % gate
@@ -1082,7 +1082,7 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	# price where it can be clicked ("closes 10 → 11 of 26 ports · +10 alarm").
 	var terms_display = _safe_str(sugg.get("terms_display"))
 	if terms_display != "" and terms_display != "null":
-		bbcode += " [color=#%s](%s)[/color]" % [Utils.COLOR_GREY, terms_display]
+		bbcode += " [color=#%s](%s)[/color]" % [Utils.COLOR_INFO, terms_display]
 	var options: Array = []
 	if sugg.get("region_options") is Array:
 		options = sugg.get("region_options")
@@ -1520,7 +1520,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			shown += 1
 		var overflow = consequence_items.size() - shown
 		if overflow > 0:
-			bbcode += "  [color=#" + Utils.toned_hex("808080") + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:

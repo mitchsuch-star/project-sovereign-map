@@ -198,18 +198,18 @@ func _render() -> void:
 	var region_type = str(data.get("region_type", ""))
 	var terrain = str(data.get("terrain", ""))
 	if region_type != "" or terrain != "":
-		bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + region_type.replace("_", " ").capitalize()
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + region_type.replace("_", " ").capitalize()
 		if terrain != "":
 			bbcode += " · " + terrain.replace("_", " ").capitalize()
 		bbcode += "[/color]"
 	bbcode += "\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
 
 	# ── Fog-honest economy block ──
 	if visibility == "unknown" or visibility == "last_known":
 		var intel_note = "No intelligence" if visibility == "unknown" else "Last known (outdated)"
-		bbcode += "[color=#" + Utils.COLOR_GREY + "]" + intel_note + " — scout or advance to learn more.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + intel_note + " — scout or advance to learn more.[/color]\n"
 		# SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor-country mark is geography
 		# and shows on an unscouted province too; the stripped mark reads
 		# "Stripped? unknown — scout it" here (the backend applied the fog).
@@ -230,11 +230,11 @@ func _render() -> void:
 		# CA9-F5 idiom as Supply below) — PARTIAL provinces rendered a
 		# fabricated "Income: 0g / Stability: 0%" as fact.
 		if effective_income < 0:
-			bbcode += "Income: [color=#" + Utils.COLOR_GREY + "]Unknown[/color]"
+			bbcode += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
 		else:
 			bbcode += "Income: [color=#" + Utils.COLOR_GOLD + "]" + str(effective_income) + "g[/color]"
 		if stability < 0:
-			bbcode += "   Stability: [color=#" + Utils.COLOR_GREY + "]Unknown[/color]"
+			bbcode += "   Stability: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
 		else:
 			bbcode += "   Stability: " + str(stability) + "%"
 		# CA9-F5: -1 is the fog sentinel. `format_number(-1)` renders
@@ -271,7 +271,7 @@ func _render() -> void:
 		var war_dmg := int(data.get("war_damage", 0))
 		if war_dmg > 0:
 			bbcode += "War damage: [color=#" + Utils.COLOR_ERROR + "]" \
-				+ str(war_dmg) + "%[/color]  [color=#" + Utils.COLOR_GREY \
+				+ str(war_dmg) + "%[/color]  [color=#" + Utils.COLOR_INFO \
 				+ "]suppressing this province's income[/color]\n"
 		var watchtower := str(data.get("watchtower", "none"))
 		if watchtower == "damaged":
@@ -443,7 +443,7 @@ func _render() -> void:
 			else:
 				action_rows.append("  Substitutes: " \
 					+ Utils.bb_chip_disabled("Buy Substitutes") \
-					+ "  [color=#" + Utils.COLOR_DIMMED + "]" + str(sub_q.get("short", "")) + "[/color]")
+					+ "  [color=#" + Utils.COLOR_INFO + "]" + str(sub_q.get("short", "")) + "[/color]")
 
 	# Everything below is OWN soil: a building, a repair and a garrison are
 	# the owner's to order, and the executors refuse them on a vassal's
@@ -481,10 +481,10 @@ func _render() -> void:
 						var b_label := str(def[1]) + " " + str(int(t.get("cost", 0))) + "g"
 						if admin_why == "":
 							build_rows.append("    " + Utils.bb_button_chip("do:" + str(def[2]) % _region, b_label, Utils.COLOR_GOLD, _CHIP_BG)
-								+ " [color=#" + Utils.COLOR_GREY + "]" + _build_terms_text(b_key, t) + "[/color]")
+								+ " [color=#" + Utils.COLOR_INFO + "]" + _build_terms_text(b_key, t) + "[/color]")
 						else:
 							build_rows.append("    " + Utils.bb_chip_disabled(b_label)
-								+ " [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
+								+ " [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
 					elif admin_why == "":
 						build_chips += Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]), Utils.COLOR_GOLD, _CHIP_BG) + " "
 					else:
@@ -495,10 +495,10 @@ func _render() -> void:
 				var wt_label := "Watchtower " + str(int(wt.get("cost", 0))) + "g"
 				if admin_why == "":
 					build_rows.append("    " + Utils.bb_button_chip("do:build watchtower in " + _region, wt_label, Utils.COLOR_GOLD, _CHIP_BG)
-						+ " [color=#" + Utils.COLOR_GREY + "]eyes on every adjacent province[/color]")
+						+ " [color=#" + Utils.COLOR_INFO + "]eyes on every adjacent province[/color]")
 				else:
 					build_rows.append("    " + Utils.bb_chip_disabled(wt_label)
-						+ " [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
+						+ " [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
 			elif admin_why == "":
 				build_chips += Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower", Utils.COLOR_GOLD, _CHIP_BG) + " "
 			else:
@@ -516,12 +516,12 @@ func _render() -> void:
 				yard_why = admin_why
 			if yard_why == "":
 				build_rows.append("    " + Utils.bb_button_chip("do:build naval yard in " + _region, yard_label, Utils.COLOR_GOLD, _CHIP_BG)
-					+ " [color=#" + Utils.COLOR_GREY + "]keels laid and corps embarked here · "
+					+ " [color=#" + Utils.COLOR_INFO + "]keels laid and corps embarked here · "
 					+ str(int(yard.get("turns", 0))) + " turns · "
 					+ str(int(yard.get("raised", 0))) + " of " + str(int(yard.get("cap", 0))) + " yards raised[/color]")
 			else:
 				build_rows.append("    " + Utils.bb_chip_disabled(yard_label)
-					+ " [color=#" + Utils.COLOR_DIMMED + "]" + yard_why + "[/color]")
+					+ " [color=#" + Utils.COLOR_INFO + "]" + yard_why + "[/color]")
 		if build_rows.size() > 0:
 			# The tier upkeep is one figure for every work here — said
 			# once on the header, not repeated per row.
@@ -530,7 +530,7 @@ func _render() -> void:
 			var works := str(build_rows.size()) + (" work" if build_rows.size() == 1 else " works")
 			var build_head := "  [url=toggle:build]" + ("▾ Build" if _build_open else "▸ Build — " + works) + "[/url]"
 			if upkeep > 0:
-				build_head += " [color=#" + Utils.COLOR_GREY + "](each finished work keeps " + str(upkeep) + "g a turn)[/color]"
+				build_head += " [color=#" + Utils.COLOR_INFO + "](each finished work keeps " + str(upkeep) + "g a turn)[/color]"
 			if _build_open:
 				build_head += ":"
 			action_rows.append(build_head)
@@ -539,7 +539,7 @@ func _render() -> void:
 					action_rows.append(br)
 		if build_chips != "":
 			action_rows.append("  Build: " + build_chips
-				+ ("" if admin_why == "" else "[color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]"))
+				+ ("" if admin_why == "" else "[color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]"))
 
 		# Repair — one chip per KIND of ruin, because they are different
 		# orders with different effects and (before the in-game pass) war
@@ -557,10 +557,10 @@ func _render() -> void:
 			rep_cost = " " + str(int(rep.get("cost", 0))) + "g"
 		if needs_repair and admin_why == "":
 			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, "Repair works" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
-				+ "  [color=#" + Utils.COLOR_GREY + "]restore damaged works — and their upkeep[/color]")
+				+ "  [color=#" + Utils.COLOR_INFO + "]restore damaged works — and their upkeep[/color]")
 		elif needs_repair:
 			action_rows.append("  " + Utils.bb_chip_disabled("Repair works" + rep_cost)
-				+ "  [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
+				+ "  [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
 		# Re-read: the display block's `war_dmg` is scoped to the fog
 		# branch it was declared in (the same reason `buildings` is
 		# re-declared above). This arm is inside the own-soil gate, so the
@@ -573,10 +573,10 @@ func _render() -> void:
 					+ str(own_war_dmg) + "% — restores income"
 			if admin_why == "":
 				action_rows.append("  " + Utils.bb_button_chip("do:repair " + _region, "Repair war damage" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
-					+ "  [color=#" + Utils.COLOR_GREY + "]" + wd_terms + "[/color]")
+					+ "  [color=#" + Utils.COLOR_INFO + "]" + wd_terms + "[/color]")
 			else:
 				action_rows.append("  " + Utils.bb_chip_disabled("Repair war damage" + rep_cost)
-					+ "  [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
+					+ "  [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
 
 		# DEF-5 naval §9: the dockyard chip — only on player-controlled build
 		# sites, price quoted from the backend's live constant (honest-chip
@@ -600,10 +600,10 @@ func _render() -> void:
 					ship_why = admin_why
 				if ship_why == "":
 					action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
-						+ "  [color=#" + Utils.COLOR_GREY + "]" + yard_note + "[/color]")
+						+ "  [color=#" + Utils.COLOR_INFO + "]" + yard_note + "[/color]")
 				else:
 					action_rows.append("  " + Utils.bb_chip_disabled("Lay down ships (" + str(ship_cost) + "g)")
-						+ "  [color=#" + Utils.COLOR_DIMMED + "]" + ship_why + "[/color]")
+						+ "  [color=#" + Utils.COLOR_INFO + "]" + ship_why + "[/color]")
 	elif controller != "Neutral" and controller != "" and visibility != "unknown":
 		action_rows.append("  " + Utils.bb_button_chip("negotiate:" + controller, "Negotiate with " + Utils.display_nation_name(controller), Utils.COLOR_COMMAND, _CHIP_BG))
 
@@ -626,12 +626,12 @@ func _render() -> void:
 				var land_why := str(corps.get("refusal", ""))
 				if land_why != "":
 					action_rows.append("  " + Utils.bb_chip_disabled("Land " + who + " here")
-						+ "  [color=#" + Utils.COLOR_DIMMED + "]" + land_why + "[/color]")
+						+ "  [color=#" + Utils.COLOR_INFO + "]" + land_why + "[/color]")
 					continue
 				action_rows.append("  " + Utils.bb_button_chip(
 					"do:land " + who + " in " + _region,
 					"Land " + who + " here", Utils.COLOR_GOLD, _CHIP_BG)
-					+ "  [color=#" + Utils.COLOR_GREY + "]"
+					+ "  [color=#" + Utils.COLOR_INFO + "]"
 					+ Utils.format_number(int(corps.get("strength", 0)))
 					+ " men from " + str(corps.get("from", "")) + " · "
 					+ str(odds) + " in 100 slip past[/color]")
@@ -639,7 +639,7 @@ func _render() -> void:
 				# resolver's own odds re-asked, one lever at a time.
 				var levers := str(corps.get("levers", ""))
 				if levers != "":
-					action_rows.append("      [color=#" + Utils.COLOR_DIMMED + "]"
+					action_rows.append("      [color=#" + Utils.COLOR_INFO + "]"
 						+ Utils.humanize_nation_keys_in_text(levers) + "[/color]")
 		else:
 			# NV-12 (recon gap 3): a too-large, inland, or non-consenting
@@ -649,7 +649,7 @@ func _render() -> void:
 			var blocked = naval.get("expedition_blocked", {})
 			if blocked is Dictionary and blocked.has(_region):
 				action_rows.append("  " + Utils.bb_chip_disabled("No landing here")
-					+ "  [color=#" + Utils.COLOR_GREY + "]"
+					+ "  [color=#" + Utils.COLOR_INFO + "]"
 					+ Utils.humanize_nation_keys_in_text(str(blocked[_region])) + "[/color]")
 
 	if action_rows.size() > 0:
@@ -731,7 +731,7 @@ func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
 		var chips := ""
 		for arm in _RECRUIT_ARMS:
 			chips += Utils.bb_chip_disabled(str(arm).capitalize()) + " "
-		rows.append("  Recruit: " + chips + " [color=#" + Utils.COLOR_DIMMED + "]" \
+		rows.append("  Recruit: " + chips + " [color=#" + Utils.COLOR_INFO + "]" \
 			+ str(shorts.keys()[0]) + "[/color]")
 		return rows
 	rows.append("  Recruit:" + _ordinance_note(levy))
@@ -741,10 +741,10 @@ func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
 			continue
 		if bool(q.get("ok", false)):
 			rows.append("    " + Utils.bb_button_chip("do:recruit " + str(arm) + " in " + _region, str(arm).capitalize(), Utils.COLOR_GOLD, _CHIP_BG) \
-				+ "  [color=#" + Utils.COLOR_GREY + "]" + str(q.get("terms", "")) + "[/color]")
+				+ "  [color=#" + Utils.COLOR_INFO + "]" + str(q.get("terms", "")) + "[/color]")
 		else:
 			rows.append("    " + Utils.bb_chip_disabled(str(arm).capitalize()) \
-				+ "  [color=#" + Utils.COLOR_DIMMED + "]" + str(q.get("short", "")) + "[/color]")
+				+ "  [color=#" + Utils.COLOR_INFO + "]" + str(q.get("short", "")) + "[/color]")
 	return rows
 
 
@@ -782,7 +782,7 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	var nation_color = Utils.COLOR_TEXT if m_nation == _PLAYER_NATION else Utils.COLOR_ERROR
 	row += "[color=#" + nation_color + "]" + shown_name + "[/color]"
 	if m_strength > 0:
-		row += " [color=#" + Utils.COLOR_GREY + "](" + Utils.format_number(m_strength) + _arm_word(m) + ")[/color]"
+		row += " [color=#" + Utils.COLOR_INFO + "](" + Utils.format_number(m_strength) + _arm_word(m) + ")[/color]"
 	if m_nation == _PLAYER_NATION:
 		# Order chips — mirror the Generals-card gating: nothing for a
 		# broken/retreating marshal. The map summary carries tactical_state
@@ -847,7 +847,7 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 						# resolves the printed form — pinned by driving it).
 						var enemy_shown = Utils.humanize_entity_name(enemy)
 						if attack_why == "":
-							row += "  " + Utils.bb_button_chip("do:" + m_name + ", attack " + enemy_shown, "Attack " + enemy_shown, Utils.COLOR_ERROR, _CHIP_BG)
+							row += "  " + Utils.bb_button_chip("do:" + m_name + ", attack " + enemy_shown, "Attack " + enemy_shown, Utils.COLOR_ERROR_CHIP, _CHIP_BG)
 						else:
 							dimmed.append(["Attack " + enemy_shown, attack_why])
 				if not fortified and fortify_why != "":
@@ -870,7 +870,7 @@ func _dimmed_chips(dimmed: Array) -> String:
 		for entry in dimmed:
 			if str(entry[1]) == why:
 				out += "  " + Utils.bb_chip_disabled(str(entry[0]))
-		out += " [color=#" + Utils.COLOR_DIMMED + "]" + why + "[/color]"
+		out += " [color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
 	return out
 
 

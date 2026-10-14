@@ -343,7 +343,7 @@ func _render_nations(data: Dictionary):
 	var neutral = categories.get("neutral", [])
 	if neutral.size() > 0:
 		has_any = true
-		_add_category_header("Neutral (" + str(neutral.size()) + ")", Utils.COLOR_GREY)
+		_add_category_header("Neutral (" + str(neutral.size()) + ")", Utils.COLOR_INFO)
 		for n in neutral:
 			_add_nation_button(n)
 
@@ -415,7 +415,7 @@ func _congress_tint(severity: String) -> String:
 		"warning":
 			return Utils.COLOR_BATTLE
 		"paused":
-			return Utils.COLOR_DIMMED
+			return Utils.COLOR_INFO
 	return Utils.COLOR_GOLD
 
 
@@ -435,7 +435,7 @@ func _add_congress_row(congress) -> void:
 	# them and must not shout over them.
 	lbl.theme_type_variation = &"CaptionRich"
 	var bbcode := "[color=#" + Utils.COLOR_GOLD + "][b]The Congress of Paris[/b][/color]"
-	bbcode += " [color=#" + Utils.COLOR_GREY + "]— make Europe recognize the new order[/color]"
+	bbcode += " [color=#" + Utils.COLOR_INFO + "]— make Europe recognize the new order[/color]"
 	# The clock line where it says something the terms do not — the sitting's
 	# turn and table, the cooldown. At the gate the terms below say it all
 	# (and the line's "summon from the Cabinet (F1)" would point at the very
@@ -455,7 +455,7 @@ func _add_congress_row(congress) -> void:
 				continue
 			var met: bool = term.get("met") is bool and term.get("met")
 			var mark: String = "✓" if met else "•"
-			var term_color: String = Utils.COLOR_SUCCESS if met else Utils.COLOR_GREY
+			var term_color: String = Utils.COLOR_SUCCESS if met else Utils.COLOR_INFO
 			var text = term.get("text")
 			bbcode += "\n    [color=#" + term_color + "]" + mark + " " + (str(text) if text != null else "") + "[/color]"
 	lbl.text = bbcode
@@ -554,7 +554,7 @@ func _render_formables(data: Dictionary):
 		empty_lbl.bbcode_enabled = true
 		empty_lbl.fit_content = true
 		empty_lbl.scroll_active = false
-		empty_lbl.text = ("[color=#" + Utils.COLOR_GREY
+		empty_lbl.text = ("[color=#" + Utils.COLOR_INFO
 			+ "]No formable nations are authored in this campaign.[/color]")
 		content_list.add_child(empty_lbl)
 		return
@@ -579,7 +579,7 @@ func _add_formable_row(row: Dictionary):
 	var kind = "client state at the settlement table" if cls == "C" else "forms by conquest"
 	var bbcode = Utils.bb_flag(flag, 16)
 	bbcode += "[color=#" + name_color + "][b]" + display_name + "[/b][/color]"
-	bbcode += " [color=#" + Utils.COLOR_GREY + "]— " + kind + "[/color]"
+	bbcode += " [color=#" + Utils.COLOR_INFO + "]— " + kind + "[/color]"
 	if progress != "":
 		bbcode += " [color=#" + Utils.COLOR_INFO + "](" + progress + ")[/color]"
 	# `.get(k, default)` returns the default only for a MISSING key — a
@@ -593,7 +593,7 @@ func _add_formable_row(row: Dictionary):
 			continue
 		var met = term.get("met", false)
 		var mark = "✓" if met else "•"
-		var term_color = Utils.COLOR_SUCCESS if met else Utils.COLOR_GREY
+		var term_color = Utils.COLOR_SUCCESS if met else Utils.COLOR_INFO
 		bbcode += "\n    [color=#" + term_color + "]" + mark + " " + str(term.get("text", "")) + "[/color]"
 	lbl.text = bbcode
 	content_list.add_child(lbl)
@@ -729,7 +729,7 @@ func _render_preview(data: Dictionary):
 		lbl.bbcode_enabled = true
 		lbl.fit_content = true
 		lbl.scroll_active = false
-		lbl.text = "[color=#" + Utils.COLOR_GREY + "]No diplomatic actions available.[/color]"
+		lbl.text = "[color=#" + Utils.COLOR_INFO + "]No diplomatic actions available.[/color]"
 		content_list.add_child(lbl)
 		return
 

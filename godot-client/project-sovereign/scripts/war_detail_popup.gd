@@ -29,14 +29,15 @@ var _current_mode: String = ""  # "war", "coalition", "armistice"
 
 # Colors
 const COLOR_GREEN = "#4a4"
-const COLOR_RED = "#a44"
+# S12 (UXR3-6): aa4444 read 3.15 : 1 on the popup's panel; the same hue, lighter.
+const COLOR_RED = "#c36969"
 const COLOR_WHITE = "#c0c0c8"
 const COLOR_GOLD = "#d9c08c"
 const COLOR_AMBER = "#e0a040"
 const COLOR_HEADER = "#B8860B"
 # UXR-D2: the dim greys through High contrast (getters, not consts).
 var COLOR_DIMMED: String:
-	get: return "#" + Utils.toned_hex("808080")
+	get: return "#" + Utils.COLOR_INFO
 var COLOR_INFO: String:
 	get: return "#" + Utils.toned_hex("a0a0a8")
 
@@ -385,7 +386,8 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var abbr = opponent.left(2).to_upper() if opponent.length() >= 2 else opponent.to_upper()
 	enemy_lbl.text = abbr
 	enemy_lbl.theme_type_variation = &"Caption"
-	enemy_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5, 0.6))
+	# S12 (UXR3-5, 6): the side tags at 60 % alpha read 2.45 : 1; full alpha (4.19).
+	enemy_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5, 1.0))
 	# Pinned to the LEFT edge (enemy side) so it tracks the stretched width.
 	_anchor_bar_child(enemy_lbl, 0.0, 0.0, WAR_BAR_TAG_INSET, WAR_BAR_TAG_INSET + WAR_BAR_TAG_W)
 	enemy_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -394,7 +396,7 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	var france_lbl = Label.new()
 	france_lbl.text = "FR"
 	france_lbl.theme_type_variation = &"Caption"
-	france_lbl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8, 0.6))
+	france_lbl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8, 1.0))
 	# Pinned to the RIGHT edge (France side), right-aligned.
 	_anchor_bar_child(france_lbl, 1.0, 1.0, -WAR_BAR_TAG_INSET - WAR_BAR_TAG_W, -WAR_BAR_TAG_INSET)
 	france_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -429,7 +431,7 @@ func _render_war_detail(w: Dictionary):
 	var bbcode = ""
 
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.toned_hex("808080") + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.[/color]\n\n"
 
 	# Breakdown
 	if breakdown != null and breakdown is Dictionary:
@@ -498,7 +500,7 @@ func _render_war_detail(w: Dictionary):
 	# FA-D4 (slice 17, Phase 2): the verb that sets a war purpose had no UI home.
 	var objective_hint = str(w.get("objective_hint", ""))
 	if objective_hint != "":
-		bbcode += "[color=#" + Utils.COLOR_DIMMED + "]" + objective_hint + "[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + objective_hint + "[/color]\n"
 	var enemy_objective = w.get("enemy_objective", null)
 	if enemy_objective != null and enemy_objective is Dictionary:
 		bbcode += "Enemy Objective: " + str(enemy_objective.get("type_display", "Objective")) + "\n"
