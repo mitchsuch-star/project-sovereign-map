@@ -1346,9 +1346,11 @@ func _render_orders():
 		bbcode += "  │ " + condition
 
 		if can_cancel:
-			bbcode += "  [url=cancel:" + mname + "][color=#" + Utils.COLOR_ERROR + "][Cancel][/color][/url]"
+			# UXR3-F5: a chip, as every other tab's action (a red bracketed
+			# word read as a raw tag).
+			bbcode += "  " + Utils.bb_button_chip("cancel:" + mname, "Cancel", Utils.COLOR_ERROR_CHIP, "233043")
 		else:
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "][Cancel][/color]"
+			bbcode += "  " + Utils.bb_chip_disabled("Cancel")
 		bbcode += "\n\n"
 
 	# Separator between active and idle

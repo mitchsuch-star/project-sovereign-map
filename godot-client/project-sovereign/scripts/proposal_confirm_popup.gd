@@ -66,6 +66,25 @@ func _ready():
 	# robbing exactly the region the player needs most.
 	if per_court_scroll:
 		per_court_scroll.set_meta("relax_last", true)
+	# UXR3-F5 (Pre-Deploy S12 part 2): a drawn cross at the top right, like
+	# every screen's — it takes the dialogue's own safe exit (Esc's), and
+	# stands only where the dialogue has one.
+	var head := HBoxContainer.new()
+	head.name = "CloseRow"
+	head.alignment = BoxContainer.ALIGNMENT_END
+	_close_x = Button.new()
+	_close_x.name = "CloseButton"
+	_close_x.custom_minimum_size = Vector2(28, 28)
+	_close_x.focus_mode = Control.FOCUS_NONE
+	Utils.apply_icon_only_button(_close_x, Utils.ICON_PHOSPHOR + "x.svg")
+	_close_x.pressed.connect(func():
+		var exit_action := _find_safe_exit_action()
+		if exit_action != "":
+			_on_option_selected(exit_action))
+	head.add_child(_close_x)
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	vb.add_child(head)
+	vb.move_child(head, 0)
 
 # July 18, 2026: a last-resort escape hatch. This popup had no ESC handler and
 # no overlay click-to-close, and main.gd's ESC ladder deliberately refuses to
@@ -116,9 +135,16 @@ func _should_label_ask_later(dtype: String, action_str: String, original_label: 
 		return true
 	return false
 
+var _close_x: Button = null
+
+
 func show_dialogue(data: Dictionary):
 	"""Display proposal confirmation popup with terms and options."""
 	current_data = data
+	if _close_x != null:
+		var exit_action := _find_safe_exit_action()
+		_close_x.visible = exit_action != ""
+		_close_x.tooltip_text = "Close (Esc)"
 	var dtype = data.get("type", "proposal_confirm")
 	var bbcode = ""
 	match dtype:

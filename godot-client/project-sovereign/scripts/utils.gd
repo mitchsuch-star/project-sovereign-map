@@ -151,7 +151,7 @@ static func build_label() -> String:
 const COLOR_GOLD = "d9c08c"
 const COLOR_COMMAND = "7eb8da"
 const COLOR_SUCCESS = "8fbc8f"
-const COLOR_ERROR = "cd6b6b"
+const COLOR_ERROR = "d06e6e"  # UXR3-X4 (S12 part 2): cd6b6b read 4.42 : 1 on the command window; the same red, lighter
 # S12 (UXR3-4, UXR3-35): COLOR_ERROR read 3.75 : 1 as chip text on the chip
 # fill 233043; a red chip label takes the same hue, lighter (4.83 : 1).
 const COLOR_ERROR_CHIP = "d68686"
@@ -501,6 +501,14 @@ const UI_DEAD_RING := Color(0.45, 0.45, 0.48, 1.0)          # a fallen marshal's
 const UI_END_PLATE_BG := Color(0.17, 0.15, 0.11, 1.0)       # the end card's register plate
 const UI_HINT_GREY := Color(0.7, 0.7, 0.75, 1)              # a dialog's hint line (Load, Reward)
 const COLOR_REPORT := "aaaaaa"                              # the enemy phase's report lines (toned at the site)
+# UXR3-X4 (Pre-Deploy S12 part 2): the war-room log's own colours, named —
+# main.gd wrote them as literals the contrast instrument cannot read (the log
+# appends, so its frame census sees only its default). Values unchanged; a
+# census holds each at 4.5 : 1 on the command window's panel.
+const LOG_REPORT := "cccccc"                                # battle-report lines
+const LOG_ALARM := "e66262"                                 # a settlement that cannot reopen
+const LOG_CASUALTY_RED := "d96868"                          # the enemy's casualties (cd5c5c read 3.95 : 1)
+const LOG_TERRAIN := "b0a890"                               # terrain notes in a report
 const COLOR_CHIP_BG_NAVY := "22283a"                        # the Marshalate's Back chip
 const COLOR_CHIP_BG_GREEN := "1e3320"                       # the Commission chip
 # The war room's map: the renderer's 29 grey literals, values unchanged.
@@ -703,6 +711,46 @@ static func mark_chip_sent(rtl: RichTextLabel, meta: String, words := "") -> boo
 			sent = bb_chip_disabled("Sent: " + words)
 	rtl.text = src.substr(0, start) + sent + src.substr(end)
 	return true
+
+
+static func fall_clock_rows(warning: Dictionary) -> Array:
+	"""UXR3-F8 (Pre-Deploy S12 part 2): the Fall's clock lines to print under
+	a defeat warning — ONE road for the terminal banner (main.gd) and the
+	dispatch. An arm whose clock the warning's own prose already states (its
+	title in the message: the long form with the exits) is not printed a
+	second time. Each row is [line, tint]: the backend's `severity` picks the
+	tint (warning amber, critical crimson, paused grey)."""
+	var rows: Array = []
+	var fall = warning.get("fall", null)
+	if not (fall is Dictionary) or not (fall.get("arms", []) is Array):
+		return rows
+	var message := str(warning.get("message", ""))
+	for arm in fall.get("arms", []):
+		if not (arm is Dictionary):
+			continue
+		var line := str(arm.get("clock_line", ""))
+		if line == "":
+			continue
+		var title: String = line.split(" — ")[0].strip_edges()
+		if title != "" and message.contains(title):
+			continue
+		var severity := str(arm.get("severity", "warning"))
+		var tint: String = COLOR_BATTLE
+		if severity == "critical":
+			tint = COLOR_ERROR
+		elif severity == "paused":
+			tint = COLOR_INFO
+		rows.append([line, tint])
+	return rows
+
+
+static func bb_bar_img(filled: int, hex_color: String, width: int = 110, height: int = 14) -> String:
+	"""UXR3-F6 (Pre-Deploy S12 part 2): the game's one inline bar — the
+	Generals' 0..10 bar image, tinted (no '#') — for every ledger bar that
+	was drawn with hatched glyphs."""
+	var v := clampi(filled, 0, 10)
+	return ("[img color=#" + hex_color + " width=" + str(width) + " height=" + str(height)
+		+ "]res://assets/ui/bars/bar_" + str(v) + ".png[/img]")
 
 
 static func bb_chip_disabled(label: String, icon_path := "") -> String:

@@ -588,10 +588,15 @@ class TestTheSceneAndItsWiring:
     def test_the_clock_line_reaches_the_banner_and_the_r_screen_and_the_tab(self):
         main = _gd("main")
         assert "_add_fall_clock_lines(defeat_imminent_warning)" in _func_body(main, "_display_morning_dispatch")
+        # UXR3-F8 (Pre-Deploy S12 part 2): ONE road for the banner and the R
+        # screen — Utils.fall_clock_rows reads the backend's clock line and
+        # its severity, and skips an arm the warning's prose already states.
         helper = _func_body(main, "_add_fall_clock_lines")
-        assert 'arm.get("clock_line", "")' in helper and 'arm.get("severity", "warning")' in helper
+        assert "Utils.fall_clock_rows(warning)" in helper
+        rows = _func_body(_gd("utils"), "fall_clock_rows")
+        assert 'arm.get("clock_line", "")' in rows and 'arm.get("severity", "warning")' in rows
         view = _gd("dispatch_view")
-        assert 'arm.get("clock_line", "")' in view
+        assert "Utils.fall_clock_rows(defeat_imminent_warning)" in view
         ledger_gd = _gd("strategic_ledger")
         assert "_fall_clock_lines()" in _func_body(ledger_gd, "_render_territories")
         assert 'cached_data.get("fall_clock", null)' in _func_body(ledger_gd, "_fall_clock_lines")
@@ -888,7 +893,16 @@ class TestTheClientDriven:
             in driven["load_final_terminal"]
 
     def test_the_clock_line_on_the_banner_and_the_tab_is_the_backends(self, driven, payloads):
-        line = payloads["dispatch"]["defeat_imminent_warning"]["fall"]["arms"][0]["clock_line"]
-        assert line in driven["dispatch_terminal"]
+        warning = payloads["dispatch"]["defeat_imminent_warning"]
+        line = warning["fall"]["arms"][0]["clock_line"]
+        # UXR3-F8: the banner states the arm's clock ONCE in the backend's
+        # words — its clock line, or the warning's prose when that already
+        # carries the arm's clock (then the line is not printed twice).
+        title = line.split(" — ")[0]
+        if title in warning["message"]:
+            assert warning["message"] in driven["dispatch_terminal"]
+            assert line not in driven["dispatch_terminal"]
+        else:
+            assert line in driven["dispatch_terminal"]
         for arm in payloads["ledger"]["ledger"]["fall_clock"]["arms"]:
             assert arm["clock_line"] in driven["ledger_territories_text"], arm["clock_line"]

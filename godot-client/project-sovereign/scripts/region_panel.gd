@@ -215,6 +215,10 @@ func _render() -> void:
 	if visibility == "unknown" or visibility == "last_known":
 		var intel_note = "No intelligence" if visibility == "unknown" else "Last known (outdated)"
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + intel_note + " — scout or advance to learn more.[/color]\n"
+		# UXR3-F9 (Pre-Deploy S12 part 2): the three figures stand as Unknown
+		# — the poor-country mark below reads under the Supply line it qualifies.
+		bbcode += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]   Stability: [color=#" \
+			+ Utils.COLOR_INFO + "]Unknown[/color]   Supply: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]\n"
 		# SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor-country mark is geography
 		# and shows on an unscouted province too; the stripped mark reads
 		# "Stripped? unknown — scout it" here (the backend applied the fog).

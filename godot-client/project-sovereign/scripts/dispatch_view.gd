@@ -508,21 +508,10 @@ func _on_dispatch_received(response):
 			# names no date. Mirrored from main.gd's `_add_fall_clock_lines`
 			# so the R screen and the banner cannot drift (the "one reader
 			# fixed" landmine).
-			var fall = defeat_imminent_warning.get("fall", null)
-			if fall is Dictionary and fall.get("arms", []) is Array:
-				for arm in fall.get("arms", []):
-					if not (arm is Dictionary):
-						continue
-					var clock_line := str(arm.get("clock_line", ""))
-					if clock_line == "":
-						continue
-					var severity := str(arm.get("severity", "warning"))
-					var tint := Utils.COLOR_BATTLE
-					if severity == "critical":
-						tint = Utils.COLOR_ERROR
-					elif severity == "paused":
-						tint = Utils.COLOR_INFO
-					bbcode += "[color=#" + tint + "]  " + clock_line + "[/color]\n"
+			# UXR3-F8: the banner's one road — the prose already states an
+			# arm's clock, so it is never printed twice.
+			for row in Utils.fall_clock_rows(defeat_imminent_warning):
+				bbcode += "[color=#" + str(row[1]) + "]  " + str(row[0]) + "[/color]\n"
 			bbcode += "\n"
 
 	# ═══ THE CONGRESS OF PARIS (GE-3, ENDGAME_PLAN §4 — the clock line) ═══

@@ -70,6 +70,9 @@ var _likelihood_colors: Dictionary = {
 func _ready():
 	hide()
 	close_button.pressed.connect(_close_wizard)
+	# UXR3-F5: the drawn cross every screen closes with.
+	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
+	close_button.tooltip_text = "Close (Esc)"
 	cancel_button.pressed.connect(_close_wizard)
 	back_button.pressed.connect(_go_back)
 	background_overlay.gui_input.connect(_on_overlay_input)

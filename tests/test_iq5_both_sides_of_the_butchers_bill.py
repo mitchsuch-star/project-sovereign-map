@@ -2016,7 +2016,11 @@ class TestTheCaptionSitsUnderTheCorps:
         const = {k: float(re.search(rf"const {k} := ([-\d.]+)", src).group(1))
                  for k in ("FAITH_CAPTION_W", "FAITH_CAPTION_Y", "FAITH_CAPTION_INBOARD")}
         assert const["FAITH_CAPTION_Y"] >= 30.0      # below the feet and a fallen figure
-        assert const["FAITH_CAPTION_W"] <= 150.0     # clear of the next block inboard
+        # UXR3-F2 (Pre-Deploy S12 part 2): 230, so the sentence wraps in two
+        # lines and clears the forward rank's fate line at four ranks. The
+        # box is aligned to its INBOARD edge (FAITH_CAPTION_INBOARD) and grows
+        # outboard, so its width never reaches the next block inboard.
+        assert const["FAITH_CAPTION_W"] <= 230.0
         assert const["FAITH_CAPTION_INBOARD"] <= 20.0
 
 

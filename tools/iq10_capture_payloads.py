@@ -285,7 +285,6 @@ def cap_boot():
            source="GET /test → active_wars.wars[0] + .coalition",
            staging="1805 boot", facts={"opponent": first.get("opponent"),
                                        "war_score": first.get("war_score")})
-    record("mailbox_boot", get(c, "/mailbox"), source="GET /mailbox", staging="1805 boot")
 
 
 def cap_spent():
@@ -514,6 +513,15 @@ def cap_missions():
                source="GET /notifications → notifications", staging=staging,
                facts={"mission_rows": [{"title": r.get("title"), "message": r.get("message"),
                                         "details": r.get("details")} for r in rows]})
+        if tag == "court":
+            # UXR3-F9 (S12 part 2): the mailbox board holds envoys — the 1805
+            # boot's own mailbox is empty, so its rows could not be seen.
+            box = get(c, "/mailbox")
+            record("mailbox_boot", box, source="GET /mailbox",
+                   staging=staging + " The court board's turns bring the envoys.",
+                   facts={"count": box.get("count"),
+                          "courts": [str(i.get("from_nation") or i.get("nation") or "")
+                                     for i in (box.get("items") or [])]})
         test = get(c, "/test")
         record(f"top_bar_fields_mission_{tag}", {
             "diplomatic_points": test.get("diplomatic_points"),
@@ -624,6 +632,10 @@ def cap_battles():
         world, res, _logs, losses = iq5._battle(iq5.D_ADJ, "Moore", "Ney", seed=3,
                                                 trusts={"Davout": 10})
     adopt(world)
+    # UXR3-F9 (S12 part 2): the action carries the AI's own record, as a
+    # real enemy phase does — without it the client printed "- unknown".
+    res = dict(res)
+    res["ai_action"] = {"marshal": "Moore", "action": "attack", "target": "Ney"}
     phase = {"total_actions": 1,
              "nations": {"Britain": {"actions": [res], "action_count": 1}}}
     with _quiet():

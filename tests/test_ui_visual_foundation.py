@@ -223,6 +223,7 @@ GAME_ICONS_WIRED = ["unit-infantry", "unit-cavalry", "unit-artillery"]
 PHOSPHOR_WIRED = [
     "x", "arrows-out", "medal-military", "crown",
     "list", "map-trifold", "users-three", "handshake", "scroll",
+    "gear",  # UXR3-F7 (S12 part 2): the top bar's menu gear rasterised black
 ]
 
 

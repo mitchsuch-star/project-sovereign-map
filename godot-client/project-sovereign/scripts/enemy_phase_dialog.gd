@@ -114,7 +114,8 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 			# Nation header with colored name
 			var nation_color = _get_nation_color(nation)
 			content += "[color=#" + nation_color + "][b]" + Utils.display_nation_name(nation).to_upper() + "[/b][/color]\n"
-			content += "[color=#" + Utils.COLOR_INFO + "]" + "-".repeat(40) + "[/color]\n"
+			# UXR3-F6: a ruled line, not typed dashes.
+			content += "[color=#" + Utils.COLOR_INFO + "]" + "─".repeat(28) + "[/color]\n"
 
 			# Process each action
 			var actions = nation_data.get("actions", [])
@@ -129,7 +130,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 	# deleted every visible action.
 	var hidden_courts = enemy_phase.get("fog_hidden_nations", [])
 	if hidden_courts.size() > 0 and not enemy_phase.has("fog_hidden_summary"):
-		content += "[color=#" + Utils.COLOR_INFO + "]" + "-".repeat(40) + "[/color]\n"
+		content += "[color=#" + Utils.COLOR_INFO + "]" + "─".repeat(28) + "[/color]\n"
 		for line in hidden_courts:
 			content += "[color=#" + Utils.COLOR_INFO + "]" + str(line) + "[/color]\n"
 
@@ -165,6 +166,20 @@ func _format_action(action: Dictionary) -> String:
 	# PT-G5(a): humanized with the marshal, not left raw beside it.
 	var target = Utils.humanize_entity_name(str(ai_action.get("target", "")))
 	var nation = action.get("nation", "")
+	# UXR3-F9 (Pre-Deploy S12 part 2): an action with no `ai_action` (a battle
+	# result handed on as-is) printed "- unknown". The battle names the mover
+	# and the verb; with no battle either, the nation acts.
+	if not (ai_action is Dictionary) or not ai_action.has("action"):
+		for ev in action.get("events", []):
+			if ev is Dictionary and str(ev.get("type", "")) == "battle":
+				var att = ev.get("attacker", {})
+				var dfn = ev.get("defender", {})
+				marshal_name = Utils.humanize_entity_name(str(att.get("name", "") if att is Dictionary else ""))
+				target = Utils.humanize_entity_name(str(dfn.get("name", "") if dfn is Dictionary else ""))
+				action_type = "attack"
+				break
+		if action_type == "unknown":
+			action_type = "acts"
 
 	# Basic action line — admin actions (build/repair/recruit) may not have a marshal
 	var action_str = ""
@@ -305,6 +320,8 @@ func _format_action(action: Dictionary) -> String:
 				action_str += "embarks an expedition for " + target
 			else:
 				action_str += "embarks an expedition"
+		"acts":
+			action_str += "acts" if action_str != "" else "An enemy court acts"
 		_:
 			action_str += action_type.replace("_", " ")
 			if target:

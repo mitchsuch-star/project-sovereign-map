@@ -2208,11 +2208,11 @@ func _show_lapse_confirmation():
 		parts.append("%s %s your word — an unanswered last stand is decided for him when the enemy phase begins. Type 'fight to the last' or 'attempt a breakout'." % [names, awaits])
 	var msg := " ".join(parts)
 	add_output("")
-	add_output("[color=#e0c060]⚠ %s[/color]" % msg)
+	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
 	if _current_lapsing_count > 0:
-		add_output("[color=#d9c08c]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
 	else:
-		add_output("[color=#d9c08c]  Answer him now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to let the field decide.[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  Answer him now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to let the field decide.[/color]")
 	_awaiting_end_turn_confirmation = true
 	_set_open_envoys_prompt_visible(_current_lapsing_count > 0)
 	end_turn_button.grab_focus()
@@ -2687,14 +2687,14 @@ func _redirect_diplomatic_command(command: String) -> bool:
 
 	for keyword in DIPLO_WAR_ROOM_KEYWORDS:
 		if keyword in lower:
-			add_output("[color=#d9c08c]Berthier: Terms are asked across the table, Sire — open the war banner and press [b]Request Terms[/b].[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]Berthier: Terms are asked across the table, Sire — open the war banner and press [b]Request Terms[/b].[/color]")
 			command_input.grab_focus()
 			return true
 
 	if not _matches_cabinet_family(lower):
 		return false
 
-	add_output("[color=#d9c08c]Berthier: Matters of state are conducted at the table, Sire — not by dispatch. Take your seat in the Cabinet and the courts of Europe will answer.[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Berthier: Matters of state are conducted at the table, Sire — not by dispatch. Take your seat in the Cabinet and the courts of Europe will answer.[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]   [url=cabinet:open]⚜ Take your seat at the table (F1)[/url][/color]")
 	AudioManager.play("click")
 	command_input.grab_focus()
@@ -3191,25 +3191,10 @@ func _add_fall_clock_lines(warning: Dictionary) -> void:
 	the Strategic Ledger's Territories tab print (`fall.clock_line`, one
 	source). A paused clock says the clock stands still and names NO date;
 	the backend's `severity` picks the tint."""
-	var fall = warning.get("fall", null)
-	if not (fall is Dictionary):
-		return
-	var arms = fall.get("arms", [])
-	if not (arms is Array):
-		return
-	for arm in arms:
-		if not (arm is Dictionary):
-			continue
-		var line := str(arm.get("clock_line", ""))
-		if line == "":
-			continue
-		var severity := str(arm.get("severity", "warning"))
-		var tint := Utils.COLOR_BATTLE
-		if severity == "critical":
-			tint = Utils.COLOR_ERROR
-		elif severity == "paused":
-			tint = Utils.COLOR_INFO
-		add_output("[color=#" + tint + "]  " + line + "[/color]")
+	# UXR3-F8: one road (Utils.fall_clock_rows) — an arm the warning's prose
+	# already states is not printed twice.
+	for row in Utils.fall_clock_rows(warning):
+		add_output("[color=#" + str(row[1]) + "]  " + str(row[0]) + "[/color]")
 
 
 static func congress_clock_tint(severity: String) -> String:
@@ -3676,7 +3661,7 @@ func _show_confirm_dialogue_from_response(response: Dictionary, missing_message:
 		set_input_enabled(false)
 		proposal_confirm_popup.show_dialogue(dialogue)
 	else:
-		add_output("[color=#d9c08c]" + missing_message + "[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]" + missing_message + "[/color]")
 
 func _response_has_clarification_route(response: Dictionary) -> bool:
 	return response.has("state") and response.state == "awaiting_clarification"
@@ -3829,7 +3814,7 @@ func _on_command_result(response):
 				add_output("[color=#" + Utils.COLOR_INFO + "]Reopening settlement review for " + rt_nation + "…[/color]")
 				_on_war_settlement_clicked(rt_war_id, rt_nation)
 				return
-		add_output("[color=#e66262]Settlement review needs to reopen, but the backend did not provide a valid target.[/color]")
+		add_output("[color=#" + Utils.LOG_ALARM + "]Settlement review needs to reopen, but the backend did not provide a valid target.[/color]")
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -4267,7 +4252,7 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 
 func _display_berthier_report(report: Dictionary):
 	"""Display Berthier's After-Action Report with modifier breakdown and observation."""
-	var COLOR_REPORT = "CCCCCC"     # Light gray for report lines
+	var COLOR_REPORT = Utils.LOG_REPORT   # report grey (UXR3-X4: a palette token)
 
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]--- Berthier's Report ---[/color]")
 
@@ -4394,10 +4379,10 @@ func _display_berthier_report(report: Dictionary):
 
 func _display_reinforcement_messages(messages: Array):
 	"""Display reinforcement arrival/failure as gold-bordered inline-dramatic blocks."""
-	var COLOR_REINF_BORDER = "d9c08c"   # Gold border
-	var COLOR_REINF_ARRIVE = "90d890"   # Green for arrivals
-	var COLOR_REINF_FAIL = "cd6b6b"     # Red for failures
-	var COLOR_REINF_INFO = "CCCCCC"     # Report grey: the mass and the ally-loss lines
+	var COLOR_REINF_BORDER = Utils.COLOR_GOLD
+	var COLOR_REINF_ARRIVE = Utils.COLOR_CONQUEST
+	var COLOR_REINF_FAIL = Utils.COLOR_ERROR
+	var COLOR_REINF_INFO = Utils.LOG_REPORT   # the mass and the ally-loss lines
 
 	# IQ-5 (R6): three kinds of line, not two. Only a reinforcer who did not
 	# come is a failure. The massed-strength line and the ally-loss line are
@@ -4432,11 +4417,11 @@ func _display_reinforcement_messages(messages: Array):
 
 func _display_coordination_tutorial(tutorial: Dictionary):
 	"""Display first-time coordination tutorial as gold-bordered inline-dramatic block."""
-	var COLOR_TUTORIAL_BORDER = "d9c08c"  # Gold border
-	var COLOR_TUTORIAL_TITLE = "B8860B"   # Dark goldenrod
-	var COLOR_TUTORIAL_TEXT = "DAA520"     # Goldenrod
-	var COLOR_TUTORIAL_TIP = "8fbc8f"     # Soft green for tips
-	var COLOR_TUTORIAL_WARN = "cd6b6b"    # Muted red for warning
+	var COLOR_TUTORIAL_BORDER = Utils.COLOR_GOLD
+	var COLOR_TUTORIAL_TITLE = Utils.COLOR_BERTHIER
+	var COLOR_TUTORIAL_TEXT = Utils.COLOR_OBSERVATION
+	var COLOR_TUTORIAL_TIP = Utils.COLOR_SUCCESS
+	var COLOR_TUTORIAL_WARN = Utils.COLOR_ERROR
 
 	var title = str(tutorial.get("title", "BERTHIER'S REPORT"))
 	var message = str(tutorial.get("message", ""))
@@ -4460,13 +4445,13 @@ func _display_coordination_tutorial(tutorial: Dictionary):
 
 func _display_bombardment_report(result: Dictionary):
 	"""Display Berthier's bombardment report with casualty summary and observation."""
-	var COLOR_CASUALTY = Utils.toned_hex("a0a0a8")   # Info gray for stats
-	var COLOR_ENEMY_CAS = "cd5c5c"  # Red for enemy casualties
-	var COLOR_OWN_CAS = "8fbc8f"    # Muted green for own (low) casualties
-	var COLOR_TERRAIN = "b0a890"    # Warm gray for terrain info
-	var COLOR_FORT = "daa06d"       # Battle orange for fort degradation
-	var COLOR_FRIENDLY = "cd6b6b"   # Muted red for friendly fire
-	var COLOR_REMAINING = Utils.toned_hex("a0a0a8")  # Info gray for remaining count
+	var COLOR_CASUALTY = Utils.COLOR_INFO
+	var COLOR_ENEMY_CAS = Utils.LOG_CASUALTY_RED
+	var COLOR_OWN_CAS = Utils.COLOR_SUCCESS
+	var COLOR_TERRAIN = Utils.LOG_TERRAIN
+	var COLOR_FORT = Utils.COLOR_BATTLE
+	var COLOR_FRIENDLY = Utils.COLOR_ERROR
+	var COLOR_REMAINING = Utils.COLOR_INFO
 
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]--- Bombardment Report ---[/color]")
 
@@ -5576,7 +5561,38 @@ func add_output(text: String):
 	
 	# Ensure scroll to bottom
 	await get_tree().process_frame
+	_snap_output_to_a_whole_line()
 	output_scroll.scroll_vertical = output_scroll.get_v_scroll_bar().max_value
+
+
+# UXR3-F3 (Pre-Deploy S12 part 2): the log follows its newest line, and the
+# view's TOP line was cut in half under the command window's header. A pad
+# under the text (the label's own bottom margin) makes the end of the scroll
+# fall on a line's start: the top line whole, the newest line whole above
+# the pad.
+var _output_pad: StyleBoxEmpty = null
+
+
+func _snap_output_to_a_whole_line() -> void:
+	if output_display == null or output_scroll == null:
+		return
+	if _output_pad == null:
+		_output_pad = StyleBoxEmpty.new()
+		output_display.add_theme_stylebox_override("normal", _output_pad)
+	var view_h: float = output_scroll.size.y
+	var text_h: float = float(output_display.get_content_height())
+	var top: float = text_h - view_h
+	var pad := 0.0
+	if top > 0.0:
+		var lines: int = output_display.get_line_count()
+		for i in range(lines):
+			var at: float = float(output_display.get_line_offset(i))
+			if at >= top - 0.5:
+				pad = at - top
+				break
+	if not is_equal_approx(_output_pad.content_margin_bottom, pad):
+		_output_pad.content_margin_bottom = pad
+		await get_tree().process_frame
 
 func _display_feedback(feedback: Dictionary):
 	"""Display AI feedback from LLM response (words, not numbers)."""
@@ -7015,7 +7031,7 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	# `action_params` dialogue path. (Whole-table dials ride in options[] and
 	# resolve via the index path with their server-side `scope: "table"`.)
 	if action in SETTLEMENT_DIALOGUE_ACTIONS and (data.has("scope") or data.has("nation")):
-		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
 		set_input_enabled(false)
 		api_client.send_dialogue_response_with_params(action, data, _on_command_result, int(data.get("dialogue_id", -1)))
 		return
@@ -7026,7 +7042,7 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	# first-matched the shared action string and always sent index 1, so the
 	# player's chosen war objective was silently dropped for conquest.
 	if action.is_valid_int():
-		add_output("[color=#d9c08c]Directing Talleyrand…[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Directing Talleyrand…[/color]")
 		set_input_enabled(false)
 		api_client.send_dialogue_response(int(action), _on_command_result, int(data.get("dialogue_id", -1)))
 		return
@@ -7039,13 +7055,13 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 			choice_index = i + 1  # 1-based
 			break
 	if choice_index > 0:
-		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
 		set_input_enabled(false)
 		# W6-0 (BUG-CA-7): bind the answer to the dialogue this popup rendered.
 		api_client.send_dialogue_response(choice_index, _on_command_result, int(data.get("dialogue_id", -1)))
 	else:
 		if action in SETTLEMENT_DIALOGUE_ACTIONS:
-			add_output("[color=#e66262]Settlement popup action lost its dialogue option: %s[/color]" % action)
+			add_output("[color=#" + Utils.LOG_ALARM + "]Settlement popup action lost its dialogue option: %s[/color]" % action)
 			set_input_enabled(false)
 			if proposal_confirm_popup:
 				proposal_confirm_popup.show_dialogue(data)
@@ -7075,7 +7091,7 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 		}
 		var keyword = _ACTION_KEYWORD_MAP.get(action, action)
 		var command = "Talleyrand, %s the %s proposal" % [keyword, target]
-		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % keyword)
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Directing Talleyrand: %s[/color]" % keyword)
 		set_input_enabled(false)
 		api_client.send_command(command, _on_command_result)
 
@@ -7086,7 +7102,7 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	if choice == "dismiss":
 		# PL-27 Mailbox UX: Hide popup, keep proposal in backend for later
 		_dismissed_proposal_nation = from_nation
-		add_output("[color=#d9c08c]Setting aside %s's proposal. Click the envoy badge to revisit.[/color]" % from_nation)
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal. Click the envoy badge to revisit.[/color]" % from_nation)
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -7098,7 +7114,7 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	var responding_choice = str(choice)
 	if choice_labels is Dictionary and choice_labels.has(choice):
 		responding_choice = str(choice_labels[choice])
-	add_output("[color=#d9c08c]Responding to %s's proposal: %s[/color]" % [responding_court, responding_choice])
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Responding to %s's proposal: %s[/color]" % [responding_court, responding_choice])
 	set_input_enabled(false)
 	# W6-0 (BUG-CA-7): answer the proposal this popup RENDERED, not whatever
 	# is on top of the dialogue stack by the time the response arrives.
@@ -7108,9 +7124,9 @@ func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 	"""Handle player response to Talleyrand's diplomatic objection.
 	Session 6: Uses a typed objection endpoint instead of synthesized commands."""
 	if choice == "proceed":
-		add_output("[color=#d9c08c]Overriding Talleyrand's objection...[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Overriding Talleyrand's objection...[/color]")
 	elif choice == "modify":
-		add_output("[color=#d9c08c]Reviewing the proposal again...[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Reviewing the proposal again...[/color]")
 	else:
 		add_output("[color=#" + Utils.COLOR_INFO + "]Proposal cancelled.[/color]")
 	set_input_enabled(false)
@@ -7123,7 +7139,7 @@ func _on_sabotage_discovery_choice(choice: String, data: Dictionary):
 		"confront": "confront_sabotage",
 		"overlook": "overlook_sabotage",
 	}.get(choice, choice)
-	add_output("[color=#d9c08c]%s Talleyrand's sabotage...[/color]" % choice.capitalize())
+	add_output("[color=#" + Utils.COLOR_GOLD + "]%s Talleyrand's sabotage...[/color]" % choice.capitalize())
 	set_input_enabled(false)
 	# FA-N5: answer the dialogue this modal RENDERED, not whatever is on top.
 	api_client.send_dialogue_response(action, _on_command_result, int(data.get("dialogue_id", -1)))
@@ -7139,7 +7155,7 @@ func _on_vassal_rebellion_choice(choice: String, data: Dictionary):
 		"accept": "accept_vassal_rebellion",
 	}.get(choice, choice)
 	var nation = data.get("nation", "unknown")
-	add_output("[color=#d9c08c]Vassal %s: %s[/color]" % [nation, choice])
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Vassal %s: %s[/color]" % [nation, choice])
 	set_input_enabled(false)
 	# FA-N5: without this id the backend could not tell that "Accept Risk"
 	# about Holland was not "Accept" on an envoy's letter — and it signed the
@@ -7321,7 +7337,7 @@ func _on_mailbox_list_result(response: Dictionary):
 	"""Handle GET /mailbox response — show mailbox panel or direct-open single item."""
 	_pending_envoy_request_active = false
 	if not response.get("success", false):
-		add_output("[color=#d9c08c]%s[/color]" % str(
+		add_output("[color=#" + Utils.COLOR_GOLD + "]%s[/color]" % str(
 			response.get("message", "Unable to reach the envoy at this time.")
 		))
 		# IGR-F: `_show_pending_envoy_digest` left input disabled expecting the
@@ -7336,7 +7352,7 @@ func _on_mailbox_list_result(response: Dictionary):
 		top_bar.update_mailbox_count(count)
 	_set_pending_envoy_count(count)
 	if count == 0:
-		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]No pending envoys at this time.[/color]")
 		_return_control_to_player()  # PC15-10 B4b: the one tail
 		return
 	# IGR-F: a letter-book row is answered IN the panel, so the count==1
@@ -7354,7 +7370,7 @@ func _on_mailbox_list_result(response: Dictionary):
 		elif mailbox_id > 0:
 			api_client.activate_mailbox_item(mailbox_id, _on_mailbox_activate_result)
 		else:
-			add_output("[color=#d9c08c]That diplomatic item could not be opened.[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]That diplomatic item could not be opened.[/color]")
 			set_input_enabled(true)
 			command_input.grab_focus()
 		return
@@ -7373,12 +7389,12 @@ func _on_pending_envoy_result(response: Dictionary):
 		top_bar.update_mailbox_count(envoy_ct)
 	_set_pending_envoy_count(envoy_ct)
 	if not response.get("success", false):
-		add_output("[color=#d9c08c]%s[/color]" % str(
+		add_output("[color=#" + Utils.COLOR_GOLD + "]%s[/color]" % str(
 			response.get("message", "Unable to reach the envoy at this time.")
 		))
 		return
 	if not response.get("has_pending", false):
-		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]No pending envoys at this time.[/color]")
 		return
 	var dtype = response.get("dialogue_type", "")
 	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response", "incoming_ultimatum"]:
@@ -7387,7 +7403,7 @@ func _on_pending_envoy_result(response: Dictionary):
 			set_input_enabled(false)
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
-			add_output("[color=#d9c08c]An envoy is waiting but the proposal data could not be retrieved.[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]An envoy is waiting but the proposal data could not be retrieved.[/color]")
 	elif dtype == "incoming_settlement_offer":
 		# SC-5 reversal commit 2 (Slice G1): open the incoming
 		# settlement offer popup. The pending-envoy response returns
@@ -7397,7 +7413,7 @@ func _on_pending_envoy_result(response: Dictionary):
 			set_input_enabled(false)
 			proposal_confirm_popup.show_dialogue(offer_data)
 		else:
-			add_output("[color=#d9c08c]A settlement offer is waiting but the popup data could not be retrieved.[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]A settlement offer is waiting but the popup data could not be retrieved.[/color]")
 	elif dtype in ["conflict_alert", "settlement_confirm", "ally_settlement_petition"]:
 		_show_confirm_dialogue_from_response(response, "A diplomatic alert is pending.")
 	else:
@@ -7405,7 +7421,7 @@ func _on_pending_envoy_result(response: Dictionary):
 		# dtype — humanize before it can reach the terminal. This arm is
 		# unreachable today (the backend only sets dialogue_type for the
 		# handled families) but is the trap the next dtype would spring.
-		add_output("[color=#d9c08c]Pending diplomatic matter: %s[/color]" % str(dtype).replace("_", " ").capitalize())
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Pending diplomatic matter: %s[/color]" % str(dtype).replace("_", " ").capitalize())
 
 func _on_mailbox_row_action(mailbox_id: int, action: String):
 	"""IGR-F: Accept / Decline one letter without leaving the letter-book."""
@@ -7433,7 +7449,7 @@ func _on_mailbox_row_action_result(response: Dictionary):
 	_update_diplomatic_top_bar(response)
 	var msg = str(response.get("message", "")).strip_edges()
 	if msg != "":
-		var colour = Utils.COLOR_INFO if response.get("success", false) else "d9c08c"
+		var colour = Utils.COLOR_INFO if response.get("success", false) else Utils.COLOR_GOLD
 		add_output("[color=#" + colour + "]" + Utils.humanize_nation_keys_in_text(msg) + "[/color]")
 	if not response.get("success", false):
 		# Aug 23, 2026: when the refusal is "something else is before you",
@@ -7498,7 +7514,7 @@ func _on_mailbox_activate_result(response: Dictionary):
 		top_bar.update_mailbox_count(act_ct)
 	_set_pending_envoy_count(act_ct)
 	if not response.get("success", false):
-		add_output("[color=#d9c08c]%s[/color]" % str(
+		add_output("[color=#" + Utils.COLOR_GOLD + "]%s[/color]" % str(
 			response.get("message", "Could not activate that item.")
 		))
 		# Hand control back on EVERY failure, not only the blocked one. The
@@ -7524,7 +7540,7 @@ func _on_mailbox_activate_result(response: Dictionary):
 			set_input_enabled(false)
 			incoming_proposal_popup.show_proposal(proposal_data)
 		else:
-			add_output("[color=#d9c08c]Item activated but popup data missing.[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]Item activated but popup data missing.[/color]")
 	elif dtype == "incoming_settlement_offer":
 		# SC-5 reversal commit 2 (Slice G1): open the incoming
 		# settlement offer popup. The mailbox-activate response
@@ -7534,7 +7550,7 @@ func _on_mailbox_activate_result(response: Dictionary):
 			set_input_enabled(false)
 			proposal_confirm_popup.show_dialogue(offer_data)
 		else:
-			add_output("[color=#d9c08c]Item activated but settlement-offer popup data missing.[/color]")
+			add_output("[color=#" + Utils.COLOR_GOLD + "]Item activated but settlement-offer popup data missing.[/color]")
 	elif dtype in ["conflict_alert", "settlement_confirm", "ally_settlement_petition"]:
 		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
 
@@ -7622,7 +7638,7 @@ func _on_reward_deep_link_overview(response: Dictionary):
 		if card is Dictionary and str(card.get("name", "")) == wanted:
 			reward_dialog.show_reward(card)
 			return
-	add_output("[color=#d9c08c]Marshal %s is not on the rolls, Sire.[/color]"
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Marshal %s is not on the rolls, Sire.[/color]"
 			% wanted)
 
 
@@ -7897,7 +7913,7 @@ func _on_marshal_audience_fetched(response: Dictionary):
 	if petition is Dictionary and not petition.is_empty():
 		marshal_petition_dialog.show_petition(petition)
 		return  # the answer / Later handlers hand control back
-	add_output("[color=#d9c08c]%s[/color]" % str(
+	add_output("[color=#" + Utils.COLOR_GOLD + "]%s[/color]" % str(
 		response.get("message", "No marshal waits upon you, Sire.")))
 	_return_control_to_player()  # PC15-10 B4b: the one tail
 
@@ -7986,7 +8002,7 @@ func _route_settlement_recovery_route(route: Dictionary):
 	var target_nation = str(route.get("selected_target_nation", route.get("target_nation", route.get("nation", ""))))
 	if surface == "war_detail":
 		if war_detail_popup == null:
-			add_output("[color=#e66262]War detail is not available.[/color]")
+			add_output("[color=#" + Utils.LOG_ALARM + "]War detail is not available.[/color]")
 			set_input_enabled(true)
 			command_input.grab_focus()
 			return
@@ -7995,7 +8011,7 @@ func _route_settlement_recovery_route(route: Dictionary):
 			add_output("[color=#" + Utils.COLOR_INFO + "]Opening war detail for " + target_nation + ".[/color]")
 			war_detail_popup.show_war(war_data, _cached_coalition_data)
 		else:
-			add_output("[color=#e66262]This war is no longer active from the current war panel.[/color]")
+			add_output("[color=#" + Utils.LOG_ALARM + "]This war is no longer active from the current war panel.[/color]")
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -8006,7 +8022,7 @@ func _route_settlement_recovery_route(route: Dictionary):
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
-	add_output("[color=#e66262]No verified recovery route is available.[/color]")
+	add_output("[color=#" + Utils.LOG_ALARM + "]No verified recovery route is available.[/color]")
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -8039,14 +8055,14 @@ func _on_war_settlement_clicked(war_id: String, nation: String):
 	`propose_common_peace`, which would only return a humanized error.
 	Active wars continue to open the live settlement review."""
 	if _is_war_archived_in_cache(war_id):
-		add_output("[color=#d9c08c]Opening settlement history for %s[/color]" % nation)
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Opening settlement history for %s[/color]" % nation)
 		_route_settlement_recovery_route({
 			"surface": "settlement_history",
 			"war_id": war_id,
 		})
 		return
 	var command = "propose common peace with " + nation
-	add_output("[color=#d9c08c]Opening settlement review for %s[/color]" % nation)
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Opening settlement review for %s[/color]" % nation)
 	set_input_enabled(false)
 	if api_client.has_method("send_structured_command"):
 		api_client.send_structured_command(command, {
@@ -8065,7 +8081,7 @@ func _on_war_request_terms_clicked(war_id: String, nation: String):
 	real incoming settlement offer (the existing offer popup/mailbox), a
 	refusal arrives as a voiced notification."""
 	var command = "request terms from " + nation
-	add_output("[color=#d9c08c]Requesting terms from %s[/color]" % Utils.display_nation_name(nation))
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Requesting terms from %s[/color]" % Utils.display_nation_name(nation))
 	set_input_enabled(false)
 	if api_client.has_method("send_structured_command"):
 		api_client.send_structured_command(command, {

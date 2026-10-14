@@ -467,3 +467,97 @@ class TestTheBoardsLeadWithTheirSubject:
         for tag in ("gate", "ready"):
             assert toggle in shots[f"wizard_step1_congress_{tag}"]["steps"]
         assert toggle not in shots["wizard_step1_congress_sitting"]["steps"]
+
+
+# ═══ Part 5 — the rows found while reading and fixing ═══════════════════════
+
+class TestTheFoundRows:
+    def test_f1_the_score_stands_clear_of_the_centre_tick(self):
+        """UXR3-F1: −60 read "60" — the tick drew over the minus of a centred
+        label. The label stands on the leader's side, SCORE_TICK_CLEAR from
+        the tick, and a losing score carries a true minus."""
+        src = _src("scripts/war_detail_popup.gd")
+        bar = _func(src, "_create_tug_of_war_bar")
+        assert "PRESET_FULL_RECT)\n\tcontainer.add_child(score_label)" not in bar
+        assert "_anchor_bar_child(score_label, 0.0, 0.5, WAR_BAR_TAG_INSET + WAR_BAR_TAG_W, -SCORE_TICK_CLEAR)" in bar
+        assert "_anchor_bar_child(score_label, 0.5, 1.0, SCORE_TICK_CLEAR, -(WAR_BAR_TAG_INSET + WAR_BAR_TAG_W))" in bar
+        assert '"\\u2212" if score < 0' in bar and "str(absi(score))" in bar
+        clear = float(_const(src, "SCORE_TICK_CLEAR"))
+        assert clear > 1.0   # the tick spans the centre ±1 px
+        assert 'tick.add_to_group("bar_ticks")' in bar
+        gd = (TOOLS / "iq10_surface_screenshot.gd").read_text(encoding="utf-8")
+        assert 'n.is_in_group("bar_ticks")' in gd and 'kind = "tick"' in gd
+
+    def test_f2_a_deeper_ranks_standard_flies_below_the_forward_ranks_words(self):
+        src = _src("scripts/battle_diorama.gd")
+        assert _const(src, "STANDARD_POLE") == "86.0"
+        layout = src[src.index("var block_scale := 1.0 - 0.12 * i"):]
+        layout = layout[:layout.index("blocks.append(")]
+        assert "if n >= 3 and i > 0:" in layout
+        assert "156.0 * fwd_scale - (TEXT_PITCH + 19.0) - 4.0 - step_y" in layout
+        std = _func(src, "_make_standard")
+        assert "-86" not in std and "Vector2(0, -pole_h)" in std
+        assert float(_const(src, "FAITH_CAPTION_W")) == 230.0
+
+    def test_f5_one_close_control_and_one_chip_style(self):
+        for rel in ("scripts/campaign_log.gd", "scripts/diplomacy_wizard.gd"):
+            assert 'Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")' in _src(rel), rel
+        pause = _src("scripts/pause_menu.gd")
+        assert 'resume.text = "Resume (Esc)"' in pause and "resume.pressed.connect(close_menu)" in pause
+        popup = _src("scripts/proposal_confirm_popup.gd")
+        assert "_close_x.visible = exit_action != \"\"" in popup
+        assert "_on_option_selected(exit_action)" in popup
+        tut = (SCENES / "tutorial_overlay.tscn").read_text(encoding="utf-8")
+        for name in ("MinimizeButton", "SkipButton"):
+            block = tut[tut.index(f'[node name="{name}"'):].split("[node", 2)[1]
+            assert "flat = true" not in block, name
+        orders = _func(_src("scripts/strategic_ledger.gd"), "_render_orders")
+        assert '[Cancel]' not in orders
+        assert 'Utils.bb_button_chip("cancel:" + mname, "Cancel"' in orders
+
+    def test_f6_the_games_words_not_tags(self):
+        dl = _src("scripts/diplomatic_ledger.gd")
+        assert '" / 100  [" + tier_shown + "]' not in dl and '" / 100 — " + tier_shown' in dl
+        assert "█" not in dl and "░" not in dl
+        assert "Utils.bb_bar_img(" in dl
+        ep = _src("scripts/enemy_phase_dialog.gd")
+        assert '"-".repeat(40)' not in ep and '"─".repeat(28)' in ep
+        log = _src("scripts/campaign_log.gd")
+        assert 'var affordance = "▾" if expanded_turns.get(turn_num, false) else "▸"' in log
+
+    def test_f7_the_family_chrome_and_a_gear_that_reads(self):
+        gear = (PROJECT / "assets" / "ui" / "icons" / "phosphor" / "gear.svg").read_text(encoding="utf-8")
+        assert "currentColor" not in gear
+        for scene in ("marshal_petition_dialog", "mailbox_panel"):
+            text = (SCENES / f"{scene}.tscn").read_text(encoding="utf-8")
+            assert "border_color = Color(0.85, 0.75, 0.55, 0.6)" in text, scene
+            assert "bg_color = Color(0.1, 0.1, 0.18, 0.95)" in text, scene
+
+    def test_f8_the_fall_clock_is_printed_once_by_one_road(self):
+        utils = _func(_src("scripts/utils.gd"), "fall_clock_rows")
+        assert "message.contains(title)" in utils
+        main = _func(_src("scripts/main.gd"), "_add_fall_clock_lines")
+        assert "Utils.fall_clock_rows(warning)" in main and 'arm.get("clock_line"' not in main
+        disp = _func(_src("scripts/dispatch_view.gd"), "_on_dispatch_received")
+        assert "Utils.fall_clock_rows(defeat_imminent_warning)" in disp
+        assert 'arm.get("clock_line"' not in disp
+
+    def test_f9_the_boards_carry_their_subject_and_never_print_unknown(self):
+        ep = _src("scripts/enemy_phase_dialog.gd")
+        assert '"acts":' in ep and 'if action_type == "unknown":' in ep
+        cap = (TOOLS / "iq10_capture_payloads.py").read_text(encoding="utf-8")
+        assert 'res["ai_action"] = {"marshal": "Moore", "action": "attack", "target": "Ney"}' in cap
+        assert 'record("mailbox_boot", box,' in cap and '"mailbox_boot", get(c, "/mailbox")' not in cap
+        region = _func(_src("scripts/region_panel.gd"), "_render")
+        assert _order(region, "No intelligence", '"Income: [color=#"', "Supply: [color=#")
+        tb = _src("scripts/top_bar.gd")
+        assert '_blockade_style()' in _func(tb, "update_admiralty")
+        assert "sb.border_color = Utils.UI_ALERT" in _func(tb, "_blockade_style")
+
+    def test_f3_the_log_follows_onto_a_whole_line_and_the_harness_measures_cuts(self):
+        main = _src("scripts/main.gd")
+        snap = _func(main, "_snap_output_to_a_whole_line")
+        assert "output_display.get_line_offset(i)" in snap and "content_margin_bottom = pad" in snap
+        assert "_snap_output_to_a_whole_line()" in _func(main, "add_output")
+        gd = (TOOLS / "iq10_surface_screenshot.gd").read_text(encoding="utf-8")
+        assert 'frame["cut_lines"] = _cut_lines()' in gd

@@ -545,3 +545,121 @@ class TestTheReReadsOwnFindings:
         assert "return Utils.UI_SCORE_NEGATIVE_TEXT" in body
         for bg in ("242024", "252125", "252025", "242025"):
             assert CR.ratio((0.722, 0.306, 0.306), CR._hex(bg)) >= CR.CAPTION_FLOOR, bg
+
+
+# ═══ UXR3-X4 (Pre-Deploy S12 part 2) — the war-room log's colours ═══════════
+
+# The command window's panel, measured off the war room's 1920x1080 frame at
+# its LIGHTEST grain (the leather texture's 90th-percentile luminance, the
+# output area of `war_room_boot`): the worst background a log line sits on.
+COMMAND_PANEL_RGB = (0x29, 0x21, 0x25)
+# Colour expressions main.gd builds a [color] from that are not tokens or
+# variables: each returns only palette tokens, checked below.
+TOKEN_FUNCTIONS = {"congress_clock_tint(": "congress_clock_tint", "str(row[1])": "fall_clock_rows"}
+
+
+def _x4_lin(c: float) -> float:
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def _x4_lum(rgb) -> float:
+    r, g, b = (_x4_lin(v / 255.0) for v in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _x4_hex_rgb(h: str):
+    h = h.strip().lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _x4_code(src: str) -> str:
+    src = re.sub(r'"""(.*?)"""', '""', src, flags=re.S)
+    return "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith("#"))
+
+
+def _x4_utils_tokens() -> dict:
+    src = (SCRIPTS / "utils.gd").read_text(encoding="utf-8")
+    out = {}
+    for m in re.finditer(r'(?m)^(?:const|static var) ([A-Z_][A-Z0-9_]*)\s*:?=\s*"([0-9a-fA-F]{6})"', src):
+        out[m.group(1)] = m.group(2)
+    return out
+
+
+def _x4_tokens_in(expr: str) -> list:
+    return re.findall(r"Utils\.([A-Z_][A-Z0-9_]*)", expr)
+
+
+class TestTheWarRoomLogsColoursAreTokensThatRead:
+    """UXR3-X4: the contrast instrument reads a label's [color] spans from its
+    `text`, and the war-room log appends — so its frame census sees only the
+    log's default colour. Its colours are held at their SOURCE instead: every
+    [color] main.gd writes is a palette token (utils.gd), directly or through
+    a variable or helper that holds only tokens, and every such token reads
+    ≥ 4.5 : 1 on the command window's panel."""
+
+    def _expressions(self):
+        code = _x4_code((SCRIPTS / "main.gd").read_text(encoding="utf-8"))
+        literals, exprs = [], []
+        for m in re.finditer(r'\[color=(#?)([^\]"]*)(\]|")', code):
+            hashmark, body, end = m.groups()
+            if end == "]":
+                literals.append(body)
+                continue
+            tail = code[m.end():m.end() + 120]
+            mm = re.match(r'\s*\+\s*(.+?)\s*\+\s*"', tail)
+            assert mm, ("an unreadable [color] expression", tail[:60])
+            exprs.append(mm.group(1).strip())
+        return code, literals, exprs
+
+    def _resolve(self, code: str, expr: str) -> list:
+        """The palette tokens an expression can name."""
+        toks = _x4_tokens_in(expr)
+        if toks and re.fullmatch(r"Utils\.[A-Z_][A-Z0-9_]*", expr):
+            return toks
+        for key, fn in TOKEN_FUNCTIONS.items():
+            if expr.startswith(key):
+                if fn == "fall_clock_rows":
+                    body = _func((SCRIPTS / "utils.gd").read_text(encoding="utf-8"), "fall_clock_rows")
+                    return re.findall(r"tint(?::\s*String)? = ([A-Z_][A-Z0-9_]*)", body)
+                body = _func(code, fn)
+                rets = re.findall(r'return\s+(.+)', body)
+                found = []
+                for r in rets:
+                    t = _x4_tokens_in(r)
+                    assert t, (fn, "returns something other than a palette token", r)
+                    found += t
+                return found
+        # a variable: every assignment to it is a token, or a choice of tokens
+        name = re.escape(expr)
+        rhs = re.findall(rf"(?m)^\s*(?:var\s+)?{name}(?:\s*:\s*String)?\s*:?=\s*(.+?)\s*(?:#.*)?$", code)
+        assert rhs, ("a [color] variable with no assignment", expr)
+        found = []
+        for r in rhs:
+            t = _x4_tokens_in(r)
+            leftover = re.sub(r"Utils\.[A-Z_][A-Z0-9_]*", "", r)
+            leftover = re.sub(r"\b(if|else|and|or|not|in|is|String|==|!=|>=|<=|<|>)\b", "", leftover)
+            assert t and not re.search(r'"[0-9a-fA-F]{6}"', r), (expr, "assigned a non-token", r)
+            del leftover
+            found += t
+        return found
+
+    def test_no_literal_colour_reaches_the_log(self):
+        _code_text, literals, _exprs = self._expressions()
+        assert literals == [], literals
+
+    def test_every_log_colour_is_a_token_that_reads_on_the_panel(self):
+        code, _literals, exprs = self._expressions()
+        tokens = _x4_utils_tokens()
+        panel = _x4_lum(COMMAND_PANEL_RGB)
+        seen = set()
+        for expr in exprs:
+            for tok in self._resolve(code, expr):
+                assert tok in tokens, (expr, tok, "is not a palette token with a hex value")
+                seen.add(tok)
+        weak = {}
+        for tok in sorted(seen):
+            ratio = (_x4_lum(_x4_hex_rgb(tokens[tok])) + 0.05) / (panel + 0.05)
+            if ratio < 4.5:
+                weak[tok] = round(ratio, 2)
+        assert weak == {}, weak
+        assert len(seen) >= 15, sorted(seen)   # the census is not vacuous

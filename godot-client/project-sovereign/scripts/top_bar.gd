@@ -602,8 +602,11 @@ func update_admiralty(summary: Dictionary):
 	var blockaded := str(_admiralty_summary.get("blockaded_by", "")) != ""
 	var window := int(_admiralty_summary.get("window_turns", 0)) > 0
 	if blockaded:
-		admiralty_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
-		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
+		# UXR3-F9 (Pre-Deploy S12 part 2): under blockade the border is
+		# crimson, as the board's must_show and the chip's own words say
+		# (it was the envoys' amber alert).
+		admiralty_btn.add_theme_stylebox_override("normal", _blockade_style())
+		admiralty_btn.add_theme_stylebox_override("hover", _blockade_style(true))
 		admiralty_btn.add_theme_color_override("font_color", Utils.UI_ALERT)
 	elif window:
 		admiralty_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
@@ -614,6 +617,13 @@ func update_admiralty(summary: Dictionary):
 		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
 		admiralty_btn.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
 	_refresh_admiralty_text()
+
+
+func _blockade_style(hover := false) -> StyleBoxFlat:
+	var sb: StyleBoxFlat = _mailbox_alert_style.duplicate()
+	sb.border_color = Utils.UI_ALERT
+	sb.bg_color = Color(0.26, 0.09, 0.08, 1.0 if hover else 0.95)
+	return sb
 
 
 func _refresh_admiralty_text():

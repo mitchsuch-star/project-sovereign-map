@@ -57,13 +57,12 @@ text = ""
 [node name="MinimizeButton" type="Button" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(26, 22)
-flat = true
+tooltip_text = "Minimize the lesson"
 text = "–"
 
 [node name="SkipButton" type="Button" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(44, 22)
-flat = true
 text = "Skip"
 
 [node name="BodyText" type="RichTextLabel" parent="Card/VBox"]

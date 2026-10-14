@@ -909,7 +909,9 @@ func _render_balance_of_europe():
 	# the band above still colours it.
 	var threat_name = str(boe.get("threat_name", ""))
 	var tier_shown = threat_name if threat_name != "" else threat_tier
-	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100  [" + tier_shown + "][/color]\n"
+	# UXR3-F6 (Pre-Deploy S12 part 2): the tier is a word after a dash, not
+	# a bracketed tag.
+	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100 — " + tier_shown + "[/color]\n"
 
 	# Visual threat bar — 20 chars wide
 	var filled = int(threat_level / 5)  # 0-20
@@ -923,14 +925,8 @@ func _render_balance_of_europe():
 	elif threat_level >= 30:
 		bar_color = COLOR_AMBER
 
-	var bar = "[color=#" + bar_color + "]"
-	for i in range(filled):
-		bar += "█"
-	bar += "[/color][color=#" + Utils.COLOR_INFO + "]"
-	for i in range(empty):
-		bar += "░"
-	bar += "[/color]"
-	bbcode += bar + "\n"
+	# UXR3-F6: the game's own bar (the Generals' image), not hatched glyphs.
+	bbcode += Utils.bb_bar_img(int(round(float(filled) / 2.0)), bar_color, 220, 14) + "\n"
 	# FA-D11 (slice 17, Phase 2): the one number a player plans around — the
 	# backend computed it all along and no renderer read it.
 	var projection = boe.get("threat_projection", {})
@@ -1046,13 +1042,9 @@ func _render_balance_of_europe():
 			if we_filled < 0:
 				we_filled = 0
 			var we_empty = 10 - we_filled
-			var we_bar = ""
-			for i in range(we_filled):
-				we_bar += "█"
-			for i in range(we_empty):
-				we_bar += "░"
-
-			bbcode += "  • " + m_nation + ": " + m_strength + ", WE: " + str(m_we) + "/" + str(we_max) + " [" + we_bar + "]\n"
+			var we_color := Utils.COLOR_WARNING if we_filled >= 5 else Utils.COLOR_INFO
+			bbcode += "  • " + m_nation + ": " + m_strength + ", WE: " + str(m_we) + "/" + str(we_max) \
+				+ "  " + Utils.bb_bar_img(we_filled, we_color, 110, 12) + "\n"
 	elif coalition_state == "BREWING":
 		var turns_str = ""
 		if brewing_turns != null:

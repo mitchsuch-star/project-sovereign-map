@@ -63,6 +63,10 @@ var turn_data: Dictionary = {}
 
 func _ready():
 	close_button.pressed.connect(close_log)
+	# UXR3-F5 (Pre-Deploy S12 part 2): the drawn cross every screen closes
+	# with, not a boxed letter X.
+	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
+	close_button.tooltip_text = "Close (L)"
 	background_overlay.gui_input.connect(_on_overlay_input)
 	# UXR-2: clamped AND gripped — the player's size is remembered.
 	ResizeGrip.attach_centered($PanelContainer, "event_log")
@@ -196,7 +200,8 @@ func _update_turn_header(turn_num: int):
 		return
 	var event_count = int(header_btn.get_meta("event_count"))
 	var turn_label = str(header_btn.get_meta("turn_label"))
-	var affordance = "v" if expanded_turns.get(turn_num, false) else ">"
+	# UXR3-F6: the fold's own arrows, not a typed "v" and ">".
+	var affordance = "▾" if expanded_turns.get(turn_num, false) else "▸"
 	header_btn.text = "%s %s  -  %d event%s" % [
 		affordance,
 		turn_label,

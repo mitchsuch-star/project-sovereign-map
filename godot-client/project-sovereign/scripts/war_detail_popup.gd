@@ -313,6 +313,10 @@ func _add_labeled_tug_of_war_bar(opponent: String, score: int, bar_width: int, b
 	score_bar_container.add_child(row)
 
 
+# UXR3-F1: the score label's clearance from the 2-px centre tick.
+const SCORE_TICK_CLEAR := 5.0
+
+
 func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int) -> Control:
 	"""Create a two-tone tug-of-war bar. Blue=France (right), Red=enemy (left).
 	Center = 0. Score > 0 means France winning (blue fills right of center).
@@ -361,24 +365,34 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	# gem; here the score label owns the centre, so a 2px tick keeps the
 	# fill direction readable without fighting the text.
 	var tick = ColorRect.new()
+	tick.name = "CentreTick"
 	tick.color = Color(0.85, 0.7, 0.3, 0.75)
 	_anchor_bar_child(tick, 0.5, 0.5, -1.0, 1.0)
 	tick.offset_top = 2.0
 	tick.offset_bottom = -2.0
+	tick.add_to_group("bar_ticks")
 	container.add_child(tick)
 
 	# Score label. Slice 7.5 review fold: dark outline keeps the score
 	# readable over light nation fills (e.g. PapalStates white) at high scores.
+	# UXR3-F1 (Pre-Deploy S12 part 2): the label stands on the LEADER's side
+	# of the tick, never across it — centred, the tick drew over the minus of
+	# a losing score and −60 read "60" beside a red fill. A true minus sign.
 	var score_label = Label.new()
-	var score_sign = "+" if score > 0 else ""
-	score_label.text = score_sign + str(score)
+	score_label.name = "ScoreLabel"
+	var score_sign = "+" if score > 0 else ("\u2212" if score < 0 else "")
+	score_label.text = score_sign + str(absi(score))
 	score_label.theme_type_variation = &"Caption"
 	score_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	score_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	score_label.add_theme_constant_override("outline_size", 3)
-	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	score_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if score < 0:
+		score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_anchor_bar_child(score_label, 0.0, 0.5, WAR_BAR_TAG_INSET + WAR_BAR_TAG_W, -SCORE_TICK_CLEAR)
+	else:
+		score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_anchor_bar_child(score_label, 0.5, 1.0, SCORE_TICK_CLEAR, -(WAR_BAR_TAG_INSET + WAR_BAR_TAG_W))
 	container.add_child(score_label)
 
 	# Side labels (Enemy on LEFT, France on RIGHT — matches fill direction)

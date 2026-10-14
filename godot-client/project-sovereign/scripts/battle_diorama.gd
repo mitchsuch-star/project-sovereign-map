@@ -41,7 +41,9 @@ const FIGURE_PX := 58.0
 # headless on the real tableau (both columns, depths 1-2, reinforced and
 # co-located): nothing else is drawn there. Y is below the feet (y = 0) and
 # clear of a fallen figure's ink (+22 still grazed one by 1px).
-const FAITH_CAPTION_W := 150.0
+# UXR3-F2: 230 wide, so the faith sentence wraps in two lines — at three it
+# ran into the forward rank's "marched to the guns".
+const FAITH_CAPTION_W := 230.0
 const FAITH_CAPTION_Y := 30.0
 const FAITH_CAPTION_INBOARD := 20.0
 # UXR-X5 (UXR-2, October 12, 2026): the TEXT leaves the depth scale. A block's
@@ -60,6 +62,9 @@ const FATE_MIN_W := 96.0
 # block +3): at four ranks the next rank's colours stood over a name.
 const TEXT_Z := 10
 const SHELF_FIGURE_PX := 44.0
+# UXR3-F2: a standard's pole, and the shortest a narrowed line cuts it to.
+const STANDARD_POLE := 86.0
+const STANDARD_POLE_MIN := 36.0
 
 # PT-D2: the backend's absence family (battle_diorama.py ABSENT_STATUSES)
 # — statuses the shelf renders, never the line.
@@ -712,7 +717,18 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 		var x := sw / 2.0 - depth_x if is_left else sw / 2.0 + depth_x
 		var pos := Vector2(x, base_y - step_y * i)
 		var block_scale := 1.0 - 0.12 * i
-		blocks.append(_make_block(holder, c, pos, block_scale, is_left, i))
+		# UXR3-F2 (Pre-Deploy S12 part 2): at three and four ranks the steps
+		# narrow and a deeper rank's 86-px standard flew beside the NEXT
+		# rank's name and strength lines (Austria's colours by Kutuzov,
+		# Russia's by Archduke Charles). Its pole is cut so the flag flies
+		# below the forward rank's strength line, among its own men.
+		var pole := STANDARD_POLE
+		if n >= 3 and i > 0:
+			var fwd_scale := 1.0 - 0.12 * (i - 1)
+			var clear_top := 156.0 * fwd_scale - (TEXT_PITCH + 19.0) - 4.0 - step_y
+			# the art is scaled by block_scale; the pole is drawn in art units
+			pole = clampf(clear_top / maxf(block_scale, 0.01), STANDARD_POLE_MIN, STANDARD_POLE)
+		blocks.append(_make_block(holder, c, pos, block_scale, is_left, i, pole))
 
 	# The honest tail: corps the cap could not seat.
 	var reserve := int(side.get("reserve_count", 0))
@@ -749,7 +765,8 @@ var _transients: Array = []
 
 
 func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
-		block_scale: float, is_left: bool, depth: int) -> Dictionary:
+		block_scale: float, is_left: bool, depth: int,
+		pole: float = STANDARD_POLE) -> Dictionary:
 	"""One corps: a rank of figures, its standard, the locket, the labels.
 	Returns the block record the sequence animates."""
 	var block := Node2D.new()
@@ -823,7 +840,7 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	# second flag.
 	var standard: Node2D = null
 	if not _is_naval():
-		standard = _make_standard(nation_color, color_key, is_left)
+		standard = _make_standard(nation_color, color_key, is_left, pole)
 		standard.position = Vector2(38.0 if is_left else -38.0, 0.0)
 		art.add_child(standard)
 
@@ -979,7 +996,7 @@ func _keep_fate_on_baize(l: Label, block_pos: Vector2, is_left: bool) -> void:
 
 
 func _make_standard(nation_color: Color, flag_key: String,
-		is_left: bool) -> Node2D:
+		is_left: bool, pole_h: float = STANDARD_POLE) -> Node2D:
 	"""A corps standard: a real pole with the nation's own colours flying —
 	the one saturated element on a wood figure, which is exactly why it is
 	the thing that falls."""
@@ -988,13 +1005,13 @@ func _make_standard(nation_color: Color, flag_key: String,
 	std.z_index = 3
 
 	var pole := Line2D.new()
-	pole.points = PackedVector2Array([Vector2(0, 0), Vector2(0, -86)])
+	pole.points = PackedVector2Array([Vector2(0, 0), Vector2(0, -pole_h)])
 	pole.width = 2.4
 	pole.default_color = Color(0.32, 0.24, 0.14, 1.0)
 	std.add_child(pole)
 	# Finial.
 	var finial := Line2D.new()
-	finial.points = PackedVector2Array([Vector2(0, -86), Vector2(0, -92)])
+	finial.points = PackedVector2Array([Vector2(0, -pole_h), Vector2(0, -pole_h - 6.0)])
 	finial.width = 4.0
 	finial.default_color = BRASS
 	std.add_child(finial)
@@ -1009,14 +1026,14 @@ func _make_standard(nation_color: Color, flag_key: String,
 		var s := flag_w / maxf(tex_size.x, 1.0)
 		spr.scale = Vector2(s, s)
 		# The flag flies toward the clash line on both sides.
-		spr.position = Vector2(1.0 if is_left else -1.0 - flag_w, -86.0)
+		spr.position = Vector2(1.0 if is_left else -1.0 - flag_w, -pole_h)
 		std.add_child(spr)
 	else:
 		var pennant := Polygon2D.new()
 		var dir := 1.0 if is_left else -1.0
 		pennant.polygon = PackedVector2Array([
-			Vector2(1.0 * dir, -86.0), Vector2(30.0 * dir, -80.0),
-			Vector2(1.0 * dir, -70.0)])
+			Vector2(1.0 * dir, -pole_h), Vector2(30.0 * dir, -pole_h + 6.0),
+			Vector2(1.0 * dir, -pole_h + 16.0)])
 		pennant.color = WarTablePiece.legible_tint(nation_color)
 		std.add_child(pennant)
 	return std

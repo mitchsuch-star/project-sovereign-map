@@ -795,6 +795,8 @@ func _capture(suffix: String) -> void:
 	# S12 part 2 (UXR3-F4): every visible resize grip and corner ornament,
 	# so the census can hold them off the text rows and the buttons.
 	frame["grips"] = _grips_and_ornaments()
+	# S12 part 2 (UXR3-F3): a line cut at a scroll's edge.
+	frame["cut_lines"] = _cut_lines()
 	var fit := _under_modal(view)
 	for key in fit:
 		frame[key] = fit[key]
@@ -1228,9 +1230,41 @@ func _truncated_text() -> Array:
 	return out
 
 
+func _cut_lines() -> Array:
+	# Per visible RichTextLabel inside a ScrollContainer: the first and the
+	# last line its scroll shows, and whether either straddles the scroll's
+	# edge by more than 2 logical px (a line cut in half at the edge).
+	var out: Array = []
+	for n in _all_nodes(root):
+		if not (n is RichTextLabel) or not _shown(n) or _inside_subviewport(n):
+			continue
+		var rtl := n as RichTextLabel
+		var sc := _scroll_ancestor(rtl)
+		if sc == null or rtl.get_parsed_text().strip_edges() == "":
+			continue
+		var s_rect := sc.get_global_rect()
+		var r_top := rtl.get_global_rect().position.y
+		var count := rtl.get_line_count()
+		var cut_top := 0.0
+		var cut_bottom := 0.0
+		for i in range(count):
+			var y0 := r_top + float(rtl.get_line_offset(i))
+			var y1 := r_top + (float(rtl.get_line_offset(i + 1)) if i + 1 < count else float(rtl.get_content_height()))
+			if y0 < s_rect.position.y - 2.0 and y1 > s_rect.position.y + 2.0:
+				cut_top = minf(y1 - s_rect.position.y, s_rect.position.y - y0)
+			if y0 < s_rect.end.y - 2.0 and y1 > s_rect.end.y + 2.0:
+				cut_bottom = minf(s_rect.end.y - y0, y1 - s_rect.end.y)
+		if cut_top > 0.0 or cut_bottom > 0.0:
+			out.append({"path": str(root.get_path_to(rtl)), "layer": _layer_of(rtl),
+					"scroll_rect": [s_rect.position.x, s_rect.position.y, s_rect.size.x, s_rect.size.y],
+					"cut_top_px": cut_top, "cut_bottom_px": cut_bottom})
+	return out
+
+
 func _grips_and_ornaments() -> Array:
-	# A ResizeGrip (its hit square, centred on its panel's corner) and a
-	# node in the `corner_ornaments` group, each with its layer and rect.
+	# A ResizeGrip (its hit square, centred on its panel's corner), a node in
+	# the `corner_ornaments` group and a bar's centre tick (`bar_ticks`), each
+	# with its layer and rect.
 	var out: Array = []
 	for n in _all_nodes(root):
 		if not (n is Control) or n == _backdrop or not _shown(n) or _inside_subviewport(n):
@@ -1240,6 +1274,9 @@ func _grips_and_ornaments() -> Array:
 			kind = "grip"
 		elif n.is_in_group("corner_ornaments"):
 			kind = "ornament"
+		elif n.is_in_group("bar_ticks"):
+			# UXR3-F1: a bar's centre tick, which the score label must clear.
+			kind = "tick"
 		else:
 			continue
 		var r := (n as Control).get_global_rect()

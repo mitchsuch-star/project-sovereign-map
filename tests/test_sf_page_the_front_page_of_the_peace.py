@@ -1170,7 +1170,8 @@ class TestTheAlarmHasOneName:
         ledger = (scripts / "diplomatic_ledger.gd").read_text(encoding="utf-8")
         assert 'boe.get("threat_name", "")' in ledger
         assert 'var tier_shown = threat_name if threat_name != "" else threat_tier' in ledger
-        assert '" / 100  [" + tier_shown + "]' in ledger
+        # UXR3-F6 (S12 part 2): the name follows a dash — the bracket read as a tag.
+        assert '" / 100 — " + tier_shown' in ledger
         for rel in ("dispatch_view.gd", "main.gd"):
             src = (scripts / rel).read_text(encoding="utf-8")
             assert 'tier in ["Brewing", "Formed", "CRITICAL", "HIGH"]' in src, rel

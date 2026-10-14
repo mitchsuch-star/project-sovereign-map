@@ -58,6 +58,17 @@ func _ready():
 	main_menu_button.pressed.connect(_on_main_menu)
 	quit_button.pressed.connect(_on_quit)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# UXR3-F5 (Pre-Deploy S12 part 2): a way back to the war room, first —
+	# the panel offered every road out of the campaign and none back into it
+	# (Esc and a click outside closed it, but nothing said so).
+	var resume := Button.new()
+	resume.name = "ResumeButton"
+	resume.text = "Resume (Esc)"
+	resume.custom_minimum_size = Vector2(0, 36)
+	resume.pressed.connect(close_menu)
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	vb.add_child(resume)
+	vb.move_child(resume, save_button.get_index())
 	# The shared Settings surface, in a scroll so the pause panel stays
 	# inside small viewports at high Interface Scale.
 	var scroll := ScrollContainer.new()

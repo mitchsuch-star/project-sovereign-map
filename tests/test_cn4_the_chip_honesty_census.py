@@ -1061,6 +1061,12 @@ REVIEWED = {
     ("diplomatic_ledger.gd", '"talleyrand_assess"'): "sends `Talleyrand, assess our situation` (W6-9)",
     # strategic_ledger.gd — backend-composed
     ("strategic_ledger.gd", '"do:" + str(chip.get("command", ""))'): "driven: the Admiralty's chips",
+    # UXR3-F5 (Pre-Deploy S12 part 2): the Orders tab's Cancel became a chip
+    # (it was a bracketed [url] word) — the same `cancel:` meta, sent by the
+    # ledger itself through POST /cancel_order; it greys to "Sent: Cancel"
+    # while the request is out. Gated on the turn's actions (dimmed with
+    # bb_chip_disabled otherwise). Driven by the war-room road `ledger_cancel`.
+    ("strategic_ledger.gd", '"cancel:" + mname'): "cancels the standing order via /cancel_order; gated on actions",
     # main.gd — SR-5r RF-4b: the lapse forecast's "repeal X instead" chip on
     # the end-turn banner and the terminal dispatch (backend-composed; the
     # typed `repeal <law>` down the ledger's chip road). Driven through
