@@ -521,8 +521,13 @@ class TestReviewFixPins:
             r"func _on_top_bar_menu_clicked.*?(?=\nfunc )", src, re.DOTALL,
         )
         assert body, "_on_top_bar_menu_clicked missing"
-        assert "close_all_screens()" in body.group(0)
-        assert body.group(0).index("close_all_screens()") < body.group(0).index("open_menu()")
+        # UXR-D4 (Pre-Deploy S12b): `close_everything()` closes the open
+        # screen AND unpins the Side Desk's — pause never opens over either.
+        assert "close_everything()" in body.group(0)
+        assert body.group(0).index("close_everything()") < body.group(0).index("open_menu()")
+        top = _read(SCRIPTS / "top_bar.gd")
+        every = re.search(r"func close_everything.*?(?=\nfunc )", top, re.DOTALL)
+        assert every and "close_all_screens()" in every.group(0) and "unpin()" in every.group(0)
 
     def test_objection_resolution_refreshes_open_screens(self):
         """UI6-R4: a chip-raised objection resolves AFTER the chip's own

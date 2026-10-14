@@ -456,11 +456,31 @@ func _instantiate():
 				stub.responses["test_connection"] = _payload["test"]
 			if _payload.get("topology") is Dictionary:
 				stub.responses["get_map_topology"] = _payload["topology"]
+			# S12b (UXR-D4): a war-room board may carry a screen's own GET
+			# answer (`ledger`, `marshal_overview`, …), so a screen opened
+			# — or pinned — beside the war room reads a real capture.
+			for key in ["ledger", "diplomatic_ledger", "marshal_overview", "dispatch", "gazette",
+					"campaign_log"]:
+				if _payload.get(key) is Dictionary:
+					stub.responses["get_" + key] = _payload[key]
 		var real = _node.get("api_client") if ("api_client" in _node) else null
+		_node.add_child(stub)
 		if real is Node:
+			# main.gd handed its real client to the top bar in `_ready`: every
+			# script variable holding it takes the stub (the action probe's
+			# idiom), or a screen opened by the bar would call a freed client.
+			for n in _all_nodes(_node):
+				if n == real or n == stub or n.get_script() == null:
+					continue
+				for prop in n.get_property_list():
+					if not (int(prop.get("usage", 0)) & PROPERTY_USAGE_SCRIPT_VARIABLE):
+						continue
+					var pname := str(prop.get("name", ""))
+					var v = n.get(pname)
+					if typeof(v) == TYPE_OBJECT and is_instance_valid(v) and v == real:
+						n.set(pname, stub)
 			_node.remove_child(real)
 			real.queue_free()
-		_node.add_child(stub)
 		if "api_client" in _node:
 			_node.set("api_client", stub)
 		_stubs.append(stub)

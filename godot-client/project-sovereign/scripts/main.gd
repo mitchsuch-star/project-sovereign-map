@@ -651,6 +651,10 @@ func _ready():
 		top_bar.screen_changed.connect(_on_screen_changed)
 		# UXR-D1: its strip grows with Text size; the HUD under it refits.
 		top_bar.bar_height_changed.connect(_on_bar_height_changed)
+		# UXR-D4 (Pre-Deploy S12b): the Side Desk's dock took or gave back
+		# its third — the HUD re-fits beside it.
+		if top_bar.has_signal("dock_changed"):
+			top_bar.dock_changed.connect(_on_dock_changed)
 		top_bar.envoy_clicked.connect(_on_envoy_clicked)
 		# NUI: the Admiralty chip opens the ledger's own naval book.
 		if top_bar.has_signal("admiralty_clicked"):
@@ -1489,6 +1493,14 @@ func _unhandled_input(event):
 				region_panel.close_panel()
 				get_viewport().set_input_as_handled()
 				return
+			# UXR-D4: a screen pinned at the Side Desk — with no popup and
+			# nothing else open, Esc unpins and closes it (before the pause
+			# menu opens).
+			if top_bar and top_bar.has_method("is_pinned") and top_bar.is_pinned() \
+					and not _is_modal_dialog_open():
+				top_bar.unpin()
+				get_viewport().set_input_as_handled()
+				return
 			if pause_menu and pause_menu.visible:
 				pause_menu.close_menu()
 			elif not _is_modal_dialog_open():
@@ -1727,6 +1739,27 @@ func _reposition_after_layout() -> void:
 	call_deferred("_position_resize_grip")
 	call_deferred("_push_map_label_avoid_rects")
 	_queue_fit_map_controls()
+	call_deferred("_resnap_output")
+
+
+func _resnap_output() -> void:
+	"""UXR-D4 (Pre-Deploy S12b): the command window re-fitted — the Side
+	Desk's dock narrowed the HUD band, the scale or the window changed — so
+	its lines re-wrapped and the whole-line end (UXR3-F3) is measured again,
+	the log kept on its newest line when it stood there."""
+	if output_scroll == null or output_display == null:
+		return
+	var bar: VScrollBar = output_scroll.get_v_scroll_bar()
+	var at_end: bool = output_scroll.scroll_vertical >= int(bar.max_value - bar.page) - 2
+	# Measured from no pad: the old one was the old width's.
+	if _output_pad != null and _output_pad.content_margin_bottom != 0.0:
+		_output_pad.content_margin_bottom = 0.0
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _snap_output_to_a_whole_line()
+	await get_tree().process_frame
+	if at_end:
+		output_scroll.scroll_vertical = int(bar.max_value)
 
 
 # ── UXR-D3 (Pre-Deploy S9b): the map's own controls, [− ⌂ +] ──────────────
@@ -1938,6 +1971,20 @@ func _on_root_resized() -> void:
 		top_bar.refit_active_screen()
 	if _scale_card != null and is_instance_valid(_scale_card) and _scale_card.visible:
 		Utils.clamp_centered_panel(_scale_card)
+	# UXR-D4: the map's view keeps to the room left of the Side Desk's dock.
+	_fit_map_inset()
+
+
+func _fit_map_inset() -> void:
+	"""UXR-D4 (Pre-Deploy S12b): the strip a pinned screen's dock covers on
+	the map's right — from the dock's left edge (where `Utils.hud_band` now
+	ends) to the window's — or 0 with nothing pinned."""
+	if map_area == null or not map_area.has_method("set_right_inset"):
+		return
+	var inset := 0.0
+	if Utils.dock_width() > 0.0:
+		inset = maxf(size.x - Utils.hud_band(size).y, 0.0)
+	map_area.set_right_inset(inset)
 
 func _apply_ui_scale(scale: float, persist: bool = true) -> void:
 	"""Global interface scale via content_scale_factor (UI-2 / DEF-13 fold).
@@ -1984,6 +2031,13 @@ func open_scale_card() -> void:
 	if pause_menu and pause_menu.visible:
 		pause_menu.close_menu()
 	_scale_card.open(UiSettings.get_ui_scale(), UiSettings.derive_default_ui_scale())
+
+
+func _on_dock_changed() -> void:
+	"""UXR-D4: a screen was pinned or unpinned (or the docked one re-fitted
+	to a new width) — `Utils.hud_band` now ends at the dock's edge, so every
+	HUD surface re-measures it on the band's own road."""
+	call_deferred("_refit_hud_band")
 
 
 func _on_bar_height_changed() -> void:
@@ -2034,6 +2088,10 @@ func _on_layout_reset() -> void:
 	# UXR-2: every gripped screen back to its authored size (the store is
 	# already cleared; an OPEN screen re-fits at once).
 	get_tree().call_group(ResizeGrip.GROUP, "reset_to_authored")
+	# UXR-D4: a pinned screen's stored width is gone too — it re-docks at a
+	# third of the band.
+	if top_bar and top_bar.has_method("is_pinned") and top_bar.is_pinned():
+		call_deferred("_refit_hud_band")
 
 
 func _ctrl_scale_key(keycode: int) -> bool:
@@ -3108,7 +3166,13 @@ func _show_pending_ending() -> bool:
 			add_output("[color=#" + Utils.COLOR_INFO + "][i]" + Utils.humanize_nation_keys_in_text(cause_line) + "[/i][/color]")
 		add_output("")
 	if top_bar:
-		top_bar.close_all_screens()
+		# UXR-D4: the Fall leaves the war room — the pinned screen goes too;
+		# a marked ending is a card over a campaign that goes on, and the
+		# desk keeps its screen beneath it.
+		if bool(payload.get("terminal", false)):
+			top_bar.close_everything()
+		else:
+			top_bar.close_all_screens()
 	campaign_end.show_ending(payload)
 	return true
 
@@ -3129,6 +3193,10 @@ func _on_campaign_over(response) -> void:
 	prints on its own."""
 	set_input_enabled(false)
 	_campaign_over = true
+	# UXR-D4: the Fall unpins the Side Desk too (the card's road, or the
+	# terminal record's when no card can rise).
+	if top_bar and top_bar.has_method("close_everything"):
+		top_bar.close_everything()
 	_stash_ending(response)
 	if _show_pending_ending():
 		return
@@ -6307,7 +6375,8 @@ func _on_load_save_selected(filename: String):
 func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	"""Clear transient local UI state before hydrating a different campaign."""
 	if top_bar:
-		top_bar.close_all_screens()
+		# UXR-D4: a load or a new campaign unpins the Side Desk as well.
+		top_bar.close_everything()
 	# Review fix (UX pass July 16): hide_all() below does a raw hide() that
 	# skips close_panel(), so the `closed` signal would never clear the map's
 	# selected-province glow — the OLD campaign's province would stay rim-lit
@@ -7246,8 +7315,9 @@ func _on_top_bar_menu_clicked():
 		pause_menu.close_menu()
 		return
 	if pause_menu and not _is_modal_dialog_open():
-		if top_bar and top_bar.is_screen_open():
-			top_bar.close_all_screens()
+		# UXR-D4: the pause menu unpins the Side Desk as well.
+		if top_bar:
+			top_bar.close_everything()
 		pause_menu.open_menu()
 
 

@@ -1444,12 +1444,88 @@ static func hud_band(view: Vector2) -> Vector2:
 	logical px. Full: the whole viewport. Centred: UiSettings.HUD_BAND_WIDTH
 	about the viewport's centre — on a viewport wider than the band and its
 	margins only; a narrower one reads as Full. Every HUD surface measures
-	its edge inset and its fraction from this band, never from 0 / view.x."""
+	its edge inset and its fraction from this band, never from 0 / view.x.
+
+	UXR-D4 (Pre-Deploy S12b, the Side Desk): while a screen is pinned the
+	band gives the dock its third — it ends at the dock's left edge (the
+	dock's width plus HUD_MARGIN off its right), so every HUD surface that
+	measures from it stands beside the dock. The dock itself and the top
+	bar's strip measure the whole band (`hud_band_full`)."""
+	var band := hud_band_full(view)
+	if _dock_width > 0.0:
+		band.y = maxf(band.x, band.y - _dock_width - HUD_MARGIN)
+	return band
+
+
+static func hud_band_full(view: Vector2) -> Vector2:
+	"""The HUD band with no dock taken out of it (see `hud_band`)."""
 	if UiSettings.get_hud_width() == "centred" \
 			and view.x > UiSettings.HUD_BAND_WIDTH + 2.0 * HUD_MARGIN:
 		var left := floorf((view.x - UiSettings.HUD_BAND_WIDTH) / 2.0)
 		return Vector2(left, left + UiSettings.HUD_BAND_WIDTH)
 	return Vector2(0.0, view.x)
+
+
+# ── the Side Desk (UXR-D4, Pre-Deploy S12b) ───────────────────────────────
+# A pinned layer-50 screen docks NON-modal in the right third of the HUD
+# band, beside a live map. One screen at a time (top_bar.gd owns the pin);
+# this is the placement and the room the HUD gives it.
+const DOCK_FRACTION := 1.0 / 3.0
+const DOCK_MIN_FRACTION := 0.25
+const DOCK_MAX_FRACTION := 0.5
+static var _dock_width := 0.0
+
+
+static func dock_width() -> float:
+	"""The pinned screen's width in logical px (0 when nothing is pinned)."""
+	return _dock_width
+
+
+static func set_dock_width(width: float) -> bool:
+	"""Publish the dock's width; true when it changed (the HUD re-fits)."""
+	var w := maxf(width, 0.0)
+	if is_equal_approx(w, _dock_width):
+		return false
+	_dock_width = w
+	return true
+
+
+static func dock_rect(panel: Control) -> Rect2:
+	"""Where a pinned screen's panel stands, in logical px: the right third
+	of the HUD band (`hud_band_full`), from under the top bar to HUD_MARGIN
+	above the bottom. Its width is the screen's remembered grip width
+	(`clamp_user_size`) when the player set one, else a third of the band,
+	held between a quarter and a half of it — and never under what the
+	panel's content needs, which would otherwise grow it about its centre
+	past the band's edge."""
+	var view: Vector2 = panel.get_viewport().get_visible_rect().size
+	var band := hud_band_full(view)
+	var bw := band.y - band.x
+	var want := bw * DOCK_FRACTION
+	if panel.has_meta("clamp_user_size"):
+		want = (panel.get_meta("clamp_user_size") as Vector2).x
+	var w := clampf(want, bw * DOCK_MIN_FRACTION, bw * DOCK_MAX_FRACTION)
+	w = minf(maxf(w, panel.get_combined_minimum_size().x), bw - 2.0 * HUD_MARGIN)
+	var top := TOP_BAR_HEIGHT + top_bar_growth() + HUD_MARGIN
+	var bottom := view.y - HUD_MARGIN
+	var right := band.y - HUD_MARGIN
+	return Rect2(right - w, top, w, maxf(bottom - top, 0.0))
+
+
+static func dock_right(panel: Control) -> float:
+	"""Place a pinned screen's centre-anchored panel at `dock_rect` and
+	return its width. The anchors stay where they are (the centre), so
+	unpinning restores the centred rect through `clamp_centered_panel`."""
+	if panel == null or panel.get_viewport() == null:
+		return 0.0
+	var view: Vector2 = panel.get_viewport().get_visible_rect().size
+	var r := dock_rect(panel)
+	panel.offset_left = r.position.x - view.x * panel.anchor_left
+	panel.offset_right = r.end.x - view.x * panel.anchor_right
+	panel.offset_top = r.position.y - view.y * panel.anchor_top
+	panel.offset_bottom = r.end.y - view.y * panel.anchor_bottom
+	_relax_child_minimums(panel, r.size.y)
+	return r.size.x
 
 
 static func fraction_px(view_len: float, frac: float, min_px: float, max_px: float,

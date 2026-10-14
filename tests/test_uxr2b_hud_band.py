@@ -158,16 +158,22 @@ class TestTheSources:
 
     def test_one_band_and_every_hud_surface_measures_it(self):
         utils = G.read(_SCRIPTS / "utils.gd")
+        # UXR-D4 (Pre-Deploy S12b): the band's own rule is `hud_band_full`;
+        # `hud_band` is it minus the Side Desk's dock (0 with none pinned).
+        full = G.func_body(utils, "hud_band_full")
+        assert 'UiSettings.get_hud_width() == "centred"' in full
+        assert "UiSettings.HUD_BAND_WIDTH + 2.0 * HUD_MARGIN" in full
         band = G.func_body(utils, "hud_band")
-        assert 'UiSettings.get_hud_width() == "centred"' in band
-        assert "UiSettings.HUD_BAND_WIDTH + 2.0 * HUD_MARGIN" in band
+        assert "var band := hud_band_full(view)" in band
+        assert "band.y = maxf(band.x, band.y - _dock_width - HUD_MARGIN)" in band
         assert "var band := hud_band(view)" in G.func_body(utils, "clamp_anchored_panel")
         main = G.read(_SCRIPTS / "main.gd")
         assert "Utils.hud_band(size).x + TERMINAL_ANCHOR_LEFT" in G.func_body(main, "_terminal_left")
         assert "_hud_room().x - TERMINAL_ANCHOR_LEFT * 2.0" in G.func_body(main, "_relayout_terminal")
         assert "mouse_pos.x - _terminal_left()" in G.func_body(main, "_resize_terminal_from_mouse")
         top = G.read(_SCRIPTS / "top_bar.gd")
-        assert "Utils.hud_band(view)" in G.func_body(top, "_fit_bar")
+        # The strip runs above the dock: the whole band.
+        assert "Utils.hud_band_full(view)" in G.func_body(top, "_fit_bar")
         assert "Utils.hud_band(view)" in G.func_body(top, "_fit_rail")
         assert "Utils.hud_band(view)" in G.func_body(G.read(_SCRIPTS / "war_status_panel.gd"), "_apply_geometry")
         assert "Utils.hud_band(view)" in G.func_body(G.read(_SCRIPTS / "region_panel.gd"), "_fit_width")

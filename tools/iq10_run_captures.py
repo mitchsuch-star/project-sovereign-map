@@ -1136,6 +1136,40 @@ SHOTS += [
                      "the turn-1 briefing, the top bar's counters and nav, the war HUD "
                      "bottom-right; every text row's physical size in the census",
     },
+    # UXR-D4 (Pre-Deploy S12b, the Side Desk): a screen pinned beside the war
+    # room — opened by the bar's own road, then pinned by its own chip's road.
+    # Not checklist surfaces (`docs/UX_CHECKLIST_V1.json` stays frozen); the
+    # census reads them at five resolutions with the map tier's overlaps.
+    {
+        "id": "side_desk_ledger",
+        "surface": "The war room with the Strategic Ledger pinned at the Side Desk (UXR-D4)",
+        "payload": "side_desk_boot",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS + [
+            {"node": "@top_bar", "call": "toggle_screen", "args": ["ledger"], "then_wait": 20},
+            {"node": "@top_bar", "call": "toggle_pin", "args": ["ledger"], "then_wait": 30},
+        ],
+        "settle": 40,
+        "must_show": "the 1805 map live on the left two-thirds, the Strategic Ledger docked in the "
+                     "right third under the top bar (its Forces book, an Unpin chip by its cross, no "
+                     "grip, no dimmed overlay); the command window, the war HUD and the rail beside "
+                     "the dock, none under it",
+    },
+    {
+        "id": "side_desk_generals",
+        "surface": "The war room with the Generals pinned at the Side Desk (UXR-D4)",
+        "payload": "side_desk_boot",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS + [
+            {"node": "@top_bar", "call": "toggle_screen", "args": ["generals"], "then_wait": 20},
+            {"node": "@top_bar", "call": "toggle_pin", "args": ["generals"], "then_wait": 30},
+        ],
+        "settle": 40,
+        "must_show": "the 1805 map live on the left two-thirds, THE MARSHALATE docked in the right "
+                     "third (its cards, an Unpin chip by its cross); the HUD beside the dock",
+    },
     {
         "id": "war_room_tutorial",
         "surface": "The war room — the School of War's first morning, tutor card top-right",

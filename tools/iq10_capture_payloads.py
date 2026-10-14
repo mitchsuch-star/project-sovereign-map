@@ -1887,6 +1887,28 @@ def cap_war_room():
     fresh()
 
 
+def cap_side_desk():
+    """UXR-D4 (Pre-Deploy S12b, the Side Desk): the war room with a screen
+    pinned beside it. The 1805 boot's composite payload (as `war_room_boot`)
+    plus the pinned screens' own GET answers off the SAME world after Begin
+    (`/ledger`, `/marshal_overview`), so the harness's war-room stub answers
+    the screen the board pins with a real capture."""
+    world, c = fresh()
+    test = get(c, "/test")
+    topology = get(c, "/map_topology")
+    new_game = post(c, "/new_game", {})
+    ledger = get(c, "/ledger")
+    overview = get(c, "/marshal_overview")
+    record("side_desk_boot", {"test": test, "topology": topology, "new_game": new_game,
+                              "ledger": ledger, "marshal_overview": overview},
+           source="GET /test + GET /map_topology + POST /new_game {} + GET /ledger + GET /marshal_overview",
+           staging="1805 boot: Begin, then the Strategic Ledger's and the Generals' own answers",
+           facts={"turn": (new_game.get("game_state") or {}).get("turn"),
+                  "ledger_ok": bool(ledger.get("success")),
+                  "overview_ok": bool(overview.get("success"))})
+    fresh()
+
+
 def cap_popups_s12():
     """Pre-Deploy S12 (UXR3-56 … 58): the three popups the UXR-3 checklist
     names that the manifest had never shot, each off its row's OWN board.
@@ -1939,6 +1961,7 @@ def cap_popups_s12():
 CAPTURES = {
     "popups_s12": cap_popups_s12,
     "war_room": cap_war_room,
+    "side_desk": cap_side_desk,
     "front_page": cap_front_page,
     "screen_says": cap_screen_says,
     "frames_s9": cap_frames_s9,

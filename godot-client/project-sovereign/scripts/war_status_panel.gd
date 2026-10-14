@@ -179,6 +179,10 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 		w = stored.x
 	else:
 		w = Utils.fraction_px(room, WIDTH_FRACTION, DEFAULT_MIN_WIDTH, DEFAULT_MAX_WIDTH)
+		# UXR-D4 (Pre-Deploy S12b): never narrower than its longest war line
+		# needs whole — the Side Desk's dock narrows the band, and at the
+		# floor "Britain + Austria + Russia" was cut to "Rus".
+		w = maxf(w, _content_need_width())
 	w = clampf(w, MIN_WIDTH, maxf(room - 2.0 * EDGE_MARGIN, MIN_WIDTH))
 	var h: float
 	if drag != Vector2.ZERO:
@@ -196,6 +200,27 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 	panel_container.offset_bottom = -EDGE_MARGIN
 	panel_container.offset_left = -right_inset - w
 	panel_container.offset_top = -EDGE_MARGIN - h
+
+
+func _content_need_width() -> float:
+	"""The width the panel needs for every war line whole: its own combined
+	minimum (every fixed part of every row) plus the most any clipping name
+	label's text runs past the minimum it reports."""
+	var extra := 0.0
+	var stack: Array = [vbox]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Label and (n as Label).clip_text and (n as Label).visible:
+			var label := n as Label
+			var font: Font = label.get_theme_font("font")
+			if font == null:
+				continue
+			var tw: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+					label.get_theme_font_size("font_size")).x
+			extra = maxf(extra, tw - label.get_combined_minimum_size().x)
+	return panel_container.get_combined_minimum_size().x + extra + 2.0
 
 
 func _add_coalition_header(coalition_name: String):

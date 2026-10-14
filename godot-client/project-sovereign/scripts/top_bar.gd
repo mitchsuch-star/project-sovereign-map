@@ -11,6 +11,10 @@ signal screen_changed(screen_name: String)
 # UXR-D1 (Pre-Deploy S9b): the strip's drawn height moved (Text size grew or
 # shrank its line); main.gd refits the HUD that sits under it.
 signal bar_height_changed
+# UXR-D4 (Pre-Deploy S12b, the Side Desk): the pinned screen changed ("" when
+# none), and the dock's width moved — main.gd re-fits the HUD beside it.
+signal pin_changed(screen_name: String)
+signal dock_changed
 
 # UI References — paths must match scene tree: BarContainer > BarBG > BarLayout > ...
 @onready var event_log_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/EventLogBtn
@@ -40,6 +44,16 @@ signal bar_height_changed
 # State tracking
 var active_screen: String = ""  # "" = none, "event_log", "ledger", "generals", "diplomatic_ledger", "dispatch"
 var screens: Dictionary = {}    # maps screen name -> node reference
+# UXR-D4 (Pre-Deploy S12b): the Side Desk. ONE screen may be pinned: it docks
+# non-modal in the right third of the HUD band beside a live map. Pinning
+# moves the open screen from `active_screen` to `pinned_screen`, so
+# `is_screen_open()` is false while only a pinned screen stands (the map, the
+# command line and the rail stay live). Opening any other screen unpins and
+# closes it first: the one-screen rule holds. The pin is a session state,
+# never saved.
+var pinned_screen: String = ""
+const PIN_TOOLTIP := "Keep this screen open beside the map — Esc or Unpin closes it"
+var _pin_chips: Dictionary = {}  # screen name -> its header's Pin chip
 var api_client = null
 
 # Threat pulse state (Session 8B)
@@ -264,10 +278,15 @@ func register_screen(screen_name: String, node: Node):
 	# Listen for screen's own close signal (X button, overlay click)
 	if node.has_signal("closed"):
 		node.closed.connect(_on_screen_closed.bind(screen_name))
+	_attach_pin_chip(screen_name, node)
 
 
 func toggle_screen(screen_name: String):
 	"""Toggle a screen: close if open, open if closed (closing current first)."""
+	if pinned_screen == screen_name:
+		# Its key or its button closes a pinned screen, as it closes an open one.
+		unpin()
+		return
 	if active_screen == screen_name:
 		# Toggle off — close the active screen
 		_close_screen(screen_name)
@@ -295,7 +314,11 @@ func open_diplomatic_ledger_review(review_target: String, route_id: String = "",
 	var node = screens[screen_name]
 	if node == null:
 		return
-	active_screen = screen_name
+	# UXR-D4: a pinned Diplomatic Ledger turns to the review where it stands.
+	var stays_pinned: bool = pinned_screen == screen_name
+	_make_room_for(screen_name)
+	if not stays_pinned:
+		active_screen = screen_name
 	if review_target == "ledger_commitments" and node.has_method("open_to_commitments"):
 		node.open_to_commitments(api_client)
 	elif review_target == "ledger_war_bargains" and node.has_method("open_to_war_bargains"):
@@ -312,26 +335,164 @@ func open_diplomatic_ledger_review(review_target: String, route_id: String = "",
 		node.open(api_client)
 	else:
 		node.show()
+	if stays_pinned:
+		# Its open road re-centred the panel; it stays at the desk.
+		_set_docked(node, true)
 	_update_button_highlights()
 	screen_changed.emit(active_screen)
 
 
 func close_all_screens():
-	"""Close whatever screen is open. Called on turn transitions."""
+	"""Close whatever screen is open. Called on turn transitions, before a
+	popup, a command and the mailbox — a pinned screen stays at the desk
+	(UXR-D4); `close_everything` unpins it too."""
 	if active_screen != "":
 		_close_screen(active_screen)
 
 
+func close_everything():
+	"""UXR-D4: close the open screen AND unpin the pinned one — the pause
+	menu, a load, a new campaign and the Fall, which leave the war room."""
+	close_all_screens()
+	unpin()
+
+
 func refit_active_screen() -> void:
 	"""UXR-2: the open screen re-fits the logical viewport (and keeps its
-	grip on its corner) — called by `main._on_root_resized`."""
+	grip on its corner) — called by `main._on_root_resized`. UXR-D4: a pinned
+	screen re-docks (its width follows the band)."""
 	if active_screen != "" and screens.get(active_screen) != null:
 		Utils.refit_surface(screens[active_screen])
+	if pinned_screen != "" and screens.get(pinned_screen) != null:
+		_dock(screens[pinned_screen])
 
 
 func is_screen_open() -> bool:
-	"""True when any top bar screen is visible."""
+	"""True when any top bar screen is visible — the MODAL kind. A pinned
+	screen alone is not one (UXR-D4): the map is live beside it."""
 	return active_screen != ""
+
+
+func is_pinned() -> bool:
+	"""UXR-D4: a screen stands pinned at the Side Desk."""
+	return pinned_screen != ""
+
+
+func get_pinned_screen() -> String:
+	return pinned_screen
+
+
+func toggle_pin(screen_name: String) -> void:
+	"""UXR-D4: the header's Pin chip. Pin the open screen to the desk; on a
+	pinned screen the chip reads Unpin, which closes it."""
+	if pinned_screen == screen_name:
+		unpin()
+	elif active_screen == screen_name:
+		_pin(screen_name)
+
+
+func unpin() -> void:
+	"""UXR-D4: unpin the pinned screen and close it (its Unpin chip, Esc, a
+	key or a button that toggles it, another screen opening, the pause menu,
+	a load, a new campaign, the Fall)."""
+	if pinned_screen == "":
+		return
+	var screen_name := pinned_screen
+	pinned_screen = ""
+	var node = screens.get(screen_name)
+	if node != null:
+		_set_docked(node, false)
+		_close_node(node)
+	_update_button_highlights()
+	pin_changed.emit("")
+
+
+func _pin(screen_name: String) -> void:
+	var node = screens.get(screen_name)
+	if node == null:
+		return
+	if pinned_screen != "" and pinned_screen != screen_name:
+		unpin()
+	if active_screen == screen_name:
+		active_screen = ""
+	pinned_screen = screen_name
+	_set_docked(node, true)
+	_update_button_highlights()
+	# active_screen is "" now: main.gd gives the map back its mouse.
+	screen_changed.emit(active_screen)
+	pin_changed.emit(pinned_screen)
+
+
+func _make_room_for(screen_name: String) -> void:
+	"""UXR-D4: the one-screen rule — any OTHER screen opening unpins and
+	closes the pinned one first."""
+	if pinned_screen != "" and pinned_screen != screen_name:
+		unpin()
+
+
+func _attach_pin_chip(screen_name: String, node: Node) -> void:
+	"""UXR-D4: a text chip "Pin" beside the header's close cross (Phosphor
+	ships no push-pin; nothing is downloaded), styled as the family's chip."""
+	var close_btn := node.get_node_or_null("PanelContainer/VBoxContainer/HeaderRow/CloseButton") as Control
+	if close_btn == null:
+		return
+	var chip := Button.new()
+	chip.name = "PinChip"
+	chip.text = "Pin"
+	chip.theme_type_variation = &"CaptionButton"
+	chip.focus_mode = Control.FOCUS_NONE
+	chip.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	chip.tooltip_text = PIN_TOOLTIP
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.pressed.connect(toggle_pin.bind(screen_name))
+	var row := close_btn.get_parent()
+	row.add_child(chip)
+	row.move_child(chip, close_btn.get_index())
+	_pin_chips[screen_name] = chip
+
+
+func _set_docked(node: Node, on: bool) -> void:
+	"""Dock a screen at the Side Desk or return it to its centred self: its
+	overlay hides and lets the mouse through, its grip hides, its chip reads
+	Unpin; undocked, each comes back as it was."""
+	node.set_meta("side_desk_docked", on)
+	var overlay := node.get_node_or_null("BackgroundOverlay") as Control
+	if overlay != null:
+		if not overlay.has_meta("side_desk_filter"):
+			overlay.set_meta("side_desk_filter", overlay.mouse_filter)
+		overlay.visible = not on
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE if on \
+				else int(overlay.get_meta("side_desk_filter"))
+	for c in node.get_children():
+		if c is ResizeGrip:
+			(c as ResizeGrip).set_suppressed(on)
+	for screen_name in screens:
+		if screens[screen_name] == node and _pin_chips.has(screen_name):
+			(_pin_chips[screen_name] as Button).text = "Unpin" if on else "Pin"
+	if on:
+		_dock(node)
+	else:
+		_publish_dock(0.0)
+		var panel := node.get_node_or_null("PanelContainer") as Control
+		if panel != null and node.visible:
+			Utils.clamp_centered_panel(panel)
+
+
+func _dock(node: Node) -> void:
+	var panel := node.get_node_or_null("PanelContainer") as Control
+	if panel != null:
+		_publish_dock(Utils.dock_right(panel))
+
+
+func _publish_dock(width: float) -> void:
+	if Utils.set_dock_width(width):
+		dock_changed.emit()
+
+
+func _exit_tree() -> void:
+	# The dock's width is static: a war room torn down with a screen pinned
+	# (a scene change) must not leave the next one's HUD beside no dock.
+	Utils.set_dock_width(0.0)
 
 
 func get_active_screen() -> String:
@@ -359,6 +520,7 @@ func _open_screen(screen_name: String):
 	if node == null:
 		return
 
+	_make_room_for(screen_name)
 	active_screen = screen_name
 
 	# Open the screen — each screen fetches its own data
@@ -387,6 +549,13 @@ func _close_screen(screen_name: String):
 	# checks active_screen == name, which will be false since we cleared it)
 	active_screen = ""
 
+	_close_node(node)
+
+	_update_button_highlights()
+	screen_changed.emit(active_screen)
+
+
+func _close_node(node: Node) -> void:
 	# Close the screen
 	if node.has_method("close_log"):
 		node.close_log()
@@ -394,9 +563,6 @@ func _close_screen(screen_name: String):
 		node.close_view()
 	else:
 		node.hide()
-
-	_update_button_highlights()
-	screen_changed.emit(active_screen)
 
 
 func _on_button_pressed(screen_name: String):
@@ -409,6 +575,15 @@ func _on_button_pressed(screen_name: String):
 
 func _on_screen_closed(screen_name: String):
 	"""Handle a screen closing itself (X button, overlay click)."""
+	if pinned_screen == screen_name:
+		# UXR-D4: a pinned screen closed by its own cross leaves the desk.
+		pinned_screen = ""
+		var node = screens.get(screen_name)
+		if node != null:
+			_set_docked(node, false)
+		_update_button_highlights()
+		pin_changed.emit("")
+		return
 	if active_screen == screen_name:
 		active_screen = ""
 		_update_button_highlights()
@@ -419,7 +594,7 @@ func _update_button_highlights():
 	"""Set the active button to highlighted style, all others to normal."""
 	for sname in button_map:
 		var btn = button_map[sname]
-		if sname == active_screen:
+		if sname == active_screen or sname == pinned_screen:
 			btn.add_theme_stylebox_override("normal", _active_style)
 			btn.add_theme_color_override("font_color", Utils.UI_GOLD)
 		else:
@@ -662,13 +837,14 @@ func open_ledger_to_tab(tab_index: int):
 	var screen_name := "ledger"
 	if not screens.has(screen_name) or screens[screen_name] == null:
 		return
-	if active_screen == screen_name:
+	if active_screen == screen_name or pinned_screen == screen_name:
 		var open_node = screens[screen_name]
 		if open_node.has_method("_switch_tab"):
 			open_node._switch_tab(tab_index)
 		return
 	if active_screen != "":
 		_close_screen(active_screen)
+	_make_room_for(screen_name)
 	var node = screens[screen_name]
 	active_screen = screen_name
 	if node.has_method("open_to_tab"):
@@ -734,7 +910,8 @@ func _fit_bar():
 	the Cabinet line hides and the Admiralty chip keeps the count alone."""
 	var view := get_viewport().get_visible_rect().size
 	# UXR-D3: the clusters live in the HUD band (the pads are 0 at Full).
-	var band := Utils.hud_band(view)
+	# UXR-D4: the whole band — the strip runs above the Side Desk's dock.
+	var band := Utils.hud_band_full(view)
 	if _band_pad_left != null:
 		_band_pad_left.custom_minimum_size.x = band.x
 		_band_pad_right.custom_minimum_size.x = view.x - band.y

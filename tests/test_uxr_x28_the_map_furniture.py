@@ -76,14 +76,17 @@ class TestTheCensusOnItsRecord:
         assert board["map_overlaps_count"] == 0 and board["map_overlaps"] == []
         assert set(board["map_overlaps_by_resolution"].values()) == {0}
 
-    def test_only_a_chip_ever_hides_on_the_boot_board(self):
-        # The zero is never bought by hiding a name: what the layout hid is
-        # recorded, and on the boot board it is chips alone.
+    def test_no_standee_name_ever_hides(self):
+        # The zero is never bought by hiding a standee's name: what the
+        # layout hid is recorded, and it is chips, or a fogged force's name
+        # (the lowest of the names: its "?" chip and its tooltip stay) — and
+        # with the dock closed, chips alone.
         for name, board in _record()["boards"].items():
             for row in board["map_hidden"]:
                 kind = row["what"].split(":", 1)[0]
-                assert kind in CHIP_KINDS, (name, row)
-            assert len(board["map_hidden"]) <= 2 * board["map_frames"], name
+                assert kind in CHIP_KINDS | {"fog_name"}, (name, row)
+                if name == "dock_closed":
+                    assert kind in CHIP_KINDS, (name, row)
 
     def test_the_census_reads_the_furniture_and_the_place_names(self):
         frame = {

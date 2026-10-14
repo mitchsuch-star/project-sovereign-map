@@ -56,6 +56,10 @@ var _moved := false
 var _press_at := Vector2.ZERO
 var _grab_offset := Vector2.ZERO
 var _fixed_corner := Vector2.ZERO
+# UXR-D4 (Pre-Deploy S12b): a pinned screen's grip hides while its panel is
+# docked — the Side Desk sets the docked width; the grip sets the centred
+# size, which the dock then reads as the player's width.
+var suppressed := false
 
 
 static func make(grip_corner: int, tooltip: String) -> Panel:
@@ -163,10 +167,17 @@ func _queue_reposition() -> void:
 	reposition.call_deferred()
 
 
+func set_suppressed(on: bool) -> void:
+	suppressed = on
+	if on and _dragging:
+		_finish_drag()
+	_queue_reposition()
+
+
 func reposition() -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
-	visible = _target.is_visible_in_tree()
+	visible = _target.is_visible_in_tree() and not suppressed
 	if not visible:
 		return
 	position = _corner_point(_target.get_global_rect(), corner) - size * 0.5
@@ -261,7 +272,9 @@ func reset_to_authored() -> void:
 	if _mode == Mode.CENTERED and _target != null and is_instance_valid(_target):
 		if _target.has_meta(USER_SIZE_META):
 			_target.remove_meta(USER_SIZE_META)
-		if _target.is_visible_in_tree():
+		# A docked panel is the Side Desk's to place (it re-docks at a
+		# third of the band once the stored width is gone).
+		if _target.is_visible_in_tree() and not suppressed:
 			Utils.clamp_centered_panel(_target)
 	reset_requested.emit()
 	_queue_reposition()

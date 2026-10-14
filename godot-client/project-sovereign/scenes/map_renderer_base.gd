@@ -73,6 +73,11 @@ var _furniture_rescale_pending := false
 # sail counts are laid out with their ships (keyed by the label's id).
 var _furniture_items: Array = []
 var _sail_items: Dictionary = {}
+# UXR-D4 (Pre-Deploy S12b, the Side Desk): the logical px a pinned screen's
+# dock covers on the map's right. The view's fit, centre, clamp and zoom
+# anchor use the room left of it (the camera's offset centres the view
+# there); 0 — no dock — leaves every one of them as it was.
+var _right_inset := 0.0
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
@@ -1198,7 +1203,7 @@ func is_fit_view() -> bool:
 func zoom_step(zoom_in: bool) -> void:
 	"""FA-N56: the public door for +/- and Alt+/-. Zooms about the same
 	screen centre the unfocused arm uses, so both routes agree."""
-	var screen_center := global_position + size / 2.0
+	var screen_center := global_position + _view_centre()
 	_zoom_at_point(screen_center,
 		1.0 + ZOOM_SPEED if zoom_in else 1.0 - ZOOM_SPEED)
 
@@ -2127,9 +2132,44 @@ func refresh_viewport_scale() -> void:
 
 
 func _get_camera_viewport_size() -> Vector2:
+	# UXR-D4: the room the view has — the dock's strip on the right is not
+	# the map's (`_right_inset`, 0 with no dock).
+	var s: Vector2
 	if map_viewport != null and map_viewport.size.x > 0 and map_viewport.size.y > 0:
-		return Vector2(map_viewport.size)
-	return Vector2(max(size.x, 1.0), max(size.y, 1.0))
+		s = Vector2(map_viewport.size)
+	else:
+		s = Vector2(max(size.x, 1.0), max(size.y, 1.0))
+	s.x = maxf(s.x - _inset_view_px(), 1.0)
+	return s
+
+
+func _inset_view_px() -> float:
+	"""The dock's strip in the camera's (SubViewport) px."""
+	return _right_inset * _viewport_pixel_scale()
+
+
+func _view_centre() -> Vector2:
+	"""The centre of the map's room in this Control's logical px — the
+	viewport's centre, or left of it by half the dock's strip."""
+	return Vector2((size.x - _right_inset) / 2.0, size.y / 2.0)
+
+
+func set_right_inset(px: float) -> void:
+	"""UXR-D4: the Side Desk's dock took (or gave back) the map's right edge.
+	A whole-map view stays the whole-map view, re-fitted into the room left
+	of the dock; any other view keeps its zoom and is re-clamped."""
+	var inset := maxf(px, 0.0)
+	if is_equal_approx(inset, _right_inset):
+		return
+	var was_fit := is_fit_view()
+	_right_inset = inset
+	_update_zoom_floor()
+	if was_fit:
+		fit_europe()
+	else:
+		_sync_camera_zoom()
+		if map_camera != null:
+			_set_camera_position(map_camera.position)
 
 
 func _get_fit_zoom_level() -> float:
@@ -2164,6 +2204,9 @@ func _sync_camera_zoom():
 	if map_camera == null:
 		return
 	map_camera.zoom = Vector2(_zoom_level, _zoom_level)
+	# UXR-D4: the camera's position is the centre of the map's ROOM; the
+	# offset (world units) shifts the view by half the dock's strip.
+	map_camera.offset = Vector2(_inset_view_px() / 2.0 / maxf(_zoom_level, 0.001), 0.0)
 
 
 func _get_camera_half_extents() -> Vector2:
@@ -2600,7 +2643,8 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 
 	var map_point_before = _screen_to_map_position(point)
 	var local_point = point - global_position
-	var viewport_center = size / 2.0
+	# UXR-D4: the centre of the map's room (the viewport's with no dock).
+	var viewport_center = _view_centre()
 	# The logical cursor offset is scaled into the camera's physical viewport-px
 	# space before dividing by the (world -> physical px) zoom (UI-2 Part 2).
 	var target_position = map_point_before - (local_point - viewport_center) * _viewport_pixel_scale() / new_zoom
