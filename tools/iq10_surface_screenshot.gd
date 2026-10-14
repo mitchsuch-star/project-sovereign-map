@@ -797,6 +797,10 @@ func _capture(suffix: String) -> void:
 	frame["grips"] = _grips_and_ornaments()
 	# S12 part 2 (UXR3-F3): a line cut at a scroll's edge.
 	frame["cut_lines"] = _cut_lines()
+	# S12b (UXR-X28): the place names the map drew, and what its furniture
+	# layout moved or hid (the map-tier text rows carry their own rects).
+	frame["map_labels"] = _map_labels()
+	frame["map_furniture"] = _map_furniture_report()
 	var fit := _under_modal(view)
 	for key in fit:
 		frame[key] = fit[key]
@@ -1011,25 +1015,80 @@ func _subviewport_of(n: Node) -> SubViewport:
 var _sv_display_cache: Dictionary = {}
 
 
+func _subviewport_display(sv: SubViewport) -> Control:
+	"""The Control that shows a SubViewport: its container, or the
+	TextureRect drawing its texture (the map's `MapDisplay`)."""
+	if sv.get_parent() is SubViewportContainer:
+		return sv.get_parent()
+	var shown: Control = _sv_display_cache.get(sv.get_instance_id(), null)
+	if shown == null or not is_instance_valid(shown):
+		shown = null
+		var tex := sv.get_texture()
+		for c in _all_nodes(root):
+			if c is TextureRect and (c as TextureRect).texture == tex:
+				shown = c
+				break
+		_sv_display_cache[sv.get_instance_id()] = shown
+	return shown
+
+
 func _subviewport_display_scale(sv: SubViewport) -> float:
 	"""Physical screen px per SubViewport px: the displaying control's
 	logical width x the window's content scale / the SubViewport's width."""
 	var csf := maxf(root.content_scale_factor, 0.01)
-	var shown: Control = null
-	if sv.get_parent() is SubViewportContainer:
-		shown = sv.get_parent()
-	else:
-		shown = _sv_display_cache.get(sv.get_instance_id(), null)
-		if shown == null or not is_instance_valid(shown):
-			var tex := sv.get_texture()
-			for c in _all_nodes(root):
-				if c is TextureRect and (c as TextureRect).texture == tex:
-					shown = c
-					break
-			_sv_display_cache[sv.get_instance_id()] = shown
+	var shown := _subviewport_display(sv)
 	if shown == null or sv.size.x <= 0:
 		return csf
 	return shown.get_global_rect().size.x * csf / float(sv.size.x)
+
+
+func _map_screen_rect(n: Control) -> Array:
+	"""S12b (UXR-X28): a SubViewport node's rect on the SCREEN, in logical px
+	(the space every other row's `rect` is in): the label's rect in the
+	viewport's canvas, through the viewport's canvas transform, then the
+	displaying control's offset and scale. Empty when nothing shows it."""
+	var sv := _subviewport_of(n)
+	if sv == null or sv.size.x <= 0 or sv.size.y <= 0:
+		return []
+	var shown := _subviewport_display(sv)
+	if shown == null:
+		return []
+	var xf: Transform2D = n.get_global_transform_with_canvas()
+	var a: Vector2 = xf * Vector2.ZERO
+	var b: Vector2 = xf * n.size
+	var r := Rect2(a, b - a).abs()
+	var sr := shown.get_global_rect()
+	var k := Vector2(sr.size.x / float(sv.size.x), sr.size.y / float(sv.size.y))
+	return [sr.position.x + r.position.x * k.x, sr.position.y + r.position.y * k.y,
+			r.size.x * k.x, r.size.y * k.y]
+
+
+func _map_labels() -> Array:
+	"""S12b (UXR-X28): the place names the map's label layer DREW this frame
+	(they are draw calls, not nodes, so the text census never sees them),
+	each with its tier and its screen rect in logical px."""
+	var out: Array = []
+	for n in _all_nodes(root):
+		if not (n is Control) or not n.has_method("drawn_label_rects") or not _shown(n):
+			continue
+		var xf: Transform2D = (n as Control).get_global_transform()
+		for row in n.drawn_label_rects():
+			var r: Rect2 = row.get("rect", Rect2())
+			var a: Vector2 = xf * r.position
+			var b: Vector2 = xf * r.end
+			var g := Rect2(a, b - a).abs()
+			out.append({"text": str(row.get("text", "")), "tier": str(row.get("tier", "")),
+					"rect": [g.position.x, g.position.y, g.size.x, g.size.y]})
+	return out
+
+
+func _map_furniture_report() -> Dictionary:
+	"""S12b (UXR-X28): what the map's furniture layout moved and hid this
+	frame (`map_label_layer.gd`'s `furniture_report`)."""
+	for n in _all_nodes(root):
+		if n is Control and n.has_method("furniture_report") and _shown(n):
+			return n.furniture_report()
+	return {}
 
 
 func _inside_subviewport(n: Node) -> bool:
@@ -1142,6 +1201,13 @@ func _add_fit_fields(entry: Dictionary, n: Control) -> void:
 	# the rect of the ScrollContainer that shows it — a scrolled list is judged
 	# by its scroll, as `_buttons_offscreen` judges a button.
 	if _inside_subviewport(n):
+		# S12b (UXR-X28): a map-tier row's SCREEN rect, so the map census can
+		# read overlaps. No `rect_raw` and no `layer` (R7 and the grip census
+		# read neither for the map tier); `map_kind` is the renderer's meta.
+		var mr := _map_screen_rect(n)
+		if not mr.is_empty():
+			entry["rect"] = mr
+		entry["map_kind"] = str(n.get_meta("furniture_kind", ""))
 		return
 	entry["layer"] = _layer_of(n)
 	var r := n.get_global_rect()

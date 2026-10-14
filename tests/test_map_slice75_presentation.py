@@ -394,15 +394,20 @@ def test_label_layer_script_draws_two_lod_tiers():
     assert "const PROVINCE_LABEL_MIN_ZOOM" in source
     assert "func set_labels(" in source
     assert "func set_zoom_level(" in source
-    draw_body = _func_body(source, "func _draw():")
     # UI-2 Part 2: the tier switch keys off `logical_zoom` (= _zoom_level /
     # viewport-pixel-scale) so the LOD stays consistent on-screen once the map
-    # SubViewport renders at physical resolution.
-    assert "logical_zoom >= PROVINCE_LABEL_MIN_ZOOM" in draw_body
-    assert "_province_labels" in draw_body and "_nation_labels" in draw_body
+    # SubViewport renders at physical resolution. S12b (UXR-X28): the switch
+    # is `_tier()`, which the draw and the furniture layout both read, and
+    # the draw hands it the logical zoom.
+    tier_switch = _func_body(source, "func _tier(logical_zoom: float) -> Dictionary:")
+    assert "logical_zoom >= PROVINCE_LABEL_MIN_ZOOM" in tier_switch
+    assert "_province_labels" in tier_switch and "_nation_labels" in tier_switch
+    draw_body = _func_body(source, "func _draw():")
+    assert '_tier(proj["zoom"])' in draw_body
+    assert '"zoom": _zoom_level / vp_scale' in _func_body(source, "func _projection() -> Dictionary:")
     tier_body = _func_body(
         source,
-        "func _draw_label_tier(font: Font, labels: Array, xform: Transform2D, font_screen_px: float) -> void:",
+        "func _draw_label_tier(spec: Dictionary, xform: Transform2D, avoid: Array, ui_rects: Array,",
     )
     assert "draw_string_outline(" in tier_body, "labels need an outline to read on the art"
     assert "draw_string(" in tier_body
@@ -415,11 +420,11 @@ def test_labels_are_screen_space_and_grow_with_zoom():
     canvas transform, with font sizes that GROW with zoom inside clamps."""
     source = _read(LABEL_GD)
     assert "_renderer.map_viewport.canvas_transform" in source
-    draw_body = _func_body(source, "func _draw():")
     # UI-2 Part 2: font size grows with `logical_zoom` (scale-corrected zoom) so
     # labels stay the right on-screen size under content_scale_factor > 1.0.
-    assert "clampf(PROVINCE_FONT_BASE * logical_zoom, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)" in draw_body
-    assert "clampf(NATION_FONT_BASE * logical_zoom, NATION_FONT_MIN, NATION_FONT_MAX)" in draw_body
+    tier_switch = _func_body(source, "func _tier(logical_zoom: float) -> Dictionary:")
+    assert "clampf(PROVINCE_FONT_BASE * logical_zoom, PROVINCE_FONT_MIN, PROVINCE_FONT_MAX)" in tier_switch
+    assert "clampf(NATION_FONT_BASE * logical_zoom, NATION_FONT_MIN, NATION_FONT_MAX)" in tier_switch
     # Growth clamps must be a real range (min < max) so labels neither
     # vanish nor explode.
     for tier in ["NATION", "PROVINCE"]:
@@ -429,9 +434,9 @@ def test_labels_are_screen_space_and_grow_with_zoom():
         assert 0 < lo < hi and base > 0
     tier_body = _func_body(
         source,
-        "func _draw_label_tier(font: Font, labels: Array, xform: Transform2D, font_screen_px: float) -> void:",
+        "func _draw_label_tier(spec: Dictionary, xform: Transform2D, avoid: Array, ui_rects: Array,",
     )
-    assert "xform * Vector2(label.get(" in tier_body, "anchors project world -> screen each draw"
+    assert "xform * Vector2(labels[i].get(" in tier_body, "anchors project world -> screen each draw"
     assert "cull_rect" in tier_body, "offscreen labels must be culled"
     # Camera pans must re-project labels (zoom changes already redraw via
     # set_zoom_level).

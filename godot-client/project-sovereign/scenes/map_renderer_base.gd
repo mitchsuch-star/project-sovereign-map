@@ -66,6 +66,13 @@ const FURNITURE_SCALE_STEP := 0.125
 var _furniture_scale := 1.0
 var _furniture_themes := {}
 var _furniture_rescale_pending := false
+# UXR-X28 (Pre-Deploy S12b): the map's text furniture as layout items the
+# label layer arranges (map_label_layer.gd `set_furniture`): {kind, nodes,
+# base} — `base` is each node's authored position, so a layout pass always
+# starts from it. Names and chips are rebuilt with the dynamic nodes; the
+# sail counts are laid out with their ships (keyed by the label's id).
+var _furniture_items: Array = []
+var _sail_items: Dictionary = {}
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
@@ -357,9 +364,11 @@ var map_label_layer = null
 # labels must dodge. Cached here because the owner pushes them on every
 # layout pass, which can precede the label layer's creation.
 var _ui_avoid_global_rects: Array = []
-# WORLD-coord rects occupied by marshal icons, name stacks, and garrison
-# chips this rebuild — pushed to the label layer so province labels dodge
-# the map furniture instead of drawing through it.
+# WORLD-coord rects of the pieces themselves (the standees' and the legacy
+# icons' footprints) this rebuild — pushed to the label layer so province
+# labels never draw over a piece. The TEXT furniture (names, chips, sail
+# counts) is not here: since UXR-X28 it yields to the place names instead
+# (`_furniture_items`, laid out by the label layer).
 var _label_avoid_world_rects: Array = []
 # Slice 7.5 (DEF-12 cheap tier): the active fill mode key.
 var _map_fill_mode: String = "blended"
@@ -1507,12 +1516,18 @@ const SAIL_LABEL_WIDTH := 60.0
 
 func _layout_sail_label(sail: Label, anchor: Vector2) -> void:
 	"""The sail count sits just above its ship's hull (the hover box is the
-	hull's 0.62 of the frame), centred on the ship, at the furniture scale."""
+	hull's 0.62 of the frame), centred on the ship, at the furniture scale.
+	UXR-X28: the box is the count's own width, not a fixed 60, so the layout
+	pass moves it only for what it really covers."""
 	var frame := WAR_PIECE_FRAME_PX * FLEET_PIECE_SCALE
 	var w := _furn(SAIL_LABEL_WIDTH)
+	var font = ThemeDB.fallback_font
+	if font != null and sail.text != "":
+		w = minf(w, font.get_string_size(sail.text, HORIZONTAL_ALIGNMENT_CENTER, -1, _furn_px("sail")).x + _furn(6.0))
 	var h := _furn(14.0)
 	sail.size = Vector2(w, h)
 	sail.position = anchor + Vector2(-w / 2.0, -frame * 0.62 - 2.0 - h)
+	_sail_items[sail.get_instance_id()] = {"kind": "sail", "nodes": [sail], "base": [sail.position]}
 
 
 func _layout_sail_labels() -> void:
@@ -1521,6 +1536,7 @@ func _layout_sail_labels() -> void:
 		var piece = _fleet_pieces.get(nation, null)
 		if sail != null and is_instance_valid(sail) and piece != null and is_instance_valid(piece):
 			_layout_sail_label(sail, piece.position)
+	_push_furniture()
 
 
 func _furniture_theme(kind: String) -> Theme:
@@ -1596,6 +1612,7 @@ func _rebuild_dynamic_nodes():
 	marshal_hitboxes.clear()
 	fogged_force_hitboxes.clear()
 	_label_avoid_world_rects.clear()
+	_furniture_items.clear()
 	var positions = _get_active_region_positions()
 
 	for region_name in positions:
@@ -1617,7 +1634,37 @@ func _rebuild_dynamic_nodes():
 
 	if map_label_layer != null:
 		map_label_layer.set_avoid_rects(_label_avoid_world_rects)
+	_push_furniture()
 	_refresh_hover_state()
+
+
+func _add_furniture(kind: String, nodes: Array) -> void:
+	var base: Array = []
+	for n in nodes:
+		base.append((n as Control).position)
+	_furniture_items.append({"kind": kind, "nodes": nodes, "base": base})
+
+
+func _push_furniture() -> void:
+	"""UXR-X28: hand the label layer every text furniture item, the sail
+	counts included, so ONE pass lays them out against the place names."""
+	if map_label_layer == null:
+		return
+	var items: Array = _furniture_items.duplicate()
+	for key in _sail_items.keys():
+		var item: Dictionary = _sail_items[key]
+		var node = item["nodes"][0]
+		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+			_sail_items.erase(key)
+			continue
+		items.append(item)
+	map_label_layer.set_furniture(items)
+
+
+func is_zoom_settled() -> bool:
+	"""No zoom is easing and no furniture rescale waits on one — the label
+	layer lays the furniture out only then (once, not every frame)."""
+	return not (zoom_tween != null and zoom_tween.is_running()) and not _furniture_rescale_pending
 
 
 func set_ui_avoid_rects(global_rects: Array) -> void:
@@ -1728,12 +1775,13 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			name_label.position = _world_to_layer_position(label_anchor_world)
 			name_label.size = Vector2(name_width, name_h)
 			name_label.text = marshal_name
+			name_label.set_meta("furniture_kind", "name")
 			_style_furniture(name_label, "name")
 			name_label.add_theme_color_override("font_color", Color.WHITE)
 			name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
 			name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			force_layer.add_child(name_label)
-			_label_avoid_world_rects.append(Rect2(label_anchor_world, Vector2(name_width, name_h)))
+			_add_furniture("name", [name_label])
 
 		# The hover hitbox is appended for EVERY marshal — collapsed or not —
 		# so the tooltip still identifies each individual piece. Review-fix
@@ -1772,12 +1820,13 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			stack_label.position = _world_to_layer_position(stack_anchor)
 			stack_label.size = Vector2(stack_width, stack_h)
 			stack_label.text = stack_text
+			stack_label.set_meta("furniture_kind", "stack")
 			_style_furniture(stack_label, "name")
 			stack_label.add_theme_color_override("font_color", Color.WHITE)
 			stack_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
 			stack_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			force_layer.add_child(stack_label)
-			_label_avoid_world_rects.append(Rect2(stack_anchor, Vector2(stack_width, stack_h)))
+			_add_furniture("stack", [stack_label])
 			stack_row += 1
 
 
@@ -1886,7 +1935,9 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 
 	for i in range(fogged_forces.size()):
 		var force: Dictionary = fogged_forces[i]
-		var force_name = str(force.get("name", "?"))
+		# The man's name, never the roster key ("ArchdukeJohn") — LV-2's rule
+		# for the standees' names, which the fogged names had missed.
+		var force_name = Utils.display_marshal_name(str(force.get("name", "?")))
 		var force_nation = str(force.get("nation", "Unknown"))
 		var fog_level = str(force.get("fog_level", "partial"))
 		var slot = regular_marshal_offset + i
@@ -1914,6 +1965,7 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		icon_label.text = "?"
+		icon_label.set_meta("furniture_kind", "fog_chip")
 		_style_furniture(icon_label, "fog_chip")
 		icon_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.8))
 		force_layer.add_child(icon_label)
@@ -1926,6 +1978,7 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		name_label.position = layer_icon_pos + name_offset
 		name_label.size = Vector2(name_width, name_h)
 		name_label.text = force_name
+		name_label.set_meta("furniture_kind", "fog_name")
 		_style_furniture(name_label, "name")
 		name_label.add_theme_color_override(
 			"font_color",
@@ -1939,8 +1992,8 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 			"rect": Rect2(icon_pos, chip_size),
 			"force": force,
 		})
-		_label_avoid_world_rects.append(Rect2(icon_pos, chip_size))
-		_label_avoid_world_rects.append(Rect2(icon_pos + name_offset, Vector2(name_width, name_h)))
+		_add_furniture("fog_name", [name_label])
+		_add_furniture("fog_chip", [icon_panel, icon_label])
 
 
 func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String):
@@ -1982,7 +2035,7 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	panel.size = panel_size
 	panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, border_color, 1.5, 3))
 	garrison_layer.add_child(panel)
-	_label_avoid_world_rects.append(Rect2(panel_world_pos, panel_size))
+	_add_furniture("garrison", [panel])
 
 	var label = Label.new()
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1991,6 +2044,7 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.text = label_text
+	label.set_meta("furniture_kind", "garrison")
 	_style_furniture(label, "garrison")
 	label.add_theme_color_override("font_color", text_color)
 	panel.add_child(label)
@@ -3244,6 +3298,7 @@ func _update_fleet_pieces() -> void:
 			# and drew at ~2.3 world px — a smudge on every screen.
 			var sail := Label.new()
 			sail.name = "SailCount_" + nation
+			sail.set_meta("furniture_kind", "sail")
 			_style_furniture(sail, "sail")
 			sail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			sail.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -3272,6 +3327,7 @@ func _update_fleet_pieces() -> void:
 				Vector2(frame * 0.7, frame * 0.62)),
 			"fleet": entry,
 		})
+	_push_furniture()
 
 
 func _draw_fleet_tooltip():

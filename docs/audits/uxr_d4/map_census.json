@@ -1,0 +1,582 @@
+{
+ "tool": "tools/uxr_d4_map_census.py",
+ "row": "UXR-X28",
+ "boards": {
+  "before": {
+   "source": "index.json",
+   "client_commit": "87d18d95",
+   "physical_scale": "auto",
+   "hud_width": "full",
+   "note": "87d18d95 (S12's close) with only the instrument added: the harness's map rects, the label layer's drawn-name record and the renderer's furniture_kind metas; the layout code untouched",
+   "surfaces": [
+    "war_room_boot"
+   ],
+   "resolutions": [
+    "1920x1080",
+    "2560x1440",
+    "3440x1440",
+    "5120x1440",
+    "3840x2160"
+   ],
+   "map_frames": 5,
+   "map_overlaps_count": 71,
+   "map_overlaps_by_resolution": {
+    "1920x1080": 18,
+    "2560x1440": 12,
+    "3440x1440": 12,
+    "5120x1440": 19,
+    "3840x2160": 10
+   },
+   "map_overlaps_by_kind": {
+    "fog_chip / name": 9,
+    "fog_name / garrison": 2,
+    "fog_name / name": 2,
+    "garrison / name": 14,
+    "garrison / nation": 18,
+    "name / name": 22,
+    "name / nation": 2,
+    "nation / sail": 2
+   },
+   "map_overlaps": [
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:12k",
+     "b": "name:Napoleon",
+     "area_px2": 368.8
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:12k",
+     "b": "name:Soult",
+     "area_px2": 109.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:12k",
+     "b": "nation:Holland",
+     "area_px2": 34.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:?",
+     "b": "nation:Switzerland",
+     "area_px2": 157.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:?",
+     "b": "fog_name:Mack",
+     "area_px2": 1.8
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:?",
+     "b": "nation:Hesse",
+     "area_px2": 1050.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:?",
+     "b": "name:Massena",
+     "area_px2": 1041.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "garrison:?",
+     "b": "nation:Saxony",
+     "area_px2": 157.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Massena",
+     "b": "fog_chip:?",
+     "area_px2": 183.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Murat",
+     "b": "name:Lannes",
+     "area_px2": 146.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Murat",
+     "b": "fog_chip:?",
+     "area_px2": 85.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Napoleon",
+     "b": "name:Soult",
+     "area_px2": 175.8
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Napoleon",
+     "b": "name:Ney",
+     "area_px2": 50.1
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Davout",
+     "b": "name:Ney",
+     "area_px2": 107.4
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Davout",
+     "b": "nation:Hesse",
+     "area_px2": 1.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "fog_name:Mack",
+     "b": "name:Bernadotte",
+     "area_px2": 4.6
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "name:Deroy",
+     "b": "name:Bernadotte",
+     "area_px2": 220.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "a": "sail:18",
+     "b": "nation:Sweden",
+     "area_px2": 26.1
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "garrison:12k",
+     "b": "name:Napoleon",
+     "area_px2": 222.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "garrison:12k",
+     "b": "name:Soult",
+     "area_px2": 32.9
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "garrison:?",
+     "b": "nation:Switzerland",
+     "area_px2": 120.9
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "garrison:?",
+     "b": "nation:Hesse",
+     "area_px2": 1194.1
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "garrison:?",
+     "b": "name:Massena",
+     "area_px2": 1112.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "garrison:?",
+     "b": "nation:Saxony",
+     "area_px2": 120.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "name:Massena",
+     "b": "fog_chip:?",
+     "area_px2": 106.4
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "name:Murat",
+     "b": "name:Lannes",
+     "area_px2": 140.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "name:Murat",
+     "b": "fog_chip:?",
+     "area_px2": 18.1
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "name:Napoleon",
+     "b": "name:Soult",
+     "area_px2": 169.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "name:Davout",
+     "b": "name:Ney",
+     "area_px2": 99.9
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "2560x1440",
+     "a": "name:Deroy",
+     "b": "name:Bernadotte",
+     "area_px2": 216.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "garrison:12k",
+     "b": "name:Napoleon",
+     "area_px2": 222.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "garrison:12k",
+     "b": "name:Soult",
+     "area_px2": 32.9
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "garrison:?",
+     "b": "nation:Switzerland",
+     "area_px2": 119.1
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "garrison:?",
+     "b": "nation:Hesse",
+     "area_px2": 1192.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "garrison:?",
+     "b": "name:Massena",
+     "area_px2": 1112.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "garrison:?",
+     "b": "nation:Saxony",
+     "area_px2": 118.8
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "name:Massena",
+     "b": "fog_chip:?",
+     "area_px2": 106.4
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "name:Murat",
+     "b": "name:Lannes",
+     "area_px2": 140.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "name:Murat",
+     "b": "fog_chip:?",
+     "area_px2": 18.1
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "name:Napoleon",
+     "b": "name:Soult",
+     "area_px2": 169.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "name:Davout",
+     "b": "name:Ney",
+     "area_px2": 99.9
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3440x1440",
+     "a": "name:Deroy",
+     "b": "name:Bernadotte",
+     "area_px2": 216.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:12k",
+     "b": "name:Napoleon",
+     "area_px2": 400.6
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:12k",
+     "b": "name:Soult",
+     "area_px2": 148.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:12k",
+     "b": "nation:Holland",
+     "area_px2": 59.8
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:?",
+     "b": "nation:Switzerland",
+     "area_px2": 185.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:25k",
+     "b": "nation:France",
+     "area_px2": 43.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:?",
+     "b": "fog_name:Mack",
+     "area_px2": 45.8
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:?",
+     "b": "nation:Hesse",
+     "area_px2": 1038.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:?",
+     "b": "name:Massena",
+     "area_px2": 1001.6
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "garrison:?",
+     "b": "nation:Saxony",
+     "area_px2": 186.6
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Massena",
+     "b": "fog_chip:?",
+     "area_px2": 215.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Murat",
+     "b": "name:Lannes",
+     "area_px2": 111.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Murat",
+     "b": "fog_chip:?",
+     "area_px2": 117.6
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Napoleon",
+     "b": "name:Soult",
+     "area_px2": 133.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Napoleon",
+     "b": "name:Ney",
+     "area_px2": 72.9
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Napoleon",
+     "b": "nation:Holland",
+     "area_px2": 70.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Davout",
+     "b": "name:Ney",
+     "area_px2": 83.8
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "fog_name:Mack",
+     "b": "name:Bernadotte",
+     "area_px2": 10.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "name:Deroy",
+     "b": "name:Bernadotte",
+     "area_px2": 166.6
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "a": "sail:18",
+     "b": "nation:Sweden",
+     "area_px2": 70.2
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "garrison:12k",
+     "b": "name:Napoleon",
+     "area_px2": 23.3
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "garrison:?",
+     "b": "nation:Switzerland",
+     "area_px2": 43.3
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "garrison:?",
+     "b": "nation:Hesse",
+     "area_px2": 1296.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "garrison:?",
+     "b": "name:Massena",
+     "area_px2": 1123.5
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "garrison:?",
+     "b": "nation:Saxony",
+     "area_px2": 43.3
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "name:Massena",
+     "b": "fog_chip:?",
+     "area_px2": 23.7
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "name:Murat",
+     "b": "name:Lannes",
+     "area_px2": 112.3
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "name:Napoleon",
+     "b": "name:Soult",
+     "area_px2": 137.0
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "name:Davout",
+     "b": "name:Ney",
+     "area_px2": 75.9
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "3840x2160",
+     "a": "name:Deroy",
+     "b": "name:Bernadotte",
+     "area_px2": 180.0
+    }
+   ],
+   "map_hidden": []
+  },
+  "dock_closed": {
+   "source": "index.json",
+   "client_commit": "87d18d95",
+   "physical_scale": "auto",
+   "hud_width": "full",
+   "note": "the S12b Slice 0 working tree over 87d18d95 (the commit that lands this record carries the same client files); Slice 3 re-shoots it on its committed tree beside dock_open",
+   "surfaces": [
+    "war_room_boot"
+   ],
+   "resolutions": [
+    "1920x1080",
+    "2560x1440",
+    "3440x1440",
+    "5120x1440",
+    "3840x2160"
+   ],
+   "map_frames": 5,
+   "map_overlaps_count": 0,
+   "map_overlaps_by_resolution": {
+    "1920x1080": 0,
+    "2560x1440": 0,
+    "3440x1440": 0,
+    "5120x1440": 0,
+    "3840x2160": 0
+   },
+   "map_overlaps_by_kind": {},
+   "map_overlaps": [],
+   "map_hidden": [
+    {
+     "surface": "war_room_boot",
+     "res": "1920x1080",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "war_room_boot",
+     "res": "5120x1440",
+     "what": "fog_chip:?"
+    }
+   ]
+  }
+ }
+}

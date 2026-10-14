@@ -3,7 +3,7 @@
     .venv/Scripts/python.exe -X utf8 tools/uxr3_frame_census.py INDEX.json [--record OUT.json]
 
 Reads what the capture harness records on every frame
-(`tools/iq10_surface_screenshot.gd`) and states three things the readers'
+(`tools/iq10_surface_screenshot.gd`) and states what the readers'
 eyes and the instruments' marks do not measure directly:
 
     cut_lines      UXR3-F3: a line cut in half at a scroll's edge — the
@@ -19,6 +19,16 @@ eyes and the instruments' marks do not measure directly:
     verdict_gaps   UXR-X9: on every tableau frame, the room between the
                    verdict's box (`…/Verdict`) and the nameplate's first line
                    (`…/Nameplate/…`), in logical px — negative is an overlap
+    map_overlaps   UXR-X28 (Pre-Deploy S12b): every pair of map-tier rows
+                   whose screen rects overlap — the map's furniture (the
+                   marshals' names, the stacks, the fogged chips and their
+                   names, the garrison chips, the sail counts: text rows
+                   inside the map's SubViewport, each with the screen `rect`
+                   the harness records) and the place names the label layer
+                   drew (`frame["map_labels"]`)
+    map_hidden     what the map's furniture layout hid on that frame
+                   (`frame["map_furniture"]["hidden"]`), so a 0 above is
+                   never bought silently
 
 Each finding names the shot, the resolution, the paths and the overlap. The
 census judges nothing a row did not already state: it reads the rect records.
@@ -65,7 +75,8 @@ def census(index_path: pathlib.Path) -> dict:
     index = json.loads(index_path.read_text(encoding="utf-8"))
     out = {"tool": "tools/uxr3_frame_census.py", "source": str(index_path),
            "client_commit": index.get("client_commit", ""), "frames": 0, "frames_without_record": [],
-           "cut_lines": [], "grip_overlaps": [], "tick_overlaps": [], "verdict_gaps": []}
+           "cut_lines": [], "grip_overlaps": [], "tick_overlaps": [], "verdict_gaps": [],
+           "map_frames": 0, "map_overlaps": [], "map_hidden": []}
     for sid, res, fr in frames(index_path):
         out["frames"] += 1
         if "cut_lines" not in fr or "grips" not in fr:
@@ -81,6 +92,8 @@ def census(index_path: pathlib.Path) -> dict:
             v, top = verdict[0]["rect"], min(float(t["rect"][1]) for t in plate)
             out["verdict_gaps"].append({"surface": sid, "res": res,
                                         "gap_px": round(top - (float(v[1]) + float(v[3])), 1)})
+        if "map_labels" in fr:
+            _map_census(out, sid, res, fr)
         buttons = fr.get("buttons", [])
         for g in fr["grips"]:
             if g.get("kind") not in ("grip", "ornament", "tick"):
@@ -106,6 +119,34 @@ def census(index_path: pathlib.Path) -> dict:
     return out
 
 
+def map_rows(fr: dict) -> list[dict]:
+    """The map tier of one frame: the furniture's text rows (with their
+    screen rects) and the place names the label layer drew."""
+    rows = []
+    for t in fr.get("texts", []):
+        if t.get("tier") != "map" or not t.get("rect") or not str(t.get("text", "")).strip():
+            continue
+        rows.append({"kind": t.get("map_kind") or "furniture", "text": str(t.get("text", "")),
+                     "path": t.get("path", ""), "rect": t["rect"]})
+    for m in fr.get("map_labels", []):
+        rows.append({"kind": m.get("tier") or "place", "text": str(m.get("text", "")),
+                     "path": "MapLabelLayer", "rect": m["rect"]})
+    return rows
+
+
+def _map_census(out: dict, sid: str, res: str, fr: dict) -> None:
+    out["map_frames"] += 1
+    rows = map_rows(fr)
+    for i, a in enumerate(rows):
+        for b in rows[i + 1:]:
+            area = overlap(a["rect"], b["rect"])
+            if area >= MIN_AREA:
+                out["map_overlaps"].append({"surface": sid, "res": res, "a": f"{a['kind']}:{a['text']}",
+                                            "b": f"{b['kind']}:{b['text']}", "area_px2": round(area, 1)})
+    for h in (fr.get("map_furniture") or {}).get("hidden", []):
+        out["map_hidden"].append({"surface": sid, "res": res, "what": h})
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("index")
@@ -116,8 +157,9 @@ def main(argv=None) -> int:
           f"cut lines {len(out['cut_lines'])}; grip overlaps {len(out['grip_overlaps'])}; "
           f"tick overlaps {len(out['tick_overlaps'])}; verdict gaps "
           f"{min((g['gap_px'] for g in out['verdict_gaps']), default=None)} px at the least "
-          f"({len(out['verdict_gaps'])} tableaux)")
-    for key in ("cut_lines", "grip_overlaps", "tick_overlaps"):
+          f"({len(out['verdict_gaps'])} tableaux); map overlaps {len(out['map_overlaps'])} "
+          f"over {out['map_frames']} map frames ({len(out['map_hidden'])} furniture hidden)")
+    for key in ("cut_lines", "grip_overlaps", "tick_overlaps", "map_overlaps", "map_hidden"):
         for row in out[key][:12]:
             print(f"  {key}: {json.dumps(row, ensure_ascii=False)[:220]}")
     if args.record:

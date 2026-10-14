@@ -566,20 +566,25 @@ def test_map_labels_use_distinct_nonfallback_serifs():
     assert 'res://assets/fonts/MarcellusSC-Regular.ttf' in src, "nation face path"
     assert 'res://assets/fonts/Spectral-Regular.ttf' in src, "province face path"
     assert "_load_label_font(" in src, "faces load through the guarded helper"
-    # The province tier draws with province_font and the nation tier with
-    # nation_font — the distinct-hierarchy contract.
-    assert re.search(r"_draw_label_tier\(\s*province_font,", src), (
+    # The province tier draws with the province face and the nation tier with
+    # the nation face — the distinct-hierarchy contract. S12b (UXR-X28): the
+    # tier is `_tier()`, which the draw and the furniture layout both read.
+    tier_switch = src.split("func _tier(logical_zoom: float) -> Dictionary:", 1)[1].split("\nfunc ", 1)[0]
+    province_branch, nation_branch = tier_switch.split("return {", 2)[1:3]
+    assert '"font": _province_font if _province_font != null else ThemeDB.fallback_font' in province_branch, (
         "province tier must draw with the province face"
     )
-    assert re.search(r"_draw_label_tier\(\s*nation_font,", src), (
+    assert '"font": _nation_font if _nation_font != null else ThemeDB.fallback_font' in nation_branch, (
         "nation tier must draw with the nation face"
     )
     # The fallback face survives ONLY as the graceful-degradation path inside
-    # _load_label_font / the _draw() null-guard — never as the primary draw font.
-    # (i.e. no bare `var font: Font = ThemeDB.fallback_font` feeding both tiers.)
-    assert not re.search(
-        r"_draw_label_tier\(\s*font,", src
-    ), "neither tier may draw with the shared fallback `font` var (pre-Task-1 shape)"
+    # _load_label_font and each face's own null-guard — never as the primary
+    # draw font (no bare `var font: Font = ThemeDB.fallback_font` feeding both
+    # tiers, the pre-Task-1 shape).
+    assert not re.search(r"var font: Font = ThemeDB\.fallback_font", src), (
+        "neither tier may draw with a shared fallback `font` var (pre-Task-1 shape)"
+    )
+    assert re.search(r'var font: Font = spec\["font"\]', src), "the draw takes the tier's own face"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
