@@ -162,6 +162,20 @@ func refresh_if_open():
 		_api_client_ref.get_marshal_overview(_on_data_received)
 
 
+func refresh_pinned() -> void:
+	"""UXR-D4 (Pre-Deploy S12b): the Side Desk re-reads a pinned screen
+	after every command and every end turn — its current view (the cards or the commission), its scroll where the
+	reader left it."""
+	if not visible or _api_client_ref == null:
+		return
+	_api_client_ref.get_marshal_overview(_on_pinned_overview.bind(scroll_container.scroll_vertical))
+
+
+func _on_pinned_overview(response, held_scroll: int) -> void:
+	_on_data_received(response)
+	Utils.restore_scroll(scroll_container, held_scroll)
+
+
 func _on_meta_clicked(meta):
 	var meta_str = str(meta)
 	if meta_str.begins_with("reward:"):

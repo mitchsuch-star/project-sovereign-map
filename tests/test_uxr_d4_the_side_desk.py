@@ -151,6 +151,93 @@ class TestTheDock:
         assert "await _snap_output_to_a_whole_line()" in resnap
 
 
+SCREEN_FETCH = {
+    "strategic_ledger": "get_ledger",
+    "marshal_management": "get_marshal_overview",
+    "diplomatic_ledger": "get_diplomatic_ledger",
+    "dispatch_view": "get_dispatch",
+    "gazette_view": "get_gazette",
+    "campaign_log": "get_campaign_log",
+}
+
+# Slice 2: every close site in main.gd, by the one rule. A turn transition,
+# a command, a popup or the mailbox keeps the pin (`close_all_screens`, the
+# open screen only); the pause menu, a scene change, a load, a new campaign
+# and the Fall unpin as well (`close_everything`). A new site must be
+# classified here, or this census fails.
+CLOSE_SITES = {
+    "_unhandled_input": ["close_all_screens"],               # Esc: an open screen first
+    "_show_pending_ending": ["close_everything",              # the Fall
+                             "close_all_screens"],            # a marked ending: a card
+    "_on_campaign_over": ["close_everything"],                # the Fall
+    "_on_command_result": ["close_all_screens"],              # the enemy phase: a popup
+    "_display_turn_change": ["close_all_screens"],            # a turn transition
+    "_display_turn_advance": ["close_all_screens"],           # a turn transition
+    "_reset_frontend_state_for_world_swap": ["close_everything"],   # a load, a new campaign
+    "_on_top_bar_menu_clicked": ["close_everything"],         # the pause menu
+    "_open_diplomacy_wizard": ["close_all_screens"],          # a popup (the wizard)
+    "_on_ledger_open_diplomacy_for": ["close_all_screens"],   # a popup (the wizard)
+    "_on_ledger_assess_requested": ["close_all_screens"],     # a command
+    "_on_tutorial_open_cabinet": ["close_all_screens"],       # a popup (the wizard)
+}
+
+
+class TestItLivesThroughTheTurn:
+    def test_every_screen_re_reads_its_current_book_and_keeps_its_scroll(self):
+        for scene, fetch in SCREEN_FETCH.items():
+            src = G.read(SCRIPTS / f"{scene}.gd")
+            body = G.func_body(src, "refresh_pinned")
+            assert f"_api_client_ref.{fetch}(" in body, scene
+            assert "scroll_container.scroll_vertical" in body, (scene, "the scroll is held")
+            # No tab reset, no scroll to the top.
+            assert "current_tab =" not in body and "scroll_vertical = 0" not in body, scene
+            callbacks = re.findall(r"func (_on_pinned_\w+)\(", src)
+            assert len(callbacks) == 1, scene
+            assert "Utils.restore_scroll(scroll_container, held_scroll)" in G.func_body(src, callbacks[0]), scene
+        utils = G.read(SCRIPTS / "utils.gd")
+        keep = G.func_body(utils, "restore_scroll")
+        assert "await tree.process_frame" in keep and "scroll.scroll_vertical = value" in keep
+        # The Gazette keeps the issue the reader holds; the log its folds.
+        gazette = G.func_body(G.read(SCRIPTS / "gazette_view.gd"), "_on_pinned_gazette")
+        assert "if not on_latest and held_index >= 0" in gazette
+        log = G.func_body(G.read(SCRIPTS / "campaign_log.gd"), "_on_pinned_log")
+        assert "_toggle_turn(int(turn_num))" in log
+
+    def test_every_command_and_every_end_turn_re_read_the_desk(self):
+        top = _top()
+        assert "node.refresh_pinned()" in G.func_body(top, "refresh_pinned")
+        main = G.read(SCRIPTS / "main.gd")
+        result = G.func_body(main, "_on_command_result")
+        assert result.index("_queue_pinned_refresh()") < result.index("_forget_unreadable_command(response)"), (
+            "before any route can return early")
+        tail = G.func_body(main, "_return_control_to_player")
+        assert tail.index("_queue_pinned_refresh()") < tail.index("if _raise_pending_surfaces():")
+        queue = G.func_body(main, "_queue_pinned_refresh")
+        assert "if _pinned_refresh_queued" in queue and 'call_deferred("_refresh_pinned_now")' in queue
+        assert "top_bar.refresh_pinned()" in G.func_body(main, "_refresh_pinned_now")
+        # An objection's answer bypasses _on_command_result; it refreshes the
+        # open info screens itself, the pinned ledger among them (visible).
+        assert "_refresh_open_info_screens()" in G.func_body(main, "_on_objection_response")
+
+    def test_every_close_site_is_classified(self):
+        main = G.read(SCRIPTS / "main.gd")
+        found: dict[str, list[str]] = {}
+        current = ""
+        for line in main.splitlines():
+            m = re.match(r"(?:static )?func (\w+)\(", line)
+            if m:
+                current = m.group(1)
+            for call in ("close_all_screens", "close_everything"):
+                if re.search(r"\btop_bar\.%s\(\)" % call, line):
+                    found.setdefault(current, []).append(call)
+        assert found == CLOSE_SITES
+
+    def test_the_pin_is_a_session_state(self):
+        # Not saved, not restored on the next launch: nothing promises it.
+        for path in (SCRIPTS / "ui_settings.gd", REPO / "backend" / "save_manager.py"):
+            assert "pinned" not in G.read(path).lower(), path
+
+
 class TestTheKeys:
     def test_esc_unpins_when_nothing_else_is_open(self):
         main = G.read(SCRIPTS / "main.gd")

@@ -45,13 +45,31 @@ func _on_meta_clicked(meta) -> void:
 		order_typed.emit(m.substr(5))
 		close_view()
 
+var _api_client_ref = null
+
+
 func open(api_client):
 	"""Fetch dispatch from backend and display it."""
+	_api_client_ref = api_client
 	AudioManager.play("parchment_open")  # the dispatch parchment, unrolled
 	content_label.text = "[color=#" + Utils.COLOR_INFO + "]Loading dispatch...[/color]"
 	show()
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_dispatch(_on_dispatch_received)
+
+func refresh_pinned() -> void:
+	"""UXR-D4 (Pre-Deploy S12b): the Side Desk re-reads a pinned screen
+	after every command and every end turn — the morning's dispatch, its scroll where the
+	reader left it."""
+	if not visible or _api_client_ref == null:
+		return
+	_api_client_ref.get_dispatch(_on_pinned_dispatch.bind(scroll_container.scroll_vertical))
+
+
+func _on_pinned_dispatch(response, held_scroll: int) -> void:
+	_on_dispatch_received(response)
+	Utils.restore_scroll(scroll_container, held_scroll)
+
 
 func close_view():
 	"""Hide the overlay and emit closed signal."""

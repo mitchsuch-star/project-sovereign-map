@@ -75,7 +75,11 @@ func _ready():
 	hide()
 
 
+var _api_client_ref = null
+
+
 func open_log(api_client):
+	_api_client_ref = api_client
 	AudioManager.play("book_open")
 	empty_label.text = "Loading..."
 	empty_label.visible = true
@@ -83,6 +87,24 @@ func open_log(api_client):
 	show()
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_campaign_log(_on_campaign_log_received)
+
+
+func refresh_pinned() -> void:
+	"""UXR-D4 (Pre-Deploy S12b): the Side Desk re-reads a pinned screen
+	after every command and every end turn — every turn the reader folded or unfolded kept so (a new turn opens as ever), its scroll where the
+	reader left it."""
+	if not visible or _api_client_ref == null:
+		return
+	_api_client_ref.get_campaign_log(_on_pinned_log.bind(expanded_turns.duplicate(),
+			scroll_container.scroll_vertical))
+
+
+func _on_pinned_log(response, held_open: Dictionary, held_scroll: int) -> void:
+	_on_campaign_log_received(response)
+	for turn_num in held_open:
+		if expanded_turns.has(turn_num) and bool(expanded_turns[turn_num]) != bool(held_open[turn_num]):
+			_toggle_turn(int(turn_num))
+	Utils.restore_scroll(scroll_container, held_scroll)
 
 
 func close_log():

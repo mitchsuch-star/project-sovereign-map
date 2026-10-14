@@ -1512,6 +1512,19 @@ static func dock_rect(panel: Control) -> Rect2:
 	return Rect2(right - w, top, w, maxf(bottom - top, 0.0))
 
 
+static func restore_scroll(scroll: ScrollContainer, value: int) -> void:
+	"""UXR-D4: put a re-read screen's scroll back where the reader left it,
+	once its new content has laid out (a pinned screen re-reads after every
+	command and every end turn; it must not jump to the top)."""
+	if scroll == null or value <= 0 or not scroll.is_inside_tree():
+		return
+	var tree := scroll.get_tree()
+	await tree.process_frame
+	await tree.process_frame
+	if is_instance_valid(scroll) and scroll.is_inside_tree():
+		scroll.scroll_vertical = value
+
+
 static func dock_right(panel: Control) -> float:
 	"""Place a pinned screen's centre-anchored panel at `dock_rect` and
 	return its width. The anchors stay where they are (the centre), so

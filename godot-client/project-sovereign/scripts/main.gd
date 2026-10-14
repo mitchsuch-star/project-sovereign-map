@@ -3532,11 +3532,33 @@ func _return_control_to_player() -> void:
 	formations are triggered by conquest, i.e. by marshals under standing
 	orders, the case that populates `strategic_reports`.)
 	"""
+	# UXR-D4: the chain has settled (or waits on a surface it raised) — a
+	# pinned screen re-reads the new state.
+	_queue_pinned_refresh()
 	if _raise_pending_surfaces():
 		return
 	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
+
+
+var _pinned_refresh_queued := false
+
+
+func _queue_pinned_refresh() -> void:
+	"""UXR-D4: one re-read of the pinned screen per frame, however many
+	roads ask for it in that frame."""
+	if _pinned_refresh_queued or top_bar == null or not top_bar.has_method("is_pinned") \
+			or not top_bar.is_pinned():
+		return
+	_pinned_refresh_queued = true
+	call_deferred("_refresh_pinned_now")
+
+
+func _refresh_pinned_now() -> void:
+	_pinned_refresh_queued = false
+	if top_bar != null and top_bar.has_method("refresh_pinned"):
+		top_bar.refresh_pinned()
 
 
 # IGR-F: the letter-book follows the Proclamation's discipline exactly, and
@@ -3792,6 +3814,10 @@ func _on_command_result(response):
 	# backend already popped it off the PopupQueue, so anything that drops
 	# the response here loses the moment permanently (the formation latch
 	# never re-fires it).
+	# UXR-D4 (Pre-Deploy S12b): a screen pinned at the Side Desk re-reads
+	# once this response is handled (deferred, so every route — early
+	# returns included — reaches it; coalesced with the end-turn tail's).
+	_queue_pinned_refresh()
 	if typeof(response) == TYPE_DICTIONARY:
 		_forget_unreadable_command(response)  # CX-7
 		# PC15-10 B4b (F9): every deferred surface this response carries is

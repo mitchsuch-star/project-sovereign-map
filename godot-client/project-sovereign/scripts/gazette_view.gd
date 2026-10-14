@@ -42,13 +42,35 @@ func _ready():
 	hide()
 
 
+var _api_client_ref = null
+
+
 func open(api_client):
 	"""Fetch the archive and open on the latest issue."""
+	_api_client_ref = api_client
 	AudioManager.play("parchment_open")
 	content_label.text = "[color=#" + Utils.COLOR_INFO + "]The presses turn...[/color]"
 	show()
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_gazette(_on_gazette_received)
+
+
+func refresh_pinned() -> void:
+	"""UXR-D4 (Pre-Deploy S12b): the Side Desk re-reads a pinned screen
+	after every command and every end turn — the issue the reader holds (the newest stays the newest), its scroll where the
+	reader left it."""
+	if not visible or _api_client_ref == null:
+		return
+	var on_latest: bool = _index < 0 or _index == _issues.size() - 1
+	_api_client_ref.get_gazette(_on_pinned_gazette.bind(on_latest, _index, scroll_container.scroll_vertical))
+
+
+func _on_pinned_gazette(response, on_latest: bool, held_index: int, held_scroll: int) -> void:
+	_on_gazette_received(response)
+	if not on_latest and held_index >= 0 and held_index < _issues.size() and held_index != _index:
+		_index = held_index
+		_render_issue()
+	Utils.restore_scroll(scroll_container, held_scroll)
 
 
 func close_view():

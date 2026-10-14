@@ -239,6 +239,20 @@ func refresh_if_open():
 	_api_client_ref.get_diplomatic_ledger(_on_ledger_received)
 
 
+func refresh_pinned() -> void:
+	"""UXR-D4 (Pre-Deploy S12b): the Side Desk re-reads a pinned screen
+	after every command and every end turn — its CURRENT book, its scroll where the
+	reader left it."""
+	if not visible or _api_client_ref == null:
+		return
+	_api_client_ref.get_diplomatic_ledger(_on_pinned_ledger.bind(scroll_container.scroll_vertical))
+
+
+func _on_pinned_ledger(response, held_scroll: int) -> void:
+	_on_ledger_received(response)
+	Utils.restore_scroll(scroll_container, held_scroll)
+
+
 func open_to_settlements(api_client, route_id: String = "", war_id: String = ""):
 	"""Fetch diplomatic ledger and open the Treaties tab focused on the
 	`Recent Settlements` section.

@@ -382,6 +382,17 @@ func get_pinned_screen() -> String:
 	return pinned_screen
 
 
+func refresh_pinned() -> void:
+	"""UXR-D4: re-read the pinned screen (main.gd calls it after every
+	command response and once the end-turn chain settles). Its current tab,
+	its scroll kept — each screen's own `refresh_pinned`."""
+	if pinned_screen == "":
+		return
+	var node = screens.get(pinned_screen)
+	if node != null and node.visible and node.has_method("refresh_pinned"):
+		node.refresh_pinned()
+
+
 func toggle_pin(screen_name: String) -> void:
 	"""UXR-D4: the header's Pin chip. Pin the open screen to the desk; on a
 	pinned screen the chip reads Unpin, which closes it."""
