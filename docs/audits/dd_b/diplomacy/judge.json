@@ -1,0 +1,356 @@
+{
+ "lines": 38,
+ "classes": {
+  "answered": 8,
+  "as_meant": 23,
+  "shrug": 2,
+  "asked": 2,
+  "board_refusal": 2,
+  "honest_refusal": 1
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 11,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "how can I make peace with Austria?",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "I must warn you — my information is incomplete. Proceed with caution. We are at war with Austria, Sire. War score stands at 0 from our perspective. Their military strength is overmatched relative to ours. Metternich is calculating — skill 9. Embattled, but allied with Russia, Britain."
+  },
+  {
+   "n": 35,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "how strong is Mack's army in Swabia?",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Mack stands at Swabia — large force; his works and stance are not in view."
+  },
+  {
+   "n": 36,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Murat, scout Swabia",
+   "meant": "scout Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat scouts Swabia: Controlled by Bavaria. Terrain: Plains. Enemy forces: Mack (Austria): ~52,000 troops"
+  },
+  {
+   "n": 37,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  Soult, fortify\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 40,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "which of my marshals can reach Swabia this turn?",
+   "meant": "question",
+   "class": "shrug",
+   "success": true,
+   "reply": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cabinet.\nType 'help' for the full command reference."
+  },
+  {
+   "n": 41,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Soult, march to Rhineland to join Ney and Davout",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Rhineland. Moves to Rhineland. \"Soult, march to Rhineland to join Ney and Davout.\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)\n\nBerthier: \"One order at a time, Sire — I have relayed the first. \"Davout\" waits behind it. It is on the line — send it when you are ready.\""
+  },
+  {
+   "n": 43,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Napoleon, march to Rhineland",
+   "meant": "move Napoleon",
+   "class": "asked",
+   "success": true,
+   "reply": "Which marshal shall march to Rhineland, Sire?"
+  },
+  {
+   "n": 48,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Bernadotte, fortify in Franconia",
+   "meant": "fortify Bernadotte",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Fortifying from neutral stance requires 2 actions (1 for stance change + 1 for fortify), but only 1 remaining."
+  },
+  {
+   "n": 59,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "how do I attack Mack with several marshals at once?",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "═══════════════════════════════════════\n           COMMAND REFERENCE\n═══════════════════════════════════════\n\nMILITARY COMMANDS:\n  attack     - Engage enemy forces or capture region\n               \"Ney, attack Mack\" / \"attack\" (nearest)\n\n  defend     - Take defensive position (+30% bonus)\n               \"Davout, defend\" / \"hold\" (alias)\n\n  move       - Move to adjacent region\n               \"Lannes, move to Munich\"\n\n  retreat    - Fall back toward friendly territory (FREE)\n               \"Ney, retreat\" - Aggressive marshals may object!\n\n  recruit    - Raise troops (1 Admin AP + gold)\n         "
+  },
+  {
+   "n": 60,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Davout, Ney and Soult, attack Mack in Swabia together",
+   "meant": "attack Davout",
+   "class": "asked",
+   "success": true,
+   "reply": "Davout respectfully raises concerns: 'The odds are not in our favor. Perhaps we should reconsider.' (Trust him and he will fortify current position instead.)\n\nBerthier: \"You named Ney and Soult beside Davout, Sire — Davout takes the order; Ney's own waits behind it. It waits behind the question Davout has put to you. Answer, and it returns to the line; another order, or the turn's end, lets it go. Soult needs his own order.\""
+  },
+  {
+   "n": 64,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (23,100; expect about 102,626 with the corps likely to arrive, up to 109,021 if all march) vs Mack (52,000 men) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10)\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10)\n  WILL JOIN — M"
+  },
+  {
+   "n": 73,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "where is Mack now?",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Mack of Austria is at Swabia — 37,385 men, confirmed."
+  },
+  {
+   "n": 74,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Soult, support Ney",
+   "meant": "support Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult reaches the approach to Swabia, but Mack's forces hold it. Orders complete — awaiting instructions to attack or hold."
+  },
+  {
+   "n": 75,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (20,486; expect about 113,555 with the corps likely to arrive, up to 114,091 if all march) vs Mack (37,385 men) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support"
+  },
+  {
+   "n": 91,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Murat, attack Archduke Charles in Franconia",
+   "meant": "attack Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Murat (19,621; expect about 61,549 with the corps likely to arrive, up to 62,881 if all march) vs Archduke Charles (38,006 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — but Murat resents him, and will make no use of him: NOTHING of his weight reaches the fighting — likely to make it in time (about 99%) (The corps system lowers the bar by 10)\n  WILL JOIN — Davout: is willing to march if the roads allow — but he and Murat are at odds; expect about half his weight — likely to make it in time (about 98%) (The corps syste"
+  },
+  {
+   "n": 94,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Bernadotte, support Lannes",
+   "meant": "support Bernadotte",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "Bernadotte is engaged with Archduke Charles and cannot begin a strategic march. Deal with the engagement first.\nTry: 'Bernadotte, attack Archduke Charles' or 'Bernadotte, retreat'"
+  },
+  {
+   "n": 95,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Bernadotte, attack Archduke Charles",
+   "meant": "attack Bernadotte",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Bernadotte notes the risks but prepares the attack. Bernadotte halts before the order is carried out. \"I will go if you order it, Sire — but look at the ground first. This is not a battle, it is an arithmetic problem.\"\n\nThe muster reads unfavorable. 'Commit the Attack' to send him in regardless — or Cancel to hold him back.\nMUSTER — Bernadotte (17,000) vs Archduke Charles (30,515 men) at Franconia — the balance of force looks unfavorable.\n  WILL NOT — Ney: has already marched this turn\n  WILL NOT — Davout: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL "
+  },
+  {
+   "n": 105,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "buy off Sweden",
+   "meant": "diplomacy",
+   "class": "as_meant",
+   "success": null,
+   "reply": "► buy off Sweden\nBerthier: Matters of state are conducted at the table, Sire — not by dispatch. Take your seat in the Cabinet and the courts of Europe will answer.\n⚜ Take your seat at the table (F1)"
+  },
+  {
+   "n": 110,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Lannes, attack Archduke Charles",
+   "meant": "attack Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Lannes (13,139; expect about 93,744 with the corps likely to arrive, up to 95,868 if all march) vs Archduke Charles (28,600 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 96%) (The corps system lowers the bar by 10)\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10)\n  WILL JOIN — Murat: will march to the sound of the guns — but he and Lannes are at odds; expect about half his weight — likely to ma"
+  },
+  {
+   "n": 113,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Davout, move to Swabia",
+   "meant": "move Davout",
+   "class": "honest_refusal",
+   "success": false,
+   "reply": "Cannot advance while engaged with Archduke Charles at Franconia. No friendly province adjoins him: he must fight or stand.\n'Davout, attack Archduke Charles' fights; 'Davout, hold' stands."
+  },
+  {
+   "n": 114,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Davout, attack Archduke Charles",
+   "meant": "attack Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Davout (18,684; expect about 83,064 with the corps likely to arrive) vs Archduke Charles (17,098 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: stands on the field and will fight beside him\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him\n  WILL NOT — Bernadotte: stands on the same field and will do NOTHING — order him to support, or he watches\n  WILL JOIN — Napoleon: stands on the field and will fight beside him\n  The Emperor commands in person — every corps on this fie"
+  },
+  {
+   "n": 117,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Murat, move to Swabia",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Franconia to Swabia (155 lost to march)"
+  },
+  {
+   "n": 144,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "where are the Russian armies?",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Sire — Russia: no word of Buxhowden; no word of Kutuzov."
+  },
+  {
+   "n": 159,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Murat, move to Franche-Comte",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Swabia to Franche-Comte"
+  },
+  {
+   "n": 160,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Davout, move to Swabia",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout moves from Franconia to Swabia (176 lost to march)"
+  },
+  {
+   "n": 161,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "how can I shut Britain's ports?",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "═══════════════════════════════════════\n           COMMAND REFERENCE\n═══════════════════════════════════════\n\nMILITARY COMMANDS:\n  attack     - Engage enemy forces or capture region\n               \"Ney, attack Mack\" / \"attack\" (nearest)\n\n  defend     - Take defensive position (+30% bonus)\n               \"Davout, defend\" / \"hold\" (alias)\n\n  move       - Move to adjacent region\n               \"Lannes, move to Munich\"\n\n  retreat    - Fall back toward friendly territory (FREE)\n               \"Ney, retreat\" - Aggressive marshals may object!\n\n  recruit    - Raise troops (1 Admin AP + gold)\n         "
+  },
+  {
+   "n": 177,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Davout, drill your corps",
+   "meant": "drill Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout begins intensive drill exercises at Swabia. Troops will be locked in training next turn, bonus ready turn 8."
+  },
+  {
+   "n": 178,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Soult, drill",
+   "meant": "drill Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult drills his corps with Boulogne-camp precision at Rhineland. Sharpen today, strike tomorrow — bonus ready turn 7, and he remains at your orders (though he cannot shift stance until the drill ends tonight)."
+  },
+  {
+   "n": 181,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Murat, pursue Paget",
+   "meant": "pursue Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat pursues Paget (at Gascony). Cavalry charges through Nivernais -> Burgundy. Murat: \"I will have him by the collar within the week.\""
+  },
+  {
+   "n": 185,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Massena, drill your men at Milan",
+   "meant": "drill Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena begins intensive drill exercises at Milan. Troops will be locked in training next turn, bonus ready turn 9."
+  },
+  {
+   "n": 186,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Ney, drill",
+   "meant": "drill Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins intensive drill exercises at Franconia. Troops will be locked in training next turn, bonus ready turn 9."
+  },
+  {
+   "n": 196,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Murat, attack Paget",
+   "meant": "attack Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Murat (15,416) vs Paget (screening force) at Gascony — the balance of force looks favorable.\n  The band weighs more than the men: the ground favors the defender (+25%, mountains).\n  Gascony feeds 30,000 — the whole muster can stand there fed.\n  Every corps in the province shares the field — that is the design. Only a corps still adjacent can be held out: fortify him (1 AP) and he stands apart until you move him.\n\n[Cavalry] Murat's cavalry thunders across Limousin to strike! (Cavalry Charge: 2-region attack)\n\n[Combat] Murat leads the charge! (Aggressive: +15% attack)\n[Shield] Paget's A"
+  },
+  {
+   "n": 199,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Murat, attack Paget again",
+   "meant": "attack Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Murat (14,222) vs Paget (3,094 men) at Gascony — the balance of force looks favorable.\n  The band weighs more than the men: the ground favors the defender (+25%, mountains).\n  Gascony feeds 30,000 — the whole muster can stand there fed.\n  Every corps in the province shares the field — that is the design. Only a corps still adjacent can be held out: fortify him (1 AP) and he stands apart until you move him.\n\n[Cavalry] Murat's cavalry thunders across Limousin to strike! (Cavalry Charge: 2-region attack)\n\n[Combat] Murat leads the charge! (Aggressive: +15% attack)\n[Shield] Paget's AGGRESS"
+  },
+  {
+   "n": 202,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Murat, finish off Paget",
+   "meant": "attack Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Murat (13,577) vs Paget (1,207 men) at Gascony — the balance of force looks favorable.\n  The band weighs more than the men: the ground favors the defender (+25%, mountains).\n  Gascony feeds 30,000 — the whole muster can stand there fed.\n  Every corps in the province shares the field — that is the design. Only a corps still adjacent can be held out: fortify him (1 AP) and he stands apart until you move him.\n\n\nMurat holds them at Gascony while allies attack from Burgundy! (+1 coordination)\n\n[Combat] Murat leads the charge! (Aggressive: +15% attack)\n[Shield] Paget's AGGRESSIVE stance lea"
+  },
+  {
+   "n": 252,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "which Hanoverian province can Soult reach from Rhineland?",
+   "meant": "question",
+   "class": "shrug",
+   "success": true,
+   "reply": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, march to Dresden\n  Davout, fortify\n  recruit infantry in Rhineland — 680g for 3,000 men under Soult\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cabinet.\nType 'help' for the full command reference."
+  },
+  {
+   "n": 253,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Soult, attack Hanover",
+   "meant": "attack Soult",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "Soult cannot reach Hanover from Rhineland! Range: 1, Distance: 3\nNo enemies within range. Try 'move to Hanover' to get closer first"
+  },
+  {
+   "n": 268,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "Lannes, move to Munich and garrison it",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes moves from Franconia to Munich (232 lost to march)"
+  },
+  {
+   "n": 295,
+   "turn": "Turn 20 — Early July 1806",
+   "line": "can we summon the congress?",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "The Congress of Paris — ✓ 1 administrative action (you have 2); ✗ 45 titled provinces (38 of 45); ✓ Paris held; ✓ the Emperor free; ✓ no satellite on the brink of rebellion; ✓ Europe's alarm below 80 (now 45 — holding: our bloc's weight in Europe +1 against 3 of decay (one, plus one for each court at peace with us, at most three); a treaty that dissolves a league halves it); ✓ no Congress dissolved within 10 turns; ✓ 2 diplomatic points (you have 5). Not yet, Sire: The Congress cannot be summoned on 38 titled provinces — 45 are needed (7 more to win and settle). The table is on the Diplomatic "
+  }
+ ]
+}

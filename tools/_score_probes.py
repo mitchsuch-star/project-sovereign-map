@@ -1349,7 +1349,11 @@ ACTION_WORDS = {
     "cede": r"cede|grant|ceded",
     "form_square": r"square",
     "end_turn": r"Turn \d+ ended|begins",
-    "support": r"support|march|moves? to",
+    # DD-B (S13): a SUPPORT whose march halts at the supported man's contested
+    # province answers "Soult reaches the approach to Swabia, but Mack's
+    # forces hold it" — the order run as meant (0 of the 4,350 committed
+    # census orders move; no HOLD command line).
+    "support": r"support|march|moves? to|reaches the approach",
     "pursue": r"pursu|attack|MUSTER",
 }
 _ACTION_WORDS = ACTION_WORDS  # the HOLD reader's older name

@@ -213,8 +213,15 @@ func _act_type(text: String, rec: Dictionary) -> void:
 			input.grab_focus()
 			how.append("focus by grab_focus (the click did not focus the line)")
 	_restore_editing(rec)
-	await _push_key(KEY_END, false, false, false, 0)
-	var before := input.text
+	# Typed at the caret, as a player's keys land: a click into an unfocused
+	# line put it at the end; a selection the player made (Ctrl+A) is
+	# replaced by the first key.
+	var base := input.text
+	var at := input.caret_column
+	if input.has_selection():
+		at = input.get_selection_from_column()
+		base = input.text.substr(0, at) + input.text.substr(input.get_selection_to_column())
+	var expected := base.substr(0, at) + text + base.substr(at)
 	var k := 0
 	for ch in text:
 		var ev := InputEventKey.new()
@@ -228,18 +235,18 @@ func _act_type(text: String, rec: Dictionary) -> void:
 		if k % 8 == 0:
 			await process_frame
 	await _frames(2)
-	if input.text != before + text:
+	if input.text != expected:
 		# The keystrokes did not land as typed: the control's own road.
-		input.text = before + text
-		input.caret_column = input.text.length()
+		input.text = expected
+		input.caret_column = at + text.length()
 		how.append("typed by the line's own road (the keystrokes did not land)")
 	var sent_before := _sent("/command")
 	await _push_key(KEY_ENTER, false, false, false, 0)
 	await _frames(3)
-	if input.text == before + text and _sent("/command") == sent_before and input.is_visible_in_tree():
+	if input.text == expected and _sent("/command") == sent_before and input.is_visible_in_tree():
 		input.text_submitted.emit(input.text)
 		how.append("sent by the line's own road (Enter did not submit)")
-	rec["typed"] = before + text
+	rec["typed"] = expected
 	rec["note"] = "typed and Enter" + ("; " + "; ".join(how) if not how.is_empty() else "")
 
 

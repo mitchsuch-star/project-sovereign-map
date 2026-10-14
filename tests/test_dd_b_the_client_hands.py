@@ -154,6 +154,14 @@ class TestTheJudge:
         assert [r["class"] for r in rec["rows"]] == ["as_meant"] * 4
         assert rec["p1"] == []
 
+    def test_a_support_halted_at_the_approach_is_the_support_meant(self, tmp_path):
+        """The diplomacy road's one false misread (S13)."""
+        run = self._run(tmp_path, [
+            ("Soult, support Ney", "support Soult",
+             {"success": True, "message": "Soult reaches the approach to Swabia, but Mack's forces hold it."}),
+        ])
+        assert [r["class"] for r in P.judge_run(run)["rows"]] == ["as_meant"]
+
 
 # ── the driven test: a player's hands on the real client ───────────────────
 
@@ -229,6 +237,13 @@ def played(tmp_path_factory) -> dict:
         states["esc_line"] = _act(run, "key Escape")
         states["t"] = _act(run, "key T")
         states["pin"] = _act(run, "click Pin")
+        # A stray letter on the line, selected with Ctrl+A: the typed order
+        # replaces it, as a player's first key replaces a selection (road 2's
+        # tool note: the harness once pressed End first and appended).
+        line = states["pin"]["command_line"]["rect"]
+        _act(run, f"click_at {int(line[0] + line[2] - 8)} {int(line[1] + line[3] / 2)}")
+        states["stray"] = _act(run, "key Q")
+        _act(run, "key Ctrl+A")
         states["end_turn"] = _act(run, "type end turn", meant="end_turn")
         states["continue"] = _act(run, "click Continue") if "enemy_phase" in _modal(states["end_turn"]) \
             else states["end_turn"]
@@ -293,9 +308,11 @@ class TestThePlayersHands:
         assert played["pin"]["open"]["pinned"] == "ledger"
 
     def test_a_typed_line_goes_by_its_keys_and_the_turn_ends(self, played):
+        assert played["stray"]["command_line"]["text"] == "q"
         s = played["end_turn"]
         assert s["ok"], s["error"]
         assert "own road" not in s["note"], s["note"]
+        assert s["typed"] == "end turn", "the selection is replaced, not appended to"
         assert s["reply"] and s["reply"]["success"] is True
         assert "Turn 2" in s["turn"]
         assert s["open"]["pinned"] == "ledger", "the pinned ledger survives the end turn"
@@ -308,6 +325,6 @@ class TestThePlayersHands:
     def test_the_run_record(self, played):
         rec = played["run"]
         assert rec["turn_number"] == 2
-        assert rec["n_actions"] >= 9
+        assert rec["n_actions"] >= 12
         assert rec["n_script_errors"] == 0, rec["script_errors"]
         assert rec["port"] != 8005

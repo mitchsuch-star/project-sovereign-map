@@ -348,7 +348,7 @@ def _button_label(b: dict) -> str:
     return out
 
 
-def summary(run: pathlib.Path, n: int, width: int = 9000, live: bool = True) -> str:
+def summary(run: pathlib.Path, n: int, width: int = 14000, live: bool = True) -> str:
     s = _read(run / "state" / f"{n:04d}.json")
     prev = None
     if n > 0 and (run / "state" / f"{n - 1:04d}.json").is_file():
@@ -412,7 +412,10 @@ def summary(run: pathlib.Path, n: int, width: int = 9000, live: bool = True) -> 
     new = s.get("terminal_new") or []
     if new:
         out.append("── command window, new lines ──")
-        for ln in new[-40:]:
+        if len(new) > 80:
+            out.append(f"   … ({len(new) - 80} earlier new lines: scroll the command window up, or read "
+                       f"terminal_new in the state file)")
+        for ln in new[-80:]:
             out.append("   " + ln[:600])
     elif s.get("terminal_tail"):
         out.append("── command window, last lines ──")
