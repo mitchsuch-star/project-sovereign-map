@@ -721,9 +721,11 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 		# narrow and a deeper rank's 86-px standard flew beside the NEXT
 		# rank's name and strength lines (Austria's colours by Kutuzov,
 		# Russia's by Archduke Charles). Its pole is cut so the flag flies
-		# below the forward rank's strength line, among its own men.
+		# below the forward rank's strength line, among its own men. Part
+		# 5d: at two ranks too — Davout's colours flew over Ney's portrait
+		# on the closing re-read's `diorama_aadj` frame.
 		var pole := STANDARD_POLE
-		if n >= 3 and i > 0:
+		if n >= 2 and i > 0:
 			var fwd_scale := 1.0 - 0.12 * (i - 1)
 			var clear_top := 156.0 * fwd_scale - (TEXT_PITCH + 19.0) - 4.0 - step_y
 			# the art is scaled by block_scale; the pole is drawn in art units

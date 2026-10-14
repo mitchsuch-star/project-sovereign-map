@@ -37,6 +37,8 @@ import uxr3_review as RV  # noqa: E402
 ITEMS = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"]
 SHOT_TREE = "337b8621"        # part 4: the whole-manifest shoot and the probe
 FIX_TREE = "46f668ef"         # part 5a: the re-shoot and the re-probe
+# the states S12 part 2's closing re-read moves a row on to
+LATER_STATES = ("FIXED October 14, 2026 — Pre-Deploy S12 part 2", "OPEN — re-homed to UXR-4 (S15)")
 
 
 def _load(name: str) -> dict:
@@ -134,9 +136,13 @@ class TestEveryCrossOfTheReReadIsFiled:
                     assert f"{sid} {item}" in still | filed, (sid, item)
 
     def test_the_new_rows_are_in_the_ledger(self):
+        """Filed OPEN for S12 part 2; part 2's closing re-read
+        (`tests/test_uxr3_s12b_reread.py`) then moves each one on: FIXED by
+        part 2, or re-homed to UXR-4 with what still reads ✗."""
         text = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
         for r in json.loads((REC / "new_rows.json").read_text(encoding="utf-8")):
-            assert f"| **{r['id']}** | {r['sev']} | OPEN — owner S12 part 2" in text, r["id"]
+            head = f"| **{r['id']}** | {r['sev']} | "
+            assert any(head + state in text for state in LATER_STATES + ("OPEN — owner S12 part 2",)), r["id"]
             for sid in r["surfaces"]:
                 assert f"`{sid}`" in text, (r["id"], sid)
 
@@ -146,6 +152,8 @@ class TestEveryCrossOfTheReReadIsFiled:
             line = next(ln for ln in text.splitlines() if ln.startswith(f"| **{r['id']}** |"))
             if r["state"] == "FIXED":
                 assert "| FIXED October 13, 2026 — Pre-Deploy S12 part 1" in line, r["id"]
+            elif any(f"| {state}" in line for state in LATER_STATES):
+                pass   # part 2 moved it on; its own re-read pins the move
             else:
                 assert "| OPEN — owner S12" in line and "still reads ✗ on:" in line, r["id"]
 

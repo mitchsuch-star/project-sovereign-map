@@ -444,6 +444,17 @@ signal cabinet_clicked
 # UI-6: gear button — main.gd toggles the pause menu (mirrors ESC)
 signal menu_clicked
 
+# UXR3-F6's class (Pre-Deploy S12 part 2, part 5d): the alarm read
+# "[THREAT]" / "[THREAT!]", a bracketed tag; it reads in the game's words —
+# the Balance of Europe tab's own figure — its colour still the warning or
+# the alert.
+const THREAT_TOOLTIP := "Europe's alarm at France, out of 100 — a coalition brews at 60 and forms at 80. The Diplomatic Ledger's Threat & Coalition book (D) tells the sources."
+
+
+static func _threat_words(threat: int) -> String:
+	return "Threat %d / 100" % threat
+
+
 func update_diplomatic_fields(data: Dictionary):
 	"""Update all diplomatic top bar fields from /test poll data."""
 	# DP counter
@@ -459,7 +470,8 @@ func update_diplomatic_fields(data: Dictionary):
 		_stop_threat_pulse()
 	elif threat < 60:
 		threat_label.visible = true
-		threat_label.text = "[THREAT]"
+		threat_label.text = _threat_words(threat)
+		threat_label.tooltip_text = THREAT_TOOLTIP
 		threat_label.add_theme_color_override("font_color", Utils.UI_WARNING)
 		if brewing:
 			_start_threat_pulse()
@@ -467,7 +479,8 @@ func update_diplomatic_fields(data: Dictionary):
 			_stop_threat_pulse()
 	else:
 		threat_label.visible = true
-		threat_label.text = "[THREAT!]"
+		threat_label.text = _threat_words(threat)
+		threat_label.tooltip_text = THREAT_TOOLTIP
 		threat_label.add_theme_color_override("font_color", Utils.UI_ALERT)
 		if brewing:
 			_start_threat_pulse()

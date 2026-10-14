@@ -46,15 +46,16 @@ def overlap(a, b) -> float:
 
 
 def frames(index_path: pathlib.Path):
+    # The rows' own results, as the other instruments read them, so a merged
+    # index (tools/uxr3_merge_index.py) is read with its re-shot surfaces.
     index = json.loads(index_path.read_text(encoding="utf-8"))
-    result = json.loads(pathlib.Path(index["result"]).read_text(encoding="utf-8"))
-    for rec in result.get("results", []):
-        sid, _, res = str(rec.get("id", "")).partition("__")
-        for fr in rec.get("frames", []):
-            if fr.get("suffix"):
-                continue    # an intermediate step's frame, not the surface
-            yield sid, res, fr
-    return
+    for row in index.get("rows", []):
+        for rec in row.get("results", []):
+            sid, _, res = str(rec.get("id", "")).partition("__")
+            for fr in rec.get("frames", []):
+                if fr.get("suffix"):
+                    continue    # an intermediate step's frame, not the surface
+                yield sid, res, fr
 
 
 def census(index_path: pathlib.Path) -> dict:

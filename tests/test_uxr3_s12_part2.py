@@ -493,7 +493,7 @@ class TestTheFoundRows:
         assert _const(src, "STANDARD_POLE") == "86.0"
         layout = src[src.index("var block_scale := 1.0 - 0.12 * i"):]
         layout = layout[:layout.index("blocks.append(")]
-        assert "if n >= 3 and i > 0:" in layout
+        assert "if n >= 2 and i > 0:" in layout    # part 5d: two ranks too
         assert "156.0 * fwd_scale - (TEXT_PITCH + 19.0) - 4.0 - step_y" in layout
         std = _func(src, "_make_standard")
         assert "-86" not in std and "Vector2(0, -pole_h)" in std
@@ -524,6 +524,16 @@ class TestTheFoundRows:
         assert '"-".repeat(40)' not in ep and '"─".repeat(28)' in ep
         log = _src("scripts/campaign_log.gd")
         assert 'var affordance = "▾" if expanded_turns.get(turn_num, false) else "▸"' in log
+
+    def test_the_top_bars_alarm_reads_in_the_games_words(self):
+        """F6's class, found on the closing re-read's frames (part 5d): the
+        alarm was a bracketed "[THREAT]" / "[THREAT!]"."""
+        tb = _src("scripts/top_bar.gd")
+        assert 'threat_label.text = "[THREAT' not in tb
+        fields = _func(tb, "update_diplomatic_fields")
+        assert fields.count("threat_label.text = _threat_words(threat)") == 2
+        assert fields.count("threat_label.tooltip_text = THREAT_TOOLTIP") == 2
+        assert 'return "Threat %d / 100" % threat' in _func(tb, "_threat_words")
 
     def test_f7_the_family_chrome_and_a_gear_that_reads(self):
         gear = (PROJECT / "assets" / "ui" / "icons" / "phosphor" / "gear.svg").read_text(encoding="utf-8")
