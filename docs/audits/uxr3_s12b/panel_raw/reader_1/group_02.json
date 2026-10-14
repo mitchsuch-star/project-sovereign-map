@@ -1,0 +1,66 @@
+{"reader": 1, "group": "dispatch",
+ "marks": {
+  "dispatch_boot_today": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_boot_today__1920x1080.png", "why": "The TODAY block, with its 'choose among them; they share one treasury and one army' header and four blue order chips, is the largest and most distinct block in view; the eye lands on the chips."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_boot_today__1920x1080.png", "why": "The four orders are underlined chips on a blue ground and each one answers; the X and the corner grip are the only other controls; the quoted typed commands are plain text."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_boot_today__5120x1440.png", "why": "The four orders are clickable chips, and the text names the typed roads ('what can I do', 'status', 'help') and the F1 key."},
+   "R4_note": "The frame opens scrolled to the end; the War Purpose lines above TODAY wrap a lone '(+0)' onto its own line."
+  },
+  "dispatch_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_t20__1920x1080.png", "why": "After the banner, the gold headline ('Berry, Burgundy, Corsica and 4 more lie in enemy hands') is the first content line, with the beats under it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_t20__1920x1080.png", "why": "The X and the bordered 'Open Envoys (2)' are the controls and both answer; nothing else is dressed as one."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_t20__5120x1440.png", "why": "This screen informs: the X and Open Envoys are visible, and 'Press R to reread it any time' names its key."},
+   "R4_note": "'MORNING DISPATCH' is printed twice, once as the window title and again as the gold banner inside it."
+  },
+  "dispatch_collapse": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_collapse__1920x1080.png", "why": "The collapse headline ('France holds no province of her own. Paris is in Austria's hands…') leads the content in gold."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_collapse__1920x1080.png", "why": "The X and Open Envoys (3) are the controls and both answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_collapse__5120x1440.png", "why": "This screen informs, and the X and the next step (Open Envoys) are visible."}
+  },
+  "dispatch_fall_clock": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_fall_clock__5120x1440.png", "why": "THE FALL OF THE EMPIRE is the first heading in view and its block, with the warning prose and the '1 of 5 … 4 turns remain' clock line, is the largest."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_fall_clock__1920x1080.png", "why": "The X and Open Envoys are the controls and both answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_fall_clock__1920x1080.png", "why": "This screen informs: the X is visible, and the warning names the remedy ('unless we retake a province or make peace')."},
+   "R4_note": "The Congress line repeats its own heading ('THE CONGRESS OF PARIS' over 'THE CONGRESS OF PARIS — 8 of 45 titled')."
+  },
+  "dispatch_congress_clock": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_congress_clock__1920x1080.png", "why": "THE CONGRESS OF PARIS is the first heading in view, with the amber 'THE CONGRESS SITS — turn 2 of 8' clock line directly under it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_congress_clock__1920x1080.png", "why": "The only controls are the X and the grip, and nothing inert is styled as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_congress_clock__5120x1440.png", "why": "This screen informs, and the X is visible."},
+   "R4_note": "A sliver of a cut line shows at the top edge of the scroll at both resolutions; '50 of 45 titled' reads as more than the whole."
+  },
+  "dispatch_front_page": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_front_page__1920x1080.png", "why": "The league's news ('London now pays Vienna 500 gold a turn against us' with the price to keep her out) is the first content line, in gold."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_front_page__1920x1080.png", "why": "The only controls are the X and the grip."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_front_page__5120x1440.png", "why": "This screen informs, and the X is visible."}
+  },
+  "dispatch_front_page_league": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_front_page_league__1920x1080.png", "why": "COALITION THREAT heads the view, with the threat line, then the amber 'courts consult on turn 32' line and one row per court."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_front_page_league__1920x1080.png", "why": "The only controls are the X and the grip."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\dispatch_front_page_league__5120x1440.png", "why": "This screen informs, and the X is visible."},
+   "R4_note": "Descender fragments of a cut line show along the top edge of the scroll at both resolutions."
+  },
+  "gazette_t20": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\gazette_t20__1920x1080.png", "why": "The issue's masthead and its SPECIAL EDITION caption lead, followed by the lede and THE WAR column."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\gazette_t20__1920x1080.png", "why": "Earlier issue is a bordered button that answers; the greyed 'Later issue >' has 'Issue 5 of 5' beside it, which says why."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\gazette_t20__5120x1440.png", "why": "'Page through the archive below' points at the visible paging buttons, and the X is visible."},
+   "R4_note": "'LE MONITEUR' is printed twice, as the window title and again as the masthead."
+  },
+  "gazette_congress": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\gazette_congress__5120x1440.png", "why": "The view is centred on '— THE CONGRESS OF PARIS —', the largest section on screen, placed after THE COURTS as intended, with each court's answer in the paper's voice."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\gazette_congress__1920x1080.png", "why": "Both paging buttons are greyed with 'Issue 1 of 1' between them, which says why; the X answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\gazette_congress__1920x1080.png", "why": "This screen informs, and the X is visible."}
+  },
+  "campaign_log_glyphs": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\campaign_log_glyphs__5120x1440.png", "why": "The glyph-prefixed rows under the open Turn 3 header are the first and largest content."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\campaign_log_glyphs__1920x1080.png", "why": "Each turn header is a bordered bar with a ▸/▾ chevron and toggles; the X answers; the rows are plain text."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\campaign_log_glyphs__1920x1080.png", "why": "This screen informs: the X is visible and the chevrons show that the turns unfold."},
+   "R4_note": "Every visible row carries the same handshake glyph, including 'Britain's gold: 200g reaches Austria', so no sword, coins or scroll glyph is seen."
+  },
+  "campaign_log_tiers": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\campaign_log_tiers__5120x1440.png", "why": "The bold, larger lead row ('Coalition against France has dissolved…') is the largest element and the eye lands on it; notable and routine rows step down in size around it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\campaign_log_tiers__1920x1080.png", "why": "The turn headers are bordered chevron bars that toggle, and the X answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\campaign_log_tiers__1920x1080.png", "why": "This screen informs, and the X is visible."},
+   "R4_note": "Every row's glyph is a handshake, and the lead row sits mid-list rather than at the top of its turn."
+  }
+ }}

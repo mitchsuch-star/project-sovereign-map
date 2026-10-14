@@ -1,0 +1,3700 @@
+{
+ "checklist": "docs/UX_CHECKLIST_V1.json",
+ "ticks": {
+  "before": 787,
+  "after": 1149
+ },
+ "items": {
+  "R1": {
+   "before": 142,
+   "after": 145
+  },
+  "R2": {
+   "before": 105,
+   "after": 134
+  },
+  "R3": {
+   "before": 45,
+   "after": 145
+  },
+  "R4": {
+   "before": 84,
+   "after": 145
+  },
+  "R5": {
+   "before": 72,
+   "after": 145
+  },
+  "R6": {
+   "before": 58,
+   "after": 145
+  },
+  "R7": {
+   "before": 142,
+   "after": 145
+  },
+  "R8": {
+   "before": 139,
+   "after": 145
+  }
+ },
+ "flips": {
+  "fixed": [
+   {
+    "surface": "war_room_boot",
+    "item": "R4",
+    "why_before": "1 one-off size(s) and 46 one-off grey(s): res://scenes/map_renderer_base.gd (29), res://scenes/main.tscn (9), res://scenes/top_bar.tscn (2), res://scripts/main.gd (2), res://scripts/top_bar.gd (2), res://scripts/war_status_panel.gd (2), res://scenes/map_connection_layer.gd (1)",
+    "why_after": "0 one-off sizes or greys in 14 file(s) (frames)"
+   },
+   {
+    "surface": "war_room_boot",
+    "item": "R5",
+    "why_before": "SILENT control(s): Execute; ZoomOutButton; FitEuropeButton (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_room_boot",
+    "item": "R6",
+    "why_before": "3 SILENT: Execute; Zoom out  (−); Fit Europe — the whole theatre  (Home re; 1 unproven: Envoys [handoff: envoy_clicked: get_mailbox]",
+    "why_after": "19 control(s) answer on screen, 1 by a cited live record"
+   },
+   {
+    "surface": "top_bar_boot",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 4 one-off grey(s): res://scenes/top_bar.tscn (2), res://scripts/top_bar.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "top_bar_boot",
+    "item": "R6",
+    "why_before": "1 unproven: Envoys [handoff: envoy_clicked]",
+    "why_after": "8 control(s) answer on screen, 1 by a cited live record"
+   },
+   {
+    "surface": "top_bar_admiralty",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 4 one-off grey(s): res://scenes/top_bar.tscn (2), res://scripts/top_bar.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "top_bar_admiralty",
+    "item": "R6",
+    "why_before": "1 unproven: Envoys [handoff: envoy_clicked]",
+    "why_after": "9 control(s) answer on screen, 1 by a cited live record"
+   },
+   {
+    "surface": "top_bar_mission_court",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "top_bar_mission_court",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 4 one-off grey(s): res://scenes/top_bar.tscn (2), res://scripts/top_bar.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "top_bar_mission_court",
+    "item": "R6",
+    "why_before": "1 unproven: Envoys (2) [handoff: envoy_clicked]",
+    "why_after": "7 control(s) answer on screen, 2 by a cited live record"
+   },
+   {
+    "surface": "war_status_boot",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/war_status_panel.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "war_status_boot",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_status_collapse_one",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/war_status_panel.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "war_status_collapse_one",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_status_collapse_none",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/war_status_panel.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "war_status_collapse_none",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_status_t20",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/war_status_panel.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "war_status_t20",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_detail_boot",
+    "item": "R3",
+    "why_before": "1920x1080: 2 row(s) under the floor (worst 2.54 : 1, cc808099 on 2f2e33, @Label@787 'BR'); 2560x1440: 2 row(s) under the floor (worst 2.52 : 1, cc808099 on 332e36, @Label@799 'BR'); 3440x1440: 2 row(s) under the floor (worst 2.51 : 1, cc808099 on 342e36, @Label@811 'BR'); 5120x1440: 2 row(s) under the floor (worst 2.45 : 1, cc808099 on 393133, @Label@823 'BR'); 3840x2160: 2 row(s) under the floor (worst 2.49 : 1, cc808099 on 372f34, @Label@835 'BR')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "war_detail_boot",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/war_detail_popup.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "war_detail_collapse_one",
+    "item": "R3",
+    "why_before": "1920x1080: 3 row(s) under the floor (worst 2.54 : 1, cc808099 on 2f2e33, @Label@848 'BR'); 2560x1440: 3 row(s) under the floor (worst 2.52 : 1, cc808099 on 332e36, @Label@861 'BR'); 3440x1440: 3 row(s) under the floor (worst 2.51 : 1, cc808099 on 342e36, @Label@874 'BR'); 5120x1440: 3 row(s) under the floor (worst 2.45 : 1, cc808099 on 393133, @Label@887 'BR'); 3840x2160: 3 row(s) under the floor (worst 2.49 : 1, cc808099 on 372f34, @Label@900 'BR')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "war_detail_collapse_one",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/war_detail_popup.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "war_detail_collapse_none",
+    "item": "R3",
+    "why_before": "1920x1080: 3 row(s) under the floor (worst 2.54 : 1, cc808099 on 2f2e33, @Label@913 'BR'); 2560x1440: 3 row(s) under the floor (worst 2.52 : 1, cc808099 on 332e36, @Label@926 'BR'); 3440x1440: 3 row(s) under the floor (worst 2.51 : 1, cc808099 on 342e36, @Label@939 'BR'); 5120x1440: 3 row(s) under the floor (worst 2.45 : 1, cc808099 on 393133, @Label@952 'BR'); 3840x2160: 3 row(s) under the floor (worst 2.49 : 1, cc808099 on 372f34, @Label@965 'BR')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "war_detail_collapse_none",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/war_detail_popup.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "war_detail_t20",
+    "item": "R3",
+    "why_before": "1920x1080: 3 row(s) under the floor (worst 2.54 : 1, cc808099 on 2f2e33, @Label@3643 'BR'); 2560x1440: 3 row(s) under the floor (worst 2.52 : 1, cc808099 on 332e36, @Label@3655 'BR'); 3440x1440: 3 row(s) under the floor (worst 2.51 : 1, cc808099 on 342e36, @Label@3667 'BR'); 5120x1440: 3 row(s) under the floor (worst 2.45 : 1, cc808099 on 393133, @Label@3679 'BR'); 3840x2160: 3 row(s) under the floor (worst 2.49 : 1, cc808099 on 372f34, @Label@3691 'BR')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "war_detail_t20",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/war_detail_popup.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "war_detail_coalition_boot",
+    "item": "R3",
+    "why_before": "1920x1080: 6 row(s) under the floor (worst 2.52 : 1, cc808099 on 2f2f33, @Label@3703 'BR'); 2560x1440: 6 row(s) under the floor (worst 2.53 : 1, cc808099 on 342d36, @Label@3733 'BR'); 3440x1440: 6 row(s) under the floor (worst 2.5 : 1, cc808099 on 362f36, @Label@3763 'BR'); 5120x1440: 6 row(s) under the floor (worst 2.49 : 1, cc808099 on 362f33, @Label@3809 'RU'); 3840x2160: 6 row(s) under the floor (worst 2.47 : 1, cc808099 on 373034, @Label@3823 'BR')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "war_detail_coalition_boot",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/war_detail_popup.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "war_detail_coalition_boot",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_detail_coalition_t20",
+    "item": "R3",
+    "why_before": "1920x1080: 6 row(s) under the floor (worst 2.52 : 1, cc808099 on 2f2f33, @Label@3854 'BR'); 2560x1440: 6 row(s) under the floor (worst 2.53 : 1, cc808099 on 342d36, @Label@3886 'BR'); 3440x1440: 6 row(s) under the floor (worst 2.5 : 1, cc808099 on 362f36, @Label@3918 'BR'); 5120x1440: 6 row(s) under the floor (worst 2.49 : 1, cc808099 on 362f33, @Label@3967 'RU'); 3840x2160: 6 row(s) under the floor (worst 2.47 : 1, cc808099 on 373034, @Label@3982 'BR')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "war_detail_coalition_t20",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/war_detail_popup.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "war_detail_coalition_t20",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "rail_mission_court",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "rail_mission_court",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scenes/notification_bar.tscn (1), res://scripts/notification_bar.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "rail_mission_court",
+    "item": "R8",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "rail_mission_improve",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "rail_mission_improve",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scenes/notification_bar.tscn (1), res://scripts/notification_bar.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "rail_mission_improve",
+    "item": "R8",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "rail_mission_gather",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "rail_mission_gather",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scenes/notification_bar.tscn (1), res://scripts/notification_bar.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "rail_mission_gather",
+    "item": "R8",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "rail_t20",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scenes/notification_bar.tscn (1), res://scripts/notification_bar.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "rail_counter_punch",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scenes/notification_bar.tscn (1), res://scripts/notification_bar.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "region_paris",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  Capital · Plains\nOne province '); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  Capital · Plains\nOne province '); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  Capital · Plains\nOne province '); 5120x1440: 1 row(s) under the floor (worst 4.42 : 1, 808080ff on 1e181d, ContentArea '  France  Capital · Plains\nOne province '); 3840x2160: 1 row(s) under the floor (worst 4.42 : 1, 808080ff on 1e181d, ContentArea '  France  Capital · Plains\nOne province ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_paris",
+    "item": "R6",
+    "why_before": "5 unproven: Fortify [handoff: region_command]; Drill [handoff: region_command]; Scout [handoff: region_command]; Infantry [handoff: region_command]; Buy Substitutes [handoff: region_command]",
+    "why_after": "2 control(s) answer on screen, 5 by a cited live record"
+   },
+   {
+    "surface": "region_rhineland",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  City · Plains\nOne province — w'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  City · Plains\nOne province — w'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  City · Plains\nOne province — w'); 5120x1440: 1 row(s) under the floor (worst 4.42 : 1, 808080ff on 1e181d, ContentArea '  France  City · Plains\nOne province — w'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  City · Plains\nOne province — w')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_rhineland",
+    "item": "R6",
+    "why_before": "7 unproven: Fortify [handoff: region_command]; Scout [handoff: region_command]; Fortify [handoff: region_command]; Scout [handoff: region_command]; Infantry [handoff: region_command]; Cavalry [handoff: region_command]",
+    "why_after": "2 control(s) answer on screen, 7 by a cited live record"
+   },
+   {
+    "surface": "region_amsterdam",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Holland  Capital · Plains\nOne province'); 2560x1440: 1 row(s) under the floor (worst 4.37 : 1, 808080ff on 1f191e, ContentArea '  Holland  Capital · Plains\nOne province'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  Holland  Capital · Plains\nOne province'); 5120x1440: 1 row(s) under the floor (worst 4.42 : 1, 808080ff on 1e181d, ContentArea '  Holland  Capital · Plains\nOne province'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  Holland  Capital · Plains\nOne province')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_amsterdam",
+    "item": "R6",
+    "why_before": "5 unproven: Fortify [handoff: region_command]; Drill [handoff: region_command]; Scout [handoff: region_command]; Buy Substitutes [handoff: region_command]; Negotiate with Holland [handoff: negotiate_requested]",
+    "why_after": "1 control(s) answer on screen, 5 by a cited live record"
+   },
+   {
+    "surface": "region_milan",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Kingdom of Italy  Capital · Plains\nOne'); 2560x1440: 1 row(s) under the floor (worst 4.37 : 1, 808080ff on 1f191e, ContentArea '  Kingdom of Italy  Capital · Plains\nOne'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  Kingdom of Italy  Capital · Plains\nOne'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  Kingdom of Italy  Capital · Plains\nOne'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  Kingdom of Italy  Capital · Plains\nOne')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_milan",
+    "item": "R6",
+    "why_before": "4 unproven: Fortify [handoff: region_command]; Scout [handoff: region_command]; Buy Substitutes [handoff: region_command]; Negotiate with Kingdom of Italy [handoff: negotiate_requested]",
+    "why_after": "1 control(s) answer on screen, 4 by a cited live record"
+   },
+   {
+    "surface": "region_vienna",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Austria  Capital · Plains\nOne province'); 2560x1440: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Austria  Capital · Plains\nOne province'); 3440x1440: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Austria  Capital · Plains\nOne province'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  Austria  Capital · Plains\nOne province'); 3840x2160: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Austria  Capital · Plains\nOne province')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_doctrine_posen",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Prussia  City · Plains\nOne province — '); 2560x1440: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Prussia  City · Plains\nOne province — '); 3440x1440: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Prussia  City · Plains\nOne province — '); 5120x1440: 1 row(s) under the floor (worst 4.4 : 1, 808080ff on 1f181e, ContentArea '  Prussia  City · Plains\nOne province — '); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  Prussia  City · Plains\nOne province — ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_doctrine_tyrol",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '  Austria  City · Mountains\nOne province'); 2560x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '  Austria  City · Mountains\nOne province'); 3440x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '  Austria  City · Mountains\nOne province'); 5120x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '  Austria  City · Mountains\nOne province'); 3840x2160: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '  Austria  City · Mountains\nOne province')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_doctrine_tyrol",
+    "item": "R6",
+    "why_before": "3 unproven: Scout [handoff: region_command]; Attack Archduke John [handoff: region_command]; Negotiate with Austria [handoff: negotiate_requested]",
+    "why_after": "1 control(s) answer on screen, 3 by a cited live record"
+   },
+   {
+    "surface": "region_paris_build_open",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  Capital · Plains\nOne province '); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  Capital · Plains\nOne province '); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  Capital · Plains\nOne province '); 5120x1440: 1 row(s) under the floor (worst 4.42 : 1, 808080ff on 1e181d, ContentArea '  France  Capital · Plains\nOne province '); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, 808080ff on 1f181d, ContentArea '  France  Capital · Plains\nOne province ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "region_paris_build_open",
+    "item": "R6",
+    "why_before": "11 unproven: Fortify [handoff: region_command]; Drill [handoff: region_command]; Scout [handoff: region_command]; Infantry [handoff: region_command]; Buy Substitutes [handoff: region_command]; Depot 300g [handoff: region_command]",
+    "why_after": "2 control(s) answer on screen, 11 by a cited live record"
+   },
+   {
+    "surface": "dispatch_boot_today",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "dispatch_boot_today",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "dispatch_t20",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "dispatch_collapse",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "dispatch_fall_clock",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "dispatch_congress_clock",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "dispatch_congress_clock",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "dispatch_front_page",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "dispatch_front_page_league",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  M')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "gazette_t20",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "gazette_congress",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "gazette_congress",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentLabel '════════════════════════════════════\n  L')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_boot",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_boot",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_boot",
+    "item": "R6",
+    "why_before": "8 unproven: Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]",
+    "why_after": "11 control(s) answer on screen"
+   },
+   {
+    "surface": "generals_t20",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_t20",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_t20",
+    "item": "R6",
+    "why_before": "11 unproven: Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+    "why_after": "14 control(s) answer on screen"
+   },
+   {
+    "surface": "generals_prisoner",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "generals_prisoner",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_prisoner",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_prisoner",
+    "item": "R6",
+    "why_before": "7 unproven: Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "generals_np_seat",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_np_seat",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_np_seat",
+    "item": "R6",
+    "why_before": "14 unproven: Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+    "why_after": "17 control(s) answer on screen"
+   },
+   {
+    "surface": "generals_np_field",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_np_field",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_np_field",
+    "item": "R6",
+    "why_before": "14 unproven: Fortify [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]",
+    "why_after": "17 control(s) answer on screen"
+   },
+   {
+    "surface": "generals_np_captive",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "generals_np_captive",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_np_captive",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_np_captive",
+    "item": "R6",
+    "why_before": "14 unproven: Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+    "why_after": "17 control(s) answer on screen"
+   },
+   {
+    "surface": "generals_flagship_t12",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_flagship_t12",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_flagship_t12",
+    "item": "R6",
+    "why_before": "19 unproven: Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Drill [handoff: order_command]; Reward — estate or rente… [handoff: reward_requested]; Fortify [handoff: order_command]; Drill [handoff: order_command]",
+    "why_after": "22 control(s) answer on screen"
+   },
+   {
+    "surface": "generals_doctrine",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "generals_doctrine",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 2560x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3440x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 5120x1440: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie'); 3840x2160: 1 row(s) under the floor (worst 3.09 : 1, 666670ff on 141926, ContentArea 'Your marshals — loyalty, glory, and grie')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "generals_doctrine",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/marshal_management.gd (2)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "generals_doctrine",
+    "item": "R6",
+    "why_before": "8 unproven: Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]; Fortify [handoff: order_command]",
+    "why_after": "11 control(s) answer on screen"
+   },
+   {
+    "surface": "wizard_step1",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "wizard_step1",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "wizard_step2_austria",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "wizard_step2_prussia",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "wizard_step2_prussia",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "wizard_step1_congress_gate",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "wizard_step1_congress_ready",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "wizard_step1_congress_sitting",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "wizard_formables_entry",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "wizard_formables_entry",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "wizard_formables_step3",
+    "item": "R3",
+    "why_before": "1920x1080: 5 row(s) under the floor (worst 4.32 : 1, 808080ff on 1a1a2e, @RichTextLabel@7617 '  Poland — forms by conquest (0 of 2 pro'); 2560x1440: 4 row(s) under the floor (worst 4.32 : 1, 808080ff on 1a1a2e, @RichTextLabel@7632 '  Ireland — client state at the settleme'); 3440x1440: 4 row(s) under the floor (worst 4.32 : 1, 808080ff on 1a1a2e, @RichTextLabel@7649 '  Ireland — client state at the settleme'); 5120x1440: 5 row(s) under the floor (worst 4.32 : 1, 808080ff on 1a1a2e, @RichTextLabel@7668 '  Poland — forms by conquest (0 of 2 pro'); 3840x2160: 5 row(s) under the floor (worst 4.32 : 1, 808080ff on 1a1a2e, @RichTextLabel@7685 '  Poland — forms by conquest (0 of 2 pro')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "wizard_formables_step3",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/diplomacy_wizard.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "confirm_peace_losing",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "settlement_three_courts",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "settlement_three_courts",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "incoming_peace_losing",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_nations",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_boot_nations",
+    "item": "R5",
+    "why_before": "SILENT control(s): NATIONS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_nations",
+    "item": "R6",
+    "why_before": "1 SILENT: NATIONS",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_boot_treaties",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nNo active treat'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nNo active treat'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nNo active treat'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nNo active treat'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nNo active treat')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_boot_treaties",
+    "item": "R5",
+    "why_before": "SILENT control(s): TREATIES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_treaties",
+    "item": "R6",
+    "why_before": "1 SILENT: TREATIES",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_boot_balance",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_boot_balance",
+    "item": "R5",
+    "why_before": "SILENT control(s): THREAT & COALITION (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_balance",
+    "item": "R6",
+    "why_before": "1 SILENT: THREAT & COALITION",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_boot_talleyrand",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_boot_talleyrand",
+    "item": "R5",
+    "why_before": "SILENT control(s): TALLEYRAND (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_talleyrand",
+    "item": "R6",
+    "why_before": "1 SILENT: TALLEYRAND; 1 unproven: Assess the Situation [handoff: assess_requested]",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_boot_bargains",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ WAR BARGAINS ═══\n\nNo war bargains re'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ WAR BARGAINS ═══\n\nNo war bargains re'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ WAR BARGAINS ═══\n\nNo war bargains re'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ WAR BARGAINS ═══\n\nNo war bargains re'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ WAR BARGAINS ═══\n\nNo war bargains re')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_boot_bargains",
+    "item": "R5",
+    "why_before": "SILENT control(s): WAR BARGAINS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_bargains",
+    "item": "R6",
+    "why_before": "1 SILENT: WAR BARGAINS",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_boot_vassals",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 2560x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 3440x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 5120x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 3840x2160: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_boot_vassals",
+    "item": "R5",
+    "why_before": "SILENT control(s): VASSALS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_vassals",
+    "item": "R6",
+    "why_before": "1 SILENT: VASSALS; 9 unproven: Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]",
+    "why_after": "17 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_boot_congress",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_boot_congress",
+    "item": "R5",
+    "why_before": "SILENT control(s): CONGRESS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_boot_congress",
+    "item": "R6",
+    "why_before": "1 SILENT: CONGRESS; 4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+    "why_after": "12 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_laws_rival_nations",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_laws_rival_nations",
+    "item": "R5",
+    "why_before": "SILENT control(s): NATIONS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_laws_rival_nations",
+    "item": "R6",
+    "why_before": "1 SILENT: NATIONS",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_collapse_one_nations",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_collapse_one_nations",
+    "item": "R5",
+    "why_before": "SILENT control(s): NATIONS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_collapse_one_nations",
+    "item": "R6",
+    "why_before": "1 SILENT: NATIONS",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_collapse_cooldown_talleyrand",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_collapse_cooldown_talleyrand",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_collapse_cooldown_talleyrand",
+    "item": "R5",
+    "why_before": "SILENT control(s): TALLEYRAND (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_collapse_cooldown_talleyrand",
+    "item": "R6",
+    "why_before": "1 SILENT: TALLEYRAND; 1 unproven: Assess the Situation [handoff: assess_requested]",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_collapse_none_vassals",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 2560x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 3440x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 5120x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 3840x2160: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_collapse_none_vassals",
+    "item": "R5",
+    "why_before": "SILENT control(s): VASSALS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_collapse_none_vassals",
+    "item": "R6",
+    "why_before": "1 SILENT: VASSALS; 9 unproven: Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]",
+    "why_after": "17 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_mission_court_talleyrand",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 90/'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 90/'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 90/'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 90/'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 90/')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_mission_court_talleyrand",
+    "item": "R5",
+    "why_before": "SILENT control(s): TALLEYRAND (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_mission_court_talleyrand",
+    "item": "R6",
+    "why_before": "1 SILENT: TALLEYRAND; 1 unproven: Assess the Situation [handoff: assess_requested]",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_mission_undermine_talleyrand",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_mission_undermine_talleyrand",
+    "item": "R5",
+    "why_before": "SILENT control(s): TALLEYRAND (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_mission_undermine_talleyrand",
+    "item": "R6",
+    "why_before": "1 SILENT: TALLEYRAND; 1 unproven: Assess the Situation [handoff: assess_requested]",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_mission_recalled_talleyrand",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'TALLEYRAND — Divine Right\nAuthority: 100')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_mission_recalled_talleyrand",
+    "item": "R5",
+    "why_before": "SILENT control(s): TALLEYRAND (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_mission_recalled_talleyrand",
+    "item": "R6",
+    "why_before": "1 SILENT: TALLEYRAND; 1 unproven: Assess the Situation [handoff: assess_requested]",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_petition_granted_vassals",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 2560x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 3440x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 5120x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r'); 3840x2160: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n3 client states r')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_petition_granted_vassals",
+    "item": "R5",
+    "why_before": "SILENT control(s): VASSALS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_petition_granted_vassals",
+    "item": "R6",
+    "why_before": "1 SILENT: VASSALS; 9 unproven: Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]",
+    "why_after": "17 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_t20_nations",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_t20_nations",
+    "item": "R5",
+    "why_before": "SILENT control(s): NATIONS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_t20_nations",
+    "item": "R6",
+    "why_before": "1 SILENT: NATIONS",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_t20_treaties",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nSweden ↔ Russia'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nSweden ↔ Russia'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nSweden ↔ Russia'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nSweden ↔ Russia'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ACTIVE TREATIES ═══\n\nSweden ↔ Russia')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_t20_treaties",
+    "item": "R5",
+    "why_before": "SILENT control(s): TREATIES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_t20_treaties",
+    "item": "R6",
+    "why_before": "1 SILENT: TREATIES",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_t20_balance",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nCoali')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_t20_balance",
+    "item": "R5",
+    "why_before": "SILENT control(s): THREAT & COALITION (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_t20_balance",
+    "item": "R6",
+    "why_before": "1 SILENT: THREAT & COALITION",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_t20_vassals",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n2 client states r'); 2560x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n2 client states r'); 3440x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n2 client states r'); 5120x1440: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n2 client states r'); 3840x2160: 1 row(s) under the floor (worst 3.75 : 1, cd6b6bff on 233043ff on 233043, ContentArea '═══ CLIENT STATES ═══\n\n2 client states r')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_t20_vassals",
+    "item": "R5",
+    "why_before": "SILENT control(s): VASSALS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_t20_vassals",
+    "item": "R6",
+    "why_before": "1 SILENT: VASSALS; 8 unproven: Invest [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]; Tighten Rein [handoff: vassal_command]; Release [handoff: vassal_command]; Invest [handoff: vassal_command]; Loosen Rein [handoff: vassal_command]",
+    "why_after": "16 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_congress_gate",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_congress_gate",
+    "item": "R5",
+    "why_before": "SILENT control(s): CONGRESS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_congress_gate",
+    "item": "R6",
+    "why_before": "1 SILENT: CONGRESS; 4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+    "why_after": "12 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_congress_sitting",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_congress_sitting",
+    "item": "R5",
+    "why_before": "SILENT control(s): CONGRESS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_congress_sitting",
+    "item": "R6",
+    "why_before": "1 SILENT: CONGRESS; 4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+    "why_after": "12 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_congress_sitting_table",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE CONGRESS OF PARIS ═══\nEurope mus')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_congress_sitting_table",
+    "item": "R5",
+    "why_before": "SILENT control(s): CONGRESS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_congress_sitting_table",
+    "item": "R6",
+    "why_before": "1 SILENT: CONGRESS; 4 unproven: Open the Cabinet at London → [handoff: open_diplomacy_for]; Open the Cabinet at St Petersburg → [handoff: open_diplomacy_for]; Open the Cabinet at Vienna → [handoff: open_diplomacy_for]; Open the Cabinet at Berlin → [handoff: open_diplomacy_for]",
+    "why_after": "12 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_doctrine_nations",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea '═══ NATION OVERVIEW ═══\nEvery court of E')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_doctrine_nations",
+    "item": "R5",
+    "why_before": "SILENT control(s): NATIONS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_doctrine_nations",
+    "item": "R6",
+    "why_before": "1 SILENT: NATIONS",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "diplo_balance_next_league",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nFrenc'); 2560x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nFrenc'); 3440x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nFrenc'); 5120x1440: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nFrenc'); 3840x2160: 1 row(s) under the floor (worst 4.41 : 1, cd5c5cff on 141926, ContentArea 'BALANCE OF EUROPE\n────────────────\nFrenc')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diplo_balance_next_league",
+    "item": "R5",
+    "why_before": "SILENT control(s): THREAT & COALITION (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_balance_next_league",
+    "item": "R6",
+    "why_before": "1 SILENT: THREAT & COALITION",
+    "why_after": "8 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_territories",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate September 1805\n'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate September 1805\n'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate September 1805\n'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate September 1805\n'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate September 1805\n')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_territories",
+    "item": "R5",
+    "why_before": "SILENT control(s): TERRITORIES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_territories",
+    "item": "R6",
+    "why_before": "1 SILENT: TERRITORIES",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_intel",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ INTELLIGENCE ═══\nLate September 1805'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ INTELLIGENCE ═══\nLate September 1805'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ INTELLIGENCE ═══\nLate September 1805'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ INTELLIGENCE ═══\nLate September 1805'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ INTELLIGENCE ═══\nLate September 1805')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_intel",
+    "item": "R5",
+    "why_before": "SILENT control(s): INTELLIGENCE (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_intel",
+    "item": "R6",
+    "why_before": "1 SILENT: INTELLIGENCE",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_manpower",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ MANPOWER ═══\nLate September 1805\nThe'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ MANPOWER ═══\nLate September 1805\nThe'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ MANPOWER ═══\nLate September 1805\nThe'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ MANPOWER ═══\nLate September 1805\nThe'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ MANPOWER ═══\nLate September 1805\nThe')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_manpower",
+    "item": "R5",
+    "why_before": "SILENT control(s): MANPOWER (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_manpower",
+    "item": "R6",
+    "why_before": "1 SILENT: MANPOWER",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_orders",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_orders",
+    "item": "R5",
+    "why_before": "SILENT control(s): ORDERS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_orders",
+    "item": "R6",
+    "why_before": "1 SILENT: ORDERS",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_admiralty",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nLate September 180'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nLate September 180'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nLate September 180'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nLate September 180'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nLate September 180')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_admiralty",
+    "item": "R5",
+    "why_before": "SILENT control(s): ADMIRALTY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_admiralty",
+    "item": "R6",
+    "why_before": "1 SILENT: ADMIRALTY; 3 unproven: Blockade the enemy [handoff: naval_command]; The Grand Diversion [handoff: naval_command]; Lay down ships (400g at Bordelais) [handoff: naval_command]",
+    "why_after": "12 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_boot_laws",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_boot_laws",
+    "item": "R5",
+    "why_before": "SILENT control(s): LAWS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_boot_laws",
+    "item": "R6",
+    "why_before": "1 SILENT: LAWS; 3 unproven: Enact [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]",
+    "why_after": "12 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_spent_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_spent_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_spent_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_ceiling_calm_economy",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "ledger_ceiling_calm_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_ceiling_calm_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_ceiling_calm_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_ceiling_above_economy",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_ceiling_above_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_ceiling_above_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_ceiling_above_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_ceiling_unbounded_economy",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "ledger_ceiling_unbounded_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nThe treasury's books — i'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nThe treasury's books — i'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nThe treasury's books — i'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nThe treasury's books — i'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nThe treasury's books — i')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_ceiling_unbounded_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_ceiling_unbounded_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_collapse_one_economy",
+    "item": "R2",
+    "why_before": "readers 2–1",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "ledger_collapse_one_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_collapse_one_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_collapse_one_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_collapse_none_economy",
+    "item": "R2",
+    "why_before": "readers 2–1",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "ledger_collapse_none_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe '); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nLate September 1805\nThe ')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_collapse_none_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_collapse_none_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_laws_staff",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_laws_staff",
+    "item": "R5",
+    "why_before": "SILENT control(s): LAWS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_laws_staff",
+    "item": "R6",
+    "why_before": "1 SILENT: LAWS; 6 unproven: Repeal [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]; Repeal [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]",
+    "why_after": "15 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_laws_forecast",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nF'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nF'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nF'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nF'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nF')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_laws_forecast",
+    "item": "R5",
+    "why_before": "SILENT control(s): LAWS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_laws_forecast",
+    "item": "R6",
+    "why_before": "1 SILENT: LAWS; 5 unproven: Repeal the Code Abroad instead [handoff: naval_command]; Repeal [handoff: naval_command]; Repeal [handoff: naval_command]; Enact [handoff: naval_command]; Repeal [handoff: naval_command]",
+    "why_after": "14 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_mission_court_forces",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_court_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly November 1805\nThe m'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly November 1805\nThe m'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly November 1805\nThe m'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly November 1805\nThe m'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly November 1805\nThe m')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_mission_court_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_court_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_mission_improve_forces",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_improve_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_mission_improve_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_improve_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_mission_gather_forces",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_gather_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_mission_gather_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_gather_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_mission_undermine_forces",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_undermine_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_mission_undermine_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_undermine_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_mission_transit_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nLate September 1805\nThe m')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_mission_transit_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_transit_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_mission_starved_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_mission_starved_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_starved_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_mission_recalled_forces",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "ledger_mission_recalled_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly October 1805\nThe mu')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_mission_recalled_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_mission_recalled_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_t20_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly July 1806\nThe muste'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly July 1806\nThe muste'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly July 1806\nThe muste'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly July 1806\nThe muste'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly July 1806\nThe muste')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_t20_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_t20_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_t20_economy",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nEarly July 1806\nThe trea'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nEarly July 1806\nThe trea'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nEarly July 1806\nThe trea'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nEarly July 1806\nThe trea'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ ECONOMY ═══\nEarly July 1806\nThe trea')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_t20_economy",
+    "item": "R5",
+    "why_before": "SILENT control(s): ECONOMY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_t20_economy",
+    "item": "R6",
+    "why_before": "1 SILENT: ECONOMY",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_t20_orders",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nEarly July 1806\n'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nEarly July 1806\n'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nEarly July 1806\n'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nEarly July 1806\n'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nEarly July 1806\n')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_t20_orders",
+    "item": "R5",
+    "why_before": "SILENT control(s): ORDERS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_t20_orders",
+    "item": "R6",
+    "why_before": "1 SILENT: ORDERS",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_t20_admiralty",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nEarly July 1806\nTh'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nEarly July 1806\nTh'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nEarly July 1806\nTh'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nEarly July 1806\nTh'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ THE ADMIRALTY ═══\nEarly July 1806\nTh')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_t20_admiralty",
+    "item": "R5",
+    "why_before": "SILENT control(s): ADMIRALTY (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_t20_admiralty",
+    "item": "R6",
+    "why_before": "1 SILENT: ADMIRALTY; 5 unproven: Blockade the enemy [handoff: naval_command]; The Grand Diversion [handoff: naval_command]; Lay down ships (400g at Bordelais) [handoff: naval_command]; Murat, march to Normandy [handoff: naval_command]; Lannes, march to Normandy [handoff: naval_command]",
+    "why_after": "14 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_np_seat_forces",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_np_seat_forces",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly December 1805\nThe m'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly December 1805\nThe m'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly December 1805\nThe m'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly December 1805\nThe m'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ FORCES ═══\nEarly December 1805\nThe m')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_np_seat_forces",
+    "item": "R5",
+    "why_before": "SILENT control(s): FORCES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_np_seat_forces",
+    "item": "R6",
+    "why_before": "1 SILENT: FORCES",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_fall_clock_territories",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nEarly October 1805\nT'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nEarly October 1805\nT'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nEarly October 1805\nT'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nEarly October 1805\nT'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nEarly October 1805\nT')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_fall_clock_territories",
+    "item": "R5",
+    "why_before": "SILENT control(s): TERRITORIES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_fall_clock_territories",
+    "item": "R6",
+    "why_before": "1 SILENT: TERRITORIES",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_congress_clock_territories",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate October 1805\nTh'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate October 1805\nTh'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate October 1805\nTh'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate October 1805\nTh'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ TERRITORIES ═══\nLate October 1805\nTh')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_congress_clock_territories",
+    "item": "R5",
+    "why_before": "SILENT control(s): TERRITORIES (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_congress_clock_territories",
+    "item": "R6",
+    "why_before": "1 SILENT: TERRITORIES",
+    "why_after": "9 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_laws_train",
+    "item": "R2",
+    "why_before": "readers 2–1",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "ledger_laws_train",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea 'THE LAWS OF STATE\nLate September 1805\n\nT')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_laws_train",
+    "item": "R5",
+    "why_before": "SILENT control(s): LAWS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_laws_train",
+    "item": "R6",
+    "why_before": "1 SILENT: LAWS; 3 unproven: Enact [handoff: naval_command]; Enact [handoff: naval_command]; Enact [handoff: naval_command]",
+    "why_after": "12 control(s) answer on screen"
+   },
+   {
+    "surface": "ledger_orders_display",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 2560x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 3440x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 5120x1440: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1'); 3840x2160: 1 row(s) under the floor (worst 4.44 : 1, 808080ff on 141926, ContentArea '═══ STANDING ORDERS ═══\nLate September 1')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "ledger_orders_display",
+    "item": "R5",
+    "why_before": "SILENT control(s): ORDERS (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "ledger_orders_display",
+    "item": "R6",
+    "why_before": "1 SILENT: ORDERS; 1 unproven: cancel:Lannes [handoff: cancel_strategic_order]",
+    "why_after": "10 control(s) answer on screen"
+   },
+   {
+    "surface": "war_room_tutorial",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_room_tutorial",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.26 : 1, 808080ff on 1a1d27, BodyText 'I. The Situation\nSire — Austria has push'); 2560x1440: 1 row(s) under the floor (worst 4.26 : 1, 808080ff on 1a1d27, BodyText 'I. The Situation\nSire — Austria has push'); 3440x1440: 1 row(s) under the floor (worst 4.26 : 1, 808080ff on 1a1d27, BodyText 'I. The Situation\nSire — Austria has push'); 5120x1440: 1 row(s) under the floor (worst 4.26 : 1, 808080ff on 1a1d27, BodyText 'I. The Situation\nSire — Austria has push'); 3840x2160: 1 row(s) under the floor (worst 4.26 : 1, 808080ff on 1a1d27, BodyText 'I. The Situation\nSire — Austria has push')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "war_room_tutorial",
+    "item": "R4",
+    "why_before": "1 one-off size(s) and 47 one-off grey(s): res://scenes/map_renderer_base.gd (29), res://scenes/main.tscn (9), res://scenes/top_bar.tscn (2), res://scripts/main.gd (2), res://scripts/top_bar.gd (2), res://scripts/war_status_panel.gd (2), res://scenes/map_connection_layer.gd (1), res://scenes/tutorial_overlay.tscn (1)",
+    "why_after": "0 one-off sizes or greys in 16 file(s) (frames)"
+   },
+   {
+    "surface": "war_room_tutorial",
+    "item": "R5",
+    "why_before": "SILENT control(s): Execute; ZoomOutButton; FitEuropeButton (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_room_tutorial",
+    "item": "R6",
+    "why_before": "3 SILENT: Execute; Zoom out  (−); Fit Europe — the whole theatre  (Home re; 1 unproven: Envoys [handoff: envoy_clicked: get_mailbox]",
+    "why_after": "21 control(s) answer on screen, 1 by a cited live record"
+   },
+   {
+    "surface": "tutorial_card",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scenes/tutorial_overlay.tscn (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "enemy_phase_t20",
+    "item": "R3",
+    "why_before": "1920x1080: 1 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, TitleLabel 'ENEMY PHASE - Turn 21'); 2560x1440: 1 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, TitleLabel 'ENEMY PHASE - Turn 21'); 3440x1440: 1 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, TitleLabel 'ENEMY PHASE - Turn 21'); 5120x1440: 1 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, TitleLabel 'ENEMY PHASE - Turn 21'); 3840x2160: 1 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, TitleLabel 'ENEMY PHASE - Turn 21')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "enemy_phase_t20",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/enemy_phase_dialog.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "enemy_phase_t20",
+    "item": "R6",
+    "why_before": "1 unproven: ⚔ View the field [handoff: view_field_requested]",
+    "why_after": "2 control(s) answer on screen"
+   },
+   {
+    "surface": "enemy_phase_collapse",
+    "item": "R3",
+    "why_before": "1920x1080: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'AUSTRIA\n--------------------------------'); 2560x1440: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'AUSTRIA\n--------------------------------'); 3440x1440: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'AUSTRIA\n--------------------------------'); 5120x1440: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'AUSTRIA\n--------------------------------'); 3840x2160: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'AUSTRIA\n--------------------------------')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "enemy_phase_collapse",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/enemy_phase_dialog.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "enemy_phase_collapse",
+    "item": "R6",
+    "why_before": "1 unproven: ⚔ View the field [handoff: view_field_requested]",
+    "why_after": "1 control(s) answer on screen, 1 by a cited live record"
+   },
+   {
+    "surface": "enemy_phase_iq5",
+    "item": "R3",
+    "why_before": "1920x1080: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'BRITAIN\n--------------------------------'); 2560x1440: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'BRITAIN\n--------------------------------'); 3440x1440: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'BRITAIN\n--------------------------------'); 5120x1440: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'BRITAIN\n--------------------------------'); 3840x2160: 2 row(s) under the floor (worst 4.29 : 1, cd5c5cff on 1a1a2e, ContentLabel 'BRITAIN\n--------------------------------')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "enemy_phase_iq5",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 2 one-off grey(s): res://scripts/enemy_phase_dialog.gd (2)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "enemy_phase_iq5",
+    "item": "R6",
+    "why_before": "1 unproven: ⚔ View the field [handoff: view_field_requested]",
+    "why_after": "2 control(s) answer on screen"
+   },
+   {
+    "surface": "diorama_aadj",
+    "item": "R3",
+    "why_before": "1920x1080: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1377 '⚔'); 2560x1440: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1441 '⚔'); 3440x1440: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1505 '⚔'); 5120x1440: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1569 '⚔'); 3840x2160: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1633 '⚔')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diorama_aadj",
+    "item": "R4",
+    "why_before": "5 one-off size(s) and 8 one-off grey(s): res://scripts/battle_diorama.gd (9), res://scenes/diorama_figure.gd (3), res://scripts/portrait_locket.gd (1)",
+    "why_after": "0 one-off sizes or greys in 5 file(s) (frames)"
+   },
+   {
+    "surface": "diorama_dadj",
+    "item": "R3",
+    "why_before": "1920x1080: 5 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1697 '⚔'); 2560x1440: 5 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1761 '⚔'); 3440x1440: 5 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1825 '⚔'); 5120x1440: 5 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1889 '⚔'); 3840x2160: 5 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@1953 '⚔')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diorama_dadj",
+    "item": "R4",
+    "why_before": "5 one-off size(s) and 8 one-off grey(s): res://scripts/battle_diorama.gd (9), res://scenes/diorama_figure.gd (3), res://scripts/portrait_locket.gd (1)",
+    "why_after": "0 one-off sizes or greys in 5 file(s) (frames)"
+   },
+   {
+    "surface": "diorama_rout_conquest",
+    "item": "R3",
+    "why_before": "1920x1080: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2017 '⚔'); 2560x1440: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2067 '⚔'); 3440x1440: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2117 '⚔'); 5120x1440: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2167 '⚔'); 3840x2160: 4 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2217 '⚔')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diorama_rout_conquest",
+    "item": "R4",
+    "why_before": "5 one-off size(s) and 8 one-off grey(s): res://scripts/battle_diorama.gd (9), res://scenes/diorama_figure.gd (3), res://scripts/portrait_locket.gd (1)",
+    "why_after": "0 one-off sizes or greys in 5 file(s) (frames)"
+   },
+   {
+    "surface": "diorama_four_contingents",
+    "item": "R3",
+    "why_before": "1920x1080: 3 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2267 '⚔'); 2560x1440: 3 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2398 '⚔'); 3440x1440: 3 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2529 '⚔'); 5120x1440: 3 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2660 '⚔'); 3840x2160: 3 row(s) under the floor (worst 2.77 : 1, d9bf8c8c on 374935, @Label@2791 '⚔')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diorama_four_contingents",
+    "item": "R4",
+    "why_before": "5 one-off size(s) and 8 one-off grey(s): res://scripts/battle_diorama.gd (9), res://scenes/diorama_figure.gd (3), res://scripts/portrait_locket.gd (1)",
+    "why_after": "0 one-off sizes or greys in 5 file(s) (frames)"
+   },
+   {
+    "surface": "diorama_naval",
+    "item": "R3",
+    "why_before": "1920x1080: 6 row(s) under the floor (worst 2.93 : 1, b8332eff on 131b24, @Label@2961 'STRUCK'); 2560x1440: 6 row(s) under the floor (worst 2.93 : 1, b8332eff on 131b24, @Label@3024 'STRUCK'); 3440x1440: 6 row(s) under the floor (worst 2.93 : 1, b8332eff on 131b24, @Label@3087 'STRUCK'); 5120x1440: 6 row(s) under the floor (worst 2.93 : 1, b8332eff on 131b24, @Label@3150 'STRUCK'); 3840x2160: 6 row(s) under the floor (worst 2.93 : 1, b8332eff on 131b24, @Label@3213 'STRUCK')",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "diorama_naval",
+    "item": "R4",
+    "why_before": "5 one-off size(s) and 8 one-off grey(s): res://scripts/battle_diorama.gd (9), res://scenes/diorama_figure.gd (3), res://scripts/portrait_locket.gd (1)",
+    "why_after": "0 one-off sizes or greys in 5 file(s) (frames)"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R1",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "0 RED / 0 P1 at all five resolutions"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R3",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/objection_dialog.gd (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R5",
+    "why_before": "no IQ-10 shot: the driven half cannot be evidenced (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R6",
+    "why_before": "no IQ-10 shot: the action probe cannot reach it",
+    "why_after": "3 control(s) answer on screen"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R7",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+   },
+   {
+    "surface": "objection_dialog",
+    "item": "R8",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "talleyrand_objection",
+    "item": "R1",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "0 RED / 0 P1 at all five resolutions"
+   },
+   {
+    "surface": "talleyrand_objection",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "talleyrand_objection",
+    "item": "R3",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "talleyrand_objection",
+    "item": "R5",
+    "why_before": "no IQ-10 shot: the driven half cannot be evidenced (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "talleyrand_objection",
+    "item": "R6",
+    "why_before": "no IQ-10 shot: the action probe cannot reach it",
+    "why_after": "3 control(s) answer on screen"
+   },
+   {
+    "surface": "talleyrand_objection",
+    "item": "R7",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+   },
+   {
+    "surface": "talleyrand_objection",
+    "item": "R8",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R1",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "0 RED / 0 P1 at all five resolutions"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R3",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "0 rows under 4.5 / 3 : 1 at all five resolutions (High contrast off)"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scenes/capture_choice_dialog.tscn (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R5",
+    "why_before": "no IQ-10 shot: the driven half cannot be evidenced (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R6",
+    "why_before": "no IQ-10 shot: the action probe cannot reach it",
+    "why_after": "2 control(s) answer on screen"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R7",
+    "why_before": "no IQ-10 shot: the capture harness cannot reach it",
+    "why_after": "nothing clipped, cut, off-screen or under a modal at 1920x1080, 3840x2160, 5120x1440"
+   },
+   {
+    "surface": "capture_choice",
+    "item": "R8",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "petition_command_closed",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 4 one-off grey(s): res://scripts/marshal_petition_dialog.gd (3), res://scenes/marshal_petition_dialog.tscn (1)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "mailbox_boot",
+    "item": "R2",
+    "why_before": "readers 2–1",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "mailbox_boot",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 6 one-off grey(s): res://scripts/mailbox_panel.gd (6)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "mailbox_petition",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 6 one-off grey(s): res://scripts/mailbox_panel.gd (6)",
+    "why_after": "0 one-off sizes or greys in 2 file(s) (frames)"
+   },
+   {
+    "surface": "mailbox_petition",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "proclamation_warsaw",
+    "item": "R4",
+    "why_before": "1 one-off size(s) and 0 one-off grey(s): res://scripts/proclamation_popup.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "main_menu",
+    "item": "R4",
+    "why_before": "5 one-off size(s) and 3 one-off grey(s): res://scripts/main_menu.gd (8)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "main_menu",
+    "item": "R5",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "main_menu",
+    "item": "R6",
+    "why_before": "1 unproven: Quit to Desktop [not pressed]",
+    "why_after": "3 control(s) answer on screen, 1 by a cited live record"
+   },
+   {
+    "surface": "main_menu_settings",
+    "item": "R4",
+    "why_before": "5 one-off size(s) and 4 one-off grey(s): res://scripts/main_menu.gd (8), res://scripts/settings_panel.gd (1)",
+    "why_after": "0 one-off sizes or greys in 4 file(s) (frames)"
+   },
+   {
+    "surface": "main_menu_settings",
+    "item": "R5",
+    "why_before": "SILENT control(s): Settings; Connect; Disconnect (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "main_menu_settings",
+    "item": "R6",
+    "why_before": "3 SILENT: Settings; Connect; Disconnect; 1 unproven: Quit to Desktop [not pressed]",
+    "why_after": "10 control(s) answer on screen, 1 by a cited live record"
+   },
+   {
+    "surface": "war_room_pause_settings",
+    "item": "R4",
+    "why_before": "1 one-off size(s) and 50 one-off grey(s): res://scenes/map_renderer_base.gd (29), res://scenes/main.tscn (9), res://scenes/pause_menu.tscn (2), res://scenes/top_bar.tscn (2), res://scripts/main.gd (2), res://scripts/top_bar.gd (2), res://scripts/war_status_panel.gd (2), res://scenes/map_connection_layer.gd (1), res://scripts/pause_menu.gd (1), res://scripts/settings_panel.gd (1)",
+    "why_after": "0 one-off sizes or greys in 18 file(s) (frames)"
+   },
+   {
+    "surface": "war_room_pause_settings",
+    "item": "R5",
+    "why_before": "SILENT control(s): Connect; Disconnect (readers 3–0)",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "war_room_pause_settings",
+    "item": "R6",
+    "why_before": "2 SILENT: Connect; Disconnect; 5 unproven: Save Game [not pressed]; Load Game [not pressed]; New Campaign [not pressed]; Main Menu [not pressed]; Quit to Desktop [not pressed]",
+    "why_after": "10 control(s) answer on screen, 5 by a cited live record"
+   },
+   {
+    "surface": "campaign_end_verdict",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/campaign_end.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "campaign_end_imperial",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/campaign_end.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "campaign_end_imperial_congress",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/campaign_end.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "campaign_end_humbled",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/campaign_end.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "campaign_end_fall_funeral",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/campaign_end.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "campaign_end_fall_funeral",
+    "item": "R6",
+    "why_before": "1 unproven: Main Menu [not pressed]",
+    "why_after": "0 control(s) answer on screen, 2 by a cited live record"
+   },
+   {
+    "surface": "campaign_end_fall_chains",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/campaign_end.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "campaign_end_fall_chains",
+    "item": "R6",
+    "why_before": "1 unproven: Main Menu [not pressed]",
+    "why_after": "0 control(s) answer on screen, 2 by a cited live record"
+   },
+   {
+    "surface": "campaign_end_fall_abdication",
+    "item": "R4",
+    "why_before": "0 one-off size(s) and 1 one-off grey(s): res://scripts/campaign_end.gd (1)",
+    "why_after": "0 one-off sizes or greys in 3 file(s) (frames)"
+   },
+   {
+    "surface": "campaign_end_fall_abdication",
+    "item": "R6",
+    "why_before": "1 unproven: Main Menu [not pressed]",
+    "why_after": "0 control(s) answer on screen, 2 by a cited live record"
+   }
+  ],
+  "broke": [
+   {
+    "surface": "region_doctrine_posen",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 2–1"
+   },
+   {
+    "surface": "region_doctrine_tyrol",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "generals_boot",
+    "item": "R2",
+    "why_before": "readers 3–0",
+    "why_after": "readers 3–0"
+   },
+   {
+    "surface": "diplo_petition_granted_vassals",
+    "item": "R2",
+    "why_before": "readers 2–1",
+    "why_after": "readers 2–1"
+   }
+  ]
+ },
+ "groups": {
+  "before": [
+   {
+    "key": "war_room",
+    "order": 1,
+    "top_five": true,
+    "surfaces": 27,
+    "mean": 5.85,
+    "min": 5,
+    "eight_of_eight": 0,
+    "under_six": 8
+   },
+   {
+    "key": "dispatch",
+    "order": 2,
+    "top_five": true,
+    "surfaces": 11,
+    "mean": 6.91,
+    "min": 6,
+    "eight_of_eight": 2,
+    "under_six": 0
+   },
+   {
+    "key": "generals",
+    "order": 3,
+    "top_five": true,
+    "surfaces": 8,
+    "mean": 4.38,
+    "min": 4,
+    "eight_of_eight": 0,
+    "under_six": 8
+   },
+   {
+    "key": "diplomacy",
+    "order": 4,
+    "top_five": true,
+    "surfaces": 37,
+    "mean": 5.54,
+    "min": 4,
+    "eight_of_eight": 2,
+    "under_six": 24
+   },
+   {
+    "key": "strategic_ledger",
+    "order": 5,
+    "top_five": true,
+    "surfaces": 32,
+    "mean": 4.56,
+    "min": 4,
+    "eight_of_eight": 0,
+    "under_six": 32
+   },
+   {
+    "key": "tutorial",
+    "order": 6,
+    "top_five": false,
+    "surfaces": 2,
+    "mean": 5.0,
+    "min": 3,
+    "eight_of_eight": 0,
+    "under_six": 1
+   },
+   {
+    "key": "enemy_phase_and_diorama",
+    "order": 7,
+    "top_five": false,
+    "surfaces": 8,
+    "mean": 5.62,
+    "min": 5,
+    "eight_of_eight": 0,
+    "under_six": 3
+   },
+   {
+    "key": "popups",
+    "order": 8,
+    "top_five": false,
+    "surfaces": 10,
+    "mean": 5.1,
+    "min": 0,
+    "eight_of_eight": 3,
+    "under_six": 3
+   },
+   {
+    "key": "menu_and_settings",
+    "order": 9,
+    "top_five": false,
+    "surfaces": 3,
+    "mean": 5.0,
+    "min": 5,
+    "eight_of_eight": 0,
+    "under_six": 3
+   },
+   {
+    "key": "campaign_end",
+    "order": 10,
+    "top_five": false,
+    "surfaces": 7,
+    "mean": 6.57,
+    "min": 6,
+    "eight_of_eight": 0,
+    "under_six": 0
+   }
+  ],
+  "after": [
+   {
+    "key": "war_room",
+    "order": 1,
+    "top_five": true,
+    "surfaces": 27,
+    "mean": 7.89,
+    "min": 7,
+    "eight_of_eight": 24,
+    "under_six": 0
+   },
+   {
+    "key": "dispatch",
+    "order": 2,
+    "top_five": true,
+    "surfaces": 11,
+    "mean": 8.0,
+    "min": 8,
+    "eight_of_eight": 11,
+    "under_six": 0
+   },
+   {
+    "key": "generals",
+    "order": 3,
+    "top_five": true,
+    "surfaces": 8,
+    "mean": 7.62,
+    "min": 7,
+    "eight_of_eight": 5,
+    "under_six": 0
+   },
+   {
+    "key": "diplomacy",
+    "order": 4,
+    "top_five": true,
+    "surfaces": 37,
+    "mean": 7.92,
+    "min": 7,
+    "eight_of_eight": 34,
+    "under_six": 0
+   },
+   {
+    "key": "strategic_ledger",
+    "order": 5,
+    "top_five": true,
+    "surfaces": 32,
+    "mean": 7.94,
+    "min": 7,
+    "eight_of_eight": 30,
+    "under_six": 0
+   },
+   {
+    "key": "tutorial",
+    "order": 6,
+    "top_five": false,
+    "surfaces": 2,
+    "mean": 8.0,
+    "min": 8,
+    "eight_of_eight": 2,
+    "under_six": 0
+   },
+   {
+    "key": "enemy_phase_and_diorama",
+    "order": 7,
+    "top_five": false,
+    "surfaces": 8,
+    "mean": 8.0,
+    "min": 8,
+    "eight_of_eight": 8,
+    "under_six": 0
+   },
+   {
+    "key": "popups",
+    "order": 8,
+    "top_five": false,
+    "surfaces": 10,
+    "mean": 8.0,
+    "min": 8,
+    "eight_of_eight": 10,
+    "under_six": 0
+   },
+   {
+    "key": "menu_and_settings",
+    "order": 9,
+    "top_five": false,
+    "surfaces": 3,
+    "mean": 8.0,
+    "min": 8,
+    "eight_of_eight": 3,
+    "under_six": 0
+   },
+   {
+    "key": "campaign_end",
+    "order": 10,
+    "top_five": false,
+    "surfaces": 7,
+    "mean": 8.0,
+    "min": 8,
+    "eight_of_eight": 7,
+    "under_six": 0
+   }
+  ]
+ },
+ "score_histogram": {
+  "0": 0,
+  "1": 0,
+  "2": 0,
+  "3": 0,
+  "4": 0,
+  "5": 0,
+  "6": 0,
+  "7": 11,
+  "8": 134
+ },
+ "worst_five": [
+  "top_bar_boot",
+  "region_doctrine_posen",
+  "region_doctrine_tyrol",
+  "generals_boot",
+  "generals_t20"
+ ],
+ "rows": [
+  {
+   "id": "UXR3-1",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "rail_mission_court",
+    "rail_mission_improve",
+    "rail_mission_gather"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-2",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "top_bar_boot",
+    "top_bar_mission_court"
+   ],
+   "state": "OPEN",
+   "still": [
+    "top_bar_boot R2"
+   ]
+  },
+  {
+   "id": "UXR3-3",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "region_paris",
+    "region_rhineland",
+    "region_amsterdam",
+    "region_milan",
+    "region_vienna",
+    "region_doctrine_posen",
+    "region_paris_build_open"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-4",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "region_doctrine_tyrol"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-5",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "war_detail_boot",
+    "war_detail_coalition_boot",
+    "war_detail_coalition_t20"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-6",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "war_detail_collapse_one",
+    "war_detail_collapse_none",
+    "war_detail_t20"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-7",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "war_room_boot"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-8",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "rail_mission_court",
+    "rail_mission_improve",
+    "rail_mission_gather",
+    "rail_t20",
+    "rail_counter_punch"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-9",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "top_bar_boot",
+    "top_bar_admiralty",
+    "top_bar_mission_court"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-10",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "war_detail_boot",
+    "war_detail_collapse_one",
+    "war_detail_collapse_none",
+    "war_detail_t20",
+    "war_detail_coalition_boot",
+    "war_detail_coalition_t20"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-11",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "war_status_boot",
+    "war_status_collapse_one",
+    "war_status_collapse_none",
+    "war_status_t20"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-12",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "war_room_boot",
+    "war_room_tutorial",
+    "war_room_pause_settings"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-13",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "war_detail_coalition_boot",
+    "war_detail_coalition_t20"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-14",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "war_status_boot",
+    "war_status_collapse_one",
+    "war_status_collapse_none",
+    "war_status_t20"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-15",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "war_room_boot",
+    "war_room_tutorial"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-16",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "region_paris",
+    "region_rhineland",
+    "region_amsterdam",
+    "region_milan",
+    "region_doctrine_tyrol",
+    "region_paris_build_open"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-17",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "top_bar_boot",
+    "top_bar_admiralty",
+    "top_bar_mission_court"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-18",
+   "items": [
+    "R8"
+   ],
+   "surfaces": [
+    "rail_mission_court",
+    "rail_mission_improve",
+    "rail_mission_gather"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-19",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "dispatch_congress_clock"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-20",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "gazette_congress"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-21",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "dispatch_boot_today",
+    "dispatch_t20",
+    "dispatch_collapse",
+    "dispatch_fall_clock",
+    "dispatch_congress_clock",
+    "dispatch_front_page",
+    "dispatch_front_page_league"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-22",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "gazette_t20",
+    "gazette_congress"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-23",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "dispatch_boot_today"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-24",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "generals_t20",
+    "generals_prisoner",
+    "generals_np_field",
+    "generals_np_captive",
+    "generals_doctrine"
+   ],
+   "state": "OPEN",
+   "still": [
+    "generals_t20 R2",
+    "generals_np_field R2"
+   ]
+  },
+  {
+   "id": "UXR3-25",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "generals_boot",
+    "generals_t20",
+    "generals_prisoner",
+    "generals_np_seat",
+    "generals_np_field",
+    "generals_np_captive",
+    "generals_flagship_t12",
+    "generals_doctrine"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-26",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "generals_boot",
+    "generals_t20",
+    "generals_prisoner",
+    "generals_np_seat",
+    "generals_np_field",
+    "generals_np_captive",
+    "generals_flagship_t12",
+    "generals_doctrine"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-27",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "generals_boot",
+    "generals_t20",
+    "generals_prisoner",
+    "generals_np_seat",
+    "generals_np_field",
+    "generals_np_captive",
+    "generals_flagship_t12",
+    "generals_doctrine"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-28",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "wizard_step1",
+    "wizard_step2_prussia",
+    "wizard_formables_entry"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-29",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "diplo_laws_rival_nations",
+    "diplo_collapse_cooldown_talleyrand",
+    "diplo_doctrine_nations"
+   ],
+   "state": "OPEN",
+   "still": [
+    "diplo_laws_rival_nations R2",
+    "diplo_doctrine_nations R2"
+   ]
+  },
+  {
+   "id": "UXR3-30",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "incoming_peace_losing"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-31",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "confirm_peace_losing",
+    "settlement_three_courts"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-32",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "wizard_formables_step3"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-33",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "diplo_boot_nations",
+    "diplo_boot_balance",
+    "diplo_laws_rival_nations",
+    "diplo_collapse_one_nations",
+    "diplo_collapse_cooldown_talleyrand",
+    "diplo_t20_nations",
+    "diplo_t20_balance",
+    "diplo_doctrine_nations",
+    "diplo_balance_next_league"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-34",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "diplo_boot_treaties",
+    "diplo_boot_talleyrand",
+    "diplo_boot_bargains",
+    "diplo_boot_congress",
+    "diplo_mission_court_talleyrand",
+    "diplo_mission_undermine_talleyrand",
+    "diplo_mission_recalled_talleyrand",
+    "diplo_t20_treaties",
+    "diplo_congress_gate",
+    "diplo_congress_sitting",
+    "diplo_congress_sitting_table"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-35",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "diplo_boot_vassals",
+    "diplo_collapse_none_vassals",
+    "diplo_petition_granted_vassals",
+    "diplo_t20_vassals"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-36",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "wizard_step1",
+    "wizard_step2_austria",
+    "wizard_step2_prussia",
+    "wizard_step1_congress_gate",
+    "wizard_step1_congress_ready",
+    "wizard_step1_congress_sitting",
+    "wizard_formables_entry",
+    "wizard_formables_step3"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-37",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "diplo_boot_nations",
+    "diplo_boot_treaties",
+    "diplo_boot_balance",
+    "diplo_boot_talleyrand",
+    "diplo_boot_bargains",
+    "diplo_boot_vassals",
+    "diplo_boot_congress",
+    "diplo_laws_rival_nations",
+    "diplo_collapse_one_nations",
+    "diplo_collapse_cooldown_talleyrand",
+    "diplo_collapse_none_vassals",
+    "diplo_mission_court_talleyrand",
+    "diplo_mission_undermine_talleyrand",
+    "diplo_mission_recalled_talleyrand",
+    "diplo_petition_granted_vassals",
+    "diplo_t20_nations",
+    "diplo_t20_treaties",
+    "diplo_t20_balance",
+    "diplo_t20_vassals",
+    "diplo_congress_gate",
+    "diplo_congress_sitting",
+    "diplo_congress_sitting_table",
+    "diplo_doctrine_nations",
+    "diplo_balance_next_league"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-38",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "settlement_three_courts"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-39",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "diplo_boot_nations",
+    "diplo_boot_treaties",
+    "diplo_boot_balance",
+    "diplo_boot_bargains",
+    "diplo_laws_rival_nations",
+    "diplo_collapse_one_nations",
+    "diplo_t20_nations",
+    "diplo_t20_treaties",
+    "diplo_t20_balance",
+    "diplo_doctrine_nations",
+    "diplo_balance_next_league"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-40",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "diplo_boot_talleyrand",
+    "diplo_boot_vassals",
+    "diplo_boot_congress",
+    "diplo_collapse_cooldown_talleyrand",
+    "diplo_collapse_none_vassals",
+    "diplo_mission_court_talleyrand",
+    "diplo_mission_undermine_talleyrand",
+    "diplo_mission_recalled_talleyrand",
+    "diplo_petition_granted_vassals",
+    "diplo_t20_vassals",
+    "diplo_congress_gate",
+    "diplo_congress_sitting",
+    "diplo_congress_sitting_table"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-41",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "ledger_ceiling_calm_economy",
+    "ledger_ceiling_above_economy",
+    "ledger_ceiling_unbounded_economy",
+    "ledger_collapse_one_economy",
+    "ledger_collapse_none_economy",
+    "ledger_mission_court_forces",
+    "ledger_mission_improve_forces",
+    "ledger_mission_gather_forces",
+    "ledger_mission_undermine_forces",
+    "ledger_mission_transit_forces",
+    "ledger_mission_starved_forces",
+    "ledger_mission_recalled_forces",
+    "ledger_np_seat_forces",
+    "ledger_laws_train"
+   ],
+   "state": "OPEN",
+   "still": [
+    "ledger_mission_transit_forces R2",
+    "ledger_mission_starved_forces R2"
+   ]
+  },
+  {
+   "id": "UXR3-42",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "ledger_boot_forces",
+    "ledger_boot_territories",
+    "ledger_boot_economy",
+    "ledger_boot_intel",
+    "ledger_boot_manpower",
+    "ledger_boot_orders",
+    "ledger_boot_admiralty",
+    "ledger_boot_laws",
+    "ledger_spent_economy",
+    "ledger_ceiling_calm_economy",
+    "ledger_ceiling_above_economy",
+    "ledger_ceiling_unbounded_economy",
+    "ledger_collapse_one_economy",
+    "ledger_collapse_none_economy",
+    "ledger_laws_staff",
+    "ledger_laws_forecast",
+    "ledger_mission_court_forces",
+    "ledger_mission_improve_forces",
+    "ledger_mission_gather_forces",
+    "ledger_mission_undermine_forces",
+    "ledger_mission_transit_forces",
+    "ledger_mission_starved_forces",
+    "ledger_mission_recalled_forces",
+    "ledger_t20_forces",
+    "ledger_t20_economy",
+    "ledger_t20_orders",
+    "ledger_t20_admiralty",
+    "ledger_np_seat_forces",
+    "ledger_fall_clock_territories",
+    "ledger_congress_clock_territories",
+    "ledger_laws_train",
+    "ledger_orders_display"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-43",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "ledger_boot_forces",
+    "ledger_boot_territories",
+    "ledger_boot_economy",
+    "ledger_boot_intel",
+    "ledger_boot_manpower",
+    "ledger_boot_orders",
+    "ledger_boot_admiralty",
+    "ledger_boot_laws",
+    "ledger_spent_economy",
+    "ledger_ceiling_calm_economy",
+    "ledger_ceiling_above_economy",
+    "ledger_ceiling_unbounded_economy",
+    "ledger_collapse_one_economy",
+    "ledger_collapse_none_economy",
+    "ledger_laws_staff",
+    "ledger_laws_forecast",
+    "ledger_mission_court_forces",
+    "ledger_mission_improve_forces",
+    "ledger_mission_gather_forces",
+    "ledger_mission_undermine_forces",
+    "ledger_mission_transit_forces",
+    "ledger_mission_starved_forces",
+    "ledger_mission_recalled_forces",
+    "ledger_t20_forces",
+    "ledger_t20_economy",
+    "ledger_t20_orders",
+    "ledger_t20_admiralty",
+    "ledger_np_seat_forces",
+    "ledger_fall_clock_territories",
+    "ledger_congress_clock_territories",
+    "ledger_laws_train",
+    "ledger_orders_display"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-44",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "ledger_boot_forces",
+    "ledger_boot_territories",
+    "ledger_boot_economy",
+    "ledger_boot_intel",
+    "ledger_boot_manpower",
+    "ledger_boot_orders",
+    "ledger_spent_economy",
+    "ledger_ceiling_calm_economy",
+    "ledger_ceiling_above_economy",
+    "ledger_ceiling_unbounded_economy",
+    "ledger_collapse_one_economy",
+    "ledger_collapse_none_economy",
+    "ledger_mission_court_forces",
+    "ledger_mission_improve_forces",
+    "ledger_mission_gather_forces",
+    "ledger_mission_undermine_forces",
+    "ledger_mission_transit_forces",
+    "ledger_mission_starved_forces",
+    "ledger_mission_recalled_forces",
+    "ledger_t20_forces",
+    "ledger_t20_economy",
+    "ledger_t20_orders",
+    "ledger_np_seat_forces",
+    "ledger_fall_clock_territories",
+    "ledger_congress_clock_territories"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-45",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "ledger_boot_admiralty",
+    "ledger_boot_laws",
+    "ledger_laws_staff",
+    "ledger_laws_forecast",
+    "ledger_t20_admiralty",
+    "ledger_laws_train",
+    "ledger_orders_display"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-46",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "war_room_tutorial"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-47",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "war_room_tutorial"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-48",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "war_room_tutorial"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-49",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "tutorial_card"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-50",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "diorama_aadj",
+    "diorama_dadj"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-51",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "diorama_rout_conquest",
+    "diorama_four_contingents",
+    "diorama_naval"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-52",
+   "items": [
+    "R3"
+   ],
+   "surfaces": [
+    "enemy_phase_t20",
+    "enemy_phase_collapse",
+    "enemy_phase_iq5"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-53",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "diorama_aadj",
+    "diorama_dadj",
+    "diorama_rout_conquest",
+    "diorama_four_contingents",
+    "diorama_naval"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-54",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "enemy_phase_t20",
+    "enemy_phase_collapse",
+    "enemy_phase_iq5"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-55",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "enemy_phase_t20",
+    "enemy_phase_collapse",
+    "enemy_phase_iq5"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-56",
+   "items": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8"
+   ],
+   "surfaces": [
+    "capture_choice"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-57",
+   "items": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8"
+   ],
+   "surfaces": [
+    "objection_dialog"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-58",
+   "items": [
+    "R1",
+    "R2",
+    "R3",
+    "R5",
+    "R6",
+    "R7",
+    "R8"
+   ],
+   "surfaces": [
+    "talleyrand_objection"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-59",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "mailbox_boot"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-60",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "mailbox_boot",
+    "mailbox_petition"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-61",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "petition_command_closed"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-62",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "proclamation_warsaw"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-63",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "mailbox_petition"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-64",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "war_room_pause_settings"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-65",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "main_menu"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-66",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "main_menu_settings"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-67",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "main_menu"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-68",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "main_menu_settings"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-69",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "war_room_pause_settings"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-70",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "main_menu"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-71",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "main_menu_settings"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-72",
+   "items": [
+    "R4"
+   ],
+   "surfaces": [
+    "campaign_end_verdict",
+    "campaign_end_imperial",
+    "campaign_end_imperial_congress",
+    "campaign_end_humbled",
+    "campaign_end_fall_funeral",
+    "campaign_end_fall_chains",
+    "campaign_end_fall_abdication"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-73",
+   "items": [
+    "R6"
+   ],
+   "surfaces": [
+    "campaign_end_fall_funeral",
+    "campaign_end_fall_chains",
+    "campaign_end_fall_abdication"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-74",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "dispatch_t20",
+    "dispatch_collapse",
+    "dispatch_fall_clock",
+    "dispatch_congress_clock",
+    "dispatch_front_page",
+    "dispatch_front_page_league",
+    "gazette_t20",
+    "gazette_congress",
+    "campaign_log_glyphs",
+    "campaign_log_tiers",
+    "generals_boot",
+    "generals_t20",
+    "generals_prisoner",
+    "generals_np_seat",
+    "generals_np_field",
+    "generals_np_captive",
+    "generals_flagship_t12",
+    "generals_doctrine"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-75",
+   "items": [
+    "R5"
+   ],
+   "surfaces": [
+    "diorama_aadj",
+    "diorama_dadj",
+    "diorama_rout_conquest",
+    "diorama_four_contingents",
+    "diorama_naval"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-76",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "region_paris",
+    "region_rhineland",
+    "region_amsterdam",
+    "region_milan",
+    "region_paris_build_open"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-77",
+   "items": [
+    "R2"
+   ],
+   "surfaces": [
+    "diplo_boot_nations",
+    "diplo_boot_treaties",
+    "diplo_boot_balance",
+    "diplo_boot_bargains",
+    "diplo_boot_vassals",
+    "diplo_boot_congress"
+   ],
+   "state": "FIXED",
+   "still": []
+  },
+  {
+   "id": "UXR3-78",
+   "items": [
+    "R8"
+   ],
+   "surfaces": [
+    "wizard_step1",
+    "wizard_formables_entry"
+   ],
+   "state": "FIXED",
+   "still": []
+  }
+ ],
+ "done_when": {
+  "top_five_all_eight": false,
+  "top_five_at_eight": 104,
+  "top_five_surfaces": 115,
+  "under_six": 0,
+  "met": false
+ }
+}

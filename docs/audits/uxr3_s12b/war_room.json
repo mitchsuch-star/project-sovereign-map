@@ -1,0 +1,1334 @@
+{
+ "tool": "tools/uxr3_action_probe.py --war-room",
+ "client_commit": "cf0e5213",
+ "window": [
+  1920,
+  1080
+ ],
+ "scale": 1.0,
+ "backend": "a sandboxed backend (mock parser, its own saves) on 127.0.0.1:8006",
+ "roads": {
+  "envoys": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "war_room_boot",
+   "control_count": 23,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "OutputDisplay: at 3036 '…───────────\n' -> '…───────────\nNo pending envoys at this time.\n'",
+      "1 rect(s) moved"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 17,
+     "icon": false,
+     "kind": "button",
+     "layer": 75,
+     "method": "click",
+     "n_changed": 2,
+     "path": "Control/TopBar/BarContainer/BarBG/BarLayout/RightSection/MailboxButton",
+     "rect": [
+      1587.0,
+      4.0,
+      110.0,
+      28.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/TopBar",
+       "envoy_clicked"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Envoys",
+     "toggle": false,
+     "tooltip": "No pending envoys."
+    }
+   ],
+   "errors": [],
+   "id": "envoys",
+   "live_floor": 0,
+   "reached": true,
+   "road": {
+    "path_endswith": "MailboxButton"
+   },
+   "scene": "res://scenes/main.tscn"
+  },
+  "pause_save": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "war_room_pause_settings",
+   "control_count": 17,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "33 node(s) hidden",
+      "OutputDisplay: at 3036 '…───────────\n' -> '…───────────\nSaving game...\nGame saved successfully.\n\n'",
+      "TitleLabel: 'CAMPAIGN MENU' -> '<null>'",
+      "ResumeButton: 'Resume (Esc)' -> '<null>'",
+      "SaveButton: 'Save Game' -> '<null>'",
+      "LoadButton: 'Load Game' -> '<null>'",
+      "NewGameButton: 'New Campaign' -> '<null>'",
+      "SettingsButton: 'Settings' -> '<null>'",
+      "@Label@: 'CREDITS' -> '<null>'",
+      "@Label@: 'UI' -> '<null>'",
+      "WindowModeOption: 'Maximized (the default)' -> '<null>'",
+      "ResumeButton pressed/disabled [false, false] -> <null>",
+      "SaveButton pressed/disabled [false, false] -> <null>",
+      "LoadButton pressed/disabled [false, false] -> <null>",
+      "NewGameButton pressed/disabled [false, false] -> <null>",
+      "SettingsButton pressed/disabled [false, false] -> <null>",
+      "WindowModeOption pressed/disabled [false, false] -> <null>",
+      "HudWidthOption pressed/disabled [false, false] -> <null>",
+      "SizeForScreenButton pressed/disabled [false, false] -> <null>",
+      "PreviewSampleButton pressed/disabled [false, false] -> <null>",
+      "BodyFontOption pressed/disabled [false, false] -> <null>",
+      "34 rect(s) moved"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 1,
+     "icon": false,
+     "kind": "button",
+     "layer": 120,
+     "method": "click",
+     "n_changed": 106,
+     "path": "Control/PauseMenu/PanelContainer/VBoxContainer/SaveButton",
+     "rect": [
+      776.0,
+      214.0,
+      368.0,
+      44.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/PauseMenu",
+       "closed"
+      ],
+      [
+       "Control/PauseMenu",
+       "save_requested"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Save Game",
+     "toggle": false,
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "pause_save",
+   "live_floor": 120,
+   "reached": true,
+   "road": {
+    "text": "Save Game"
+   },
+   "scene": "res://scenes/main.tscn"
+  },
+  "pause_load": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "war_room_pause_settings",
+   "control_count": 17,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "10 node(s) shown",
+      "33 node(s) hidden",
+      "TitleLabel: 'CAMPAIGN MENU' -> '<null>'",
+      "ResumeButton: 'Resume (Esc)' -> '<null>'",
+      "SaveButton: 'Save Game' -> '<null>'",
+      "LoadButton: 'Load Game' -> '<null>'",
+      "NewGameButton: 'New Campaign' -> '<null>'",
+      "SettingsButton: 'Settings' -> '<null>'",
+      "@Label@: 'CREDITS' -> '<null>'",
+      "@Label@: 'UI' -> '<null>'",
+      "WindowModeOption: 'Maximized (the default)' -> '<null>'",
+      "HudWidthOption: 'Full (the default)' -> '<null>'",
+      "ResumeButton pressed/disabled [false, false] -> <null>",
+      "SaveButton pressed/disabled [false, false] -> <null>",
+      "LoadButton pressed/disabled [false, false] -> <null>",
+      "NewGameButton pressed/disabled [false, false] -> <null>",
+      "SettingsButton pressed/disabled [false, false] -> <null>",
+      "WindowModeOption pressed/disabled [false, false] -> <null>",
+      "HudWidthOption pressed/disabled [false, false] -> <null>",
+      "SizeForScreenButton pressed/disabled [false, false] -> <null>",
+      "PreviewSampleButton pressed/disabled [false, false] -> <null>",
+      "BodyFontOption pressed/disabled [false, false] -> <null>",
+      "43 rect(s) moved"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 2,
+     "icon": false,
+     "kind": "button",
+     "layer": 120,
+     "method": "click",
+     "n_changed": 129,
+     "path": "Control/PauseMenu/PanelContainer/VBoxContainer/LoadButton",
+     "rect": [
+      776.0,
+      268.0,
+      368.0,
+      44.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/PauseMenu",
+       "closed"
+      ],
+      [
+       "Control/PauseMenu",
+       "load_requested"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Load Game",
+     "toggle": false,
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "pause_load",
+   "live_floor": 120,
+   "reached": true,
+   "road": {
+    "text": "Load Game"
+   },
+   "scene": "res://scenes/main.tscn"
+  },
+  "pause_new_campaign": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "war_room_pause_settings",
+   "control_count": 17,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "5 node(s) shown",
+      "19 node(s) hidden",
+      "@Label@: 'CREDITS' -> '<null>'",
+      "@Label@: 'UI' -> '<null>'",
+      "WindowModeOption: 'Maximized (the default)' -> '<null>'",
+      "HudWidthOption: 'Full (the default)' -> '<null>'",
+      "SizeForScreenButton: 'Size for this screen (140%)' -> '<null>'",
+      "PreviewSampleButton: 'Preview with a sample…' -> '<null>'",
+      "BodyFontOption: 'Garamond (the default)' -> '<null>'",
+      "HighContrastToggle: 'High contrast' -> '<null>'",
+      "ResetLayoutButton: 'Reset layout' -> '<null>'",
+      "@CheckButton@: 'Battle sounds' -> '<null>'",
+      "SaveButton pressed/disabled [false, false] -> [false, true]",
+      "LoadButton pressed/disabled [false, false] -> [false, true]",
+      "NewGameButton pressed/disabled [false, false] -> [false, true]",
+      "SettingsButton pressed/disabled [false, false] -> [false, true]",
+      "WindowModeOption pressed/disabled [false, false] -> <null>",
+      "HudWidthOption pressed/disabled [false, false] -> <null>",
+      "SizeForScreenButton pressed/disabled [false, false] -> <null>",
+      "PreviewSampleButton pressed/disabled [false, false] -> <null>",
+      "BodyFontOption pressed/disabled [false, false] -> <null>",
+      "HighContrastToggle pressed/disabled [false, false] -> <null>",
+      "37 rect(s) moved"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 3,
+     "icon": false,
+     "kind": "button",
+     "layer": 120,
+     "method": "click",
+     "n_changed": 94,
+     "path": "Control/PauseMenu/PanelContainer/VBoxContainer/NewGameButton",
+     "rect": [
+      776.0,
+      322.0,
+      368.0,
+      44.0
+     ],
+     "result": "VISIBLE",
+     "signals": [],
+     "text": "New Campaign",
+     "toggle": false,
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "pause_new_campaign",
+   "live_floor": 120,
+   "reached": true,
+   "road": {
+    "text": "New Campaign"
+   },
+   "scene": "res://scenes/main.tscn"
+  },
+  "pause_main_menu": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "war_room_pause_settings",
+   "control_count": 17,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "the scene -> main_menu.tscn",
+      "18 node(s) shown",
+      "142 node(s) hidden",
+      "@Label@: '5' -> '<null>'",
+      "@Label@: 'Massena' -> '<null>'",
+      "@Label@: '10k' -> '<null>'",
+      "Title: '⚔ IMPERIAL COMMAND ⚔' -> '<null>'",
+      "TextSizeLabel: 'Scale' -> '<null>'",
+      "ScaleUpButton: '+' -> '<null>'",
+      "ScaleDownButton: '−' -> '<null>'",
+      "MinimizeButton: '—' -> '<null>'",
+      "TurnLabel: 'Turn:' -> '<null>'",
+      "TurnValue: '1' -> '<null>'",
+      "ScaleUpButton pressed/disabled [false, false] -> <null>",
+      "ScaleDownButton pressed/disabled [false, false] -> <null>",
+      "MinimizeButton pressed/disabled [false, false] -> <null>",
+      "SendButton pressed/disabled [false, true] -> <null>",
+      "DiplomacyButton pressed/disabled [false, false] -> <null>",
+      "EndTurnButton pressed/disabled [false, false] -> <null>",
+      "@Button@ pressed/disabled [false, false] -> <null>",
+      "ResumeButton pressed/disabled [false, false] -> <null>",
+      "SaveButton pressed/disabled [false, false] -> <null>",
+      "LoadButton pressed/disabled [false, false] -> <null>",
+      "153 rect(s) moved"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 15,
+     "icon": false,
+     "kind": "button",
+     "layer": 120,
+     "method": "click",
+     "n_changed": 426,
+     "path": "Control/PauseMenu/PanelContainer/VBoxContainer/MainMenuButton",
+     "rect": [
+      776.0,
+      838.0,
+      368.0,
+      44.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/PauseMenu",
+       "closed"
+      ],
+      [
+       "Control/PauseMenu",
+       "main_menu_requested"
+      ]
+     ],
+     "text": "Main Menu",
+     "toggle": false,
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "pause_main_menu",
+   "live_floor": 120,
+   "reached": true,
+   "road": {
+    "text": "Main Menu"
+   },
+   "scene": "res://scenes/main.tscn"
+  },
+  "pause_quit": {
+   "id": "pause_quit",
+   "base_id": "war_room_pause_settings",
+   "scene": "res://scenes/main.tscn",
+   "road": {
+    "text": "Quit to Desktop"
+   },
+   "reached": true,
+   "backend": "127.0.0.1:8006",
+   "controls": [
+    {
+     "i": 16,
+     "kind": "button",
+     "text": "Quit to Desktop",
+     "result": "VISIBLE",
+     "method": "click",
+     "changes": [
+      "the engine exited cleanly (code 0) after the press: the window closed"
+     ],
+     "engine_exit": 0,
+     "seconds_after_launch": 66.7
+    }
+   ],
+   "errors": []
+  },
+  "menu_quit": {
+   "id": "menu_quit",
+   "base_id": "main_menu",
+   "scene": "res://scenes/main_menu.tscn",
+   "road": {
+    "text": "Quit to Desktop"
+   },
+   "reached": true,
+   "backend": "127.0.0.1:8006",
+   "controls": [
+    {
+     "i": 5,
+     "kind": "button",
+     "text": "Quit to Desktop",
+     "result": "VISIBLE",
+     "method": "click",
+     "changes": [
+      "the engine exited cleanly (code 0) after the press: the window closed"
+     ],
+     "engine_exit": 0,
+     "seconds_after_launch": 6.6
+    }
+   ],
+   "errors": []
+  },
+  "fall_main_menu": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "campaign_end_fall_funeral",
+   "control_count": 2,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "the scene -> main_menu.tscn",
+      "18 node(s) shown",
+      "132 node(s) hidden",
+      "SailCount_Britain: '100' -> '<null>'",
+      "SailCount_France: '45' -> '<null>'",
+      "SailCount_Spain: '30' -> '<null>'",
+      "SailCount_Russia: '20' -> '<null>'",
+      "SailCount_Denmark: '18' -> '<null>'",
+      "SailCount_Ottoman: '15' -> '<null>'",
+      "SailCount_Holland: '12' -> '<null>'",
+      "SailCount_Portugal: '10' -> '<null>'",
+      "SailCount_Sweden: '10' -> '<null>'",
+      "SailCount_Naples: '5' -> '<null>'",
+      "ScaleUpButton pressed/disabled [false, false] -> <null>",
+      "ScaleDownButton pressed/disabled [false, false] -> <null>",
+      "MinimizeButton pressed/disabled [false, false] -> <null>",
+      "SendButton pressed/disabled [false, true] -> <null>",
+      "DiplomacyButton pressed/disabled [false, false] -> <null>",
+      "EndTurnButton pressed/disabled [false, false] -> <null>",
+      "PrimaryButton pressed/disabled [false, false] -> <null>",
+      "SecondaryButton pressed/disabled [false, false] -> <null>",
+      "@Button@ pressed/disabled [false, false] -> <null>",
+      "EventLogBtn pressed/disabled [false, false] -> <null>",
+      "143 rect(s) moved"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 1,
+     "icon": false,
+     "kind": "button",
+     "layer": 122,
+     "method": "click",
+     "n_changed": 385,
+     "path": "Control/CampaignEnd/PanelContainer/VBoxContainer/ButtonContainer/SecondaryButton",
+     "rect": [
+      969.0,
+      780.0,
+      250.0,
+      46.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/CampaignEnd",
+       "main_menu_requested"
+      ]
+     ],
+     "text": "Main Menu",
+     "toggle": false,
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "fall_main_menu",
+   "live_floor": 122,
+   "reached": true,
+   "road": {
+    "text": "Main Menu"
+   },
+   "scene": "res://scenes/campaign_end.tscn"
+  },
+  "generals_order": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "generals_boot",
+   "control_count": 21,
+   "controls": [
+    {
+     "api_calls": [
+      "get_marshal_overview"
+     ],
+     "changes": [
+      "ContentArea: at 2577 '…Neutral\n    Fortify      Drill   Mack is at Swabia, one regi' -> '…Neutral\n    Sent: Fortify      Drill   Mack is at Swabia, on'",
+      "3 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 11,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 0,
+     "meta": "order:fortify:Napoleon",
+     "meta_value": "order:fortify:Napoleon",
+     "method": "meta_clicked",
+     "n_changed": 4,
+     "path": "Control/MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      560.0,
+      298.0,
+      792.0,
+      5693.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/MarshalManagement",
+       "order_command"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Fortify",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "generals_order",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "order:"
+   },
+   "scene": "res://scenes/marshal_management.tscn"
+  },
+  "generals_reward": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "generals_np_field",
+   "control_count": 27,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "11 node(s) shown",
+      "TitleLabel: '<null>' -> 'REWARD MARSHAL NEY'",
+      "InfoLabel: '<null>' -> 'Ney expects 120g/turn — holds 112g/turn '",
+      "@Button@: '<null>' -> 'Revoke his rente — keep 180g/turn; his s'",
+      "CancelButton: '<null>' -> 'Not now'",
+      "@Button@ pressed/disabled <null> -> [false, false]",
+      "CancelButton pressed/disabled <null> -> [false, false]",
+      "14 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 13,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 2,
+     "meta": "reward:0",
+     "meta_value": "reward:0",
+     "method": "meta_clicked",
+     "n_changed": 31,
+     "path": "Control/MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      560.0,
+      298.0,
+      792.0,
+      5418.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/MarshalManagement",
+       "reward_requested"
+      ]
+     ],
+     "text": "Reward — estate or rente…",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "generals_reward",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "reward:"
+   },
+   "scene": "res://scenes/marshal_management.tscn"
+  },
+  "diplo_assess": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "diplo_boot_talleyrand",
+   "control_count": 20,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "25 node(s) shown",
+      "31 node(s) hidden",
+      "OutputDisplay: at 1178 '…optional).\"\n' -> '…optional).\"\n\n► Talleyrand, assess our situation\n'",
+      "TitleLabel: 'DIPLOMATIC LEDGER' -> '<null>'",
+      "CabinetLine: 'Talleyrand: Idle   ' -> '<null>'",
+      "DPDisplay: 'DP: 5/5' -> '<null>'",
+      "CloseButton: '' -> '<null>'",
+      "NationsTab: 'NATIONS' -> '<null>'",
+      "TreatiesTab: 'TREATIES' -> '<null>'",
+      "ThreatTab: 'THREAT & COALITION' -> '<null>'",
+      "TalleyrandTab: 'TALLEYRAND' -> '<null>'",
+      "BargainsTab: 'WAR BARGAINS' -> '<null>'",
+      "DiplomacyButton pressed/disabled [false, false] -> [false, true]",
+      "EndTurnButton pressed/disabled [false, false] -> [false, true]",
+      "CloseButton pressed/disabled [false, false] -> <null>",
+      "NationsTab pressed/disabled [false, false] -> <null>",
+      "TreatiesTab pressed/disabled [false, false] -> <null>",
+      "ThreatTab pressed/disabled [false, false] -> <null>",
+      "TalleyrandTab pressed/disabled [false, true] -> <null>",
+      "BargainsTab pressed/disabled [false, false] -> <null>",
+      "VassalsTab pressed/disabled [false, false] -> <null>",
+      "CongressTab pressed/disabled [false, false] -> <null>",
+      "57 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 18,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 0,
+     "meta": "talleyrand_assess",
+     "meta_value": "talleyrand_assess",
+     "method": "meta_clicked",
+     "n_changed": 156,
+     "path": "Control/DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      560.0,
+      332.0,
+      792.0,
+      506.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/DiplomaticLedger",
+       "closed"
+      ],
+      [
+       "Control/TopBar",
+       "screen_changed"
+      ],
+      [
+       "Control/DiplomaticLedger",
+       "assess_requested"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Assess the Situation",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "diplo_assess",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "talleyrand_assess"
+   },
+   "scene": "res://scenes/diplomatic_ledger.tscn"
+  },
+  "diplo_vassal": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "diplo_boot_vassals",
+   "control_count": 28,
+   "controls": [
+    {
+     "api_calls": [
+      "get_diplomatic_ledger"
+     ],
+     "changes": [
+      "ContentArea: at 439 '…dy full\n    Loosen Rein    +10 loyalty, they keep more incom' -> '…dy full\n    Sent: Loosen Rein    +10 loyalty, they keep more'",
+      "DPLabel: 'DP: 5/5' -> 'DP: 4/5'",
+      "3 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 18,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 0,
+     "meta": "vassal:increase_autonomy:Holland",
+     "meta_value": "vassal:increase_autonomy:Holland",
+     "method": "meta_clicked",
+     "n_changed": 5,
+     "path": "Control/DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      560.0,
+      332.0,
+      792.0,
+      881.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/DiplomaticLedger",
+       "vassal_command"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Loosen Rein",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "diplo_vassal",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "vassal:"
+   },
+   "scene": "res://scenes/diplomatic_ledger.tscn"
+  },
+  "diplo_congress_court": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "diplo_boot_congress",
+   "control_count": 23,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "18 node(s) shown",
+      "21 node(s) hidden",
+      "TitleLabel: 'DIPLOMATIC LEDGER' -> '<null>'",
+      "CabinetLine: 'Talleyrand: Idle   ' -> '<null>'",
+      "DPDisplay: 'DP: 5/5' -> '<null>'",
+      "CloseButton: '' -> '<null>'",
+      "NationsTab: 'NATIONS' -> '<null>'",
+      "TreatiesTab: 'TREATIES' -> '<null>'",
+      "ThreatTab: 'THREAT & COALITION' -> '<null>'",
+      "TalleyrandTab: 'TALLEYRAND' -> '<null>'",
+      "BargainsTab: 'WAR BARGAINS' -> '<null>'",
+      "VassalsTab: 'VASSALS' -> '<null>'",
+      "CloseButton pressed/disabled [false, false] -> <null>",
+      "NationsTab pressed/disabled [false, false] -> <null>",
+      "TreatiesTab pressed/disabled [false, false] -> <null>",
+      "ThreatTab pressed/disabled [false, false] -> <null>",
+      "TalleyrandTab pressed/disabled [false, false] -> <null>",
+      "BargainsTab pressed/disabled [false, false] -> <null>",
+      "VassalsTab pressed/disabled [false, false] -> <null>",
+      "CongressTab pressed/disabled [false, true] -> <null>",
+      "CloseButton pressed/disabled <null> -> [false, false]",
+      "BackButton pressed/disabled <null> -> [false, false]",
+      "39 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 18,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 0,
+     "meta": "congress_court:Britain",
+     "meta_value": "congress_court:Britain",
+     "method": "meta_clicked",
+     "n_changed": 109,
+     "path": "Control/DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      560.0,
+      332.0,
+      792.0,
+      947.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/DiplomaticLedger",
+       "closed"
+      ],
+      [
+       "Control/TopBar",
+       "screen_changed"
+      ],
+      [
+       "Control/DiplomaticLedger",
+       "open_diplomacy_for"
+      ]
+     ],
+     "text": "Open the Cabinet at London →",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "diplo_congress_court",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "congress_court:"
+   },
+   "scene": "res://scenes/diplomatic_ledger.tscn"
+  },
+  "ledger_law": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "ledger_boot_laws",
+   "control_count": 23,
+   "controls": [
+    {
+     "api_calls": [
+      "get_ledger"
+     ],
+     "changes": [
+      "9 node(s) shown",
+      "ContentArea: at 1529 '…force.\n\n    Enact    15 authority now, then 150 gold a turn.' -> '…force.\n\n    Sent: Enact    15 authority now, then 150 gold a'",
+      "TitleLabel: '<null>' -> 'THE COUNCIL OF STATE ASKS:'",
+      "MessageLabel: '<null>' -> '\"The Anticipated Class (the senatus-cons'",
+      "@Button@: '<null>' -> 'Cancel Order'",
+      "@Button@ pressed/disabled <null> -> [false, false]",
+      "12 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 19,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 0,
+     "meta": "do:enact the Anticipated Class",
+     "meta_value": "do:enact the Anticipated Class",
+     "method": "meta_clicked",
+     "n_changed": 26,
+     "path": "Control/StrategicLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      580.0,
+      342.0,
+      752.0,
+      1122.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/StrategicLedger",
+       "naval_command"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Enact",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "ledger_law",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "do:"
+   },
+   "scene": "res://scenes/strategic_ledger.tscn"
+  },
+  "ledger_admiralty": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "ledger_boot_admiralty",
+   "control_count": 23,
+   "controls": [
+    {
+     "api_calls": [
+      "get_ledger"
+     ],
+     "changes": [
+      "ContentArea: at 381 '…miralty\n    Blockade the enemy    closes Austria and Russia ' -> '…miralty\n    Sent: Blockade the enemy    closes Austria and R'",
+      "3 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 19,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 0,
+     "meta": "do:blockade the enemy",
+     "meta_value": "do:blockade the enemy",
+     "method": "meta_clicked",
+     "n_changed": 4,
+     "path": "Control/StrategicLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      580.0,
+      342.0,
+      752.0,
+      991.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/StrategicLedger",
+       "naval_command"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Blockade the enemy",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "ledger_admiralty",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "do:"
+   },
+   "scene": "res://scenes/strategic_ledger.tscn"
+  },
+  "ledger_cancel": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "ledger_orders_display",
+   "control_count": 21,
+   "controls": [
+    {
+     "api_calls": [
+      "cancel_strategic_order"
+     ],
+     "changes": [
+      "ContentArea: at 302 '…tracking    Cancel  \n\n──────────────────────────────────────' -> '…tracking    Sent: Cancel  \n\n────────────────────────────────'"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 19,
+     "kind": "link",
+     "layer": 50,
+     "link_index": 0,
+     "meta": "cancel:Lannes",
+     "meta_value": "cancel:Lannes",
+     "method": "meta_clicked",
+     "n_changed": 1,
+     "path": "Control/StrategicLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "rect": [
+      580.0,
+      342.0,
+      760.0,
+      474.0
+     ],
+     "result": "VISIBLE",
+     "signals": [],
+     "text": "Cancel",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "ledger_cancel",
+   "live_floor": 50,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "cancel:"
+   },
+   "scene": "res://scenes/strategic_ledger.tscn"
+  },
+  "region_order": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "region_paris",
+   "control_count": 30,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "OutputDisplay: at 1178 '…optional).\"\n' -> '…optional).\"\n\n► Soult, fortify\nFortifying from neutral stance'",
+      "DiplomacyButton pressed/disabled [false, false] -> [false, true]",
+      "EndTurnButton pressed/disabled [false, false] -> [false, true]",
+      "4 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 13,
+     "kind": "link",
+     "layer": 26,
+     "link_index": 3,
+     "meta": "order:fortify:Soult",
+     "meta_value": "order:fortify:Soult",
+     "method": "meta_clicked",
+     "n_changed": 7,
+     "path": "Control/RegionPanel/PanelContainer/VBoxContainer/Scroll/ContentArea",
+     "rect": [
+      24.0,
+      92.0,
+      320.0,
+      551.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/RegionPanel",
+       "region_command"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Fortify",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "region_order",
+   "live_floor": 0,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "order:"
+   },
+   "scene": "res://scenes/region_panel.tscn"
+  },
+  "region_do": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "region_paris",
+   "control_count": 30,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "OutputDisplay: at 1178 '…optional).\"\n' -> '…optional).\"\n\n► recruit infantry in Paris\nBerthier checks the'",
+      "DiplomacyButton pressed/disabled [false, false] -> [false, true]",
+      "EndTurnButton pressed/disabled [false, false] -> [false, true]",
+      "4 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 10,
+     "kind": "link",
+     "layer": 26,
+     "link_index": 0,
+     "meta": "do:recruit infantry in Paris",
+     "meta_value": "do:recruit infantry in Paris",
+     "method": "meta_clicked",
+     "n_changed": 7,
+     "path": "Control/RegionPanel/PanelContainer/VBoxContainer/Scroll/ContentArea",
+     "rect": [
+      24.0,
+      92.0,
+      320.0,
+      551.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/RegionPanel",
+       "region_command"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Infantry",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "region_do",
+   "live_floor": 0,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "do:"
+   },
+   "scene": "res://scenes/region_panel.tscn"
+  },
+  "region_negotiate": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "region_amsterdam",
+   "control_count": 29,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "18 node(s) shown",
+      "7 node(s) hidden",
+      "TitleLabel: 'Amsterdam' -> '<null>'",
+      "CloseButton: '' -> '<null>'",
+      "ContentArea: '  Holland  Capital · Plains\nACTIONS\n  Re' -> '<null>'",
+      "TitleLabel: '<null>' -> 'DIPLOMACY — Holland'",
+      "DPLabel: '<null>' -> 'DP: 4'",
+      "CloseButton: '<null>' -> ''",
+      "AssessmentPanel: '<null>' -> 'Loading assessment...'",
+      "@Label@: '<null>' -> 'Loading...'",
+      "BackButton: '<null>' -> 'Back'",
+      "CancelButton: '<null>' -> 'Cancel'",
+      "CloseButton pressed/disabled [false, false] -> <null>",
+      "CloseButton pressed/disabled <null> -> [false, false]",
+      "BackButton pressed/disabled <null> -> [false, false]",
+      "CancelButton pressed/disabled <null> -> [false, false]",
+      "25 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 11,
+     "kind": "link",
+     "layer": 26,
+     "link_index": 1,
+     "meta": "negotiate:Holland",
+     "meta_value": "negotiate:Holland",
+     "method": "meta_clicked",
+     "n_changed": 65,
+     "path": "Control/RegionPanel/PanelContainer/VBoxContainer/Scroll/ContentArea",
+     "rect": [
+      24.0,
+      92.0,
+      320.0,
+      352.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/RegionPanel",
+       "closed"
+      ],
+      [
+       "Control/RegionPanel",
+       "negotiate_requested"
+      ]
+     ],
+     "text": "Negotiate with Holland",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "region_negotiate",
+   "live_floor": 0,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "negotiate:"
+   },
+   "scene": "res://scenes/region_panel.tscn"
+  },
+  "enemy_view_field": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "enemy_phase_t20",
+   "control_count": 2,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "45 node(s) shown",
+      "@Label@: '<null>' -> '10,890 → 9,164'",
+      "@Label@: '<null>' -> '9,218 → 8,494'",
+      "@Label@: '<null>' -> '0'",
+      "Verdict: '<null>' -> ''",
+      "@Label@: '<null>' -> 'TYROL · TURN 20'",
+      "@Label@: '<null>' -> 'click anywhere to skip ▸'",
+      "24 rect(s) moved"
+     ],
+     "class": "RichTextLabel [url]",
+     "disabled": false,
+     "i": 0,
+     "kind": "link",
+     "layer": 118,
+     "link_index": 0,
+     "meta": "diorama:0",
+     "meta_value": "diorama:0",
+     "method": "meta_clicked",
+     "n_changed": 75,
+     "path": "Control/EnemyPhaseDialog/PanelContainer/VBoxContainer/ContentScroll/ContentLabel",
+     "rect": [
+      630.0,
+      355.0,
+      652.0,
+      354.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/EnemyPhaseDialog",
+       "view_field_requested"
+      ]
+     ],
+     "text": "⚔ View the field",
+     "tooltip": ""
+    }
+   ],
+   "errors": [],
+   "id": "enemy_view_field",
+   "live_floor": 118,
+   "reached": true,
+   "road": {
+    "kind": "link",
+    "meta_startswith": "diorama:"
+   },
+   "scene": "res://scenes/enemy_phase_dialog.tscn"
+  },
+  "rail_recall": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "rail_mission_court",
+   "control_count": 27,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "CommandInput: '' -> 'Talleyrand, cancel mission with Denmark'",
+      "SendButton pressed/disabled [false, true] -> [false, false]"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 22,
+     "icon": false,
+     "kind": "button",
+     "layer": 75,
+     "method": "signal (off-screen)",
+     "n_changed": 2,
+     "path": "Control/TopBar/NotificationArea/NotificationBar/RailPanel/RailLayout/IconContainer/@HBoxContainer@/@Button@",
+     "rect": [
+      1893.0,
+      48.0,
+      58.0,
+      32.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/TopBar/NotificationArea/NotificationBar",
+       "suggest_command"
+      ]
+     ],
+     "text": "Recall",
+     "toggle": false,
+     "tooltip": "Writes the order in the command line — \"Talleyrand, cancel mission with Denmark\" — for you to send with Enter. Free — no DP, no action point. He comes home; rel"
+    }
+   ],
+   "errors": [],
+   "id": "rail_recall",
+   "live_floor": 0,
+   "reached": true,
+   "road": {
+    "kind": "button",
+    "text": "Recall"
+   },
+   "scene": "res://scenes/notification_bar.tscn"
+  },
+  "topbar_cabinet": {
+   "backend": "http://127.0.0.1:8006",
+   "base_id": "top_bar_mission_court",
+   "control_count": 23,
+   "controls": [
+    {
+     "api_calls": [],
+     "changes": [
+      "21 node(s) shown",
+      "14 node(s) hidden",
+      "HeaderLabel: 'ACTIVE WARS' -> '<null>'",
+      "@Button@: '' -> '<null>'",
+      "@Label@: 'T:0' -> '<null>'",
+      "TitleLabel: '<null>' -> 'DIPLOMATIC LEDGER'",
+      "DPDisplay: '<null>' -> 'DP: 4/5'",
+      "CloseButton: '<null>' -> ''",
+      "NationsTab: '<null>' -> 'NATIONS'",
+      "TreatiesTab: '<null>' -> 'TREATIES'",
+      "ThreatTab: '<null>' -> 'THREAT & COALITION'",
+      "TalleyrandTab: '<null>' -> 'TALLEYRAND'",
+      "@Button@ pressed/disabled [false, false] -> <null>",
+      "CloseButton pressed/disabled <null> -> [false, false]",
+      "NationsTab pressed/disabled <null> -> [false, false]",
+      "TreatiesTab pressed/disabled <null> -> [false, false]",
+      "ThreatTab pressed/disabled <null> -> [false, false]",
+      "TalleyrandTab pressed/disabled <null> -> [false, true]",
+      "BargainsTab pressed/disabled <null> -> [false, false]",
+      "VassalsTab pressed/disabled <null> -> [false, false]",
+      "CongressTab pressed/disabled <null> -> [false, false]",
+      "35 rect(s) moved"
+     ],
+     "class": "Button",
+     "disabled": false,
+     "i": 16,
+     "icon": false,
+     "kind": "button",
+     "layer": 75,
+     "method": "click",
+     "n_changed": 94,
+     "path": "Control/TopBar/BarContainer/BarBG/BarLayout/RightSection/TalleyrandLabel",
+     "rect": [
+      1375.0,
+      4.0,
+      204.0,
+      28.0
+     ],
+     "result": "VISIBLE",
+     "signals": [
+      [
+       "Control/TopBar",
+       "cabinet_clicked"
+      ],
+      [
+       "Control/TopBar",
+       "screen_changed"
+      ],
+      [
+       "Control/@Node@",
+       "response_received"
+      ]
+     ],
+     "text": "Talleyrand: Courting → Denmark",
+     "toggle": false,
+     "tooltip": "Talleyrand: Courting → Denmark\nClick — Talleyrand's book (Diplomacy)"
+    }
+   ],
+   "errors": [],
+   "id": "topbar_cabinet",
+   "live_floor": 0,
+   "reached": true,
+   "road": {
+    "path_endswith": "TalleyrandLabel"
+   },
+   "scene": "res://scenes/top_bar.tscn"
+  }
+ },
+ "saves_written": [
+  "quicksave.json"
+ ]
+}

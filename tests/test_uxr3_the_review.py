@@ -137,17 +137,28 @@ class TestEveryFailIsFiled:
     def test_every_row_is_tagged_for_s12(self, section):
         """Filed OPEN for S12; S12 part 1 (October 13, 2026) flips a row to
         FIXED only with its re-read (`docs/audits/uxr3_s12/reread.json`): every
-        (surface, item) it names reads ✓ against the same frozen checklist."""
+        (surface, item) it names reads ✓ against the same frozen checklist.
+        S12 part 2's closing re-read (`docs/audits/uxr3_s12b/reread.json`,
+        October 14, 2026) flips the rest to FIXED the same way, or re-homes a
+        row still ✗ to UXR-4 (S15) — never closes one without its re-read."""
         rows = [ln for ln in section.split("\n") if re.match(r"\| \*\*UXR3-\d+\*\*", ln)]
         assert len(rows) == len(_load("bug_rows.json"))
-        reread_path = REPO / "docs" / "audits" / "uxr3_s12" / "reread.json"
-        reread = json.loads(reread_path.read_text(encoding="utf-8")) if reread_path.is_file() else {}
-        state = {r["id"]: r["state"] for r in reread.get("rows", [])}
+
+        def _states(rel: str) -> dict:
+            path = REPO / "docs" / "audits" / rel / "reread.json"
+            rec = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+            return {r["id"]: r["state"] for r in rec.get("rows", [])}
+
+        state, closing = _states("uxr3_s12"), _states("uxr3_s12b")
         for ln in rows:
             assert "⟨SF step=pre-deploy S12 · UXR-3 " in ln and "pillar=ui_ux⟩" in ln, ln[:80]
             rid = re.match(r"\| \*\*(UXR3-\d+)\*\*", ln).group(1)
             if "| FIXED October 13, 2026 — Pre-Deploy S12 part 1" in ln:
                 assert state.get(rid) == "FIXED", (rid, "flipped without its re-read")
+            elif "| FIXED October 14, 2026 — Pre-Deploy S12 part 2" in ln:
+                assert closing.get(rid) == "FIXED", (rid, "flipped without the closing re-read")
+            elif "| OPEN — re-homed to UXR-4 (S15)" in ln:
+                assert closing.get(rid) == "OPEN", (rid, "re-homed, but the closing re-read reads it FIXED")
             else:
                 assert "| OPEN — owner S12" in ln, ln[:80]
                 assert state.get(rid, "OPEN") == "OPEN", (rid, "the re-read reads it FIXED, the row says OPEN")

@@ -1,0 +1,176 @@
+{"reader": 1, "group": "strategic_ledger",
+ "marks": {
+  "ledger_boot_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "The lit FORCES tab and its heading lead, then the Cabinet line and the Emperor's and marshals' corps."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_forces__1920x1080.png", "why": "The tabs look like tabs and answer; the lit one's tooltip says 'You are reading this book'; the X answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_forces__5120x1440.png", "why": "The intro names keys 1–8, T to close and F1 for the Cabinet; the X is visible."}
+  },
+  "ledger_boot_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "The TERRITORIES heading leads, then the Congress clock line and the province rows."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_territories__1920x1080.png", "why": "The tabs and the X answer, and the gold province names are not styled as links."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_territories__5120x1440.png", "why": "This tab informs: the X is visible and the Congress line names F1."}
+  },
+  "ledger_boot_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "ECONOMY leads with Treasury and then every named charge down to Net, all in the first screenful."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_economy__1920x1080.png", "why": "The tabs and the X answer, and the rows are plain text."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_economy__5120x1440.png", "why": "This tab informs, and the X is visible."},
+   "R4_note": "Many rows are gold with no legend saying why (Ceiling, Blockade, surcharges, the depot line), and Income's '+2590g' has no thousands separator while Treasury's figures do."
+  },
+  "ledger_boot_intel": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "INTELLIGENCE leads with Known Enemy Forces, then the Nation Summary."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_intel__1920x1080.png", "why": "The tabs and the X answer, and the [confirmed]/[partial] tags are text."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_intel__5120x1440.png", "why": "This tab informs, and the X is visible."},
+   "R4_note": "'1 marshals' and '1 regions' are ungrammatical; '~0 est. strength' sits beside nations with 10 to 14 regions."
+  },
+  "ledger_boot_manpower": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "MANPOWER leads with the three pools, each with its regen and live price."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_manpower__1920x1080.png", "why": "The tabs and the X answer, and nothing inert is styled as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_manpower__5120x1440.png", "why": "This tab informs, and the X is visible."}
+  },
+  "ledger_boot_orders": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "STANDING ORDERS leads, then THE CABINET and each marshal's order line."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_orders__1920x1080.png", "why": "The tabs and the X answer, and the order rows are plain text."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_orders__5120x1440.png", "why": "This tab informs: 'Press F1' names the Cabinet road, and the X is visible."}
+  },
+  "ledger_boot_admiralty": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "THE ADMIRALTY leads with the fleet, posture and yards, then the Orders to the Admiralty chips."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_admiralty__1920x1080.png", "why": "The three underlined order chips answer; the greyed 'Commission Oudinot (3,500g)' chip has its reason beside it ('the treasury holds 800g')."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_admiralty__5120x1440.png", "why": "The naval orders are visible chips, each with its effect."}
+  },
+  "ledger_boot_laws": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "THE LAWS OF STATE leads, and each law's bold name, effect, price and Enact chip follow."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_laws__1920x1080.png", "why": "The greyed Enact chips each have the reason beside them ('costs 9,000 gold; the treasury holds 800')."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_boot_laws__5120x1440.png", "why": "Enact chips are visible beside each law."}
+  },
+  "ledger_spent_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "Treasury 15,988g leads, and 'Charges of Empire: -492g' with its explanation sits in gold in the first screenful."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_spent_economy__1920x1080.png", "why": "The tabs and the X answer, and nothing inert is styled as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_spent_economy__5120x1440.png", "why": "This tab informs, and the X is visible."}
+  },
+  "ledger_ceiling_calm_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_calm_economy__1920x1080.png", "why": "The Ceiling line is the second row, directly under Treasury."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_calm_economy__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_calm_economy__5120x1440.png", "why": "This tab informs, and the X is visible."}
+  },
+  "ledger_ceiling_above_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_above_economy__1920x1080.png", "why": "The second row, in gold, reads 'Ceiling: 25,522g — the chest is above it; the charges are drawing it down'."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_above_economy__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_above_economy__5120x1440.png", "why": "This tab informs, and the X is visible."}
+  },
+  "ledger_ceiling_unbounded_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "'Ceiling: none — the charges of empire do not draw at this rate' is the second row, under Treasury, with no raw key."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_unbounded_economy__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_ceiling_unbounded_economy__5120x1440.png", "why": "This tab informs, and the X is visible."},
+   "R4_note": "This legacy-world frame drops the dateline, and its region names (Belgium, Lyon, Bordeaux) differ from the 1805 map's."
+  },
+  "ledger_collapse_one_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "The red 'Ceiling: none — the chest is not growing' line comes second, and the red Net -2256g and 'Paris is in Austria's hands' sit in the first screenful."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_collapse_one_economy__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_collapse_one_economy__5120x1440.png", "why": "This tab informs, and the X is visible."},
+   "R4_note": "No line names the collapse itself ('one province left'); the state is read off the red figures."
+  },
+  "ledger_collapse_none_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "The red Ceiling line and 'Income: +0g' lead, with the red Net -2364g in the first screenful."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_collapse_none_economy__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_collapse_none_economy__5120x1440.png", "why": "This tab informs, and the X is visible."},
+   "R4_note": "Tribute (+937g) and Requisitions still read as income at zero provinces, and no line names the zero-province state."
+  },
+  "ledger_laws_staff": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The first law, the Grand Quartier Général, reads green 'In force since turn 1' over its Repeal chip, which says what it loses."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_staff__1920x1080.png", "why": "The Repeal and Enact chips are underlined and answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_staff__5120x1440.png", "why": "Repeal is a visible chip with its consequence stated."},
+   "R4_note": "The footer's upkeep, named in must_show, is below the fold."
+  },
+  "ledger_laws_forecast": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The bold gold FORECAST naming the Staff and the 100 gold that saves it leads the tab, with the 'Repeal the Code Abroad instead' chip under it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_forecast__1920x1080.png", "why": "The chips are underlined and answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_forecast__5120x1440.png", "why": "The remedy is a visible chip directly under the forecast."}
+  },
+  "ledger_mission_court_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_court_forces__1920x1080.png", "why": "THE CABINET is the first block after the intro, naming Denmark, COURTING, 2 DP a turn and the favour."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_court_forces__1920x1080.png", "why": "'[Recall]' is underlined and answers; the tabs answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_court_forces__5120x1440.png", "why": "Recall is a visible link beside the mission."},
+   "R4_note": "Recall here is a bracketed red underlined link, while the rail's Recall is a bordered button and the ledger's other actions are blue chips: three styles for one kind of control."
+  },
+  "ledger_mission_improve_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "THE CABINET block leads with 'IMPROVING RELATIONS +8 a turn, drift +0, net +8'."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_improve_forces__1920x1080.png", "why": "The Recall link and the tabs answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_improve_forces__5120x1440.png", "why": "Recall is visible, and the X is visible."}
+  },
+  "ledger_mission_gather_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "THE CABINET block leads with 'GATHERING INTEL 3 turns to complete, then full intel for 5'."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_gather_forces__1920x1080.png", "why": "The Recall link and the tabs answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_gather_forces__5120x1440.png", "why": "Recall is visible, and the X is visible."},
+   "R4_note": "The first line says '3 turns to complete' and the second says '2 turns left'."
+  },
+  "ledger_mission_undermine_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "THE CABINET block leads and names the pair the mission moves: 'Austria and Britain at 60 (Loyal)'."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_undermine_forces__1920x1080.png", "why": "The Recall link and the tabs answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_undermine_forces__5120x1440.png", "why": "Recall is visible, and the X is visible."}
+  },
+  "ledger_mission_transit_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_transit_forces__1920x1080.png", "why": "The surface's point, the mission PAUSED while he carries a letter, appears nowhere: the Cabinet block reads an active 'COURTING +8 a turn' with a live [Recall], the opposite of must_show."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_transit_forces__1920x1080.png", "why": "Every visible control (the tabs, the X, the Recall link) looks like a control and answers."},
+   "R8": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_transit_forces__5120x1440.png", "why": "A new player is told nothing about the letter in transit or why Recall is withheld; the frame offers a Recall that must_show says should be absent, so the state it must convey cannot be read."},
+   "R4_note": "This frame cannot be told apart from the plain courting frame."
+  },
+  "ledger_mission_starved_forces": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "No line says the mission is suspended for want of DP: the Cabinet block reads an active 'COURTING +8 a turn … 2 DP a turn', so the surface's point is absent."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_starved_forces__1920x1080.png", "why": "The tabs, the X and Recall all look like controls and answer."},
+   "R8": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_starved_forces__5120x1440.png", "why": "Nothing tells the player that the mission has stopped or how to restart it (find DP), so the state it must convey cannot be read."}
+  },
+  "ledger_mission_recalled_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "THE CABINET line, 'Talleyrand is at the Cabinet, free to send: press F1…', is the first block after the intro."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_recalled_forces__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_mission_recalled_forces__5120x1440.png", "why": "'press F1, choose a court, and send him' names the next step."},
+   "R4_note": "The idle Cabinet line is grey body text with no heading, while the active-mission frames give it a gold '══ THE CABINET ══' heading."
+  },
+  "ledger_t20_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "The FORCES heading leads with the played board's corps cards."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_forces__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_forces__5120x1440.png", "why": "This tab informs, and the keys and the X are named."}
+  },
+  "ledger_t20_economy": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "Treasury and the above-ceiling line lead, followed by the Charges of Empire."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_economy__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_economy__5120x1440.png", "why": "This tab informs, and the X is visible."}
+  },
+  "ledger_t20_orders": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "STANDING ORDERS leads with the played board's marshal rows."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_orders__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_orders__5120x1440.png", "why": "This tab informs, and the X is visible."},
+   "R4_note": "The 'played board' shows no standing order at all, which looks the same as the boot frame."
+  },
+  "ledger_t20_admiralty": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "THE ADMIRALTY leads with the fleet, the order chips and the expedition's next step."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_admiralty__1920x1080.png", "why": "All five chips are underlined and answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_t20_admiralty__5120x1440.png", "why": "The orders and the 'march to Normandy' next steps are visible chips."}
+  },
+  "ledger_np_seat_forces": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_np_seat_forces__1920x1080.png", "why": "THE EMPEROR leads the muster, with the gold 'Holds court at Paris — the Seat: +1 DP a turn' line directly under his name."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_np_seat_forces__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_np_seat_forces__5120x1440.png", "why": "This tab informs, and the X is visible."}
+  },
+  "ledger_fall_clock_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "The red collapse note leads, followed by the two clock lines: the dimmed undated chains clock and the amber dated soil clock."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_fall_clock_territories__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_fall_clock_territories__5120x1440.png", "why": "The note names the remedy ('unless we retake a province or make peace'), and the X is visible."},
+   "R4_note": "The soil clock's words appear twice (in the red note and again on its own line); must_show puts the soil clock first, but the chains clock leads here."
+  },
+  "ledger_congress_clock_territories": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "The amber 'THE CONGRESS SITS — turn 2 of 8 …' line sits directly under the dateline, ahead of the provinces."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_congress_clock_territories__1920x1080.png", "why": "The tabs and the X answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_congress_clock_territories__5120x1440.png", "why": "This tab informs, and the X is visible."}
+  },
+  "ledger_laws_train": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The Train des Équipages row's gold cure line ('1 corps drawing 80% now; needs the Grand Quartier Général in force') is the only gold body line in the first screenful, and the eye lands on it."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_train__1920x1080.png", "why": "The greyed Enact chips each have their reason beside them."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_laws_train__5120x1440.png", "why": "The cure line names its prerequisite, and Enact is visible."},
+   "R4_note": "Two cure bullets say nearly the same thing, one grey and one gold."
+  },
+  "ledger_orders_display": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "Lannes's 'PURSUE Archduke John | tracking' row with its Cancel chip is the first order, set apart above the rule."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_orders_display__1920x1080.png", "why": "The Cancel chip is underlined and answers ('Sent: Cancel')."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\ledger_orders_display__5120x1440.png", "why": "Cancel is a visible chip beside the order."}
+  }
+ }}

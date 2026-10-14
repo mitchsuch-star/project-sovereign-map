@@ -1,0 +1,15 @@
+{"reader": 3, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_tutorial__1920x1080.png", "why": "The dark gold-bordered School of War card is the one panel standing over the map top-right, and its gold 'I. The Situation' heading catches the eye before the map detail."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_tutorial__1920x1080.png", "why": "The quill chip and 'Skip this lesson ▸' are filled underlined chips, '–' and Skip are bordered buttons, and the disabled Execute and zoom buttons carry reason tooltips."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_tutorial__1920x1080.png", "why": "The card says 'Click the quill to place the order on your command line', names Tab, Esc and 'what can I do', and the command line sits bottom-left."},
+   "R4_note": "At 5120x1440 the card stretches into a very wide strip whose single long body lines are hard to follow; the command window opens scrolled to the end of its help text."
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/tutorial_card__1920x1080.png", "why": "The header 'THE SCHOOL OF WAR 1 of 20' and the bold 'I. The Situation' lead the card, with the body, the quill chip and Skip beneath."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/tutorial_card__1920x1080.png", "why": "Every control is a bordered button or filled underlined chip and all answered; the gold key words in the body are not underlined, so they do not pose as links."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/tutorial_card__5120x1440.png", "why": "The quill chip is named as the next step ('Click the quill…'), and Skip this lesson, '–' and Skip are visible."},
+   "R4_note": "Two different skips sit on one card ('Skip' top-right dismisses the tutor, 'Skip this lesson ▸' advances) with no visible distinction in wording weight."
+  }
+ }}

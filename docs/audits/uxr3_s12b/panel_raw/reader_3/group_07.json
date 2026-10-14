@@ -1,0 +1,49 @@
+{"reader": 3, "group": "enemy_phase_and_diorama",
+ "marks": {
+  "enemy_phase_t20": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_t20__5120x1440.png", "why": "Under the red ENEMY PHASE title the court's actions read as prose, with the battle, its casualties, result and '⚔ View the field' link first."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_t20__5120x1440.png", "why": "The field link is underlined with a glyph and answered; Continue is a full-width bordered button."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_t20__1920x1080.png", "why": "Continue and 'View the field' are visible."},
+   "R4_note": "'--- Berthier's Report ---' uses ASCII dashes where other screens use ═ rules; an empty band follows the last entry."
+  },
+  "enemy_phase_collapse": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_collapse__5120x1440.png", "why": "The AI actions read as prose under AUSTRIA, the battle with both sides' casualties and its field link leading."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_collapse__5120x1440.png", "why": "The underlined field link (HANDOFF, not silent) and Continue look like and are controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_collapse__1920x1080.png", "why": "Continue and the field link are visible."},
+   "R4_note": "The casualty lines here carry no army/corps scope label, unlike the IQ-5 board."
+  },
+  "enemy_phase_iq5": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_iq5__5120x1440.png", "why": "'Ney's army: 6,567 casualties — Ney's own corps: 15,471 remaining' sits in the first battle block right under the attacker's line."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_iq5__5120x1440.png", "why": "The field link and Continue are controls and answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_iq5__1920x1080.png", "why": "Continue is visible."},
+   "R4_note": "The court name BRITAIN is red here but white (AUSTRIA) on the other boards."
+  },
+  "diorama_aadj": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_aadj__1920x1080.png", "why": "The verdict 'A BLOODY STALEMATE' and the field of named contingents with their 'x → y' losses dominate the card, Berthier's line beneath."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_aadj__1920x1080.png", "why": "Replay and Close are bordered buttons that answered; the wax seal and corner ornaments are plainly decoration."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_aadj__5120x1440.png", "why": "Close and Replay are visible."},
+   "R4_note": "The contingent figures under the portraits are small for their importance; a wide empty band sits between the field and Berthier's line."
+  },
+  "diorama_dadj": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_dadj__1920x1080.png", "why": "The red 'THE FIELD IS LOST' verdict and the order of battle with each contingent's losses lead the card."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_dadj__1920x1080.png", "why": "Replay and Close are clear buttons."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_dadj__1920x1080.png", "why": "Close is visible."}
+  },
+  "diorama_rout_conquest": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_rout_conquest__1920x1080.png", "why": "'A DECISIVE VICTORY' with 'Swabia falls to France.' directly under it leads, and the red ROUTED sits under the beaten line."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_rout_conquest__1920x1080.png", "why": "Replay and Close are clear buttons; laurels and seal are decoration."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_rout_conquest__1920x1080.png", "why": "Close is visible."}
+  },
+  "diorama_four_contingents": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_four_contingents__1920x1080.png", "why": "Four named ranks a side recede from the centre under the verdict, with the reserve tails along the bottom of the field."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_four_contingents__1920x1080.png", "why": "Replay and Close are clear buttons."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_four_contingents__5120x1440.png", "why": "Close is visible."},
+   "R4_note": "At 5120x1440 the back ranks' names and strengths are very small; the faith caption sits in faint italic red on the baize."
+  },
+  "diorama_naval": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_naval__1920x1080.png", "why": "'THE FLEET IS BROKEN' and the line of battle at sea with sail counts and STRUCK under the hulls fill the card."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_naval__1920x1080.png", "why": "Replay and Close are clear buttons."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_naval__1920x1080.png", "why": "Close is visible."},
+   "R4_note": "Admirals are lettered medallions (G, V, N) rather than portraits, unlike the land field."
+  }
+ }}

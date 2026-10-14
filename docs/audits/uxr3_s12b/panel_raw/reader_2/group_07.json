@@ -1,0 +1,50 @@
+{"reader": 2, "group": "enemy_phase_and_diorama",
+ "marks": {
+  "enemy_phase_t20": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_t20__5120x1440.png", "why": "Under the title, AUSTRIA's actions lead as prose: 'Archduke John attacks Deroy', the battle name, the casualties and the result, with the field link beneath."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_t20__1920x1080.png", "why": "'⚔ View the field' is underlined with a glyph and answers; Continue is a full-width bordered button."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_t20__1920x1080.png", "why": "Continue and the field link are visible."}
+  },
+  "enemy_phase_collapse": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_collapse__5120x1440.png", "why": "The AI's actions lead as plain prose ('Archduke Charles moves to Tyrol', 'attacks Deroy'), each battle with its casualties and field link."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_collapse__1920x1080.png", "why": "The field link and Continue look like controls; the link's record is a handoff, not silent."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_collapse__1920x1080.png", "why": "Continue is visible."},
+   "R4_note": "The casualty lines carry no army/corps scope label on either side here."
+  },
+  "enemy_phase_iq5": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_iq5__5120x1440.png", "why": "The scope-labelled line 'Ney's army: 6,567 casualties — Ney's own corps: 15,471 remaining' sits in the opening battle block, directly under the attacker's line."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_iq5__1920x1080.png", "why": "The field link and Continue look like controls and answer."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/enemy_phase_iq5__1920x1080.png", "why": "Continue is visible."},
+   "R4_note": "The scope line has no emphasis of its own; the casualty figures also appear twice with different numbers (6,567 army vs 4,529 own corps)."
+  },
+  "diorama_aadj": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_aadj__1920x1080.png", "why": "The verdict banner and the tableau of contingents, each with its own 'from → to' strength, are the largest elements, with Berthier's line beneath."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_aadj__1920x1080.png", "why": "Replay and Close are bordered buttons and answer; portraits and the seal are not styled as controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_aadj__5120x1440.png", "why": "Close and Replay are visible."},
+   "R4_note": "No army/corps scope label is visible on the reinforced side; a large empty band sits between the baize and Berthier's line; the red wax seal beside the buttons could be read as a control."
+  },
+  "diorama_dadj": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_dadj__1920x1080.png", "why": "The red 'THE FIELD IS LOST' banner and the tableau with each contingent's strengths dominate, with Berthier's verdict below."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_dadj__1920x1080.png", "why": "Replay and Close are bordered buttons and answer."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_dadj__5120x1440.png", "why": "Close and Replay are visible."},
+   "R4_note": "As in the attacker case, no scope label is visible and the empty band under the baize recurs."
+  },
+  "diorama_rout_conquest": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_rout_conquest__1920x1080.png", "why": "'A DECISIVE VICTORY' with 'Swabia falls to France.' directly beneath leads, and 'ROUTED' in red sits under the beaten line."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_rout_conquest__1920x1080.png", "why": "Replay and Close are bordered buttons and answer."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_rout_conquest__5120x1440.png", "why": "Close and Replay are visible."},
+   "R4_note": "The conquest sub-banner is small, pale body text under the large banner."
+  },
+  "diorama_four_contingents": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_four_contingents__1920x1080.png", "why": "Four ranks a side recede across the baize under the banner, each with name and strength, with the reserve tails along the bottom edge."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_four_contingents__1920x1080.png", "why": "Replay and Close are bordered buttons and answer."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_four_contingents__5120x1440.png", "why": "Close and Replay are visible."},
+   "R4_note": "At 5120 the rear ranks' strength lines are very small; the faith caption is a dim red italic hard to read on the baize."
+  },
+  "diorama_naval": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_naval__1920x1080.png", "why": "The red 'THE FLEET IS BROKEN' banner and the two lines of hulls with sail counts and STRUCK labels fill the panel."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_naval__1920x1080.png", "why": "Replay and Close are bordered buttons and answer."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/diorama_naval__5120x1440.png", "why": "Close and Replay are visible."},
+   "R4_note": "Only STRUCK appears; no SUNK label is in the frame."
+  }
+ }}

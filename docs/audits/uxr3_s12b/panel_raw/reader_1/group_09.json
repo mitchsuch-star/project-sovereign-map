@@ -1,0 +1,21 @@
+{"reader": 1, "group": "menu_and_settings",
+ "marks": {
+  "main_menu": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\main_menu__1920x1080.png", "why": "The INK & IRON title block is the largest element, and the first-run card 'CAN YOU READ THIS COMFORTABLY?' sits centred over the campaign column where the eye lands next."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\main_menu__1920x1080.png", "why": "The four greyed campaign buttons each carry the tooltip 'Waiting for the game's server…', and the status line says why; Settings, the slider and the card's two buttons look live and answer."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\main_menu__5120x1440.png", "why": "The card's 'Looks right' and 'Size for this screen' are visible, and its text says to drag the slider."},
+   "R4_note": "The status line prints a developer command path ('.venv\\Scripts\\python.exe -m backend.main') to the player."
+  },
+  "main_menu_settings": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "The SETTINGS panel is the central and largest element, with no card over it; DISPLAY and INTERFACE lead its scroll."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\main_menu_settings__1920x1080.png", "why": "The dropdowns carry chevrons, the slider has a knob and the buttons are bordered; all answer; the disabled Connect and Disconnect have reason tooltips ('Paste an Anthropic API key above first', 'No key is connected')."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\main_menu_settings__5120x1440.png", "why": "Every setting is a visible control with a hint under it, and Back is visible."},
+   "R4_note": "SOUND, SMARTER PARSING, SPOKEN ORDERS, CONTROLS and CREDITS are all below the scroll fold; at 5120x1440 the High contrast hint line is cut at the scroll's bottom edge."
+  },
+  "war_room_pause_settings": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "Under the CAMPAIGN MENU title, the unfolded Settings pocket is the largest block in the panel, with the Interface Scale slider readable and not squeezed."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\war_room_pause_settings__1920x1080.png", "why": "Every menu entry is a bordered button, the dropdowns and slider look like controls, and the disabled Connect and Disconnect state why in their tooltips."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\war_room_pause_settings__5120x1440.png", "why": "The settings are visible controls, and 'Resume (Esc)' names the way back."},
+   "R4_note": "The sound rows named in must_show sit below the pocket's fold; the Settings pocket nests a scroll inside the menu between two stacks of buttons."
+  }
+ }}

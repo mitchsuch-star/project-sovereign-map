@@ -1,0 +1,49 @@
+{"reader": 1, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_boot__1920x1080.png", "why": "The first screenful leads with OUR DOCTRINE and then the Emperor's biography; the skill bars, the glory ladder and GLORY & GRIEVANCES that make up the surface's purpose are nowhere in view."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_boot__1920x1080.png", "why": "The X and the corner grip are the visible controls; no text is styled as a link without being one (the Fortify and Commission links answer)."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_boot__5120x1440.png", "why": "This screen informs: the X is visible and 'Press G to close' names the key."},
+   "R4_note": "Both bottom corners carry a filigree square, but only the right one is a resize grip."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_t20__1920x1080.png", "why": "The doctrine block leads, the ladder is a single 'no glory won' line, and the roster's trust bars, glory and grievances are below the fold; only Ney's portrait starts at the bottom."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_t20__1920x1080.png", "why": "'Commission a Marshal…' is an underlined chip and it answers; the X answers; nothing inert looks clickable."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_t20__5120x1440.png", "why": "This screen informs: the X and 'Press G to close' are visible, and the Commission chip names the one offer."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "'A PRISONER — Ney: PRISONER of the Kingdom of Italy since T1' is the first content line, in red, above his portrait."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_prisoner__1920x1080.png", "why": "The skill bars are read-only bars, not styled as buttons; the X answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_prisoner__5120x1440.png", "why": "This screen informs, and the X and its G key are visible."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_seat__5120x1440.png", "why": "The Emperor's card is the largest block, the eye lands on his portrait, and under it come 'At the Seat — he holds court at Paris: +1 DP a turn' and the Guard's 10,000."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "The X answers, and nothing inert is styled as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_seat__1920x1080.png", "why": "This screen informs, and the X and its G key are visible."},
+   "R4_note": "At the Seat, the card still reads 'Sovereign: You, in the field.'"
+  },
+  "generals_np_field": {
+   "R2": {"pass": false, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_field__1920x1080.png", "why": "The Presence figure is one body-size line mid-card below the doctrine block, and no dimmed star is visible anywhere in the frame, so the eye lands on the portrait rather than on the applied figure."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_field__1920x1080.png", "why": "The X answers, and nothing inert is styled as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_field__5120x1440.png", "why": "This screen informs, and the X and its G key are visible."},
+   "R4_note": "'In the field at Bohemia' sits above a biography that says he is 'at the Tuileries with the Guard'."
+  },
+  "generals_np_captive": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_captive__5120x1440.png", "why": "The red 'A captive — PRISONER of Austria since T11; he commands nothing until he is freed' is the first line of the Emperor's card, directly under the portrait where the eye lands."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "The captive card carries no order chip; the X answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_np_captive__1920x1080.png", "why": "This screen informs, and the X is visible."},
+   "R4_note": "The captive's biography still says 'at the Tuileries with the Guard' and 'Sovereign: You, in the field.'"
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "THE LAURELS ladder of the played roster (seven marshals with glory bars and red envy marks) is the largest block on screen."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_flagship_t12__1920x1080.png", "why": "The Commission chip is underlined and answers; the ladder bars are read-only; the X answers."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_flagship_t12__5120x1440.png", "why": "This screen informs: the X and the G key are visible, and Commission names the offer."},
+   "R4_note": "Below the double rule the frame ends in a band of empty panel before the first card."
+  },
+  "generals_doctrine": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "OUR DOCTRINE — The Corps System is the first block, with its says line, the green strength and gold flaw with their numbers, and the cure status."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_doctrine__1920x1080.png", "why": "The X answers, and nothing inert is styled as a control."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\generals_doctrine__5120x1440.png", "why": "This screen informs, and the X and its G key are visible."},
+   "R4_note": "must_show puts THE LAURELS under the doctrine, but here THE EMPEROR follows it."
+  }
+ }}

@@ -1,0 +1,14 @@
+{"reader": 2, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_tutorial__1920x1080.png", "why": "THE SCHOOL OF WAR card is the one bordered panel laid over the map's top-right, with 'I. The Situation' in bold, and the eye goes to it first after the map."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_tutorial__1920x1080.png", "why": "The quill chip, 'Skip this lesson ▸', '–' and Skip all look like controls and answer; Execute is disabled with 'Type an order first'; the gold keywords in the body are not underlined."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_tutorial__1920x1080.png", "why": "The card names the next step ('Click the quill to place the order') and the command line sits below it."},
+   "R4_note": "At 5120x1440 the card stretches into one very wide band whose two-line body reads small against the map; the minimise control is a bare '–' beside a worded Skip."
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/tutorial_card__1920x1080.png", "why": "The title, '1 of 20' and the bold 'I. The Situation' head the card, and the body follows directly."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/tutorial_card__1920x1080.png", "why": "The quill chip and 'Skip this lesson' are filled, underlined chips; '–' and Skip are bordered buttons; all answer."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/tutorial_card__5120x1440.png", "why": "The quill chip and its instruction line are visible, and so is the way to move on."}
+  }
+ }}

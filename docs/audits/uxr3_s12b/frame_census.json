@@ -1,0 +1,162 @@
+{
+ "tool": "tools/uxr3_frame_census.py",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\merged2\\index.json",
+ "client_commit": "cf0e5213",
+ "frames": 730,
+ "frames_without_record": [],
+ "cut_lines": [],
+ "grip_overlaps": [],
+ "tick_overlaps": [],
+ "verdict_gaps": [
+  {
+   "surface": "diorama_aadj",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "5120x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "5120x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "5120x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "5120x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "5120x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "5120x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  }
+ ]
+}

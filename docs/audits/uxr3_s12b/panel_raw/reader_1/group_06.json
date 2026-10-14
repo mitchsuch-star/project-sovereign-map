@@ -1,0 +1,15 @@
+{"reader": 1, "group": "tutorial",
+ "marks": {
+  "war_room_tutorial": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The dark SCHOOL OF WAR card top-right, with 'I. The Situation' in bold gold, is the strongest-contrast block on the light map; the eye goes to it after the map, and the command window sits bottom-left as named."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\war_room_tutorial__1920x1080.png", "why": "The card's – and Skip are bordered buttons, '✎ economy' and 'Skip this lesson ▸' are underlined chips, and all of them answer; the disabled Execute and zoom buttons have reason tooltips."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\war_room_tutorial__5120x1440.png", "why": "The card names its next step ('Click the quill to place the order on your command line') above a visible quill chip, and the typed help words are named."},
+   "R4_note": "At 5120x1440 the card stretches across the right two-thirds of the screen, so each body line runs about 2,000 px; the map's light margins sit beside wide flat brown side bands."
+  },
+  "tutorial_card": {
+   "R2": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\tutorial_card__1920x1080.png", "why": "THE SCHOOL OF WAR · 1 of 20 heads the card, then the bold 'I. The Situation' and its body, with the quill chip and Skip in view."},
+   "R5": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\tutorial_card__1920x1080.png", "why": "The four controls (–, Skip, the quill chip, Skip this lesson) all look like controls and all answer; the gold typed words in the body are not underlined, so they do not pose as links."},
+   "R8": {"pass": true, "cite": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\packet\\frames\\tutorial_card__5120x1440.png", "why": "The quill chip is visible, and the line under it says exactly what clicking it does."},
+   "R4_note": "Two different 'Skip' controls (the bordered 'Skip' button and the 'Skip this lesson ▸' chip) do different things with nearly the same word."
+  }
+ }}

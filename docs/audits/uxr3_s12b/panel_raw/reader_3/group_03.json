@@ -1,0 +1,48 @@
+{"reader": 3, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": false, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_boot__1920x1080.png", "why": "The first screenful is the doctrine block and the Emperor's prose; the skill bars, the glory ladder and GLORY & GRIEVANCES the screen is for are all below the fold in both frames."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_boot__5120x1440.png", "why": "The close X and scrollbar are the visible controls and look like them; the order links further down answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_boot__1920x1080.png", "why": "A reading screen with a visible X, 'Press G to close' stated and a scrollbar to the sheets."},
+   "R4_note": "Both bottom corners carry the same dotted ornament, so the decorative left one reads like a second resize grip; '[8]' and '[Infantry]' are bracketed tags."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_t20__1920x1080.png", "why": "The doctrine block leads; the laurels line is one empty sentence, and the grievances and trust bars of the played roster are not in the first screenful (Ney's card only begins at the bottom)."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_t20__5120x1440.png", "why": "'Commission a Marshal…' is a filled chip that answered, and the X is clear."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_t20__1920x1080.png", "why": "The Commission chip and the X are visible, with 'Press G to close' stated."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_prisoner__5120x1440.png", "why": "The red 'A PRISONER — Ney: PRISONER of the Kingdom of Italy since T1' line is the first content and catches the eye."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_prisoner__5120x1440.png", "why": "No commandable control is offered on the prisoner's card; the X is clear."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_prisoner__1920x1080.png", "why": "Informing surface with a visible X."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_seat__5120x1440.png", "why": "THE EMPEROR card with its portrait, 'At the Seat — +1 DP a turn' and the Guard's 10,000 is the largest element and the portrait draws the eye."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_seat__5120x1440.png", "why": "Only the X and scrollbar are visible controls; nothing inert is styled as clickable."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_seat__1920x1080.png", "why": "Informing surface with a visible X."}
+  },
+  "generals_np_field": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_field__5120x1440.png", "why": "The Emperor's card, with 'In the field at Bohemia', The Presence and the reduced 7,579 strength, is the largest element."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_field__5120x1440.png", "why": "Only the X and scrollbar are visible controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_field__1920x1080.png", "why": "Informing surface with a visible X."},
+   "R4_note": "The dimmed star reads only as '[7]' in brackets; no star glyph is visible."
+  },
+  "generals_np_captive": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_captive__5120x1440.png", "why": "The Emperor's card is the largest element and its red 'A captive — PRISONER of Austria since T11' line is the line the eye goes to."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_captive__5120x1440.png", "why": "No order link is offered on the captive's card; the X is clear."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_captive__1920x1080.png", "why": "Informing surface with a visible X."},
+   "R4_note": "The captured marshal (Ney) leads his screen with a red banner, while the captured Emperor's status sits below the doctrine block."
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_flagship_t12__5120x1440.png", "why": "THE LAURELS ladder of seven ranked marshals with their envies is the largest block of the first screenful."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_flagship_t12__5120x1440.png", "why": "The Commission chip is a filled button; the ladder bars are not styled as controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_flagship_t12__1920x1080.png", "why": "Commission a Marshal and the X are visible."},
+   "R4_note": "An empty band sits under the divider at the foot of the first screenful before any card."
+  },
+  "generals_doctrine": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_doctrine__5120x1440.png", "why": "OUR DOCTRINE — The Corps System, with its says line, strength and flaw, is the first content block."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_doctrine__5120x1440.png", "why": "Only the X and scrollbar are visible controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_doctrine__1920x1080.png", "why": "Informing surface with a visible X; the flaw line names its cure."},
+   "R4_note": "THE LAURELS, which the card says sits below the doctrine, is not in view: the Emperor's card comes between."
+  }
+ }}

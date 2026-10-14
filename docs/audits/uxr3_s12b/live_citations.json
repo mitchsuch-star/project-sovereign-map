@@ -1,0 +1,224 @@
+{
+ "rule": "docs/UX_CHECKLIST_V1.json R6: a HANDOFF or NOT PRESSED control counts as answering only where a live-backend driven record shows that road's visible answer — the Mode C session or an existing driven test, cited by name",
+ "source": "S11's citation, carried; one per road of tools/uxr3_action_probe.py ROADS, proven by the war-room mode (Pre-Deploy S12 part 2)",
+ "citations": [
+  {
+   "scene": "campaign_end.tscn",
+   "match": {
+    "text": "Load a campaign"
+   },
+   "cite": "tests/test_ge2_the_client.py::TestTheClientDriven::test_load_steps_the_card_aside_and_a_cancel_brings_it_back",
+   "evidence": "tools/ge2_campaign_end_harness.gd boots the real main.tscn and hands it the backend's own fall payload: the card's primary 'Load a campaign' raises the Load dialog and the card steps aside (funeral_load_dialog_raised, funeral_screen_hidden_for_load), and a cancelled load brings it back. One road serves all three fall registers (the funeral, the chains, the abdication)."
+  },
+  {
+   "road": "envoys",
+   "match": {
+    "path_endswith": "MailboxButton"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.envoys (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot war_room_boot opened inside the real main.tscn against a sandboxed backend: the Envoys button asks the live backend for the mailbox; the war room's terminal answers (no envoy waits on the 1805 boot: 'No pending envoys at this time'). The record: OutputDisplay: at 3036 '…───────────\n' -> '…───────────\nNo pending envoys at this time.\n'; 1 rect(s) moved"
+  },
+  {
+   "road": "pause_save",
+   "scene": "main.tscn",
+   "match": {
+    "text": "Save Game"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.pause_save (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot war_room_pause_settings opened inside the real main.tscn against a sandboxed backend: Save Game closes the pause menu and the terminal answers 'Saving game...', then 'Game saved successfully.'; the quicksave is written into the sandboxed save directory. The record: 33 node(s) hidden; OutputDisplay: at 3036 '…───────────\n' -> '…───────────\nSaving game...\nGame saved successfully.\n\n'; TitleLabel: 'CAMPAIGN MENU' -> '<null>'; ResumeButton: 'Resume (Esc)' -> '<null>'"
+  },
+  {
+   "road": "pause_load",
+   "scene": "main.tscn",
+   "match": {
+    "text": "Load Game"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.pause_load (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot war_room_pause_settings opened inside the real main.tscn against a sandboxed backend: Load Game closes the pause menu and the Load dialog opens, listing the sandboxed saves. The record: 10 node(s) shown; 33 node(s) hidden; TitleLabel: 'CAMPAIGN MENU' -> '<null>'; ResumeButton: 'Resume (Esc)' -> '<null>'"
+  },
+  {
+   "road": "pause_new_campaign",
+   "scene": "main.tscn",
+   "match": {
+    "text": "New Campaign"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.pause_new_campaign (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot war_room_pause_settings opened inside the real main.tscn against a sandboxed backend: New Campaign raises its confirmation row in place (the campaign buttons disable until it is answered). The record: 5 node(s) shown; 19 node(s) hidden; @Label@: 'CREDITS' -> '<null>'; @Label@: 'UI' -> '<null>'"
+  },
+  {
+   "road": "pause_main_menu",
+   "scene": "main.tscn",
+   "match": {
+    "text": "Main Menu"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.pause_main_menu (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot war_room_pause_settings opened inside the real main.tscn against a sandboxed backend: Main Menu changes the scene: main_menu.tscn stands, the war room is gone. The record: the scene -> main_menu.tscn; 18 node(s) shown; 142 node(s) hidden; @Label@: '5' -> '<null>'"
+  },
+  {
+   "road": "pause_quit",
+   "scene": "main.tscn",
+   "match": {
+    "text": "Quit to Desktop"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.pause_quit (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot war_room_pause_settings opened inside the real main.tscn against a sandboxed backend: Quit to Desktop closes the window: the engine exits cleanly (code 0) after the press. The record: the engine exited cleanly (code 0) after the press: the window closed"
+  },
+  {
+   "road": "menu_quit",
+   "scene": "main_menu.tscn",
+   "match": {
+    "text": "Quit to Desktop"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.menu_quit (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot main_menu opened inside the real main.tscn against a sandboxed backend: the title screen's Quit to Desktop closes the window: the engine exits cleanly (code 0) after the press. The record: the engine exited cleanly (code 0) after the press: the window closed"
+  },
+  {
+   "road": "fall_main_menu",
+   "scene": "campaign_end.tscn",
+   "match": {
+    "text": "Main Menu"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.fall_main_menu (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot campaign_end_fall_funeral opened inside the real main.tscn against a sandboxed backend: the Fall's Main Menu changes the scene: main_menu.tscn stands (one road serves the funeral, the chains and the abdication). The record: the scene -> main_menu.tscn; 18 node(s) shown; 132 node(s) hidden; SailCount_Britain: '100' -> '<null>'"
+  },
+  {
+   "road": "generals_order",
+   "scene": "marshal_management.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "order:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.generals_order (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot generals_boot opened inside the real main.tscn against a sandboxed backend: an order chip hands its order to main.gd's chip road; the chip greys in place to 'Sent: <its words>' (the terminal's echo lies under the screen). The record: ContentArea: at 2577 '…Neutral\n    Fortify      Drill   Mack is at Swabia, one regi' -> '…Neutral\n    Sent: Fortify      Drill   Mack is at Swabia, on'; 3 rect(s) moved"
+  },
+  {
+   "road": "generals_reward",
+   "scene": "marshal_management.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "reward:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.generals_reward (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot generals_np_field opened inside the real main.tscn against a sandboxed backend: Reward — estate or rente… opens the reward dialog over the Generals. The record: 11 node(s) shown; TitleLabel: '<null>' -> 'REWARD MARSHAL NEY'; InfoLabel: '<null>' -> 'Ney expects 120g/turn — holds 112g/turn '; @Button@: '<null>' -> 'Revoke his rente — keep 180g/turn; his s'"
+  },
+  {
+   "road": "diplo_assess",
+   "scene": "diplomatic_ledger.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "talleyrand_assess"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.diplo_assess (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot diplo_boot_talleyrand opened inside the real main.tscn against a sandboxed backend: Assess the Situation closes the ledger onto the terminal, which echoes Talleyrand's counsel. The record: 25 node(s) shown; 31 node(s) hidden; OutputDisplay: at 1178 '…optional).\"\n' -> '…optional).\"\n\n► Talleyrand, assess our situation\n'; TitleLabel: 'DIPLOMATIC LEDGER' -> '<null>'"
+  },
+  {
+   "road": "diplo_vassal",
+   "scene": "diplomatic_ledger.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "vassal:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.diplo_vassal (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot diplo_boot_vassals opened inside the real main.tscn against a sandboxed backend: a vassal chip greys in place to 'Sent: <its words>', and the ledger's DP line answers the live backend. The record: ContentArea: at 439 '…dy full\n    Loosen Rein    +10 loyalty, they keep more incom' -> '…dy full\n    Sent: Loosen Rein    +10 loyalty, they keep more'; DPLabel: 'DP: 5/5' -> 'DP: 4/5'; 3 rect(s) moved"
+  },
+  {
+   "road": "diplo_congress_court",
+   "scene": "diplomatic_ledger.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "congress_court:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.diplo_congress_court (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot diplo_boot_congress opened inside the real main.tscn against a sandboxed backend: Open the Cabinet at <court> closes the ledger and opens the Cabinet (the wizard) at that court. The record: 18 node(s) shown; 21 node(s) hidden; TitleLabel: 'DIPLOMATIC LEDGER' -> '<null>'; CabinetLine: 'Talleyrand: Idle   ' -> '<null>'"
+  },
+  {
+   "road": "ledger_law",
+   "scene": "strategic_ledger.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "do:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.ledger_law (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot ledger_boot_laws opened inside the real main.tscn against a sandboxed backend: an Enact / Repeal chip greys to 'Sent: <its words>', and the Council of State's question opens over the ledger. The record: 9 node(s) shown; ContentArea: at 1529 '…force.\n\n    Enact    15 authority now, then 150 gold a turn.' -> '…force.\n\n    Sent: Enact    15 authority now, then 150 gold a'; TitleLabel: '<null>' -> 'THE COUNCIL OF STATE ASKS:'; MessageLabel: '<null>' -> '\"The Anticipated Class (the senatus-cons'"
+  },
+  {
+   "road": "ledger_admiralty",
+   "scene": "strategic_ledger.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "do:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.ledger_admiralty (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot ledger_boot_admiralty opened inside the real main.tscn against a sandboxed backend: an Admiralty chip greys in place to 'Sent: <its words>'. The record: ContentArea: at 381 '…miralty\n    Blockade the enemy    closes Austria and Russia ' -> '…miralty\n    Sent: Blockade the enemy    closes Austria and R'; 3 rect(s) moved"
+  },
+  {
+   "road": "ledger_cancel",
+   "scene": "strategic_ledger.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "cancel:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.ledger_cancel (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot ledger_orders_display opened inside the real main.tscn against a sandboxed backend: the Orders tab's Cancel greys in place to 'Sent: Cancel' while the ledger re-reads. The record: ContentArea: at 302 '…tracking    Cancel  \n\n──────────────────────────────────────' -> '…tracking    Sent: Cancel  \n\n────────────────────────────────'"
+  },
+  {
+   "road": "region_order",
+   "scene": "region_panel.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "order:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.region_order (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot region_paris opened inside the real main.tscn against a sandboxed backend: a region panel's order chip: the terminal beside the panel echoes the order and the backend's answer; the command line waits. The record: OutputDisplay: at 1178 '…optional).\"\n' -> '…optional).\"\n\n► Soult, fortify\nFortifying from neutral stance'; DiplomacyButton pressed/disabled [false, false] -> [false, true]; EndTurnButton pressed/disabled [false, false] -> [false, true]; 4 rect(s) moved"
+  },
+  {
+   "road": "region_do",
+   "scene": "region_panel.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "do:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.region_do (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot region_paris opened inside the real main.tscn against a sandboxed backend: a region panel's recruit / substitutes / build chip: the terminal beside the panel echoes the order and the answer. The record: OutputDisplay: at 1178 '…optional).\"\n' -> '…optional).\"\n\n► recruit infantry in Paris\nBerthier checks the'; DiplomacyButton pressed/disabled [false, false] -> [false, true]; EndTurnButton pressed/disabled [false, false] -> [false, true]; 4 rect(s) moved"
+  },
+  {
+   "road": "region_negotiate",
+   "scene": "region_panel.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "negotiate:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.region_negotiate (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot region_amsterdam opened inside the real main.tscn against a sandboxed backend: Negotiate with <court> closes the panel and opens the Cabinet at that court. The record: 18 node(s) shown; 7 node(s) hidden; TitleLabel: 'Amsterdam' -> '<null>'; CloseButton: '' -> '<null>'"
+  },
+  {
+   "road": "enemy_view_field",
+   "scene": "enemy_phase_dialog.tscn",
+   "match": {
+    "kind": "link",
+    "meta_startswith": "diorama:"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.enemy_view_field (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot enemy_phase_t20 opened inside the real main.tscn against a sandboxed backend: View the field opens the battle's tableau over the enemy phase. The record: 45 node(s) shown; @Label@: '<null>' -> '10,890 → 9,164'; @Label@: '<null>' -> '9,218 → 8,494'; @Label@: '<null>' -> '0'"
+  },
+  {
+   "road": "rail_recall",
+   "scene": "notification_bar.tscn",
+   "match": {
+    "kind": "button",
+    "text": "Recall"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.rail_recall (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot rail_mission_court opened inside the real main.tscn against a sandboxed backend: the mission row's Recall chip writes the backend's recall order into the war room's command line (it never sends; Enter does). The record: CommandInput: '' -> 'Talleyrand, cancel mission with Denmark'; SendButton pressed/disabled [false, true] -> [false, false]"
+  },
+  {
+   "road": "topbar_cabinet",
+   "scene": "top_bar.tscn",
+   "match": {
+    "path_endswith": "TalleyrandLabel"
+   },
+   "cite": "docs/audits/uxr3_s12b/war_room.json roads.topbar_cabinet (tools/uxr3_action_probe.py --war-room)",
+   "evidence": "tools/uxr3_action_probe.py --war-room, shot top_bar_mission_court opened inside the real main.tscn against a sandboxed backend: the top bar's Cabinet chip opens the Diplomatic Ledger at Talleyrand's book. The record: 21 node(s) shown; 14 node(s) hidden; HeaderLabel: 'ACTIVE WARS' -> '<null>'; @Button@: '' -> '<null>'"
+  }
+ ]
+}

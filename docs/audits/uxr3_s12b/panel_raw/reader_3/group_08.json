@@ -1,0 +1,61 @@
+{"reader": 3, "group": "popups",
+ "marks": {
+  "objection_dialog": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/objection_dialog__5120x1440.png", "why": "The large amber MASSENA'S CONCERN title leads, his objection in his own words follows, then the three priced answers."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/objection_dialog__5120x1440.png", "why": "The three answers are bordered buttons that answered; the stat row is plain text."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/objection_dialog__1920x1080.png", "why": "Each answer is a visible button naming its consequence and trust price."},
+   "R4_note": "The quote is double-wrapped (\"…'…'…\") and the parenthetical alternative sits inside the quote marks."
+  },
+  "talleyrand_objection": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/talleyrand_objection__5120x1440.png", "why": "TALLEYRAND OBJECTS with the red STRONG level leads, his reason and the defiance risk follow."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/talleyrand_objection__5120x1440.png", "why": "Proceed Anyway, Modify Proposal and Cancel are bordered buttons that answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/talleyrand_objection__1920x1080.png", "why": "The three answers are visible."},
+   "R4_note": "Its title is small, bold, white and left-aligned while Massena's concern is a large centred amber title; an empty band sits above the buttons."
+  },
+  "interrupt_last_stand": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/interrupt_last_stand__5120x1440.png", "why": "NEY REPORTS leads, the cornered line follows, and the two choices fill a box that fits them."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/interrupt_last_stand__5120x1440.png", "why": "Both choices are bordered buttons that answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/interrupt_last_stand__1920x1080.png", "why": "Fight to the Last and Attempt a Breakout are visible."},
+   "R4_note": "Neither button states its consequence, unlike the objection and capture popups."
+  },
+  "capture_choice": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/capture_choice__5120x1440.png", "why": "REGION CAPTURED!, 'Massena has taken Tyrol' and the question lead in order, then the two choices."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/capture_choice__5120x1440.png", "why": "PLUNDER and SECURE are bordered buttons carrying their consequences, and both answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/capture_choice__1920x1080.png", "why": "Both choices are visible with their gold and stability."},
+   "R4_note": "The button labels are coloured text (amber, green) unlike the cream labels of every other popup button; 'stability 10' vs 'stability 25' do not say whether higher is better."
+  },
+  "petition_popup": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_popup__5120x1440.png", "why": "A CLIENT'S PETITION, the court and 'The petition:' with Grant's and Refuse's terms lead the popup."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_popup__5120x1440.png", "why": "Grant, Refuse and Not Now are bordered buttons that answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_popup__1920x1080.png", "why": "The answers are visible and the body states what each costs."}
+  },
+  "petition_popup_no_dp": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_popup_no_dp__5120x1440.png", "why": "The red 'Grant unavailable' reason is the first line under the title."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_popup_no_dp__5120x1440.png", "why": "Grant is present but greyed, with its reason at the top of the body and in its tooltip."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_popup_no_dp__1920x1080.png", "why": "The reason names the remedy ('keep 1 DP to grant it, or refuse it') and Refuse and Not Now are visible."},
+   "R4_note": "The reason sits far from the greyed button it explains; Talleyrand's line is cut at the scroll edge."
+  },
+  "petition_command_closed": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_command_closed__5120x1440.png", "why": "The title, the closed arm's one reason line and Murat's words lead, with the whole body above the fold."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_command_closed__5120x1440.png", "why": "The answers are bordered buttons with a consequence line each; the disabled 'Give him a command' carries its reason in its tooltip and the gate line."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/petition_command_closed__1920x1080.png", "why": "Let it stand, Promise Glory and Later are visible; the scrollbar shows more answers."},
+   "R4_note": "Rebuke and the disabled command button sit below the scroll fold; 'For 0 more turns he brings NONE' reads oddly."
+  },
+  "mailbox_boot": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/mailbox_boot__5120x1440.png", "why": "The two envoy cards, each led by its court and status, fill the panel under the title."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/mailbox_boot__5120x1440.png", "why": "The bordered letter cards open on click (pointer, 'Open ▸'), and Accept, Decline and Close are bordered buttons; all answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/mailbox_boot__1920x1080.png", "why": "Accept/Decline are visible and the line says 'or click the letter to reply in full'."},
+   "R4_note": "'Terms: Proposal: Non-Aggression Pact' repeats the label; a large empty band sits below the two cards."
+  },
+  "mailbox_petition": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/mailbox_petition__5120x1440.png", "why": "The single petition row, led by its court, is the first and only content under the title."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/mailbox_petition__5120x1440.png", "why": "The bordered row with 'Open ▸' is a pointer control that answered; Close is a button."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/mailbox_petition__1920x1080.png", "why": "The subtitle says 'Select a row to reopen or activate it' and Close is visible."},
+   "R4_note": "Unlike the routine letters this row offers no inline Accept/Decline and no body, leaving most of the panel empty."
+  },
+  "proclamation_warsaw": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/proclamation_warsaw__5120x1440.png", "why": "The flag, A NATION IS PROCLAIMED and the large 'Duchy of Warsaw' lead the card, 'By your hand.' beneath."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/proclamation_warsaw__5120x1440.png", "why": "The one Acknowledge button is bordered and answered."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/proclamation_warsaw__1920x1080.png", "why": "Acknowledge is the visible way out."}
+  }
+ }}

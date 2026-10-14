@@ -1,0 +1,48 @@
+{"reader": 2, "group": "generals",
+ "marks": {
+  "generals_boot": {
+   "R2": {"pass": false, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_boot__1920x1080.png", "why": "The first screenful leads with OUR DOCTRINE and the Emperor's prose; no skill bars, glory ladder or GLORY & GRIEVANCES block is in view at 1920, 5120 or 3840, so the character sheets the screen is for are not where the eye lands."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_boot__1920x1080.png", "why": "The close X and the corner grip are the only controls in view and look like controls; no prose is styled as a link."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_boot__5120x1440.png", "why": "A reading screen: 'Press G to close', the close X and a scrollbar are visible."},
+   "R4_note": "Small knot ornaments sit in both bottom corners, one of them over the resize grip, so the grip is hard to tell from decoration."
+  },
+  "generals_t20": {
+   "R2": {"pass": false, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_t20__1920x1080.png", "why": "Doctrine and an empty Laurels line lead; the played roster's trust bars, glory and grievances are not in the first screenful, only the top of Ney's card."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_t20__1920x1080.png", "why": "'Commission a Marshal…' is an underlined filled chip and answers; close X looks like a control."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_t20__5120x1440.png", "why": "Commission a Marshal, the close X and the scrollbar are visible."}
+  },
+  "generals_prisoner": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_prisoner__5120x1440.png", "why": "'A PRISONER — Ney: PRISONER of the Kingdom of Italy since T1' in red is the first line of the board and repeats at the foot of his card."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_prisoner__1920x1080.png", "why": "Only the close X and grip are in view and both look like controls; skill bars are not styled as controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_prisoner__1920x1080.png", "why": "Informing card; close X and 'Press G to close' visible."}
+  },
+  "generals_np_seat": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_seat__5120x1440.png", "why": "The Emperor's card, with the largest image on the screen, fills the frame: 'At the Seat — he holds court at Paris: +1 DP a turn' in gold and the Guard's 10,000."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_seat__1920x1080.png", "why": "Only the close X and grip are in view and both look like controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_seat__1920x1080.png", "why": "Informing card; close X visible."},
+   "R4_note": "The card says 'At the Seat' but the Sovereign paragraph still reads 'You, in the field'."
+  },
+  "generals_np_field": {
+   "R2": {"pass": false, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_field__5120x1440.png", "why": "No Presence figure marked as applied and no dimming star are visible: the Presence line reads the generic '+10%' and the rank shows only as a bracketed '[7]', so the thing this shot is for cannot be found."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_field__1920x1080.png", "why": "Only the close X and grip are in view and both look like controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_field__1920x1080.png", "why": "Informing card; close X visible."},
+   "R4_note": "The biography says 'at the Tuileries' while the card says 'In the field at Bohemia'."
+  },
+  "generals_np_captive": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_captive__5120x1440.png", "why": "The red 'A captive — PRISONER of Austria since T11; he commands nothing' line sits directly under the portrait, the strongest element of the Emperor's card."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_captive__1920x1080.png", "why": "No order link is offered on the captive's card; close X and grip look like controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_np_captive__1920x1080.png", "why": "Informing card; close X visible."}
+  },
+  "generals_flagship_t12": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_flagship_t12__5120x1440.png", "why": "THE LAURELS ladder of seven marshals with glory bars and red 'envious of' marks is the largest block on the screen."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_flagship_t12__1920x1080.png", "why": "'Commission a Marshal…' is an underlined filled chip; ladder bars are not styled as controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_flagship_t12__1920x1080.png", "why": "Commission a Marshal and the close X are visible."},
+   "R4_note": "A large empty band follows the separator before the first card at 5120."
+  },
+  "generals_doctrine": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_doctrine__5120x1440.png", "why": "OUR DOCTRINE — The Corps System is the first section: the says line, Strength and Flaw with their numbers, and the cure status."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_doctrine__1920x1080.png", "why": "Only the close X and grip are in view and both look like controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/generals_doctrine__1920x1080.png", "why": "Informing block; close X visible."},
+   "R4_note": "THE EMPEROR card, not THE LAURELS, sits directly below the doctrine."
+  }
+ }}

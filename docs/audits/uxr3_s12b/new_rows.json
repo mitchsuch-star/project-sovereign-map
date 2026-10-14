@@ -1,0 +1,8 @@
+[
+ {"id": "UXR3-79", "sev": "P2", "items": ["R2"], "scene": "region_panel.tscn",
+  "surfaces": ["region_doctrine_posen", "region_doctrine_tyrol"]},
+ {"id": "UXR3-80", "sev": "P2", "items": ["R2"], "scene": "marshal_management.tscn",
+  "surfaces": ["generals_boot"]},
+ {"id": "UXR3-81", "sev": "P2", "items": ["R2"], "scene": "diplomatic_ledger.tscn",
+  "surfaces": ["diplo_petition_granted_vassals"]}
+]

@@ -332,7 +332,7 @@ Four entries stand outside, each with a proof the test checks:
 | The tutor body | It bounds itself |
 | The rail's detail body | It bounds itself |
 | The terminal's suggestion row | It is count-capped |
-| The diorama verdict | It is free-positioned (UXR-X9) |
+| The diorama verdict | It is free-positioned (UXR-X9) — left this list with UXR-X9's fix (S12 part 2, part 5e: a bounded room above the plate) |
 
 Floorless ScrollContainers are a ratchet at 8. The census was shown to fail on a synthetic case for each arm.
 
@@ -674,6 +674,51 @@ surfaces by time on screen read 8 of 8; no surface reads under 6 of 8.
 
 **The done-when.** Part 1's own is **MET**: the classes landed, every flipped item was re-read with the same tools against the same checklist, and every row is FIXED with its re-read or open with what still reads ✗. §UXR-3's (the top five groups at 8 of 8, none under 6) is **not met**: 17 of the top five's 115 surfaces read 8 of 8, and 9 surfaces read under 6. Part 2 owns it, with every fork decided in `docs/NEXT_SESSION_PROMPT.md`.
 
+### Landing record — UXR-3 fixes, part 2 (Pre-Deploy S12 part 2, October 14, 2026)
+
+> Eight commits on master and the close:
+> - `56fe00b0` the grip and the plate;
+> - `95f867c0` R6's driven proofs and the never-pressed controls;
+> - `8f71c0da` the boards;
+> - `0229ee67` the rows found while reading;
+> - `6e54052f` and `cf0e5213` whole lines at every reading scroll, and the white peace's fit;
+> - `4933a332` the two found on the closing shoot's frames;
+> - `d34cbe91` UXR-X9.
+>
+> The closing re-read is `docs/audits/UXR3_REREAD2_2026_10_14.md`; records `docs/audits/uxr3_s12b/`; rules `SYSTEMS_REFERENCE.md` §113.7; rows `BUG_FIXES.md` §UXR-3; pins `tests/test_uxr3_s12_part2.py` (the fixes), `tests/test_uxr3_s12_war_room.py` (R6's live citations) and `tests/test_uxr3_s12b_reread.py` (the reading). Run straight through under the user's "make all decisions … nothing hanging".
+
+**The parts, each by the rule the S12 hand-off decided:**
+- **The grip and the plate.** The probe enumerates and drags a drag control. The grip is a borderless corner hatch in its panel's padding, and the tableau's plate is an engraved label. **R5 59 → 145.**
+- **R6's driven proofs.** The probe's war-room mode presses each hand-off road inside the real `main.tscn` against a sandboxed backend (never 8005) and reads the live frame. A chip whose echo lies under its screen greys to "Sent: <its words>". 22 of 22 roads answer on screen, Save, Load, New Campaign, Main Menu and Quit among them. **R6 97 → 145.**
+- **The boards.** A live subject leads its first screenful (fourteen rows' rules), the top bar's Cabinet is a chip, and the rail's mission row has a Recall.
+- **The found rows** F1 … F10, X3, X4, each closed by its own completion line.
+- **On the way to the close:**
+  - `Utils.keep_whole_lines` brings every reading scroll to rest on whole lines (730 frames, 0 cut lines);
+  - the white peace's document fits its regions;
+  - the two-rank standard and the top bar's alarm words are fixed;
+  - UXR-X9: the tableau's verdict has a bounded room above the plate, and the UXR-2 scroll census dropped it from its allowlist.
+
+**The closing re-read.** The same frozen checklist and the same tools, on committed trees: the whole shoot, probe and war room on `cf0e5213`, and two re-shoots merged (`4933a332`, `d34cbe91`). Three fresh blind readers gave 420 of their 435 marks 3–0.
+
+| Item | ✓ of 145: S11 → part 1 → now | Item | ✓ of 145: S11 → part 1 → now |
+|---|---|---|---|
+| R1 Readable | 142 → 145 → **145** | R5 Affordance | 72 → 59 → **145** |
+| R2 Hierarchy | 105 → 101 → **134** | R6 Feedback | 58 → 97 → **145** |
+| R3 Contrast | 45 → 145 → **145** | R7 Fit | 142 → 145 → **145** |
+| R4 Consistency | 84 → 145 → **145** | R8 Discoverability | 139 → 140 → **145** |
+
+- **Marks 787 → 977 → 1,149 of 1,160.** Since part 1, 176 went ✗ → ✓ and 4 went ✓ → ✗.
+- **Surfaces under 6: 82 → 9 → 0.** At 8 of 8: 7 → 32 → **134**. Every other surface reads 7.
+- **The rows.** 74 of the 78 (the review's 73 and part 1's five) read ✓ on everything they name:
+  - 45 closed in part 1 and 29 in part 2.
+  - The four left (UXR3-2, 24, 29, 41) and three new ones (UXR3-79 … 81, the four ✓ → ✗ on boards part 4's rules moved) are **re-homed to UXR-4 (S15)**. Each carries its frames, the readers' reasons and its fix decided now.
+  - UXR-X28 moved to S12b's head, its reason on the row.
+
+**The done-when.** S12's is met in two of its three clauses:
+- every row is FIXED with its re-read or re-homed with its reason;
+- no surface reads under 6;
+- §UXR-3's "the top five groups at 8 of 8" reads **104 of 115**. The eleven short are all R2, each on a re-homed row, for the user's eyes at UXR-4. None is waived.
+
 ## UXR-4 — The user's eyes (0.5 session, the last before the deploy)
 
 The sign-off convention stands: the user, at their monitor, in the real client.
@@ -681,6 +726,11 @@ A scripted twenty-minute walk — the tutorial end to end, one dispatch, one
 peace table, one battle, the Generals screen, Settings — with the UXR-0 frames
 beside it. Each stop is a yes/no; a no becomes a row and goes back to UXR-3's
 fix slice. **Nothing deploys over an open UXR-4 no.**
+
+**What S12 re-homed here (October 14, 2026).** The walk reads, beside its own stops, the eleven R2 marks the closing re-read left: rows UXR3-2, 24, 29, 41 and 79 … 81 (`BUG_FIXES.md` §UXR-3; the list with frames is `docs/audits/UXR3_REREAD2_2026_10_14.md` §7).
+- The user's mark overrides the readers'.
+- A ✓ closes the row. A ✗ lands the row's own decided fix before the deploy, re-read on its frame.
+- UXR3-41's two boards are re-staged at S15's head before the walk (their payloads carry `paused: false`; the row says how).
 
 ## What this plan does not do
 

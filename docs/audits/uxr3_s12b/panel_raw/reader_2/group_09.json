@@ -1,0 +1,21 @@
+{"reader": 2, "group": "menu_and_settings",
+ "marks": {
+  "main_menu": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/main_menu__1920x1080.png", "why": "The INK & IRON title block is the largest element and the bordered 'CAN YOU READ THIS COMFORTABLY?' card sits centred over the menu, the one panel the eye goes to next."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/main_menu__1920x1080.png", "why": "The four greyed campaign buttons carry the tooltip 'Waiting for the game's server…' and the red status line says the war office does not answer; Settings, Quit, the slider and the card's two buttons look like controls."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/main_menu__5120x1440.png", "why": "The card asks one thing and offers 'Looks right' and 'Size for this screen'; the slider is visible."},
+   "R4_note": "The status line prints a raw shell command (.venv\\Scripts\\python.exe -m backend.main) to the player; the card's own text is small at 5120."
+  },
+  "main_menu_settings": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/main_menu_settings__1920x1080.png", "why": "The bordered SETTINGS panel is the centred focus, with DISPLAY and INTERFACE leading its scroll."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/main_menu_settings__1920x1080.png", "why": "Dropdowns carry chevrons, sliders have knobs, buttons are bordered; disabled Connect/Disconnect have tooltip reasons and the greyed campaign buttons say 'Waiting for the game's server…'."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/main_menu_settings__1920x1080.png", "why": "Every setting is a visible control with a hint, and Back is visible."},
+   "R4_note": "SOUND, SMARTER PARSING, SPOKEN ORDERS, CONTROLS, CREDITS and Reset layout are all below the fold of the scroll; at 5120 the High contrast hint is cut at the scroll's bottom edge."
+  },
+  "war_room_pause_settings": {
+   "R2": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_pause_settings__1920x1080.png", "why": "The unfolded Settings block (DISPLAY, INTERFACE with the slider) is the largest region of the CAMPAIGN MENU panel and is not squeezed to a sliver."},
+   "R5": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_pause_settings__1920x1080.png", "why": "All menu items are bordered buttons, dropdowns have chevrons, the slider has a knob; disabled Connect/Disconnect have tooltip reasons."},
+   "R8": {"pass": true, "cite": "C:/Users/User/AppData/Local/Temp/uxr3_s12b/packet/frames/war_room_pause_settings__1920x1080.png", "why": "The settings controls and 'Resume (Esc)' are visible."},
+   "R4_note": "The sound rows are not in view at 1920 or 5120; the settings scroll sits between button stacks and needs scrolling to reach them."
+  }
+ }}

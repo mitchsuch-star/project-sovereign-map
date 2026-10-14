@@ -1,0 +1,1756 @@
+{
+ "rule": "docs/UX_CHECKLIST_V1.json R4",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\uxr3_s12b\\merged2\\index.json",
+ "excluded": [
+  "res://scripts/ui_settings.gd",
+  "res://scripts/utils.gd",
+  "the theme .tres",
+  "tools/**"
+ ],
+ "surfaces": {
+  "war_room_boot": {
+   "road": "frames",
+   "files": [
+    "res://scenes/europe_map.gd",
+    "res://scenes/main.tscn",
+    "res://scenes/map.gd",
+    "res://scenes/map_connection_layer.gd",
+    "res://scenes/map_label_layer.gd",
+    "res://scenes/map_renderer_base.gd",
+    "res://scenes/map_tooltip_layer.gd",
+    "res://scenes/top_bar.tscn",
+    "res://scenes/war_status_panel.tscn",
+    "res://scenes/war_table_piece.gd",
+    "res://scripts/main.gd",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/top_bar.gd",
+    "res://scripts/war_status_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "top_bar_boot": {
+   "road": "frames",
+   "files": [
+    "res://scenes/top_bar.tscn",
+    "res://scripts/top_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "top_bar_admiralty": {
+   "road": "frames",
+   "files": [
+    "res://scenes/top_bar.tscn",
+    "res://scripts/top_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "top_bar_mission_court": {
+   "road": "frames",
+   "files": [
+    "res://scenes/top_bar.tscn",
+    "res://scripts/top_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_status_boot": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_status_panel.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/war_status_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_status_collapse_one": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_status_panel.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/war_status_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_status_collapse_none": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_status_panel.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/war_status_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_status_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_status_panel.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/war_status_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_detail_boot": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_detail_popup.tscn",
+    "res://scripts/war_detail_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_detail_collapse_one": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_detail_popup.tscn",
+    "res://scripts/war_detail_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_detail_collapse_none": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_detail_popup.tscn",
+    "res://scripts/war_detail_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_detail_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_detail_popup.tscn",
+    "res://scripts/war_detail_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_detail_coalition_boot": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_detail_popup.tscn",
+    "res://scripts/war_detail_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_detail_coalition_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/war_detail_popup.tscn",
+    "res://scripts/war_detail_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "rail_mission_court": {
+   "road": "frames",
+   "files": [
+    "res://scenes/notification_bar.tscn",
+    "res://scripts/notification_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "rail_mission_improve": {
+   "road": "frames",
+   "files": [
+    "res://scenes/notification_bar.tscn",
+    "res://scripts/notification_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "rail_mission_gather": {
+   "road": "frames",
+   "files": [
+    "res://scenes/notification_bar.tscn",
+    "res://scripts/notification_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "rail_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/notification_bar.tscn",
+    "res://scripts/notification_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "rail_counter_punch": {
+   "road": "frames",
+   "files": [
+    "res://scenes/notification_bar.tscn",
+    "res://scripts/notification_bar.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_paris": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_rhineland": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_amsterdam": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_milan": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_vienna": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_doctrine_posen": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_doctrine_tyrol": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "region_paris_build_open": {
+   "road": "frames",
+   "files": [
+    "res://scenes/region_panel.tscn",
+    "res://scripts/region_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "dispatch_boot_today": {
+   "road": "frames",
+   "files": [
+    "res://scenes/dispatch_view.tscn",
+    "res://scripts/dispatch_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "dispatch_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/dispatch_view.tscn",
+    "res://scripts/dispatch_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "dispatch_collapse": {
+   "road": "frames",
+   "files": [
+    "res://scenes/dispatch_view.tscn",
+    "res://scripts/dispatch_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "dispatch_fall_clock": {
+   "road": "frames",
+   "files": [
+    "res://scenes/dispatch_view.tscn",
+    "res://scripts/dispatch_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "dispatch_congress_clock": {
+   "road": "frames",
+   "files": [
+    "res://scenes/dispatch_view.tscn",
+    "res://scripts/dispatch_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "dispatch_front_page": {
+   "road": "frames",
+   "files": [
+    "res://scenes/dispatch_view.tscn",
+    "res://scripts/dispatch_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "dispatch_front_page_league": {
+   "road": "frames",
+   "files": [
+    "res://scenes/dispatch_view.tscn",
+    "res://scripts/dispatch_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "gazette_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/gazette_view.tscn",
+    "res://scripts/gazette_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "gazette_congress": {
+   "road": "frames",
+   "files": [
+    "res://scenes/gazette_view.tscn",
+    "res://scripts/gazette_view.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_log_glyphs": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_log.tscn",
+    "res://scripts/campaign_log.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_log_tiers": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_log.tscn",
+    "res://scripts/campaign_log.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_boot": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_prisoner": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_np_seat": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_np_field": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_np_captive": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_flagship_t12": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "generals_doctrine": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_management.tscn",
+    "res://scripts/marshal_management.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_step1": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_step2_austria": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_step2_prussia": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_step1_congress_gate": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_step1_congress_ready": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_step1_congress_sitting": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_formables_entry": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "wizard_formables_step3": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomacy_wizard.tscn",
+    "res://scripts/diplomacy_wizard.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "confirm_peace_losing": {
+   "road": "frames",
+   "files": [
+    "res://scenes/proposal_confirm_popup.tscn",
+    "res://scripts/proposal_confirm_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "settlement_three_courts": {
+   "road": "frames",
+   "files": [
+    "res://scenes/proposal_confirm_popup.tscn",
+    "res://scripts/proposal_confirm_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "settlement_white_review_ratify": {
+   "road": "frames",
+   "files": [
+    "res://scenes/proposal_confirm_popup.tscn",
+    "res://scripts/proposal_confirm_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "settlement_white_review_holdout": {
+   "road": "frames",
+   "files": [
+    "res://scenes/proposal_confirm_popup.tscn",
+    "res://scripts/proposal_confirm_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "incoming_peace_losing": {
+   "road": "frames",
+   "files": [
+    "res://scenes/incoming_proposal_popup.tscn",
+    "res://scripts/incoming_proposal_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_boot_nations": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_boot_treaties": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_boot_balance": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_boot_talleyrand": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_boot_bargains": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_boot_vassals": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_boot_congress": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_laws_rival_nations": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_collapse_one_nations": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_collapse_cooldown_talleyrand": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_collapse_none_vassals": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_mission_court_talleyrand": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_mission_undermine_talleyrand": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_mission_recalled_talleyrand": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_petition_granted_vassals": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_t20_nations": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_t20_treaties": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_t20_balance": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_t20_vassals": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_congress_gate": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_congress_sitting": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_congress_sitting_table": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_doctrine_nations": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diplo_balance_next_league": {
+   "road": "frames",
+   "files": [
+    "res://scenes/diplomatic_ledger.tscn",
+    "res://scripts/diplomatic_ledger.gd",
+    "res://scripts/resize_grip.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_territories": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_intel": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_manpower": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_orders": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_admiralty": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_boot_laws": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_spent_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_ceiling_calm_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_ceiling_above_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_ceiling_unbounded_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_collapse_one_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_collapse_none_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_laws_staff": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_laws_forecast": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_mission_court_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_mission_improve_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_mission_gather_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_mission_undermine_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_mission_transit_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_mission_starved_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_mission_recalled_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_t20_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_t20_economy": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_t20_orders": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_t20_admiralty": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_np_seat_forces": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_fall_clock_territories": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_congress_clock_territories": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_laws_train": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "ledger_orders_display": {
+   "road": "frames",
+   "files": [
+    "res://scenes/strategic_ledger.tscn",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/strategic_ledger.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_room_tutorial": {
+   "road": "frames",
+   "files": [
+    "res://scenes/europe_map.gd",
+    "res://scenes/main.tscn",
+    "res://scenes/map.gd",
+    "res://scenes/map_connection_layer.gd",
+    "res://scenes/map_label_layer.gd",
+    "res://scenes/map_renderer_base.gd",
+    "res://scenes/map_tooltip_layer.gd",
+    "res://scenes/top_bar.tscn",
+    "res://scenes/tutorial_overlay.tscn",
+    "res://scenes/war_status_panel.tscn",
+    "res://scenes/war_table_piece.gd",
+    "res://scripts/main.gd",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/top_bar.gd",
+    "res://scripts/tutorial_overlay.gd",
+    "res://scripts/war_status_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "tutorial_card": {
+   "road": "frames",
+   "files": [
+    "res://scenes/tutorial_overlay.tscn",
+    "res://scripts/tutorial_overlay.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "enemy_phase_t20": {
+   "road": "frames",
+   "files": [
+    "res://scenes/enemy_phase_dialog.tscn",
+    "res://scripts/enemy_phase_dialog.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "enemy_phase_collapse": {
+   "road": "frames",
+   "files": [
+    "res://scenes/enemy_phase_dialog.tscn",
+    "res://scripts/enemy_phase_dialog.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "enemy_phase_iq5": {
+   "road": "frames",
+   "files": [
+    "res://scenes/enemy_phase_dialog.tscn",
+    "res://scripts/enemy_phase_dialog.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diorama_aadj": {
+   "road": "frames",
+   "files": [
+    "res://scenes/battle_diorama.tscn",
+    "res://scenes/diorama_figure.gd",
+    "res://scripts/battle_diorama.gd",
+    "res://scripts/popup_base.gd",
+    "res://scripts/portrait_locket.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diorama_dadj": {
+   "road": "frames",
+   "files": [
+    "res://scenes/battle_diorama.tscn",
+    "res://scenes/diorama_figure.gd",
+    "res://scripts/battle_diorama.gd",
+    "res://scripts/popup_base.gd",
+    "res://scripts/portrait_locket.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diorama_rout_conquest": {
+   "road": "frames",
+   "files": [
+    "res://scenes/battle_diorama.tscn",
+    "res://scenes/diorama_figure.gd",
+    "res://scripts/battle_diorama.gd",
+    "res://scripts/popup_base.gd",
+    "res://scripts/portrait_locket.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diorama_four_contingents": {
+   "road": "frames",
+   "files": [
+    "res://scenes/battle_diorama.tscn",
+    "res://scenes/diorama_figure.gd",
+    "res://scripts/battle_diorama.gd",
+    "res://scripts/popup_base.gd",
+    "res://scripts/portrait_locket.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "diorama_naval": {
+   "road": "frames",
+   "files": [
+    "res://scenes/battle_diorama.tscn",
+    "res://scenes/diorama_figure.gd",
+    "res://scripts/battle_diorama.gd",
+    "res://scripts/popup_base.gd",
+    "res://scripts/portrait_locket.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "objection_dialog": {
+   "road": "frames",
+   "files": [
+    "res://scenes/objection_dialog.tscn",
+    "res://scripts/objection_dialog.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "talleyrand_objection": {
+   "road": "frames",
+   "files": [
+    "res://scenes/talleyrand_objection_popup.tscn",
+    "res://scripts/talleyrand_objection_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "interrupt_last_stand": {
+   "road": "frames",
+   "files": [
+    "res://scenes/interrupt_popup.tscn",
+    "res://scripts/interrupt_popup.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "capture_choice": {
+   "road": "frames",
+   "files": [
+    "res://scenes/capture_choice_dialog.tscn",
+    "res://scripts/capture_choice_dialog.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "petition_popup": {
+   "road": "frames",
+   "files": [
+    "res://scenes/incoming_proposal_popup.tscn",
+    "res://scripts/incoming_proposal_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "petition_popup_no_dp": {
+   "road": "frames",
+   "files": [
+    "res://scenes/incoming_proposal_popup.tscn",
+    "res://scripts/incoming_proposal_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "petition_command_closed": {
+   "road": "frames",
+   "files": [
+    "res://scenes/marshal_petition_dialog.tscn",
+    "res://scripts/marshal_petition_dialog.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "mailbox_boot": {
+   "road": "frames",
+   "files": [
+    "res://scenes/mailbox_panel.tscn",
+    "res://scripts/mailbox_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "mailbox_petition": {
+   "road": "frames",
+   "files": [
+    "res://scenes/mailbox_panel.tscn",
+    "res://scripts/mailbox_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "proclamation_warsaw": {
+   "road": "frames",
+   "files": [
+    "res://scenes/proclamation_popup.tscn",
+    "res://scripts/popup_base.gd",
+    "res://scripts/proclamation_popup.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "main_menu": {
+   "road": "frames",
+   "files": [
+    "res://scenes/main_menu.tscn",
+    "res://scripts/main_menu.gd",
+    "res://scripts/scale_card.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "main_menu_settings": {
+   "road": "frames",
+   "files": [
+    "res://scenes/main_menu.tscn",
+    "res://scenes/settings_panel.tscn",
+    "res://scripts/main_menu.gd",
+    "res://scripts/settings_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "war_room_pause_settings": {
+   "road": "frames",
+   "files": [
+    "res://scenes/europe_map.gd",
+    "res://scenes/main.tscn",
+    "res://scenes/map.gd",
+    "res://scenes/map_connection_layer.gd",
+    "res://scenes/map_label_layer.gd",
+    "res://scenes/map_renderer_base.gd",
+    "res://scenes/map_tooltip_layer.gd",
+    "res://scenes/pause_menu.tscn",
+    "res://scenes/settings_panel.tscn",
+    "res://scenes/top_bar.tscn",
+    "res://scenes/war_status_panel.tscn",
+    "res://scenes/war_table_piece.gd",
+    "res://scripts/main.gd",
+    "res://scripts/pause_menu.gd",
+    "res://scripts/resize_grip.gd",
+    "res://scripts/settings_panel.gd",
+    "res://scripts/top_bar.gd",
+    "res://scripts/war_status_panel.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_end_verdict": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_end.tscn",
+    "res://scripts/campaign_end.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_end_imperial": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_end.tscn",
+    "res://scripts/campaign_end.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_end_imperial_congress": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_end.tscn",
+    "res://scripts/campaign_end.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_end_humbled": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_end.tscn",
+    "res://scripts/campaign_end.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_end_fall_funeral": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_end.tscn",
+    "res://scripts/campaign_end.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_end_fall_chains": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_end.tscn",
+    "res://scripts/campaign_end.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  },
+  "campaign_end_fall_abdication": {
+   "road": "frames",
+   "files": [
+    "res://scenes/campaign_end.tscn",
+    "res://scripts/campaign_end.gd",
+    "res://scripts/popup_base.gd"
+   ],
+   "pass": true,
+   "size_hits": 0,
+   "grey_hits": 0,
+   "by_file": {}
+  }
+ },
+ "files": {}
+}
