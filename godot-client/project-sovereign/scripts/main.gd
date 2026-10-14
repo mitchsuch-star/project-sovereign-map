@@ -728,6 +728,9 @@ func _ready():
 		# Generals refresh all come with it.
 		if notification_bar.has_signal("notification_action_requested"):
 			notification_bar.notification_action_requested.connect(_on_notification_action_requested)
+		# UXR3-1 / 18: the mission row's Recall chip fills the command line.
+		if notification_bar.has_signal("suggest_command"):
+			notification_bar.suggest_command.connect(_on_tutorial_suggest_command)
 		# UXR-2 (the anchors): the tutor card keeps clear of the notice rail
 		# its lessons point at (beside it, or below it on a narrow screen).
 		if tutorial_overlay != null and "avoid_rail" in tutorial_overlay:

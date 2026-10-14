@@ -165,6 +165,37 @@ func _input(event):
 
 var _api_client_ref = null
 
+# UXR3-77 (Pre-Deploy S12 part 2): the ledger's header names the Cabinet on
+# every book — "Talleyrand: Idle", or his mission and its court — as the top
+# bar does. The Cabinet block lived on the TALLEYRAND book alone, so six of
+# the seven books could not show the state their boards were taken to check
+# (IQ-4: never "None"). One Caption beside the DP figure, built in code.
+var _cabinet_line: Label = null
+
+
+func _set_cabinet_line(talleyrand_data) -> void:
+	if _cabinet_line == null:
+		var header = dp_display.get_parent()
+		if header == null:
+			return
+		_cabinet_line = Label.new()
+		_cabinet_line.name = "CabinetLine"
+		_cabinet_line.theme_type_variation = &"Caption"
+		_cabinet_line.add_theme_color_override("font_color", Utils.UI_GOLD)
+		header.add_child(_cabinet_line)
+		header.move_child(_cabinet_line, dp_display.get_index())
+	var words := "Talleyrand: Idle"
+	var mission = talleyrand_data.get("active_mission") if talleyrand_data is Dictionary else null
+	if mission is Dictionary and not mission.is_empty():
+		var kind := str(mission.get("type_display", ""))
+		if kind == "":
+			kind = str(mission.get("type", "")).replace("_", " ").capitalize()
+		words = "Talleyrand: " + kind + " → " + Utils.display_nation_name(str(mission.get("target", "")))
+		if bool(mission.get("paused", false)):
+			words += " (paused)"
+	_cabinet_line.text = words + "   "
+
+
 func open(api_client):
 	"""Fetch diplomatic ledger from backend and display it."""
 	_open_with_tab(api_client, 0, "")
@@ -183,6 +214,12 @@ func open_to_war_bargains(api_client):
 func open_to_vassals(api_client):
 	"""Fetch diplomatic ledger and open the Vassals tab (UI-6 deep link)."""
 	_open_with_tab(api_client, 5, "ledger_vassals")
+
+
+func open_to_talleyrand(api_client):
+	"""Fetch diplomatic ledger and open the TALLEYRAND tab (UXR3-2: the top
+	bar's Cabinet chip)."""
+	_open_with_tab(api_client, 3, "")
 
 
 func open_to_congress(api_client):
@@ -263,6 +300,7 @@ func _on_ledger_received(response):
 	var dp = int(talleyrand_data.get("dp_remaining", 0))
 	var dp_max = int(talleyrand_data.get("dp_max", 3))
 	dp_display.text = "DP: " + str(dp) + "/" + str(dp_max)
+	_set_cabinet_line(talleyrand_data)
 
 	_render_current_tab()
 
@@ -426,6 +464,22 @@ func _render_nations():
 		if vassal_eligible and power_tier == "minor":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]★ Vassalizable[/color]"
 		bbcode += "\n"
+		# UXR3-29 (Pre-Deploy S12 part 2): the court's Laws and Doctrine lines
+		# LEAD its card, under its name — they were its eighth and ninth
+		# lines, under the diplomat, the treaties and the design.
+		# SR-5r RF-4b (REFORMS_SPEC §8a): the court's laws in force, by name
+		# and what they cost it a turn — diplomacy has no fog. Backend-
+		# composed line (R7); null omits the row.
+		var laws_row = n.get("laws")
+		if laws_row != null and str(laws_row) != "":
+			bbcode += "  Laws: [color=#" + Utils.COLOR_GOLD + "]" + str(laws_row) + "[/color]\n"
+		# SR-7d DC-3a (DOCTRINES_SPEC §4a): the court's doctrine — name,
+		# strength, flaw and the cure's status, ONE line (the two-line budget
+		# with the laws line). Backend-composed; null omits.
+		var doctrine_row = n.get("doctrine")
+		if doctrine_row != null and str(doctrine_row) != "":
+			bbcode += "  Doctrine: [color=#" + Utils.COLOR_INFO + "]" + str(doctrine_row) + "[/color]\n"
+
 
 		# Diplomat info
 		var diplomat = n.get("diplomat")
@@ -511,19 +565,6 @@ func _render_nations():
 			var exposure_row_line = str(exposure_row.get("line", ""))
 			if exposure_row_line != "":
 				bbcode += "  Exposure: [color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_row_line) + "[/color]\n"
-
-		# SR-5r RF-4b (REFORMS_SPEC §8a): the court's laws in force, by name
-		# and what they cost it a turn — diplomacy has no fog. Backend-
-		# composed line (R7); null omits the row.
-		var laws_row = n.get("laws")
-		if laws_row != null and str(laws_row) != "":
-			bbcode += "  Laws: [color=#" + Utils.COLOR_GOLD + "]" + str(laws_row) + "[/color]\n"
-		# SR-7d DC-3a (DOCTRINES_SPEC §4a): the court's doctrine — name,
-		# strength, flaw and the cure's status, ONE line (the two-line budget
-		# with the laws line). Backend-composed; null omits.
-		var doctrine_row = n.get("doctrine")
-		if doctrine_row != null and str(doctrine_row) != "":
-			bbcode += "  Doctrine: [color=#" + Utils.COLOR_INFO + "]" + str(doctrine_row) + "[/color]\n"
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])
@@ -830,16 +871,7 @@ func _render_balance_of_europe():
 		"BREWING":
 			bbcode += "[color=#" + COLOR_AMBER + "]A coalition is brewing against " + label + ".[/color]\n\n"
 		"COOLDOWN":
-			var cooldown = int(boe.get("cooldown_turns_remaining", 0))
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]The courts are recovering from the last coalition."
-			if cooldown > 0:
-				bbcode += " Cooldown: " + str(cooldown) + " turns."
-			# IQ-2: under the collapse the league lapsed on low threat and
-			# ended no war — the backend names the courts still fighting us.
-			var cooldown_note = boe.get("headline_note", "")
-			if cooldown_note is String and cooldown_note != "":
-				bbcode += " " + cooldown_note
-			bbcode += "[/color]\n\n"
+			bbcode += _cooldown_counsel(boe) + "\n"
 		"HEGEMON_NO_COALITION":
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + label + " holds " + str(share_pct) + "% of active European bloc power.[/color]\n"
 			var hegemon_power = int(boe.get("hegemon_power", 0))
@@ -1065,9 +1097,28 @@ func _render_balance_of_europe():
 # TAB 4: TALLEYRAND
 # =============================================================================
 
+func _cooldown_counsel(boe: Dictionary) -> String:
+	"""IQ-3's spent-league counsel (the COOLDOWN headline): the courts are
+	recovering from the last coalition, for how long, and — IQ-2, under the
+	collapse — the backend's note naming the courts still fighting us."""
+	var cooldown = int(boe.get("cooldown_turns_remaining", 0))
+	var line: String = "[color=#" + Utils.COLOR_INFO + "]The courts are recovering from the last coalition."
+	if cooldown > 0:
+		line += " Cooldown: " + str(cooldown) + " turns."
+	var cooldown_note = boe.get("headline_note", "")
+	if cooldown_note is String and cooldown_note != "":
+		line += " " + cooldown_note
+	return line + "[/color]\n"
+
+
 func _render_talleyrand():
 	var t = cached_data.get("talleyrand", {})
 	var bbcode = ""
+	# UXR3-29 (Pre-Deploy S12 part 2): while the league is spent, its
+	# counsel LEADS Talleyrand's book — the one thing he would tell you first.
+	var boe_t = cached_data.get("balance_of_europe", {})
+	if boe_t is Dictionary and str(boe_t.get("headline_case", "")) == "COOLDOWN":
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]THE LEAGUE IS SPENT[/color]\n" + _cooldown_counsel(boe_t) + "\n"
 
 	var authority = int(t.get("authority", 60))
 	var authority_label = str(t.get("authority_label", "Stable"))

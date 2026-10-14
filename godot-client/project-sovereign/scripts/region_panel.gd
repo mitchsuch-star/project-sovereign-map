@@ -203,6 +203,11 @@ func _render() -> void:
 			bbcode += " · " + terrain.replace("_", " ").capitalize()
 		bbcode += "[/color]"
 	bbcode += "\n"
+	# UXR3-76 (Pre-Deploy S12 part 2): the ACTIONS block — the recruit,
+	# build and repair chips this panel exists for — is spliced in HERE,
+	# directly under the title line, once the rows are known (below); the
+	# province's figures, its forces and its sea follow it.
+	var actions_at := bbcode.length()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
 
@@ -653,9 +658,10 @@ func _render() -> void:
 					+ Utils.humanize_nation_keys_in_text(str(blocked[_region])) + "[/color]")
 
 	if action_rows.size() > 0:
-		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]ACTIONS[/color]\n"
+		var actions := "[color=#" + Utils.COLOR_HEADER + "]ACTIONS[/color]\n"
 		for row in action_rows:
-			bbcode += row + "\n"
+			actions += row + "\n"
+		bbcode = bbcode.substr(0, actions_at) + actions + "\n" + bbcode.substr(actions_at)
 
 	content_area.text = bbcode
 	# fit_content needs a layout pass before get_content_height() is real.

@@ -797,6 +797,9 @@ SHOTS: list[dict] = [
                 {"set_path": "assessment_panel.text", "value": "[color=#a0a0a8]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"},
                 {"call": "_lay_out_prompt", "args": [1]},
                 {"call": "_render_nations", "args": ["$payload"]},
+                # UXR3-28 (S12 part 2): the row folds its terms; the boards
+                # that exist to show them unfold it, as the player would.
+                *([{"call": "_toggle_congress_terms", "args": []}] if tag != "sitting" else []),
                 {"call": "refit", "args": []},
                 {"wait": 4},
             ],
@@ -855,6 +858,10 @@ SHOTS: list[dict] = [
         "payload": "gazette_congress",
         "scene": "res://scenes/gazette_view.tscn",
         "mode": "api_stub", "method": "open", "api_method": "get_gazette",
+        # UXR3-20 (S12 part 2): a secondary-by-design subject — the paper's
+        # Congress column sits after THE COURTS by its own must_show — is read
+        # with the shot scrolled to it.
+        "steps": [{"scroll_to": {"text": "THE CONGRESS OF PARIS"}, "then_wait": 4}],
         "must_show": "the paper's '— THE CONGRESS OF PARIS —' section after THE COURTS: the "
                      "sitting's day and each court's answer in the paper's voice",
     },

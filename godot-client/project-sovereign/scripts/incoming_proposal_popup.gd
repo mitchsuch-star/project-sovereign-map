@@ -240,7 +240,29 @@ func _disable_buttons():
 
 func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 	var snapshot = data.get("war_context_snapshot", {})
-	var bbcode = "\n[b]War Summary[/b]\n"
+	# UXR3-30 (Pre-Deploy S12 part 2): the offer's terms render directly
+	# under "Terms:" — they sat under a second heading after the whole
+	# War Summary, below the fold, and "Terms:" stood empty.
+	var bbcode = ""
+	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
+	if annotated is Array and not annotated.is_empty():
+		bbcode += _build_annotated_terms_section(annotated)
+	else:
+		for clause in clauses:
+			bbcode += "  - %s\n" % str(clause)
+
+	var harshness_label = str(snapshot.get("harshness_label", data.get("harshness_label", "")))
+	if harshness_label:
+		var harshness_color = "#80a0d0"
+		if harshness_label == "generous":
+			harshness_color = "#80c080"
+		elif harshness_label == "harsh":
+			harshness_color = "#e09040"
+		elif harshness_label == "punitive":
+			harshness_color = "#e66262"
+		bbcode += "Assessment: [color=%s]%s[/color]\n" % [harshness_color, harshness_label.to_upper()]
+
+	bbcode += "\n[b]War Summary[/b]\n"
 	var war_score = int(snapshot.get("war_score", 0))
 	var score_color = "#80c080"
 	if war_score < 0:
@@ -314,25 +336,6 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			if str(line).begins_with("Relations stand"):
 				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
 			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
-
-	bbcode += "\n[b]Proposed Terms[/b]\n"
-	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
-	if annotated is Array and not annotated.is_empty():
-		bbcode += _build_annotated_terms_section(annotated)
-	else:
-		for clause in clauses:
-			bbcode += "  - %s\n" % str(clause)
-
-	var harshness_label = str(snapshot.get("harshness_label", data.get("harshness_label", "")))
-	if harshness_label:
-		var harshness_color = "#80a0d0"
-		if harshness_label == "generous":
-			harshness_color = "#80c080"
-		elif harshness_label == "harsh":
-			harshness_color = "#e09040"
-		elif harshness_label == "punitive":
-			harshness_color = "#e66262"
-		bbcode += "Assessment: [color=%s]%s[/color]\n" % [harshness_color, harshness_label.to_upper()]
 
 	var fallout = data.get("fallout_warnings", snapshot.get("fallout_warnings", []))
 	var conflicts = data.get("commitment_conflicts", snapshot.get("commitment_conflicts", []))

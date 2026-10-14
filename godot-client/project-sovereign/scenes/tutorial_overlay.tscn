@@ -67,6 +67,7 @@ flat = true
 text = "Skip"
 
 [node name="BodyText" type="RichTextLabel" parent="Card/VBox"]
+theme_type_variation = &"BodyLargeRich"
 layout_mode = 2
 bbcode_enabled = true
 fit_content = true

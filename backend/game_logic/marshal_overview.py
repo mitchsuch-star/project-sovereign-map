@@ -156,6 +156,9 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
                 captor = formed_display_name(world, marshal.captured_by)
                 card["sovereign_note"] = (
                     f"A prisoner of {captor} — the Empire is governed from a cell.")
+            # UXR3-24 (Pre-Deploy S12 part 2): his STATE, the first line of
+            # his card — in the field, at the Seat, or a captive.
+            card["sovereign_state_line"] = _sovereign_state_line(world, marshal)
         # W6-7: a captured marshal's card names his fate front and center.
         if getattr(marshal, "captured_by", ""):
             card["captured"] = True
@@ -175,6 +178,22 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
         result.append(card)
 
     return result
+
+
+def _sovereign_state_line(world, marshal) -> str:
+    """The Emperor's state in one sentence: a captive (his captor and since
+    when), at the Seat (NP-5's `sovereign_seat_bonus`: holding court in his
+    own capital, worth a diplomatic point a turn), or in the field where he
+    stands (The Presence applies there)."""
+    from backend.game_logic.diplomacy import sovereign_seat_bonus
+    if getattr(marshal, "captured_by", ""):
+        captor = with_definite_article(formed_display_name(world, marshal.captured_by))
+        return (f"A captive — PRISONER of {captor} since T{int(marshal.captured_turn)}; "
+                f"he commands nothing until he is freed.")
+    seat = int(sovereign_seat_bonus(world, marshal.nation))
+    if seat > 0:
+        return f"At the Seat — he holds court at {marshal.location}: +{seat} DP a turn."
+    return f"In the field at {marshal.location} — The Presence goes where he stands."
 
 
 def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:

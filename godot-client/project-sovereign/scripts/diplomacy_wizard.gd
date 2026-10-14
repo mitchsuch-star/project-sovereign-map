@@ -306,6 +306,7 @@ func _render_nations(data: Dictionary):
 	# summons, at the very top, with its honest-availability gate terms. The
 	# backend sends the row only on a world whose ending is authored (the
 	# tutorial and the bare flag world send null — no row).
+	_last_nations_data = data
 	_add_congress_row(data.get("congress"))
 
 	# NA-6d §11.6-8: the Formables button — the assured, always-reachable
@@ -419,6 +420,28 @@ func _congress_tint(severity: String) -> String:
 	return Utils.COLOR_GOLD
 
 
+# UXR3-28 / 78 (Pre-Deploy S12 part 2): the Congress row is ONE line above
+# the court list — its name and where it stands, with [Summon] and [View the
+# table] beside it — and its terms fold behind "▸ the terms". Unfolded it
+# filled the list's whole first screen: no court and no Formable Nations
+# entry was in view on step 1, the step whose question is "which nation?".
+var _congress_terms_open := false
+var _last_nations_data: Dictionary = {}
+
+
+func _toggle_congress_terms() -> void:
+	_congress_terms_open = not _congress_terms_open
+	if not _last_nations_data.is_empty():
+		var keep: int = scroll_container.scroll_vertical
+		_render_nations(_last_nations_data)
+		scroll_container.scroll_vertical = keep
+
+
+func _on_congress_meta(meta) -> void:
+	if str(meta) == "congress:terms":
+		_toggle_congress_terms()
+
+
 func _add_congress_row(congress) -> void:
 	if not (congress is Dictionary) or congress.is_empty():
 		return
@@ -426,6 +449,10 @@ func _add_congress_row(congress) -> void:
 	var phase_s: String = phase if phase is String else ""
 	var sitting: bool = congress.get("sitting") is bool and congress.get("sitting")
 	var available: bool = congress.get("available") is bool and congress.get("available")
+	var gate_terms = congress.get("gate_terms")
+	if not (gate_terms is Array):
+		gate_terms = []
+	var shows_terms: bool = not sitting and phase_s != "concluded" and gate_terms.size() > 0
 
 	var lbl = RichTextLabel.new()
 	lbl.bbcode_enabled = true
@@ -435,70 +462,91 @@ func _add_congress_row(congress) -> void:
 	# them and must not shout over them.
 	lbl.theme_type_variation = &"CaptionRich"
 	var bbcode := "[color=#" + Utils.COLOR_GOLD + "][b]The Congress of Paris[/b][/color]"
-	bbcode += " [color=#" + Utils.COLOR_INFO + "]— make Europe recognize the new order[/color]"
-	# The clock line where it says something the terms do not — the sitting's
-	# turn and table, the cooldown. At the gate the terms below say it all
-	# (and the line's "summon from the Cabinet (F1)" would point at the very
-	# screen the player is on).
+	# Where it stands, in one clause: the clock line where it says something
+	# the terms do not (the sitting's turn, the cooldown); at the gate, how
+	# many of its terms are met.
 	var line = congress.get("state_line")
 	if phase_s != "gate" and line is String and line != "":
 		var severity = congress.get("severity")
-		bbcode += "\n    [color=#" + _congress_tint(severity if severity is String else "") + "]" + line.replace("[", "[lb]") + "[/color]"
-	# Before a summons the terms the summons is refused on, ✓ met / • not;
-	# while it sits the table holds the story ("View the table" below).
-	if not sitting and phase_s != "concluded":
-		var gate_terms = congress.get("gate_terms")
-		if not (gate_terms is Array):
-			gate_terms = []
+		bbcode += " [color=#" + _congress_tint(severity if severity is String else "") + "]— " + line.replace("[", "[lb]") + "[/color]"
+	elif shows_terms:
+		var met_n := 0
 		for term in gate_terms:
-			if not (term is Dictionary):
-				continue
-			var met: bool = term.get("met") is bool and term.get("met")
-			var mark: String = "✓" if met else "•"
-			var term_color: String = Utils.COLOR_SUCCESS if met else Utils.COLOR_INFO
-			var text = term.get("text")
-			bbcode += "\n    [color=#" + term_color + "]" + mark + " " + (str(text) if text != null else "") + "[/color]"
+			if term is Dictionary and term.get("met") is bool and term.get("met"):
+				met_n += 1
+		var met_color: String = Utils.COLOR_SUCCESS if met_n == gate_terms.size() else Utils.COLOR_INFO
+		bbcode += " [color=#" + met_color + "]— " + str(met_n) + " of " + str(gate_terms.size()) + " terms met[/color]"
+	if shows_terms:
+		bbcode += "  [url=congress:terms]" + ("▾ hide the terms" if _congress_terms_open else "▸ the terms") + "[/url]"
+		# Before a summons the terms the summons is refused on, ✓ met / • not;
+		# while it sits the table holds the story ("View the table").
+		if _congress_terms_open:
+			for term in gate_terms:
+				if not (term is Dictionary):
+					continue
+				var met: bool = term.get("met") is bool and term.get("met")
+				var mark: String = "✓" if met else "•"
+				var term_color: String = Utils.COLOR_SUCCESS if met else Utils.COLOR_INFO
+				var text = term.get("text")
+				bbcode += "\n    [color=#" + term_color + "]" + mark + " " + (str(text) if text != null else "") + "[/color]"
 	lbl.text = bbcode
+	lbl.meta_clicked.connect(_on_congress_meta)
 	content_list.add_child(lbl)
 
-	# The summons — always present; disabled, with the backend's own reason
-	# beneath it, when any term is unmet (the _add_action_button idiom).
+	# The summons and the table, on one row. The summons is always present;
+	# disabled with the backend's own reason (its tooltip, and beneath it
+	# while the terms are open) when any term is unmet — the
+	# _add_action_button idiom. Live, it is the primary action (UXR3-F5): gold
+	# on the bar's alert chip.
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
 	var btn = Button.new()
 	var cost = congress.get("cost_text")
 	btn.text = "Summon the Congress of Paris"
 	if cost is String and cost != "":
 		btn.text += " (" + cost + ")"
-	btn.custom_minimum_size = Vector2(0, 40)
+	btn.custom_minimum_size = Vector2(0, 36)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.disabled = not available
 	if available:
 		btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+		var primary := StyleBoxFlat.new()
+		primary.bg_color = Color(0.23, 0.18, 0.08, 0.95)
+		primary.border_color = Utils.UI_GOLD
+		primary.set_border_width_all(2)
+		primary.set_corner_radius_all(4)
+		primary.content_margin_left = 10.0
+		primary.content_margin_right = 10.0
+		primary.content_margin_top = 4.0
+		primary.content_margin_bottom = 4.0
+		btn.add_theme_stylebox_override("normal", primary)
 		btn.pressed.connect(_on_congress_summon_pressed)
-	content_list.add_child(btn)
-	var reason = congress.get("unavailable_reason")
-	if not available and reason is String and reason != "":
-		btn.tooltip_text = reason
-		var reason_label = Label.new()
-		reason_label.text = "    " + reason
-		reason_label.theme_type_variation = &"Caption"
-		reason_label.add_theme_color_override("font_color", Utils.UI_REASON_GREY)
-		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		content_list.add_child(reason_label)
-
+	row.add_child(btn)
 	# The table — every great power's answer, reason and price, on the
 	# Diplomatic Ledger's CONGRESS tab.
 	var view = Button.new()
 	if sitting:
-		view.text = "    ↳ View the table — the courts' answers, the hold, the days"
+		view.text = "View the table — the courts' answers, the hold, the days"
 	else:
-		view.text = "    ↳ View the table — how each great power would answer today"
-	view.custom_minimum_size = Vector2(0, 32)
+		view.text = "View the table"
+	view.custom_minimum_size = Vector2(0, 36)
 	view.theme_type_variation = &"CaptionButton"
 	view.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
 	view.pressed.connect(_on_congress_table_pressed)
-	content_list.add_child(view)
+	row.add_child(view)
+	content_list.add_child(row)
+	var reason = congress.get("unavailable_reason")
+	if not available and reason is String and reason != "":
+		btn.tooltip_text = reason
+		if _congress_terms_open or not shows_terms:
+			var reason_label = Label.new()
+			reason_label.text = "    " + reason
+			reason_label.theme_type_variation = &"Caption"
+			reason_label.add_theme_color_override("font_color", Utils.UI_REASON_GREY)
+			reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			content_list.add_child(reason_label)
 
 
 func _on_congress_summon_pressed():
@@ -733,8 +781,30 @@ func _render_preview(data: Dictionary):
 		content_list.add_child(lbl)
 		return
 
+	# UXR3-28 (Pre-Deploy S12 part 2): when the court has a live design (an
+	# instrument chip names its aim), the three D5 instruments lead — they
+	# are what that court's design asks of us, and they sat below the fold
+	# under the routine missions.
+	var live_design := false
+	for action in actions:
+		if action is Dictionary and INSTRUMENT_ACTIONS.has(str(action.get("action", ""))) \
+				and str(action.get("aim", "")) != "":
+			live_design = true
+			break
+	if live_design:
+		var lead: Array = []
+		var rest: Array = []
+		for action in actions:
+			if action is Dictionary and INSTRUMENT_ACTIONS.has(str(action.get("action", ""))):
+				lead.append(action)
+			else:
+				rest.append(action)
+		actions = lead + rest
 	for action in actions:
 		_add_action_button(action)
+
+
+const INSTRUMENT_ACTIONS := ["sponsor_design", "buy_off_design", "guarantee_nation"]
 
 
 func _add_action_button(action: Dictionary):

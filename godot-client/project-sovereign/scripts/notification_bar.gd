@@ -14,6 +14,10 @@ signal notification_review_requested(review_target: String, route_id: String, wa
 # command itself — it names one, and main.gd puts it through the same typed
 # pipeline a chip or the terminal would (latch, echo, history, refresh).
 signal notification_action_requested(command: String)
+# UXR3-1 / 18 (Pre-Deploy S12 part 2): the mission row's Recall chip FILLS the
+# command line with the backend's own order and never sends it — the player
+# presses Enter (the tutor chip's idiom, main._on_tutorial_suggest_command).
+signal suggest_command(command: String)
 
 const MAX_VISIBLE_ICONS := 6
 const MAX_VISIBLE_COMMITMENTS_PER_TURN := 2
@@ -324,7 +328,10 @@ const COMMITMENTS_EVENT_TYPES = {
 
 @onready var rail_panel: PanelContainer = $RailPanel
 @onready var icon_container: HBoxContainer = $RailPanel/RailLayout/IconContainer
-@onready var overflow_label: Label = $RailPanel/RailLayout/OverflowLabel
+# UXR3-F10 (Pre-Deploy S12 part 2): the "+N" badge is a button — it opens
+# the notices queued behind the visible rail (it said they existed and gave
+# no way to reach them).
+@onready var overflow_label: Button = $RailPanel/RailLayout/OverflowLabel
 
 var expanded_panel: PanelContainer = null
 # UXR-2 part 5: the open panel's body, bounded by `_fit_expanded_body`.
@@ -340,7 +347,8 @@ func _ready():
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rail_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overflow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overflow_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	overflow_label.pressed.connect(_on_overflow_pressed)
 	_refresh_visibility()
 	# UXR-2 (the anchors): the rail fills the top bar's slot, whose width is a
 	# viewport fraction (`top_bar._fit_rail`); its 360 minimum is the floor.
@@ -387,12 +395,16 @@ func update_notifications(notifications: Array):
 	var rail_notifications = _visible_notifications_for_rail(current_notifications)
 	var visible_count = min(rail_notifications.size(), MAX_VISIBLE_ICONS)
 	for i in range(visible_count):
-		icon_container.add_child(_create_notification_icon(rail_notifications[i]))
+		var notif: Dictionary = rail_notifications[i]
+		if str(notif.get("type", "")) == "diplomatic_mission":
+			icon_container.add_child(_create_mission_row(notif))
+		else:
+			icon_container.add_child(_create_notification_icon(notif))
 
 	var hidden_count = max(current_notifications.size() - visible_count, 0)
 	overflow_label.visible = hidden_count > 0
 	overflow_label.text = "+%d" % hidden_count
-	overflow_label.tooltip_text = "%d additional notices are queued behind the visible rail." % hidden_count
+	overflow_label.tooltip_text = "%d more notices queued behind the rail — click to list them." % hidden_count
 
 	_refresh_visibility()
 
@@ -461,6 +473,113 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	btn.set_meta("notification_data", notif)
 	btn.pressed.connect(_on_icon_pressed.bind(btn))
 	return btn
+
+
+func _create_mission_row(notif: Dictionary) -> HBoxContainer:
+	"""UXR3-1 / 18: Talleyrand's mission names itself beside its book icon —
+	"Talleyrand at <court> — <kind>" — and carries a Recall chip that fills
+	the backend's own recall order into the command line (never sends)."""
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var btn := _create_notification_icon(notif)
+	btn.expand_icon = false
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.add_theme_constant_override("icon_max_width", 18)
+	btn.text = _mission_words(notif)
+	btn.custom_minimum_size = Vector2(0, 28)
+	row.add_child(btn)
+	var details = notif.get("details", {})
+	var recall := ""
+	if details is Dictionary:
+		recall = str(details.get("action_command", ""))
+	if recall != "":
+		var chip := Button.new()
+		chip.text = "Recall"
+		chip.theme_type_variation = &"CaptionButton"
+		chip.focus_mode = Control.FOCUS_NONE
+		chip.custom_minimum_size = Vector2(0, 28)
+		chip.tooltip_text = "Writes the order in the command line — \"" + recall \
+			+ "\" — for you to send with Enter. " + str(details.get("action_detail", ""))
+		chip.add_theme_color_override("font_color", Utils.UI_GOLD)
+		chip.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)
+		chip.pressed.connect(func(): suggest_command.emit(recall))
+		row.add_child(chip)
+	return row
+
+
+func _mission_words(notif: Dictionary) -> String:
+	"""'Talleyrand at Denmark — Courting': the court from the details, the
+	kind from the backend's own title ('Talleyrand: Courting - Denmark')."""
+	var details = notif.get("details", {})
+	var court := ""
+	if details is Dictionary:
+		court = Utils.display_nation_name(str(details.get("target_nation", "")))
+	var kind := ""
+	var title := str(notif.get("title", ""))
+	if title.begins_with("Talleyrand: "):
+		kind = title.substr("Talleyrand: ".length()).split(" - ")[0].strip_edges()
+	var words := "Talleyrand"
+	if court != "":
+		words += " at " + court
+	if kind != "":
+		words += " — " + kind
+	return words
+
+
+func _on_overflow_pressed() -> void:
+	"""UXR3-F10: the queued notices, one button each; a press opens that
+	notice's own panel (its actions, Keep, Acknowledge)."""
+	if expanded_panel != null and expanded_panel.has_meta("overflow"):
+		_close_expanded_panel()
+		return
+	_close_expanded_panel()
+	var shown := {}
+	for child in icon_container.get_children():
+		var b = child if child is Button else (child.get_child(0) if child.get_child_count() > 0 else null)
+		if b != null and b.has_meta("notification_data"):
+			shown[str(b.get_meta("notification_data").get("id", ""))] = true
+	var hidden: Array = []
+	for n in current_notifications:
+		if not shown.has(str(n.get("id", ""))):
+			hidden.append(n)
+	if hidden.is_empty():
+		return
+	expanded_panel = PanelContainer.new()
+	expanded_panel.set_meta("overflow", true)
+	expanded_panel.set_meta("notification_id", "")
+	expanded_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	expanded_panel.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.04, 0.06, 0.1, 0.98)
+	style.set_border_width_all(1)
+	style.border_color = Utils.UI_GOLD
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 10.0
+	style.content_margin_top = 8.0
+	style.content_margin_right = 10.0
+	style.content_margin_bottom = 10.0
+	expanded_panel.add_theme_stylebox_override("panel", style)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 4)
+	expanded_panel.add_child(list)
+	var head := Label.new()
+	head.text = "%d more notices" % hidden.size()
+	head.theme_type_variation = &"BodyLarge"
+	head.add_theme_color_override("font_color", Utils.UI_GOLD)
+	list.add_child(head)
+	for n in hidden:
+		var b := Button.new()
+		b.text = Utils.humanize_nation_keys_in_text(str(n.get("title", "Notification")))
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.clip_text = true
+		b.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH - 20.0, 28)
+		b.pressed.connect(func():
+			_close_expanded_panel()
+			_show_expanded_panel(n))
+		list.add_child(b)
+	add_child(expanded_panel)
+	_position_expanded_panel.call_deferred()
 
 
 func _icon_svg_for(notif: Dictionary) -> String:

@@ -307,11 +307,19 @@ def _derive_unit_type(marshal) -> str:
 
 
 def _build_forces(world, player: str) -> list:
-    """Build forces section: per player marshal."""
+    """Build forces section: per player marshal.
+
+    UXR3-41 (Pre-Deploy S12 part 2): the standing sovereign's row says so
+    (`sovereign`) and carries the Seat's point (`seat_dp`, NP-5's own
+    `sovereign_seat_bonus`: 1 while he holds court in his own capital), so
+    the Forces tab can lead its muster with him and name the Seat."""
+    from backend.game_logic.diplomacy import _standing_sovereign, sovereign_seat_bonus
+    sovereign = _standing_sovereign(world, player)
     forces = []
     for marshal in world.marshals.values():
         if marshal.nation != player:
             continue
+        is_sovereign = sovereign is not None and marshal is sovereign
         forces.append({
             "name": marshal.name,
             "type": _derive_unit_type(marshal),
@@ -335,6 +343,8 @@ def _build_forces(world, player: str) -> list:
             # FA-32: so the FORCES tab can say where he is and whose guest.
             "captured": bool(getattr(marshal, "captured_by", "")),
             "captured_by": str(getattr(marshal, "captured_by", "") or ""),
+            "sovereign": is_sovereign,
+            "seat_dp": int(sovereign_seat_bonus(world, player)) if is_sovereign else 0,
         })
     return forces
 

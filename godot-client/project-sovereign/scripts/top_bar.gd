@@ -26,7 +26,10 @@ signal bar_height_changed
 # Diplomatic top bar fields (Session 8B)
 @onready var dp_label: Label = $BarContainer/BarBG/BarLayout/RightSection/DPLabel
 @onready var threat_label: Label = $BarContainer/BarBG/BarLayout/RightSection/ThreatLabel
-@onready var talleyrand_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TalleyrandLabel
+# UXR3-2 (Pre-Deploy S12 part 2): the Cabinet line is a bordered chip in the
+# Admiralty chip's style — it was small plain text the eye passed over — and
+# it opens the Diplomatic Ledger at Talleyrand's book.
+@onready var talleyrand_label: Button = $BarContainer/BarBG/BarLayout/RightSection/TalleyrandLabel
 @onready var mailbox_btn: Button = $BarContainer/BarBG/BarLayout/RightSection/MailboxButton
 # NUI "The Admiralty on the Map": the fleet's standing line, hidden on a
 # world with no naval theatre; a click opens THE ADMIRALTY (ledger tab 7).
@@ -208,6 +211,13 @@ func _ready():
 		admiralty_btn.pressed.connect(func(): admiralty_clicked.emit())
 		admiralty_btn.visible = false
 
+	# UXR3-2: the Cabinet chip, styled as the Admiralty chip.
+	if talleyrand_label:
+		talleyrand_label.add_theme_stylebox_override("normal", _mailbox_idle_style)
+		talleyrand_label.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
+		talleyrand_label.add_theme_stylebox_override("pressed", _mailbox_pressed_style)
+		talleyrand_label.pressed.connect(open_cabinet)
+
 	# UXR-D3: two pads at the ends of the layout hold the clusters inside the
 	# HUD band (0 wide at Full); the strip itself stays full-bleed.
 	var layout := get_node_or_null("BarContainer/BarBG/BarLayout") as Control
@@ -269,6 +279,12 @@ func toggle_screen(screen_name: String):
 		_open_screen(screen_name)
 
 
+func open_cabinet() -> void:
+	"""UXR3-2: the Cabinet chip — the Diplomatic Ledger at TALLEYRAND (book 4)."""
+	cabinet_clicked.emit()
+	open_diplomatic_ledger_review("ledger_talleyrand")
+
+
 func open_diplomatic_ledger_review(review_target: String, route_id: String = "", war_id: String = ""):
 	"""Open the diplomatic ledger to a named review target."""
 	var screen_name = "diplomatic_ledger"
@@ -290,6 +306,8 @@ func open_diplomatic_ledger_review(review_target: String, route_id: String = "",
 		node.open_to_vassals(api_client)
 	elif review_target == "ledger_congress" and node.has_method("open_to_congress"):
 		node.open_to_congress(api_client)
+	elif review_target == "ledger_talleyrand" and node.has_method("open_to_talleyrand"):
+		node.open_to_talleyrand(api_client)
 	elif node.has_method("open"):
 		node.open(api_client)
 	else:
@@ -420,6 +438,9 @@ func _update_button_highlights():
 signal envoy_clicked
 # NUI: the Admiralty chip (main.gd opens the ledger's own naval book)
 signal admiralty_clicked
+# UXR3-2: the Cabinet chip was pressed (main may listen; the bar opens the
+# ledger at Talleyrand's book itself).
+signal cabinet_clicked
 # UI-6: gear button — main.gd toggles the pause menu (mirrors ESC)
 signal menu_clicked
 
@@ -476,7 +497,7 @@ func _set_talleyrand_summary(mission_summary: String):
 	if clean_summary == "" or clean_summary == "None":
 		clean_summary = "Idle"
 	var full_text = "Talleyrand: " + Utils.humanize_nation_keys_in_text(clean_summary)
-	talleyrand_label.tooltip_text = full_text
+	talleyrand_label.tooltip_text = full_text + "\nClick — Talleyrand's book (Diplomacy)"
 	if full_text.length() > TALLEYRAND_SUMMARY_MAX_CHARS:
 		talleyrand_label.text = full_text.substr(0, TALLEYRAND_SUMMARY_MAX_CHARS - 3).rstrip(" ") + "..."
 	else:

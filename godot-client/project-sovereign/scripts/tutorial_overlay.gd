@@ -60,9 +60,12 @@ const CHIP_BG_HEX := "233043"
 # reaches it; its body is bounded by the viewport's height and SCROLLS past
 # that (UXR-X3: at Interface Scale 3.0 on a 1440-px panel the logical
 # viewport is 480 px tall and card XIX's 1,400 characters ran off it).
-const CARD_WIDTH_FRACTION := 0.22
-const CARD_MIN_WIDTH := 396.0
-const CARD_MAX_WIDTH := 560.0
+# UXR3-46 (Pre-Deploy S12 part 2): the card opens at 40 % of the HUD band's
+# width, never under 520 px — at 22 % inside [396, 560] it was a sliver in
+# the corner of the user's 5120-wide frame, and the lesson the surface is for
+# lost the eye to the map. Its body reads at BodyLarge (the scene).
+const CARD_WIDTH_FRACTION := 0.40
+const CARD_MIN_WIDTH := 520.0
 const CARD_MARGIN := 8.0
 const CARD_TOP := 44.0
 # UXR-2: the authored minimized-card button (212 x 30), placed with the card.
@@ -424,12 +427,13 @@ func _logical_viewport() -> Vector2:
 
 
 func _fit_card_width() -> void:
-	"""Width = 22% of the logical viewport inside [396, 560], never wider than
-	the screen, anchored to the top-right corner as authored — beside the
-	notice rail (UXR-2: the card covered the very rail its lessons point at),
-	or below it when there is no room beside it in the right half."""
+	"""Width = 40% of the HUD band, never under 520, never wider than the
+	screen, anchored to the top-right corner as authored — beside the notice
+	rail (UXR-2: the card covered the very rail its lessons point at), or
+	below it when there is no room beside it in the right half."""
 	var view := _logical_viewport()
-	var width := clampf(view.x * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH, CARD_MAX_WIDTH)
+	var band := Utils.hud_band(view)
+	var width := maxf((band.y - band.x) * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH)
 	width = minf(width, maxf(view.x - 2.0 * CARD_MARGIN, 0.0))
 	var place := _card_placement(view, width)
 	_card.offset_left = -(width + CARD_MARGIN + place.x)

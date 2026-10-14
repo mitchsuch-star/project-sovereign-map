@@ -87,6 +87,22 @@ fit_content = true
 ; panel is centre-anchored with grow_vertical=2 the overflow split across BOTH
 ; edges and carried the action buttons off the bottom. Now bounded exactly like
 ; ContentLabel above: a real height budget with its own internal scrollbar.
+[node name="Tier2Scroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 96)
+layout_mode = 2
+size_flags_vertical = 1
+horizontal_scroll_mode = 0
+
+; LV-14(b) (row EP F3): one ROW per court (a name, then its Press/Ease/Drop
+; chips), not a three-column grid that folded the third court's chips under
+; the rail's 96px floor — Russia's row was clipped at 2560x1340. The scroll's
+; floor is derived per open from the row count (see _add_settlement_tier2_buttons).
+[node name="Tier2ButtonContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Tier2Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
 [node name="FooterLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 90)
@@ -104,22 +120,6 @@ fit_content = false
 ; bounded scroll; the primary rail below stays unscrolled and always visible.
 ; SIZE_FILL (1) not EXPAND_FILL (3) deliberately: it must not compete with
 ; PerCourtScroll for slack.
-[node name="Tier2Scroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
-visible = false
-custom_minimum_size = Vector2(0, 96)
-layout_mode = 2
-size_flags_vertical = 1
-horizontal_scroll_mode = 0
-
-; LV-14(b) (row EP F3): one ROW per court (a name, then its Press/Ease/Drop
-; chips), not a three-column grid that folded the third court's chips under
-; the rail's 96px floor — Russia's row was clipped at 2560x1340. The scroll's
-; floor is derived per open from the row count (see _add_settlement_tier2_buttons).
-[node name="Tier2ButtonContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Tier2Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 

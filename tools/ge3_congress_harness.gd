@@ -286,7 +286,16 @@ func _wizard_rows() -> Array:
 	var list = wiz.get("content_list")
 	if list == null:
 		return rows
+	# UXR3-28: the Congress row's buttons share one row (an HBoxContainer);
+	# its children are read in place, in order.
+	var flat: Array = []
 	for child in list.get_children():
+		if child is HBoxContainer:
+			if not child.is_queued_for_deletion():
+				flat.append_array(child.get_children())
+		else:
+			flat.append(child)
+	for child in flat:
 		if child.is_queued_for_deletion():
 			continue
 		if child is Button:
@@ -306,7 +315,14 @@ func _find_button(prefix: String):
 	var list = wiz.get("content_list")
 	if list == null:
 		return null
+	var flat: Array = []
 	for child in list.get_children():
+		if child is HBoxContainer:
+			if not child.is_queued_for_deletion():
+				flat.append_array(child.get_children())
+		else:
+			flat.append(child)
+	for child in flat:
 		if child is Button and not child.is_queued_for_deletion() and str(child.text).strip_edges().begins_with(prefix):
 			return child
 	return null
@@ -323,6 +339,9 @@ func _render_wizard(payload: Dictionary) -> void:
 	wiz.set("_current_step", 1)
 	wiz.show()
 	wiz.call("_render_nations", payload.duplicate(true))
+	# UXR3-28: the row folds its terms; the harness reads them unfolded.
+	if not bool(wiz.get("_congress_terms_open")):
+		wiz.call("_toggle_congress_terms")
 
 
 func _screen_state() -> Dictionary:
@@ -456,7 +475,7 @@ func _run():
 	_reset_between_scenes()
 	_render_wizard(_p["wizard_sitting"])
 	_out["wizard_sitting"] = _wizard_rows()
-	var view_btn = _find_button("↳ View the table")
+	var view_btn = _find_button("View the table")
 	if view_btn != null:
 		view_btn.pressed.emit()
 	_out["wizard_sitting_closed"] = _wizard() != null and not _wizard().visible

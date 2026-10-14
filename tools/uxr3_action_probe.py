@@ -83,6 +83,8 @@ ROADS = [
     ("region_do", "region_paris", {"kind": "link", "meta_startswith": "do:"}),
     ("region_negotiate", "region_amsterdam", {"kind": "link", "meta_startswith": "negotiate:"}),
     ("enemy_view_field", "enemy_phase_t20", {"kind": "link", "meta_startswith": "diorama:"}),
+    ("rail_recall", "rail_mission_court", {"kind": "button", "text": "Recall"}),
+    ("topbar_cabinet", "top_bar_mission_court", {"path_endswith": "TalleyrandLabel"}),
 ]
 WAR_ROOM_PORT = 8006
 

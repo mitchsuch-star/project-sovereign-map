@@ -255,15 +255,41 @@ func _render_all_cards():
 	# assertion while the screen said something else.)
 	var bbcode = "[color=#" + Utils.COLOR_INFO + "]Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.[/color]\n\n"
 
-	# NP-3 (NAPOLEON_SPEC §6.5): the sovereign renders ABOVE the ladder as
-	# a fixed apex block — THE EMPEROR header, his character sheet, no
-	# glory bar, no rank, no envy arrow. The ladder itself never contains
-	# him (the backend excludes him at get_nation_ladder).
+	# UXR3-24 (Pre-Deploy S12 part 2): what asks for the Emperor's attention
+	# leads the screen — a marshal captured or waiting on an audience is
+	# listed first, his state in his header; then OUR DOCTRINE; then THE
+	# EMPEROR, whose card opens on his own state; then THE LAURELS and the
+	# rest of the roster.
 	var apex_index := -1
 	for i in range(cached_data.size()):
 		if bool(cached_data[i].get("sovereign", false)):
 			apex_index = i
 			break
+	var urgent: Array = []
+	for i in range(cached_data.size()):
+		if i == apex_index:
+			continue
+		var um: Dictionary = cached_data[i]
+		if bool(um.get("captured", false)) or bool(um.get("seeks_audience", false)):
+			urgent.append(i)
+	for i in urgent:
+		var um: Dictionary = cached_data[i]
+		var state_head := "A PRISONER" if bool(um.get("captured", false)) else "SEEKS AN AUDIENCE"
+		var state_color: String = Utils.COLOR_ERROR if bool(um.get("captured", false)) else Utils.COLOR_WARNING
+		var state_words: String = state_head + " — " + str(um.get("name", "?"))
+		var um_note = um.get("status_note", "")
+		if bool(um.get("captured", false)) and um_note is String and um_note != "":
+			state_words += ": " + Utils.humanize_nation_keys_in_text(um_note)
+		bbcode += "[color=#" + state_color + "]" + state_words + "[/color]\n"
+		bbcode += _render_card(um, i)
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]────────────────────────────────────────[/color]\n\n"
+
+	bbcode += _render_doctrine()
+
+	# NP-3 (NAPOLEON_SPEC §6.5): the sovereign renders ABOVE the ladder as
+	# a fixed apex block — THE EMPEROR header, his character sheet, no
+	# glory bar, no rank, no envy arrow. The ladder itself never contains
+	# him (the backend excludes him at get_nation_ladder).
 	if apex_index >= 0:
 		bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 20, Utils.COLOR_GOLD)
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE EMPEROR[/color]\n"
@@ -273,7 +299,7 @@ func _render_all_cards():
 	bbcode += _render_glory_ladder()
 
 	for i in range(cached_data.size()):
-		if i == apex_index:
+		if i == apex_index or i in urgent:
 			continue
 		var m = cached_data[i]
 		bbcode += _render_card(m, i)
@@ -283,14 +309,9 @@ func _render_all_cards():
 	content_area.text = bbcode
 
 
-func _render_glory_ladder() -> String:
-	"""Jealousy v3.2: THE LAURELS OF THE ARMY — the nation's glory ladder
-	(rank, ★ crown, 10-wide glory bar, live grievance arrows) plus the
-	Commission affordance when a candidate bench exists."""
+func _render_doctrine() -> String:
+	"""OUR DOCTRINE — above the Emperor and the roster since UXR3-24."""
 	var bbcode = ""
-	var candidates = cached_recruitment.get("candidates", [])
-	var has_bench = candidates is Array and candidates.size() > 0
-
 	# SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE — name, says, strength
 	# and flaw with their applied numbers, the cure's status. Backend-composed
 	# lines (R7); an empty payload omits the block (a world with no doctrines).
@@ -309,8 +330,30 @@ func _render_glory_ladder() -> String:
 			bbcode += "  [color=#" + flaw_color + "]Flaw — " + str(d_flaw.get("name", "")) + ":[/color] " + str(d_flaw.get("line", "")) \
 				+ "  [color=#" + Utils.COLOR_INFO + "](" + str(d_flaw.get("status_line", "")) + ")[/color]\n"
 		bbcode += "\n"
+	return bbcode
 
-	if cached_ladder is Array and cached_ladder.size() > 1:
+
+func _render_glory_ladder() -> String:
+	"""Jealousy v3.2: THE LAURELS OF THE ARMY — the nation's glory ladder
+	(rank, ★ crown, 10-wide glory bar, live grievance arrows) plus the
+	Commission affordance when a candidate bench exists."""
+	var bbcode = ""
+	var candidates = cached_recruitment.get("candidates", [])
+	var has_bench = candidates is Array and candidates.size() > 0
+
+	var any_glory := false
+	if cached_ladder is Array:
+		for lrow in cached_ladder:
+			if lrow is Dictionary and (int(lrow.get("glory", 0)) > 0 or bool(lrow.get("crowned", false))):
+				any_glory = true
+				break
+	if cached_ladder is Array and cached_ladder.size() > 1 and not any_glory:
+		# UXR3-24: a ladder of zeros said nothing in seven rows and pushed the
+		# roster below the fold — one line says it.
+		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
+		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]  [color=#" \
+			+ Utils.COLOR_INFO + "]no glory won in the last " + str(cached_glory_window) + " turns — no marshal envies another[/color]\n\n"
+	elif cached_ladder is Array and cached_ladder.size() > 1:
 		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]"
 		# A11: the window is INTERPOLATED from the backend constant, and the
@@ -456,6 +499,18 @@ func _render_card(m: Dictionary, index: int) -> String:
 		bbcode += "  [color=#" + type_color + "][" + unit_type + "][/color]"
 	bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + Utils.display_nation_name(nation) + "[/color]\n"
 
+	# UXR3-24: the Emperor's card opens on his STATE (the backend's line: in
+	# the field, at the Seat, a captive), then The Presence as it applies and
+	# his strength — the live facts above his biography.
+	var is_sovereign := bool(m.get("sovereign", false))
+	if is_sovereign:
+		var state_line := str(m.get("sovereign_state_line", ""))
+		if state_line != "":
+			var state_color: String = Utils.COLOR_ERROR if bool(m.get("captured", false)) else Utils.COLOR_GOLD
+			bbcode += "[color=#" + state_color + "]" + Utils.humanize_nation_keys_in_text(state_line) + "[/color]\n"
+		bbcode += _ability_line(m)
+		bbcode += _strength_line(m)
+
 	# ═══════ BIOGRAPHY ═══════
 	var bio = str(m.get("biography", ""))
 	if bio != "":
@@ -472,24 +527,8 @@ func _render_card(m: Dictionary, index: int) -> String:
 	bbcode += "\n"
 
 	# ═══════ COMBAT STATS ═══════
-	var strength = int(m.get("strength", 0))
-	var starting = int(m.get("starting_strength", 0))
-	var morale = int(m.get("morale", 100))
-	var move_range = int(m.get("movement_range", 1))
-
-	# Strength color based on losses
-	var str_color = Utils.COLOR_INFO
-	if starting > 0:
-		var ratio = float(strength) / float(starting)
-		if ratio < 0.3:
-			str_color = Utils.COLOR_ERROR
-		elif ratio < 0.6:
-			str_color = Utils.COLOR_ORANGE
-
-	bbcode += "  Strength: [color=#" + str_color + "]" + _format_number(strength) + "[/color]"
-	bbcode += " / " + _format_number(starting)
-	bbcode += "  Morale: " + _morale_colored(morale)
-	bbcode += "  Range: " + str(move_range) + "\n"
+	if not is_sovereign:
+		bbcode += _strength_line(m)
 
 	# Skills — MC-2 character sheet: one bar row per wired skill (█░ bar idiom
 	# matches the diplomatic ledger's threat/WE bars). Values, hints, and the
@@ -516,15 +555,8 @@ func _render_card(m: Dictionary, index: int) -> String:
 		bbcode += "  [color=#" + rally_color + "]" + rally_note + "[/color]\n"
 
 	# ═══════ ABILITY (only shown if active/wired) ═══════
-	var ab_name = str(m.get("ability_name", ""))
-	var ab_effect = str(m.get("ability_effect", ""))
-	var ab_active = m.get("ability_active", false)
-
-	if ab_active and ab_name != "":
-		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + ab_name + "[/color]"
-		if ab_effect != "":
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + ab_effect + "[/color]"
-		bbcode += "\n\n"
+	if not is_sovereign:
+		bbcode += _ability_line(m)
 
 	# ═══════ TRUST & RECORD ═══════
 	var trust_val = int(m.get("trust_value", 70))
@@ -787,6 +819,39 @@ func _render_card(m: Dictionary, index: int) -> String:
 # =============================================================================
 # UI-3 PORTRAIT / ICON HELPERS
 # =============================================================================
+
+func _strength_line(m: Dictionary) -> String:
+	"""Strength (coloured by losses), morale and range — one line."""
+	var strength = int(m.get("strength", 0))
+	var starting = int(m.get("starting_strength", 0))
+	var morale = int(m.get("morale", 100))
+	var move_range = int(m.get("movement_range", 1))
+	var str_color = Utils.COLOR_INFO
+	if starting > 0:
+		var ratio = float(strength) / float(starting)
+		if ratio < 0.3:
+			str_color = Utils.COLOR_ERROR
+		elif ratio < 0.6:
+			str_color = Utils.COLOR_ORANGE
+	var line: String = "  Strength: [color=#" + str_color + "]" + _format_number(strength) + "[/color]"
+	line += " / " + _format_number(starting)
+	line += "  Morale: " + _morale_colored(morale)
+	line += "  Range: " + str(move_range) + "\n"
+	return line
+
+
+func _ability_line(m: Dictionary) -> String:
+	"""The signature ability, only when wired and active (its effect as the
+	backend states it — shown = applied)."""
+	var ab_name = str(m.get("ability_name", ""))
+	var ab_effect = str(m.get("ability_effect", ""))
+	if not m.get("ability_active", false) or ab_name == "":
+		return ""
+	var line: String = "  [color=#" + Utils.COLOR_GOLD + "]" + ab_name + "[/color]"
+	if ab_effect != "":
+		line += "  [color=#" + Utils.COLOR_INFO + "]" + ab_effect + "[/color]"
+	return line + "\n\n"
+
 
 func _portrait_block(name: String, w: int = _PORTRAIT_W, h: int = _PORTRAIT_H) -> String:
 	"""A portrait thumbnail on its own line (natural colour), or a gold monogram

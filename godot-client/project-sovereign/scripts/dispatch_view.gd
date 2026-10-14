@@ -101,6 +101,7 @@ func _on_dispatch_received(response):
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]What changed overnight, before you spend a single order. Press R to reread it any time.[/color]\n"
 	bbcode += "\n"
+	var congress_at := bbcode.length()
 
 	# ═══ W6-3 HEADLINE — the turn's top story, then up to 2 sub-beats ═══
 	var headline = data.get("headline", {})
@@ -528,21 +529,18 @@ func _on_dispatch_received(response):
 	# Mirrored from main.gd's `_add_congress_clock_line` so the R screen and
 	# the end-turn banner cannot drift: the backend's ONE line
 	# (`congress.state_line`), its `severity` picking the tint.
+	# UXR3-19 (Pre-Deploy S12 part 2): a SITTING Congress is the live
+	# subject of the morning — it leads the dispatch, under its header; at
+	# the gate it keeps its place here.
+	var congress_block := _congress_block(data)
+	var congress_sits := false
 	var congress_clock = data.get("congress_clock", null)
 	if congress_clock is Dictionary:
-		var cc_line = congress_clock.get("line", "")
-		if cc_line is String and cc_line != "":
-			var cc_sev = congress_clock.get("severity", "gate")
-			var cc_tint := Utils.COLOR_GOLD
-			if cc_sev is String:
-				if cc_sev == "critical":
-					cc_tint = Utils.COLOR_ERROR
-				elif cc_sev == "warning":
-					cc_tint = Utils.COLOR_BATTLE
-				elif cc_sev == "paused":
-					cc_tint = Utils.COLOR_INFO
-			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]THE CONGRESS OF PARIS[/color]\n"
-			bbcode += "[color=#" + cc_tint + "]  " + cc_line + "[/color]\n\n"
+		congress_sits = str(congress_clock.get("phase", "")) == "sitting"
+	if congress_sits and congress_at >= 0:
+		bbcode = bbcode.substr(0, congress_at) + congress_block + bbcode.substr(congress_at)
+	else:
+		bbcode += congress_block
 
 	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
 	# The turn-1 briefing's own section, mirrored from main.gd.
@@ -571,6 +569,30 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 
 	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
+
+func _congress_block(data: Dictionary) -> String:
+	"""THE CONGRESS OF PARIS (GE-3, ENDGAME_PLAN §4 — the clock line).
+	Mirrored from main.gd's `_add_congress_clock_line` so the R screen and
+	the end-turn banner cannot drift: the backend's ONE line
+	(`congress.state_line`), its `severity` picking the tint."""
+	var congress_clock = data.get("congress_clock", null)
+	if not (congress_clock is Dictionary):
+		return ""
+	var cc_line = congress_clock.get("line", "")
+	if not (cc_line is String) or cc_line == "":
+		return ""
+	var cc_sev = congress_clock.get("severity", "gate")
+	var cc_tint := Utils.COLOR_GOLD
+	if cc_sev is String:
+		if cc_sev == "critical":
+			cc_tint = Utils.COLOR_ERROR
+		elif cc_sev == "warning":
+			cc_tint = Utils.COLOR_BATTLE
+		elif cc_sev == "paused":
+			cc_tint = Utils.COLOR_INFO
+	return "[color=#" + Utils.COLOR_BERTHIER + "]THE CONGRESS OF PARIS[/color]\n" \
+		+ "[color=#" + cc_tint + "]  " + cc_line + "[/color]\n\n"
+
 
 func _format_number(n: int) -> String:
 	"""Format number with comma separators — shared Utils helper (UI-6 dedupe)."""

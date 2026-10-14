@@ -487,11 +487,12 @@ func _build_settlement_content(data: Dictionary) -> String:
 	var accepting_leader = "their leader"
 	if leaders is Dictionary and accepting_side != "":
 		accepting_leader = str(leaders.get(accepting_side, accepting_leader))
-	var heading_voice = str(data.get("talleyrand_text", ""))
+	# UXR3-31 (Pre-Deploy S12 part 2): the per-court rows lead. The heading
+	# keeps one line; Talleyrand's voice paragraph (`talleyrand_text`, five
+	# bold lines over the table) opens the footer, under the table and its
+	# Press / Ease / Drop rows (`_build_settlement_footer`).
 	var can_ratify_now = bool(data.get("can_ratify", true))
-	if heading_voice != "":
-		bbcode += "[b][color=#e0c070]%s[/color][/b]\n" % heading_voice
-	elif can_ratify_now:
+	if can_ratify_now:
 		bbcode += "[b][color=#e0c070]Settlement of %s — ready for ratification[/color][/b]\n" % war_label
 	else:
 		bbcode += "[b][color=#e66262]This settlement cannot be ratified now.[/color][/b]\n"
@@ -540,6 +541,11 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	var review = data.get("review_sections", {})
 	var sections = review.get("sections", {}) if review is Dictionary else {}
 	var bbcode = ""
+	# SC-19's settlement voice (the backend-resolved `talleyrand_text`): the
+	# live-review line or the blocked banner, under the table since UXR3-31.
+	var heading_voice = str(data.get("talleyrand_text", ""))
+	if heading_voice != "":
+		bbcode += "[i][color=#e0c070]%s[/color][/i]\n\n" % heading_voice
 
 	var ally_petitions = data.get("ally_petitions", [])
 	if ally_petitions is Array and ally_petitions.size() > 0:
@@ -1358,7 +1364,52 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	var snapshot = data.get("war_context_snapshot", {})
 	var bbcode = "[b]PEACE PREVIEW - %s[/b]\n\n" % Utils.display_nation_name(str(target))
 
-	bbcode += "[b]War Summary[/b]\n"
+	# UXR3-31 (Pre-Deploy S12 part 2): the terms and the acceptance
+	# components lead the snapshot; the War Summary (a long red list
+	# on a losing war) follows them.
+	bbcode += "[b]Proposed Terms[/b]\n"
+	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
+	if annotated is Array and not annotated.is_empty():
+		bbcode += _build_annotated_terms_section(annotated)
+	else:
+		var terms = data.get("proposal_terms_summary", [])
+		for t in terms:
+			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(t)
+
+	var harshness_label = str(snapshot.get("harshness_label", data.get("harshness_label", "")))
+	if harshness_label:
+		var h_color = "#80a0d0"
+		if harshness_label == "generous":
+			h_color = "#80c080"
+		elif harshness_label == "harsh":
+			h_color = "#e09040"
+		elif harshness_label == "punitive":
+			h_color = "#e66262"
+		bbcode += "Assessment: [color=%s]%s[/color]\n" % [h_color, harshness_label.to_upper()]
+
+	bbcode += "\n[b]Acceptance Estimate[/b]\n"
+	var acceptance = snapshot.get("acceptance_preview", {})
+	if acceptance is Dictionary:
+		var score = int(acceptance.get("score", data.get("acceptance_estimate", 0)))
+		var outcome = str(acceptance.get("outcome", data.get("acceptance_outcome", "REJECT")))
+		var a_color = "#e66262"
+		if outcome == "ACCEPT":
+			a_color = "#80c080"
+		elif outcome == "COUNTER" or outcome == "COUNTER_OFFER":
+			a_color = "#e0e060"
+		# G4F-13: constructibility-aware verdict copy when present.
+		var outcome_label = str(acceptance.get("outcome_display", ""))
+		if outcome_label == "":
+			outcome_label = outcome
+		bbcode += "Score: [color=%s]%d - %s[/color]\n" % [a_color, score, outcome_label]
+		var lp = str(acceptance.get("largest_positive", ""))
+		var ln = str(acceptance.get("largest_negative", ""))
+		if lp:
+			bbcode += "[color=#80c080]Key advantage: %s[/color]\n" % lp
+		if ln:
+			bbcode += "[color=#e66262]Key obstacle: %s[/color]\n" % ln
+
+	bbcode += "\n[b]War Summary[/b]\n"
 	var war_score = int(snapshot.get("war_score", 0))
 	var score_color = "#80c080"
 	if war_score < 0:
@@ -1435,48 +1486,6 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			if str(line).begins_with("Relations stand"):
 				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
 			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
-
-	bbcode += "\n[b]Proposed Terms[/b]\n"
-	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
-	if annotated is Array and not annotated.is_empty():
-		bbcode += _build_annotated_terms_section(annotated)
-	else:
-		var terms = data.get("proposal_terms_summary", [])
-		for t in terms:
-			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(t)
-
-	var harshness_label = str(snapshot.get("harshness_label", data.get("harshness_label", "")))
-	if harshness_label:
-		var h_color = "#80a0d0"
-		if harshness_label == "generous":
-			h_color = "#80c080"
-		elif harshness_label == "harsh":
-			h_color = "#e09040"
-		elif harshness_label == "punitive":
-			h_color = "#e66262"
-		bbcode += "Assessment: [color=%s]%s[/color]\n" % [h_color, harshness_label.to_upper()]
-
-	bbcode += "\n[b]Acceptance Estimate[/b]\n"
-	var acceptance = snapshot.get("acceptance_preview", {})
-	if acceptance is Dictionary:
-		var score = int(acceptance.get("score", data.get("acceptance_estimate", 0)))
-		var outcome = str(acceptance.get("outcome", data.get("acceptance_outcome", "REJECT")))
-		var a_color = "#e66262"
-		if outcome == "ACCEPT":
-			a_color = "#80c080"
-		elif outcome == "COUNTER" or outcome == "COUNTER_OFFER":
-			a_color = "#e0e060"
-		# G4F-13: constructibility-aware verdict copy when present.
-		var outcome_label = str(acceptance.get("outcome_display", ""))
-		if outcome_label == "":
-			outcome_label = outcome
-		bbcode += "Score: [color=%s]%d - %s[/color]\n" % [a_color, score, outcome_label]
-		var lp = str(acceptance.get("largest_positive", ""))
-		var ln = str(acceptance.get("largest_negative", ""))
-		if lp:
-			bbcode += "[color=#80c080]Key advantage: %s[/color]\n" % lp
-		if ln:
-			bbcode += "[color=#e66262]Key obstacle: %s[/color]\n" % ln
 
 	var warnings = data.get("warnings", [])
 	var tier_warnings = snapshot.get("tier_mismatch_warnings", [])

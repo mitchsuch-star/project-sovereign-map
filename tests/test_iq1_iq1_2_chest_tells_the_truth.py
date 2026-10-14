@@ -1091,13 +1091,20 @@ class TestTheClientRendersTheThreeStates:
 
         The real question is whether the assertion binds to the RENDER path
         rather than to a passing mention, so require the key read and the
-        branch on it to sit inside `_render_economy` itself."""
+        branch on it to sit inside the line `_render_economy` prints.
+        UXR3-41 (Pre-Deploy S12 part 2): that line is `_ceiling_line`, which
+        `_render_economy` prints first among the books."""
         src = self._gd()
         start = src.index("func _render_economy")
         nxt = src.find("\nfunc ", start + 1)
+        economy = src[start:nxt if nxt != -1 else len(src)]
+        assert "bbcode += _ceiling_line(econ, treasury)" in economy, (
+            "_render_economy does not print the ceiling line")
+        start = src.index("func _ceiling_line")
+        nxt = src.find("\nfunc ", start + 1)
         body = src[start:nxt if nxt != -1 else len(src)]
         assert 'econ.get("ceiling_state"' in body, (
-            "ceiling_state is read somewhere, but not in _render_economy")
+            "ceiling_state is read somewhere, but not in the ceiling line")
         for const in (CEILING_NO_RATE, CEILING_NO_SURPLUS):
             assert f'"{const}"' in body
         assert "Ceiling:" in body

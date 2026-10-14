@@ -274,11 +274,12 @@ class TestTheThemeFloor:
 class TestTheTutorCardIsSizedByTheScreen:
     def test_width_is_a_viewport_fraction_inside_bounds(self):
         text = _read(SCRIPTS / "tutorial_overlay.gd")
-        assert re.search(r"const CARD_WIDTH_FRACTION := 0\.22\b", text)
-        assert re.search(r"const CARD_MIN_WIDTH := 396\.0\b", text)
-        assert re.search(r"const CARD_MAX_WIDTH := 560\.0\b", text)
+        # UXR3-46 (Pre-Deploy S12 part 2): 40 % of the HUD band, never under
+        # 520 (it was 22 % of the viewport inside [396, 560]).
+        assert re.search(r"const CARD_WIDTH_FRACTION := 0\.40\b", text)
+        assert re.search(r"const CARD_MIN_WIDTH := 520\.0\b", text)
         body = text.split("func _fit_card_width() -> void:", 1)[1].split("\nfunc ", 1)[0]
-        assert "view.x * CARD_WIDTH_FRACTION" in body
+        assert "(band.y - band.x) * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH" in body
         assert "_card.offset_left" in body and "_card.offset_right" in body
 
     def test_the_body_is_bounded_by_the_viewport_and_scrolls_past_it(self):

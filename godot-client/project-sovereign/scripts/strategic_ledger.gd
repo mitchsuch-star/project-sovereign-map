@@ -338,6 +338,13 @@ func _render_forces():
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.[/color]\n\n"
 	bbcode += _collapse_note_line()
+	# UXR3-41: Talleyrand's mission leads the muster when one runs (the
+	# Cabinet's full block); an idle Cabinet says so in one line.
+	var forces_cabinet = cached_data.get("cabinet")
+	if forces_cabinet is Dictionary and forces_cabinet.get("live", false):
+		bbcode += _cabinet_block(forces_cabinet)
+	elif forces_cabinet is Dictionary:
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]THE CABINET — Talleyrand is at the Cabinet, free to send: press F1, choose a court, and send him on a mission.[/color]\n\n"
 
 	# Authority — global player stat (V2b)
 	var authority = int(cached_data.get("authority", 100))
@@ -354,7 +361,15 @@ func _render_forces():
 		content_area.text = bbcode
 		return
 
+	# UXR3-41: the Emperor's corps leads the muster — his state is the line
+	# the Seat's point turns on (the backend marks him `sovereign`).
+	var muster: Array = []
 	for f in forces:
+		if bool(f.get("sovereign", false)):
+			muster.push_front(f)
+		else:
+			muster.append(f)
+	for f in muster:
 		var name = str(f.get("name", "?"))
 		var unit_type = str(f.get("type", "infantry"))
 		var loc = str(f.get("location", "?"))
@@ -368,9 +383,19 @@ func _render_forces():
 		var lost = int(f.get("battles_lost", 0))
 		var flags = f.get("special_flags", {})
 
-		# Name + type tag
-		var type_tag = "[" + unit_type.substr(0, 3).to_upper() + "]"
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + " " + type_tag + "[/color]\n"
+		# Name + arm. UXR3-F6: the arm in words — a bracketed "[INF]" read
+		# as a raw tag.
+		if bool(f.get("sovereign", false)):
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]THE EMPEROR — " + name + "[/color]"
+		else:
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + unit_type.capitalize() + "[/color]\n"
+		# The Seat (NP-5): the Emperor holding court in his own capital is
+		# worth a diplomatic point a turn — the backend's own figure.
+		var seat_dp := int(f.get("seat_dp", 0))
+		if seat_dp > 0:
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Holds court at " + str(f.get("location", "")) \
+				+ " — the Seat: +" + str(seat_dp) + " DP a turn[/color]\n"
 
 		# Status with color coding
 		var status_color = Utils.COLOR_INFO
@@ -432,6 +457,55 @@ func _render_forces():
 		bbcode += "\n"
 
 	content_area.text = bbcode
+
+
+func _ceiling_line(econ: Dictionary, treasury: int) -> String:
+	"""UXR3-41 (Pre-Deploy S12 part 2): the Ceiling line — where the Charges
+	of Empire steer the chest at the rate in force. It LEADS the Economy tab
+	(it sat under twenty lines of the books, below the fold on the boards
+	that exist to show it); its three states and their colours are IQ1-2's."""
+	var line := ""
+	# IQ1-2: the ceiling had ONE sentence for three states, and the zero
+	# sentinel meant the line VANISHED exactly when the chest was largest
+	# (the charge had exceeded the gross, so the old post-charge argument
+	# went negative). The three states are now named by the backend.
+	var ceiling = int(econ.get("ceiling", 0))
+	var ceiling_state = str(econ.get("ceiling_state", "bounded"))
+	if ceiling_state == "unbounded":
+		# Review round: name the CHARGES, not "the chest". This prints ~20
+		# lines under an "Upkeep: -865g" line that IS drawing on the chest, so
+		# "nothing is drawing on the chest" contradicted the payload above it.
+		line += "  [color=#" + Utils.COLOR_INFO \
+			+ "]Ceiling:  none — the charges of empire do not draw at this rate[/color]\n"
+	elif ceiling_state == "no_surplus":
+		# Review round: the COLOUR was inverted. This is the worst economic
+		# state the tab can report — the treasury is not growing at all — and
+		# it was rendered in the calmest colour in the palette, dimmer than
+		# the merely-informational bounded line. It is an ERROR now, and the
+		# sentence says what is true rather than what is absent.
+		line += "  [color=#" + Utils.COLOR_ERROR \
+			+ "]Ceiling:  none — the chest is not growing at this rate[/color]\n"
+	elif ceiling > 0:
+		if treasury > ceiling:
+			# The chest is PAST its own fixed point, so the charges are pulling
+			# it back down. ⚠ REVIEW ROUND CORRECTION: the first version of
+			# this comment said the case "could not previously be rendered at
+			# all". That is FALSE and the review caught it — the case WAS
+			# rendered before, by the generic arm below, with the wrong copy
+			# ("where the charges level the chest off") and, at a chest above
+			# a quarter of the ceiling, the calm colour. What was unreachable
+			# was a ceiling BELOW the chest that is also CORRECT; the old
+			# post-charge argument understated it toward zero.
+			line += "  [color=#" + Utils.COLOR_WARNING + "]Ceiling:  " \
+				+ _format_number(ceiling) \
+				+ "g  — the chest is above it; the charges are drawing it down[/color]\n"
+		else:
+			var ceil_color = Utils.COLOR_INFO
+			if treasury > 0 and ceiling > treasury * 4:
+				ceil_color = Utils.COLOR_WARNING
+			line += "  [color=#" + ceil_color + "]Ceiling:  " + _format_number(ceiling) \
+				+ "g  (where the charges level the chest off at this rate)[/color]\n"
+	return line
 
 
 func _render_territories():
@@ -527,6 +601,8 @@ func _render_economy():
 	var trade = int(econ.get("trade_income", 0))
 
 	bbcode += "  Treasury: " + _format_number(treasury) + "g\n"
+	# UXR3-41: the ceiling leads the books (the helper's comment).
+	bbcode += _ceiling_line(econ, treasury)
 	bbcode += "  Income:   +" + str(income) + "g\n"
 	if trade > 0:
 		bbcode += "  Trade:    +" + str(trade) + "g\n"
@@ -744,55 +820,13 @@ func _render_economy():
 	if moves_note != "":
 		bbcode += "    [color=#" + Utils.COLOR_INFO + "](" + moves_note + ")[/color]\n"
 
-	# IQ-1 SW-0 "The Chest Speaks". Both lines are informational and sit
-	# BELOW Net on purpose: `Spent` is money already gone this turn (the
-	# projection above does not and must not count it twice), and `Ceiling`
-	# is where the Charges of Empire are steering the treasury at the rate
-	# now in force — a destination, not a flow.
+	# IQ-1 SW-0 "The Chest Speaks". `Spent` is informational and sits BELOW
+	# Net on purpose: money already gone this turn (the projection above
+	# does not and must not count it twice). `Ceiling` — a destination, not
+	# a flow — leads the books since UXR3-41 (`_ceiling_line`).
 	var spent = int(econ.get("spent", 0))
 	if spent > 0:
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Spent:    -" + str(spent) + "g  (orders paid for this turn)[/color]\n"
-	# IQ1-2: the ceiling had ONE sentence for three states, and the zero
-	# sentinel meant the line VANISHED exactly when the chest was largest
-	# (the charge had exceeded the gross, so the old post-charge argument
-	# went negative). The three states are now named by the backend.
-	var ceiling = int(econ.get("ceiling", 0))
-	var ceiling_state = str(econ.get("ceiling_state", "bounded"))
-	if ceiling_state == "unbounded":
-		# Review round: name the CHARGES, not "the chest". This prints ~20
-		# lines under an "Upkeep: -865g" line that IS drawing on the chest, so
-		# "nothing is drawing on the chest" contradicted the payload above it.
-		bbcode += "  [color=#" + Utils.COLOR_INFO \
-			+ "]Ceiling:  none — the charges of empire do not draw at this rate[/color]\n"
-	elif ceiling_state == "no_surplus":
-		# Review round: the COLOUR was inverted. This is the worst economic
-		# state the tab can report — the treasury is not growing at all — and
-		# it was rendered in the calmest colour in the palette, dimmer than
-		# the merely-informational bounded line. It is an ERROR now, and the
-		# sentence says what is true rather than what is absent.
-		bbcode += "  [color=#" + Utils.COLOR_ERROR \
-			+ "]Ceiling:  none — the chest is not growing at this rate[/color]\n"
-	elif ceiling > 0:
-		if treasury > ceiling:
-			# The chest is PAST its own fixed point, so the charges are pulling
-			# it back down. ⚠ REVIEW ROUND CORRECTION: the first version of
-			# this comment said the case "could not previously be rendered at
-			# all". That is FALSE and the review caught it — the case WAS
-			# rendered before, by the generic arm below, with the wrong copy
-			# ("where the charges level the chest off") and, at a chest above
-			# a quarter of the ceiling, the calm colour. What was unreachable
-			# was a ceiling BELOW the chest that is also CORRECT; the old
-			# post-charge argument understated it toward zero.
-			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Ceiling:  " \
-				+ _format_number(ceiling) \
-				+ "g  — the chest is above it; the charges are drawing it down[/color]\n"
-		else:
-			var ceil_color = Utils.COLOR_INFO
-			if treasury > 0 and ceiling > treasury * 4:
-				ceil_color = Utils.COLOR_WARNING
-			bbcode += "  [color=#" + ceil_color + "]Ceiling:  " + _format_number(ceiling) \
-				+ "g  (where the charges level the chest off at this rate)[/color]\n"
-
 	if bankruptcy > 0:
 		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + Utils.plural(int(bankruptcy), "turn") + "[/color]\n"
 
@@ -1272,72 +1306,7 @@ func _render_orders():
 	# main._on_naval_command — the typed pipeline, with its in-flight latch,
 	# echo and history, which bypasses the Cabinet redirect. The recall is
 	# FREE (no DP, no action point), so it is never gated on `can_cancel`.
-	var cabinet = cached_data.get("cabinet")
-	if cabinet is Dictionary:
-		bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CABINET ═══[/color]\n"
-		if not cabinet.get("live", false):
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "]Talleyrand is at the Cabinet. Press F1, choose a court, and send him on a mission.[/color]\n"
-			var last = cabinet.get("last")
-			if last is Dictionary and not last.is_empty():
-				var last_phrase = _cabinet_str(last, "reason_phrase")
-				if last_phrase == "":
-					last_phrase = _cabinet_str(last, "reason")
-				bbcode += "  [color=#" + Utils.COLOR_INFO + "]Last mission: " + _cabinet_str(last, "type_display") + " — " + _cabinet_str(last, "target_display") + ", " + last_phrase + ".[/color]\n"
-		else:
-			var paused = false
-			if cabinet.get("paused", false):
-				paused = true
-			var target_display = _cabinet_str(cabinet, "target_display")
-			var ally_display = _cabinet_str(cabinet, "target_ally_display")
-
-			# Line 1 — who, what, and the turn's arithmetic (effect, drift, net).
-			var head = "  Talleyrand → [color=#" + Utils.COLOR_GOLD + "]" + target_display + "[/color] │ "
-			head += _cabinet_str(cabinet, "type_display").to_upper() + "  "
-			if _cabinet_str(cabinet, "type") == "GATHER_INTEL":
-				# No relation work — the effect text states what he is doing.
-				head += _cabinet_str(cabinet, "effect_text")
-			elif _cabinet_str(cabinet, "type") == "UNDERMINE_ALLIANCE":
-				# IQ-4 review: other courts' friction and subsidies move this
-				# pair too, so his own work is named — never called a net.
-				head += _cabinet_signed(_cabinet_int(cabinet, "effect_per_turn")) + " a turn from him"
-			else:
-				head += _cabinet_signed(_cabinet_int(cabinet, "effect_per_turn")) + " a turn, drift "
-				head += _cabinet_signed(_cabinet_int(cabinet, "drift_per_turn")) + ", net "
-				head += _cabinet_signed(_cabinet_int(cabinet, "net_per_turn"))
-
-			# Line 2 — where it stands, when it ends, what it costs.
-			var standing = "    "
-			if ally_display != "":
-				# UNDERMINE moves the target↔ally pair, not France's own relation.
-				standing += target_display + " and " + ally_display + " at " + str(_cabinet_int(cabinet, "current_relation"))
-			else:
-				standing += "Relations " + str(_cabinet_int(cabinet, "current_relation"))
-			var descriptor = _cabinet_str(cabinet, "relation_descriptor")
-			if descriptor == "":
-				descriptor = _cabinet_str(cabinet, "current_descriptor")
-			if descriptor != "":
-				standing += " (" + descriptor + ")"
-			var remaining_note = _cabinet_str(cabinet, "remaining_note")
-			if remaining_note != "":
-				standing += " · " + remaining_note
-			standing += " · " + str(_cabinet_int(cabinet, "dp_per_turn")) + " DP a turn"
-
-			if paused:
-				bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + head + "[/color]\n"
-				bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + standing + "[/color]"
-			else:
-				bbcode += head + "\n"
-				bbcode += standing
-			var recall = _cabinet_str(cabinet, "recall_command")
-			if recall != "":
-				bbcode += "   [url=do:" + recall + "][color=#" + Utils.COLOR_ERROR + "][Recall][/color][/url]"
-			bbcode += "\n"
-
-			# COURT only: the favour his courting has earned our proposals.
-			if cabinet.has("favour_cap"):
-				bbcode += "    Our proposals to " + target_display + ": +" + str(_cabinet_int(cabinet, "favour_now"))
-				bbcode += " of +" + str(_cabinet_int(cabinet, "favour_cap")) + " for his courting\n"
-		bbcode += "\n"
+	bbcode += _cabinet_block(cached_data.get("cabinet"))
 
 	if orders.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]\n"
@@ -1414,6 +1383,80 @@ func _render_orders():
 		bbcode += "[/color]\n"
 
 	content_area.text = bbcode
+
+
+func _cabinet_block(cabinet) -> String:
+	"""IQ-4 S3b — THE CABINET, Talleyrand's mission, read from the ledger's
+	`cabinet` block (one source). The Orders tab renders it; UXR3-41 (Pre-
+	Deploy S12 part 2) leads the Forces tab with it as well, where the
+	mission boards are read. An absent key renders nothing."""
+	var bbcode := ""
+	if cabinet is Dictionary:
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CABINET ═══[/color]\n"
+		if not cabinet.get("live", false):
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]Talleyrand is at the Cabinet. Press F1, choose a court, and send him on a mission.[/color]\n"
+			var last = cabinet.get("last")
+			if last is Dictionary and not last.is_empty():
+				var last_phrase = _cabinet_str(last, "reason_phrase")
+				if last_phrase == "":
+					last_phrase = _cabinet_str(last, "reason")
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]Last mission: " + _cabinet_str(last, "type_display") + " — " + _cabinet_str(last, "target_display") + ", " + last_phrase + ".[/color]\n"
+		else:
+			var paused = false
+			if cabinet.get("paused", false):
+				paused = true
+			var target_display = _cabinet_str(cabinet, "target_display")
+			var ally_display = _cabinet_str(cabinet, "target_ally_display")
+
+			# Line 1 — who, what, and the turn's arithmetic (effect, drift, net).
+			var head = "  Talleyrand → [color=#" + Utils.COLOR_GOLD + "]" + target_display + "[/color] │ "
+			head += _cabinet_str(cabinet, "type_display").to_upper() + "  "
+			if _cabinet_str(cabinet, "type") == "GATHER_INTEL":
+				# No relation work — the effect text states what he is doing.
+				head += _cabinet_str(cabinet, "effect_text")
+			elif _cabinet_str(cabinet, "type") == "UNDERMINE_ALLIANCE":
+				# IQ-4 review: other courts' friction and subsidies move this
+				# pair too, so his own work is named — never called a net.
+				head += _cabinet_signed(_cabinet_int(cabinet, "effect_per_turn")) + " a turn from him"
+			else:
+				head += _cabinet_signed(_cabinet_int(cabinet, "effect_per_turn")) + " a turn, drift "
+				head += _cabinet_signed(_cabinet_int(cabinet, "drift_per_turn")) + ", net "
+				head += _cabinet_signed(_cabinet_int(cabinet, "net_per_turn"))
+
+			# Line 2 — where it stands, when it ends, what it costs.
+			var standing = "    "
+			if ally_display != "":
+				# UNDERMINE moves the target↔ally pair, not France's own relation.
+				standing += target_display + " and " + ally_display + " at " + str(_cabinet_int(cabinet, "current_relation"))
+			else:
+				standing += "Relations " + str(_cabinet_int(cabinet, "current_relation"))
+			var descriptor = _cabinet_str(cabinet, "relation_descriptor")
+			if descriptor == "":
+				descriptor = _cabinet_str(cabinet, "current_descriptor")
+			if descriptor != "":
+				standing += " (" + descriptor + ")"
+			var remaining_note = _cabinet_str(cabinet, "remaining_note")
+			if remaining_note != "":
+				standing += " · " + remaining_note
+			standing += " · " + str(_cabinet_int(cabinet, "dp_per_turn")) + " DP a turn"
+
+			if paused:
+				bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + head + "[/color]\n"
+				bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + standing + "[/color]"
+			else:
+				bbcode += head + "\n"
+				bbcode += standing
+			var recall = _cabinet_str(cabinet, "recall_command")
+			if recall != "":
+				bbcode += "   [url=do:" + recall + "][color=#" + Utils.COLOR_ERROR + "][Recall][/color][/url]"
+			bbcode += "\n"
+
+			# COURT only: the favour his courting has earned our proposals.
+			if cabinet.has("favour_cap"):
+				bbcode += "    Our proposals to " + target_display + ": +" + str(_cabinet_int(cabinet, "favour_now"))
+				bbcode += " of +" + str(_cabinet_int(cabinet, "favour_cap")) + " for his courting\n"
+		bbcode += "\n"
+	return bbcode
 
 
 func _cabinet_int(d: Dictionary, key: String) -> int:

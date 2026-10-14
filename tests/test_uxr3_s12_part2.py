@@ -18,6 +18,8 @@ from __future__ import annotations
 import pathlib
 import re
 
+import pytest
+
 REPO = pathlib.Path(__file__).resolve().parents[1]
 PROJECT = REPO / "godot-client" / "project-sovereign"
 SCRIPTS = PROJECT / "scripts"
@@ -285,3 +287,183 @@ class TestTheWarRoomMode:
         assert "floor_now = mini(floor_now" in live
         assert "int(layers.get(key.substr(2), 0)) >= floor_now" in live
         assert 'out.append(scene)    # a scene change leads: it is the answer' in _func(gd, "_describe")
+
+
+# ═══ Part 4 — the boards: a live subject leads its first screenful ══════════
+
+SCENARIO_1805 = PROJECT / "assets" / "maps" / "europe_1805.json"
+
+
+@pytest.fixture
+def world_1805():
+    from backend.models.world_state import WorldState
+    return WorldState.from_scenario(str(SCENARIO_1805))
+
+
+def _order(src: str, *needles: str) -> bool:
+    """True when every needle is in `src`, in the order given."""
+    at = -1
+    for n in needles:
+        i = src.find(n, at + 1)
+        if i < 0:
+            return False
+        at = i
+    return True
+
+
+def _sovereign(w):
+    return next(m for m in w.marshals.values()
+                if getattr(m, "is_sovereign", False) and m.nation == w.player_nation)
+
+
+class TestTheBoardsLeadWithTheirSubject:
+    def test_the_region_panel_leads_with_its_actions(self):
+        """UXR3-76: ACTIONS spliced in under the title line; the name at Lead."""
+        body = _func(_src("scripts/region_panel.gd"), "_render")
+        assert "var actions_at := bbcode.length()" in body
+        assert "bbcode = bbcode.substr(0, actions_at) + actions" in body
+        assert _order(body, "var actions_at := bbcode.length()", "FORCES PRESENT", "THE SEA")
+        scene = (SCENES / "region_panel.tscn").read_text(encoding="utf-8")
+        title = scene[scene.index('[node name="TitleLabel"'):].split("[node", 2)[1]
+        assert 'theme_type_variation = &"Lead"' in title
+
+    def test_the_strategic_ledger_leads_with_the_cabinet_and_the_ceiling(self):
+        """UXR3-41: a running mission's Cabinet leads Forces (an idle one says
+        so in a line), the Emperor's corps leads the muster, the ceiling leads
+        Economy; the arm reads as a word, not "[INF]" (UXR3-F6)."""
+        src = _src("scripts/strategic_ledger.gd")
+        forces = _func(src, "_render_forces")
+        assert _order(forces, "_cabinet_block(forces_cabinet)", "Authority:", "for f in muster:")
+        assert "muster.push_front(f)" in forces and "THE EMPEROR — " in forces
+        assert "type_tag" not in forces and "unit_type.capitalize()" in forces
+        assert 'f.get("seat_dp", 0)' in forces
+        economy = _func(src, "_render_economy")
+        assert _order(economy, '"  Treasury: "', "_ceiling_line(econ, treasury)", '"  Income:   +"')
+        assert 'bbcode += _cabinet_block(cached_data.get("cabinet"))' in _func(src, "_render_orders")
+
+    def test_the_ledger_names_the_sovereign_and_his_seat(self, world_1805):
+        from backend.game_logic.ledger import _build_forces
+        w = world_1805
+        nap = _sovereign(w)
+        nap.location = w.get_nation_capital(w.player_nation)
+        rows = {r["name"]: r for r in _build_forces(w, w.player_nation)}
+        assert rows[nap.name]["sovereign"] is True and rows[nap.name]["seat_dp"] == 1
+        assert all(r["sovereign"] is False and r["seat_dp"] == 0
+                   for n, r in rows.items() if n != nap.name)
+
+    def test_the_generals_lead_with_what_asks_for_attention(self):
+        """UXR3-24: a prisoner or a marshal seeking an audience first (his
+        state in his header), then OUR DOCTRINE, then THE EMPEROR — whose
+        card opens on his state, The Presence and his strength — then THE
+        LAURELS (one line when no glory was won) and the roster."""
+        src = _src("scripts/marshal_management.gd")
+        body = _func(src, "_render_all_cards")
+        assert _order(body, "urgent.append(i)", '"A PRISONER"', "_render_doctrine()",
+                      "]THE EMPEROR[/color]", "_render_glory_ladder()")
+        card = _func(src, "_render_card")
+        assert _order(card, 'm.get("sovereign_state_line", "")', "_ability_line(m)",
+                      "_strength_line(m)", "BIOGRAPHY")
+        assert "no glory won in the last" in _func(src, "_render_glory_ladder")
+
+    def test_the_emperors_state_line_names_field_seat_and_cell(self, world_1805):
+        from backend.game_logic.marshal_overview import _sovereign_state_line
+        w = world_1805
+        nap = _sovereign(w)
+        capital = w.get_nation_capital(w.player_nation)
+        nap.location = capital
+        line = _sovereign_state_line(w, nap)
+        assert line.startswith("At the Seat — he holds court at ") and "+1 DP a turn" in line
+        nap.location = next(r for r in w.regions if r != capital)
+        assert _sovereign_state_line(w, nap).startswith("In the field at " + nap.location)
+        nap.captured_by, nap.captured_turn = "Austria", 3
+        assert _sovereign_state_line(w, nap).startswith("A captive — PRISONER of ")
+
+    def test_the_peace_popups_lead_with_their_terms(self):
+        """UXR3-30 / 31: the terms under "Terms:" before the War Summary; the
+        confirm snapshot's terms and acceptance before it; the settlement's
+        per-court rows lead and Talleyrand's paragraph opens the footer, the
+        Press / Ease / Drop rows under the table (above Allies)."""
+        inc = _func(_src("scripts/incoming_proposal_popup.gd"), "_build_peace_preview_section")
+        assert _order(inc, "_build_annotated_terms_section(annotated)", "Assessment:", "[b]War Summary[/b]")
+        assert "Proposed Terms" not in inc
+        conf_src = _src("scripts/proposal_confirm_popup.gd")
+        conf = _func(conf_src, "_build_peace_preview_content")
+        assert _order(conf, "[b]Proposed Terms[/b]", "[b]Acceptance Estimate[/b]", "[b]War Summary[/b]")
+        assert 'data.get("talleyrand_text"' not in _func(conf_src, "_build_settlement_content")
+        assert 'data.get("talleyrand_text"' in _func(conf_src, "_build_settlement_footer")
+        scene = (SCENES / "proposal_confirm_popup.tscn").read_text(encoding="utf-8")
+        assert _order(scene, '[node name="PerCourtScroll"', '[node name="Tier2Scroll"',
+                      '[node name="FooterLabel"')
+
+    def test_the_wizard_folds_the_congress_and_leads_with_a_live_design(self):
+        """UXR3-28 / 78: one line for the Congress (its terms behind a toggle,
+        [Summon] and [View the table] on one row, the live Summon the primary
+        action — UXR3-F5); a court's live design leads step 2 with its
+        instruments."""
+        src = _src("scripts/diplomacy_wizard.gd")
+        row = _func(src, "_add_congress_row")
+        assert "the terms" in row and "if _congress_terms_open:" in row
+        assert "var row := HBoxContainer.new()" in row and "row.add_child(view)" in row
+        assert 'btn.add_theme_stylebox_override("normal", primary)' in row
+        assert 'const INSTRUMENT_ACTIONS := ["sponsor_design", "buy_off_design", "guarantee_nation"]' in src
+        assert "actions = lead + rest" in src
+
+    def test_the_diplomatic_ledger_leads_with_laws_doctrine_and_the_spent_league(self):
+        """UXR3-29 / 77: a court's Laws and Doctrine lines under its name; the
+        spent league's counsel first in Talleyrand's book; the Cabinet named
+        in the header of every book."""
+        src = _src("scripts/diplomatic_ledger.gd")
+        nations = _func(src, "_render_nations")
+        assert _order(nations, "Vassalizable", '"  Laws: [color=#"', '"  Doctrine: [color=#"', '"  Diplomat: "')
+        tal = _func(src, "_render_talleyrand")
+        assert _order(tal, '"COOLDOWN"', "THE LEAGUE IS SPENT", "_cooldown_counsel(boe_t)", "TALLEYRAND[/color] — ")
+        assert "_set_cabinet_line(talleyrand_data)" in _func(src, "_on_ledger_received")
+        assert 'var words := "Talleyrand: Idle"' in _func(src, "_set_cabinet_line")
+
+    def test_the_rail_names_the_mission_and_its_recall_fills_the_line(self):
+        """UXR3-1 / 18: "Talleyrand at <court> — <kind>" beside the book, a
+        Recall chip that FILLS the backend's own order (never sends); UXR3-F10:
+        the "+N" badge opens the queued notices."""
+        src = _src("scripts/notification_bar.gd")
+        row = _func(src, "_create_mission_row")
+        assert "btn.text = _mission_words(notif)" in row and 'chip.text = "Recall"' in row
+        assert "suggest_command.emit(recall)" in row and "notification_action_requested" not in row
+        assert "overflow_label.pressed.connect(_on_overflow_pressed)" in _func(src, "_ready")
+        main = _src("scripts/main.gd")
+        assert "notification_bar.suggest_command.connect(_on_tutorial_suggest_command)" in main
+        scene = (SCENES / "notification_bar.tscn").read_text(encoding="utf-8")
+        assert '[node name="OverflowLabel" type="Button"' in scene
+
+    def test_the_top_bars_cabinet_is_a_chip_that_opens_talleyrands_book(self):
+        src = _src("scripts/top_bar.gd")
+        assert "@onready var talleyrand_label: Button =" in src
+        assert "talleyrand_label.pressed.connect(open_cabinet)" in src
+        assert 'open_diplomatic_ledger_review("ledger_talleyrand")' in _func(src, "open_cabinet")
+        assert 'talleyrand_label.add_theme_stylebox_override("normal", _mailbox_idle_style)' in src
+        scene = (SCENES / "top_bar.tscn").read_text(encoding="utf-8")
+        assert '[node name="TalleyrandLabel" type="Button"' in scene
+
+    def test_the_tutor_card_opens_wide_and_reads_large(self):
+        src = _src("scripts/tutorial_overlay.gd")
+        assert "const CARD_WIDTH_FRACTION := 0.40" in src and "const CARD_MIN_WIDTH := 520.0" in src
+        scene = (SCENES / "tutorial_overlay.tscn").read_text(encoding="utf-8")
+        body = scene[scene.index('[node name="BodyText"'):].split("[node", 2)[1]
+        assert 'theme_type_variation = &"BodyLargeRich"' in body
+
+    def test_a_sitting_congress_leads_the_dispatch(self):
+        body = _func(_src("scripts/dispatch_view.gd"), "_on_dispatch_received")
+        assert 'congress_sits = str(congress_clock.get("phase", "")) == "sitting"' in body
+        assert _order(body, "var congress_at := bbcode.length()", "W6-3 HEADLINE",
+                      "bbcode = bbcode.substr(0, congress_at) + congress_block")
+
+    def test_the_secondary_boards_are_read_at_their_subject(self):
+        import sys
+        sys.path.insert(0, str(TOOLS))
+        import iq10_run_captures as R
+        shots = {s["id"]: s for s in R.SHOTS}
+        assert shots["gazette_congress"]["steps"][0] == {
+            "scroll_to": {"text": "THE CONGRESS OF PARIS"}, "then_wait": 4}
+        toggle = {"call": "_toggle_congress_terms", "args": []}
+        for tag in ("gate", "ready"):
+            assert toggle in shots[f"wizard_step1_congress_{tag}"]["steps"]
+        assert toggle not in shots["wizard_step1_congress_sitting"]["steps"]

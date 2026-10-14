@@ -1467,15 +1467,17 @@ class TestTheClientReadsIt:
         read inside the Cabinet block's `paused` branch — the FA-N36 idle
         line below it already used COLOR_WARNING."""
         body = _gd_code(SCRIPTS / "strategic_ledger.gd", "_render_orders")
-        assert 'cached_data.get("cabinet")' in body
-        assert "[url=do:" in body
-        assert body.index('cached_data.get("cabinet")') < body.index("if orders.size() == 0")
-        cabinet = body[body.index("var cabinet ="):body.index("if orders.size() == 0")]
+        # UXR3-41 (Pre-Deploy S12 part 2): the block is `_cabinet_block`, one
+        # renderer the Orders tab prints first and the Forces tab leads with.
+        assert 'bbcode += _cabinet_block(cached_data.get("cabinet"))' in body
+        assert body.index("_cabinet_block(") < body.index("if orders.size() == 0")
+        cabinet = _gd_code(SCRIPTS / "strategic_ledger.gd", "_cabinet_block")
+        assert "[url=do:" in cabinet
         assert re.search(r'if paused:\s*\n\s*bbcode \+= "\[color=#" \+ Utils\.COLOR_WARNING'
                          r' \+ "\]" \+ head', cabinet), "the paused Cabinet is not a warning"
-        assert "═══ THE CABINET ═══" in body
+        assert "═══ THE CABINET ═══" in cabinet
         assert ("Talleyrand is at the Cabinet. Press F1, choose a court, and send him "
-                "on a mission.") in body
+                "on a mission.") in cabinet
 
     @pytest.mark.parametrize("func,var", [("update_diplomatic_fields", "mission_summary"),
                                           ("_set_talleyrand_summary", "clean_summary")])
