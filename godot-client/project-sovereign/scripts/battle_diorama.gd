@@ -35,6 +35,10 @@ const STAGE_MARGIN_X := 26.0
 const STAGE_TOP := 52.0
 const STAGE_H := 380.0
 const SHELF_H := 66.0
+# UXR-X9: the verdict's room — never less than one line, and ending this far
+# above the nameplate's top.
+const VERDICT_ROOM_MIN := 30.0
+const VERDICT_PLATE_GAP := 6.0
 const FIGURE_PX := 58.0
 # IQ-5 review (B): the `faith` caption sits UNDER a corps' figures, outboard
 # (away from the clash line), wrapped in this block-local width. Measured
@@ -405,16 +409,24 @@ func _build_verdict_and_plate() -> void:
 	_verdict = RichTextLabel.new()
 	_verdict.name = "Verdict"
 	_verdict.bbcode_enabled = true
-	_verdict.fit_content = true
-	_verdict.scroll_active = false
+	# UXR-X9 (Pre-Deploy S12 part 2, part 5e): the verdict was a fit_content
+	# label on a free-positioned parent, so the worst case (the longest
+	# observation, the Emperor's prefix and an enemy voice: about four lines)
+	# grew into the nameplate. It is a bounded room that ends above the plate
+	# (`_fit_verdict_room`, once the plate is placed); text that needs more
+	# scrolls inside it and rests on whole lines; the wheel reaches it (PASS)
+	# and a click still falls through to the tableau's skip.
+	_verdict.fit_content = false
+	_verdict.scroll_active = true
 	_verdict.position = Vector2(TRAY_W * 0.14, STAGE_TOP + STAGE_H + SHELF_H + 16.0)
-	_verdict.size = Vector2(TRAY_W * 0.72, 58.0)
-	_verdict.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_verdict.size = Vector2(TRAY_W * 0.72, VERDICT_ROOM_MIN)
+	_verdict.mouse_filter = Control.MOUSE_FILTER_PASS
 	if _font_voice != null:
 		_verdict.add_theme_font_override("normal_font", _font_voice)
 		_verdict.add_theme_font_override("italics_font", _font_voice)
 	_verdict.theme_type_variation = &"BodyLargeRich"
 	_tray_inner.add_child(_verdict)
+	Utils.keep_whole_lines(_verdict)
 
 	# The nameplate, wax-sealed — the diorama is an OBJECT. UXR3-75 (Pre-
 	# Deploy S12 part 2): a flat ENGRAVED label, the battle's name cut into
@@ -1112,9 +1124,18 @@ func _nameplate_layout() -> void:
 	var plate_size := _nameplate.size
 	_nameplate.position = Vector2(
 		(TRAY_W - plate_size.x) / 2.0, TRAY_H - plate_size.y - 12.0)
+	_fit_verdict_room()
 	if _seal != null:
 		_seal.position = _nameplate.position + Vector2(
 			plate_size.x - 12.0, plate_size.y - 30.0)
+
+
+func _fit_verdict_room() -> void:
+	"""UXR-X9: the verdict's room ends VERDICT_PLATE_GAP above the plate."""
+	if _verdict == null or _nameplate == null:
+		return
+	var room: float = _nameplate.position.y - VERDICT_PLATE_GAP - _verdict.position.y
+	_verdict.size = Vector2(_verdict.size.x, maxf(room, VERDICT_ROOM_MIN))
 
 
 func _laurel_layout(register: String) -> void:

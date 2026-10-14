@@ -16,6 +16,9 @@ eyes and the instruments' marks do not measure directly:
                    `frame["buttons"]`)
     tick_overlaps  UXR3-F1: a bar's centre tick (`kind: tick`) whose rect
                    overlaps a text on its layer (the war-detail score)
+    verdict_gaps   UXR-X9: on every tableau frame, the room between the
+                   verdict's box (`…/Verdict`) and the nameplate's first line
+                   (`…/Nameplate/…`), in logical px — negative is an overlap
 
 Each finding names the shot, the resolution, the paths and the overlap. The
 census judges nothing a row did not already state: it reads the rect records.
@@ -62,7 +65,7 @@ def census(index_path: pathlib.Path) -> dict:
     index = json.loads(index_path.read_text(encoding="utf-8"))
     out = {"tool": "tools/uxr3_frame_census.py", "source": str(index_path),
            "client_commit": index.get("client_commit", ""), "frames": 0, "frames_without_record": [],
-           "cut_lines": [], "grip_overlaps": [], "tick_overlaps": []}
+           "cut_lines": [], "grip_overlaps": [], "tick_overlaps": [], "verdict_gaps": []}
     for sid, res, fr in frames(index_path):
         out["frames"] += 1
         if "cut_lines" not in fr or "grips" not in fr:
@@ -72,6 +75,12 @@ def census(index_path: pathlib.Path) -> dict:
             out["cut_lines"].append({"surface": sid, "res": res, "path": c["path"], "kind": c.get("kind", ""),
                                      "cut_top_px": c["cut_top_px"], "cut_bottom_px": c["cut_bottom_px"]})
         texts = [t for t in fr.get("texts", []) if str(t.get("text", t.get("path", ""))).strip()]
+        verdict = [t for t in texts if str(t.get("path", "")).endswith("/Verdict")]
+        plate = [t for t in texts if "/Nameplate/" in str(t.get("path", ""))]
+        if verdict and plate:
+            v, top = verdict[0]["rect"], min(float(t["rect"][1]) for t in plate)
+            out["verdict_gaps"].append({"surface": sid, "res": res,
+                                        "gap_px": round(top - (float(v[1]) + float(v[3])), 1)})
         buttons = fr.get("buttons", [])
         for g in fr["grips"]:
             if g.get("kind") not in ("grip", "ornament", "tick"):
@@ -105,7 +114,9 @@ def main(argv=None) -> int:
     out = census(pathlib.Path(args.index))
     print(f"frames {out['frames']} (without a record: {len(out['frames_without_record'])}); "
           f"cut lines {len(out['cut_lines'])}; grip overlaps {len(out['grip_overlaps'])}; "
-          f"tick overlaps {len(out['tick_overlaps'])}")
+          f"tick overlaps {len(out['tick_overlaps'])}; verdict gaps "
+          f"{min((g['gap_px'] for g in out['verdict_gaps']), default=None)} px at the least "
+          f"({len(out['verdict_gaps'])} tableaux)")
     for key in ("cut_lines", "grip_overlaps", "tick_overlaps"):
         for row in out[key][:12]:
             print(f"  {key}: {json.dumps(row, ensure_ascii=False)[:220]}")

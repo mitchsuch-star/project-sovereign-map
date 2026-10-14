@@ -437,6 +437,11 @@ SHOTS: list[dict] = [
              "the reserve tails; the depth-2 faith caption on the baize"),
             ("naval", "naval", "a fleet action",
              "the line of battle at sea; STRUCK / SUNK under the hulls; the sail counts"),
+            # UXR-X9 (Pre-Deploy S12 part 2): not a checklist surface — the
+            # row's own proof, read by tools/uxr3_frame_census.py.
+            ("verdict_worst", "verdict_worst", "the verdict's worst case",
+             "the longest observation with the Emperor's prefix and an enemy voice, every "
+             "line of it above the nameplate"),
         ]
     ],
     {

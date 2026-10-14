@@ -773,6 +773,35 @@ def cap_diorama_states():
                   "attacker_reserve": four["attacker"].get("reserve_count"),
                   "defender_reserve": four["defender"].get("reserve_count")})
 
+    # UXR-X9 (Pre-Deploy S12 part 2, part 5e): the verdict's worst case —
+    # the longest observation template filled with the names in France's line,
+    # field, the Emperor in the line (the builder's own "The Emperor watched
+    # this field." prefix) and the longest line an enemy commander says.
+    from backend.game_logic.battle_report import _OBSERVATIONS
+    from backend.game_logic import enemy_voice as ev
+    template = max((t for bank in _OBSERVATIONS.values() for t in bank), key=len)
+    observation = template.format(ally="Bernadotte", marshal="Napoleon")
+    # the longest line a named commander says, in his own mouth
+    speaker, voice = max(((name, line) for name, bank in ev._NAMED_LINES.items()
+                          for lines in bank.values() for line in lines), key=lambda nl: len(nl[1]))
+    emperor = bd._mk("Napoleon", "Swabia", 10000, personality="sovereign")
+    bernadotte = bd._mk("Bernadotte", "Swabia", 15000)
+    foe = bd._mk(speaker, "Swabia", 28000, nation="Austria")
+    world = bd._world(emperor, bernadotte, foe)
+    result = bd._battle_result(atk_cas=2100, atk_rem=22900, def_cas=3400, def_rem=24600,
+                               name="Battle of Elchingen", observation=observation)
+    result["enemy_voice"] = f'{ev.humanize_entity_name(speaker)}: "{voice}"'
+    with _quiet():
+        worst = _board(world, emperor, foe, result, [emperor, bernadotte], [foe])
+    record("diorama_uxr2_verdict_worst", worst,
+           source="backend.game_logic.battle_diorama.build_battle_diorama",
+           staging=f"tests/test_battle_diorama.py helpers: the Emperor (sovereign) and Bernadotte "
+                   f"against {speaker}; the observation is the longest template "
+                   f"({len(template)} characters) filled with the names in France's line; the enemy "
+                   f"voice the longest line a named commander says ({len(voice)} characters, his own)",
+           facts={"observation": worst.get("observation"), "enemy_voice": worst.get("enemy_voice"),
+                  "template_chars": len(template)})
+
     # The sea: the shipped board's Combined Fleet brought to action — the
     # resolver builds its own tableau (STRUCK / SUNK, the sail count).
     from backend.game_logic import naval

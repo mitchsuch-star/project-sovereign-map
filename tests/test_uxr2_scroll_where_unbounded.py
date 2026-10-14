@@ -35,7 +35,9 @@ ALLOW_SCENE = {
 }
 # (script, variable) → why, checked below.
 ALLOW_SCRIPT = {
-    ("battle_diorama.gd", "_verdict"): "free-positioned",
+    # ("battle_diorama.gd", "_verdict") left this list with UXR-X9 (Pre-Deploy
+    # S12 part 2, part 5e): the verdict is a bounded room above the nameplate
+    # that scrolls on whole lines, no longer fit_content (proof below).
     ("main.gd", "_suggestion_row"): "count-capped",
     ("notification_bar.gd", "body"): "bounds itself",
     # Pre-Deploy S12 (UXR3-62): two fixed lines over the proclamation's name —
@@ -211,9 +213,12 @@ class TestTheAllowListIsProven:
         assert "_fit_expanded_body.call_deferred()" in G.func_body(
             scripts["notification_bar.gd"], "_position_expanded_panel")
         assert "const MAX_SUGGESTIONS := 5" in scripts["main.gd"]
-        diorama = scripts["battle_diorama.gd"]
-        assert "_tray_inner = Control.new()" in diorama
-        assert "_tray_inner.add_child(_verdict)" in diorama
+        # UXR-X9: the verdict no longer stands free — a bounded room that ends
+        # above the nameplate and scrolls inside itself.
+        verdict = G.func_body(scripts["battle_diorama.gd"], "_build_verdict_and_plate")
+        assert "_verdict.fit_content = false" in verdict and "_verdict.scroll_active = true" in verdict
+        assert "_verdict.size = Vector2(_verdict.size.x, maxf(room, VERDICT_ROOM_MIN))" in G.func_body(
+            scripts["battle_diorama.gd"], "_fit_verdict_room")
 
     def test_the_rail_body_scrolls_with_the_wheel(self, tree):
         """A bounded body that scrolls must take the wheel itself (a

@@ -525,6 +525,28 @@ class TestTheFoundRows:
         log = _src("scripts/campaign_log.gd")
         assert 'var affordance = "▾" if expanded_turns.get(turn_num, false) else "▸"' in log
 
+    def test_uxr_x9_the_verdict_has_a_room_above_the_plate(self):
+        """UXR-X9 (part 5e): the verdict was fit_content on a free-positioned
+        parent, so the worst case grew into the nameplate. It is a bounded room
+        ending VERDICT_PLATE_GAP above the plate, scrolling on whole lines if
+        it must; the board the row names stages the worst case."""
+        src = _src("scripts/battle_diorama.gd")
+        build = _func(src, "_build_verdict_and_plate")
+        assert "_verdict.fit_content = false" in build and "_verdict.scroll_active = true" in build
+        assert "_verdict.mouse_filter = Control.MOUSE_FILTER_PASS" in build
+        assert "Utils.keep_whole_lines(_verdict)" in build
+        fit = _func(src, "_fit_verdict_room")
+        assert "_nameplate.position.y - VERDICT_PLATE_GAP - _verdict.position.y" in fit
+        assert float(_const(src, "VERDICT_PLATE_GAP")) > 0.0
+        assert "_fit_verdict_room()" in _func(src, "_nameplate_layout")
+        cap = (TOOLS / "iq10_capture_payloads.py").read_text(encoding="utf-8")
+        board = cap[cap.index("# UXR-X9 (Pre-Deploy S12 part 2, part 5e)"):cap.index('record("diorama_uxr2_verdict_worst"')]
+        assert "template = max(" in board and 'personality="sovereign"' in board
+        assert 'result["enemy_voice"]' in board
+        assert '("verdict_worst", "verdict_worst"' in (TOOLS / "iq10_run_captures.py").read_text(encoding="utf-8")
+        census = (TOOLS / "uxr3_frame_census.py").read_text(encoding="utf-8")
+        assert '"verdict_gaps"' in census and 'endswith("/Verdict")' in census
+
     def test_the_top_bars_alarm_reads_in_the_games_words(self):
         """F6's class, found on the closing re-read's frames (part 5d): the
         alarm was a bracketed "[THREAT]" / "[THREAT!]"."""
