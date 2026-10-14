@@ -183,6 +183,33 @@ class TestTheInstrumentsKeepTheirRails:
         check = (TOOLS / "godot_parse_check.gd").read_text(encoding="utf-8")
         assert '"res://../../tools/uxr3_action_probe.gd"' in check
 
+    def test_the_probe_drags_a_drag_control(self):
+        """S12 part 2 (UXR3-74): a visible non-button Control taking the mouse
+        whose default cursor is a resize shape is a control of kind `drag`. It
+        is pressed as a drag in a fresh instance (a press at its centre, two
+        motions of 20 px down and right, a release) and answers VISIBLE when a
+        control's rect changed; the record holds it, so the readers see it."""
+        gd = (TOOLS / "uxr3_action_probe.gd").read_text(encoding="utf-8")
+        assert ("const DRAG_CURSORS := [Control.CURSOR_FDIAGSIZE, Control.CURSOR_BDIAGSIZE,\n"
+                "\t\tControl.CURSOR_HSIZE, Control.CURSOR_VSIZE]") in gd
+        assert "const DRAG_STEP := Vector2(20.0, 20.0)" in gd
+        enum = re.search(r"(?ms)^func _enumerate\(.*?(?=^func )", gd).group(0)
+        assert "ctrl.mouse_default_cursor_shape in DRAG_CURSORS" in enum
+        assert "ctrl.mouse_filter != Control.MOUSE_FILTER_IGNORE" in enum
+        assert 'base["kind"] = "drag"' in enum
+        # after the button and pointer branches: a button is never a drag
+        assert enum.index('base["kind"] = "button"') < enum.index('base["kind"] = "drag"')
+        press = re.search(r"(?ms)^func _press_and_read\(.*?(?=^func )", gd).group(0)
+        for step in ("_mouse(from, true)", "_motion(from + DRAG_STEP, from)",
+                     "_motion(from + 2.0 * DRAG_STEP, from + DRAG_STEP)",
+                     "_mouse(from + 2.0 * DRAG_STEP, false)"):
+            assert step in press, step
+        assert press.index("_mouse(from, true)") < press.index("_mouse(from + 2.0 * DRAG_STEP, false)")
+        # VISIBLE for a drag iff a rect moved
+        assert 'if str(k).begins_with("r:"):' in press and "if is_drag:" in press
+        verdict = press[press.index("if is_drag:"):]
+        assert verdict.index("if moved:") < verdict.index('out["result"] = "VISIBLE"')
+
     def test_the_capture_harness_records_what_r7_and_r4_read(self):
         gd = (TOOLS / "iq10_surface_screenshot.gd").read_text(encoding="utf-8")
         for field in ('frame["truncated_text"] = _truncated_text()', 'frame["buttons"] = _visible_buttons()',

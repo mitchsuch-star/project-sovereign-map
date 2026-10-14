@@ -1652,8 +1652,7 @@ func _create_resize_grip() -> void:
 	# The command window keeps its OWN geometry: the HOST-mode grip has no
 	# input of its own, and the fixed bottom-left corner, the desired /
 	# displayed split and the viewport-fraction default stay below.
-	resize_grip = ResizeGrip.make(ResizeGrip.Corner.TOP_RIGHT,
-			"Drag to resize the command window · double-click to reset")
+	resize_grip = ResizeGrip.make(ResizeGrip.Corner.TOP_RIGHT, ResizeGrip.TOOLTIP)
 	resize_grip.name = "TerminalResizeGrip"
 	add_child(resize_grip)
 	resize_grip.gui_input.connect(_on_grip_gui_input)
@@ -1874,8 +1873,11 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 				_grip_moved = false
 				# UXR-2 review: the shared grip's rules — a press-and-release
 				# within ResizeGrip.MOVE_THRESHOLD is a click, and the corner
-				# keeps its offset from the cursor (no jump on grab).
-				_grip_press_at = get_global_mouse_position()
+				# keeps its offset from the cursor (no jump on grab). S12
+				# part 2: the EVENT's own position, as the shared grip reads
+				# it — never the OS cursor, which a pushed event (the action
+				# probe's drag) does not move.
+				_grip_press_at = event.global_position
 				var rect: Rect2 = bottom_left_ui.get_global_rect()
 				_grip_grab_offset = Vector2(rect.end.x, rect.position.y) - _grip_press_at
 		else:
@@ -1889,7 +1891,7 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 					_terminal_uses_default = false
 					UiSettings.set_terminal_size(_terminal_width, _terminal_height)
 	elif event is InputEventMouseMotion and _grip_dragging:
-		var mouse := get_global_mouse_position()
+		var mouse: Vector2 = event.global_position
 		if not _grip_moved and mouse.distance_to(_grip_press_at) <= ResizeGrip.MOVE_THRESHOLD:
 			return  # a click's jitter is not a resize
 		_grip_moved = true

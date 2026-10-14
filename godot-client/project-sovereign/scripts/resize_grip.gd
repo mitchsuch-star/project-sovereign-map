@@ -36,11 +36,13 @@ signal resize_requested(new_size: Vector2)
 signal resize_committed(new_size: Vector2)
 signal reset_requested
 
-const GRIP_SIZE := 20.0
+const GRIP_SIZE := 24.0
 const GROUP := "resize_grips"
 const USER_SIZE_META := "clamp_user_size"
 # A press-and-release within this many logical px is a click, not a drag.
 const MOVE_THRESHOLD := 2.0
+# UXR3-74: every grip says what it does, the command window's too.
+const TOOLTIP := "Drag to resize · double-click to restore"
 
 enum Corner { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 enum Mode { HOST, CENTERED, EDGE }
@@ -57,8 +59,12 @@ var _fixed_corner := Vector2.ZERO
 
 
 static func make(grip_corner: int, tooltip: String) -> Panel:
-	"""The grip's look, with no behaviour: a 20-px gold-rimmed tile carrying
-	the arrows-out glyph (the command window's grip, moved here verbatim)."""
+	"""The grip's look, with no behaviour (UXR3-74, Pre-Deploy S12 part 2):
+	a borderless corner hatch, three diagonal gold strokes, which says
+	"drag" where the boxed four-arrow tile it replaces said "expand" and read
+	as a button. The 24-px hit square stays centred on the panel's corner;
+	the strokes are drawn in its INNER quadrant only, inside the panel's
+	padding, so the grip never sits on content (UXR3-F4)."""
 	var grip := ResizeGrip.new()
 	grip.corner = grip_corner
 	grip.custom_minimum_size = Vector2(GRIP_SIZE, GRIP_SIZE)
@@ -68,27 +74,30 @@ static func make(grip_corner: int, tooltip: String) -> Panel:
 			if grip_corner in [Corner.TOP_RIGHT, Corner.BOTTOM_LEFT]
 			else Control.CURSOR_FDIAGSIZE)
 	grip.tooltip_text = tooltip
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.1, 0.15, 0.92)
-	sb.border_color = Utils.UI_GOLD  # gold, matches the terminal accent
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(3)
-	grip.add_theme_stylebox_override("panel", sb)
-	# UI-3: the arrows-out icon (white silhouette tinted gold via modulate;
-	# EXPAND_IGNORE_SIZE lets the 256px SVG fit the grip).
-	var glyph := TextureRect.new()
-	glyph.texture = load(Utils.ICON_PHOSPHOR + "arrows-out.svg")
-	glyph.modulate = Utils.UI_GOLD
-	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	glyph.set_anchors_preset(Control.PRESET_FULL_RECT)
-	glyph.offset_left = 4.0
-	glyph.offset_top = 4.0
-	glyph.offset_right = -4.0
-	glyph.offset_bottom = -4.0
-	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	grip.add_child(glyph)
+	grip.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	return grip
+
+
+# The hatch: three 1-px strokes across the corner, 2.5 / 6 / 9.5 px from it,
+# inset 2.5 px from the panel's two edges, clear of a rounded border (so all
+# of it lies in the 12-px inner quadrant), UI_GOLD at 0.7 alpha.
+const HATCH_STEPS: Array[float] = [2.5, 6.0, 9.5]
+const HATCH_INSET := 2.5
+const HATCH_WIDTH := 1.0
+const HATCH_ALPHA := 0.7
+
+
+func _draw() -> void:
+	# The panel's corner is the grip's centre; `inward` points into the panel.
+	var c := size * 0.5
+	var inward := Vector2(
+			1.0 if corner in [Corner.TOP_LEFT, Corner.BOTTOM_LEFT] else -1.0,
+			1.0 if corner in [Corner.TOP_LEFT, Corner.TOP_RIGHT] else -1.0)
+	var col := Color(Utils.UI_GOLD, HATCH_ALPHA)
+	for k in HATCH_STEPS:
+		var a := c + inward * Vector2(HATCH_INSET, HATCH_INSET + k)
+		var b := c + inward * Vector2(HATCH_INSET + k, HATCH_INSET)
+		draw_line(a, b, col, HATCH_WIDTH, true)
 
 
 static func attach_centered(panel: Control, panel_name: String) -> Panel:
@@ -96,7 +105,7 @@ static func attach_centered(panel: Control, panel_name: String) -> Panel:
 	once from the screen's `_ready`; the screen's own open path keeps its
 	`Utils.clamp_centered_panel($PanelContainer)`, which reads the size."""
 	var grip: ResizeGrip = make(Corner.BOTTOM_RIGHT,
-			"Drag to resize · double-click to return to its default size")
+			TOOLTIP)
 	grip._bind(panel, panel_name, Mode.CENTERED)
 	grip.load_stored_size()
 	return grip
@@ -107,7 +116,7 @@ static func attach_edge(panel: Control, panel_name: String, grip_corner: int) ->
 	`resize_requested` / `resize_committed` / `reset_requested` and lays the
 	panel out itself (its own anchors decide which corner stays put)."""
 	var grip: ResizeGrip = make(grip_corner,
-			"Drag to resize · double-click to return to its default size")
+			TOOLTIP)
 	grip._bind(panel, panel_name, Mode.EDGE)
 	return grip
 

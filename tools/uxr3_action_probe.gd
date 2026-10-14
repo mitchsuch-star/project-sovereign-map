@@ -17,8 +17,9 @@ extends SceneTree
 #      twice, 500 ms apart, with nothing pressed: whatever changes on its own
 #      (a Ken Burns drift, a pulse) is set aside for the whole surface. The
 #      LIVE frame's controls are listed: every visible BaseButton, every
-#      visible non-button Control showing the pointing-hand cursor, and every
-#      [url] link of a visible RichTextLabel. The live frame is R7's: the
+#      visible non-button Control showing the pointing-hand cursor, every
+#      visible non-button Control showing a resize cursor (a drag control,
+#      S12 part 2), and every [url] link of a visible RichTextLabel. The live frame is R7's: the
 #      layers at and above the topmost modal layer (a layer holding a visible
 #      Control whose mouse filter is not IGNORE and which covers >= 95 % of the
 #      logical viewport); what lies under a modal is suspended by it.
@@ -53,6 +54,14 @@ const OBSERVE_MS := 500
 const OBSERVE_MIN_FRAMES := 30
 const MODAL_COVER := 0.95
 const MAX_CHANGES := 10
+# S12 part 2 (UXR3-74): a DRAG control — a visible non-button Control taking
+# the mouse whose default cursor is a resize shape (the ResizeGrip). It is
+# pressed as the player uses it: a press at its centre, two motions of
+# DRAG_STEP down and right, a release; it answers VISIBLE when any control's
+# rect changed.
+const DRAG_CURSORS := [Control.CURSOR_FDIAGSIZE, Control.CURSOR_BDIAGSIZE,
+		Control.CURSOR_HSIZE, Control.CURSOR_VSIZE]
+const DRAG_STEP := Vector2(20.0, 20.0)
 
 class ApiStub extends Node:
 	var responses: Dictionary = {}
@@ -498,9 +507,38 @@ func _press_and_read(target: Node, c: Dictionary, animated: Dictionary, click: b
 	var before := _snapshot()
 	var method := ""
 	var reached := true
+	var is_drag := str(c.get("kind", "")) == "drag"
 	if str(c.get("kind", "")) == "link":
 		(target as RichTextLabel).emit_signal("meta_clicked", c.get("meta_value", c.get("meta", "")))
 		method = "meta_clicked"
+	elif is_drag and click:
+		var dctrl := target as Control
+		var from := dctrl.get_global_rect().get_center()
+		var got_drag := [false]
+		var dcb := func(ev):
+			if ev is InputEventMouseButton:
+				got_drag[0] = true
+		dctrl.gui_input.connect(dcb)
+		root.gui_disable_input = false
+		_mouse(from, true)
+		await process_frame
+		_motion(from + DRAG_STEP, from)
+		await process_frame
+		_motion(from + 2.0 * DRAG_STEP, from + DRAG_STEP)
+		await process_frame
+		_mouse(from + 2.0 * DRAG_STEP, false)
+		await process_frame
+		root.gui_disable_input = true
+		if is_instance_valid(dctrl) and dctrl.gui_input.is_connected(dcb):
+			dctrl.gui_input.disconnect(dcb)
+		if got_drag[0]:
+			method = "drag"
+		else:
+			reached = false
+			out["taken_by"] = _cover_at(from, dctrl)
+	elif is_drag:
+		method = "drag by gui_input (the press was taken)"
+		_signal_drag(target as Control)
 	elif click:
 		var ctrl := target as Control
 		var at := ctrl.get_global_rect().get_center()
@@ -552,7 +590,21 @@ func _press_and_read(target: Node, c: Dictionary, animated: Dictionary, click: b
 	out["changes"] = _describe(changed)
 	out["api_calls"] = calls
 	out["signals"] = signals.slice(0, 12)
-	if not changed.is_empty():
+	var moved := false
+	for k in changed:
+		if str(k).begins_with("r:"):
+			moved = true
+			break
+	if is_drag:
+		# A drag answers by moving something; anything else it did is not
+		# the answer it promises.
+		if moved:
+			out["result"] = "VISIBLE"
+		elif not calls.is_empty() or not signals.is_empty():
+			out["result"] = "HANDOFF"
+		else:
+			out["result"] = "SILENT"
+	elif not changed.is_empty():
 		out["result"] = "VISIBLE"
 	elif not calls.is_empty() or not signals.is_empty():
 		out["result"] = "HANDOFF"
@@ -578,6 +630,40 @@ func _signal_press(target: Node) -> void:
 			ctrl.emit_signal("gui_input", ev)
 			if ctrl.has_method("_gui_input"):
 				ctrl.call("_gui_input", ev)
+
+
+func _signal_drag(ctrl: Control) -> void:
+	# The drag fed to the control's own gui_input, when another control took
+	# the press: the same press, two motions and release.
+	var from := ctrl.get_global_rect().get_center()
+	var steps := [[true, from], [null, from + DRAG_STEP], [null, from + 2.0 * DRAG_STEP],
+			[false, from + 2.0 * DRAG_STEP]]
+	for st in steps:
+		var ev: InputEventMouse
+		if st[0] == null:
+			var mm := InputEventMouseMotion.new()
+			mm.button_mask = MOUSE_BUTTON_MASK_LEFT
+			mm.relative = DRAG_STEP
+			ev = mm
+		else:
+			var mb := InputEventMouseButton.new()
+			mb.button_index = MOUSE_BUTTON_LEFT
+			mb.pressed = st[0]
+			ev = mb
+		ev.position = st[1] - ctrl.get_global_rect().position
+		ev.global_position = st[1]
+		ctrl.emit_signal("gui_input", ev)
+		if ctrl.has_method("_gui_input"):
+			ctrl.call("_gui_input", ev)
+
+
+func _motion(pos: Vector2, prev: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT
+	ev.position = pos
+	ev.global_position = pos
+	ev.relative = pos - prev
+	root.push_input(ev)
 
 
 func _mouse(pos: Vector2, pressed: bool) -> void:
@@ -817,6 +903,12 @@ func _enumerate(floor: int) -> Array:
 				and ctrl.mouse_filter != Control.MOUSE_FILTER_IGNORE:
 			base["kind"] = "pointer"
 			base["text"] = _own_text(ctrl).left(80)
+			base["disabled"] = false
+			out.append(base)
+		elif ctrl.mouse_default_cursor_shape in DRAG_CURSORS \
+				and ctrl.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			base["kind"] = "drag"
+			base["text"] = ""
 			base["disabled"] = false
 			out.append(base)
 		if ctrl is RichTextLabel:

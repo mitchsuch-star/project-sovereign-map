@@ -792,6 +792,9 @@ func _capture(suffix: String) -> void:
 	# modal, and the files that drew the frame (R4's census reads them).
 	frame["truncated_text"] = _truncated_text()
 	frame["buttons"] = _visible_buttons()
+	# S12 part 2 (UXR3-F4): every visible resize grip and corner ornament,
+	# so the census can hold them off the text rows and the buttons.
+	frame["grips"] = _grips_and_ornaments()
 	var fit := _under_modal(view)
 	for key in fit:
 		frame[key] = fit[key]
@@ -1222,6 +1225,27 @@ func _truncated_text() -> Array:
 				out.append({"path": str(root.get_path_to(rtl)), "class": "RichTextLabel",
 						"text": rtl.get_parsed_text().left(60), "reason": "rtl_width",
 						"text_w": rtl.get_content_width(), "box_w": rtl.size.x})
+	return out
+
+
+func _grips_and_ornaments() -> Array:
+	# A ResizeGrip (its hit square, centred on its panel's corner) and a
+	# node in the `corner_ornaments` group, each with its layer and rect.
+	var out: Array = []
+	for n in _all_nodes(root):
+		if not (n is Control) or n == _backdrop or not _shown(n) or _inside_subviewport(n):
+			continue
+		var kind := ""
+		if n is ResizeGrip:
+			kind = "grip"
+		elif n.is_in_group("corner_ornaments"):
+			kind = "ornament"
+		else:
+			continue
+		var r := (n as Control).get_global_rect()
+		out.append({"path": str(root.get_path_to(n)), "kind": kind, "layer": _layer_of(n),
+				"tooltip": str((n as Control).tooltip_text).left(120),
+				"rect": [r.position.x, r.position.y, r.size.x, r.size.y]})
 	return out
 
 

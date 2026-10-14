@@ -187,8 +187,10 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 		var cap := max_h
 		if stored != Vector2.ZERO:
 			cap = minf(cap, stored.y)
-		# +8 covers the panel stylebox content margins (2 top + 4 bottom) + slack.
-		h = clampf(vbox.get_combined_minimum_size().y + 8.0, MIN_HEIGHT, maxf(cap, MIN_HEIGHT))
+		# +18 covers the panel stylebox content margins (12 top + 4 bottom) +
+		# slack. The top margin is the grip's: its hatch sits in the corner's
+		# padding, never on the header (UXR3-F4, Pre-Deploy S12 part 2).
+		h = clampf(vbox.get_combined_minimum_size().y + 18.0, MIN_HEIGHT, maxf(cap, MIN_HEIGHT))
 	var right_inset := EDGE_MARGIN + (view.x - band.y)
 	panel_container.offset_right = -right_inset
 	panel_container.offset_bottom = -EDGE_MARGIN

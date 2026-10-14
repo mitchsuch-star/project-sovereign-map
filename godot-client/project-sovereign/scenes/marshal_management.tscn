@@ -83,16 +83,16 @@ text = "Loading..."
 layout_mode = 2
 mouse_filter = 2
 
-[node name="FiligreeBottomLeft" type="TextureRect" parent="PanelContainer/Filigree"]
+[node name="FiligreeBottomLeft" type="TextureRect" parent="PanelContainer/Filigree" groups=["corner_ornaments"]]
 modulate = Color(0.85, 0.75, 0.55, 0.4)
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = -17.0
-offset_top = -11.0
-offset_right = 10.0
-offset_bottom = 16.0
+offset_left = -8.0
+offset_top = 1.0
+offset_right = 6.0
+offset_bottom = 15.0
 grow_vertical = 0
 mouse_filter = 2
 texture = ExtResource("2_filig")
@@ -100,7 +100,7 @@ expand_mode = 1
 stretch_mode = 5
 flip_v = true
 
-[node name="FiligreeBottomRight" type="TextureRect" parent="PanelContainer/Filigree"]
+[node name="FiligreeBottomRight" type="TextureRect" parent="PanelContainer/Filigree" groups=["corner_ornaments"]]
 modulate = Color(0.85, 0.75, 0.55, 0.4)
 layout_mode = 1
 anchors_preset = 3
@@ -108,10 +108,10 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -10.0
-offset_top = -11.0
-offset_right = 17.0
-offset_bottom = 16.0
+offset_left = -6.0
+offset_top = 1.0
+offset_right = 8.0
+offset_bottom = 15.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2

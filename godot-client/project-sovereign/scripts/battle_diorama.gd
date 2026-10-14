@@ -78,6 +78,9 @@ const BAIZE_EDGE := Color(0.086, 0.145, 0.104, 1.0)
 const BRASS := Color(0.72, 0.60, 0.36, 1.0)
 const BRASS_DARK := Color(0.42, 0.33, 0.17, 1.0)
 const ENGRAVE := Color(0.18, 0.13, 0.06, 1.0)           # cut into brass
+# UXR3-75 (Pre-Deploy S12 part 2): the plate's sub-line, brass engraved on the
+# walnut (4.6 : 1 on WOOD_BG); the name is BRASS itself (6.0 : 1).
+const PLATE_SUB := Color(0.62, 0.52, 0.33, 1.0)
 # S12 (UXR3-50, 51): b8332e read 2.93 : 1 on the tableau's dark field; the
 # same crimson hue, lighter (d7635e, 4.82 : 1). CRIMSON is text only.
 const CRIMSON := Color(0.843, 0.388, 0.369, 1.0)
@@ -408,19 +411,19 @@ func _build_verdict_and_plate() -> void:
 	_verdict.theme_type_variation = &"BodyLargeRich"
 	_tray_inner.add_child(_verdict)
 
-	# The engraved brass nameplate, wax-sealed — the diorama is an OBJECT.
+	# The nameplate, wax-sealed — the diorama is an OBJECT. UXR3-75 (Pre-
+	# Deploy S12 part 2): a flat ENGRAVED label, the battle's name cut into
+	# the walnut, with no fill, no border and no hover. The gold-filled brass
+	# plate it was stood in the button row beside Replay and Close and read as
+	# the main button. Same words, same place: the margins keep its size.
 	_nameplate = PanelContainer.new()
 	_nameplate.name = "Nameplate"
-	var brass := StyleBoxFlat.new()
-	brass.bg_color = BRASS
-	brass.border_color = BRASS_DARK
-	brass.set_border_width_all(2)
-	brass.set_corner_radius_all(4)
-	brass.content_margin_left = 26.0
-	brass.content_margin_right = 26.0
-	brass.content_margin_top = 5.0
-	brass.content_margin_bottom = 5.0
-	_nameplate.add_theme_stylebox_override("panel", brass)
+	var engraved := StyleBoxEmpty.new()
+	engraved.content_margin_left = 26.0
+	engraved.content_margin_right = 26.0
+	engraved.content_margin_top = 5.0
+	engraved.content_margin_bottom = 5.0
+	_nameplate.add_theme_stylebox_override("panel", engraved)
 	_nameplate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tray_inner.add_child(_nameplate)
 
@@ -431,12 +434,16 @@ func _build_verdict_and_plate() -> void:
 	_plate_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_plate_name.add_theme_font_override("font", _font_engraved)
 	_plate_name.theme_type_variation = &"TableauPlate"
-	_plate_name.add_theme_color_override("font_color", ENGRAVE)
+	_plate_name.add_theme_color_override("font_color", BRASS)
+	# The cut: a one-pixel shadow below and right, as a letter cut into wood.
+	_plate_name.add_theme_color_override("font_shadow_color", ENGRAVE)
+	_plate_name.add_theme_constant_override("shadow_offset_x", 1)
+	_plate_name.add_theme_constant_override("shadow_offset_y", 1)
 	plate_box.add_child(_plate_name)
 	_plate_sub = Label.new()
 	_plate_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_plate_sub.theme_type_variation = &"Caption"
-	_plate_sub.add_theme_color_override("font_color", Color(0.30, 0.23, 0.11, 1.0))
+	_plate_sub.add_theme_color_override("font_color", PLATE_SUB)
 	plate_box.add_child(_plate_sub)
 
 	if ResourceLoader.exists(WAX_SEAL):
@@ -474,14 +481,16 @@ func _build_buttons() -> void:
 	_btn_close.custom_minimum_size = Vector2(110, 34)
 	_btn_close.pressed.connect(_on_close_pressed)
 	_tray_inner.add_child(_btn_close)
-	_btn_close.position = Vector2(TRAY_W - 136.0, TRAY_H - 46.0)
+	# UXR3-F2 (S12 part 2): the buttons stand clear of the corner filigree
+	# (TRAY_W - 38 .. TRAY_W - 8); Close's right edge is TRAY_W - 44.
+	_btn_close.position = Vector2(TRAY_W - 154.0, TRAY_H - 46.0)
 
 	_btn_replay = Button.new()
 	_btn_replay.text = "Replay"
 	_btn_replay.custom_minimum_size = Vector2(110, 34)
 	_btn_replay.pressed.connect(_on_replay_pressed)
 	_tray_inner.add_child(_btn_replay)
-	_btn_replay.position = Vector2(TRAY_W - 256.0, TRAY_H - 46.0)
+	_btn_replay.position = Vector2(TRAY_W - 274.0, TRAY_H - 46.0)
 
 	_skip_hint = _mk_label(_tray_inner, "click anywhere to skip ▸", &"Caption",
 			Color(Utils.COLOR_DIMMED))
@@ -507,6 +516,7 @@ func _build_filigree() -> void:
 			8.0 if corner in [0, 2] else TRAY_W - 38.0,
 			8.0 if corner in [0, 1] else TRAY_H - 38.0)
 		fil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fil.add_to_group("corner_ornaments")
 		_tray_inner.add_child(fil)
 
 
