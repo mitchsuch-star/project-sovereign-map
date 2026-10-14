@@ -529,8 +529,13 @@ GAP_STAGING = {
 }
 
 
+# Where `frames` writes and the rows cite. A re-read writes its own set
+# (`--frames-dir`, S12: docs/audits/uxr3_s12/frames), never over the review's.
+FRAMES_DIR = "docs/audits/uxr3/frames"
+
+
 def frame_name(sid: str, res: str) -> str:
-    return f"docs/audits/uxr3/frames/UXR3_{sid.upper()}_{res}.jpg"
+    return f"{FRAMES_DIR}/UXR3_{sid.upper()}_{res}.jpg"
 
 
 def committed_cite(cite: str, sid: str) -> tuple[str, str]:
@@ -799,7 +804,7 @@ def commit_frames(records: pathlib.Path, index_path: pathlib.Path) -> None:
         Image.open(tmp).convert("RGB").save(out, "JPEG", quality=85, optimize=True)
         tmp.unlink()
         written += 1
-    print(f"{written} frames written to docs/audits/uxr3/frames/")
+    print(f"{written} frames written to {FRAMES_DIR}/")
 
 
 def main(argv=None) -> int:
@@ -808,8 +813,13 @@ def main(argv=None) -> int:
     ap.add_argument("--records", required=True)
     ap.add_argument("--index", default="")
     ap.add_argument("--packet", default="")
+    ap.add_argument("--frames-dir", default="",
+                    help="frames mode: where the JPEG crops go (default docs/audits/uxr3/frames)")
     args = ap.parse_args(argv)
     records = pathlib.Path(args.records)
+    if args.frames_dir:
+        global FRAMES_DIR
+        FRAMES_DIR = args.frames_dir.rstrip("/")
     if args.mode == "marks":
         marks = instrument_marks(records)
         (records / "instrument_marks.json").write_text(json.dumps(marks, indent=1, ensure_ascii=False),

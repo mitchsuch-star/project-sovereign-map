@@ -46,8 +46,8 @@ func show_rebellion(data: Dictionary):
 	bbcode += "[b]Show the Flag[/b] — %s\n" % garrison_effect
 	bbcode += "[b]Accept the Risk[/b] — %s" % accept_effect
 
-	content_label.text = ""
-	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
+	# S12: through `text`, never append_text (the instrument reads the label's text)
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 	invest_btn.disabled = false
 	garrison_btn.disabled = false

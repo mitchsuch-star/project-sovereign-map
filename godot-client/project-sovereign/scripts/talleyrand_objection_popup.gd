@@ -21,7 +21,7 @@ var current_data: Dictionary = {}
 const LEVEL_COLORS = {
 	"MILD": "e0c060",
 	"MODERATE": "e09040",
-	"STRONG": "e04040",
+	"STRONG": "e66262",
 }
 
 func _ready():
@@ -60,7 +60,7 @@ func show_objection(data: Dictionary):
 	if not outcome_display:
 		outcome_display = str(outcome).capitalize()
 	if acceptance >= 0:
-		var a_color = "#e04040"
+		var a_color = "#e66262"
 		if acceptance >= 50:
 			a_color = "#80c080"
 		elif acceptance >= 30:
@@ -73,8 +73,8 @@ func show_objection(data: Dictionary):
 	bbcode += "[b]Defiance Risk:[/b] %s\n" % defiance_risk
 	bbcode += "[b]Regarding:[/b] %s" % Utils.humanize_nation_keys_in_text(str(proposal_summary))
 
-	content_label.text = ""
-	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
+	# S12: through `text`, never append_text (the instrument reads the label's text)
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 	proceed_btn.disabled = false
 	modify_btn.disabled = false

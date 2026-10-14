@@ -3824,7 +3824,7 @@ func _on_command_result(response):
 				add_output("[color=#" + Utils.COLOR_INFO + "]Reopening settlement review for " + rt_nation + "…[/color]")
 				_on_war_settlement_clicked(rt_war_id, rt_nation)
 				return
-		add_output("[color=#e04040]Settlement review needs to reopen, but the backend did not provide a valid target.[/color]")
+		add_output("[color=#e66262]Settlement review needs to reopen, but the backend did not provide a valid target.[/color]")
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -5014,7 +5014,7 @@ func _display_morning_dispatch(data: Dictionary):
 				"MEDIUM":
 					de_color = Utils.COLOR_INFO
 				"LOW":
-					de_color = Utils.toned_hex("808088")
+					de_color = Utils.COLOR_INFO
 			add_output("[color=#" + de_color + "]  " + de_text + "[/color]")
 		add_output("")
 
@@ -7040,7 +7040,7 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 		api_client.send_dialogue_response(choice_index, _on_command_result, int(data.get("dialogue_id", -1)))
 	else:
 		if action in SETTLEMENT_DIALOGUE_ACTIONS:
-			add_output("[color=#e04040]Settlement popup action lost its dialogue option: %s[/color]" % action)
+			add_output("[color=#e66262]Settlement popup action lost its dialogue option: %s[/color]" % action)
 			set_input_enabled(false)
 			if proposal_confirm_popup:
 				proposal_confirm_popup.show_dialogue(data)
@@ -7978,7 +7978,7 @@ func _route_settlement_recovery_route(route: Dictionary):
 	var target_nation = str(route.get("selected_target_nation", route.get("target_nation", route.get("nation", ""))))
 	if surface == "war_detail":
 		if war_detail_popup == null:
-			add_output("[color=#e04040]War detail is not available.[/color]")
+			add_output("[color=#e66262]War detail is not available.[/color]")
 			set_input_enabled(true)
 			command_input.grab_focus()
 			return
@@ -7987,7 +7987,7 @@ func _route_settlement_recovery_route(route: Dictionary):
 			add_output("[color=#" + Utils.COLOR_INFO + "]Opening war detail for " + target_nation + ".[/color]")
 			war_detail_popup.show_war(war_data, _cached_coalition_data)
 		else:
-			add_output("[color=#e04040]This war is no longer active from the current war panel.[/color]")
+			add_output("[color=#e66262]This war is no longer active from the current war panel.[/color]")
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -7998,7 +7998,7 @@ func _route_settlement_recovery_route(route: Dictionary):
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
-	add_output("[color=#e04040]No verified recovery route is available.[/color]")
+	add_output("[color=#e66262]No verified recovery route is available.[/color]")
 	set_input_enabled(true)
 	command_input.grab_focus()
 

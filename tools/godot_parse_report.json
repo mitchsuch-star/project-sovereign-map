@@ -304,6 +304,24 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/commitment_paradox_popup.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/sabotage_discovery_popup.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/talleyrand_objection_popup.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scripts/main_menu.gd"
     },
     {
@@ -523,5 +541,5 @@
       "path": "res://../../tools/uxr3_action_probe.gd"
     }
   ],
-  "timestamp": "2026-10-14T00:59:05Z"
+  "timestamp": "2026-10-14T02:04:03Z"
 }

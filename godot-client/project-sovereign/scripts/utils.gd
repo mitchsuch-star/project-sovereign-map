@@ -468,6 +468,9 @@ const UI_WARNING := Color(0.85, 0.65, 0.2, 1.0)               # amber warning / 
 # Score / balance-bar palette (shared by war_status_panel + war_detail_popup):
 const UI_SCORE_POSITIVE := Color(0.29, 0.67, 0.29)            # winning green
 const UI_SCORE_NEGATIVE := Color(0.67, 0.27, 0.27)           # losing red
+# S12 (the re-read's shoot): the war HUD's losing score as TEXT on its row
+# chrome read 2.77 : 1; the same red, lighter (b84e4e, 3.20 : 1 as a caption).
+const UI_SCORE_NEGATIVE_TEXT := Color(0.722, 0.306, 0.306)
 const UI_SCORE_NEUTRAL := Color(0.75, 0.75, 0.78)           # neutral grey
 const UI_BAR_BG := Color(0.15, 0.15, 0.2, 0.8)              # score bar track
 # UXR-3 fixes (Pre-Deploy S12, R4 "0 one-off greys in a surface's own files"):

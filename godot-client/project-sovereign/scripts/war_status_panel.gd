@@ -492,5 +492,5 @@ func _get_score_color(score: int) -> Color:
 	if score > 0:
 		return COLOR_GREEN
 	elif score < 0:
-		return COLOR_RED
+		return Utils.UI_SCORE_NEGATIVE_TEXT   # the score is text (S12)
 	return COLOR_WHITE

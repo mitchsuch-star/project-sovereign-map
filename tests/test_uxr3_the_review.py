@@ -135,11 +135,22 @@ class TestEveryFailIsFiled:
                 assert f"`{sid}`" in section, (r["id"], sid)
 
     def test_every_row_is_tagged_for_s12(self, section):
+        """Filed OPEN for S12; S12 part 1 (October 13, 2026) flips a row to
+        FIXED only with its re-read (`docs/audits/uxr3_s12/reread.json`): every
+        (surface, item) it names reads ✓ against the same frozen checklist."""
         rows = [ln for ln in section.split("\n") if re.match(r"\| \*\*UXR3-\d+\*\*", ln)]
         assert len(rows) == len(_load("bug_rows.json"))
+        reread_path = REPO / "docs" / "audits" / "uxr3_s12" / "reread.json"
+        reread = json.loads(reread_path.read_text(encoding="utf-8")) if reread_path.is_file() else {}
+        state = {r["id"]: r["state"] for r in reread.get("rows", [])}
         for ln in rows:
             assert "⟨SF step=pre-deploy S12 · UXR-3 " in ln and "pillar=ui_ux⟩" in ln, ln[:80]
-            assert "| OPEN — owner S12" in ln, ln[:80]
+            rid = re.match(r"\| \*\*(UXR3-\d+)\*\*", ln).group(1)
+            if "| FIXED October 13, 2026 — Pre-Deploy S12 part 1" in ln:
+                assert state.get(rid) == "FIXED", (rid, "flipped without its re-read")
+            else:
+                assert "| OPEN — owner S12" in ln, ln[:80]
+                assert state.get(rid, "OPEN") == "OPEN", (rid, "the re-read reads it FIXED, the row says OPEN")
 
     def test_the_rows_found_while_reading_are_owned(self, section):
         """F1 … F11: the readers' notes and the conductor's checks — defects no

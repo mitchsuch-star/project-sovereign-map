@@ -62,7 +62,7 @@ func show_proposal(data: Dictionary):
 
 	if is_ultimatum:
 		# Ultimatum: struck header, crimson border, demands not terms
-		bbcode += "[center][color=#e04040][b]ULTIMATUM[/b][/color][/center]\n"
+		bbcode += "[center][color=#e66262][b]ULTIMATUM[/b][/color][/center]\n"
 		var ult_pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
 		bbcode += "%s%s of %s\n\n" % [diplomat_name, ult_pers_str, from_display]
 		bbcode += "[b]Demands:[/b]\n"
@@ -173,10 +173,10 @@ func show_proposal(data: Dictionary):
 	else:
 		bbcode += "\n[color=#e0c060][i]This offer will lapse at end of turn.[/i][/color]"
 
-	content_label.text = ""
 	# Backend prose (clause strings, court rationale, hints) can embed raw
-	# multi-word nation keys — humanize once at the render chokepoint.
-	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
+	# multi-word nation keys — humanize once at the render chokepoint. S12:
+	# through `text`, never append_text (the instrument reads the label's text).
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 	# Enable buttons — hide Counter for counter-offers (no counter-counter),
 	# for ultimatums (an ultimatum is not a negotiation — NA-5 §8) and for a
@@ -244,7 +244,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 	var war_score = int(snapshot.get("war_score", 0))
 	var score_color = "#80c080"
 	if war_score < 0:
-		score_color = "#e04040"
+		score_color = "#e66262"
 	elif war_score == 0:
 		score_color = "#80a0d0"
 	var trend = str(snapshot.get("war_score_trend", "stagnant"))
@@ -301,7 +301,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		bbcode += "[color=#80c080]We hold: %s[/color]\n" % ", ".join(held_by_us)
 	var held_by_them = snapshot.get("regions_held_by_enemy", [])
 	if held_by_them is Array and not held_by_them.is_empty():
-		bbcode += "[color=#e04040]They hold: %s[/color]\n" % ", ".join(held_by_them)
+		bbcode += "[color=#e66262]They hold: %s[/color]\n" % ", ".join(held_by_them)
 	if snapshot.has("armistice_remaining_turns"):
 		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
 
@@ -331,7 +331,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		elif harshness_label == "harsh":
 			harshness_color = "#e09040"
 		elif harshness_label == "punitive":
-			harshness_color = "#e04040"
+			harshness_color = "#e66262"
 		bbcode += "Assessment: [color=%s]%s[/color]\n" % [harshness_color, harshness_label.to_upper()]
 
 	var fallout = data.get("fallout_warnings", snapshot.get("fallout_warnings", []))
@@ -348,7 +348,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			var severity = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
 			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
 			var priority = 2 if warning_type == "separate_peace_ally" else 3
-			var color = "#e04040" if severity == "SEVERE" else "#e0c070"
+			var color = "#e66262" if severity == "SEVERE" else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": warning_text})
 		for conflict in conflicts:
 			var conflict_text = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
@@ -356,7 +356,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			var conflict_priority = 0 if conflict_severity == "HARD_STOP" else 4
 			if conflict_severity == "WARNING":
 				conflict_priority = 1
-			var conflict_color = "#e04040" if conflict_severity in ["WARNING", "HARD_STOP"] else "#e0c070"
+			var conflict_color = "#e66262" if conflict_severity in ["WARNING", "HARD_STOP"] else "#e0c070"
 			consequence_items.append({"priority": conflict_priority, "color": conflict_color, "text": conflict_text})
 		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
 		var shown = 0

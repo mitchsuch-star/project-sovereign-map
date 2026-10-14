@@ -491,3 +491,57 @@ class TestTheDisplaySizesAreNamedSteps:
         main = GS.code_lines(GS.read(SCRIPTS / "main.gd"))
         assert '[center][color=#" + heading_color + "][b]" + title + "[/b][/color][/center]' in main
         assert "[font_size=" not in main
+
+
+
+# ═══ Part 5 — what the re-read's own shoot found (fixed by the same rules) ═══════
+#
+# The re-read's first shoot (on 337b8621) read four colours under the floor:
+# the dispatch's and the log's separator grey 808088 through toned_hex; the
+# war HUD's losing score on its new row chrome; and two alarm reds the
+# instrument had never seen, because the popups that carry them filled their
+# label with `append_text`, which leaves the label's `text` empty — and the
+# contrast instrument reads [color] spans (the probe [url] links) from `text`.
+
+_TONED = re.compile(r'toned_hex\("([0-9a-fA-F]{6})"\)')
+
+
+def _grey_under_the_floor(hex6: str) -> bool:
+    r, g, b = (int(hex6[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    return max(r, g, b) - min(r, g, b) <= 0.12 and lum < 0.2126 * 0.6275 + 0.7152 * 0.6275 + 0.0722 * 0.6588 - 0.004
+
+
+class TestTheReReadsOwnFindings:
+    def test_no_toned_grey_literal_sits_under_the_floor_step(self):
+        found = []
+        for p in GS.client_scripts():
+            if p.name == "utils.gd":
+                continue
+            for hex6 in _TONED.findall(GS.code_lines(GS.read(p))):
+                if _grey_under_the_floor(hex6):
+                    found.append((p.name, hex6))
+        assert found == [], found
+
+    def test_no_popup_fills_its_label_with_append_text(self):
+        """The war room's log (main.gd) appends by design: it is a log. Every
+        other label writes through `text`, so the instruments read it."""
+        users = sorted(p.name for p in GS.client_scripts()
+                       if "append_text(" in GS.code_lines(GS.read(p)))
+        assert users == ["main.gd"], users
+
+    def test_the_alarm_reds_clear_the_floor_on_the_popup_panel(self):
+        for name in ("proposal_confirm_popup.gd", "incoming_proposal_popup.gd",
+                     "talleyrand_objection_popup.gd", "main.gd"):
+            code = GS.code_lines(GS.read(SCRIPTS / name)).lower()
+            assert "e04040" not in code and "e05050" not in code, name
+        for new in ("e66262", "e46565"):
+            assert CR.ratio(CR._hex(new), CR._hex("1a1a2e")) >= CR.BODY_FLOOR, new
+
+    def test_the_war_huds_losing_score_is_a_lighter_red_as_text(self):
+        utils = GS.code_lines(GS.read(SCRIPTS / "utils.gd"))
+        assert "const UI_SCORE_NEGATIVE_TEXT := Color(0.722, 0.306, 0.306)" in utils
+        body = _func(_src("scripts/war_status_panel.gd"), "_get_score_color")
+        assert "return Utils.UI_SCORE_NEGATIVE_TEXT" in body
+        for bg in ("242024", "252125", "252025", "242025"):
+            assert CR.ratio((0.722, 0.306, 0.306), CR._hex(bg)) >= CR.CAPTION_FLOOR, bg

@@ -38,7 +38,7 @@ const COLOR_GOLD = "#d9c08c"
 # UXR-D2: the dim grey through High contrast (a getter, not a const).
 var COLOR_DIMMED: String:
 	get: return "#" + Utils.COLOR_INFO
-const COLOR_RED = "#e04040"
+const COLOR_RED = "#e66262"
 # IGR-G1: the settlement authoring surface is a DOCUMENT (treasury preamble +
 # the per-court table + footer + tier-2 affordance rails), not a dialog — on a
 # 2560-wide monitor the shared 720x520 authored rect squeezed the per-court
@@ -383,7 +383,7 @@ func _build_content(data: Dictionary) -> String:
 		elif harshness_label == "High":
 			h_color = "#e09040"
 		elif harshness_label == "Very High":
-			h_color = "#e04040"
+			h_color = "#e66262"
 		bbcode += "Harshness: [color=%s]%s[/color]\n" % [h_color, harshness_label]
 
 	# Acceptance estimate
@@ -394,7 +394,7 @@ func _build_content(data: Dictionary) -> String:
 	# cannot build.
 	var outcome = str(data.get("acceptance_outcome_display", data.get("acceptance_outcome", "")))
 	if acceptance >= 0:
-		var a_color = "#e04040"  # red
+		var a_color = "#e66262"  # red
 		if acceptance >= 50:
 			a_color = "#80c080"  # green
 		elif acceptance >= 30:
@@ -426,7 +426,7 @@ func _build_content(data: Dictionary) -> String:
 			var severity = str(warning.get("severity", "low"))
 			var color = "#e0c070"
 			if severity == "critical":
-				color = "#e04040"
+				color = "#e66262"
 			elif severity == "high":
 				color = "#e09040"
 			elif severity == "medium":
@@ -470,7 +470,7 @@ func _build_settlement_content(data: Dictionary) -> String:
 		if not data.has(key):
 			missing.append(key)
 	if missing.size() > 0 and str(data.get("type", data.get("dialogue_type", ""))) == "settlement_confirm":
-		bbcode += "[color=#e04040]We could not prepare this settlement review. Reopen from war detail.[/color]\n\n"
+		bbcode += "[color=#e66262]We could not prepare this settlement review. Reopen from war detail.[/color]\n\n"
 
 	var awe = review.get("awe_tag_displays", data.get("awe_tag_displays", [])) if review is Dictionary else []
 	if awe is Array and awe.size() > 0:
@@ -494,7 +494,7 @@ func _build_settlement_content(data: Dictionary) -> String:
 	elif can_ratify_now:
 		bbcode += "[b][color=#e0c070]Settlement of %s — ready for ratification[/color][/b]\n" % war_label
 	else:
-		bbcode += "[b][color=#e04040]This settlement cannot be ratified now.[/color][/b]\n"
+		bbcode += "[b][color=#e66262]This settlement cannot be ratified now.[/color][/b]\n"
 	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
 
 	# UX-2 (GT-Slice-3): REVIEW reads as a staged-decision surface, visually
@@ -600,7 +600,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		# Color decisions are made off the raw enum band code, never the
 		# humanized `band` string — that way a future tweak to
 		# ACCEPTANCE_BAND_DISPLAY wording does not silently swap the colour.
-		var color = "#e04040"
+		var color = "#e66262"
 		if band_code in ["accept", "acceptable"]:
 			color = "#80c080"
 		elif band_code == "near_acceptable":
@@ -670,7 +670,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		var threat_display = _safe_str(threat_preview.get("display"))
 		if threat_display != "":
 			var crossed = threat_preview.get("crossed_threshold_displays", [])
-			var threat_color = "#e04040" if (crossed is Array and crossed.size() > 0) else "#e0a040"
+			var threat_color = "#e66262" if (crossed is Array and crossed.size() > 0) else "#e0a040"
 			bbcode += "[color=%s]%s[/color]\n\n" % [threat_color, threat_display]
 
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
@@ -682,7 +682,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 				if not warning is Dictionary:
 					continue
 				var severity = str(warning.get("severity", "WARNING"))
-				var color = "#e04040" if severity == "HARD_STOP" else "#e0a040"
+				var color = "#e66262" if severity == "HARD_STOP" else "#e0a040"
 				var label = str(warning.get("code_display", warning.get("code", "Concern").replace("_", " ").capitalize()))
 				var detail = str(warning.get("detail", ""))
 				bbcode += "  [color=%s]*[/color] %s" % [color, label]
@@ -820,7 +820,7 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	if overall_verdict is Dictionary:
 		var verdict_line = _safe_str(overall_verdict.get("carry_verdict_display"))
 		if verdict_line != "":
-			var verdict_color = "#e05050"
+			var verdict_color = "#e46565"
 			if bool(overall_verdict.get("carries", false)):
 				verdict_color = "#80c080"
 			bbcode += "[b][color=%s]%s[/color][/b]\n" % [verdict_color, verdict_line]
@@ -1075,7 +1075,7 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 			line += " (%s)" % gate
 		line += "[/color]\n"
 		if why != "" and why != "null":
-			line += "            [i][color=#" + Utils.toned_hex("909098") + "]— %s[/color][/i]\n" % why
+			line += "            [i][color=#" + Utils.COLOR_INFO + "]— %s[/color][/i]\n" % why
 		return line
 	var bbcode = "          [url=sugg:%d:%d][color=#80b0e0]%s[/color][/url]" % [
 		court_index, sugg_index, _safe_str(sugg.get("label")),
@@ -1099,7 +1099,7 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	bbcode += "\n"
 	var reason = _safe_str(sugg.get("reason_display"))
 	if reason != "":
-		bbcode += "            [i][color=#" + Utils.toned_hex("909098") + "]— %s[/color][/i]\n" % reason
+		bbcode += "            [i][color=#" + Utils.COLOR_INFO + "]— %s[/color][/i]\n" % reason
 	var options_key = "%d|%d" % [court_index, sugg_index]
 	if options.size() > 1 and bool(_suggestion_options_expanded.get(options_key, false)):
 		var opt_index = -1
@@ -1362,7 +1362,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	var war_score = int(snapshot.get("war_score", 0))
 	var score_color = "#80c080"
 	if war_score < 0:
-		score_color = "#e04040"
+		score_color = "#e66262"
 	elif war_score == 0:
 		score_color = "#80a0d0"
 	var trend = str(snapshot.get("war_score_trend", "stagnant"))
@@ -1421,7 +1421,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 		bbcode += "[color=#80c080]We hold: %s[/color]\n" % ", ".join(held_by_us)
 	var held_by_them = snapshot.get("regions_held_by_enemy", [])
 	if held_by_them is Array and not held_by_them.is_empty():
-		bbcode += "[color=#e04040]They hold: %s[/color]\n" % ", ".join(held_by_them)
+		bbcode += "[color=#e66262]They hold: %s[/color]\n" % ", ".join(held_by_them)
 	if snapshot.has("armistice_remaining_turns"):
 		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
 
@@ -1453,7 +1453,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 		elif harshness_label == "harsh":
 			h_color = "#e09040"
 		elif harshness_label == "punitive":
-			h_color = "#e04040"
+			h_color = "#e66262"
 		bbcode += "Assessment: [color=%s]%s[/color]\n" % [h_color, harshness_label.to_upper()]
 
 	bbcode += "\n[b]Acceptance Estimate[/b]\n"
@@ -1461,7 +1461,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	if acceptance is Dictionary:
 		var score = int(acceptance.get("score", data.get("acceptance_estimate", 0)))
 		var outcome = str(acceptance.get("outcome", data.get("acceptance_outcome", "REJECT")))
-		var a_color = "#e04040"
+		var a_color = "#e66262"
 		if outcome == "ACCEPT":
 			a_color = "#80c080"
 		elif outcome == "COUNTER" or outcome == "COUNTER_OFFER":
@@ -1476,7 +1476,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 		if lp:
 			bbcode += "[color=#80c080]Key advantage: %s[/color]\n" % lp
 		if ln:
-			bbcode += "[color=#e04040]Key obstacle: %s[/color]\n" % ln
+			bbcode += "[color=#e66262]Key obstacle: %s[/color]\n" % ln
 
 	var warnings = data.get("warnings", [])
 	var tier_warnings = snapshot.get("tier_mismatch_warnings", [])
@@ -1494,7 +1494,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 				priority = 0
 			elif sev == "LOW":
 				priority = 4
-			consequence_items.append({"priority": priority, "color": "#e04040" if priority == 0 else "#e0c070", "text": txt})
+			consequence_items.append({"priority": priority, "color": "#e66262" if priority == 0 else "#e0c070", "text": txt})
 		for warning in tier_warnings:
 			var txt = warning.get("display", warning.get("text", str(warning))) if warning is Dictionary else str(warning)
 			consequence_items.append({"priority": 1, "color": "#e0c070", "text": txt})
@@ -1503,7 +1503,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			var sev = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
 			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
 			var priority = 2 if warning_type == "separate_peace_ally" else 3
-			var color = "#e04040" if sev == "SEVERE" else "#e0c070"
+			var color = "#e66262" if sev == "SEVERE" else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": txt})
 		for conflict in conflicts:
 			var txt = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
@@ -1511,7 +1511,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			var priority = 0 if sev == "HARD_STOP" else 4
 			if sev == "WARNING":
 				priority = 1
-			var color = "#e04040" if sev in ["WARNING", "HARD_STOP"] else "#e0c070"
+			var color = "#e66262" if sev in ["WARNING", "HARD_STOP"] else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": txt})
 		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
 		var shown = 0
@@ -1531,7 +1531,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 
 func _build_ultimatum_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b][color=#e04040]ULTIMATUM — %s[/color][/b]\n\n" % Utils.display_nation_name(str(target))
+	var bbcode = "[b][color=#e66262]ULTIMATUM — %s[/color][/b]\n\n" % Utils.display_nation_name(str(target))
 
 	# Talleyrand text (wizard step instructions)
 	var ttext = data.get("talleyrand_text", "")
@@ -1549,7 +1549,7 @@ func _build_ultimatum_content(data: Dictionary) -> String:
 	# Harshness — "Coercive" maps to red
 	var harshness_label = data.get("harshness_label", "")
 	if harshness_label:
-		var h_color = "#e04040"
+		var h_color = "#e66262"
 		if harshness_label == "Low":
 			h_color = "#80c080"
 		elif harshness_label == "Moderate":
@@ -1562,7 +1562,7 @@ func _build_ultimatum_content(data: Dictionary) -> String:
 	var acceptance = data.get("acceptance_estimate", -1)
 	var outcome = data.get("acceptance_outcome", "")
 	if acceptance >= 0:
-		var a_color = "#e04040"
+		var a_color = "#e66262"
 		if acceptance >= 50:
 			a_color = "#80c080"
 		elif acceptance >= 30:
@@ -1617,7 +1617,7 @@ func _build_feasibility_content(data: Dictionary) -> String:
 	var acceptance = data.get("acceptance_estimate", -1)
 	var outcome = str(data.get("acceptance_outcome_display", str(data.get("acceptance_outcome", "")).capitalize()))
 	if acceptance >= 0:
-		var a_color = "#e04040"
+		var a_color = "#e66262"
 		if acceptance >= 50:
 			a_color = "#80c080"
 		elif acceptance >= 30:
@@ -1722,7 +1722,7 @@ func _build_advisory_content(data: Dictionary) -> String:
 
 func _build_war_confirm_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b][color=#e04040]WAR DECLARATION — %s[/color][/b]\n\n" % Utils.display_nation_name(str(target))
+	var bbcode = "[b][color=#e66262]WAR DECLARATION — %s[/color][/b]\n\n" % Utils.display_nation_name(str(target))
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#e09040]%s[/color]\n" % ttext
@@ -1738,7 +1738,7 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 			var severity = str(warning.get("severity", "low"))
 			var color = "#e0c070"
 			if severity == "critical":
-				color = "#e04040"
+				color = "#e66262"
 			elif severity == "high":
 				color = "#e09040"
 			elif severity == "medium":
@@ -1769,7 +1769,7 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 			var severity = str(warning.get("severity", "low"))
 			var color = "#e0c070"
 			if severity == "critical":
-				color = "#e04040"
+				color = "#e66262"
 			elif severity == "high":
 				color = "#e09040"
 			elif severity == "medium":

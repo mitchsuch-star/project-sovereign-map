@@ -62,7 +62,7 @@ func show_reward(card: Dictionary):
 			bbcode += "[color=#e0a060]Shortfall: " + str(shortfall) + "g/turn — his patience is finite.[/color]\n"
 	else:
 		bbcode += "[color=#80c0a0]His expectation is met.[/color]\n"
-	bbcode += "\n[color=#" + Utils.toned_hex("909090") + "]An [b]ESTATE[/b] redirects a conquered province's income to his household — the cheaper instrument, and the land APPRECIATES as it stabilizes"
+	bbcode += "\n[color=#" + Utils.COLOR_INFO + "]An [b]ESTATE[/b] redirects a conquered province's income to his household — the cheaper instrument, and the land APPRECIATES as it stabilizes"
 	var steward_tier = str(card.get("steward_tier", ""))
 	if steward_tier == "prosperous":
 		bbcode += " (faster under his able hand)"

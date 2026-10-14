@@ -54,8 +54,8 @@ func show_paradox(data: Dictionary):
 	honor_button.text = "Honor " + defender_display
 	break_button.text = "Side with " + attacker_display
 
-	content_label.text = ""
-	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
+	# S12: through `text`, never append_text (the instrument reads the label's text)
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
@@ -99,6 +99,6 @@ func _show_after_choice_aside(choice: String):
 		"Talleyrand: \"Then let the record show a choice, not confusion.\"",
 		Utils.COLOR_INFO
 	)
-	content_label.append_text(aside)
+	content_label.text += aside
 	honor_button.text = "Continue"
 	break_button.visible = false

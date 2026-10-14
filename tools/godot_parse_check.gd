@@ -69,6 +69,12 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/clarification_popup.gd",
 	"res://scripts/vassal_rebellion_popup.gd",
 	"res://scripts/reward_dialog.gd",
+	# UXR-3 fixes (Pre-Deploy S12): three popups the slice rewrote to fill
+	# their label through `text` (never `append_text`) — loaded here because
+	# no IQ-10 shot reaches two of them.
+	"res://scripts/commitment_paradox_popup.gd",
+	"res://scripts/sabotage_discovery_popup.gd",
+	"res://scripts/talleyrand_objection_popup.gd",
 	# Main Menu pass (position 6): the front door + the shared Settings
 	# surface + the scene hand-off statics (XR-1 — every touched script
 	# parses in the harness).

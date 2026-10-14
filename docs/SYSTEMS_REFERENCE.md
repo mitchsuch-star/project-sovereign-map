@@ -10162,9 +10162,13 @@ A size-only ladder, one named step per size in use:
 | DisplayTitle | 28 |
 | DisplayTitleLarge | 30 |
 | HeadingLabel (the one styled step) | 22 |
+| ProclamationName (S12) | 26 |
+| TitleScreen · Overline · Lead · Header · Button · ButtonProminent (S12, fixed) | 96 · 19 · 24 · 26 · 23 · 26 |
+| TableauClash · Odometer · Banner · Plate (S12, fixed) | 26 · 24 · 30 · 19 |
 
 - **A rich step** defines exactly the sizes the overrides it replaced had set.
-- **Raw overrides fell from 72 to 18,** each a named exemption with an exact count: the map's world-space furniture 7, the dev smoke scene 1, the title screen's display type 5, the diorama's engraved display 5.
+- **Raw overrides fell from 72 to 18,** each a named exemption with an exact count: the map's world-space furniture 7, the dev smoke scene 1, the title screen's display type 5, the diorama's engraved display 5. **UXR-X4 (S9b) retired the map's 7, and the UXR-3 fixes (S12) the title screen's and the tableau's 10, as named steps. The one left is the dev smoke scene's** (`RAW_RATCHET` 1, `BBCODE_SIZE_RATCHET` 0).
+- **The fixed display steps (S12).** The ten TitleScreen* and Tableau* steps are `Utils.TEXT_SIZE_FIXED_STEPS`. Text size skips them, as it skipped the raw overrides they replaced, because a 96-px title and the engraved tableau are fixed-geometry art. Every other step scales.
 - **The diet census counts every override, literal or computed,** plus the `set()` / string-call forms: a size passed through a parameter is how UXR-X5 and X6 escaped the floor.
 - **Every caption-sized step is in the instrument's `_CAPTION_VARIATIONS`.**
 - **The two diorama and war-detail families:**
@@ -10196,7 +10200,7 @@ What stands outside a scroll is named, with a proof: the tutor body and the rail
 
 ### 112.1 Text size (UXR-D1, Slice A)
 
-- **What it scales.** Settings → INTERFACE → *Text size*, 100–175 % in 5 % steps (`UiSettings.get/set_text_size`, `display/text_size`). It multiplies the project theme's type sizes and nothing else: `default_font_size` and every `font_size` item of every type, so the Label / Button / RichTextLabel / LineEdit sizes and the whole ladder (Caption 14 … DisplayTitleLarge 30, §111.7) move together. The Interface Scale, panel rects, the eighteen named raw overrides and the two BBCode titles do not move.
+- **What it scales.** Settings → INTERFACE → *Text size*, 100–175 % in 5 % steps (`UiSettings.get/set_text_size`, `display/text_size`). It multiplies the project theme's type sizes and nothing else: `default_font_size` and every `font_size` item of every type, so the Label / Button / RichTextLabel / LineEdit sizes and the whole ladder (Caption 14 … DisplayTitleLarge 30, §111.7) move together. The Interface Scale, panel rects and the fixed display steps (`Utils.TEXT_SIZE_FIXED_STEPS`, §111.7) do not move. They are the title screen's and the tableau's sizes, raw overrides until S12; the dev smoke scene's one raw size stays raw.
 - **The swap.** `Utils.apply_text_size(preview)` captures the theme's authored sizes on its first call, so changes never compound. It writes `round(authored × factor)` (`Utils.text_px`) through ONE `Theme.merge_with`, so every control re-themes once. At the factor already applied it does nothing, so 100 % at boot is a no-op. The static ladder in `ui/main_theme.tres` never changes.
 - **Where it runs.**
   - The main menu and the war room apply the stored size at boot, beside the body face.
@@ -10346,4 +10350,8 @@ A shot may carry **`settle_ms`**: the capture waits that much REAL time after it
   - the unstaged 1805 boot's declaration on Prussia (threat 70, war purpose 1), for Talleyrand's objection.
 - **The objection dialog maps its own input** (UXR3-X1). `ObjectionDialog.data_from_response(response)` (static, `objection_dialog.gd`) reads the tactical (top-level) and strategic (nested) shapes and carries every key `show_objection` reads. `main.gd` and the shot both go through it.
 - **A centred popup may shrink to its content** (UXR3-X2). `Utils.shrink_centered_panel_to_content(panel)` is SF7-X27's fit as one helper: after `clamp_centered_panel` it waits two frames for the containers to sort, then shrinks the panel to its combined minimum height and re-centres it. It never grows a panel. A popup that uses it calls it again from `refit()`.
+- **R3, the floor step (part 2).** No client script names `COLOR_DIM`, `COLOR_DIMMED` or `COLOR_GREY` for body text: a body line's faintest grey is `COLOR_INFO` (a0a0a8). The tokens keep their values for High contrast's ladder. The caption allowance (808080 at ≥ 3 : 1) is used by the tableau's two engraved captions and the war HUD's caption greys, and a pin counts them. Coloured text that read under the floor keeps its hue at a lighter value: the ledger's and the enemy phase's red `d16969`, a red chip label `COLOR_ERROR_CHIP` `d68686`, the tableau's `CRIMSON` `d7635e`, the war-detail red `#c36969`; the side tags and the ⚔ are at full alpha.
+- **Honest availability (part 3).** A control that cannot act in the current state is disabled with its reason as its tooltip: `Utils.set_available(button, available, tip_on, tip_off)`, which writes only on change. The open book's tab goes through `Utils.mark_active_tab`: selected, disabled, "You are reading this book". Execute follows the command line's own redraw. The map's − and ⌂ follow the renderer's `view_changed` (`is_at_min_zoom`, `is_fit_view`). Connect / Disconnect follow the key. A BBCode surface whose links the probe must see writes through `text`, never `append_text`, which leaves the label's `text` empty.
+- **R4's palette (part 4).** Every grey a client file draws as a literal is a named token in `utils.gd`'s palette block (`UI_*`, the map's `MAP_*`), its value unchanged. A scene grey sits on `DIM_LADDER`. Over every client file the census finds one hit: the dev smoke scene's raw size.
+- **The re-read (part 5).** The re-read runs the same tools against the same frozen checklist on a committed tree, into its own records directory `docs/audits/uxr3_s12/` (`--frames-dir` keeps its frames apart from the review's). `tools/uxr3_reread.py` compares the two `review.json` records and writes `reread.json`: every flip, the item and group tables, each `BUG_FIXES.md` §UXR-3 row's state (FIXED only when every (surface, item) it names reads ✓), and §UXR-3's done-when.
 

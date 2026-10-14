@@ -251,8 +251,8 @@ func _render(style: Dictionary) -> void:
 		bbcode += _moniteur_line(summary)
 	# 4. What comes next, in one line.
 	bbcode += _what_now_line()
-	content_label.text = ""
-	content_label.append_text(Utils.humanize_nation_keys_in_text(bbcode))
+	# S12: through `text`, never append_text (the instrument reads the label's text)
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 
 func _date_line() -> String:
