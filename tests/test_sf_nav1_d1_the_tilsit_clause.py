@@ -579,11 +579,15 @@ class TestTheCounterOfferKeepsTheClause:
                 "demands": demands if demands is not None
                 else [_cs_demand(), {"type": "gold_lump", "value": 40}]}
 
-    def test_a_counter_keeps_the_clause_and_strikes_the_gold(self, world):
+    def test_a_counter_keeps_the_clause_and_strikes_the_gold(self, world, monkeypatch):
         """Staged so the exemption decides it: striking the clause raises the
         score MORE than striking the gold (measured 42 -> 56 against 42 -> 48
         at war age 10, France 45 points ahead), so without the exemption the
         counter strikes the System and keeps the gold."""
+        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
+        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
+        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
+                            'bilateral_war_score_weight', lambda: 0.3)
         from backend.game_logic.ai_diplomacy import generate_counter_offer
         from backend.game_logic.diplomacy import calculate_acceptance
         pair = world._make_diplo_key("France", "Austria")

@@ -83,6 +83,22 @@ func _ready():
 	# wider than the panel WRAPS (see _add_action_button) instead of dragging
 	# a horizontal scrollbar under the list with its gate reason clipped off.
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# DDB-7 (Pre-Deploy S13b): a list taller than its pane says so — "▼ more
+	# below" under the list, on the Caption step and the info token, hidden
+	# once the list is read to its end (conquest #22: the recommended mission
+	# sat below the fold with no cue).
+	_more_below = Label.new()
+	_more_below.text = "▼ more below"
+	_more_below.theme_type_variation = &"Caption"
+	_more_below.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
+	_more_below.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_more_below.visible = false
+	var list_box: Node = scroll_container.get_parent()
+	list_box.add_child(_more_below)
+	list_box.move_child(_more_below, scroll_container.get_index() + 1)
+	var list_bar: VScrollBar = scroll_container.get_v_scroll_bar()
+	list_bar.value_changed.connect(func(_v): _update_more_below())
+	list_bar.changed.connect(_update_more_below)
 
 	# Create dedicated HTTPRequest (§9b)
 	_http = HTTPRequest.new()
@@ -797,17 +813,29 @@ func _render_preview(data: Dictionary):
 				and str(action.get("aim", "")) != "":
 			live_design = true
 			break
+	# DDB-7: the counsel's recommended action and a running mission's
+	# Cancel (`counsel_first`, ordered by the backend) stay on top; the
+	# instruments follow them when a design is live.
+	var counsel: Array = []
+	var others: Array = []
+	for action in actions:
+		if action is Dictionary and bool(action.get("counsel_first", false)):
+			counsel.append(action)
+		else:
+			others.append(action)
 	if live_design:
 		var lead: Array = []
 		var rest: Array = []
-		for action in actions:
+		for action in others:
 			if action is Dictionary and INSTRUMENT_ACTIONS.has(str(action.get("action", ""))):
 				lead.append(action)
 			else:
 				rest.append(action)
-		actions = lead + rest
+		others = lead + rest
+	actions = counsel + others
 	for action in actions:
 		_add_action_button(action)
+	call_deferred("_update_more_below")
 
 
 const INSTRUMENT_ACTIONS := ["sponsor_design", "buy_off_design", "guarantee_nation"]
@@ -1116,7 +1144,20 @@ func _build_command(action_id: String, nation: String, action_payload: Dictionar
 # HELPERS
 # =============================================================================
 
+var _more_below: Label = null
+
+
+func _update_more_below() -> void:
+	"""DDB-7: the cue shows while rows remain below the pane's fold."""
+	if _more_below == null:
+		return
+	var bar: VScrollBar = scroll_container.get_v_scroll_bar()
+	_more_below.visible = bar != null and (bar.max_value - bar.page) > bar.value + 1.0
+
+
 func _clear_content_list():
+	if _more_below != null:
+		_more_below.visible = false
 	for child in content_list.get_children():
 		child.queue_free()
 

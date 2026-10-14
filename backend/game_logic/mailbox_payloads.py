@@ -484,53 +484,62 @@ def build_pending_envoy_popup_from_terms(
                 f"{with_definite_article(formed_display_name(world, nation))}")
         return payload
 
-    proposal_type = terms.get("type", "unknown")
-    if proposal_type in _PEACE_PROPOSAL_TYPES:
-        player_nation = getattr(world, "player_nation", "France")
-        preview_terms = _orient_incoming_terms_for_player(terms, player_nation, nation)
-        try:
-            from backend.game_logic.diplomacy import build_war_context_snapshot
-            snapshot = build_war_context_snapshot(
-                world,
-                player_nation,
-                nation,
-                proposal_type,
-                terms=preview_terms,
-                incoming=True,
-            )
-            payload["war_context_snapshot"] = snapshot
-            payload["annotated_terms"] = snapshot.get("annotated_terms", [])
-            payload["fallout_warnings"] = snapshot.get("fallout_warnings", [])
-            payload["commitment_conflicts"] = snapshot.get("commitment_conflicts", [])
-            # FA-N43 (slice 10): the popup's "Assessment" line.
-            #
-            # `build_war_context_snapshot`'s `harshness` is, by its OUTGOING
-            # definition, the burden on the ENEMY — what the other side is
-            # asked to bear. The mirror terms above preserve that definition,
-            # which is why the fallout warnings that consume the same number
-            # are right today and must not move. But the popup prints it as
-            # "Assessment", which a player reads as the burden on FRANCE —
-            # so an AI demand for 405 gold rendered GENEROUS and an AI gift
-            # of 300 gold a turn rendered HARSH.
-            #
-            # Two different questions, two numbers. The label is recomputed
-            # here, on the UN-oriented demands, and nothing else moves.
-            from backend.game_logic.diplomacy import get_harshness_label
-            from backend.game_logic.diplomatic_templates import (
-                calculate_treaty_harshness,
-            )
-            _our_burden = calculate_treaty_harshness({
-                "clauses": [],
-                "demands": list(terms.get("demands") or []),
-            })
-            snapshot["harshness"] = round(_our_burden, 2)
-            snapshot["harshness_label"] = get_harshness_label(_our_burden)
-            payload["harshness"] = snapshot["harshness"]
-            payload["harshness_label"] = snapshot["harshness_label"]
-        except Exception as exc:
-            report(exc, "mailbox_payloads.build_pending_envoy_popup_from_terms: import backend.game_logic.diplomacy")
-            payload["annotated_terms"] = []
+    return attach_peace_preview(world, payload, nation, terms)
 
+
+def attach_peace_preview(world, payload: Dict, nation: str, terms: Dict) -> Dict:
+    """The peace-class letter's preview — war score, components, fallout,
+    the burden label — built from the board AS IT STANDS. Shared by the
+    builder and every read seam (DDB-4, Pre-Deploy S13b: the popup's war
+    score was the snapshot taken when the offer arrived — 58 after
+    Vienna's fall had raised it to +80). A no-op for any other letter."""
+    proposal_type = terms.get("type", "unknown")
+    if proposal_type not in _PEACE_PROPOSAL_TYPES:
+        return payload
+    player_nation = getattr(world, "player_nation", "France")
+    preview_terms = _orient_incoming_terms_for_player(terms, player_nation, nation)
+    try:
+        from backend.game_logic.diplomacy import build_war_context_snapshot
+        snapshot = build_war_context_snapshot(
+            world,
+            player_nation,
+            nation,
+            proposal_type,
+            terms=preview_terms,
+            incoming=True,
+        )
+        payload["war_context_snapshot"] = snapshot
+        payload["annotated_terms"] = snapshot.get("annotated_terms", [])
+        payload["fallout_warnings"] = snapshot.get("fallout_warnings", [])
+        payload["commitment_conflicts"] = snapshot.get("commitment_conflicts", [])
+        # FA-N43 (slice 10): the popup's "Assessment" line.
+        #
+        # `build_war_context_snapshot`'s `harshness` is, by its OUTGOING
+        # definition, the burden on the ENEMY — what the other side is
+        # asked to bear. The mirror terms above preserve that definition,
+        # which is why the fallout warnings that consume the same number
+        # are right today and must not move. But the popup prints it as
+        # "Assessment", which a player reads as the burden on FRANCE —
+        # so an AI demand for 405 gold rendered GENEROUS and an AI gift
+        # of 300 gold a turn rendered HARSH.
+        #
+        # Two different questions, two numbers. The label is recomputed
+        # here, on the UN-oriented demands, and nothing else moves.
+        from backend.game_logic.diplomacy import get_harshness_label
+        from backend.game_logic.diplomatic_templates import (
+            calculate_treaty_harshness,
+        )
+        _our_burden = calculate_treaty_harshness({
+            "clauses": [],
+            "demands": list(terms.get("demands") or []),
+        })
+        snapshot["harshness"] = round(_our_burden, 2)
+        snapshot["harshness_label"] = get_harshness_label(_our_burden)
+        payload["harshness"] = snapshot["harshness"]
+        payload["harshness_label"] = snapshot["harshness_label"]
+    except Exception as exc:
+        report(exc, "mailbox_payloads.attach_peace_preview: import backend.game_logic.diplomacy")
+        payload["annotated_terms"] = []
     return payload
 
 

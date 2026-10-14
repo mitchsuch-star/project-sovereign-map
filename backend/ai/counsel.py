@@ -590,7 +590,8 @@ def league_counsel(world, nation: str) -> List[str]:
         cheapest = C.league_cheapest_keep_out(world)
         if not cheapest:
             return []
-        return [f"{cheapest['command']} — keeps {cheapest['display']} out of "
+        # DDB-X8: the Cabinet control, never a typed diplomatic line.
+        return [f"{cheapest['control']} — keeps {cheapest['display']} out of "
                 f"the next league: {cheapest['clause']}"]
     except Exception as exc:
         # The counsel must never break the surface that calls it.

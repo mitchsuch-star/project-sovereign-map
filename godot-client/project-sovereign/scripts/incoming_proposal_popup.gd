@@ -200,6 +200,11 @@ func show_proposal(data: Dictionary):
 	accept_btn.tooltip_text = grant_reason if not grant_enabled else ""
 	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition and not is_call_to_arms
 	counter_btn.disabled = is_counter or is_ultimatum or is_petition or is_call_to_arms
+	# DDB-4 (S13b): the button says what it does and what it may cost — it
+	# is no editor; Talleyrand picks the counter, and a dry run spends nothing
+	# when he finds none.
+	counter_btn.text = "Let Talleyrand haggle (1 DP)"
+	counter_btn.tooltip_text = "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands"
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
 	dismiss_btn.text = "Not Now"

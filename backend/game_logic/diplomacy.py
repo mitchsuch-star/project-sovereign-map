@@ -5246,6 +5246,64 @@ def build_peace_ratification_summary(
     }
 
 
+def bilateral_war_score_weight() -> float:
+    """DDB-X5 (DW-2, the 8.EVAL Pre-EA Balance Pass; brought before the deploy
+    October 14, 2026): the bilateral acceptance credits war dominance at the
+    settlement scorer's felt weight — ONE constant,
+    `settlement_scoring.BASE_SIDE_PRESSURE_SCALE` (0.65; was a bare 0.3, so
+    the same terms read 55/50 at the settlement table and 0 at the bilateral
+    hand-off, the sea #15). The series attribution patches this seam."""
+    from backend.game_logic.settlement_scoring import BASE_SIDE_PRESSURE_SCALE
+    return float(BASE_SIDE_PRESSURE_SCALE)
+
+
+def _formed_display_name_for_bid(world, nation: str) -> str:
+    from backend.game_logic.formations import formed_display_name
+    return formed_display_name(world, nation)
+
+
+def armistice_likelihood(world, proposer: str, target: str) -> Tuple[str, int]:
+    """DDB-8 (Pre-Deploy S13b): the armistice's OWN likelihood — the score
+    of the truce the click would draft (its suggested terms at their centre),
+    in the Cabinet's band words. Quoted where a separate peace is refused."""
+    from backend.game_logic.diplomatic_templates import generate_suggested_terms
+    try:
+        draft = generate_suggested_terms(target, "armistice", world, deterministic=True)
+        score = int(calculate_acceptance({
+            "type": armistice_variant_for(world, proposer, target),
+            "proposer_nation": proposer, "target_nation": target,
+            "sweeteners": list(draft.get("sweeteners") or []),
+            "demands": list(draft.get("demands") or []),
+            "clauses": list(draft.get("clauses") or []),
+        }, world).get("score", 0))
+    except Exception as exc:
+        report(exc, "diplomacy.armistice_likelihood: calculate_acceptance")
+        return "", 0
+    return get_likelihood_descriptor(score), score
+
+
+def separate_peace_paradox(world, proposer: str, target: str) -> Dict:
+    """DDB-8 / DDB-9 (Pre-Deploy S13b): the alliance paradox that stops a
+    separate peace with `target`, in words — {} when none. ONE read for the
+    per-court peace chip (disabled with `reason`), the bilateral draft's
+    block text and the generic menu's Propose peace: "Bavaria is still at
+    war with Austria", with the armistice's own likelihood beside it."""
+    hard = [c for c in get_peace_commitment_conflicts(world, proposer, target, [])
+            if c.get("severity") == "HARD_STOP"]
+    if not hard:
+        return {}
+    from backend.game_logic.formations import formed_display_name as _fdn
+    ally = str(hard[0].get("affected_entity") or "")
+    descriptor, score = armistice_likelihood(world, proposer, target)
+    return {
+        "ally": ally,
+        "reason": f"{_fdn(world, ally)} is still at war with {_fdn(world, target)}",
+        "display": str(hard[0].get("display") or ""),
+        "armistice_likelihood": descriptor,
+        "armistice_score": int(score),
+    }
+
+
 def get_peace_commitment_conflicts(
     world, proposer: str, target: str, clauses: List[Dict],
     incoming: bool = False, truce: bool = False,
@@ -7802,7 +7860,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     parts = diplo_key.split("|")
     if len(parts) == 2 and parts[0] == target:
         war_score = -war_score  # Flip: target is first in key, so proposer winning = negative in storage
-    war_score_mod = war_score * 0.3
+    # DDB-X5 (DW-2, Pre-Deploy S13b): the settlement scorer's felt weight.
+    war_score_mod = war_score * bilateral_war_score_weight()
 
     # ── Relation Modifier (R141: dampened during WAR) ──
     relation = world.nation_relations.get(diplo_key, 0)
@@ -13120,7 +13179,10 @@ def _bid_actions(world, player: str, target_nation: str) -> List[Dict]:
     standing = int((record.get("bids") or {}).get(player, 0) or 0)
     effect = (f"The flip resolves on turn {int(record.get('resolves_turn', 0) or 0)}"
               + (f" — our bid stands at {standing} gold" if standing else
-                 " — relations and standing patronage weigh beside the gold"))
+                 " — relations and standing patronage weigh beside the gold")
+              # DDB-10 (S13b): the chip bids 100g; a larger sum is typed.
+              + "; a larger bid is typed: 'bid for "
+              + _formed_display_name_for_bid(world, target_nation) + ", 500 gold'")
     return [{
         "action": "bid_for_allegiance",
         "display_name": "Bid for Their Allegiance",
@@ -13369,6 +13431,11 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     _rec_text, _rec_mission = _recommendation_and_mission(
         world, target_nation, actions, dp, is_vassal, vassals)
     response["recommendation"] = _rec_text
+    # DDB-7 (Pre-Deploy S13b): the counsel's recommended action and a
+    # running mission's Cancel stand FIRST in the court's list (conquest
+    # #22: Improve Relations was below the fold under five rows).
+    actions = counsel_first(actions, _rec_text, _rec_mission)
+    response["actions"] = actions
     # IQ-4: the machine key the counsel names (display-only, GR6) — the
     # playtest driver's advisor arm reads it; absent when nothing is named.
     if _rec_mission:
@@ -13774,6 +13841,38 @@ def _hard_reject_counsel(world, target_nation: str, actions: List[Dict]):
         return (text + " Talleyrand recommends: Improve Relations meanwhile, so "
                 "the treaty carries when it does.", "IMPROVE_RELATIONS")
     return (text, "")
+
+
+_MISSION_ACTION_KEYS = {
+    "IMPROVE_RELATIONS": "mission_improve_relations",
+    "COURT_NATION": "mission_court",
+    "GATHER_INTEL": "mission_gather_intel",
+    "UNDERMINE_ALLIANCE": "mission_undermine",
+    "REASSURE_ALLY": "mission_reassure",
+}
+
+
+def counsel_first(actions: List[Dict], rec_text: str, rec_mission: str) -> List[Dict]:
+    """DDB-7: a running mission's Cancel, then the action the counsel
+    recommends (its mission, or the proposal it names), lead the court's
+    list — each marked `counsel_first` so the client keeps them on top;
+    every other row keeps its order. A pure reorder (display only, GR6)."""
+    key = _MISSION_ACTION_KEYS.get(str(rec_mission or ""), "")
+    if not key:
+        named = str(rec_text or "").split("recommends: ", 1)
+        if len(named) == 2:
+            for row in actions:
+                shown = str(row.get("display_name") or "")
+                if shown and named[1].startswith(shown):
+                    key = str(row.get("action") or "")
+                    break
+    lead = [r for r in actions if r.get("action") == "cancel_mission"]
+    lead += [r for r in actions if key and r.get("action") == key and r not in lead]
+    if not lead:
+        return actions
+    for row in lead:
+        row["counsel_first"] = True
+    return lead + [r for r in actions if r not in lead]
 
 
 def _recommendation_and_mission(world, target_nation: str, actions: List[Dict],

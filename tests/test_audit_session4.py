@@ -280,7 +280,13 @@ class TestCounterOfferEdgeCases:
 
         # Counter (option 3)
         counter_result = executor.handle_diplomatic_dialogue_response(3, game_state)
-        assert counter_result["success"] is True
+        # DDB-4 (S13b): a dry run decides first — when Talleyrand finds no
+        # counter the court could take, the offer STANDS and nothing is spent
+        # (a refusal of the counter, not of the offer), so the flow goes on
+        # to answer the offer itself.
+        if counter_result["success"] is not True:
+            assert "the offer stands" in counter_result["message"]
+            assert world.pending_diplomatic_dialogue is not None
 
         # If counter succeeded and produced a new dialogue, accept it
         if world.pending_diplomatic_dialogue is not None:

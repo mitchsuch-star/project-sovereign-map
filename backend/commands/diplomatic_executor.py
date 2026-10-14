@@ -8015,6 +8015,28 @@ class DiplomaticExecutor:
         }
         return {"success": True, "message": message}
 
+    def _the_offer_stands(self, dialogue: Dict, world, source_nation: str) -> Dict:
+        """DDB-4: no counter the court could take — the offer stays, nothing
+        is spent, and the letter is re-mounted (the response re-carries its
+        question, the `_petition_stands` shape) with its war score re-read."""
+        from backend.game_logic.formations import formed_display_name
+        from backend.display_names import with_definite_article
+        from backend.game_logic.treaty import refresh_letter_verdict
+        court = with_definite_article(formed_display_name(world, source_nation))
+        message = (f"Talleyrand finds no counter {court} could take — the "
+                   f"offer stands.")
+        popup = refresh_letter_verdict(world, dialogue)
+        result = {
+            "success": False,
+            "message": message,
+            "decision_reason": "offer_stands",
+            "diplomatic_dialogue": dialogue,
+            "awaiting_diplomatic_response": True,
+        }
+        if isinstance(popup, dict) and popup:
+            result["incoming_proposal"] = popup
+        return result
+
     def _handle_counter_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Generate and present a counter-offer to an AI proposal."""
         from backend.game_logic.ai_diplomacy import (
@@ -8058,39 +8080,24 @@ class DiplomaticExecutor:
                 "success": False,
                 "message": "Insufficient Diplomatic Points. Counter-offers cost 1 DP.",
             }
+        # DDB-4 (Pre-Deploy S13b, October 14, 2026): a dry run decides BEFORE
+        # anything is charged — when Talleyrand finds no counter the court
+        # could take (none constructible, or the court cannot pay its own
+        # DP for one), the offer stands and nothing is spent (conquest #10,
+        # the sea #12: the click spent 1 DP and lost a generous offer).
+        if generate_counter_offer(terms, world, dry_run=True) is None:
+            return self._the_offer_stands(dialogue, world, source_nation)
         world.diplomatic_points -= 1
 
         # Run M3 counter-offer algorithm
         counter_terms = generate_counter_offer(terms, world)
 
         if counter_terms is None:
-            # Counter failed (score < 30) — auto-reject. W6-10: key on the
-            # STABLE P-rule label (the documented cooldown trap — the
-            # rewritten terms["type"] sets a key the P-rule checks never
-            # read), matching _handle_reject_ai_proposal.
-            apply_rejection_cooldowns(
-                source_nation,
-                context.get("proposal_type") or terms.get("type", "unknown"),
-                world)
-            world.dialogue_manager.pop()
-            # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
-            from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
-
-            world.log_event({
-                "type": "ai_proposal_counter_failed",
-                "source": source_nation,
-                "decision_reason": "counterparty_reversal",
-            })
-
-            return {
-                "success": True,
-                "message": (
-                    f"Talleyrand attempted to negotiate, but {source_nation} "
-                    f"found our counter-terms unacceptable. The proposal is rejected. "
-                    f"(1 DP spent)"
-                ),
-            }
+            # DDB-4: the dry run above found a counter; should the real run
+            # disagree, the point is returned and the offer stands — never
+            # the old auto-rejection that spent a DP and lost the offer.
+            world.diplomatic_points += 1
+            return self._the_offer_stands(dialogue, world, source_nation)
 
         # Counter succeeded — present the modified terms
         counter_summary = _format_proposal_summary(counter_terms)

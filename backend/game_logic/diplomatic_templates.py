@@ -987,8 +987,8 @@ DIPLOMATIC_TEMPLATES = {
                 "action": "reject_ai_proposal",
             },
             {
-                "label": "Counter-offer",
-                "description": "Propose modified terms. (Costs 1 DP)",
+                "label": "Let Talleyrand haggle (1 DP)",
+                "description": "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands",
                 "action": "counter_ai_proposal",
             },
         ],
@@ -1013,8 +1013,8 @@ DIPLOMATIC_TEMPLATES = {
                 "action": "reject_ai_proposal",
             },
             {
-                "label": "Counter-offer",
-                "description": "Suggest modified terms. (Costs 1 DP)",
+                "label": "Let Talleyrand haggle (1 DP)",
+                "description": "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands",
                 "action": "counter_ai_proposal",
             },
         ],
@@ -1044,8 +1044,8 @@ DIPLOMATIC_TEMPLATES = {
                 "action": "reject_ai_proposal",
             },
             {
-                "label": "Counter-offer",
-                "description": "Propose modifications. (1 DP)",
+                "label": "Let Talleyrand haggle (1 DP)",
+                "description": "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands",
                 "action": "counter_ai_proposal",
             },
         ],
@@ -2269,8 +2269,12 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # the white-peace heading under Voice Bible §16.1 alongside the
     # blocked / ratifiable / observer variants above.
     "settlement_white_peace_heading_talleyrand": (
-        "Sire, the white peace for {war_label} is ready: no terms exchanged, "
-        "no map redrawn — only the war ends. Ratify and the field falls quiet."
+        # DDB-5 (S13b): a white peace is a status quo — the land each side
+        # holds is titled by it, so the heading says so (was "no map
+        # redrawn", beside "Vienna stays ours by this treaty").
+        "Sire, the white peace for {war_label} is ready: no further land "
+        "changes hands — each side keeps what it holds, now by treaty. Ratify "
+        "and the field falls quiet."
     ),
     "settlement_white_peace_blocked_talleyrand": (
         "Sire, a white peace for {war_label} cannot be sealed as it stands: "

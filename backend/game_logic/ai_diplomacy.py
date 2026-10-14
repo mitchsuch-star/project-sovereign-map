@@ -2552,8 +2552,8 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
                 "action": "reject_ai_proposal",
             },
             {
-                "label": "Counter-offer",
-                "description": "Costs 1 DP",
+                "label": "Let Talleyrand haggle (1 DP)",
+                "description": "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands",
                 "action": "counter_ai_proposal",
             },
         ],
@@ -2870,13 +2870,16 @@ def generate_counter_offer(
     )
 
     # R138: Counter-offers cost 1 DP for AI nations (the AUTHOR pays).
-    if not dry_run and author and author != player_nation:
+    # DDB-4 (S13b): the dry run reads the same purse — a court that cannot
+    # pay for its counter has none to offer (nothing is charged in a dry run).
+    if author and author != player_nation:
         nation_dp = getattr(world, 'nation_dp', {})
         current_dp = nation_dp.get(author, 0)
         if current_dp < 1:
             return None  # AI can't afford counter-offer — reject instead
-        nation_dp[author] = current_dp - 1
-        world.nation_dp = nation_dp
+        if not dry_run:
+            nation_dp[author] = current_dp - 1
+            world.nation_dp = nation_dp
 
     # G4F-13: never author a counter the ratify gate would veto. A counter at
     # relations below the STATE_RELATION_REQUIREMENTS threshold would "bind"
@@ -3524,7 +3527,8 @@ def process_allegiance_auctions(world) -> List[Dict]:
                 "action_label": f"Bid for {nation} ({int(DEFAULT_ALLEGIANCE_BID)}g, 1 DP)",
                 "action_detail": (f"Lay {int(DEFAULT_ALLEGIANCE_BID)} gold before the court "
                                   f"of {nation}; relations and standing patronage weigh "
-                                  f"beside it when the flip resolves."),
+                                  f"beside it when the flip resolves. A larger bid is "
+                                  f"typed: 'bid for {nation}, 500 gold'."),
             },
         ))
 

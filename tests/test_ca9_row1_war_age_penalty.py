@@ -232,7 +232,11 @@ class TestTheCheeseIsClosed:
         terms = generate_suggested_terms("Prussia", "peace", world)
         return [d.get("type") for d in (terms.get("demands") or [])]
 
-    def test_arm_a_a_two_turn_war_yields_no_recommended_extraction(self, europe):
+    def test_arm_a_a_two_turn_war_yields_no_recommended_extraction(self, europe, monkeypatch):
+        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
+        # at x0.65 this arm re-opens at +30: DDB-X11, heads S13b part 2.
+        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
+                            'bilateral_war_score_weight', lambda: 0.3)
         assert self._suggested_demands(europe, 1) == [], (
             "Talleyrand still recommends cashing out a war two turns old")
 

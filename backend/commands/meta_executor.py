@@ -1078,20 +1078,25 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
                ceding conquered land is in the Cabinet's court page.
   war terms  - open the war banner on the left and press
                [Request Terms] to make the enemy name a price.
-  THE COMPACTS - three instruments that shipped and were never
-               named here, so no player could learn they exist:
-  buy off    - "buy off Prussia" - a court aims a grievance at us;
-               gold buys its SLEEP for a term. The price is stated
-               before you offer (D4 - diplomacy has no fog), and it
-               is read off how badly they want the thing.
-  sponsor    - "sponsor Prussia against Hanover, 200 gold" - arm
-               somebody else's grievance, per turn, for a term.
-               "license Prussia against Hanover" at no gold sells
-               permission instead: the same bond, a cheaper coin.
-               Talleyrand refuses to aim a design at ourselves.
-  guarantee  - "guarantee Saxony" - pledge to defend a border.
-               Coveters read the pledge and want it less; abandon
-               it and the grievance is ours to answer for.
+  THE COMPACTS - three instruments, each a row of the Cabinet
+               (F1 -> the court):
+  buy off    - F1 -> Prussia -> Buy Off Their Design - a court aims
+               a grievance at us; gold buys its SLEEP for a term.
+               The price is stated before you offer (D4 - diplomacy
+               has no fog), and it is read off how badly they want
+               the thing.
+  sponsor    - F1 -> Prussia -> Sponsor Their Design - arm somebody
+               else's grievance, per turn, for a term; the license
+               (no gold) sells permission instead: the same bond, a
+               cheaper coin. Talleyrand refuses to aim a design at
+               ourselves.
+  guarantee  - F1 -> Saxony -> Guarantee Their Borders - pledge to
+               defend a border. Coveters read the pledge and want it
+               less; abandon it and the grievance is ours to answer
+               for.
+  bid        - F1 -> the court -> Bid for Their Allegiance (100g),
+               or type 'bid for Denmark, 200 gold' for a
+               larger sum, while a court's allegiance is in play.
   NOTE: a standing compact runs its TERM. There is no cancelling
         it - war on the court, or a pledge that contradicts it,
         is a RENEGE, and Europe remembers who broke a word.

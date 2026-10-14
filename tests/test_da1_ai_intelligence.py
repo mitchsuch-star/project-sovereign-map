@@ -90,6 +90,28 @@ def set_relation(world, nation_a, nation_b, value):
     world.nation_relations[key] = value
 
 
+def _p1_board_at_the_old_weight(monkeypatch):
+    """DDB-X5 (DW-2, Pre-Deploy S13b): these pins test P1's THRESHOLD
+    arithmetic (personality, exhaustion, the league's arms). At a war score
+    of -50 and below, the winner's steeper reading (x0.65) keeps the bare
+    test letter under the AI's send filter whatever the board, so the
+    threshold is read at the pre-DW-2 x0.3 through the weight's one seam;
+    DDB-X5's own pin is `test_ddb_s13b_the_rulings.py::TestDDBX5`."""
+    from backend.game_logic import diplomacy as _D
+    monkeypatch.setattr(_D, "bilateral_war_score_weight", lambda: 0.3)
+
+
+def _boost_past_the_filter(world):
+    """DDB-X5 (DW-2, Pre-Deploy S13b): the winner reads a beaten court's
+    peace at the settlement scorer's felt weight (x0.65, was x0.3), so the
+    P1 letter clears the AI's "never sent to be refused" filter (score >= 20)
+    only with the opening bloc's hegemony tax off and relations warm (the
+    war caps their term at +10). The threshold logic these tests pin is
+    unchanged; only the board that lets the letter be sent is."""
+    _clear_opening_bloc(world)
+    set_relation(world, "France", "Prussia", 40)
+
+
 # ═══════════════════════════════════════════════════════
 # A4: GOLD DEMAND FORMULA
 # ═══════════════════════════════════════════════════════
@@ -210,7 +232,7 @@ class TestA3P1ThresholdWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)  # Boost acceptance past filter
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -41)
         result = process_diplomatic_phase("Prussia", world)
         assert result is not None
@@ -220,7 +242,7 @@ class TestA3P1ThresholdWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         world.war_exhaustion["Prussia"] = 20
         set_war_score(world, "Prussia", "France", -40)
         result = process_diplomatic_phase("Prussia", world)
@@ -231,7 +253,7 @@ class TestA3P1ThresholdWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         world.war_exhaustion["Prussia"] = 60
         set_war_score(world, "Prussia", "France", -38)
         result = process_diplomatic_phase("Prussia", world)
@@ -242,7 +264,7 @@ class TestA3P1ThresholdWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         world.war_exhaustion["Prussia"] = 100
         set_war_score(world, "Prussia", "France", -36)
         result = process_diplomatic_phase("Prussia", world)
@@ -253,7 +275,7 @@ class TestA3P1ThresholdWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "dove")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         world.war_exhaustion["Prussia"] = 60
         set_war_score(world, "Prussia", "France", -18)
         result = process_diplomatic_phase("Prussia", world)
@@ -270,13 +292,14 @@ class TestA3P1ThresholdWE:
         result = process_diplomatic_phase("Prussia", world)
         assert result is None
 
-    def test_hawk_with_we_fires(self):
+    def test_hawk_with_we_fires(self, monkeypatch):
         """Hawk (delta -20) + WE=60: war_score=-58 < -57, fires."""
+        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "hawk")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         world.war_exhaustion["Prussia"] = 60
         set_war_score(world, "Prussia", "France", -58)
         result = process_diplomatic_phase("Prussia", world)
@@ -310,7 +333,7 @@ class TestA3P2PatienceWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)
         self._setup_stalemate(world, "Prussia", 3)
         # After update: stalemate=4 < 5, should NOT fire
@@ -322,7 +345,7 @@ class TestA3P2PatienceWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)
         self._setup_stalemate(world, "Prussia", 4)
         # After update: stalemate_turns=5, effective=5 → fires
@@ -334,7 +357,7 @@ class TestA3P2PatienceWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)
         world.war_exhaustion["Prussia"] = 30
         self._setup_stalemate(world, "Prussia", 3)
@@ -347,7 +370,7 @@ class TestA3P2PatienceWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)
         world.war_exhaustion["Prussia"] = 60
         self._setup_stalemate(world, "Prussia", 2)
@@ -360,7 +383,7 @@ class TestA3P2PatienceWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)
         world.war_exhaustion["Prussia"] = 90
         self._setup_stalemate(world, "Prussia", 1)
@@ -373,7 +396,7 @@ class TestA3P2PatienceWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)
         world.war_exhaustion["Prussia"] = 150
         self._setup_stalemate(world, "Prussia", 1)
@@ -386,7 +409,7 @@ class TestA3P2PatienceWE:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "schemer")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)
         world.war_exhaustion["Prussia"] = 60
         self._setup_stalemate(world, "Prussia", 4)
@@ -415,13 +438,14 @@ class TestA2CoalitionGuard:
         """Set up active coalition with given members."""
         world.active_coalition = {"members": members, "leader": members[0]}
 
-    def test_non_member_passes(self):
+    def test_non_member_passes(self, monkeypatch):
         """Non-coalition member can still sue for peace via P1."""
+        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -50)
         self._setup_coalition(world, ["Austria", "Britain"])
         result = process_diplomatic_phase("Prussia", world)
@@ -437,13 +461,14 @@ class TestA2CoalitionGuard:
         result = process_diplomatic_phase("Prussia", world)
         assert result is None
 
-    def test_member_ws_below_minus50(self):
+    def test_member_ws_below_minus50(self, monkeypatch):
         """Coalition member with war_score < -50 can break loyalty."""
+        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -51)
         self._setup_coalition(world, ["Prussia", "Austria"])
         result = process_diplomatic_phase("Prussia", world)
@@ -467,7 +492,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -45)
         world.war_exhaustion["Prussia"] = 81
         self._setup_coalition(world, ["Prussia", "Austria"])
@@ -490,7 +515,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -61)
         world.current_turn = 10
         diplo_key = world._make_diplo_key("France", "Prussia")
@@ -504,7 +529,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -45)
         world.current_turn = 10
         diplo_key = world._make_diplo_key("France", "Prussia")
@@ -519,7 +544,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -65)
         world.current_turn = 9
         diplo_key = world._make_diplo_key("France", "Prussia")
@@ -534,7 +559,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -45)
         world.active_coalition = None
         result = process_diplomatic_phase("Prussia", world)
@@ -545,7 +570,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -45)
         world.active_coalition = {"members": []}
         result = process_diplomatic_phase("Prussia", world)
@@ -566,7 +591,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -45)
         world.war_exhaustion["Prussia"] = 90  # WE > 80 → bypass
         self._setup_coalition(world, ["Prussia", "Austria"])
@@ -578,7 +603,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", 0)  # Stalemate range
         world.ai_stalemate_counters = {
             world._make_diplo_key("France", "Prussia"): 4}
@@ -610,7 +635,7 @@ class TestA2CoalitionGuard:
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
-        set_relation(world, "France", "Prussia", 20)
+        _boost_past_the_filter(world)
         set_war_score(world, "Prussia", "France", -61)
         world.current_turn = 10
         diplo_key = world._make_diplo_key("France", "Prussia")
@@ -1042,8 +1067,9 @@ class TestIntegration:
         result = process_diplomatic_phase("Prussia", world)
         assert result is None
 
-    def test_a2_with_a3_we_bypass(self):
+    def test_a2_with_a3_we_bypass(self, monkeypatch):
         """Coalition member with high WE gets both A2 WE bypass and A3 threshold shift."""
+        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
@@ -1141,8 +1167,9 @@ class TestIntegration:
         assert result is not None
         assert result["proposal_type"] == "armistice"
 
-    def test_hawk_p1_threshold_with_we(self):
+    def test_hawk_p1_threshold_with_we(self, monkeypatch):
         """Hawk + WE combination: threshold = -40 + (-20) + we//20."""
+        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")

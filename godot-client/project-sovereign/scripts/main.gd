@@ -2743,6 +2743,12 @@ func _redirect_diplomatic_command(command: String) -> bool:
 		if keyword in lower:
 			return false
 
+	# DDB-10 (Pre-Deploy S13b): the typed bid the rail itself echoes ("bid
+	# for Sardinia, 1500 gold") is a PRICED order — its sum is the one thing
+	# the chips (100g) cannot say — and passes the door.
+	if _is_priced_bid(lower):
+		return false
+
 	for keyword in DIPLO_WAR_ROOM_KEYWORDS:
 		if keyword in lower:
 			add_output("[color=#" + Utils.COLOR_GOLD + "]Berthier: Terms are asked across the table, Sire — open the war banner and press [b]Request Terms[/b].[/color]")
@@ -2753,10 +2759,77 @@ func _redirect_diplomatic_command(command: String) -> bool:
 		return false
 
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Berthier: Matters of state are conducted at the table, Sire — not by dispatch. Take your seat in the Cabinet and the courts of Europe will answer.[/color]")
+	# DDB-10: the refusal names the control the player wanted.
+	var control := _cabinet_control_for(lower)
+	if control != "":
+		add_output("[color=#" + Utils.COLOR_GOLD + "]   In the Cabinet: " + control + ".[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]   [url=cabinet:open]⚜ Take your seat at the table (F1)[/url][/color]")
 	AudioManager.play("click")
 	command_input.grab_focus()
 	return true
+
+func _is_priced_bid(lower: String) -> bool:
+	"""DDB-10: "bid for <court>, <N> gold" — a court named and a sum of gold."""
+	var at := lower.find("bid for ")
+	if at < 0:
+		return false
+	var tail := lower.substr(at + "bid for ".length())
+	if not _names_a_nation(tail):
+		return false
+	var sum := RegEx.new()
+	sum.compile("\\d[\\d,]*\\s*(gold|g)\\b")
+	return sum.search(tail) != null
+
+
+# DDB-10: the Cabinet row each refused verb lives on (the wizard's own
+# display names), named in the door's refusal: "F1 → Prussia → Buy Off
+# Their Design".
+const DIPLO_CABINET_CONTROLS = [
+	["buy off", "Buy Off Their Design"],
+	["bought off", "Buy Off Their Design"],
+	["pay off", "Buy Off Their Design"],
+	["sponsor", "Sponsor Their Design"],
+	["subsidi", "Sponsor Their Design"],
+	["license", "Sponsor Their Design"],
+	["licence", "Sponsor Their Design"],
+	["guarantee", "Guarantee Their Borders"],
+	["cancel mission", "Cancel (the mission's row), or Recall on the rail"],
+	["recall", "Cancel (the mission's row), or Recall on the rail"],
+	["bid for", "Bid for Their Allegiance (or type 'bid for <court>, <N> gold')"],
+	["declare war", "Declare War"],
+	["ultimatum", "Send Ultimatum"],
+	["break treaty", "Break Treaty"],
+	["downgrade", "Downgrade"],
+	["armistice", "Propose Armistice"],
+	["alliance", "Propose Alliance"],
+	["open borders", "Propose Open Borders"],
+	["peace", "Propose Peace"],
+	["vassal", "Propose Vassal"],
+	["improve relations", "Improve Relations"],
+	["court ", "Court Nation"],
+]
+
+
+func _cabinet_control_for(lower: String) -> String:
+	"""DDB-10: "F1 → <court> → <row>" for the first verb the sentence names,
+	the court when it names one; "" when no row is recognised."""
+	var row := ""
+	for pair in DIPLO_CABINET_CONTROLS:
+		if str(pair[0]) in lower:
+			row = str(pair[1])
+			break
+	if row == "":
+		return ""
+	var court := ""
+	for tag in Utils.NATION_COLORS.keys():
+		var shown := Utils.display_nation_name(str(tag))
+		if shown.to_lower() in lower or str(tag).to_lower() in lower:
+			court = shown
+			break
+	if court == "":
+		return "F1 → the court → " + row
+	return "F1 → " + court + " → " + row
+
 
 func _is_advisory_question(lower: String) -> bool:
 	"""Questions and counsel stay spoken — Talleyrand answers them."""

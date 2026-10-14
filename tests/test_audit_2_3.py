@@ -84,7 +84,8 @@ class TestAcceptanceWorkedExample:
         c = result["components"]
 
         assert c["base_disposition"] == 30
-        assert c["war_score_modifier"] == 6.0
+        # DDB-X5 (DW-2, S13b): the settlement scorer's felt weight, 20 * 0.65.
+        assert c["war_score_modifier"] == 13.0
         # R141: At WAR, relation dampened: -60/4 = -15, clamped to -10
         assert c["relation_modifier"] == -10
         assert c["hegemony_target_mod"] == 0
@@ -96,9 +97,9 @@ class TestAcceptanceWorkedExample:
         assert c["military_pressure"] == 3  # R8: int(min(15, 20*0.15)) = 3
         assert c["deal_balance"] == 9.0
 
-        # R141: Total: 30 + 6 - 10 + 0 + 9 + 8 - 5 + situational=3 = 41
+        # R141: Total: 30 + 13 - 10 + 0 + 9 + 8 - 5 + situational=3 = 48
         # R8: military_pressure=3 is max(0, 0, 3) = 3 situational
-        assert result["score"] == 41
+        assert result["score"] == 48
         assert result["outcome"] == "COUNTER_OFFER"
 
     def test_acceptance_individual_sweetener_values(self):

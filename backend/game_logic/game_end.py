@@ -42,7 +42,7 @@ anything.
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 from backend.errors import report
 
 # ════════════════════════════════════════════════════════════════════════
@@ -829,6 +829,76 @@ def _bloc_of(world, leader: str) -> List[str]:
     return out
 
 
+def home_nation_of(world, region_name: str) -> str:
+    """DDB-12: a province's home nation — its `starting_controller` where the
+    map authors one, else the court whose starting homeland lists it (the
+    Europe map's own record, `nation_starting_regions`). '' when none."""
+    region = (getattr(world, "regions", {}) or {}).get(region_name)
+    authored = str(getattr(region, "starting_controller", "") or "") if region else ""
+    if authored:
+        return authored
+    for nation, regions in (getattr(world, "nation_starting_regions", {}) or {}).items():
+        if region_name in (regions or []):
+            return str(nation)
+    return ""
+
+
+def _co_belligerent(world, home: str, holder: str, ceder: str) -> bool:
+    """`home` fought `ceder` beside `holder`: allied to the holder (or its
+    lord / its client), or itself still at war (or in truce) with the ceder."""
+    if not home or home in (holder, ceder):
+        return False
+    if home not in (world.get_active_nations() or []):
+        return False
+    if world.get_diplomatic_state(home, holder) in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL"):
+        return True
+    if world._top_overlord(holder) == home or world._top_overlord(home) == holder:
+        return True
+    return world.get_diplomatic_state(home, ceder) in ("WAR", "ARMISTICE")
+
+
+def homeland_returns(world, holder_leader: str, ceder: str,
+                     kept: Dict[str, List[str]]) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+    """DDB-12 (Pre-Deploy S13b, October 14, 2026): split a retention map. A
+    province whose home nation is a CO-BELLIGERENT of its holder (outside the
+    holder's bloc, not the ceder) — retaken from the enemy by an ally — is
+    titled back to its home nation by the status quo, never to the ally (the
+    sea #18: France's Franche-Comte went Bavarian at the peace). Returns
+    (kept, returned) — `returned` keyed by the home nation. Pure read."""
+    bloc = set(_bloc_of(world, holder_leader))
+    keep: Dict[str, List[str]] = {}
+    back: Dict[str, List[str]] = {}
+    for holder, regions in (kept or {}).items():
+        for region_name in regions:
+            home = home_nation_of(world, region_name)
+            if home and home not in bloc and _co_belligerent(world, home, holder, ceder):
+                back.setdefault(home, []).append(region_name)
+            else:
+                keep.setdefault(holder, []).append(region_name)
+    return ({h: sorted(r) for h, r in keep.items()},
+            {h: sorted(r) for h, r in back.items()})
+
+
+def _return_home(world, region_name: str, home: str, holder: str) -> None:
+    """The status quo's homeland return — moved as a treaty cession moves a
+    province (controller, stability 50; the homeland's title record is
+    popped by construction)."""
+    region = world.regions.get(region_name)
+    if region is None:
+        return
+    region.controller = home
+    region.stability = 50
+    if hasattr(world, "invalidate_active_nations_cache"):
+        world.invalidate_active_nations_cache()
+    record_province_title(world, region_name, TITLE_TREATY, holder, home)
+    world.log_event({
+        "type": "province_returned",
+        "nation": home, "target_nation": holder, "region": region_name,
+        "outcome": "returned", "by": "status_quo",
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+    })
+
+
 def status_quo_retentions(world, holder_leader: str, ceder: str,
                           *, forecast: bool = False) -> Dict[str, List[str]]:
     """The provinces `holder_leader`'s bloc holds of `ceder`'s that a peace
@@ -891,6 +961,13 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
             kept = status_quo_retentions(world, holder_leader, ceder)
             if not kept:
                 continue
+            # DDB-12: a co-belligerent's homeland retaken by an ally goes
+            # home, titled back; the rest is retained as before.
+            kept, returned = homeland_returns(world, holder_leader, ceder, kept)
+            for home, regions in returned.items():
+                for region_name in regions:
+                    holder = str(getattr(world.regions.get(region_name), "controller", "") or "")
+                    _return_home(world, region_name, home, holder)
             # The HOUSE is the signatory's lord: a satellite signing its own
             # pair (SR-1b's cascade, or its own treaty) titles for its lord's
             # house, so one renewed war between the lords breaks it.
@@ -907,6 +984,7 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
                 "ceder": ceder,
                 "reason": str(reason or ""),
                 "titled": {h: list(r) for h, r in kept.items()},
+                "returned": {h: list(r) for h, r in returned.items()},
             })
         if entries:
             stash = getattr(world, "_status_quo_titled", None)
@@ -998,6 +1076,13 @@ def status_quo_summary_lines(world, entries: Iterable[Dict[str, Any]],
     from backend.game_logic.formations import formed_display_name
     lines: List[str] = []
     for entry in entries or []:
+        # DDB-12: a homeland the status quo titles back to its court.
+        for home, regions in sorted((entry.get("returned") or {}).items()):
+            if regions:
+                verb = "returns" if len(regions) == 1 else "return"
+                to = "us" if home == speaker else formed_display_name(world, home)
+                lines.append(f"Status quo: {_join_names(sorted(regions))} {verb} to {to} "
+                             f"by the treaty — homeland retaken by an ally.")
         names = sorted(r for rs in (entry.get("titled") or {}).values() for r in rs)
         if not names:
             continue
@@ -1033,10 +1118,12 @@ def status_quo_forecast(world, nation_a: str, nation_b: str,
             kept = {h: rs for h, rs in kept.items() if rs}
             if not kept:
                 continue
+            kept, returned = homeland_returns(world, holder_leader, ceder, kept)
             entries.append({
                 "house": str(world._top_overlord(holder_leader) or holder_leader),
                 "ceder": ceder,
                 "titled": kept,
+                "returned": returned,
             })
     except Exception as exc:
         report(exc, "game_end.status_quo_forecast: status_quo_retentions / kept.items")
@@ -1070,7 +1157,8 @@ def status_quo_forecast_lines(world, nation_a: str, nation_b: str, speaker: str,
         ours = sorted(r for rs in titled.values() for r in rs if r in home)
         rest = {h: [r for r in rs if r not in home] for h, rs in titled.items()}
         rest = {h: rs for h, rs in rest.items() if rs}
-        if rest:
+        # DDB-12: an entry whose homeland returns home is said too.
+        if rest or entry.get("returned"):
             plain.append(dict(entry, titled=rest))
         if not ours:
             continue

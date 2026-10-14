@@ -186,7 +186,8 @@ class TestEmptyRatifyGate:
             row.get("display_label", "")
             for row in refreshed["review_sections"]["sections"]["terms"].get("rows", [])
         ]
-        assert "End hostilities (no material change)" in labels
+        # DDB-5 (S13b): the status quo said plainly (was "no material change").
+        assert "End hostilities — each side keeps what it holds, now by treaty" in labels
         assert any(
             "50 gold/turn from Austria to France (3 turns)" in label
             for label in labels

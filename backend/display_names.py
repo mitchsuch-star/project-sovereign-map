@@ -1077,6 +1077,8 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "target_not_in_war": "This court is not a participant in this war.",
     "cooldown_active": "A recent proposal cooldown is still active for this court.",
     "insufficient_resources": "Insufficient diplomatic points for this proposal.",
+    # DDB-8: the eligibility helper writes the ally's name over this one.
+    "commitment_paradox": "An ally is still at war with this court.",
     # SC-31 / G2-Slice-8 dependency-clause eligibility codes. Closed
     # taxonomy returned by evaluate_subjugation_eligibility /
     # evaluate_vassalage_eligibility / evaluate_liberation_eligibility.

@@ -347,7 +347,8 @@ class TestTheSeparatePeaceChip:
         chip = SS.separate_peace_chip(world, "Britain", war_id=dialogue["war_id"],
                                       staged_terms=dialogue.get("settlement_terms") or [],
                                       actor="France")
-        assert chip["label"] == "Separate peace with Britain"
+        # DDB-11 (S13b): an open chip carries the bilateral estimate after its name.
+        assert chip["label"].startswith("Separate peace with Britain")
         assert chip["action"] == "seek_bilateral_peace"
         assert chip["nation"] == chip["selected_target_nation"] == "Britain"
         assert chip["scope"] == "selected_pair" and chip["war_id"] == dialogue["war_id"]
@@ -362,7 +363,17 @@ class TestTheSeparatePeaceChip:
         params = {"action": "seek_bilateral_peace", "scope": "selected_pair",
                   "nation": "Britain", "selected_target_nation": "Britain",
                   "war_id": dialogue["war_id"]}
+        # DDB-8 (S13b): judged FOR BRITAIN, the separate peace is first refused
+        # by Britain's own paradox (our ally Spain is at war with her) ...
         with _quiet():
+            r = client.post("/respond_to_diplomatic_dialogue",
+                            json={"choice": "seek_bilateral_peace", "action_params": params,
+                                  "dialogue_id": dialogue.get("dialogue_id")}).json()
+        assert r.get("success") is False and "Spain is still at war with Britain" in str(r.get("message"))
+        # ... and with that war ended, it reaches Britain's pair tier.
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        with _quiet():
+            set_diplomatic_state(world, "Spain", "Britain", "PEACE", "test_fixture")
             r = client.post("/respond_to_diplomatic_dialogue",
                             json={"choice": "seek_bilateral_peace", "action_params": params,
                                   "dialogue_id": dialogue.get("dialogue_id")}).json()
@@ -384,7 +395,10 @@ class TestTheSeparatePeaceChip:
                                   "dialogue_id": dialogue.get("dialogue_id")}).json()
         staged = r.get("diplomatic_dialogue") or {}
         assert staged.get("selected_target_nation") == "Austria", (r.get("message"), staged)
-        assert "to treat with Austria alone" in str(r.get("message")), r.get("message")
+        # DDB-8 (S13b): on this board France's ally Bavaria is still at war
+        # with Austria, so the pair tier now answers with that paradox — for
+        # AUSTRIA, the table's own court (the fallback this pin is about).
+        assert "with Austria" in str(r.get("message")), r.get("message")
 
     def test_a_court_at_the_threshold_carries_the_chip(self, monkeypatch):
         """No shipped board puts a covered court at 50 on this staging
@@ -408,7 +422,7 @@ class TestTheSeparatePeaceChip:
         assert int(rows["Austria"]["total"]) >= int(rows["Austria"]["threshold"]), rows["Austria"]
         chips = [a for a in rows["Austria"]["dial_actions"] if a.get("action") == "seek_bilateral_peace"]
         assert len(chips) == 1, rows["Austria"]["dial_actions"]
-        assert chips[0]["label"] == "Separate peace with Austria"
+        assert chips[0]["label"].startswith("Separate peace with Austria")
         assert chips[0]["selected_target_nation"] == "Austria"
         for court in ("Britain", "Russia"):
             assert not [a for a in rows[court]["dial_actions"] if a.get("action") == "seek_bilateral_peace"], court
@@ -417,8 +431,9 @@ class TestTheSeparatePeaceChip:
     def test_the_tier2_renderer_honours_availability(self):
         src = (C.SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
         i = src.index("func _on_settlement_tier2_affordance") if "func _on_settlement_tier2_affordance" in src else 0
-        assert 'if not bool(aff.get("available", true)):' in src
-        assert 'btn.tooltip_text = aff_reason' in src
+        # DDB-8 (S13b): through `Utils.set_available`, the reason the tooltip.
+        assert 'var aff_available := bool(aff.get("available", true))' in src
+        assert "Utils.set_available(btn, aff_available" in src
 
     def test_the_structured_path_knows_the_pair_verbs(self):
         from backend.commands import diplomatic_executor as DE

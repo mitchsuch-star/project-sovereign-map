@@ -656,9 +656,20 @@ def cession_shaped_regions(term: Mapping[str, Any]) -> List[str]:
     return [n for n in names if n and not (n in seen or seen.add(n))]
 
 
-def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
-    """Spec line 1114: white_peace + any non-trivial term exceeds ceiling."""
+def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]],
+                           proposer_side_participants: Iterable[str] = ()) -> bool:
+    """Spec line 1114: white_peace + any non-trivial term exceeds ceiling.
+
+    DDB-6 (Pre-Deploy S13b, October 14, 2026): a term the PROPOSING side
+    pays (its payer / ceder / subject is on that side — G4F-1's burden
+    party) is a concession, not a claim of victory: it is skipped, so an
+    Ease (France's own gold) never charges "the terms claim a victory the
+    field has not delivered" (conquest #20: 14/50 fell to 8/50)."""
+    proposer_set = {str(n) for n in (proposer_side_participants or []) if n}
     for t in terms:
+        burden_party = str(t.get("from") or t.get("lord_nation") or "")
+        if burden_party and burden_party in proposer_set:
+            continue
         ttype = t.get("type", "")
         if ttype in _TERRITORY_TERM_TYPES and _term_regions(t):
             return True
@@ -759,6 +770,8 @@ def calculate_settlement_tier_legitimacy(
     side_pressure_score: int,
     raw_total_harshness: float,
     settlement_terms: Iterable[Mapping[str, Any]],
+    *,
+    proposer_side_participants: Iterable[str] = (),
 ) -> Dict[str, Any]:
     """Spec §6.acceptance line 1114, 1188-1196.
 
@@ -782,7 +795,7 @@ def calculate_settlement_tier_legitimacy(
     mismatch = 0
     exceeded_ceiling = False
     if tier == "white_peace":
-        if _has_non_trivial_terms(terms_list):
+        if _has_non_trivial_terms(terms_list, proposer_side_participants):
             mismatch = TIER_LEGITIMACY_MISMATCH
             exceeded_ceiling = True
     else:
@@ -2251,6 +2264,7 @@ def calculate_common_peace_acceptance(
         )
     tier_debug = calculate_settlement_tier_legitimacy(
         side_pressure_score, raw_total_harshness, settlement_terms,
+        proposer_side_participants=proposer_participants,
     )
     harshness_debug = calculate_term_harshness_penalty(raw_total_harshness)
 

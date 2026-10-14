@@ -1493,7 +1493,11 @@ class TestCounterOfferReachesThePlayer:
     diplomat), so a counter was structurally impossible for player-sent
     proposals."""
 
-    def test_player_sent_counter_band_proposal_yields_counter_dialogue(self):
+    def test_player_sent_counter_band_proposal_yields_counter_dialogue(self, monkeypatch):
+        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
+        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
+        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
+                            'bilateral_war_score_weight', lambda: 0.3)
         from backend.game_logic.diplomacy import calculate_acceptance
 
         world = _bilateral_war_world()
@@ -1545,7 +1549,11 @@ class TestCounterOfferReachesThePlayer:
         # though Britain's diplomat is a hawk (R125 accept=60 stays M3-only).
         assert calculate_acceptance(result, world)["score"] >= 50
 
-    def test_counter_degrades_honestly_when_payer_cannot_bridge(self):
+    def test_counter_degrades_honestly_when_payer_cannot_bridge(self, monkeypatch):
+        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
+        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
+        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
+                            'bilateral_war_score_weight', lambda: 0.3)
         world = _bilateral_war_world(france_gold=0)
         world.current_turn = 2
         proposal = _armistice_proposal()
@@ -1600,7 +1608,11 @@ class TestCounterOfferReachesThePlayer:
         assert world.nation_dp["Austria"] == 1
         assert world.nation_dp["Britain"] == 5
 
-    def test_preview_enrich_attaches_counter_constructibility(self):
+    def test_preview_enrich_attaches_counter_constructibility(self, monkeypatch):
+        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
+        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
+        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
+                            'bilateral_war_score_weight', lambda: 0.3)
         from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
 
         world = _bilateral_war_world()

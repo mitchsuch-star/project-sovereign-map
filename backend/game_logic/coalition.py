@@ -4119,6 +4119,7 @@ def league_cheapest_keep_out(world, target: Optional[str] = None) -> Optional[Di
                 and not row.get("buyoff_refusal")):
             options.append(((0, int(row["buyoff"]), 0 if row["major"] else 1),
                             f"buy off {row['nation']}",
+                            f"F1 → {row['display']} → Buy Off Their Design",
                             f"buying off her design ({int(row['buyoff']):,} gold) is "
                             f"enough alone"))
         road = row.get("road")
@@ -4126,21 +4127,27 @@ def league_cheapest_keep_out(world, target: Optional[str] = None) -> Optional[Di
             from backend.display_names import plural
             options.append(((1, int(road[0]) * 1000 + int(road[1]), 0 if row["major"] else 1),
                             f"improve relations with {row['nation']}",
+                            f"F1 → {row['display']} → Improve Relations",
                             f"Talleyrand brings her to {_minus(LEAGUE_KEEP_OUT_RELATION)} in "
                             f"{plural(int(road[0]), 'turn')} ({int(road[1])} DP)"))
-        for key, command, clause in options:
+        for key, command, control, clause in options:
             if best is None or key < best[0]:
-                best = (key, row, command, clause)
+                best = (key, row, command, control, clause)
     if best is None:
         return None
-    _key, row, command, clause = best
+    _key, row, command, control, clause = best
     price = league_price_clause(world, row) or clause
+    # DDB-X8 (Pre-Deploy S13b, found by DDB-10's sweep): the keep-out is
+    # NAMED by its Cabinet control — the counsel's own rule ("a diplomatic
+    # verb is never offered as a sentence to type"); the typed line it used
+    # to quote ('buy off Prussia') was refused at the Cabinet door.
     return {"nation": row["nation"], "display": row["display"], "command": command,
+            "control": control,
             "clause": clause,
             "text": (f"The cheapest court to keep out of it is {row['display']}: "
                      f"{price}."),
             "order_text": (f"The cheapest court to keep out of a league is "
-                           f"{row['display']}: {clause} — '{command}'.")}
+                           f"{row['display']}: {clause} — {control}.")}
 
 
 # ════════════════════════════════════════════════════════════════

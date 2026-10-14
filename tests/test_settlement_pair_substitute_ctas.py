@@ -109,6 +109,8 @@ def test_pair_substitute_refusal_code_taxonomy_is_closed_set():
         "cooldown_active",
         "insufficient_resources",
         "malformed_route",
+        # DDB-8 (S13b): an ally still at war with the court.
+        "commitment_paradox",
     }
     assert PAIR_SUBSTITUTE_REFUSAL_CODES == expected
     # Helper must never invent a code outside the closed taxonomy.
@@ -596,6 +598,7 @@ def test_settlement_helper_signatures_are_distinct_and_not_substituted():
         "cooldown_active",
         "already_in_armistice",
         "insufficient_resources",
+        "commitment_paradox",  # DDB-8 (S13b): shut WITH its reason
     }
 
 

@@ -129,15 +129,29 @@ class TestBothDirections:
         assert theirs == [f"Status quo: {ours} stays Austrian by the treaty."]
 
     def test_ground_captured_from_the_ceder_counts_even_off_its_homeland(self):
-        """Munich is Bavaria's; taken FROM Austria it is Austria's to
-        renounce. A conquest record naming the ceder is the second read."""
+        """A province of a neutral court (Hanover's), taken FROM Austria, is
+        Austria's to renounce: a conquest record naming the ceder is the
+        second read. (Until DDB-12 this pin used Bavaria's Franconia — the
+        homeland of France's ALLY, which the status quo now titles back to
+        Bavaria: the next pin.)"""
+        w = _boot()
+        hanoverian = sorted(w.nation_starting_regions["Hanover"])[0]
+        _hold(w, hanoverian, "France", "Austria")
+        _ratify(w, "Austria", "France")
+        rec = w.province_title[hanoverian]
+        assert rec["kind"] == game_end.TITLE_TREATY and rec["retained"] is True
+        assert rec["from"] == "Austria"
+
+    def test_an_allys_homeland_retaken_from_the_ceder_goes_home(self):
+        """DDB-12 (Pre-Deploy S13b): Bavaria's homeland, retaken from Austria
+        by France (Bavaria's ally), is titled back to Bavaria by the status
+        quo — never kept by the ally that retook it."""
         w = _boot()
         bavarian = sorted(w.nation_starting_regions["Bavaria"])[0]
         _hold(w, bavarian, "France", "Austria")
         _ratify(w, "Austria", "France")
-        rec = w.province_title[bavarian]
-        assert rec["kind"] == game_end.TITLE_TREATY and rec["retained"] is True
-        assert rec["from"] == "Austria"
+        assert w.regions[bavarian].controller == "Bavaria"
+        assert bavarian not in (w.province_title or {})
 
     def test_ground_captured_from_a_third_court_is_not_the_ceders_to_renounce(self):
         w = _boot()

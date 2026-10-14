@@ -406,7 +406,9 @@ class TestTheBoardsLeadWithTheirSubject:
         assert "var row := HBoxContainer.new()" in row and "row.add_child(view)" in row
         assert 'btn.add_theme_stylebox_override("normal", primary)' in row
         assert 'const INSTRUMENT_ACTIONS := ["sponsor_design", "buy_off_design", "guarantee_nation"]' in src
-        assert "actions = lead + rest" in src
+        # DDB-7 (S13b): the counsel's recommended row and a running mission's
+        # Cancel stay on top; the instruments lead the rest.
+        assert "others = lead + rest" in src and "actions = counsel + others" in src
 
     def test_the_diplomatic_ledger_leads_with_laws_doctrine_and_the_spent_league(self):
         """UXR3-29 / 77: a court's Laws and Doctrine lines under its name; the
@@ -421,13 +423,15 @@ class TestTheBoardsLeadWithTheirSubject:
         assert 'var words := "Talleyrand: Idle"' in _func(src, "_set_cabinet_line")
 
     def test_the_rail_names_the_mission_and_its_recall_fills_the_line(self):
-        """UXR3-1 / 18: "Talleyrand at <court> — <kind>" beside the book, a
-        Recall chip that FILLS the backend's own order (never sends); UXR3-F10:
-        the "+N" badge opens the queued notices."""
+        """UXR3-1 / 18: "Talleyrand at <court> — <kind>" beside the book;
+        UXR3-F10: the "+N" badge opens the queued notices. The Recall chip
+        filled the line until DDB-10 (Pre-Deploy S13b, October 14, 2026):
+        the filled line was refused at the Cabinet door, so the chip now
+        SENDS the backend's own recall order on the rail's action pipeline."""
         src = _src("scripts/notification_bar.gd")
         row = _func(src, "_create_mission_row")
         assert "btn.text = _mission_words(notif)" in row and 'chip.text = "Recall"' in row
-        assert "suggest_command.emit(recall)" in row and "notification_action_requested" not in row
+        assert "notification_action_requested.emit(recall)" in row and "suggest_command.emit(recall)" not in row
         assert "overflow_label.pressed.connect(_on_overflow_pressed)" in _func(src, "_ready")
         main = _src("scripts/main.gd")
         assert "notification_bar.suggest_command.connect(_on_tutorial_suggest_command)" in main

@@ -333,6 +333,10 @@ PAIR_SUBSTITUTE_DISABLED_RENDER_CODES = frozenset({
     "cooldown_active",
     "already_in_armistice",
     "insufficient_resources",
+    # DDB-8 (Pre-Deploy S13b): an ally still at war with the court — the
+    # separate peace is shown shut WITH that reason, never offered and
+    # then refused two screens later.
+    "commitment_paradox",
 })
 
 
@@ -357,6 +361,7 @@ PAIR_SUBSTITUTE_REFUSAL_CODES = frozenset({
     "cooldown_active",
     "insufficient_resources",
     "malformed_route",
+    "commitment_paradox",
 })
 
 
@@ -514,6 +519,19 @@ def evaluate_pair_peace_substitute_eligibility(
                 refusal["disabled_reason_display"] = (
                     f"{refusal['disabled_reason_display']} It costs {int(cost)} DP; "
                     f"you have {int(getattr(world, 'diplomatic_points', 0) or 0)}.")
+            return refusal
+
+    # DDB-8 (Pre-Deploy S13b, October 14, 2026): the per-court peace runs the
+    # send road's own paradox read — an ally still at war with the court is a
+    # HARD_STOP there, so the separate peace arrives shut with the ally named
+    # (the sea #15 / #16: offered on the table, refused two screens later).
+    if action_str == "seek_bilateral_peace":
+        from backend.game_logic.diplomacy import separate_peace_paradox
+        paradox = separate_peace_paradox(world, actor, target)
+        if paradox:
+            refusal = _refused("commitment_paradox")
+            refusal["disabled_reason_display"] = (
+                f"{paradox['reason']} — a separate peace would break her war.")
             return refusal
 
     return {

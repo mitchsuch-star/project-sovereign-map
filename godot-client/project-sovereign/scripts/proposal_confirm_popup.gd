@@ -366,11 +366,13 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			# the "Separate peace with <court>" chip carries the same
 			# `available` / `disabled_reason_display` pair the rail's
 			# substitute does, and renders shut WITH its reason.
-			if not bool(aff.get("available", true)):
-				btn.disabled = true
-				var aff_reason = str(aff.get("disabled_reason_display", ""))
-				if aff_reason != "":
-					btn.tooltip_text = aff_reason
+			# DDB-8 (S13b): through `Utils.set_available` — "Bavaria is still
+			# at war with Austria" is the shut chip's own reason.
+			var aff_available := bool(aff.get("available", true))
+			var aff_reason := str(aff.get("disabled_reason_display", ""))
+			Utils.set_available(btn, aff_available, str(aff.get("description", "")),
+				aff_reason if aff_reason != "" else str(aff.get("description", "")))
+			if not aff_available:
 				btn.add_theme_color_override("font_disabled_color", Color(COLOR_DIMMED))
 			btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
 			line.add_child(btn)
@@ -392,6 +394,13 @@ func _build_content(data: Dictionary) -> String:
 
 	var bbcode = ""
 	bbcode += "[b]DIPLOMATIC PROPOSAL — %s[/b]\n\n" % Utils.display_nation_name(str(target))
+	# DDB-9 (S13b): a refused send re-mounts this popup with its reason
+	# (`transient_error_display`, set by main.gd) — the settlement surface's
+	# PF-1 line, on the ordinary proposal too, so a refusal is never a silent
+	# blink (diplomacy-first #5).
+	var proposal_error = _safe_str(data.get("transient_error_display"))
+	if proposal_error != "":
+		bbcode += "[color=#e0a040]⚠ %s[/color]\n\n" % proposal_error
 
 	# BPH-A: Annotated terms grouped by direction
 	var annotated = data.get("annotated_terms", [])
@@ -578,6 +587,15 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	var heading_voice = str(data.get("talleyrand_text", ""))
 	if heading_voice != "":
 		bbcode += "[i][color=#e0c070]%s[/color][/i]\n\n" % heading_voice
+	# DDB-5 (S13b): every province whose title the treaty fixes — the
+	# ratifier's own status-quo rule, read before the signature, our own
+	# homeland first.
+	var titled = data.get("status_quo_review", [])
+	if titled is Array and titled.size() > 0:
+		bbcode += "[b]What the treaty titles[/b]\n"
+		for line in titled:
+			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(line)
+		bbcode += "\n"
 
 	var ally_petitions = data.get("ally_petitions", [])
 	if ally_petitions is Array and ally_petitions.size() > 0:
@@ -1003,6 +1021,10 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		var direction = _safe_str(row.get("direction_summary"))
 		var total = row.get("total", null)
 		var total_text = ""
+		# DDB-5 (S13b): a court whose own offer is on the table reads "Their
+		# own terms" without a /50 beside "This peace carries" (FA-3's row).
+		if _safe_str(row.get("band")) == "consented":
+			total = null
 		if total != null:
 			# G4F-7: threshold-honest framing — "44/50" makes the ratify bar
 			# visible in the number itself instead of a bare integer.

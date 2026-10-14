@@ -2017,11 +2017,17 @@ func _format_congress_court(ct: Dictionary, sitting: bool) -> String:
 	# The price's levers that are typed orders — the backend names the command
 	# (`levers[].command`). Gold is laid at the table only while it sits.
 	var orders: Array = []
+	# DDB-10 (S13b): a lever the Cabinet owns names its control ("F1 →
+	# Prussia → Buy Off Their Design"), never a typed line the door refuses.
+	var controls: Array = []
 	var levers = ct.get("levers", [])
 	if levers is Array:
 		for lv in levers:
 			if not (lv is Dictionary):
 				continue
+			var control := _cstr(lv, "control")
+			if control != "":
+				controls.append(_bb_safe(control))
 			var order := _cstr(lv, "command")
 			if order == "":
 				continue
@@ -2030,6 +2036,8 @@ func _format_congress_court(ct: Dictionary, sitting: bool) -> String:
 			orders.append("'" + _bb_safe(order) + "'")
 	if not orders.is_empty():
 		out += "    [color=#" + Utils.COLOR_INFO + "]Type " + " or ".join(PackedStringArray(orders)) + ".[/color]\n"
+	if not controls.is_empty():
+		out += "    [color=#" + Utils.COLOR_INFO + "]In the Cabinet: " + "; ".join(PackedStringArray(controls)) + ".[/color]\n"
 	if stance != "GONE" and nation != "":
 		var where: String = seat if seat != "" else display
 		out += "    [url=congress_court:" + nation + "][color=#" + Utils.COLOR_GOLD + "]Open the Cabinet at " + where + " →[/color][/url]\n"

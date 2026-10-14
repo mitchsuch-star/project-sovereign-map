@@ -1537,10 +1537,16 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
                 else:
                     cost = f" ({first:,}g)" if first else ""
                 text = f"buy off {names}{cost} (+{value})"
+                # DDB-10 (S13b): the buy-off is the Cabinet's row, named as
+                # such — the typed line this lever quoted was refused at the
+                # Cabinet door (diplomacy-first #15 / #27).
+                from backend.game_logic.formations import formed_display_name
                 levers.append({"key": "design", "value": value, "gold": first or 0,
                                "chain": [d["id"] for d in chain], "warmth": warmth,
                                "orders": len(chain),
-                               "text": text, "command": f"buy off {court}'s design"})
+                               "text": text,
+                               "control": (f"F1 → {formed_display_name(world, court)} "
+                                           f"→ Buy Off Their Design")})
     # 3. A treaty — the best one the court's relation lets it ratify.
     if not at_war:
         treaty = _treaty_lever(world, court, base)

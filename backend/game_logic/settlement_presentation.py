@@ -494,7 +494,8 @@ def _term_display(term: Mapping[str, Any]) -> str:
     if not ttype:
         return "No authored terms"
     if ttype == "peace":
-        return "End hostilities (no material change)"
+        # DDB-5 (S13b): the status quo the peace titles, said plainly.
+        return "End hostilities — each side keeps what it holds, now by treaty"
     base = clause_display_name(ttype)
     t_from = str(term.get("from", "") or term.get("payer", "") or term.get("vassal_nation", "") or "")
     t_to = str(term.get("to", "") or term.get("recipient", "") or term.get("overlord", "") or "")

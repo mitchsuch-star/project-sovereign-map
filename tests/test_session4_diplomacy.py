@@ -112,12 +112,16 @@ def _make_test_proposal(nation="Prussia", proposal_type="armistice_losing", prio
 class TestAIDiplomacyTriggers:
     """Test AI proposal generation triggers (P1/P2/P4/P7)."""
 
-    def test_p1_trigger_war_score_below_negative_40(self):
+    def test_p1_trigger_war_score_below_negative_40(self, monkeypatch):
         """P1: nation at WAR with France, war_score < effective threshold -> proposal.
 
         R115: Prussia's hawk diplomat shifts P1 threshold from -40 to -60.
         We set war_score to -65 to trigger P1 for hawk personality.
         """
+        # DDB-X5 (S13b): P1's threshold logic, read at the pre-DW-2 x0.3 —
+        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
+        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
+                            'bilateral_war_score_weight', lambda: 0.3)
         world = make_war_world("Prussia")
         _clear_opening_bloc(world)
         # We need Prussia LOSING (< -60 for hawk threshold).
@@ -275,8 +279,12 @@ class TestAIDiplomacyDelivery:
         assert "reject_ai_proposal" in actions
         assert "counter_ai_proposal" in actions
 
-    def test_queue_proposal_when_blocking_dialogue(self):
+    def test_queue_proposal_when_blocking_dialogue(self, monkeypatch):
         """Proposal queued via dialogue_manager.push() when dialogue already active."""
+        # DDB-X5 (S13b): P1's threshold logic, read at the pre-DW-2 x0.3 —
+        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
+        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
+                            'bilateral_war_score_weight', lambda: 0.3)
         world = make_war_world("Prussia")
         _clear_opening_bloc(world)
         # R115: Hawk P1 threshold is -60, need war_score < -60

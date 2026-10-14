@@ -3442,7 +3442,8 @@ class TestR39AQuestionIsNeverAnAnswer:
         r = _respond(client, "should i accept?", top["dialogue_id"])
         assert r.get("success") is False
         assert r.get("message") == ("A question is not an answer, Sire — nothing was relayed. "
-                                    "Answer with one of: 1=Accept, 2=Reject, 3=Counter-offer.")
+                                    "Answer with one of: 1=Accept, 2=Reject, "
+                                    "3=Let Talleyrand haggle (1 DP).")  # DDB-4 (S13b): the honest label
         assert _state_with(w, "Portugal") == "PEACE" and w.dialogue_manager.peek() is top
 
     def test_an_exact_id_a_digit_and_an_exact_label_are_exempt(self):

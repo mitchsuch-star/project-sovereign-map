@@ -477,8 +477,9 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 
 func _create_mission_row(notif: Dictionary) -> HBoxContainer:
 	"""UXR3-1 / 18: Talleyrand's mission names itself beside its book icon —
-	"Talleyrand at <court> — <kind>" — and carries a Recall chip that fills
-	the backend's own recall order into the command line (never sends)."""
+	"Talleyrand at <court> — <kind>" — and carries a Recall chip that sends
+	the backend's own recall order (DDB-10: the line it once filled was
+	refused at the Cabinet door)."""
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -499,11 +500,15 @@ func _create_mission_row(notif: Dictionary) -> HBoxContainer:
 		chip.theme_type_variation = &"CaptionButton"
 		chip.focus_mode = Control.FOCUS_NONE
 		chip.custom_minimum_size = Vector2(0, 28)
-		chip.tooltip_text = "Writes the order in the command line — \"" + recall \
-			+ "\" — for you to send with Enter. " + str(details.get("action_detail", ""))
+		# DDB-10 (Pre-Deploy S13b): the chip SENDS its order — the rail's
+		# own action pipeline, as every other rail button — instead of
+		# writing a typed line the Cabinet door then refuses (diplomacy-first
+		# #25: "Matters of state are conducted at the table").
+		chip.tooltip_text = "Recalls Talleyrand from this court. " \
+			+ str(details.get("action_detail", ""))
 		chip.add_theme_color_override("font_color", Utils.UI_GOLD)
 		chip.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)
-		chip.pressed.connect(func(): suggest_command.emit(recall))
+		chip.pressed.connect(func(): notification_action_requested.emit(recall))
 		row.add_child(chip)
 	return row
 

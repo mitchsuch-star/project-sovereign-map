@@ -619,7 +619,8 @@ class TestTheDeskReadsTheLeague:
         client, world = shipped
         msg = _ask(client, "what keeps Austria out?")
         assert msg.startswith("Sire — Austria — relations −50: she would join."), msg
-        assert "'improve relations with Austria'" in msg
+        # DDB-X8 (S13b): the Cabinet control, never a typed line the door refuses.
+        assert "F1 → Austria → Improve Relations" in msg
 
     def test_the_alarm_names_the_league(self, shipped):
         client, world = shipped
@@ -644,11 +645,12 @@ class TestTheCounselNamesTheKeepOut:
         world.nation_gold["France"] = 99999
         line = league_counsel(world, "France")
         assert line and line[0].startswith(
-            "buy off Prussia — keeps Prussia out of the next league: buying off her design ("), line
+            "F1 → Prussia → Buy Off Their Design — keeps Prussia out of the next "
+            "league: buying off her design ("), line
         assert any("out of the next league" in x for x in what_can_i_do(world, "France", limit=10))
         world.nation_gold["France"] = 0
         line = league_counsel(world, "France")
-        assert line == ["improve relations with Prussia — keeps Prussia out of the next "
+        assert line == ["F1 → Prussia → Improve Relations — keeps Prussia out of the next "
                         "league: Talleyrand brings her to −10 in 1 turn (1 DP)"], line
 
     def test_at_war_with_a_great_power_it_is_silent(self):

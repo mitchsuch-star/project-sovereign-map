@@ -993,6 +993,14 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
         options, talleyrand_text = collapse_identical_packages(
             options, talleyrand_text, target_nation)
 
+    # DDB-9 (Pre-Deploy S13b, October 14, 2026): the generic menu's sends
+    # ("Satisfy their design" opens it) read the send road's ONE verdict at
+    # mount — an option the Cabinet would refuse to send (the alliance
+    # paradox on a peace above all) arrives DISABLED with its reason, never
+    # pressed into a silent re-mount (diplomacy-first #5).
+    if target_nation and intent_type == "proposal_options":
+        options = _stamp_menu_sends(world, options, player_nation, target_nation)
+
     # Context-aware option descriptions for war proposals
     if target_nation and intent_type == "proposal_confirm":
         from backend.game_logic.diplomacy import get_war_score_for
@@ -1229,6 +1237,57 @@ def _settlement_offer_on_the_desk(world, player: str, target: str) -> str:
             "offer_already_pending",
             "Their terms are already on the desk, Sire — answer the offer in the mailbox."))
     return ""
+
+
+def _stamp_menu_sends(world, options: list, player: str, target: str) -> list:
+    """DDB-9: each `execute_proposal` of the generic menu stamped from
+    `treaty.can_sign(at_send=True)` — refused, it arrives disabled with the
+    verdict's words (the paradox in `peace_paradox_block_text`'s)."""
+    from backend.game_logic.treaty import can_sign
+    out = []
+    for opt in options:
+        terms = opt.get("terms") if isinstance(opt, dict) else None
+        if not (isinstance(opt, dict) and opt.get("action") == "execute_proposal"
+                and isinstance(terms, dict)):
+            out.append(opt)
+            continue
+        verdict = can_sign(world, {
+            "type": terms.get("type") or terms.get("proposal_type") or "peace",
+            "proposer_nation": player, "target_nation": target,
+            "sweeteners": list(terms.get("sweeteners") or []),
+            "demands": list(terms.get("demands") or []),
+            "clauses": list(terms.get("clauses") or []),
+        }, at_send=True)
+        if not verdict.ok:
+            reason = (peace_paradox_block_text(world, player, target)
+                      if verdict.clause == "paradox" else "") or verdict.message
+            opt = dict(opt)
+            opt["available"] = False
+            opt["enabled"] = False
+            opt["disabled_reason_display"] = reason
+            opt["unavailable_reason"] = reason
+        out.append(opt)
+    return out
+
+
+def peace_paradox_block_text(world, proposer: str, target: str) -> str:
+    """The sentence that stops a separate peace under an alliance paradox —
+    "" when none stands. FA-D17 named the one road the executor exempts (the
+    armistice); DDB-8 (Pre-Deploy S13b) quotes that armistice's OWN
+    likelihood, so the player is not sent to a truce blind. ONE source for
+    the bilateral draft's block and the generic menu's Propose peace
+    (DDB-9)."""
+    from backend.game_logic.diplomacy import separate_peace_paradox
+    paradox = separate_peace_paradox(world, proposer, target)
+    if not paradox:
+        return ""
+    likely = paradox.get("armistice_likelihood") or ""
+    odds = (f" — the court reads it {likely} ({int(paradox.get('armistice_score', 0))})"
+            if likely else "")
+    return (f"I cannot deliver this, Sire — {paradox.get('display', '')} "
+            f"Propose an armistice instead{odds}: a truce carries no contradiction, "
+            f"and its expiry makes the peace. Or settle the war jointly at the "
+            f"settlement table.")
 
 
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
@@ -1550,25 +1609,9 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # the paradox gates bilateral PEACE only — armistice variants are
     # exempt at the send gate, so the mount warning matches.
     if proposal_type == "peace":
-        from backend.game_logic.diplomacy import get_peace_commitment_conflicts
-        _conflicts = get_peace_commitment_conflicts(
-            world, player_nation, target_nation,
-            (dialogue.get("proposal_terms") or {}).get("clauses", [])
-            if isinstance(dialogue.get("proposal_terms"), dict) else [],
-        )
-        _hard = [c for c in _conflicts if c.get("severity") == "HARD_STOP"]
-        if _hard:
-            _ally = str(_hard[0].get("affected_entity") or "an ally")
-            # FA-D17 (slice 17, Phase 2): the old sentence named a route
-            # France cannot execute ("resolve X's war first") and omitted
-            # the one the executor exempts — the armistice carries no
-            # contradiction, and its expiry makes the peace.
-            block_text = (
-                f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
-                f"Propose an armistice instead (a truce carries no contradiction, "
-                f"and its expiry makes the peace), or settle the war jointly at the "
-                f"settlement table."
-            )
+        _paradox_block = peace_paradox_block_text(world, player_nation, target_nation)
+        if _paradox_block:
+            block_text = _paradox_block
             dialogue["commitment_block_warning"] = block_text
             dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
                 {"severity": "high", "text": block_text}

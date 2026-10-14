@@ -55,6 +55,7 @@ from backend.game_logic.settlement_routes import (
     evaluate_war_detail_actionability,
 )
 from backend.game_logic.settlement_staging import (
+    _pair_substitute_seed_terms,
     SETTLEMENT_EDITOR_CALLER_KIND,
     consent_kwargs_for_restage,
     _DEMAND_CLAUSE_CAP_REASON,
@@ -3050,109 +3051,6 @@ def _handle_pair_peace_substitute_action(
     }
 
 
-def _pair_substitute_seed_terms(
-    settlement_terms: List[Mapping[str, Any]],
-    *,
-    target: str,
-    proposer_leader: str,
-) -> Dict[str, List[Dict[str, Any]]]:
-    """G4F-8 carry-over — translate the target court's slice of the
-    authored settlement package into the bilateral demands/sweeteners
-    dialect, so confirming the pair substitute does not throw the player's
-    drafting away.
-
-    Mapping (settlement clause → bilateral term):
-    - ``gold_indemnity`` FROM the target → demand ``gold_lump`` at face
-      value (TO the target → sweetener ``gold_lump``).
-    - ``gold_per_turn`` → ``gold_lump`` at ``amount × turns`` — the
-      total-obligation basis the solvency check projects. The bilateral
-      recurring dialect is PERPETUAL (no ``turns`` field), so a finite
-      settlement stream must convert by total, never by rate.
-    - ``territory_cede`` FROM the target → one aggregated
-      ``territory_cede`` demand carrying every region.
-    - ``create_client`` FROM the target TO the proposer → a
-      ``create_client`` demand carrying the template ``tag`` (the
-      authority), plus the denormalized ``provinces`` /
-      ``client_display_name`` the bilateral pricing and display seams
-      read. IGR-D / gate Q2(a): this is the Tilsit clause — the Duchy of
-      Warsaw was carved from Prussia ALONE while the British war ran — so
-      it is the one identity clause that travels. Everything else in that
-      family stays settlement-tier and the substitute is DISABLED rather
-      than dropped (``settlement_staging`` owns that gate).
-    - The remaining identity-bearing clauses (vassalage, liberation,
-      forced_alliance, …) and proposer-paid territory are settlement-tier
-      — skipped; the bilateral flow's own authoring handles anything
-      further.
-    """
-    demands: List[Dict[str, Any]] = []
-    sweeteners: List[Dict[str, Any]] = []
-    demanded_regions: List[str] = []
-    for term in settlement_terms or []:
-        if not isinstance(term, Mapping):
-            continue
-        ttype = str(term.get("type") or "")
-        frm = str(term.get("from") or "")
-        to = str(term.get("to") or "")
-        amount = int(term.get("amount", 0) or 0)
-        if ttype == "gold_indemnity" and amount > 0:
-            if frm == target:
-                demands.append({"type": "gold_lump", "value": amount})
-            elif frm == proposer_leader and to == target:
-                sweeteners.append({"type": "gold_lump", "value": amount})
-        elif ttype == "gold_per_turn" and amount > 0:
-            total = amount * max(0, int(term.get("turns", 0) or 0))
-            if total <= 0:
-                continue
-            if frm == target:
-                demands.append({"type": "gold_lump", "value": total})
-            elif frm == proposer_leader and to == target:
-                sweeteners.append({"type": "gold_lump", "value": total})
-        elif ttype == "territory_cede" and frm == target:
-            region = str(term.get("region") or "")
-            if region:
-                demanded_regions.append(region)
-        elif ttype == "create_client" and frm == target and to == proposer_leader:
-            # BOTH directions are checked, unlike the money arms: a joint
-            # draft may carry a carve an ALLY makes out of this same court
-            # (GR5 — `create_client` is carver-parameterised), and dragging
-            # that into France's private peace would erect someone else's
-            # client on France's authority.
-            cc_tag = str(term.get("tag") or "")
-            if cc_tag:
-                cc_provinces = [
-                    str(p) for p in (term.get("provinces") or []) if p
-                ]
-                demands.append({
-                    "type": "create_client",
-                    # The bilateral acceptance walk multiplies by `value`,
-                    # so it carries the province count — a two-province
-                    # carve must cost more than a one-province carve.
-                    "value": max(1, len(cc_provinces)),
-                    "tag": cc_tag,
-                    "provinces": cc_provinces,
-                    # Not decoration: `annotate_peace_terms` falls back to
-                    # the raw template id, so omitting this renders
-                    # "France erects DuchyOfWarsaw" on the confirm popup.
-                    "client_display_name": str(
-                        term.get("client_display_name") or cc_tag),
-                })
-        elif (ttype == "continental_system_join" and frm == target
-              and to == proposer_leader):
-            # The Tilsit clause travels with the separate peace (§6.6 item
-            # 5) — the peace that enrols a beaten court in the System is
-            # the bilateral one (Prussia and Russia at Tilsit, 1807). It
-            # carries `value: 1`: the bilateral walk multiplies the rate by
-            # it, and a value-less demand would price at nothing.
-            demands.append({"type": "continental_system_join", "value": 1})
-    if demanded_regions:
-        demands.append({
-            "type": "territory_cede",
-            "value": len(demanded_regions),
-            "regions": demanded_regions,
-        })
-    return {"demands": demands, "sweeteners": sweeteners}
-
-
 def _execute_pair_substitute_handoff(
     world: Any,
     *,
@@ -3250,6 +3148,16 @@ def _execute_pair_substitute_handoff(
         if proposal_type == "armistice" and seed["demands"]:
             armistice_demands_dropped = True
             seed = dict(seed, demands=[])
+        # DDB-X10 (Pre-Deploy S13b, found by DDB-X5's sweep): the armistice
+        # arm carries concessions ONLY whatever the seed — the drafted truce's
+        # own suggested demand (a coveted province) survived whenever there
+        # was nothing to seed, held off only while the estimator happened to
+        # reject it (G4F-15: "a truce that extracts tribute is not a truce").
+        if proposal_type == "armistice":
+            for opt in proposal_dialogue.get("options", []):
+                if opt.get("action") == "execute_proposal" and (opt.get("terms") or {}).get("demands"):
+                    opt["terms"] = dict(opt["terms"], demands=[])
+                    armistice_demands_dropped = True
         if seed["demands"] or seed["sweeteners"]:
             seeded = False
             for opt in proposal_dialogue.get("options", []):
@@ -3277,6 +3185,16 @@ def _execute_pair_substitute_handoff(
                 except Exception as exc:  # pragma: no cover - defensive
                     report(exc, "settlement_actions._execute_pair_substitute_handoff: import backend.game_logic.diplomatic_dialogue #2")
                 proposal_dialogue["carried_from_settlement"] = True
+        if armistice_demands_dropped and not proposal_dialogue.get("carried_from_settlement"):
+            # DDB-X10: the summary describes the truce as it now stands.
+            try:
+                from backend.game_logic.diplomatic_dialogue import (
+                    _enrich_proposal_summary,
+                )
+                proposal_dialogue = _enrich_proposal_summary(
+                    proposal_dialogue, selected_target, proposal_type, world)
+            except Exception as exc:  # pragma: no cover - defensive
+                report(exc, "settlement_actions._execute_pair_substitute_handoff: DDB-X10 re-enrich")
         if armistice_demands_dropped:
             # D3 never-wordless: the drop is voiced in the popup the player
             # is about to read, not silently applied.

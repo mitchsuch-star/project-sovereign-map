@@ -2464,6 +2464,109 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
     return sentence
 
 
+def _pair_substitute_seed_terms(
+    settlement_terms: List[Mapping[str, Any]],
+    *,
+    target: str,
+    proposer_leader: str,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """G4F-8 carry-over — translate the target court's slice of the
+    authored settlement package into the bilateral demands/sweeteners
+    dialect, so confirming the pair substitute does not throw the player's
+    drafting away.
+
+    Mapping (settlement clause → bilateral term):
+    - ``gold_indemnity`` FROM the target → demand ``gold_lump`` at face
+      value (TO the target → sweetener ``gold_lump``).
+    - ``gold_per_turn`` → ``gold_lump`` at ``amount × turns`` — the
+      total-obligation basis the solvency check projects. The bilateral
+      recurring dialect is PERPETUAL (no ``turns`` field), so a finite
+      settlement stream must convert by total, never by rate.
+    - ``territory_cede`` FROM the target → one aggregated
+      ``territory_cede`` demand carrying every region.
+    - ``create_client`` FROM the target TO the proposer → a
+      ``create_client`` demand carrying the template ``tag`` (the
+      authority), plus the denormalized ``provinces`` /
+      ``client_display_name`` the bilateral pricing and display seams
+      read. IGR-D / gate Q2(a): this is the Tilsit clause — the Duchy of
+      Warsaw was carved from Prussia ALONE while the British war ran — so
+      it is the one identity clause that travels. Everything else in that
+      family stays settlement-tier and the substitute is DISABLED rather
+      than dropped (``settlement_staging`` owns that gate).
+    - The remaining identity-bearing clauses (vassalage, liberation,
+      forced_alliance, …) and proposer-paid territory are settlement-tier
+      — skipped; the bilateral flow's own authoring handles anything
+      further.
+    """
+    demands: List[Dict[str, Any]] = []
+    sweeteners: List[Dict[str, Any]] = []
+    demanded_regions: List[str] = []
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = str(term.get("type") or "")
+        frm = str(term.get("from") or "")
+        to = str(term.get("to") or "")
+        amount = int(term.get("amount", 0) or 0)
+        if ttype == "gold_indemnity" and amount > 0:
+            if frm == target:
+                demands.append({"type": "gold_lump", "value": amount})
+            elif frm == proposer_leader and to == target:
+                sweeteners.append({"type": "gold_lump", "value": amount})
+        elif ttype == "gold_per_turn" and amount > 0:
+            total = amount * max(0, int(term.get("turns", 0) or 0))
+            if total <= 0:
+                continue
+            if frm == target:
+                demands.append({"type": "gold_lump", "value": total})
+            elif frm == proposer_leader and to == target:
+                sweeteners.append({"type": "gold_lump", "value": total})
+        elif ttype == "territory_cede" and frm == target:
+            region = str(term.get("region") or "")
+            if region:
+                demanded_regions.append(region)
+        elif ttype == "create_client" and frm == target and to == proposer_leader:
+            # BOTH directions are checked, unlike the money arms: a joint
+            # draft may carry a carve an ALLY makes out of this same court
+            # (GR5 — `create_client` is carver-parameterised), and dragging
+            # that into France's private peace would erect someone else's
+            # client on France's authority.
+            cc_tag = str(term.get("tag") or "")
+            if cc_tag:
+                cc_provinces = [
+                    str(p) for p in (term.get("provinces") or []) if p
+                ]
+                demands.append({
+                    "type": "create_client",
+                    # The bilateral acceptance walk multiplies by `value`,
+                    # so it carries the province count — a two-province
+                    # carve must cost more than a one-province carve.
+                    "value": max(1, len(cc_provinces)),
+                    "tag": cc_tag,
+                    "provinces": cc_provinces,
+                    # Not decoration: `annotate_peace_terms` falls back to
+                    # the raw template id, so omitting this renders
+                    # "France erects DuchyOfWarsaw" on the confirm popup.
+                    "client_display_name": str(
+                        term.get("client_display_name") or cc_tag),
+                })
+        elif (ttype == "continental_system_join" and frm == target
+              and to == proposer_leader):
+            # The Tilsit clause travels with the separate peace (§6.6 item
+            # 5) — the peace that enrols a beaten court in the System is
+            # the bilateral one (Prussia and Russia at Tilsit, 1807). It
+            # carries `value: 1`: the bilateral walk multiplies the rate by
+            # it, and a value-less demand would price at nothing.
+            demands.append({"type": "continental_system_join", "value": 1})
+    if demanded_regions:
+        demands.append({
+            "type": "territory_cede",
+            "value": len(demanded_regions),
+            "regions": demanded_regions,
+        })
+    return {"demands": demands, "sweeteners": sweeteners}
+
+
 def separate_peace_chip(world, court: str, *, war_id: str, staged_terms,
                         actor: str) -> Dict[str, Any]:
     """The per-court "Separate peace with <court>" affordance for a covered
@@ -2501,7 +2604,45 @@ def separate_peace_chip(world, court: str, *, war_id: str, staged_terms,
         chip["disabled_reason_display"] = str(
             eligibility.get("disabled_reason_display")
             or "A separate peace with this court is not open now.")
+        return chip
+    # DDB-11 (Pre-Deploy S13b): the chip shows the bilateral preview's OWN
+    # score and band for the terms it hands off — the court's slice of the
+    # table carried across (`_pair_substitute_seed_terms`, the hand-off's own
+    # translation), scored by the bilateral formula the next screen uses
+    # (the sea #15: "Will sign (55/50)" here, "0 — REJECT" there).
+    estimate = bilateral_estimate(world, court, staged_terms=staged_terms, actor=actor)
+    chip["bilateral_estimate"] = estimate
+    chip["label"] = (f"{chip['label']} — alone: {estimate['score']} "
+                     f"({estimate['band']})")
+    chip["description"] = (f"{chip['description']} Alone, Talleyrand's bilateral "
+                           f"table reads these terms {estimate['score']} "
+                           f"({estimate['band']}).")
     return chip
+
+
+def bilateral_estimate(world, court: str, *, staged_terms, actor: str) -> Dict[str, Any]:
+    """DDB-11: what the bilateral preview scores for the separate peace the
+    per-court chip hands off — the court's slice of the staged package in
+    the bilateral dialect (or the suggested peace, at its centre, when the
+    slice is empty), through `calculate_acceptance`. {score, outcome, band}."""
+    from backend.game_logic.diplomacy import calculate_acceptance, get_likelihood_descriptor
+    from backend.game_logic.diplomatic_templates import generate_suggested_terms
+    seed = _pair_substitute_seed_terms(
+        [t for t in (staged_terms or []) if isinstance(t, Mapping)],
+        target=court, proposer_leader=actor)
+    terms = generate_suggested_terms(court, "peace", world, deterministic=True)
+    if seed["demands"] or seed["sweeteners"]:
+        terms = dict(terms, demands=seed["demands"], sweeteners=seed["sweeteners"])
+    result = calculate_acceptance({
+        "type": terms.get("type") or "peace", "proposer_nation": actor,
+        "target_nation": court,
+        "sweeteners": list(terms.get("sweeteners") or []),
+        "demands": list(terms.get("demands") or []),
+        "clauses": list(terms.get("clauses") or []),
+    }, world)
+    score = int(result.get("score", 0) or 0)
+    return {"score": score, "outcome": str(result.get("outcome") or ""),
+            "band": get_likelihood_descriptor(score)}
 
 
 def _scoped_settlement_drafts(world: Any) -> Dict[str, List[Dict[str, Any]]]:
@@ -3229,6 +3370,14 @@ def build_settlement_confirm_dialogue(
                         "selected_target_nation": resolved_target,
                     })
                 continue
+            if action_id == "seek_bilateral_peace":
+                # DDB-11's sibling: the blocked review's own hand-off states
+                # the bilateral estimate too (the chip's `bilateral_estimate`).
+                _est = bilateral_estimate(
+                    world, resolved_target, staged_terms=staged_terms_for_gate,
+                    actor=actor_for_substitute)
+                description = (f"{description} Alone, Talleyrand's bilateral table "
+                               f"reads these terms {_est['score']} ({_est['band']}).")
             options.append({
                 "label": label,
                 "action": action_id,
@@ -3618,10 +3767,18 @@ def build_settlement_confirm_dialogue(
         world, covered, preview.get("settlement_terms") or []))
     if _recognition_note:
         text = f"{text} {_recognition_note}"
+    # DDB-5 (Pre-Deploy S13b): the review lists every province whose title
+    # the treaty fixes — the ratifier's own status-quo rule, read before the
+    # signature (no mutation), the speaker's homeland held by another court
+    # first (the conquest #12 / sea #18 players read "no map redrawn").
+    _status_quo_review = settlement_status_quo_review(
+        world, war_instance, proposer_side, covered,
+        preview.get("settlement_terms") or [])
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
         "dialogue_mode": dialogue_mode,
+        "status_quo_review": _status_quo_review,
         # Re-front Slice 1 §11.2/§11.4: the per-court acceptance block and the
         # per-covered-court carry gate ride on every settlement_confirm
         # dialogue (PROPOSE and REVIEW) so the displayed acceptance IS the gate.
@@ -3822,6 +3979,45 @@ def build_settlement_confirm_dialogue(
             preview.get("forced_alliance_continental_toggle_differential") or []
         ),
     }
+
+
+def settlement_status_quo_review(world: Any, war_instance: Mapping[str, Any],
+                                 proposer_side: str, covered: Iterable[str],
+                                 settlement_terms: Iterable[Mapping[str, Any]]) -> List[str]:
+    """DDB-5: the provinces whose title this settlement fixes, in the
+    ratifier's own words — `game_end.status_quo_forecast_lines` (the SAME
+    `status_quo_retentions` the signing runs, DDB-12's homeland returns
+    included) for every cross-side pair the treaty resolves, the package's
+    own cessions and carves left out. From the player's chair; a line about
+    the player's homeland comes first. Pure read."""
+    from backend.game_logic.game_end import status_quo_forecast_lines
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
+    player = str(getattr(world, "player_nation", "France") or "France")
+    side_by_nation = dict((war_instance or {}).get("side_by_nation") or {})
+    covered_set = {str(c) for c in (covered or []) if c}
+    ours = [n for n, side in side_by_nation.items() if side == proposer_side]
+    moved: set = set()
+    for term in settlement_terms or []:
+        if isinstance(term, Mapping):
+            moved.update(cession_shaped_regions(term))
+    first: List[str] = []
+    rest: List[str] = []
+    seen: set = set()
+    for a in sorted(ours):
+        for b in sorted(covered_set):
+            if world.get_diplomatic_state(a, b) not in ("WAR", "ARMISTICE"):
+                continue
+            words = status_quo_forecast_lines(world, a, b, player, moved)
+            for line in words.get("warnings") or []:
+                if line not in seen:
+                    seen.add(line)
+                    first.append(line)
+            for line in words.get("lines") or []:
+                if line in seen:
+                    continue
+                seen.add(line)
+                (first if "to us by the treaty" in line else rest).append(line)
+    return first + rest
 
 
 def covered_courts_at_war(world: Any, war: Mapping[str, Any], *, player: str) -> List[str]:

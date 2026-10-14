@@ -2582,8 +2582,13 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                         and popup.get("dialogue_id") == _current.get("dialogue_id")):
                     from backend.game_logic.treaty import refresh_letter_verdict
                     _fresh = refresh_letter_verdict(world, _current)
-                    if isinstance(_fresh, dict) and "options" in _fresh:
-                        popup["options"] = _fresh["options"]
+                    if isinstance(_fresh, dict):
+                        # DDB-4: the re-read preview rides beside the options.
+                        for _key in ("options", "war_context_snapshot", "annotated_terms",
+                                     "fallout_warnings", "commitment_conflicts",
+                                     "harshness", "harshness_label"):
+                            if _key in _fresh:
+                                popup[_key] = _fresh[_key]
             if "proposal_type" in popup and "proposal_type_display" not in popup:
                 popup["proposal_type_display"] = proposal_display_name(popup.get("proposal_type"))
             if popup.get("decision_reason") and "decision_reason_display" not in popup:

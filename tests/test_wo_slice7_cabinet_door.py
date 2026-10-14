@@ -129,6 +129,11 @@ def _row_class(row: dict) -> str:
     not_action = str(expected.get("not_action") or "")
     if not_action:
         return "order" if not_action.startswith("diplomatic") else "read_only"
+    # DDB-10 (S13b): a bid with its sum is a PRICED order the door lets
+    # through (the chips bid 100g; a larger bid is typed) — pinned on its own
+    # in `test_the_priced_bid_passes_the_door`.
+    if action == "diplomatic_bid" and _PRICED_SUM.search(str(row.get("utterance") or "").lower()):
+        return "priced_order"
     if action in EXCLUDED_ACTIONS:
         return "read_only"
     if action in FAMILY_ACTIONS:
@@ -238,6 +243,9 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
     for keyword in lists["no_home"]:
         if keyword in lower:
             return ""
+    # DDB-10 (Pre-Deploy S13b): the priced bid passes (`_is_priced_bid`).
+    if _is_priced_bid(lower, forms):
+        return ""
     for keyword in lists["war_room"]:
         if keyword in lower:
             return "war_room"
@@ -273,6 +281,24 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
             return ""
         return "cabinet"
     return ""
+
+
+_PRICED_SUM = re.compile(r"\d[\d,]*\s*(gold|g)\b")
+
+
+def _is_priced_bid(lower: str, forms: list) -> bool:
+    """Mirror of the client's `_is_priced_bid` (DDB-10): "bid for <court>,
+    <N> gold" — a court named right after the verb and a sum of gold."""
+    at = lower.find("bid for ")
+    if at < 0:
+        return False
+    tail = lower[at + len("bid for "):].strip()
+    if tail.startswith("the "):
+        tail = tail[4:]
+    if not any(tail == f or tail.startswith(f + " ") or tail.startswith(f + ",")
+               for f in forms):
+        return False
+    return bool(_PRICED_SUM.search(tail))
 
 
 def _has_word(text: str, word: str) -> bool:
@@ -971,3 +997,20 @@ class TestTheMirrorAgreesWithTheParser:
             if v and a not in DIPLOMATIC_PARSE_ACTIONS]
         assert stolen == [], (
             f"the redirect stole a non-diplomatic order: {stolen}")
+
+
+class TestThePricedBidPassesTheDoor:
+    """DDB-10 (Pre-Deploy S13b, October 14, 2026): the typed bid the rail
+    itself echoes is a priced order and passes; a bare bid stays claimed
+    (the Cabinet's row bids 100g), and a buy-off stays claimed."""
+
+    def test_the_priced_bid_passes_the_door(self, corpus, lists, nation_forms):
+        priced = [r for r in corpus if _row_class(r) == "priced_order"]
+        assert priced, "the corpus lost its priced bid — the pin is blind"
+        for row in priced:
+            assert _redirect_verdict(row["utterance"], lists, nation_forms) == ""
+        assert _redirect_verdict("bid for Sardinia, 1500 gold", lists, nation_forms) == ""
+
+    def test_a_bare_bid_and_a_buy_off_stay_claimed(self, lists, nation_forms):
+        assert _redirect_verdict("bid for Sardinia", lists, nation_forms) == "cabinet"
+        assert _redirect_verdict("buy off Prussia", lists, nation_forms) == "cabinet"

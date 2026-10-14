@@ -239,9 +239,17 @@ def _judge(expect: str, named_court: str, current_court: str, response: Dict[str
         if not gone and not others_moved and not moved["states_moved"]:
             return {"verdict": "bound", "why": "nothing relayed"}
         return {"verdict": "misbind", "why": f"a fail-closed line moved {gone} / {moved['states_moved']}"}
+    # DDB-4 (Pre-Deploy S13b): Counter's dry run — when Talleyrand finds no
+    # counter the court could take, the offer STANDS, nothing is spent and the
+    # SAME letter is re-mounted. Bound when nothing at all moved.
+    stands = (not gone and not others_moved and not moved["states_moved"]
+              and response.get("success") is False
+              and "the offer stands" in msg)
     if expect == "button_own":
         if gone == [named_court] and not others_moved:
             return {"verdict": "bound", "why": "the letter with that id answered"}
+        if stands:
+            return {"verdict": "bound", "why": "no counter found: the offer stands, nothing moved"}
         return {"verdict": "misbind", "why": f"button own id moved {gone or 'nothing'} / others {others_moved}"}
     if expect == "button_stale":
         if not gone and not moved["states_moved"] and response.get("stale_dialogue"):
@@ -250,6 +258,8 @@ def _judge(expect: str, named_court: str, current_court: str, response: Dict[str
     if expect == "button_bare":
         if gone == [current_court] and not others_moved:
             return {"verdict": "bound", "why": "no id: the current letter answered"}
+        if stands:
+            return {"verdict": "bound", "why": "no id: no counter found, the offer stands"}
         return {"verdict": "misbind", "why": f"button no id moved {gone or 'nothing'}"}
     if expect == "mailbox":
         if gone == [named_court] and not others_moved:

@@ -731,6 +731,16 @@ def refresh_letter_verdict(world, dialogue: Dict[str, Any]) -> Optional[Dict[str
         return None
     stamp_letter(world, dialogue)
     payload = dialogue.get("popup_payload")
+    # DDB-4 (S13b): a peace letter's war score and its preview are re-read
+    # from the board at every read, never the snapshot of its arrival.
+    if (_letter_kind(dialogue) == "treaty" and isinstance(payload, dict)
+            and payload.get("war_context_snapshot") is not None):
+        context = dialogue.get("context") if isinstance(dialogue.get("context"), dict) else {}
+        terms = (context or {}).get("counter_terms") or (context or {}).get("proposal") or {}
+        source = str((context or {}).get("source_nation") or dialogue.get("target_nation") or "")
+        if terms and source:
+            from backend.game_logic.mailbox_payloads import attach_peace_preview
+            attach_peace_preview(world, payload, source, terms)
     if isinstance(payload, dict) and payload:
         _mirror_options(dialogue, payload)
         return payload

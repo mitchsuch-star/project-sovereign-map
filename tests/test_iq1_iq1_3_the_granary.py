@@ -705,7 +705,13 @@ class TestThePlayerCanLearnTheCompactsExist:
 
     def test_every_phrasing_the_help_teaches_actually_parses(self):
         """IQ1-2's pin, extended to the new copy. A help entry naming a
-        sentence the parser refuses is worse than no entry."""
+        sentence the parser refuses is worse than no entry.
+
+        DDB-10 (Pre-Deploy S13b, October 14, 2026): the compacts are taught
+        by their Cabinet control ("F1 -> Prussia -> Buy Off Their Design") —
+        the typed lines the help once taught were refused at the Cabinet
+        door — so the one typed phrase left is the priced bid, which passes
+        it."""
         corpus = json.loads(
             (REPO / "tests/data/parser_golden_corpus.json").read_text(
                 encoding="utf-8"))
@@ -717,7 +723,12 @@ class TestThePlayerCanLearnTheCompactsExist:
         block = src[src.index("THE COMPACTS"):]
         block = block[:block.index("\n\n")]
         taught = re.findall(r'"([^"]+)"', block)
-        assert len(taught) >= 4, taught
+        # DDB-10: the bid's typed form is written in single quotes — it runs
+        # only while an auction is open, so the CX-3 census (double quotes)
+        # does not execute it on a quiet board.
+        for control in ("Buy Off Their Design", "Sponsor Their Design",
+                        "Guarantee Their Borders"):
+            assert control in block, control
         for phrase in taught:
             assert phrase.lower() in utterances, (
                 f"help teaches {phrase!r} but no golden-corpus row pins it")

@@ -307,7 +307,7 @@ class TestCounterOfferCarriesStableLabel:
                        "demands": [{"type": "gold_lump", "value": 500}],
                        "clauses": []}
         monkeypatch.setattr(aidip, "generate_counter_offer",
-                            lambda terms, w: dict(terms))
+                            lambda terms, w, **_kw: dict(terms))  # DDB-4: the dry run passes dry_run=True
         dialogue = {
             "type": "incoming_proposal", "target_nation": "Austria",
             "talleyrand_text": "x",

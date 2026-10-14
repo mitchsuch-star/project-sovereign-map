@@ -1379,13 +1379,15 @@ def _answer_keep_out(world, player: str, nation: str) -> str:
         return f"Sire — {name} is no court that could join a league against us."
     text = f"Sire — {C.league_row_text(world, row, forecast)}"
     if row.get("status") == C.LEAGUE_JOINS and not row.get("out_of_time"):
+        # DDB-X8 (S13b): the Cabinet's rows, never typed lines the door
+        # refuses ('improve relations with Austria', 'buy off Austria').
         orders = []
         if row.get("road") is not None:
-            orders.append(f"'improve relations with {nation}'")
+            orders.append(f"F1 → {name} → Improve Relations")
         if row.get("buyoff") is not None and not row.get("buyoff_refusal"):
-            orders.append(f"'buy off {nation}'")
+            orders.append(f"F1 → {name} → Buy Off Their Design")
         if orders:
-            text += " The order" + ("s: " if len(orders) > 1 else ": ") + " or ".join(orders) + "."
+            text += " In the Cabinet: " + " or ".join(orders) + "."
     return text
 
 

@@ -9,9 +9,13 @@ the code-health ratchet forbids a new lever):
     C = call_to_arms.asks_the_callee      (DDB-2 / DDB-D8: the letter, not the cascade; down -> False)
     T = contingent.truce_courts           (DDB-3 / DDB-D9: a truce keeps a contingent at its post; down -> [])
     R = contingent.takes_its_own_road     (DDB-X7: a released contingent takes its court's road; down -> False)
+    X = diplomacy.bilateral_war_score_weight   (DDB-X5 / DW-2: x0.65; down -> 0.3)
+    S = settlement_scoring._has_non_trivial_terms (DDB-6: proposer-paid terms skipped; down -> the shipped read)
+    H = game_end.homeland_returns         (DDB-12: an ally's retaken homeland goes home; down -> no returns)
 
-DDB-1's changes are the player's own proposal road (the passive France never
-proposes) and a display read (the Cabinet's band word); they have no lever.
+DDB-1, DDB-4, DDB-5, DDB-7 … 11 and DDB-X8 / X10 are the player's own roads
+(the passive France never proposes, counters or opens a table) or display
+reads; they have no seam here.
 
 Arm 0 (every lever down) must reproduce the recorded series byte for byte.
 The reach is COUNTED in the child — for a lever whose arm is byte-identical,
@@ -42,6 +46,10 @@ LEVERS = {
     "C": ("backend.game_logic.call_to_arms", "asks_the_callee", "False"),
     "T": ("backend.game_logic.contingent", "truce_courts", "[]"),
     "R": ("backend.game_logic.contingent", "takes_its_own_road", "False"),
+    "X": ("backend.game_logic.diplomacy", "bilateral_war_score_weight", "0.3"),
+    "S": ("backend.game_logic.settlement_scoring", "_has_non_trivial_terms",
+          "_orig(a[0], ())"),
+    "H": ("backend.game_logic.game_end", "homeland_returns", "(a[3], {})"),
 }
 ARMS = {"0": set(), **{k: {k} for k in LEVERS}, "ALL": set(LEVERS)}
 
@@ -52,7 +60,7 @@ ALL = {all_levers!r}
 for key, (mod_name, name, down) in ALL.items():
     if key not in UP:
         mod = importlib.import_module(mod_name)
-        setattr(mod, name, eval("lambda *a, **k: " + down))
+        setattr(mod, name, eval("lambda *a, **k: " + down, {{"_orig": getattr(mod, name)}}))
 import backend.game_logic.call_to_arms as CTA
 import backend.game_logic.contingent as CG
 import backend.game_logic.diplomacy as DP
@@ -82,6 +90,14 @@ def _truce(world, lord, vassal):
         _c["truce_shared|" + str(lord) + "|" + str(vassal)] += 1
     return out
 CG.truce_courts = _truce
+import backend.game_logic.game_end as GE
+_o_home = GE.homeland_returns
+def _home(world, holder_leader, ceder, kept):
+    out = _o_home(world, holder_leader, ceder, kept)
+    if out[1]:
+        _c["homeland_returned|" + str(holder_leader) + "|" + str(ceder)] += 1
+    return out
+GE.homeland_returns = _home
 _o_rel = CG.release_home
 def _rel(world, marshal):
     out = _o_rel(world, marshal)
