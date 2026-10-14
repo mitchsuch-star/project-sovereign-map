@@ -42,6 +42,18 @@ extends SceneTree
 # to an outside address, are listed NOT PRESSED. Disabled controls are listed
 # with their tooltip and the words beside them.
 #
+# WAR-ROOM MODE (Pre-Deploy S12 part 2, the R6 driven proofs): a spec with
+# `"war_room": true` names one ROAD per entry (`road`: kind / text /
+# meta_startswith / path_endswith). The surface is opened INSIDE the real
+# main.tscn, whose REAL APIClient talks to a sandboxed live backend (the
+# runner starts it; 8005 is refused): a screen with the shot's own payload
+# through the top bar's own open road, a panel or dialog through main's own
+# instance of it. The road's first matching control is pressed and the answer
+# read in the LIVE frame only — a change under a modal screen (the terminal's
+# echo beneath the Generals) is no answer; a screen that closes onto the
+# terminal, a popup that opens, the scene that changes (the Main Menu stands)
+# are. A quit is proven by the runner: the engine exits after the press.
+#
 # Rails (IQ-10's): UiSettings on an in-memory ConfigFile with `_persist` false;
 # every API stubbed and main.tscn refused while SOVEREIGN_PORT points at the
 # player's 8005; audio on the Dummy driver (the runner's flag); the window
@@ -196,6 +208,12 @@ var _connections: Array = []
 var _fatal := ""
 var _scale := 1.0
 var _initial_cfg := ""
+var _war_room := false
+var _main: Node = null
+const MAIN_SCENE := "res://scenes/main.tscn"
+const WAR_ROOM_BOOT_MS := 30000
+const WAR_ROOM_IDLE_MS := 15000
+var _quit_re := RegEx.create_from_string("(?i)^\\s*(quit|exit)\\b")
 var _norm_re := RegEx.create_from_string("@([A-Za-z0-9_]+)@[0-9]+")
 var _url_re := RegEx.create_from_string("(?s)\\[url(?:=([^\\]]*))?\\](.*?)\\[/url\\]")
 var _tag_re := RegEx.create_from_string("\\[[^\\]]*\\]")
@@ -324,6 +342,11 @@ func _run() -> void:
 		return
 	_spec = parsed
 	_result_path = str(_spec.get("result", ""))
+	_war_room = bool(_spec.get("war_room", false))
+	if _war_room and Utils.backend_url().ends_with(":8005"):
+		_fatal = "war-room mode refused: SOVEREIGN_PORT still points at the player's 8005"
+		_finish()
+		return
 	root.mode = Window.MODE_WINDOWED
 	root.gui_disable_input = true
 	if not root.window_input.is_connected(_on_stray):
@@ -337,6 +360,9 @@ func _run() -> void:
 	UiSettings._cfg.set_value("display", "text_size", 1.0)
 	UiSettings._cfg.set_value("display", "high_contrast", false)
 	UiSettings._cfg.set_value("display", "hud_width", "full")
+	if _war_room:
+		# The first-run card is the menu's, not the road's.
+		UiSettings._cfg.set_value("display", "scale_acknowledged", true)
 	# Every fresh instance starts from THIS state: a press that writes a
 	# setting (the war room's Scale +, the first-run card's Looks right, a
 	# Settings row) writes the in-memory config, which outlives the instance
@@ -380,8 +406,9 @@ func _write_result(done: bool) -> void:
 	})
 
 
-func _progress(shot_id: String, index: int) -> void:
-	_write_json(_result_path + ".progress.json", {"shot": shot_id, "control": index})
+func _progress(shot_id: String, index: int, quits := false) -> void:
+	_write_json(_result_path + ".progress.json", {"shot": shot_id, "control": index,
+			"quit": quits, "at_ms": Time.get_ticks_msec()})
 
 
 func _finish() -> void:
@@ -393,6 +420,8 @@ func _finish() -> void:
 # ── one surface ─────────────────────────────────────────────────────────────
 
 func _probe_shot(shot: Dictionary, skip_through: int) -> Dictionary:
+	if _war_room:
+		return await _probe_road(shot)
 	var sid := str(shot.get("id", ""))
 	var rec := {"id": sid, "scene": str(shot.get("scene", "")), "controls": [], "errors": []}
 	print("[UXR3] BEGIN " + sid)
@@ -440,6 +469,96 @@ func _probe_shot(shot: Dictionary, skip_through: int) -> Dictionary:
 		rec["controls"].append(res)
 	print("[UXR3] END %s controls=%d" % [sid, controls.size()])
 	return rec
+
+
+func _probe_road(shot: Dictionary) -> Dictionary:
+	# War-room mode: ONE control per entry, pressed in the instance it was
+	# found in (the instance is fresh: each entry boots its own war room).
+	var sid := str(shot.get("id", ""))
+	var road: Dictionary = shot.get("road", {})
+	var rec := {"id": sid, "base_id": str(shot.get("base_id", sid)),
+		"scene": str(shot.get("scene", "")), "road": road, "controls": [], "errors": []}
+	print("[UXR3] BEGIN " + sid)
+	var opened: bool = await _open(shot)
+	rec["errors"] = _errors.duplicate()
+	rec["reached"] = opened
+	rec["backend"] = Utils.backend_url()
+	if not opened:
+		await _close()
+		print("[UXR3] END %s reached=false" % sid)
+		return rec
+	var b0 := _snapshot()
+	await _observe_wait()
+	var b1 := _snapshot()
+	var animated := _changed(b0, b1, "")
+	var live := _live_floor()
+	rec["live_floor"] = live["floor"]
+	var controls := _enumerate(int(live["floor"]))
+	rec["control_count"] = controls.size()
+	var pick := -1
+	for i in range(controls.size()):
+		if _matches_road(controls[i], road):
+			pick = i
+			break
+	if pick < 0:
+		rec["errors"].append("no control of the live frame matches the road " + JSON.stringify(road))
+		await _close()
+		print("[UXR3] END %s no match" % sid)
+		return rec
+	var c: Dictionary = controls[pick]
+	var target = c.get("_node")
+	c.erase("_node")
+	c["i"] = pick
+	var quits := _quit_re.search(str(c.get("text", "")).strip_edges()) != null
+	_progress(sid, pick, quits)
+	print("[UXR3] PRESS %s %d %s" % [sid, pick, str(c.get("text", c.get("meta", "")))])
+	var outcome: Dictionary = await _press_and_read(target, c, animated, true)
+	if outcome.get("taken_by", null) != null:
+		# the click never landed (nothing happened): press by its own signal
+		var taken = outcome["taken_by"]
+		outcome = await _press_and_read(target, c, animated, false)
+		outcome["taken_by"] = taken
+	for k in outcome:
+		c[k] = outcome[k]
+	rec["controls"].append(c)
+	await _wait_api_idle()
+	await _close()
+	print("[UXR3] END %s %s" % [sid, str(c.get("result", ""))])
+	return rec
+
+
+func _matches_road(c: Dictionary, road: Dictionary) -> bool:
+	if road.has("kind") and str(c.get("kind", "")) != str(road["kind"]):
+		return false
+	if road.has("text") and str(c.get("text", "")).strip_edges() != str(road["text"]):
+		return false
+	if road.has("meta_startswith") and not str(c.get("meta", "")).begins_with(str(road["meta_startswith"])):
+		return false
+	if road.has("path_endswith") and not str(c.get("path", "")).ends_with(str(road["path_endswith"])):
+		return false
+	return not bool(c.get("disabled", false))
+
+
+func _api_idle() -> bool:
+	var api = _main.get("api_client") if _main != null and is_instance_valid(_main) else null
+	if api == null or not is_instance_valid(api):
+		return true
+	var busy = bool(api.get("_request_in_flight"))
+	var queue = api.get("_request_queue")
+	return not busy and (queue == null or queue.is_empty())
+
+
+func _wait_api_idle() -> void:
+	var start := Time.get_ticks_msec()
+	var calm := 0
+	while Time.get_ticks_msec() - start < WAR_ROOM_IDLE_MS:
+		await process_frame
+		if _api_idle():
+			calm += 1
+			if calm >= 6:
+				return
+		else:
+			calm = 0
 
 
 func _never_reason(c: Dictionary, scene: String) -> String:
@@ -583,6 +702,8 @@ func _press_and_read(target: Node, c: Dictionary, animated: Dictionary, click: b
 		changed[k] = later[k]
 	for k in animated:
 		changed.erase(k)
+	if _war_room:
+		changed = _live_only(changed, [before, a2, a3])
 	var calls := _stub_calls().slice(calls0)
 	var signals := _emitted.duplicate()
 	_disarm_recorders()
@@ -610,6 +731,31 @@ func _press_and_read(target: Node, c: Dictionary, animated: Dictionary, click: b
 		out["result"] = "HANDOFF"
 	else:
 		out["result"] = "SILENT"
+	return out
+
+
+func _live_only(changed: Dictionary, snaps: Array) -> Dictionary:
+	# A change counts only on a node at or above the lowest live floor of the
+	# three reads: a screen that closes drops the floor (the terminal under it
+	# is live again), a popup that opens raises it (and is itself the change);
+	# the terminal's echo beneath a standing screen is no answer.
+	var floor_now := 1000000
+	var layers := {}
+	for snap in snaps:
+		floor_now = mini(floor_now, int(snap.get("__floor", -1000000)))
+		var l = snap.get("__layers", {})
+		for path in l:
+			layers[path] = l[path]
+	var out := {}
+	for k in changed:
+		var key := str(k)
+		if key == "s" or key.begins_with("w:"):
+			out[k] = changed[k]
+		elif key == "f" or key.begins_with("c:"):
+			if floor_now < 0:          # the war room's own focus and camera
+				out[k] = changed[k]
+		elif int(layers.get(key.substr(2), 0)) >= floor_now:
+			out[k] = changed[k]
 	return out
 
 
@@ -710,6 +856,7 @@ func _cover_at(at: Vector2, target: Control) -> String:
 
 func _snapshot() -> Dictionary:
 	var snap := {}
+	var layers := {}
 	for n in _all_nodes(root):
 		if _ours(n):
 			continue
@@ -725,6 +872,7 @@ func _snapshot() -> Dictionary:
 			continue
 		var p := _path(n)
 		snap["v:" + p] = true
+		layers[p] = _layer_of(n)
 		if n is Control:
 			var r := (n as Control).get_global_rect()
 			snap["r:" + p] = [roundf(r.position.x), roundf(r.position.y), roundf(r.size.x), roundf(r.size.y)]
@@ -740,18 +888,25 @@ func _snapshot() -> Dictionary:
 			snap["p:" + p] = [(n as BaseButton).button_pressed, (n as BaseButton).disabled]
 	var fo: Control = root.gui_get_focus_owner()
 	snap["f"] = _path(fo) if fo != null else ""
+	# War-room mode reads the live frame (`_live_only`) and the scene change.
+	snap["__layers"] = layers
+	snap["__floor"] = int(_live_floor()["floor"])
+	var cs: Node = current_scene
+	snap["s"] = cs.scene_file_path if cs != null and is_instance_valid(cs) else ""
 	return snap
 
 
 func _changed(a: Dictionary, b: Dictionary, pressed_path: String) -> Dictionary:
 	var out := {}
 	for k in a:
+		if str(k).begins_with("__"):
+			continue
 		if not b.has(k):
 			out[k] = [a[k], null]
 		elif not _same(a[k], b[k]):
 			out[k] = [a[k], b[k]]
 	for k in b:
-		if not a.has(k):
+		if not a.has(k) and not str(k).begins_with("__"):
 			out[k] = [null, b[k]]
 	if out.has("f") and pressed_path != "":
 		var now = out["f"][1]
@@ -778,6 +933,7 @@ func _describe(changed: Dictionary) -> Array:
 	var hidden := 0
 	var texts: Array = []
 	var other: Array = []
+	var scene := ""
 	for k in changed:
 		var v = changed[k]
 		if k.begins_with("v:"):
@@ -786,7 +942,9 @@ func _describe(changed: Dictionary) -> Array:
 			else:
 				hidden += 1
 		elif k.begins_with("t:"):
-			texts.append("%s: '%s' -> '%s'" % [k.substr(2).get_file(), str(v[0]).left(40), str(v[1]).left(40)])
+			texts.append(_text_change(k.substr(2).get_file(), v[0], v[1]))
+		elif k == "s":
+			scene = "the scene -> %s" % str(v[1]).get_file()
 		elif k.begins_with("w:"):
 			other.append("window %s %s" % [k.substr(2).get_file(), "opened" if v[0] == null else "closed"])
 		elif k.begins_with("c:"):
@@ -795,6 +953,8 @@ func _describe(changed: Dictionary) -> Array:
 			other.append("focus -> %s" % str(v[1]).get_file())
 		elif k.begins_with("p:"):
 			other.append("%s pressed/disabled %s -> %s" % [k.substr(2).get_file(), str(v[0]), str(v[1])])
+	if scene != "":
+		out.append(scene)    # a scene change leads: it is the answer
 	if shown > 0:
 		out.append("%d node(s) shown" % shown)
 	if hidden > 0:
@@ -808,6 +968,22 @@ func _describe(changed: Dictionary) -> Array:
 	if rects > 0:
 		out.append("%d rect(s) moved" % rects)
 	return out
+
+
+func _text_change(node: String, was, now) -> String:
+	# A long label (a screen's whole BBCode body) changes deep inside: show
+	# where. The first 40 characters when they differ; else the stretch from
+	# the first character that differs.
+	var a := str(was)
+	var b := str(now)
+	if was == null or now == null or a.left(40) != b.left(40):
+		return "%s: '%s' -> '%s'" % [node, a.left(40), b.left(40)]
+	var i := 0
+	var n := mini(a.length(), b.length())
+	while i < n and a[i] == b[i]:
+		i += 1
+	var from := maxi(0, i - 12)
+	return "%s: at %d '…%s' -> '…%s'" % [node, i, a.substr(from, 60), b.substr(from, 60)]
 
 
 func _stub_calls() -> Array:
@@ -991,6 +1167,8 @@ func _reset_settings() -> void:
 
 
 func _open(shot: Dictionary) -> bool:
+	if _war_room:
+		return await _open_in_war_room(shot)
 	_errors = []
 	_reset_settings()
 	var mode := str(shot.get("mode", "call"))
@@ -1038,8 +1216,15 @@ func _open(shot: Dictionary) -> bool:
 			_node.remove_child(real)
 			real.queue_free()
 		_stubs.append(stub)
+	return await _enter(shot)
+
+
+func _enter(shot: Dictionary) -> bool:
+	# The entry: the shot's stubs, its method and its steps, on `_node` (the
+	# surface alone, or the war room's own instance of it).
+	var mode := str(shot.get("mode", "call"))
 	var place = shot.get("place", null)
-	if place is Dictionary and _node is Control:
+	if place is Dictionary and _node is Control and not _war_room:
 		var cc: Control = _node
 		cc.set_anchors_preset(Control.PRESET_TOP_WIDE)
 		var p = place.get("position", [0, 0])
@@ -1083,7 +1268,8 @@ func _open(shot: Dictionary) -> bool:
 		if not _node.has_method(method):
 			_errors.append("entry method missing: " + method)
 			return false
-		_node.callv(method, args)
+		if not (_war_room and mode == "api_stub" and _open_as_screen(api)):
+			_node.callv(method, args)
 	await _wait_frames(1)
 	var steps = shot.get("steps", [])
 	if steps is Array:
@@ -1092,6 +1278,74 @@ func _open(shot: Dictionary) -> bool:
 				await _run_step(step.duplicate(true))
 	await _wait_frames(int(shot.get("settle", SETTLE_DEFAULT)))
 	return true
+
+
+func _open_in_war_room(shot: Dictionary) -> bool:
+	_errors = []
+	_reset_settings()
+	var scene_path := str(shot.get("scene", ""))
+	_payload = null
+	if shot.has("payload"):
+		_payload = _read_json(str(shot["payload"]))
+		if _payload == null:
+			_errors.append("payload did not parse: " + str(shot["payload"]))
+			return false
+	if scene_path.ends_with("/main_menu.tscn"):
+		# The title screen is its own scene: it stands alone, its real client
+		# on the sandboxed backend.
+		_node = (load(scene_path) as PackedScene).instantiate()
+		root.add_child(_node)
+		current_scene = _node
+		await _wait_frames(int(shot.get("settle", SETTLE_DEFAULT)))
+		var real_ms := int(shot.get("settle_ms", 0))
+		if real_ms > 0:
+			await create_timer(real_ms / 1000.0).timeout
+		return true
+	_main = (load(MAIN_SCENE) as PackedScene).instantiate()
+	root.add_child(_main)
+	current_scene = _main
+	var start := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - start < WAR_ROOM_BOOT_MS:
+		await process_frame
+		if bool(_main.get("_initial_map_bootstrapped")) and _api_idle():
+			break
+	if not bool(_main.get("_initial_map_bootstrapped")):
+		_errors.append("the war room did not boot against " + Utils.backend_url())
+		return false
+	await _wait_api_idle()
+	await _wait_frames(10)
+	if scene_path == MAIN_SCENE:
+		_node = _main
+	else:
+		_node = _scene_in(_main, scene_path)
+		if _node == null:
+			_errors.append("the war room holds no " + scene_path)
+			return false
+	return await _enter(shot)
+
+
+func _scene_in(from: Node, scene_path: String) -> Node:
+	for n in _all_nodes(from):
+		if n.scene_file_path == scene_path:
+			return n
+	return null
+
+
+func _open_as_screen(api: Node) -> bool:
+	# A top-bar screen opens by the bar's own road (its bookkeeping, the
+	# button highlight, `screen_changed`), handed the stub that answers the
+	# shot's payload; main.gd's own client stays on the live backend.
+	var tb = _main.get("top_bar") if _main != null else null
+	if tb == null:
+		return false
+	for screen_name in tb.screens:
+		if tb.screens[screen_name] == _node:
+			var real = tb.api_client
+			tb.api_client = api
+			tb.toggle_screen(screen_name)
+			tb.api_client = real
+			return true
+	return false
 
 
 func _repoint_api(real: Object, stub: Node) -> void:
@@ -1113,6 +1367,11 @@ func _close() -> void:
 	if _node != null and is_instance_valid(_node):
 		_node.queue_free()
 	_node = null
+	if _main != null and is_instance_valid(_main):
+		_main.queue_free()
+	_main = null
+	if _war_room:
+		current_scene = null
 	for s in _stubs:
 		if is_instance_valid(s):
 			s.queue_free()

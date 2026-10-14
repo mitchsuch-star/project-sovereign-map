@@ -202,3 +202,86 @@ class TestTheTableausButtonsClearItsFiligree:
         fil = _func(src, "_build_filigree")
         assert "TRAY_W - 38.0" in fil and 'fil.add_to_group("corner_ornaments")' in fil
         assert close_left + close_w <= tray_w - 38.0, (close_left, close_w)
+
+
+# ═══ Parts 2 and 3 — R6's driven proofs; the never-pressed controls ══════════
+
+class TestAChipUnderAScreenAnswersInPlace:
+    """UXR3-27, 40, 45: an order chip on the Generals or either ledger hands
+    its order to main.gd, whose terminal echo lies under the screen. The chip
+    greys in place to 'Sent: <its words>' — only when main.gd's chip road took
+    the order (its in-flight latch can refuse a second press)."""
+
+    def test_the_handshake_in_every_screen(self):
+        for rel, signal, meta_var in (("scripts/marshal_management.gd", "order_command.emit(", "meta_str"),
+                                      ("scripts/diplomatic_ledger.gd", "vassal_command.emit(command)", "meta_key"),
+                                      ("scripts/strategic_ledger.gd", "naval_command.emit(command)", "meta_str")):
+            src = _src(rel)
+            i = src.index(signal)
+            before, after = src[i - 220:i], src[i:i + 220]
+            assert "Utils.order_taken = false" in before, rel
+            assert f"if Utils.order_taken:\n" in after and f"Utils.mark_chip_sent(content_area, {meta_var})" in after, rel
+
+    def test_main_says_it_took_the_order_after_its_latch(self):
+        main = _src("scripts/main.gd")
+        for fn in ("_on_reward_command", "_on_vassal_command", "_on_naval_command"):
+            body = _func(main, fn)
+            latch = body.index("_chip_command_in_flight = true")
+            taken = body.index("Utils.order_taken = true")
+            assert body.index("if command.is_empty() or _chip_command_in_flight:") < latch < taken, fn
+
+    def test_cancel_greys_when_the_request_is_out(self):
+        body = _func(_src("scripts/strategic_ledger.gd"), "_on_meta_clicked")
+        i = body.index("_api_client_ref.cancel_strategic_order(marshal_name, _on_cancel_result)")
+        assert 'Utils.mark_chip_sent(content_area, meta_str, "Cancel")' in body[i:i + 300]
+
+    def test_the_sent_chip_is_the_disabled_chip_written_through_text(self):
+        body = _func(_src("scripts/utils.gd"), "mark_chip_sent")
+        assert 'bb_chip_disabled("Sent: " + words)' in body
+        assert '"Sent: " + words' in body and "COLOR_INFO" in body
+        assert "rtl.text = " in body and "append_text" not in body
+
+
+class TestTheWarRoomMode:
+    """The probe's war-room mode: each hand-off surface opened INSIDE the real
+    main.tscn against a sandboxed live backend, the road's control pressed,
+    the answer read in the live frame. Its record and the citations it backs
+    are the closing re-read's (`docs/audits/uxr3_s12b/`)."""
+
+    def test_the_rails(self):
+        gd = (TOOLS / "uxr3_action_probe.gd").read_text(encoding="utf-8")
+        assert 'if _war_room and Utils.backend_url().ends_with(":8005"):' in gd
+        runner = (TOOLS / "uxr3_action_probe.py").read_text(encoding="utf-8")
+        assert "while port == 8005 or not _free(port):" in runner
+        assert '"INK_IRON_SAVE_DIR": str(saves)' in runner and '"LLM_MODE": "mock"' in runner
+        assert 'assert env["SOVEREIGN_PORT"] != "8005", "never the player\'s 8005"' in runner
+
+    def test_the_roads_cover_every_r6_cross_part_one_left(self):
+        """Each road names an IQ-10 shot and a control match; together they
+        hold every HANDOFF and NOT PRESSED road part 1's re-read left unproven
+        (the HUD pieces shot alone are read in their host, §113.5)."""
+        import sys
+        sys.path.insert(0, str(TOOLS))
+        import iq10_run_captures as R
+        import uxr3_action_probe as PROBE
+        shots = {s["id"] for s in R.SHOTS}
+        ids = [r[0] for r in PROBE.ROADS]
+        assert len(ids) == len(set(ids))
+        for road, sid, match in PROBE.ROADS:
+            assert sid in shots, road
+            assert set(match) <= {"kind", "text", "meta_startswith", "path_endswith"}, road
+        metas = {m.get("meta_startswith") for _r, _s, m in PROBE.ROADS}
+        for need in ("order:", "reward:", "talleyrand_assess", "vassal:", "congress_court:", "do:",
+                     "cancel:", "negotiate:", "diorama:"):
+            assert need in metas, need
+        texts = {m.get("text") for _r, _s, m in PROBE.ROADS}
+        for need in ("Save Game", "Load Game", "New Campaign", "Main Menu", "Quit to Desktop"):
+            assert need in texts, need
+
+    def test_a_war_room_answer_is_read_in_the_live_frame_only(self):
+        gd = (TOOLS / "uxr3_action_probe.gd").read_text(encoding="utf-8")
+        assert "changed = _live_only(changed, [before, a2, a3])" in gd
+        live = _func(gd, "_live_only")
+        assert "floor_now = mini(floor_now" in live
+        assert "int(layers.get(key.substr(2), 0)) >= floor_now" in live
+        assert 'out.append(scene)    # a scene change leads: it is the answer' in _func(gd, "_describe")

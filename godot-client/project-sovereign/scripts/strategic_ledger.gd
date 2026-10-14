@@ -1444,12 +1444,20 @@ func _on_meta_clicked(meta):
 		var marshal_name = meta_str.substr(7)
 		if _api_client_ref:
 			_api_client_ref.cancel_strategic_order(marshal_name, _on_cancel_result)
+			# S12 part 2 (R6): the request is out; the chip says so until the
+			# refreshed ledger redraws the tab.
+			Utils.mark_chip_sent(content_area, meta_str, "Cancel")
 	elif meta_str.begins_with("do:"):
 		# NV-6: an Admiralty chip carries its full typed command — the same
 		# string a player would type; the executor owns every gate.
 		var command = meta_str.substr("do:".length())
 		if command != "":
+			# S12 part 2 (R6): the chip answers in place (the terminal's echo
+			# lies under this screen) when main.gd took the order.
+			Utils.order_taken = false
 			naval_command.emit(command)
+			if Utils.order_taken:
+				Utils.mark_chip_sent(content_area, meta_str)
 
 
 func refresh_if_open() -> void:

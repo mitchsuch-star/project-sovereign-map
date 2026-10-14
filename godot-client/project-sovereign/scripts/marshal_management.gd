@@ -183,7 +183,12 @@ func _on_meta_clicked(meta):
 		# the same string a player would type (marshal names carry no colons).
 		var parts = meta_str.split(":")
 		if parts.size() == 3 and str(parts[2]) != "":
+			# S12 part 2 (R6): the terminal's echo lies under this screen —
+			# the chip answers in place when main.gd took the order.
+			Utils.order_taken = false
 			order_command.emit(str(parts[2]) + ", " + str(parts[1]))
+			if Utils.order_taken:
+				Utils.mark_chip_sent(content_area, meta_str)
 
 
 func close_view():

@@ -2046,7 +2046,12 @@ func _on_content_meta_clicked(meta):
 		if parts.size() == 3:
 			var command = _vassal_chip_command(str(parts[1]), str(parts[2]))
 			if command != "":
+				# S12 part 2 (R6): the chip answers in place (the terminal's
+				# echo lies under this screen) when main.gd took the order.
+				Utils.order_taken = false
 				vassal_command.emit(command)
+				if Utils.order_taken:
+					Utils.mark_chip_sent(content_area, meta_key)
 	elif meta_key == "talleyrand_assess":
 		# UI-6: the W6-9 counsel verb from the Talleyrand tab.
 		assess_requested.emit()

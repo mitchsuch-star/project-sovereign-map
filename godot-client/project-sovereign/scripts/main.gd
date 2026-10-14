@@ -7665,6 +7665,7 @@ func _on_reward_command(command: String):
 	if command.is_empty() or _chip_command_in_flight:
 		return
 	_chip_command_in_flight = true
+	Utils.order_taken = true  # S12 part 2: the chip may say "Sent"
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
@@ -7708,6 +7709,7 @@ func _on_vassal_command(command: String):
 	if command.is_empty() or _chip_command_in_flight:
 		return
 	_chip_command_in_flight = true
+	Utils.order_taken = true  # S12 part 2: the chip may say "Sent"
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
@@ -7731,6 +7733,7 @@ func _on_naval_command(command: String):
 	if command.is_empty() or _chip_command_in_flight:
 		return
 	_chip_command_in_flight = true
+	Utils.order_taken = true  # S12 part 2: the chip may say "Sent"
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")

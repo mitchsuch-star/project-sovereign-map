@@ -649,6 +649,62 @@ static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg
 	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
 
 
+# ── The in-surface echo (UXR-3 R6, Pre-Deploy S12 part 2) ──────────────────
+# A chip on a screen that covers the war room (the Generals, the two ledgers)
+# hands its order to main.gd, whose terminal echo lies UNDER the screen: the
+# press answered nothing the player could see. The chip itself answers now.
+# The handshake: the screen clears `order_taken`, emits its order signal, and
+# greys the chip only when main.gd's road took the order (its one in-flight
+# latch can refuse a second press) — a chip never says "Sent" for an order
+# that was not sent. The screen's refresh after the command's result redraws
+# the chip from the new state.
+static var order_taken := false
+static var _bb_tag_re: RegEx = null
+static var _bb_img_re: RegEx = null
+
+
+static func bb_plain(bbcode: String) -> String:
+	"""The words a BBCode fragment shows: images and tags dropped."""
+	if _bb_tag_re == null:
+		_bb_tag_re = RegEx.create_from_string("\\[[^\\]]*\\]")
+		_bb_img_re = RegEx.create_from_string("(?s)\\[img[^\\]]*\\].*?\\[/img\\]")
+	return _bb_tag_re.sub(_bb_img_re.sub(bbcode, "", true), "", true).strip_edges()
+
+
+static func mark_chip_sent(rtl: RichTextLabel, meta: String, words := "") -> bool:
+	"""Grey the chip whose link is `meta` to 'Sent: <its words>' (the
+	disabled chip, no link), in place, through `text`. A bare link greys to
+	the same words in COLOR_INFO. False when the label holds no such link."""
+	if rtl == null or meta == "":
+		return false
+	var src := rtl.text
+	var open := "[url=" + meta + "]"
+	var at := src.find(open)
+	if at < 0:
+		return false
+	var close := src.find("[/url]", at)
+	if close < 0:
+		return false
+	if words == "":
+		words = bb_plain(src.substr(at + open.length(), close - at - open.length()))
+	var start := at
+	var end := close + "[/url]".length()
+	var sent := "[color=#" + COLOR_INFO + "]Sent: " + words + "[/color]"
+	# A chip is `[bgcolor=#…]  [url=…]…[/url]  [/bgcolor]` (bb_button_chip):
+	# the whole pill becomes the disabled pill.
+	var pill := src.rfind("[bgcolor=", at)
+	if pill >= 0:
+		var head := src.substr(pill, at - pill)
+		var pill_end := src.find("[/bgcolor]", end)
+		if head.find("]") == head.length() - 3 and head.ends_with("]  ") \
+				and pill_end >= 0 and src.substr(end, pill_end - end).strip_edges() == "":
+			start = pill
+			end = pill_end + "[/bgcolor]".length()
+			sent = bb_chip_disabled("Sent: " + words)
+	rtl.text = src.substr(0, start) + sent + src.substr(end)
+	return true
+
+
 static func bb_chip_disabled(label: String, icon_path := "") -> String:
 	"""The honest-availability partner of bb_button_chip: the same pill shape
 	with NO url and dimmed ink, so a gated action reads as present-but-locked
