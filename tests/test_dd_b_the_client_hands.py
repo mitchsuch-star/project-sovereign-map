@@ -328,3 +328,54 @@ class TestThePlayersHands:
         assert rec["n_actions"] >= 12
         assert rec["n_script_errors"] == 0, rec["script_errors"]
         assert rec["port"] != 8005
+
+
+# ── the close: the records hold (S13, October 14, 2026) ───────────────────
+
+AUD = REPO / "docs" / "audits" / "dd_b"
+ROADS = ("conquest", "diplomacy", "sea")
+
+
+class TestTheRecords:
+    """DD-B's committed records agree with each other: every player row is a
+    sighting of a filed cause (or struck with its reason), the metric is the
+    count of the causes, and every cause is a tagged ledger row whose cited
+    frames are in the repository."""
+
+    def _causes(self):
+        return json.loads((AUD / "causes.json").read_text(encoding="utf-8"))
+
+    def test_every_player_row_is_a_sighting_or_struck(self):
+        rec = self._causes()
+        sighted = {(s["road"], s["row"]) for c in rec["causes"] for s in c["sightings"]}
+        struck = {(s["road"], s["row"]) for s in rec["struck"]}
+        for road in ROADS:
+            rows = json.loads((AUD / road / "rows.json").read_text(encoding="utf-8"))
+            for r in rows:
+                assert (road, r["id"]) in sighted | struck, (road, r["id"])
+        assert struck == {("conquest", 2)}, "the one instrument artifact, struck with its reason"
+
+    def test_the_metric_is_the_count_of_the_causes(self):
+        rec = self._causes()
+        metric = json.loads((AUD / "metric.json").read_text(encoding="utf-8"))
+        across = metric["across"]
+        assert across["rows"] == len(rec["causes"]) == 69
+        assert across["by_severity"] == {"P1": 3, "P2": 21, "P3": 45}
+        assert across["per_10_turns"] == 11.5
+        assert metric["done_when_met"] is False
+        for road in ROADS:
+            n = sum(1 for c in rec["causes"] if any(s["road"] == road for s in c["sightings"]))
+            assert metric["per_road"][road]["rows"] == n
+
+    def test_every_cause_is_a_tagged_ledger_row_with_its_frames(self):
+        rec = self._causes()
+        bugs = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        design = (REPO / "docs" / "DESIGN_REFINEMENT.md").read_text(encoding="utf-8")
+        for c in rec["causes"]:
+            text = design if c["id"].startswith("DDB-D") else bugs
+            line = next(ln for ln in text.splitlines() if ln.startswith(f"| **{c['id']}** |"))
+            assert "⟨SF step=pre-deploy S13 · DD-B · pillar=" in line, c["id"]
+            if c.get("dr_id"):
+                assert any(ln.startswith(f"| **{c['dr_id']}** |") for ln in design.splitlines()), c["dr_id"]
+            for s in c["sightings"]:
+                assert (REPO / s["frame"]).is_file(), s["frame"]

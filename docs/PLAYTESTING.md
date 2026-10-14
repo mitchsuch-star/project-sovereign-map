@@ -951,6 +951,14 @@ only the screen can verify.
   copy that pattern (deterministic payload in, PNG out under
   `docs/audits/`). Extend on demand — there is deliberately no
   all-surfaces harness; each visual pass adds the scene it needs.
+- **A whole campaign played by hand in the client (DD-B, Pre-Deploy S13):**
+  `tools/dd_b_play.py start --road <conquest|diplomacy|sea> --out <run>`
+  (run it in the background: it supervises a sandboxed backend from 8006 and
+  the ONE engine at 5120×1440, a first launch), then one
+  `act --out <run> "<action>"` per player action (`type` needs `--meant`),
+  `stop`, `judge`, `export --to docs/audits/...`. The players' brief is
+  `docs/audits/dd_b/PLAYER_BRIEF.md`; the rules and traps are
+  `SYSTEMS_REFERENCE.md` §115. Never start it while a commit's hook runs.
 
 ---
 

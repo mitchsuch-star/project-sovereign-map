@@ -1,0 +1,5328 @@
+{
+ "road": "sea",
+ "port": 8006,
+ "turn_reached": "Turn 21 — Late July 1806",
+ "turn_number": 21,
+ "actions": [
+  {
+   "n": 0,
+   "action": "boot",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "record": 1904
+   }
+  },
+  {
+   "n": 1,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 0,
+    "record": 2497,
+    "settle": 910
+   }
+  },
+  {
+   "n": 2,
+   "action": "click Looks right",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 111,
+    "record": 3100,
+    "settle": 917
+   }
+  },
+  {
+   "n": 3,
+   "action": "click Begin the 1805 Campaign",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1789,
+    "settle": 11388
+   }
+  },
+  {
+   "n": 4,
+   "action": "click 45 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1454,
+    "settle": 967
+   }
+  },
+  {
+   "n": 5,
+   "action": "scroll 1830 650 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 361,
+    "record": 1510,
+    "settle": 933
+   }
+  },
+  {
+   "n": 6,
+   "action": "scroll 1830 650 up 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 127,
+    "record": 1473,
+    "settle": 934
+   }
+  },
+  {
+   "n": 7,
+   "action": "click Lay down ships",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1456,
+    "settle": 1273
+   }
+  },
+  {
+   "n": 8,
+   "action": "type how do I break the British blockade?",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 210,
+    "record": 1468,
+    "settle": 1001
+   }
+  },
+  {
+   "n": 9,
+   "action": "type what can I do",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 326,
+    "record": 1456,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 10,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1466,
+    "settle": 918
+   }
+  },
+  {
+   "n": 11,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1806,
+    "settle": 934
+   }
+  },
+  {
+   "n": 12,
+   "action": "type Ney, attack Mack",
+   "meant": "attack Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 442,
+    "record": 1474,
+    "settle": 2036
+   }
+  },
+  {
+   "n": 13,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1461,
+    "settle": 917
+   }
+  },
+  {
+   "n": 14,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1833,
+    "settle": 934
+   }
+  },
+  {
+   "n": 15,
+   "action": "type Soult, march to Normandy",
+   "meant": "move Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 377,
+    "record": 1797,
+    "settle": 1068
+   }
+  },
+  {
+   "n": 16,
+   "action": "click Diplomacy (D)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 107,
+    "record": 1470,
+    "settle": 1084
+   }
+  },
+  {
+   "n": 17,
+   "action": "click TREATIES",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1508,
+    "settle": 918
+   }
+  },
+  {
+   "n": 18,
+   "action": "click VASSALS",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1454,
+    "settle": 934
+   }
+  },
+  {
+   "n": 19,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 1650,
+    "settle": 967
+   }
+  },
+  {
+   "n": 20,
+   "action": "click Spain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 107,
+    "record": 1642,
+    "settle": 934
+   }
+  },
+  {
+   "n": 21,
+   "action": "click Reassure Ally",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 205,
+    "record": 1580,
+    "settle": 1039
+   }
+  },
+  {
+   "n": 22,
+   "action": "click Begin mission",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 168,
+    "record": 1819,
+    "settle": 1027
+   }
+  },
+  {
+   "n": 23,
+   "action": "type pool our fleet with the Spanish fleet",
+   "meant": "other: pool our fleet with our ally Spain's fleet",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 278,
+    "record": 1778,
+    "settle": 1066
+   }
+  },
+  {
+   "n": 24,
+   "action": "type help navy",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 227,
+    "record": 1802,
+    "settle": 1135
+   }
+  },
+  {
+   "n": 25,
+   "action": "scroll 500 870 up 25",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 862,
+    "record": 1785,
+    "settle": 916
+   }
+  },
+  {
+   "n": 26,
+   "action": "scroll 500 870 up 150",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 1694,
+    "record": 1788,
+    "settle": 934
+   }
+  },
+  {
+   "n": 27,
+   "action": "type what postures can the fleet take?",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 277,
+    "record": 1786,
+    "settle": 1151
+   }
+  },
+  {
+   "n": 28,
+   "action": "type Massena, attack Archduke John",
+   "meant": "attack Massena",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 460,
+    "record": 1448,
+    "settle": 1335
+   }
+  },
+  {
+   "n": 29,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1450,
+    "settle": 917
+   }
+  },
+  {
+   "n": 30,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1832,
+    "settle": 933
+   }
+  },
+  {
+   "n": 31,
+   "action": "type Massena, defend",
+   "meant": "hold Massena",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 174,
+    "record": 1762,
+    "settle": 985
+   }
+  },
+  {
+   "n": 32,
+   "action": "click Proceed as Ordered",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 116,
+    "record": 1821,
+    "settle": 1030
+   }
+  },
+  {
+   "n": 33,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 115,
+    "record": 1561,
+    "settle": 1212
+   }
+  },
+  {
+   "n": 34,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 163,
+    "record": 1450,
+    "settle": 899
+   }
+  },
+  {
+   "n": 35,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1424,
+    "settle": 934
+   }
+  },
+  {
+   "n": 36,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1746,
+    "settle": 967
+   }
+  },
+  {
+   "n": 37,
+   "action": "click Envoys",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1427,
+    "settle": 966
+   }
+  },
+  {
+   "n": 38,
+   "action": "click#2 Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 107,
+    "record": 1434,
+    "settle": 1118
+   }
+  },
+  {
+   "n": 39,
+   "action": "click Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1478,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 40,
+   "action": "click ACTIVE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1648,
+    "settle": 934
+   }
+  },
+  {
+   "n": 41,
+   "action": "click Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1854,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 42,
+   "action": "click Marshal Bernadotte seeks an audience",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1827,
+    "settle": 933
+   }
+  },
+  {
+   "n": 43,
+   "action": "click Hear him",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1717,
+    "settle": 967
+   }
+  },
+  {
+   "n": 44,
+   "action": "click Let it stand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1879,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 45,
+   "action": "click Ledger (T)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1490,
+    "settle": 968
+   }
+  },
+  {
+   "n": 46,
+   "action": "click ECONOMY",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1516,
+    "settle": 935
+   }
+  },
+  {
+   "n": 47,
+   "action": "scroll 1830 650 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 360,
+    "record": 1497,
+    "settle": 934
+   }
+  },
+  {
+   "n": 48,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 1848,
+    "settle": 934
+   }
+  },
+  {
+   "n": 49,
+   "action": "type Davout, attack Archduke Charles in Franconia",
+   "meant": "attack Davout",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 342,
+    "record": 1699,
+    "settle": 1018
+   }
+  },
+  {
+   "n": 50,
+   "action": "click Trust Davout",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 116,
+    "record": 1874,
+    "settle": 1045
+   }
+  },
+  {
+   "n": 51,
+   "action": "type Ney, attack Archduke Charles",
+   "meant": "attack Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 193,
+    "record": 1458,
+    "settle": 1301
+   }
+  },
+  {
+   "n": 52,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1468,
+    "settle": 917
+   }
+  },
+  {
+   "n": 53,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1918,
+    "settle": 933
+   }
+  },
+  {
+   "n": 54,
+   "action": "type Dumonceau, march to Normandy",
+   "meant": "move Dumonceau",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 194,
+    "record": 1848,
+    "settle": 1001
+   }
+  },
+  {
+   "n": 55,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 120,
+    "record": 1582,
+    "settle": 1175
+   }
+  },
+  {
+   "n": 56,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 143,
+    "record": 1838,
+    "settle": 935
+   }
+  },
+  {
+   "n": 57,
+   "action": "click Envoys",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1440,
+    "settle": 951
+   }
+  },
+  {
+   "n": 58,
+   "action": "click#2 Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1451,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 59,
+   "action": "click Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1847,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 60,
+   "action": "type Ney, attack Archduke Charles in Bohemia",
+   "meant": "attack Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 211,
+    "record": 1771,
+    "settle": 1001
+   }
+  },
+  {
+   "n": 61,
+   "action": "click PLUNDER",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1530,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 62,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1520,
+    "settle": 934
+   }
+  },
+  {
+   "n": 63,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1815,
+    "settle": 934
+   }
+  },
+  {
+   "n": 64,
+   "action": "click Treasury in deficit",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1863,
+    "settle": 935
+   }
+  },
+  {
+   "n": 65,
+   "action": "click 46 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1499,
+    "settle": 967
+   }
+  },
+  {
+   "n": 66,
+   "action": "scroll 1830 650 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 194,
+    "record": 1536,
+    "settle": 935
+   }
+  },
+  {
+   "n": 67,
+   "action": "type how can I raise the fleet's readiness?",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 210,
+    "record": 1498,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 68,
+   "action": "click Blockade the enemy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1492,
+    "settle": 1354
+   }
+  },
+  {
+   "n": 69,
+   "action": "type Bernadotte, march to Normandy",
+   "meant": "move Bernadotte",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 478,
+    "record": 1499,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 70,
+   "action": "click Lay down ships",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1491,
+    "settle": 1355
+   }
+  },
+  {
+   "n": 71,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1537,
+    "settle": 917
+   }
+  },
+  {
+   "n": 72,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"End Turn\"",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1534,
+    "settle": 920
+   }
+  },
+  {
+   "n": 73,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1848,
+    "settle": 935
+   }
+  },
+  {
+   "n": 74,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 249,
+    "record": 1654,
+    "settle": 1430
+   }
+  },
+  {
+   "n": 75,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 156,
+    "record": 1815,
+    "settle": 921
+   }
+  },
+  {
+   "n": 76,
+   "action": "click Envoys",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1462,
+    "settle": 968
+   }
+  },
+  {
+   "n": 77,
+   "action": "click#2 Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 112,
+    "record": 1488,
+    "settle": 1118
+   }
+  },
+  {
+   "n": 78,
+   "action": "click Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1801,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 79,
+   "action": "type Murat, attack Vienna",
+   "meant": "attack Murat",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 177,
+    "record": 1834,
+    "settle": 985
+   }
+  },
+  {
+   "n": 80,
+   "action": "type Ney, attack Vienna",
+   "meant": "attack Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 178,
+    "record": 1940,
+    "settle": 951
+   }
+  },
+  {
+   "n": 81,
+   "action": "type Lannes, storm Vienna",
+   "meant": "attack Lannes",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 176,
+    "record": 1769,
+    "settle": 984
+   }
+  },
+  {
+   "n": 82,
+   "action": "click SECURE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1823,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 83,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1763,
+    "settle": 968
+   }
+  },
+  {
+   "n": 84,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1723,
+    "settle": 934
+   }
+  },
+  {
+   "n": 85,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 117,
+    "record": 1162,
+    "settle": 1094
+   }
+  },
+  {
+   "n": 86,
+   "action": "click Back Out",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1867,
+    "settle": 1085
+   }
+  },
+  {
+   "n": 87,
+   "action": "type recruit infantry for Soult",
+   "meant": "recruit Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 189,
+    "record": 1837,
+    "settle": 967
+   }
+  },
+  {
+   "n": 88,
+   "action": "type lay down a ship at Normandy",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 192,
+    "record": 1834,
+    "settle": 951
+   }
+  },
+  {
+   "n": 89,
+   "action": "click Marshal Massena seeks an audience",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 2161,
+    "settle": 934
+   }
+  },
+  {
+   "n": 90,
+   "action": "click Hear him",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1710,
+    "settle": 968
+   }
+  },
+  {
+   "n": 91,
+   "action": "click Promise Glory",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1831,
+    "settle": 1018
+   }
+  },
+  {
+   "n": 92,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 120,
+    "record": 1685,
+    "settle": 1225
+   }
+  },
+  {
+   "n": 93,
+   "action": "scroll 1830 550 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 360,
+    "record": 1666,
+    "settle": 917
+   }
+  },
+  {
+   "n": 94,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1822,
+    "settle": 934
+   }
+  },
+  {
+   "n": 95,
+   "action": "click Continue as Ordered",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1984,
+    "settle": 1184
+   }
+  },
+  {
+   "n": 96,
+   "action": "click Envoy from Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1843,
+    "settle": 917
+   }
+  },
+  {
+   "n": 97,
+   "action": "click Envoys (1)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1738,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 98,
+   "action": "click ACTIVE",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"ACTIVE\"",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1721,
+    "settle": 923
+   }
+  },
+  {
+   "n": 99,
+   "action": "scroll 1830 500 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 361,
+    "record": 1729,
+    "settle": 934
+   }
+  },
+  {
+   "n": 100,
+   "action": "click Counter",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1870,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 101,
+   "action": "type recruit infantry for Soult",
+   "meant": "recruit Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 193,
+    "record": 1861,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 102,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 160,
+    "record": 1855,
+    "settle": 950
+   }
+  },
+  {
+   "n": 103,
+   "action": "click 49 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 106,
+    "record": 1542,
+    "settle": 950
+   }
+  },
+  {
+   "n": 104,
+   "action": "type stage the camp at Normandy",
+   "meant": "other: stage the invasion camp so the blockade lifts and readiness recovers",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 193,
+    "record": 1510,
+    "settle": 1000
+   }
+  },
+  {
+   "n": 105,
+   "action": "scroll 1830 650 down 20",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 694,
+    "record": 1500,
+    "settle": 933
+   }
+  },
+  {
+   "n": 106,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 1529,
+    "settle": 933
+   }
+  },
+  {
+   "n": 107,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1844,
+    "settle": 933
+   }
+  },
+  {
+   "n": 108,
+   "action": "type Massena, attack Archduke John in Franche-Comte",
+   "meant": "attack Massena",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 344,
+    "record": 1868,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 109,
+   "action": "type Lannes, attack Kutuzov",
+   "meant": "attack Lannes",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 178,
+    "record": 1469,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 110,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1479,
+    "settle": 917
+   }
+  },
+  {
+   "n": 111,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 107,
+    "record": 1793,
+    "settle": 934
+   }
+  },
+  {
+   "n": 112,
+   "action": "type Davout, move to Vienna",
+   "meant": "move Davout",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 177,
+    "record": 1592,
+    "settle": 1218
+   }
+  },
+  {
+   "n": 113,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 411,
+    "record": 1430,
+    "settle": 884
+   }
+  },
+  {
+   "n": 114,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1496,
+    "settle": 917
+   }
+  },
+  {
+   "n": 115,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1802,
+    "settle": 933
+   }
+  },
+  {
+   "n": 116,
+   "action": "click SECURE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 112,
+    "record": 1787,
+    "settle": 1116
+   }
+  },
+  {
+   "n": 117,
+   "action": "type Davout, attack Archduke John",
+   "meant": "attack Davout",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 194,
+    "record": 1710,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 118,
+   "action": "click SECURE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1452,
+    "settle": 1267
+   }
+  },
+  {
+   "n": 119,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1466,
+    "settle": 917
+   }
+  },
+  {
+   "n": 120,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1769,
+    "settle": 934
+   }
+  },
+  {
+   "n": 121,
+   "action": "click 49 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1461,
+    "settle": 966
+   }
+  },
+  {
+   "n": 122,
+   "action": "scroll 1830 650 down 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 162,
+    "record": 1474,
+    "settle": 934
+   }
+  },
+  {
+   "n": 123,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1463,
+    "settle": 933
+   }
+  },
+  {
+   "n": 124,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1786,
+    "settle": 935
+   }
+  },
+  {
+   "n": 125,
+   "action": "click_at 1307 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1929,
+    "settle": 933
+   }
+  },
+  {
+   "n": 126,
+   "action": "type recruit infantry for Soult",
+   "meant": "recruit Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 310,
+    "record": 1691,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 127,
+   "action": "click Refuse",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1825,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 128,
+   "action": "click 49 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 112,
+    "record": 1492,
+    "settle": 967
+   }
+  },
+  {
+   "n": 129,
+   "action": "type commission Oudinot",
+   "meant": "other: commission a new marshal, Oudinot, to raise a small corps for the expedition",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 177,
+    "record": 1511,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 130,
+   "action": "type Oudinot, march to Normandy",
+   "meant": "move Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 209,
+    "record": 1471,
+    "settle": 1017
+   }
+  },
+  {
+   "n": 131,
+   "action": "type order the diversion",
+   "meant": "naval_posture",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 178,
+    "record": 1022,
+    "settle": 967
+   }
+  },
+  {
+   "n": 132,
+   "action": "click Stand down",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1449,
+    "settle": 1151
+   }
+  },
+  {
+   "n": 133,
+   "action": "type land Oudinot in Munster",
+   "meant": "naval_land Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 178,
+    "record": 1018,
+    "settle": 984
+   }
+  },
+  {
+   "n": 134,
+   "action": "click Sail for Munster",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1047,
+    "settle": 1169
+   }
+  },
+  {
+   "n": 135,
+   "action": "click SECURE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1478,
+    "settle": 1033
+   }
+  },
+  {
+   "n": 136,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1481,
+    "settle": 935
+   }
+  },
+  {
+   "n": 137,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1796,
+    "settle": 933
+   }
+  },
+  {
+   "n": 138,
+   "action": "click 49 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1480,
+    "settle": 966
+   }
+  },
+  {
+   "n": 139,
+   "action": "scroll 1830 650 down 6",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 227,
+    "record": 1502,
+    "settle": 933
+   }
+  },
+  {
+   "n": 140,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 1783,
+    "settle": 934
+   }
+  },
+  {
+   "n": 141,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 115,
+    "record": 1582,
+    "settle": 1178
+   }
+  },
+  {
+   "n": 142,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 148,
+    "record": 1747,
+    "settle": 930
+   }
+  },
+  {
+   "n": 143,
+   "action": "click Envoys (1)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1637,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 144,
+   "action": "click Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1730,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 145,
+   "action": "click Marshal Soult seeks an audience",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1807,
+    "settle": 933
+   }
+  },
+  {
+   "n": 146,
+   "action": "click Hear him",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1649,
+    "settle": 967
+   }
+  },
+  {
+   "n": 147,
+   "action": "click Let it stand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 105,
+    "record": 1732,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 148,
+   "action": "click 49 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1518,
+    "settle": 968
+   }
+  },
+  {
+   "n": 149,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1464,
+    "settle": 935
+   }
+  },
+  {
+   "n": 150,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1873,
+    "settle": 934
+   }
+  },
+  {
+   "n": 151,
+   "action": "click_at 1335 240",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1952,
+    "settle": 933
+   }
+  },
+  {
+   "n": 152,
+   "action": "click_at 1350 278",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1989,
+    "settle": 934
+   }
+  },
+  {
+   "n": 153,
+   "action": "type land Dumonceau in Ulster",
+   "meant": "naval_land Dumonceau",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 311,
+    "record": 1671,
+    "settle": 1000
+   }
+  },
+  {
+   "n": 154,
+   "action": "click Sail for Ulster",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1680,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 155,
+   "action": "click SECURE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1813,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 156,
+   "action": "type Soult, pursue Paget",
+   "meant": "pursue Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 177,
+    "record": 1782,
+    "settle": 967
+   }
+  },
+  {
+   "n": 157,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 161,
+    "record": 1811,
+    "settle": 967
+   }
+  },
+  {
+   "n": 158,
+   "action": "type recruit infantry for Oudinot",
+   "meant": "recruit Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 194,
+    "record": 1781,
+    "settle": 950
+   }
+  },
+  {
+   "n": 159,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1634,
+    "settle": 950
+   }
+  },
+  {
+   "n": 160,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1650,
+    "settle": 933
+   }
+  },
+  {
+   "n": 161,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1091,
+    "settle": 1083
+   }
+  },
+  {
+   "n": 162,
+   "action": "click#2 + Add demand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 9,
+    "record": 1090,
+    "settle": 919
+   }
+  },
+  {
+   "n": 163,
+   "action": "click Demands of Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 9,
+    "record": 1081,
+    "settle": 920
+   }
+  },
+  {
+   "n": 164,
+   "action": "click Erect Ireland",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1115,
+    "settle": 1085
+   }
+  },
+  {
+   "n": 165,
+   "action": "click Back Out",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1816,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 166,
+   "action": "click Envoys (2)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1478,
+    "settle": 968
+   }
+  },
+  {
+   "n": 167,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1868,
+    "settle": 934
+   }
+  },
+  {
+   "n": 168,
+   "action": "type Ney, attack Hungary",
+   "meant": "attack Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 177,
+    "record": 1759,
+    "settle": 1000
+   }
+  },
+  {
+   "n": 169,
+   "action": "click SECURE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1860,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 170,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1640,
+    "settle": 1266
+   }
+  },
+  {
+   "n": 171,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 145,
+    "record": 1812,
+    "settle": 932
+   }
+  },
+  {
+   "n": 172,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1686,
+    "settle": 950
+   }
+  },
+  {
+   "n": 173,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1607,
+    "settle": 932
+   }
+  },
+  {
+   "n": 174,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 113,
+    "record": 1105,
+    "settle": 1148
+   }
+  },
+  {
+   "n": 175,
+   "action": "click#2 + Add demand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1089,
+    "settle": 919
+   }
+  },
+  {
+   "n": 176,
+   "action": "click Offers to Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1092,
+    "settle": 919
+   }
+  },
+  {
+   "n": 177,
+   "action": "click Demands of Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 9,
+    "record": 1077,
+    "settle": 918
+   }
+  },
+  {
+   "n": 178,
+   "action": "click Erect Ireland",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1083,
+    "settle": 1089
+   }
+  },
+  {
+   "n": 179,
+   "action": "click#2 + Add demand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 9,
+    "record": 1084,
+    "settle": 919
+   }
+  },
+  {
+   "n": 180,
+   "action": "click Offers to Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 9,
+    "record": 1115,
+    "settle": 919
+   }
+  },
+  {
+   "n": 181,
+   "action": "click Offer Britain 100 gold a turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1112,
+    "settle": 1086
+   }
+  },
+  {
+   "n": 182,
+   "action": "click#2 + Add demand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 9,
+    "record": 1108,
+    "settle": 919
+   }
+  },
+  {
+   "n": 183,
+   "action": "click Offers to Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 11,
+    "record": 1118,
+    "settle": 915
+   }
+  },
+  {
+   "n": 184,
+   "action": "click Offer 300 gold to Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1111,
+    "settle": 1087
+   }
+  },
+  {
+   "n": 185,
+   "action": "click_at 1571 462",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1092,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 186,
+   "action": "click_at 1571 462",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1115,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 187,
+   "action": "click Separate peace with Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1609,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 188,
+   "action": "click Proceed — peace with Britain alone",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1651,
+    "settle": 1069
+   }
+  },
+  {
+   "n": 189,
+   "action": "scroll 1830 500 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 361,
+    "record": 1577,
+    "settle": 933
+   }
+  },
+  {
+   "n": 190,
+   "action": "click Not Now",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1792,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 191,
+   "action": "type Massena, attack Tyrol",
+   "meant": "attack Massena",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 177,
+    "record": 1679,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 192,
+   "action": "click SECURE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1781,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 193,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1608,
+    "settle": 951
+   }
+  },
+  {
+   "n": 194,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1641,
+    "settle": 934
+   }
+  },
+  {
+   "n": 195,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1130,
+    "settle": 1166
+   }
+  },
+  {
+   "n": 196,
+   "action": "click Press Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1091,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 197,
+   "action": "click Remove",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1077,
+    "settle": 1089
+   }
+  },
+  {
+   "n": 198,
+   "action": "click Ease Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1090,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 199,
+   "action": "click Ease Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 108,
+    "record": 1082,
+    "settle": 1052
+   }
+  },
+  {
+   "n": 200,
+   "action": "click Separate peace with Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1567,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 201,
+   "action": "click Proceed — peace with Austria alone",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1567,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 202,
+   "action": "click Not Now",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1815,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 203,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1636,
+    "settle": 950
+   }
+  },
+  {
+   "n": 204,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 106,
+    "record": 1649,
+    "settle": 934
+   }
+  },
+  {
+   "n": 205,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1082,
+    "settle": 1166
+   }
+  },
+  {
+   "n": 206,
+   "action": "click Drop Russia",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1105,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 207,
+   "action": "click#2 + Add demand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1097,
+    "settle": 921
+   }
+  },
+  {
+   "n": 208,
+   "action": "click Demands of Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 9,
+    "record": 1066,
+    "settle": 918
+   }
+  },
+  {
+   "n": 209,
+   "action": "click Erect Ireland",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1085,
+    "settle": 1104
+   }
+  },
+  {
+   "n": 210,
+   "action": "click Drop Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1076,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 211,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1078,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 212,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1106,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 213,
+   "action": "click_at 1524 366",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1091,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 214,
+   "action": "click_at 1524 366",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1099,
+    "settle": 934
+   }
+  },
+  {
+   "n": 215,
+   "action": "click_at 1524 366",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1081,
+    "settle": 933
+   }
+  },
+  {
+   "n": 216,
+   "action": "click_at 1524 366",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1089,
+    "settle": 934
+   }
+  },
+  {
+   "n": 217,
+   "action": "click_at 1524 366",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1059,
+    "settle": 933
+   }
+  },
+  {
+   "n": 218,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1081,
+    "settle": 928
+   }
+  },
+  {
+   "n": 219,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1083,
+    "settle": 1052
+   }
+  },
+  {
+   "n": 220,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1088,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 221,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1078,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 222,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1080,
+    "settle": 1052
+   }
+  },
+  {
+   "n": 223,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1078,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 224,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 108,
+    "record": 1083,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 225,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1077,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 226,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1080,
+    "settle": 927
+   }
+  },
+  {
+   "n": 227,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1089,
+    "settle": 1052
+   }
+  },
+  {
+   "n": 228,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1069,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 229,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1092,
+    "settle": 1069
+   }
+  },
+  {
+   "n": 230,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1061,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 231,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 108,
+    "record": 1102,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 232,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1099,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 233,
+   "action": "click Ease Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1087,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 234,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1078,
+    "settle": 928
+   }
+  },
+  {
+   "n": 235,
+   "action": "scroll 1700 420 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 194,
+    "record": 1084,
+    "settle": 934
+   }
+  },
+  {
+   "n": 236,
+   "action": "click Back Out",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1814,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 237,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1783,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 238,
+   "action": "type Lannes, drill",
+   "meant": "drill Lannes",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1778,
+    "settle": 1084
+   }
+  },
+  {
+   "n": 239,
+   "action": "type what can I do",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1783,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 240,
+   "action": "type Soult, attack Paget",
+   "meant": "attack Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 178,
+    "record": 1449,
+    "settle": 1301
+   }
+  },
+  {
+   "n": 241,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 108,
+    "record": 1480,
+    "settle": 919
+   }
+  },
+  {
+   "n": 242,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1860,
+    "settle": 934
+   }
+  },
+  {
+   "n": 243,
+   "action": "type Murat, drill",
+   "meant": "drill Murat",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1810,
+    "settle": 1100
+   }
+  },
+  {
+   "n": 244,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 116,
+    "record": 1613,
+    "settle": 1312
+   }
+  },
+  {
+   "n": 245,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 162,
+    "record": 1766,
+    "settle": 932
+   }
+  },
+  {
+   "n": 246,
+   "action": "click Envoys (2)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1451,
+    "settle": 967
+   }
+  },
+  {
+   "n": 247,
+   "action": "click ACTIVE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1637,
+    "settle": 935
+   }
+  },
+  {
+   "n": 248,
+   "action": "scroll 1830 500 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 192,
+    "record": 1653,
+    "settle": 933
+   }
+  },
+  {
+   "n": 249,
+   "action": "click Accept",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 106,
+    "record": 1629,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 250,
+   "action": "click Grant",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1823,
+    "settle": 1032
+   }
+  },
+  {
+   "n": 251,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1639,
+    "settle": 951
+   }
+  },
+  {
+   "n": 252,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1661,
+    "settle": 933
+   }
+  },
+  {
+   "n": 253,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 113,
+    "record": 1073,
+    "settle": 1131
+   }
+  },
+  {
+   "n": 254,
+   "action": "click Drop Russia",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1069,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 255,
+   "action": "click Drop Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1078,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 256,
+   "action": "click + Add demand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1068,
+    "settle": 920
+   }
+  },
+  {
+   "n": 257,
+   "action": "click Austria joins the Continental System",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1080,
+    "settle": 1088
+   }
+  },
+  {
+   "n": 258,
+   "action": "click + Add demand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1070,
+    "settle": 919
+   }
+  },
+  {
+   "n": 259,
+   "action": "click Demand 300 gold from Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1066,
+    "settle": 1087
+   }
+  },
+  {
+   "n": 260,
+   "action": "click Submit for Review",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1200,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 261,
+   "action": "click Ratify Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1475,
+    "settle": 1185
+   }
+  },
+  {
+   "n": 262,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1431,
+    "settle": 934
+   }
+  },
+  {
+   "n": 263,
+   "action": "click 51 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1470,
+    "settle": 968
+   }
+  },
+  {
+   "n": 264,
+   "action": "click Lay down ships",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1449,
+    "settle": 1221
+   }
+  },
+  {
+   "n": 265,
+   "action": "click Lay down ships",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1476,
+    "settle": 1302
+   }
+  },
+  {
+   "n": 266,
+   "action": "click Recall to home waters",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1449,
+    "settle": 1288
+   }
+  },
+  {
+   "n": 267,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1450,
+    "settle": 933
+   }
+  },
+  {
+   "n": 268,
+   "action": "type can we summon the congress?",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 307,
+    "record": 1744,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 269,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1622,
+    "settle": 967
+   }
+  },
+  {
+   "n": 270,
+   "action": "click Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1627,
+    "settle": 933
+   }
+  },
+  {
+   "n": 271,
+   "action": "click Cancel",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1784,
+    "settle": 934
+   }
+  },
+  {
+   "n": 272,
+   "action": "type Soult, march to Artois",
+   "meant": "move Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 293,
+    "record": 1772,
+    "settle": 1016
+   }
+  },
+  {
+   "n": 273,
+   "action": "type Oudinot, fortify Munster",
+   "meant": "fortify Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 194,
+    "record": 1560,
+    "settle": 1251
+   }
+  },
+  {
+   "n": 274,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 170,
+    "record": 1738,
+    "settle": 942
+   }
+  },
+  {
+   "n": 275,
+   "action": "click Envoys (2)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1421,
+    "settle": 967
+   }
+  },
+  {
+   "n": 276,
+   "action": "click ACTIVE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1563,
+    "settle": 934
+   }
+  },
+  {
+   "n": 277,
+   "action": "click Review Settlement Offer",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1173,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 278,
+   "action": "click Ratify White Peace",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1045,
+    "settle": 1168
+   }
+  },
+  {
+   "n": 279,
+   "action": "click Refuse",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1418,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 280,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1417,
+    "settle": 934
+   }
+  },
+  {
+   "n": 281,
+   "action": "type can we summon the congress?",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 308,
+    "record": 1771,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 282,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1726,
+    "settle": 984
+   }
+  },
+  {
+   "n": 283,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1762,
+    "settle": 951
+   }
+  },
+  {
+   "n": 284,
+   "action": "click Diplomacy (D)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1447,
+    "settle": 1017
+   }
+  },
+  {
+   "n": 285,
+   "action": "click CONGRESS",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1472,
+    "settle": 933
+   }
+  },
+  {
+   "n": 286,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1803,
+    "settle": 934
+   }
+  },
+  {
+   "n": 287,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1635,
+    "settle": 950
+   }
+  },
+  {
+   "n": 288,
+   "action": "click Treaties",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Treaties\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1634,
+    "settle": 921
+   }
+  },
+  {
+   "n": 289,
+   "action": "click Spain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1634,
+    "settle": 933
+   }
+  },
+  {
+   "n": 290,
+   "action": "click Propose Vassal",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 124,
+    "record": 1598,
+    "settle": 1037
+   }
+  },
+  {
+   "n": 291,
+   "action": "click Use Talleyrand's suggestion",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1661,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 292,
+   "action": "click Modify Proposal",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 118,
+    "record": 1750,
+    "settle": 1027
+   }
+  },
+  {
+   "n": 293,
+   "action": "type propose vassalage to Spain with no tribute",
+   "meant": "diplomacy",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 227,
+    "record": 1749,
+    "settle": 933
+   }
+  },
+  {
+   "n": 294,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 123,
+    "record": 1560,
+    "settle": 1171
+   }
+  },
+  {
+   "n": 295,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 168,
+    "record": 1638,
+    "settle": 910
+   }
+  },
+  {
+   "n": 296,
+   "action": "click Accept the Breach",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1766,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 297,
+   "action": "click 55 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1450,
+    "settle": 967
+   }
+  },
+  {
+   "n": 298,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1491,
+    "settle": 934
+   }
+  },
+  {
+   "n": 299,
+   "action": "type land Oudinot in Brittany",
+   "meant": "naval_land Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 308,
+    "record": 1748,
+    "settle": 967
+   }
+  },
+  {
+   "n": 300,
+   "action": "type Oudinot, march home to Paris",
+   "meant": "move Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 193,
+    "record": 1763,
+    "settle": 951
+   }
+  },
+  {
+   "n": 301,
+   "action": "type Oudinot, unfortify",
+   "meant": "other: unfortify Oudinot so he can march",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 177,
+    "record": 1745,
+    "settle": 951
+   }
+  },
+  {
+   "n": 302,
+   "action": "type Oudinot, march home to Paris",
+   "meant": "move Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 193,
+    "record": 1768,
+    "settle": 967
+   }
+  },
+  {
+   "n": 303,
+   "action": "type recruit infantry for Soult at Paris",
+   "meant": "recruit Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 208,
+    "record": 1756,
+    "settle": 967
+   }
+  },
+  {
+   "n": 304,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 11 — Late February 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1728,
+    "settle": 950
+   }
+  },
+  {
+   "n": 305,
+   "action": "type Lannes, drill",
+   "meant": "drill Lannes",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1566,
+    "settle": 1085
+   }
+  },
+  {
+   "n": 306,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 153,
+    "record": 1766,
+    "settle": 942
+   }
+  },
+  {
+   "n": 307,
+   "action": "type how do I bid for Sardinia's allegiance?",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 210,
+    "record": 1571,
+    "settle": 968
+   }
+  },
+  {
+   "n": 308,
+   "action": "click What should we do about Sardinia?",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1564,
+    "settle": 1053
+   }
+  },
+  {
+   "n": 309,
+   "action": "click Leave them be",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1741,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 310,
+   "action": "click Sardinia's allegiance is in play",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1781,
+    "settle": 934
+   }
+  },
+  {
+   "n": 311,
+   "action": "click Bid for Sardinia",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1743,
+    "settle": 1066
+   }
+  },
+  {
+   "n": 312,
+   "action": "type bid for Sardinia, 1500 gold",
+   "meant": "diplomacy",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 195,
+    "record": 1728,
+    "settle": 933
+   }
+  },
+  {
+   "n": 313,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1733,
+    "settle": 984
+   }
+  },
+  {
+   "n": 314,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1766,
+    "settle": 950
+   }
+  },
+  {
+   "n": 315,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 119,
+    "record": 1565,
+    "settle": 1176
+   }
+  },
+  {
+   "n": 316,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 139,
+    "record": 1776,
+    "settle": 938
+   }
+  },
+  {
+   "n": 317,
+   "action": "type land Oudinot in Normandy",
+   "meant": "naval_land Oudinot",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 193,
+    "record": 1709,
+    "settle": 1001
+   }
+  },
+  {
+   "n": 318,
+   "action": "click Sail for Normandy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1822,
+    "settle": 1050
+   }
+  },
+  {
+   "n": 319,
+   "action": "click Marshal Davout grows bitter",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1837,
+    "settle": 935
+   }
+  },
+  {
+   "n": 320,
+   "action": "click Grant rente",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1791,
+    "settle": 1084
+   }
+  },
+  {
+   "n": 321,
+   "action": "click Marshal Soult grows bitter",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1802,
+    "settle": 934
+   }
+  },
+  {
+   "n": 322,
+   "action": "click Grant rente",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 115,
+    "record": 1791,
+    "settle": 1047
+   }
+  },
+  {
+   "n": 323,
+   "action": "type Ney, move to Vienna",
+   "meant": "move Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 13 — Late March 1806",
+   "durations_ms": {
+    "act": 176,
+    "record": 1739,
+    "settle": 967
+   }
+  },
+  {
+   "n": 324,
+   "action": "type Napoleon, move to Vienna",
+   "meant": "move Napoleon",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 194,
+    "record": 1616,
+    "settle": 1100
+   }
+  },
+  {
+   "n": 325,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 380,
+    "record": 1422,
+    "settle": 898
+   }
+  },
+  {
+   "n": 326,
+   "action": "click_at 1828 300",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1411,
+    "settle": 917
+   }
+  },
+  {
+   "n": 327,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1771,
+    "settle": 966
+   }
+  },
+  {
+   "n": 328,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1650,
+    "settle": 949
+   }
+  },
+  {
+   "n": 329,
+   "action": "click Russia",
+   "meant": "",
+   "ok": false,
+   "error": "2 controls match \"Russia\" — pick one with click#N",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1667,
+    "settle": 920
+   }
+  },
+  {
+   "n": 330,
+   "action": "click#1 Russia",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1648,
+    "settle": 933
+   }
+  },
+  {
+   "n": 331,
+   "action": "click Propose Armistice",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 113,
+    "record": 1602,
+    "settle": 1065
+   }
+  },
+  {
+   "n": 332,
+   "action": "click More generous",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1570,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 333,
+   "action": "click Send these terms",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1736,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 334,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1756,
+    "settle": 1002
+   }
+  },
+  {
+   "n": 335,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 14 — Early April 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1822,
+    "settle": 950
+   }
+  },
+  {
+   "n": 336,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 126,
+    "record": 1598,
+    "settle": 1203
+   }
+  },
+  {
+   "n": 337,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 169,
+    "record": 1800,
+    "settle": 927
+   }
+  },
+  {
+   "n": 338,
+   "action": "click 60 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 113,
+    "record": 1519,
+    "settle": 966
+   }
+  },
+  {
+   "n": 339,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1447,
+    "settle": 934
+   }
+  },
+  {
+   "n": 340,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"⚖ Diplomacy\"",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1448,
+    "settle": 922
+   }
+  },
+  {
+   "n": 341,
+   "action": "click Britain",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Britain\"",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1487,
+    "settle": 920
+   }
+  },
+  {
+   "n": 342,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 1811,
+    "settle": 935
+   }
+  },
+  {
+   "n": 343,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1637,
+    "settle": 950
+   }
+  },
+  {
+   "n": 344,
+   "action": "click Spain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1624,
+    "settle": 934
+   }
+  },
+  {
+   "n": 345,
+   "action": "click Propose Vassal",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1620,
+    "settle": 934
+   }
+  },
+  {
+   "n": 346,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1884,
+    "settle": 934
+   }
+  },
+  {
+   "n": 347,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 274,
+    "record": 1797,
+    "settle": 968
+   }
+  },
+  {
+   "n": 348,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 15 — Late April 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1773,
+    "settle": 950
+   }
+  },
+  {
+   "n": 349,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 119,
+    "record": 1567,
+    "settle": 1175
+   }
+  },
+  {
+   "n": 350,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 140,
+    "record": 1759,
+    "settle": 920
+   }
+  },
+  {
+   "n": 351,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1631,
+    "settle": 951
+   }
+  },
+  {
+   "n": 352,
+   "action": "click Spain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1626,
+    "settle": 934
+   }
+  },
+  {
+   "n": 353,
+   "action": "click Propose Vassal",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 116,
+    "record": 1617,
+    "settle": 1062
+   }
+  },
+  {
+   "n": 354,
+   "action": "click Not Now",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1678,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 355,
+   "action": "click Cancel",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1792,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 356,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1639,
+    "settle": 950
+   }
+  },
+  {
+   "n": 357,
+   "action": "scroll 1825 600 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 193,
+    "record": 1655,
+    "settle": 933
+   }
+  },
+  {
+   "n": 358,
+   "action": "scroll 1825 600 down 15",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 525,
+    "record": 1648,
+    "settle": 935
+   }
+  },
+  {
+   "n": 359,
+   "action": "click Britain  —  Peace",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1655,
+    "settle": 934
+   }
+  },
+  {
+   "n": 360,
+   "action": "click Buy Off Their Design",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 1781,
+    "settle": 1032
+   }
+  },
+  {
+   "n": 361,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1741,
+    "settle": 967
+   }
+  },
+  {
+   "n": 362,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1787,
+    "settle": 951
+   }
+  },
+  {
+   "n": 363,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 121,
+    "record": 1660,
+    "settle": 1156
+   }
+  },
+  {
+   "n": 364,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 147,
+    "record": 1758,
+    "settle": 931
+   }
+  },
+  {
+   "n": 365,
+   "action": "click Envoys (1)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1628,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 366,
+   "action": "click Grant",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1769,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 367,
+   "action": "type invest in Switzerland",
+   "meant": "other: invest gold in my client Switzerland to restore its loyalty",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 175,
+    "record": 1775,
+    "settle": 935
+   }
+  },
+  {
+   "n": 368,
+   "action": "click Diplomacy (D)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1431,
+    "settle": 1033
+   }
+  },
+  {
+   "n": 369,
+   "action": "click VASSALS",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1428,
+    "settle": 933
+   }
+  },
+  {
+   "n": 370,
+   "action": "click#2 Invest",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 17,
+    "record": 1419,
+    "settle": 1177
+   }
+  },
+  {
+   "n": 371,
+   "action": "click Invest",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 15,
+    "record": 1422,
+    "settle": 1179
+   }
+  },
+  {
+   "n": 372,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1426,
+    "settle": 934
+   }
+  },
+  {
+   "n": 373,
+   "action": "click Ledger (T)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1449,
+    "settle": 967
+   }
+  },
+  {
+   "n": 374,
+   "action": "click LAWS",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1445,
+    "settle": 933
+   }
+  },
+  {
+   "n": 375,
+   "action": "click#1 Enact",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1049,
+    "settle": 1168
+   }
+  },
+  {
+   "n": 376,
+   "action": "click Enact the Grand Quartier Général",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1453,
+    "settle": 1134
+   }
+  },
+  {
+   "n": 377,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1445,
+    "settle": 917
+   }
+  },
+  {
+   "n": 378,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 274,
+    "record": 1733,
+    "settle": 952
+   }
+  },
+  {
+   "n": 379,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 118,
+    "record": 1569,
+    "settle": 1160
+   }
+  },
+  {
+   "n": 380,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 150,
+    "record": 1645,
+    "settle": 911
+   }
+  },
+  {
+   "n": 381,
+   "action": "click Envoys (1)",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Envoys (1)\"",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1610,
+    "settle": 920
+   }
+  },
+  {
+   "n": 382,
+   "action": "click Accept the Breach",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1622,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 383,
+   "action": "click Grant",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1744,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 384,
+   "action": "type Davout and Murat, march to Bohemia",
+   "meant": "move Davout",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 210,
+    "record": 1789,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 385,
+   "action": "click Execute",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 123,
+    "record": 1751,
+    "settle": 1105
+   }
+  },
+  {
+   "n": 386,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1768,
+    "settle": 951
+   }
+  },
+  {
+   "n": 387,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 18 — Early June 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1772,
+    "settle": 951
+   }
+  },
+  {
+   "n": 388,
+   "action": "type Ney, drill",
+   "meant": "drill Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1560,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 389,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 154,
+    "record": 1780,
+    "settle": 938
+   }
+  },
+  {
+   "n": 390,
+   "action": "type Massena, march to Bern to garrison Switzerland's capital",
+   "meant": "move Massena",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 262,
+    "record": 1767,
+    "settle": 950
+   }
+  },
+  {
+   "n": 391,
+   "action": "click ⚖ Diplomacy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1650,
+    "settle": 966
+   }
+  },
+  {
+   "n": 392,
+   "action": "click Prussia",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1647,
+    "settle": 933
+   }
+  },
+  {
+   "n": 393,
+   "action": "click Buy Off Their Design",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Buy Off Their Design\"",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1626,
+    "settle": 919
+   }
+  },
+  {
+   "n": 394,
+   "action": "scroll 1825 600 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 361,
+    "record": 1608,
+    "settle": 934
+   }
+  },
+  {
+   "n": 395,
+   "action": "click Cancel",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1792,
+    "settle": 933
+   }
+  },
+  {
+   "n": 396,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 277,
+    "record": 1752,
+    "settle": 966
+   }
+  },
+  {
+   "n": 397,
+   "action": "type build ships",
+   "meant": "naval_build",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 19 — Late June 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1778,
+    "settle": 950
+   }
+  },
+  {
+   "n": 398,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 126,
+    "record": 1552,
+    "settle": 1133
+   }
+  },
+  {
+   "n": 399,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 156,
+    "record": 1630,
+    "settle": 906
+   }
+  },
+  {
+   "n": 400,
+   "action": "click Let it stand",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1729,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 401,
+   "action": "click 69 sail",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1461,
+    "settle": 966
+   }
+  },
+  {
+   "n": 402,
+   "action": "click Lay down ships",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 9,
+    "record": 1474,
+    "settle": 1169
+   }
+  },
+  {
+   "n": 403,
+   "action": "click Lay down ships",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1544,
+    "settle": 1153
+   }
+  },
+  {
+   "n": 404,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 57,
+    "record": 1568,
+    "settle": 999
+   }
+  },
+  {
+   "n": 405,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"End Turn\"",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1521,
+    "settle": 919
+   }
+  },
+  {
+   "n": 406,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 20 — Early July 1806",
+   "durations_ms": {
+    "act": 62,
+    "record": 1813,
+    "settle": 951
+   }
+  },
+  {
+   "n": 407,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 21 — Late July 1806",
+   "durations_ms": {
+    "act": 117,
+    "record": 1702,
+    "settle": 1187
+   }
+  },
+  {
+   "n": 408,
+   "action": "quit",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 21 — Late July 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1559,
+    "settle": 0
+   }
+  }
+ ],
+ "n_actions": 409,
+ "wall_s": 3283.9,
+ "engine_exit": 0,
+ "script_errors": [],
+ "n_script_errors": 0
+}
