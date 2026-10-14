@@ -2464,6 +2464,10 @@ def preview_war_declaration(
     # a pair cooldown, a court answering the Congress) is named apart, with
     # the cascade's own reason, so the review never promises it.
     offensive_barred = []
+    # DDB-2: the player is ASKED to join an ally's offensive war (a letter,
+    # `call_to_arms`), never carried in — named apart, never as a joiner.
+    offensive_asked = []
+    from backend.game_logic import call_to_arms as _cta
     for nation in world.get_active_nations():
         if nation in (aggressor, target):
             continue
@@ -2475,6 +2479,8 @@ def preview_war_declaration(
                 bar = offensive_call_bar(world, nation, target)
                 if bar:
                     offensive_barred.append({"nation": nation, "reason": bar})
+                elif _cta.asks_the_callee(world, nation):
+                    offensive_asked.append(nation)
                 else:
                     offensive_joiners.append(nation)
 
@@ -2501,6 +2507,7 @@ def preview_war_declaration(
         "defensive_joiners": defensive_joiners,
         "offensive_barred": offensive_barred,
         "offensive_joiners": offensive_joiners,
+        "offensive_asked": offensive_asked,
     }
 
 
@@ -4820,6 +4827,16 @@ def build_war_context_snapshot(
         fallout_warnings = get_separate_peace_fallout_warnings(
             world, player_nation, target_nation, harshness,
         )
+        # DDB-3 (DDB-D9): the peace names every contingent it releases and
+        # the post it leaves (a truce kept them at their posts; the peace
+        # sends them home) — the PEACE preview and a court's offer alike.
+        from backend.game_logic.contingent import released_contingent_lines
+        for _line in released_contingent_lines(world, player_nation, target_nation):
+            fallout_warnings.append({
+                "warning_type": "contingent_released",
+                "severity": "INFO",
+                "display": _line,
+            })
 
     snapshot = {
         "target_nation": target_nation,
@@ -5255,6 +5272,13 @@ def get_peace_commitment_conflicts(
     """
     conflicts: List[Dict] = []
 
+    # DDB-2: a pair France entered at an ally's call (Join) may make its own
+    # separate peace — the paradox below is a WARNING for it, not a stop.
+    _joined_at_a_call = False
+    if not incoming and not truce:
+        from backend.game_logic.call_to_arms import entered_by_call
+        _joined_at_a_call = entered_by_call(world, proposer, target)
+
     # Paradox: proposer allied with nation X, and X is at war with target
     all_nations = world.get_active_nations()
     _runs_on = ({row["ally"]: row for row in allies_whose_war_runs_on(world, proposer, target)}
@@ -5295,6 +5319,19 @@ def get_peace_commitment_conflicts(
                 f"{_fdn(world, nation)} stays at war with {_fdn(world, target)} "
                 f"after this peace — an ally, not a client: she fights on alone "
                 f"and views the separate peace unfavorably."
+            )
+            _severity = "WARNING"
+        elif _joined_at_a_call:
+            # DDB-2 (DDB-D8's exit): France entered this war at an ally's
+            # call — the paradox HARD_STOP is lifted for the pair; the
+            # separate-peace penalty prices it (`apply_separate_peace_
+            # penalties` at the ratification).
+            from backend.game_logic.formations import formed_display_name as _fdn
+            _display = (
+                f"{_fdn(world, nation)} stays at war with {_fdn(world, target)} "
+                f"after this separate peace — France joined at an ally's call, "
+                f"so the peace is hers to make; {_fdn(world, nation)} views it "
+                f"unfavorably."
             )
             _severity = "WARNING"
         else:
@@ -9559,6 +9596,115 @@ def alliance_cascade_rail_text(world, ally: str, nations, enemies):
     return title, message
 
 
+def _enter_offensive_war(
+    world,
+    *,
+    nation: str,
+    aggressor: str,
+    target: str,
+    attach,
+    entry_path: str,
+    state_reason: str,
+    ledger_path: str,
+    reason: str,
+    treaty_state: str,
+    war_entry_entries: Optional[List[Dict]],
+    fault_aggressor: str,
+    root_episode_id: Optional[str],
+    resolution_path: str,
+    was_bargain_decisive: bool = False,
+) -> Optional[Dict]:
+    """`nation` enters `aggressor`'s OFFENSIVE war on `target` — the honored
+    path, ONE body for its two roads (DDB-2, Pre-Deploy S13b): the offensive
+    cascade (an AI callee, or an explicit ally-entry decision) and the
+    player's own Join on an ally's call to arms (`call_to_arms.join_call`).
+    `attach(attacker, defender, entry_path)` puts the pair on the war
+    instance; None when it refuses (nothing else happens). Returns the
+    cascade row."""
+    existing_treaty = getattr(world, 'active_treaties', {}).get(
+        world._make_diplo_key(nation, target)
+    )
+    breach_preview = None
+    if existing_treaty or world.get_diplomatic_state(nation, target) in COMMITMENT_STATES:
+        breach_preview = get_treaty_breach_preview(
+            world,
+            nation,
+            target,
+            treaty=existing_treaty,
+            end_reason_action="cascade_forced",
+            fault_nation=fault_aggressor,
+            episode_id=root_episode_id,
+        )
+    attach_result = attach(nation, target, entry_path)
+    if not attach_result.get("ok"):
+        return None
+    _append_war_entry(
+        war_entry_entries,
+        nation=nation,
+        path=ledger_path,
+        side="attacker",
+        reason=reason,
+        treaty_state=treaty_state,
+    )
+    set_diplomatic_state(world, nation, target, "WAR", state_reason)
+    if breach_preview:
+        _record_treaty_breach(
+            world,
+            breach_preview,
+            new_state="WAR",
+            trigger_context={
+                "cascade_type": "offensive",
+                "aggressor": aggressor,
+                "target": target,
+                "root_aggressor": fault_aggressor,
+                "root_episode_id": root_episode_id,
+            },
+        )
+    world.modify_nation_relation(nation, target, -20)
+    _trigger_matching_war_entry_bargains(
+        world,
+        aggressor,
+        nation,
+        target,
+        resolution_path=resolution_path,
+        was_bargain_decisive=bool(was_bargain_decisive),
+    )
+
+    world.log_event({
+        "type": "offensive_cascade",
+        "attacker_ally": nation,
+        "aggressor": aggressor,
+        "against": target,
+    })
+    # GE-3 review #15: the Emperor joining an ally's offensive
+    # war during the sitting has drawn the sword as surely as a
+    # declaration (dormant when no Congress sits).
+    from backend.game_logic.congress import note_joined as _congress_join
+    _congress_join(world, nation, target, aggressor)
+
+    from backend.notifications import (
+        create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,
+    )
+    world.notifications.add(create_notification(
+        ALLIANCE_CASCADE_WAR,
+        NotificationPriority.HIGH,
+        f"{nation} Joins Offensive!",
+        f"{nation} enters the war against {target}, honoring alliance with {aggressor}.",
+        int(world.current_turn),
+    ))
+
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_offensive_cascade",
+                        {"nation": nation, "aggressor": aggressor, "target": target},
+                        "partial_on_nation")
+    return {
+        "attacker_ally": nation,
+        "aggressor": aggressor,
+        "target": target,
+        "cascade_type": "offensive",
+    }
+
+
 def _process_war_cascade(
     world,
     aggressor: str,
@@ -9830,6 +9976,30 @@ def _process_war_cascade(
                     )
                     continue
 
+                # DDB-2 (DDB-D8's ruling, Pre-Deploy S13b, October 14, 2026):
+                # France is ASKED. For the player as callee, an ally's
+                # offensive war posts a letter (the call to arms) instead of
+                # carrying France in — Join, Refuse, or two turns unanswered
+                # (a refusal at the same price). An AI callee keeps the
+                # resolver; an explicit entry decision (a bargain the player
+                # struck) keeps its own road.
+                from backend.game_logic import call_to_arms as _cta
+                if _cta.asks_the_callee(world, nation, entry_decision):
+                    _cta.post_call(
+                        world, ally=aggressor, target=target, callee=nation,
+                        war_id=str(ctx.war_id or ""),
+                        root_episode_id=root_episode_id or "",
+                    )
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="call_posted",
+                        side="attacker",
+                        reason=f"{aggressor} calls on France to join; France answers",
+                        treaty_state=state_with_aggressor,
+                    )
+                    continue
+
                 if entry_decision:
                     resolution = str(entry_decision.get("resolution", "reject"))
                     if resolution in ("reject", "refuse", "blocked"):
@@ -9890,90 +10060,27 @@ def _process_war_cascade(
                     ledger_path = "offensive_counter_bargain_accept"
                 elif resolution_path == "offensive_bargain_helped":
                     ledger_path = "offensive_bargain_helped"
-                existing_treaty = getattr(world, 'active_treaties', {}).get(
-                    world._make_diplo_key(nation, target)
-                )
-                breach_preview = None
-                if existing_treaty or world.get_diplomatic_state(nation, target) in COMMITMENT_STATES:
-                    breach_preview = get_treaty_breach_preview(
-                        world,
-                        nation,
-                        target,
-                        treaty=existing_treaty,
-                        end_reason_action="cascade_forced",
-                        fault_nation=fault_aggressor,
-                        episode_id=root_episode_id,
-                    )
-                attach_result = _attach_cascade_pair(nation, target, "offensive_cascade")
-                if not attach_result.get("ok"):
-                    continue
-                _append_war_entry(
-                    war_entry_entries,
+                entered = _enter_offensive_war(
+                    world,
                     nation=nation,
-                    path=ledger_path,
-                    side="attacker",
+                    aggressor=aggressor,
+                    target=target,
+                    attach=_attach_cascade_pair,
+                    entry_path="offensive_cascade",
+                    state_reason="offensive_cascade",
+                    ledger_path=ledger_path,
                     reason=decision["reason"],
                     treaty_state=state_with_aggressor,
-                )
-                set_diplomatic_state(world, nation, target, "WAR", "offensive_cascade")
-                processed.add(nation)
-                if breach_preview:
-                    _record_treaty_breach(
-                        world,
-                        breach_preview,
-                        new_state="WAR",
-                        trigger_context={
-                            "cascade_type": "offensive",
-                            "aggressor": aggressor,
-                            "target": target,
-                            "root_aggressor": fault_aggressor,
-                            "root_episode_id": root_episode_id,
-                        },
-                    )
-                world.modify_nation_relation(nation, target, -20)
-                _trigger_matching_war_entry_bargains(
-                    world,
-                    aggressor,
-                    nation,
-                    target,
+                    war_entry_entries=war_entry_entries,
+                    fault_aggressor=fault_aggressor,
+                    root_episode_id=root_episode_id,
                     resolution_path=resolution_path,
                     was_bargain_decisive=bool(entry_decision.get("was_bargain_decisive", False)),
                 )
-
-                cascade.append({
-                    "attacker_ally": nation,
-                    "aggressor": aggressor,
-                    "target": target,
-                    "cascade_type": "offensive",
-                })
-
-                world.log_event({
-                    "type": "offensive_cascade",
-                    "attacker_ally": nation,
-                    "aggressor": aggressor,
-                    "against": target,
-                })
-                # GE-3 review #15: the Emperor joining an ally's offensive
-                # war during the sitting has drawn the sword as surely as a
-                # declaration (dormant when no Congress sits).
-                from backend.game_logic.congress import note_joined as _congress_join
-                _congress_join(world, nation, target, aggressor)
-
-                from backend.notifications import (
-                    create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,
-                )
-                world.notifications.add(create_notification(
-                    ALLIANCE_CASCADE_WAR,
-                    NotificationPriority.HIGH,
-                    f"{nation} Joins Offensive!",
-                    f"{nation} enters the war against {target}, honoring alliance with {aggressor}.",
-                    int(world.current_turn),
-                ))
-
-                from backend.game_logic.dispatch import queue_dispatch_event
-                queue_dispatch_event(world, "diplomatic_offensive_cascade",
-                                    {"nation": nation, "aggressor": aggressor, "target": target},
-                                    "partial_on_nation")
+                if entered is None:
+                    continue
+                processed.add(nation)
+                cascade.append(entered)
 
     # VASSAL AUTO-JOIN: DG-4 only calls direct vassals of root principals.
     vassals = getattr(world, 'vassals', {})
@@ -12560,13 +12667,27 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 ptype = _type_map.get(target_state, "peace")
                 if target_state == "ARMISTICE":
                     ptype = armistice_variant_for(world, player, target_nation)
+                # DDB-1 (Pre-Deploy S13b, October 14, 2026): the band word is
+                # the DRAFT's own — scored on the terms the click opens (the
+                # suggested terms at their centre, no jitter), never on a bare
+                # package with no terms (the Cabinet read "Favorable" on
+                # Propose Vassal while the draft demanded 15% of the court's
+                # treasury a turn). Every proposal row alike: the click opens
+                # the same pipeline for each.
+                from backend.game_logic.diplomatic_templates import (
+                    generate_suggested_terms as _draft_terms,
+                )
+                _draft = _draft_terms(
+                    target_nation,
+                    "armistice" if target_state == "ARMISTICE" else _type_map.get(target_state, "peace"),
+                    world, deterministic=True)
                 proposal = {
                     "type": ptype,
                     "proposer_nation": player,
                     "target_nation": target_nation,
-                    "sweeteners": [],
-                    "demands": [],
-                    "clauses": [],
+                    "sweeteners": list(_draft.get("sweeteners") or []),
+                    "demands": list(_draft.get("demands") or []),
+                    "clauses": list(_draft.get("clauses") or []),
                 }
                 result = calculate_acceptance(proposal, world)
                 likelihood_score = int(result.get("score", 0))
@@ -12753,6 +12874,15 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "eligibility": settlement_eligibility,
             "white_peace": True,
         })
+        # DDB-2 (DDB-D8's exit): a war France entered at an ally's call is
+        # hers to leave — the bilateral peace road is offered past
+        # `not_side_leader`, its paradox lifted for the pair and priced by
+        # the separate-peace penalty (diplomacy #30: both settlement rows
+        # read "Only the war leader can settle this side").
+        from backend.game_logic.call_to_arms import entered_by_call as _by_call
+        if not settlement_available and _by_call(world, player, target_nation):
+            actions.append(_proposal_action(
+                "propose_peace", "Propose Separate Peace", "PEACE"))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 

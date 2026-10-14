@@ -1267,6 +1267,13 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
 
     # Build human-readable clause descriptions
     dialogue["proposal_terms_summary"] = _format_terms_for_display(terms, proposal_type, target_nation)
+    # DDB-2 (DDB-D8): a full alliance binds France to the ally's wars — said
+    # among its terms, with every live design of the ally on a court (the
+    # diplomacy-first player's alliance listed only open borders and gold).
+    if str(terms.get("type") or proposal_type) == "alliance" and target_nation:
+        from backend.game_logic.call_to_arms import alliance_binding_lines
+        dialogue["proposal_terms_summary"].extend(
+            alliance_binding_lines(world, target_nation))
 
     war_bargain_clauses = [
         clause for clause in (
@@ -1758,6 +1765,48 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
                 acceptance_estimate = -1
                 acceptance_outcome = "Unable to estimate"
 
+        # R42: Preserve original terms for the send_override handler
+        # Find original proposal terms from the pre-objection options
+        target_nation = parsed_command.get("target_nation", "")
+        original_terms = None
+        for opt in dialogue.get("options", []):
+            if opt.get("action") == "execute_proposal" and opt.get("terms"):
+                original_terms = opt["terms"]
+                break
+        proposal_type = parsed_command.get("proposal_type", "peace")
+
+        # DDB-1 (Pre-Deploy S13b, October 14, 2026): Talleyrand's suggestion
+        # is a DRAFT he will carry — the objected terms stepped down until his
+        # objection no longer raises — never a regeneration of the very terms
+        # he objects to (the diplomacy-first player's "his suggestion was the
+        # same 595 gold"). Applying it redrafts; it sends nothing.
+        from backend.commands.diplomatic_defiance import (
+            draft_terms_talleyrand_supports, talleyrand_draft_line,
+        )
+        suggested_terms = draft_terms_talleyrand_supports(
+            dict(original_terms or {"demands": demands, "sweeteners": sweeteners}),
+            proposal_type=proposal_type, target_nation=target_nation, world=world,
+        ) if target_nation else {}
+        if suggested_terms:
+            suggested_terms["proposal_type"] = proposal_type
+        draft_line = (talleyrand_draft_line(
+            suggested_terms, proposal_type=proposal_type, target_nation=target_nation)
+            if suggested_terms else "")
+
+        # Store in context for executor handlers
+        dialogue["context"]["original_proposal"] = original_terms or {"proposal_type": proposal_type}
+        dialogue["context"]["suggested_terms"] = suggested_terms
+        dialogue["context"]["pre_proposal_objection"] = concern_label
+
+        # DDB-1: the objection stands WITH the proposal, before anything is
+        # sent. Its modal carries the dialogue's own id, so the response that
+        # carries the proposal delivers it (`main._attach_modal_for_the_
+        # carried_question`) instead of the drain holding it back until the
+        # proposal has already gone. The id is minted here, before the push,
+        # and kept by the manager (`_assign_dialogue_id` keeps an existing id).
+        _dm = getattr(world, "dialogue_manager", None)
+        if "dialogue_id" not in dialogue and _dm is not None:
+            dialogue["dialogue_id"] = _dm.mint_dialogue_id()
         world.diplomatic_objection_popup = {
             "concern_level": concern_label,
             "objection_text": objection_text,
@@ -1767,48 +1816,46 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
             "acceptance_estimate": int(acceptance_estimate),
             "acceptance_outcome": acceptance_outcome,
             "target_nation": target_nation_obj,
+            "talleyrand_draft": draft_line,
+            "dialogue_id": dialogue.get("dialogue_id"),
         }
 
-        # R42: Preserve original terms for send_override/send_suggested handlers
-        # Find original proposal terms from the pre-objection options
-        target_nation = parsed_command.get("target_nation", "")
-        original_terms = None
+        # DDB-1: the draft keeps its controls under the objection — Harsher,
+        # More generous and Adjust survive the rebuild (diplomacy #31: the
+        # objection's rebuild left only send / suggestion / Not Now, and the
+        # vassal road was closed). The send becomes the override (it is sent
+        # over his objection, and recorded so); the suggestion APPLIES his
+        # draft. Every other option of the draft stands as it was.
+        rebuilt = []
         for opt in dialogue.get("options", []):
-            if opt.get("action") == "execute_proposal" and opt.get("terms"):
-                original_terms = opt["terms"]
-                break
-
-        # Generate Talleyrand's suggested (softer) terms
-        from backend.game_logic.diplomatic_templates import generate_suggested_terms
-        proposal_type = parsed_command.get("proposal_type", "peace")
-        suggested_terms = generate_suggested_terms(target_nation, proposal_type, world) if target_nation else {}
-        if suggested_terms:
-            suggested_terms["proposal_type"] = proposal_type
-
-        # Store in context for executor handlers
-        dialogue["context"]["original_proposal"] = original_terms or {"proposal_type": proposal_type}
-        dialogue["context"]["suggested_terms"] = suggested_terms
-
-        # Replace options with objection-aware choices
-        dialogue["options"] = [
-            {
-                "label": "Send my terms as ordered",
-                "description": "Insist on your original proposal. Defiance may trigger during transit.",
-                "action": "send_override",
-                "terms": original_terms or {"proposal_type": proposal_type},
-            },
-            {
-                "label": "Use Talleyrand's suggestion",
-                "description": "Trust his diplomatic judgment.",
-                "action": "send_suggested",
-                "terms": suggested_terms,
-            },
-            {
-                "label": "Modify terms",
+            if opt.get("action") == "execute_proposal":
+                rebuilt.append({
+                    "label": "Send these terms anyway",
+                    "description": (
+                        "Send the drafted terms over Talleyrand's objection — "
+                        "he may soften them in transit."),
+                    "action": "send_override",
+                    "terms": original_terms or {"proposal_type": proposal_type},
+                })
+                rebuilt.append({
+                    "label": "Use Talleyrand's suggestion",
+                    "description": (
+                        f"Redraft to terms he will carry: {draft_line}. "
+                        f"Nothing is sent until you send it."
+                        if draft_line else
+                        "Redraft to terms he will carry. Nothing is sent until you send it."),
+                    "action": "apply_suggestion",
+                    "terms": suggested_terms,
+                })
+                continue
+            rebuilt.append(opt)
+        if not any(o.get("action") == "reconsider" for o in rebuilt):
+            rebuilt.append({
+                "label": "Reconsider",
                 "description": "Reconsider the proposal.",
                 "action": "reconsider",
-            },
-        ]
+            })
+        dialogue["options"] = rebuilt
 
     return dialogue
 

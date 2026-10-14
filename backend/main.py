@@ -2966,6 +2966,8 @@ class DiplomaticObjectionResponse(BaseModel):
     choice: str  # 'proceed', 'modify', or 'cancel'
     action: str | None = None
     target_nation: str | None = None
+    # DDB-1: the proposal the modal was raised on (its dialogue's id).
+    dialogue_id: int | None = None
 
 
 class RedemptionResponse(BaseModel):
@@ -5451,6 +5453,7 @@ def respond_to_diplomatic_objection(request: DiplomaticObjectionResponse):
             game_state,
             action=request.action,
             target_nation=request.target_nation,
+            dialogue_id=request.dialogue_id,
         )
 
         response = build_base_response(

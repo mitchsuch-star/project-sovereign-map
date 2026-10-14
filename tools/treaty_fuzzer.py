@@ -67,7 +67,9 @@ DEFAULT_SEEDS = [f"dd1-fuzz-{i}" for i in range(1, 11)]
 
 TREATY_TYPES = ("peace", "armistice", "open_borders", "non_aggression",
                 "defensive_alliance", "alliance", "vassalage")
-SEND_ACTIONS = ("execute_proposal", "send_suggested", "send", "send_override")
+# DDB-1: "Use Talleyrand's suggestion" (`apply_suggestion`) applies a draft and
+# sends nothing — it is not a send action.
+SEND_ACTIONS = ("execute_proposal", "send", "send_override")
 # Verb weights: end turn is a third of the draw so the AI courts act and the
 # letters in transit resolve; the rest spread over the table's verbs.
 VERBS = [

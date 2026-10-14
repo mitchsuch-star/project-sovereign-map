@@ -850,18 +850,30 @@ class DiplomaticExecutor:
                 "new_state": game_state}
 
     def _is_pending_objection_dialogue(self, dialogue: Optional[Dict]) -> bool:
-        """Return True when the active dialogue is the pre-send objection branch."""
+        """Return True when the active dialogue is the pre-send objection branch.
+
+        DDB-1: the branch is the draft with its override send and the
+        suggestion that APPLIES (`apply_suggestion`); a save from before
+        carries the legacy three (`send_suggested`, which now applies too)."""
         if not dialogue:
             return False
         option_actions = {
             str(opt.get("action", "")).strip()
             for opt in dialogue.get("options", [])
         }
-        return {
-            "send_override",
-            "send_suggested",
-            "reconsider",
-        }.issubset(option_actions)
+        return ({"send_override", "reconsider"}.issubset(option_actions)
+                and bool({"apply_suggestion", "send_suggested"} & option_actions))
+
+    @staticmethod
+    def _clear_bound_objection(world, dialogue: Optional[Dict]) -> None:
+        """DDB-1: a proposal that closes (sent, dropped, set aside) takes the
+        objection modal bound to it along — "Not Now" never raises it."""
+        popup = getattr(world, "diplomatic_objection_popup", None)
+        if not isinstance(popup, dict) or not isinstance(dialogue, dict):
+            return
+        bound = popup.get("dialogue_id")
+        if bound is not None and bound == dialogue.get("dialogue_id"):
+            world.diplomatic_objection_popup = None
 
     def handle_diplomatic_objection_response(
         self,
@@ -869,6 +881,7 @@ class DiplomaticExecutor:
         game_state: Dict,
         action: Optional[str] = None,
         target_nation: Optional[str] = None,
+        dialogue_id: Optional[int] = None,
     ) -> Dict:
         """Handle the typed Talleyrand objection popup response."""
         world: WorldState = game_state.get("world")
@@ -883,13 +896,31 @@ class DiplomaticExecutor:
             }
 
         dialogue = world.pending_diplomatic_dialogue
+        # DDB-1: the modal answers the proposal it was raised on. A stale
+        # answer (that proposal is no longer the one before the player)
+        # changes nothing and says so.
+        if (dialogue_id is not None and isinstance(dialogue, dict)
+                and self._is_pending_objection_dialogue(dialogue)
+                and dialogue.get("dialogue_id") is not None
+                and int(dialogue.get("dialogue_id")) != int(dialogue_id)):
+            return {
+                "success": False,
+                "message": ("That proposal is no longer before you, Sire — "
+                            "nothing was sent."),
+                "diplomatic_dialogue": dialogue,
+                "awaiting_diplomatic_response": True,
+            }
         if self._is_pending_objection_dialogue(dialogue):
+            self._clear_bound_objection(world, dialogue)
             if normalized_choice == "proceed":
                 return self.handle_diplomatic_dialogue_response("send_override", game_state)
             if normalized_choice == "modify":
+                # DDB-1: back to the draft — nothing sent, no DP spent,
+                # nothing in transit; Harsher / More generous / Adjust and
+                # Talleyrand's draft stand on it.
                 return {
                     "success": True,
-                    "message": "Very well, Sire. Let us review the proposal again.",
+                    "message": "Very well, Sire. The draft is before you again — nothing has been sent.",
                     "diplomatic_dialogue": dialogue,
                     "awaiting_diplomatic_response": True,
                 }
@@ -4482,6 +4513,10 @@ class DiplomaticExecutor:
             }
 
         elif ctx.action == "reconsider":
+            # DDB-1: "Not Now" closes the proposal without raising the
+            # objection bound to it (diplomacy #32: the drain raised TALLEYRAND
+            # OBJECTS on the click that dropped the proposal).
+            self._clear_bound_objection(ctx.world, ctx.dialogue)
             ctx.world.dialogue_manager.pop()
             return {
                 "success": True,
@@ -6234,14 +6269,18 @@ class DiplomaticExecutor:
         # ═══════════════════════════════════════════════════════
         # R42: PRE-PROPOSAL OBJECTION OVERRIDE HANDLERS
         # ═══════════════════════════════════════════════════════
-        elif ctx.action in ("send_override", "send_suggested"):
+        elif ctx.action in ("apply_suggestion", "send_suggested"):
+            # DDB-1 (Pre-Deploy S13b, October 14, 2026): "Use Talleyrand's
+            # suggestion" APPLIES his draft — the objected terms stepped down
+            # until his objection no longer raises — and sends NOTHING. The
+            # send stays the player's next click (no DP, nothing in transit,
+            # no mission paused). A legacy `send_suggested` (a save from
+            # before) is the same click.
+            return self._apply_talleyrand_draft(ctx)
+        elif ctx.action == "send_override":
             terms = ctx.selected.get("terms", {})
-            if ctx.action == "send_suggested":
-                # Use Talleyrand's suggested terms from context
-                terms = terms or ctx.dialogue.get("context", {}).get("suggested_terms", {})
-            else:
-                # Use original terms from context
-                terms = terms or ctx.dialogue.get("context", {}).get("original_proposal", {})
+            # Use original terms from context
+            terms = terms or ctx.dialogue.get("context", {}).get("original_proposal", {})
 
             proposal_type = (terms.get("proposal_type") or terms.get("type")
                              or ctx.dialogue.get("context", {}).get("proposal_type")
@@ -6346,17 +6385,90 @@ class DiplomaticExecutor:
             queue_dispatch_event(ctx.world, "diplomatic_proposal_sent",
                                 {"nation": ctx.target_nation}, "always")
 
+            self._clear_bound_objection(ctx.world, ctx.dialogue)
             ctx.world.dialogue_manager.pop()
-            override_note = " despite Talleyrand's objections" if ctx.action == "send_override" else " with Talleyrand's suggested terms"
             return {
                 "success": True,
                 "message": (
-                    f"Talleyrand departs for the {ctx.target_nation} court{override_note}. "
+                    f"Talleyrand departs for the {ctx.target_nation} court despite his objections. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
                 ),
             }
         else:
             return _NEXT_STAGE
+
+    def _apply_talleyrand_draft(self, ctx: DialogueChoiceContext) -> Dict:
+        """DDB-1: redraft the proposal to the terms Talleyrand will carry.
+
+        The draft (`draft_terms_talleyrand_supports`, stored on the dialogue
+        when his objection was raised) becomes the proposal's terms; the
+        controls of the draft stand (Harsher, More generous, Adjust, Not
+        Now); Send is the player's next click. Nothing is charged, nothing
+        departs, no mission is paused. The matter keeps its identity (its
+        `dialogue_id`), so the client's answer still targets it."""
+        from backend.commands.diplomatic_defiance import (
+            draft_terms_talleyrand_supports, talleyrand_draft_line,
+        )
+        from backend.display_names import display_nation
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+        context = dict(ctx.dialogue.get("context", {}) or {})
+        draft = dict(ctx.selected.get("terms") or context.get("suggested_terms") or {})
+        proposal_type = (draft.get("proposal_type") or draft.get("type")
+                         or context.get("proposal_type") or "peace")
+        if not draft.get("talleyrand_draft"):
+            # A legacy dialogue's stored suggestion was a regeneration of the
+            # objected terms (the very defect) — draft it now from them.
+            base = context.get("original_proposal") or draft
+            draft = draft_terms_talleyrand_supports(
+                base, proposal_type=proposal_type,
+                target_nation=ctx.target_nation, world=ctx.world)
+        draft["proposal_type"] = proposal_type
+        draft.setdefault("type", proposal_type)
+        draft_line = talleyrand_draft_line(
+            draft, proposal_type=proposal_type, target_nation=ctx.target_nation)
+        for key in ("pre_proposal_objection", "suggested_terms"):
+            context.pop(key, None)
+        context["proposal_type"] = proposal_type
+        context["talleyrand_draft_applied"] = True
+        # He drafted these himself: the transit's defiance roll (which
+        # softens terms he dislikes) has nothing to soften — the PL-23
+        # mutual-exclusion flag the drafting pushback already sets.
+        context["objection_resolved"] = True
+        kept = [dict(o) for o in ctx.dialogue.get("options", [])
+                if o.get("action") not in ("send_override", "apply_suggestion",
+                                           "send_suggested", "execute_proposal")]
+        options = [{
+            "label": "Send these terms",
+            "description": "Dispatch Talleyrand's draft.",
+            "action": "execute_proposal",
+            "terms": draft,
+        }] + kept
+        if not any(o.get("action") == "reconsider" for o in options):
+            options.append({"label": "Reconsider", "description": "Let me think.",
+                            "action": "reconsider"})
+        new_dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": ctx.target_nation,
+            "talleyrand_text": (
+                f"Here are terms I will carry to {display_nation(ctx.target_nation)}, "
+                f"Sire — {draft_line}. Nothing has been sent; send them when "
+                f"you are ready."),
+            "options": options,
+            "context": context,
+            "turn_created": int(ctx.world.current_turn),
+            "blocking": False,
+        }
+        if ctx.dialogue.get("dialogue_id") is not None:
+            new_dialogue["dialogue_id"] = ctx.dialogue["dialogue_id"]
+        new_dialogue = _enrich_proposal_summary(
+            new_dialogue, ctx.target_nation, proposal_type, ctx.world)
+        self._clear_bound_objection(ctx.world, ctx.dialogue)
+        ctx.world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
 
     def _choice_counters_and_rebellion(self, ctx: DialogueChoiceContext):
         """Stage 8 of `_process_dialogue_choice`: A counter-offer accepted or
@@ -7278,6 +7390,27 @@ class DiplomaticExecutor:
 
         proposal_type = terms.get("type", "")
 
+        # DDB-2: Join an ally's call to arms — the cascade's honored path,
+        # France's own choice. No dialogue survives; the outcome is a result
+        # popup (the PL-14 rule).
+        from backend.game_logic.call_to_arms import CALL_TO_ARMS_TYPE, join_call
+        if proposal_type == CALL_TO_ARMS_TYPE:
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            from backend.display_names import proposal_display_name
+            outcome = join_call(world, terms)
+            world.proposal_result_popup = {
+                "target_nation": source_nation,
+                "proposal_type": proposal_display_name(CALL_TO_ARMS_TYPE),
+                "outcome": "ACCEPT" if outcome.get("joined") else "WITHDRAWN",
+                "message": outcome["message"],
+                "feedback": "",
+            }
+            return {"success": True, "message": outcome["message"],
+                    "decision_reason": outcome.get("status", ""),
+                    "suppress_proposal_result_popup": True}
+
         # AI-4b (§4.2b, the broker row): accepting a BROKER ask convenes
         # the congress instead of ratifying a treaty — France ends someone
         # else's war, for standing with both courts. No dialogue survives;
@@ -7595,6 +7728,30 @@ class DiplomaticExecutor:
         from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
 
         context = dialogue.get("context", {})
+        # DDB-2: refusing an ally's call to arms is the existing offensive-
+        # refusal episode at the price the letter quoted — not an AI-3
+        # ladder refusal (no cooldowns, no diplomatic-refusal record).
+        from backend.game_logic.call_to_arms import (
+            CALL_TO_ARMS_TYPE, is_call_to_arms, refuse_call,
+        )
+        if is_call_to_arms(dialogue):
+            terms = context.get("proposal", {}) or {}
+            source_nation = context.get("source_nation", "")
+            world.dialogue_manager.pop()
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            from backend.display_names import proposal_display_name
+            outcome = refuse_call(world, terms, how="refused")
+            world.proposal_result_popup = {
+                "target_nation": source_nation,
+                "proposal_type": proposal_display_name(CALL_TO_ARMS_TYPE),
+                "outcome": "REJECT" if outcome.get("refused") else "WITHDRAWN",
+                "message": outcome["message"],
+                "feedback": "",
+            }
+            return {"success": True, "message": outcome["message"],
+                    "decision_reason": outcome.get("status", ""),
+                    "suppress_proposal_result_popup": True}
         # IQ-7 "The Client's Petition": REFUSING a loyal satellite's ask is
         # not an AI-3 ladder refusal — the client is a court that answers to
         # Paris, not a rival pressing a design. So this branch returns BEFORE
@@ -7885,6 +8042,14 @@ class DiplomaticExecutor:
                 "success": False,
                 "message": ("A client's petition is granted or refused, Sire "
                             "— not bargained."),
+            }
+        # DDB-2: a call to arms is joined or refused — never bargained.
+        from backend.game_logic.call_to_arms import is_call_to_arms
+        if is_call_to_arms(dialogue):
+            return {
+                "success": False,
+                "message": ("A call to arms is joined or refused, Sire — not "
+                            "bargained."),
             }
 
         # Counter-offer costs 1 DP

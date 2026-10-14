@@ -462,7 +462,13 @@ def is_stranded_at(world, nation: str, location: str,
 
 
 def _evacuating_marshals(world, nation: str, home: Set[str]) -> List:
-    """Standing marshals of `nation` who need the road home."""
+    """Standing marshals of `nation` who need the road home.
+
+    DDB-3 (DDB-D9): a serving contingent whose lord's war is paused by a
+    truce holds its post — the Road Home neither issues it a march nor
+    judges it stranded (no warning, no internment) while the truce stands
+    (`contingent.holds_its_post`; every lord alike, GR5)."""
+    from backend.game_logic.contingent import holds_its_post
     out = []
     for marshal in world.marshals.values():
         if marshal.nation != nation:
@@ -472,6 +478,8 @@ def _evacuating_marshals(world, nation: str, home: Set[str]) -> List:
         if getattr(marshal, "captured_by", ""):
             continue
         if not is_stranded(world, marshal, home):
+            continue
+        if holds_its_post(world, marshal):
             continue
         out.append(marshal)
     return out
@@ -818,6 +826,26 @@ def _grant_message(world, summary: Dict) -> str:
     ordered = [m["marshal"] for m in marching
                if m["marshal"] not in {o["marshal"] for o in orders}
                and m["marshal"] not in {c["marshal"] for c in cut_off}]
+    # DDB-3: a contingent already on its own road home is not "under your
+    # own orders" and was not left "not moved" — it marches home under its
+    # court's colours (the sea #21 player read Dumonceau "not moved").
+    from backend.game_logic.contingent import (
+        contingent_of, contingent_record, is_contingent_home_order,
+    )
+    colours = []
+    for name in list(ordered):
+        marshal = world.marshals.get(name)
+        vassal = contingent_of(world, marshal) if marshal is not None else None
+        if vassal and (is_contingent_home_order(getattr(marshal, "strategic_order", None))
+                       or (contingent_record(world, vassal) or {}).get("state") == "homeward"):
+            ordered.remove(name)
+            colours.append((name, vassal))
+    for name, vassal in sorted(colours):
+        from backend.display_names import with_definite_article
+        from backend.game_logic.formations import formed_display_name
+        parts.append(
+            f"{name} is marching home under "
+            f"{with_definite_article(formed_display_name(world, vassal))}'s colours.")
     if ordered:
         named = ", ".join(sorted(ordered))
         holds = "holds" if len(ordered) == 1 else "hold"
@@ -956,12 +984,19 @@ def offer_road_home(world, nation: str) -> List[Dict]:
     predicate — see the module docstring's correction 1.
     """
     from backend.models.marshal import StrategicOrder
+    from backend.game_logic import contingent as _cg
 
     issued: List[Dict] = []
     home = get_home_zone(world, nation)
     if not home:
         return issued
     for marshal in _evacuating_marshals(world, nation, home):
+        if _cg.takes_its_own_road(world, marshal):
+            # DDB-X7: a client's contingent goes home under its own colours —
+            # its court's road (`contingent.release_home`), never the
+            # treaty's road to the lord's home zone.
+            _cg.release_home(world, marshal)
+            continue
         if _the_enemy_took_his_order(marshal):
             # The latch records a REFUSAL, and a battle is not one.
             marshal.road_home_offered = False

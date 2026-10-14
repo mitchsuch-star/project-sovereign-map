@@ -70,6 +70,13 @@ func show_objection(data: Dictionary):
 		if hint:
 			bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]%s[/color]\n" % hint
 
+	# DDB-1: the objection arrives with the draft, before anything is sent —
+	# and names the terms Talleyrand would carry (Modify returns to the draft,
+	# where his suggestion applies them).
+	var draft_line := str(data.get("talleyrand_draft", ""))
+	if draft_line != "":
+		bbcode += "[b]He would carry:[/b] %s — Modify returns you to the draft.\n" % draft_line
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]Nothing has been sent.[/color]\n"
 	bbcode += "[b]Defiance Risk:[/b] %s\n" % defiance_risk
 	bbcode += "[b]Regarding:[/b] %s" % Utils.humanize_nation_keys_in_text(str(proposal_summary))
 

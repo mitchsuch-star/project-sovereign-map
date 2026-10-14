@@ -200,6 +200,9 @@ func send_diplomatic_objection_response(choice: String, data: Dictionary, callba
 		body["action"] = data.get("action")
 	if data.has("target_nation"):
 		body["target_nation"] = data.get("target_nation")
+	# DDB-1: answer the proposal this modal was raised on.
+	if data.get("dialogue_id") != null:
+		body["dialogue_id"] = int(data.get("dialogue_id"))
 	_send_post("/respond_to_diplomatic_objection", body, callback)
 
 

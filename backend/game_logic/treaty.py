@@ -607,8 +607,22 @@ def can_sign(world, letter: Dict[str, Any], *, action: Optional[str] = None,
         proposal = proposal_of(letter, str(getattr(world, "player_nation", "France") or ""))
         if not proposal:
             return _ok()
+        if str(proposal.get("type") or "") == "call_to_arms":
+            return _call_to_arms_verdict(world, proposal)
         return _treaty_verdict(world, proposal, at_send=at_send)
     return _ok()
+
+
+def _call_to_arms_verdict(world, proposal: Dict[str, Any]) -> Verdict:
+    """DDB-2: an ally's call to arms is not a treaty — Join is open while the
+    call is live; a moot or barred call's Join ENDS the letter with its word
+    (no price), never a dead button."""
+    from backend.game_logic.call_to_arms import call_status
+    ally = str(proposal.get("proposer_nation") or "")
+    status, why = call_status(world, proposal)
+    if status == "live":
+        return _ok(target=ally)
+    return _ok(message=f"Nothing to join — {why}.", target=ally)
 
 
 def stamp_option(option: Dict[str, Any], verdict: Verdict) -> Dict[str, Any]:

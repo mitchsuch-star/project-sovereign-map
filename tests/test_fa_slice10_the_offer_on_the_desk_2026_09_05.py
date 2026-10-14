@@ -721,7 +721,9 @@ class TestTheAnswerReachesTheDesk:
         carries it (a source census, the CA8-14 idiom)."""
         source = (ROOT / "backend" / "game_logic" / "turn_manager.py").read_text(
             encoding="utf-8")
-        block = source.split("lapse_pending_offers()")[1].split("def ")[0]
+        # DDB-2 (S13b): the call now passes the turn being ended
+        # (`lapse_pending_offers(current_turn=…)`, a call to arms stands two).
+        block = source.split("lapse_pending_offers(")[1].split("def ")[0]
         assert "counter_offer_response" in block
         assert "player_proposal_cooldowns" in block
 

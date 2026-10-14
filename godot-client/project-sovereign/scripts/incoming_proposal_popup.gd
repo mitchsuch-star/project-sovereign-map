@@ -55,6 +55,9 @@ func show_proposal(data: Dictionary):
 	# granted or refused, never bargained); the same shape `is_ultimatum`
 	# takes. The producer's own field (mailbox_payloads).
 	var is_petition = data.get("is_petition", false)
+	# DDB-2 (DDB-D8): an ally's call to arms — joined or refused, never
+	# bargained; its price and its two-turn deadline are on the letter.
+	var is_call_to_arms = data.get("is_call_to_arms", false)
 	var decision_reason_display = str(data.get("decision_reason_display", ""))
 	# W6-10: the diplomat's own spoken line (voices the motive in-register)
 	var diplomat_line = str(data.get("diplomat_line", ""))
@@ -69,6 +72,11 @@ func show_proposal(data: Dictionary):
 		bbcode += "%s%s of %s\n\n" % [diplomat_name, ult_pers_str, from_display]
 		bbcode += "[b]Demands:[/b]\n"
 		panel_style.border_color = Color(0.878, 0.251, 0.251, 1.0)  # Crimson
+	elif is_call_to_arms:
+		bbcode += "[center][color=#" + Utils.COLOR_WARNING + "][b]A CALL TO ARMS[/b][/color][/center]\n"
+		var cta_pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
+		bbcode += "%s%s of %s\n\n" % [diplomat_name, cta_pers_str, from_display]
+		panel_style.border_color = _default_border_color
 	elif is_petition:
 		# Petition: the client's own header; the clauses ARE the petition
 		# (design note, grant line, refuse line, lapse rule — every figure
@@ -166,6 +174,8 @@ func show_proposal(data: Dictionary):
 	# Lapse warning
 	if is_ultimatum:
 		bbcode += "\n[color=#e0c060][i]This demand will lapse at end of turn.[/i][/color]"
+	elif is_call_to_arms:
+		bbcode += "\n[color=#" + Utils.COLOR_WARNING + "][i]Unanswered by the end of turn %d, the call is refused.[/i][/color]" % int(data.get("answer_by_turn", 0))
 	elif is_petition:
 		# What a lapse COSTS is the backend's lapse clause above (a lever
 		# governs it); the client states only that the petition lapses.
@@ -188,8 +198,8 @@ func show_proposal(data: Dictionary):
 	# DD-1 Slice B: `enabled` is read for ANY letter, not only a petition.
 	accept_btn.disabled = not grant_enabled
 	accept_btn.tooltip_text = grant_reason if not grant_enabled else ""
-	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition
-	counter_btn.disabled = is_counter or is_ultimatum or is_petition
+	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition and not is_call_to_arms
+	counter_btn.disabled = is_counter or is_ultimatum or is_petition or is_call_to_arms
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
 	dismiss_btn.text = "Not Now"
@@ -197,6 +207,9 @@ func show_proposal(data: Dictionary):
 	if is_ultimatum:
 		accept_btn.text = "Yield"
 		reject_btn.text = "Defy"
+	elif is_call_to_arms:
+		accept_btn.text = "Join"
+		reject_btn.text = "Refuse"
 	elif is_petition:
 		# Captions only (the buttons emit the "accept"/"reject" keywords the
 		# router already owns); the typed route's option labels are the
@@ -352,7 +365,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			var warning_text = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
 			var severity = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
 			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
-			var priority = 2 if warning_type == "separate_peace_ally" else 3
+			var priority = 2 if warning_type in ["separate_peace_ally", "contingent_released"] else 3
 			var color = "#e66262" if severity == "SEVERE" else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": warning_text})
 		for conflict in conflicts:

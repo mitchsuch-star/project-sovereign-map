@@ -366,7 +366,8 @@ class TurnManager:
             d for d in ([_dm.peek()] + list(_dm.iter_queue()))
             if isinstance(d, dict) and is_client_petition(d)
         ]
-        lapsed_offers = self.world.dialogue_manager.lapse_pending_offers()
+        lapsed_offers = self.world.dialogue_manager.lapse_pending_offers(
+            current_turn=int(self.world.current_turn), world=self.world)
         # IQ-7 review R8(b): the lapse hook KEEPS each `refuse_petition`
         # result — the message already holds the lever-aware applied figures
         # ("…lapses as a refusal: loyalty −10 (84 → 74); standing 0 → -20…")
@@ -476,9 +477,9 @@ class TurnManager:
                     "proposal_type": lapse["proposal_type"],
                     "turn": int(self.world.current_turn),
                 }
-                if isinstance(lapse.get("petition"), dict):
-                    # R8(e): the one-liner quotes the applied price.
-                    _lapse_row["petition"] = dict(lapse["petition"])
+                for _priced in ("petition", "call_to_arms"):  # R8(e) / DDB-2: the price
+                    if isinstance(lapse.get(_priced), dict):
+                        _lapse_row[_priced] = dict(lapse[_priced])
                 self.world.log_event(_lapse_row)
 
         # ════════════════════════════════════════════════════════════

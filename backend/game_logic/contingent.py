@@ -124,6 +124,122 @@ def shared_enemies(world, lord: str, vassal: str) -> List[str]:
     return sorted(n for n in lords & clients if n not in (lord, vassal))
 
 
+# DDB-3 (DDB-D9's ruling, Pre-Deploy S13b, October 14, 2026): for a
+# contingent's purposes a pair in ARMISTICE is still the war it shares — a
+# truce PAUSES the war (RS-2 "a truce is not the war's end", PT-J1 Pläswitz,
+# DD1-5's suspended instance). Read where the contingent decides to keep
+# serving and by the Road Home's membership; the raise stays WAR-only, the
+# renewed-war recall (SF5-RV2) is unchanged. The rule's seam is
+# `truce_courts` (the series attribution patches it to [] for the shipped
+# rule — no module lever).
+
+_WAR_FAMILY = ("WAR", "ARMISTICE")
+
+
+def truce_courts(world, lord: str, vassal: str) -> List[str]:
+    """The courts the lord stands in ARMISTICE with while the satellite stands
+    in WAR or ARMISTICE with them too — the shared war a truce pauses
+    (sorted)."""
+    if not lord or not vassal:
+        return []
+    out = []
+    for court in world.get_active_nations() or []:
+        if court in (lord, vassal):
+            continue
+        if world.get_diplomatic_state(lord, court) != "ARMISTICE":
+            continue
+        if world.get_diplomatic_state(vassal, court) in _WAR_FAMILY:
+            out.append(court)
+    return sorted(out)
+
+
+def holds_its_post(world, marshal) -> bool:
+    """A SERVING contingent whose lord's war is paused by a truce — it keeps
+    its post, so the Road Home neither issues it a march nor judges it
+    stranded while the truce stands (every lord alike, GR5)."""
+    vassal = contingent_of(world, marshal)
+    if not vassal:
+        return False
+    record = contingent_record(world, vassal) or {}
+    if record.get("state") == "homeward":
+        return False
+    lord = str(record.get("lord") or "")
+    if not lord or getattr(marshal, "nation", None) != lord:
+        return False
+    return bool(truce_courts(world, lord, vassal))
+
+
+def takes_its_own_road(world, marshal) -> bool:
+    """DDB-X7's seam: this corps is a client's contingent, so the peace's
+    corridor hands it its court's road (`release_home`), never the treaty's
+    road to the lord's home zone."""
+    return bool(contingent_of(world, marshal))
+
+
+def release_home(world, marshal) -> Optional[dict]:
+    """DDB-3 (found while building it, DDB-X7): the peace's corridor hands a
+    released contingent ITS court's road — the pass's own `marching_home`
+    release, run at the corridor — never the treaty's road to the lord's
+    home zone (measured: the Road Home gave Dumonceau "the road home — to
+    Normandy", and Holland's next pass re-routed him to Amsterdam, so the
+    peace's message named a road nobody took). None when the contingent
+    still serves (a shared war or a truce), already marches home, or stands
+    on its own soil (the pass stands it down there)."""
+    vassal = contingent_of(world, marshal)
+    if not vassal:
+        return None
+    record = contingent_record(world, vassal)
+    if not record or record.get("state") == "homeward":
+        return None
+    lord = str(record.get("lord") or "")
+    if getattr(marshal, "nation", None) != lord:
+        return None
+    if shared_enemies(world, lord, vassal) or truce_courts(world, lord, vassal):
+        return None
+    if marshal.location in _held(world, vassal):
+        return None
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    record["state"] = "homeward"
+    record["homeward_turn"] = turn
+    target = _home_target(world, vassal)
+    _issue_march(world, marshal, target, CONTINGENT_HOME_COMMAND)
+    return _beat(
+        world, beat="marching_home", vassal=vassal, lord=lord,
+        marshal_name=marshal.name,
+        line=(f"The war {_shown(world, vassal)} shared with "
+              f"{_shown(world, lord)} is over — {marshal.name}'s "
+              f"contingent takes the road home to {target}."),
+        target=target or "")
+
+
+def released_by_peace(world, lord: str, court: str) -> List[Dict]:
+    """The serving contingents a peace between `lord` and `court` releases —
+    the ones whose every shared war (WAR or ARMISTICE) is with `court` — and
+    the post each leaves. Read by the PEACE preview and a court's peace offer
+    (DDB-3's legibility)."""
+    out: List[Dict] = []
+    for vassal, record in sorted((getattr(world, "vassal_contingents", None) or {}).items()):
+        if record.get("lord") != lord or record.get("state") == "homeward":
+            continue
+        marshal = world.marshals.get(record.get("marshal") or "")
+        if marshal is None:
+            continue
+        shared = set(shared_enemies(world, lord, vassal)) | set(truce_courts(world, lord, vassal))
+        if court not in shared or (shared - {court}):
+            continue
+        out.append({"vassal": vassal, "marshal": marshal.name,
+                    "post": str(marshal.location or "")})
+    return out
+
+
+def released_contingent_lines(world, lord: str, court: str) -> List[str]:
+    """"Dumonceau's Holland contingent is released — it leaves its post at
+    Ulster and marches home" — one line per contingent the peace releases."""
+    return [f"{row['marshal']}'s {_shown(world, row['vassal'])} contingent is "
+            f"released — it leaves its post at {row['post']} and marches home"
+            for row in released_by_peace(world, lord, court)]
+
+
 def _held(world, nation: str) -> List[str]:
     return list(world.get_nation_regions(nation) or [])
 
@@ -794,6 +910,12 @@ def process_vassal_contingents(world) -> List[dict]:
                 event = stand_down(world, vassal, reason="home")
                 if event:
                     events.append(event)
+                continue
+            # DDB-3 (DDB-D9): the lord's truce PAUSES the war the satellite
+            # shares — a serving contingent keeps its post (no march home);
+            # a peace, or the homeward turns once released, sends it home.
+            if (record.get("state") != "homeward"
+                    and truce_courts(world, lord, vassal)):
                 continue
             if record.get("state") != "homeward":
                 record["state"] = "homeward"

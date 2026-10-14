@@ -3539,7 +3539,8 @@ def generate_ultimatum_terms(target_nation: str, world, *, issuer: str = None,
 # prior producer.
 
 
-def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> Dict:
+def generate_suggested_terms(target_nation: str, proposal_type: str, world,
+                             deterministic: bool = False) -> Dict:
     """Generate smart treaty terms based on game state AND nation-specific knowledge.
 
     5-stage pipeline:
@@ -3561,7 +3562,10 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     war_score = get_side_war_score_for(world, player_nation, target_nation)
 
     # --- Stage 1: Base terms ---
-    terms = _build_base_terms(target_nation, proposal_type, world)
+    # DDB-1: `deterministic` skips PL-25's amount jitter — the Cabinet's band
+    # word is scored on the draft the click opens at its centre.
+    terms = _build_base_terms(target_nation, proposal_type, world,
+                              deterministic=deterministic)
 
     # --- Stage 2: Nation-specific injection ---
     context_tags = []

@@ -2479,6 +2479,10 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     from backend.game_logic.vassal import CLIENT_PETITION_TYPE
     if proposal.get("proposal_type") == CLIENT_PETITION_TYPE:
         return _build_client_petition_dialogue(proposal, world)
+    # DDB-2: an ally's call to arms — Join / Refuse, its price on the letter.
+    from backend.game_logic.call_to_arms import CALL_TO_ARMS_TYPE, build_call_dialogue
+    if proposal.get("proposal_type") == CALL_TO_ARMS_TYPE:
+        return build_call_dialogue(proposal, world)
     nation = proposal["source"]
     terms = proposal["terms"]
     assessment = proposal.get("talleyrand_assessment", "")
@@ -2502,6 +2506,12 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     # W6-10 (E-CA-6): the diplomat's own spoken line rides both surfaces —
     # the popup carries it as `diplomat_line` (built in the payload
     # builder), the typed terminal weaves it into the arrival text.
+    # DDB-2 (DDB-D8): an alliance offer states the call to arms among its
+    # terms and the offering court's live design.
+    if str(terms.get("type") or "") == "alliance":
+        from backend.game_logic.call_to_arms import alliance_binding_lines
+        popup_payload["clauses"] = (list(popup_payload.get("clauses") or [])
+                                    + alliance_binding_lines(world, nation))
     diplomat_line = popup_payload.get("diplomat_line", "")
     spoken = f"\n\n  {diplomat_line}" if diplomat_line else ""
 
@@ -2746,6 +2756,16 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
             NotificationPriority.HIGH,
             _title,
             _body,
+            int(world.current_turn),
+        ))
+    elif proposal.get("proposal_type") == "call_to_arms":
+        # DDB-2: the call announces itself, its price and its deadline.
+        from backend.game_logic.call_to_arms import letter_lines
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            f"Call to Arms from {sender}",
+            letter_lines(world, proposal.get("terms") or {})[0],
             int(world.current_turn),
         ))
     else:

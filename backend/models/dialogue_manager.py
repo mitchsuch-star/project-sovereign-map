@@ -644,24 +644,44 @@ class DialogueManager:
             for item in self._queue
         )
 
-    def lapse_pending_offers(self) -> list:
+    def lapse_pending_offers(self, current_turn: Optional[int] = None,
+                             world=None) -> list:
         """Remove all current-turn offer items. Returns lapse info for logging.
 
         Called at start of TurnManager.end_turn() BEFORE enemy phase / AI
         diplomacy. Each returned dict has: nation, offer_type, proposal_type.
+
+        DDB-2: an ally's call to arms stands until the end of its answer-by
+        turn (two turns), so it is kept while `current_turn` (the turn being
+        ended) is before it; unanswered at its deadline it lapses here and,
+        given the `world`, is refused at the letter's price — the lapse row
+        carries the priced result under `call_to_arms`.
         """
+        from backend.game_logic.call_to_arms import keeps_open, refuse_lapsed_letter
+
+        def _lapses(item: dict) -> bool:
+            if item.get("type", "") not in self.CURRENT_TURN_OFFER_TYPES:
+                return False
+            return not (current_turn is not None and keeps_open(item, current_turn))
+
+        def _info(item: dict) -> dict:
+            info = self._extract_lapse_info(item)
+            if world is not None:
+                info.update(refuse_lapsed_letter(world, item))
+            return info
+
         lapsed = []
 
         # Check current slot
-        if self._current and self._current.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
-            lapsed.append(self._extract_lapse_info(self._current))
+        if self._current and _lapses(self._current):
+            lapsed.append(_info(self._current))
             self._current = None
 
         # Check queue
         remaining = []
         for item in self._queue:
-            if item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
-                lapsed.append(self._extract_lapse_info(item))
+            if _lapses(item):
+                lapsed.append(_info(item))
             else:
                 remaining.append(item)
         self._queue = remaining

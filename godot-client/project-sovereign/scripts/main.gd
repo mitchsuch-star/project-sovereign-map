@@ -7170,6 +7170,7 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 			"expand_options": "adjust",
 			"send_override": "proceed",
 			"send_suggested": "trust",
+			"apply_suggestion": "trust",
 			"start_mission": "begin",
 			"dismiss": "dismiss",
 			"reconsider": "reconsider",

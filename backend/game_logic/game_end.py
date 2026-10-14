@@ -1191,6 +1191,10 @@ def player_drew_the_sword(world, nation_a: str, nation_b: str, reason: str) -> b
         return nation_a == player
     if reason == "offensive_cascade":
         return nation_a == player
+    # DDB-2: France answered an ally's call to arms with Join — she chose to
+    # draw (the joiner, then the target, as the cascade passes them).
+    if reason == "offensive_cascade_accepted":
+        return nation_a == player
     if reason == "defensive_cascade":
         return nation_b == player
     return True

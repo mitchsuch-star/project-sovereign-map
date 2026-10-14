@@ -111,7 +111,7 @@ DIALOGUE_ACTION_KEYWORDS: Dict[str, List[str]] = {
     "thank": ["dismiss"],
     "customize": ["ultimatum_customize"],
     "deliver": ["execute_ultimatum"],
-    "trust": ["send_suggested"],
+    "trust": ["apply_suggestion", "send_suggested"],
     "elaborate": ["elaborate", "expand_to_proposal"],
     "more": ["ultimatum_more_gold", "ultimatum_more_manpower",
              "ultimatum_another_type", "elaborate", "expand_to_proposal"],

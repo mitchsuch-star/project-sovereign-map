@@ -576,6 +576,90 @@ def evaluate_pre_proposal_objection(
     return ConcernLevel.NONE
 
 
+def objection_fires(proposal: Dict, world) -> bool:
+    """Whether Talleyrand's pre-proposal objection would RAISE on `proposal`
+    — MODERATE or worse (a MILD concern is flavour text, never the modal)."""
+    from backend.nation_config import get_player_diplomat
+    talleyrand = get_player_diplomat(world)
+    if not talleyrand:
+        return False
+    return evaluate_pre_proposal_objection(proposal, talleyrand, world) >= ConcernLevel.MODERATE
+
+
+def draft_terms_talleyrand_supports(terms: Dict, *, proposal_type: str,
+                                    target_nation: str, world) -> Dict:
+    """DDB-1 (Pre-Deploy S13b, October 14, 2026): "Use Talleyrand's
+    suggestion" is a DRAFT he will carry, not the terms he objected to.
+
+    The demanded gold steps down the existing generous rung — G4F-9's
+    halving of every gold demand (floor 50), the ladder the suggested
+    peace already eases by — round by round until the pre-proposal
+    objection would no longer raise. If no round passes, the demands go
+    (for a vassalage: the vassalage with no tribute). Returns a fresh copy
+    with `talleyrand_draft` = "as_drafted" | "stepped_down" | "no_tribute"
+    and `talleyrand_draft_rounds`; the input is never mutated."""
+    draft = copy.deepcopy(terms or {})
+    draft["demands"] = [dict(d) for d in (draft.get("demands") or [])]
+    draft["sweeteners"] = [dict(s) for s in (draft.get("sweeteners") or [])]
+
+    def _fires(candidate: Dict) -> bool:
+        return objection_fires({
+            "type": proposal_type,
+            "target_nation": target_nation,
+            "demands": candidate.get("demands", []),
+            "sweeteners": candidate.get("sweeteners", []),
+        }, world)
+
+    if not _fires(draft):
+        draft["talleyrand_draft"] = "as_drafted"
+        draft["talleyrand_draft_rounds"] = 0
+        return draft
+    rounds = 0
+    while True:
+        stepped = False
+        for demand in draft["demands"]:
+            if demand.get("type") in ("gold_per_turn", "gold_lump"):
+                value = int(demand.get("value", 0) or 0)
+                if value > 50:
+                    demand["value"] = max(50, value // 2)
+                    stepped = True
+        if not stepped:
+            break
+        rounds += 1
+        if not _fires(draft):
+            draft["talleyrand_draft"] = "stepped_down"
+            draft["talleyrand_draft_rounds"] = rounds
+            return draft
+    draft["demands"] = []
+    draft["talleyrand_draft"] = "no_tribute"
+    draft["talleyrand_draft_rounds"] = rounds
+    return draft
+
+
+def talleyrand_draft_line(draft: Dict, *, proposal_type: str,
+                          target_nation: str) -> str:
+    """The one sentence that says what Talleyrand's draft changed — read on
+    the objection modal, the button's description and the redrafted
+    proposal, so the three never disagree."""
+    from backend.display_names import display_nation
+    court = display_nation(target_nation)
+    kind = str(draft.get("talleyrand_draft") or "")
+    gold = [d for d in (draft.get("demands") or [])
+            if d.get("type") in ("gold_per_turn", "gold_lump")]
+    if kind == "no_tribute":
+        if proposal_type == "vassalage":
+            return (f"the vassalage with no tribute — no tribute he could "
+                    f"defend at {court} would pass")
+        return f"the {proposal_type.replace('_', ' ')} with no demands"
+    if kind == "stepped_down" and gold:
+        first = gold[0]
+        per = " a turn" if first.get("type") == "gold_per_turn" else ""
+        what = "tribute" if proposal_type == "vassalage" else "gold demand"
+        return (f"the {what} stepped down to {int(first.get('value', 0))} "
+                f"gold{per}")
+    return "the terms as drafted"
+
+
 def get_objection_text(concern_level: ConcernLevel, proposal: Dict, talleyrand) -> str:
     """Get Talleyrand's objection text for a given concern level.
 

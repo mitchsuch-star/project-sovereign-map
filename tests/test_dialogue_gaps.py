@@ -108,7 +108,9 @@ class TestKeywordRouting:
         assert world.talleyrand_state == "ON_MISSION"
 
     def test_trust_keyword_routes_to_send_suggested(self):
-        """'trust' keyword matches send_suggested action."""
+        """'trust' keyword matches the suggestion — which, since DDB-1 (S13b,
+        October 14, 2026), APPLIES Talleyrand's draft and sends nothing: the
+        send stays the player's next click."""
         world = _make_world()
         executor = _make_executor()
         _set_dialogue(world, "proposal_confirm", [
@@ -119,7 +121,8 @@ class TestKeywordRouting:
         gs = _make_game_state(world)
         result = executor.handle_diplomatic_dialogue_response("trust", gs)
         assert result["success"], f"Failed: {result.get('message')}"
-        assert world.talleyrand_state == "IN_TRANSIT"
+        assert world.talleyrand_state != "IN_TRANSIT" and world.proposal_in_transit is None
+        assert "execute_proposal" in [o["action"] for o in result["diplomatic_dialogue"]["options"]]
 
     def test_accept_keyword_routes_to_accept_with_conflict(self):
         """'accept' keyword matches accept_with_conflict when that option exists."""
@@ -227,14 +230,16 @@ class TestObjectionOverride:
         assert world.talleyrand_state == "IN_TRANSIT"
 
     def test_trust_routes_to_send_suggested(self):
-        """'trust' keyword routes to send_suggested action."""
+        """'trust' keyword routes to the suggestion, which APPLIES his draft
+        (DDB-1): nothing departs, the redraft carries a Send."""
         world = _make_world()
         executor = _make_executor()
         self._setup_objection_dialogue(world)
         gs = _make_game_state(world)
         result = executor.handle_diplomatic_dialogue_response("trust", gs)
         assert result["success"], f"Failed: {result.get('message')}"
-        assert world.talleyrand_state == "IN_TRANSIT"
+        assert world.talleyrand_state != "IN_TRANSIT" and world.proposal_in_transit is None
+        assert "execute_proposal" in [o["action"] for o in result["diplomatic_dialogue"]["options"]]
 
     def test_send_routes_to_send_override(self):
         """'send' keyword routes to send_override when that option exists."""

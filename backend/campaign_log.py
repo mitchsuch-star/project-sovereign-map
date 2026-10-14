@@ -3445,6 +3445,13 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
             if petition:
                 return f"{court}'s petition lapsed unanswered — nothing charged"
             return f"{court}'s petition lapsed unanswered"
+        # DDB-2: an ally's call to arms lapses as a refusal, at its price.
+        if str(ctx.event.get("proposal_type") or "") == "call_to_arms":
+            court = with_definite_article(display_nation(str(nation)), capitalize=True)
+            call = ctx.event.get("call_to_arms") if isinstance(ctx.event.get("call_to_arms"), dict) else {}
+            if call.get("penalty"):
+                return f"{court}'s call to arms lapsed unanswered — refused, at its price"
+            return f"{court}'s call to arms lapsed unanswered — nothing charged"
         proposal_type = _proposal_label(ctx.event)
         return f"{nation}'s {proposal_type} offer lapsed unanswered"
 
