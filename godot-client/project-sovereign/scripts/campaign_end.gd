@@ -111,6 +111,8 @@ var _font_voice_italic: Font = null
 
 
 func _ready():
+	# UXR3-F3: the reading scroll comes to rest on whole lines.
+	Utils.keep_whole_lines(content_label)
 	hide()
 	primary_btn.pressed.connect(_on_primary_pressed)
 	secondary_btn.pressed.connect(_on_secondary_pressed)

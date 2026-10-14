@@ -533,6 +533,26 @@ class TestTheFoundRows:
             assert "border_color = Color(0.85, 0.75, 0.55, 0.6)" in text, scene
             assert "bg_color = Color(0.1, 0.1, 0.18, 0.95)" in text, scene
 
+    def test_f7_the_white_peace_review_fits_its_regions(self):
+        """UXR3-F7's last item (part 5b): the white peace's review stood on the
+        1160 x 980 document ceiling with three short regions sharing the spare
+        height — two empty bands. When the regions need less than the ceiling
+        the panel shrinks to them, each region at its own content's height;
+        when they need more, the equal shares (IGR-G1) stand."""
+        popup = _src("scripts/proposal_confirm_popup.gd")
+        opened = popup[popup.index('$PanelContainer.set_meta("clamp_ceiling_override", SETTLEMENT_CEILING)'):]
+        assert _order(opened, "_reset_document_shares()", "Utils.clamp_centered_panel($PanelContainer)",
+                      "_fit_settlement_document()")
+        fit = _func(popup, "_fit_settlement_document")
+        assert "if need_panel >= have:\n\t\treturn" in fit
+        assert "regions[i].size_flags_stretch_ratio = maxf(float(shares[i]), 1.0)" in fit
+        assert "panel.offset_top = -need_panel / 2.0" in fit
+        # a re-render inside the table re-fits from the full rect
+        assert popup.count("_refit_settlement_document()") >= 3
+        refit = _func(popup, "_refit_settlement_document")
+        assert _order(refit, "_reset_document_shares()", "Utils.clamp_centered_panel($PanelContainer)",
+                      "_fit_settlement_document()")
+
     def test_f8_the_fall_clock_is_printed_once_by_one_road(self):
         utils = _func(_src("scripts/utils.gd"), "fall_clock_rows")
         assert "message.contains(title)" in utils
@@ -561,3 +581,32 @@ class TestTheFoundRows:
         assert "_snap_output_to_a_whole_line()" in _func(main, "add_output")
         gd = (TOOLS / "iq10_surface_screenshot.gd").read_text(encoding="utf-8")
         assert 'frame["cut_lines"] = _cut_lines()' in gd
+        cut = _func(gd, "_cut_lines")
+        # both kinds of clip, and a ScrollContainer's window is its whole rect
+        assert 'kind = "scroll"' in cut and 'kind = "own"' in cut
+        assert "win_top = s_rect.position.y" in cut and "win_bottom = s_rect.end.y" in cut
+
+    def test_f3_every_reading_scroll_rests_on_whole_lines(self):
+        """UXR3-F3 (part 5b): the reading labels' scrolls come to rest on
+        whole lines — the top onto a line's start the way it was moving, the
+        bottom padded inside a self-scrolling label or by a spacer beside a
+        ScrollContainer (whose panel margin does not clip its child)."""
+        utils = _src("scripts/utils.gd")
+        keep = _func(utils, "keep_whole_lines")
+        assert 'spacer.name = "WholeLinePad"' in keep and "sc.add_sibling(spacer)" in keep
+        assert 'rtl.add_theme_stylebox_override("normal", box)' in keep
+        for signal in ("bar.value_changed.connect", "host.resized.connect", "rtl.finished.connect"):
+            assert signal in keep, signal
+        snap = _func(utils, "snap_whole_lines")
+        assert "to = lines[i + 1] if v > last_v else lines[i]" in snap
+        assert "if to > top_max + 0.5:\n\t\t\t\tto = lines[i]" in snap
+        assert "pad = ceilf(bottom - lines[i]) + 1.0" in snap
+        assert "host.custom_minimum_size.y = maxf(view_h - pad, 0.0)" in snap
+        for rel, var in (("scripts/dispatch_view.gd", "content_label"), ("scripts/gazette_view.gd", "content_label"),
+                         ("scripts/campaign_end.gd", "content_label"), ("scripts/diplomacy_wizard.gd", "assessment_panel"),
+                         ("scripts/diplomatic_ledger.gd", "content_area"), ("scripts/strategic_ledger.gd", "content_area")):
+            assert f"Utils.keep_whole_lines({var})" in _func(_src(rel), "_ready"), rel
+        assert "for region in [content_label, per_court_table, footer_label]:\n\t\tUtils.keep_whole_lines(region)" in \
+            _func(_src("scripts/proposal_confirm_popup.gd"), "_ready")
+        # the war-room log keeps its own snap: it follows the newest line
+        assert "keep_whole_lines(output_display)" not in _src("scripts/main.gd")

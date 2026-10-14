@@ -1231,32 +1231,54 @@ func _truncated_text() -> Array:
 
 
 func _cut_lines() -> Array:
-	# Per visible RichTextLabel inside a ScrollContainer: the first and the
-	# last line its scroll shows, and whether either straddles the scroll's
-	# edge by more than 2 logical px (a line cut in half at the edge).
+	# Per visible RichTextLabel whose text a scroll clips — a ScrollContainer
+	# around it, or its own scrollbar (scroll_active, the text taller than the
+	# box) — every line that straddles the visible window's top or bottom
+	# edge by more than 2 logical px: a line cut in half at the edge.
 	var out: Array = []
 	for n in _all_nodes(root):
 		if not (n is RichTextLabel) or not _shown(n) or _inside_subviewport(n):
 			continue
 		var rtl := n as RichTextLabel
-		var sc := _scroll_ancestor(rtl)
-		if sc == null or rtl.get_parsed_text().strip_edges() == "":
+		if rtl.get_parsed_text().strip_edges() == "":
 			continue
-		var s_rect := sc.get_global_rect()
-		var r_top := rtl.get_global_rect().position.y
+		var box: StyleBox = rtl.get_theme_stylebox("normal")
+		var m_top: float = box.get_margin(SIDE_TOP) if box else 0.0
+		var m_bottom: float = box.get_margin(SIDE_BOTTOM) if box else 0.0
+		var r := rtl.get_global_rect()
+		var kind := ""
+		var win_top := 0.0
+		var win_bottom := 0.0
+		var text_top := 0.0
+		var sc := _scroll_ancestor(rtl)
+		if sc != null:
+			# a ScrollContainer clips its child at its own rect (its panel's
+			# margins do not clip), so the window is the whole rect
+			var s_rect := sc.get_global_rect()
+			win_top = s_rect.position.y
+			win_bottom = s_rect.end.y
+			text_top = r.position.y + m_top
+			kind = "scroll"
+		elif rtl.scroll_active and float(rtl.get_content_height()) > r.size.y - m_top - m_bottom + 2.0:
+			win_top = r.position.y + m_top
+			win_bottom = r.end.y - m_bottom
+			text_top = win_top - float(rtl.get_v_scroll_bar().value)
+			kind = "own"
+		else:
+			continue
 		var count := rtl.get_line_count()
 		var cut_top := 0.0
 		var cut_bottom := 0.0
 		for i in range(count):
-			var y0 := r_top + float(rtl.get_line_offset(i))
-			var y1 := r_top + (float(rtl.get_line_offset(i + 1)) if i + 1 < count else float(rtl.get_content_height()))
-			if y0 < s_rect.position.y - 2.0 and y1 > s_rect.position.y + 2.0:
-				cut_top = minf(y1 - s_rect.position.y, s_rect.position.y - y0)
-			if y0 < s_rect.end.y - 2.0 and y1 > s_rect.end.y + 2.0:
-				cut_bottom = minf(s_rect.end.y - y0, y1 - s_rect.end.y)
+			var y0 := text_top + float(rtl.get_line_offset(i))
+			var y1 := text_top + (float(rtl.get_line_offset(i + 1)) if i + 1 < count else float(rtl.get_content_height()))
+			if y0 < win_top - 2.0 and y1 > win_top + 2.0:
+				cut_top = minf(y1 - win_top, win_top - y0)
+			if y0 < win_bottom - 2.0 and y1 > win_bottom + 2.0:
+				cut_bottom = minf(win_bottom - y0, y1 - win_bottom)
 		if cut_top > 0.0 or cut_bottom > 0.0:
-			out.append({"path": str(root.get_path_to(rtl)), "layer": _layer_of(rtl),
-					"scroll_rect": [s_rect.position.x, s_rect.position.y, s_rect.size.x, s_rect.size.y],
+			out.append({"path": str(root.get_path_to(rtl)), "layer": _layer_of(rtl), "kind": kind,
+					"window": [r.position.x, win_top, r.size.x, win_bottom - win_top],
 					"cut_top_px": cut_top, "cut_bottom_px": cut_bottom})
 	return out
 

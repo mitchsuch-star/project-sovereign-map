@@ -1098,6 +1098,144 @@ static func shrink_centered_panel_to_content(panel: Control) -> void:
 		panel.offset_bottom = need / 2.0
 
 
+# ── UXR3-F3 (Pre-Deploy S12 part 2): whole lines at a scroll's edges ─────
+# A scroll at rest showed a line cut in half under its top or bottom edge
+# (the dispatch, the end card, the wizard's counsel, the settlement table,
+# the Congress table). `keep_whole_lines` makes a reading label's scroll —
+# its own scrollbar, or the ScrollContainer around it — come to rest on a
+# whole line: the top snaps onto a line start (in the direction it was
+# moving, so a wheel step smaller than a line still advances), and the
+# bottom is padded by the part of a line that would show cut — inside a
+# self-scrolling label, as its own bottom margin (it draws no line that
+# starts there); around a ScrollContainer, as a spacer beside it in its box
+# (a container's panel margin does not clip its child: the container clips
+# at its own rect, so the scroll itself must end on the line). The war-room
+# log keeps its own snap (main.gd, which follows the newest line).
+const WHOLE_LINE_EDGE := 2.0
+
+
+static func keep_whole_lines(rtl: RichTextLabel) -> void:
+	if rtl == null or rtl.has_meta("whole_lines"):
+		return
+	var sc: ScrollContainer = null
+	if not rtl.scroll_active:
+		var p: Node = rtl.get_parent()
+		while p != null and not (p is ScrollContainer):
+			p = p.get_parent()
+		sc = p as ScrollContainer
+		if sc == null:
+			return
+	var host: Control = sc if sc != null else rtl
+	var box: StyleBox = null
+	var base := 0.0
+	var spacer: Control = null
+	if sc == null:
+		var found: StyleBox = rtl.get_theme_stylebox("normal")
+		box = found.duplicate() if found != null else StyleBoxEmpty.new()
+		base = box.get_margin(SIDE_BOTTOM)
+		box.content_margin_bottom = base
+		rtl.add_theme_stylebox_override("normal", box)
+	elif sc.get_parent() is BoxContainer and (sc.size_flags_vertical & Control.SIZE_EXPAND) != 0:
+		spacer = Control.new()
+		spacer.name = "WholeLinePad"
+		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sc.add_sibling(spacer)
+	var bar: ScrollBar = sc.get_v_scroll_bar() if sc != null else rtl.get_v_scroll_bar()
+	rtl.set_meta("whole_lines", {"host": host, "box": box, "base": base, "bar": bar,
+			"spacer": spacer, "last_v": -1.0})
+	bar.value_changed.connect(func(_v: float): _whole_lines_soon(rtl))
+	host.resized.connect(func(): _whole_lines_soon(rtl))
+	rtl.finished.connect(func(): _whole_lines_soon(rtl))
+	_whole_lines_soon(rtl)
+
+
+static func _whole_lines_soon(rtl: RichTextLabel) -> void:
+	# Two frames after the last change (a wrapping label has no lines the
+	# frame its text is set), and only once the scroll has come to rest.
+	if not is_instance_valid(rtl) or not rtl.is_inside_tree():
+		return
+	var tick: int = int(rtl.get_meta("whole_lines_tick", 0)) + 1
+	rtl.set_meta("whole_lines_tick", tick)
+	await rtl.get_tree().process_frame
+	if not is_instance_valid(rtl) or not rtl.is_inside_tree():
+		return
+	await rtl.get_tree().process_frame
+	if not is_instance_valid(rtl) or int(rtl.get_meta("whole_lines_tick", 0)) != tick:
+		return
+	snap_whole_lines(rtl)
+
+
+static func snap_whole_lines(rtl: RichTextLabel) -> void:
+	var rec: Dictionary = rtl.get_meta("whole_lines", {})
+	if rec.is_empty() or not rtl.is_visible_in_tree():
+		return
+	var host: Control = rec["host"]
+	var box: StyleBox = rec["box"]
+	var base: float = rec["base"]
+	var bar: ScrollBar = rec["bar"]
+	var spacer: Control = rec["spacer"]
+	var count := rtl.get_line_count()
+	if count == 0:
+		return
+	var own := host == rtl
+	var v: float = float(bar.value)
+	var view_h: float
+	# the text's lines in the scrolled content's coordinates
+	var text0 := 0.0
+	if own:
+		view_h = rtl.size.y - box.get_margin(SIDE_TOP) - base
+	else:
+		# the scroll's height before the spacer took its share
+		view_h = host.size.y + (spacer.custom_minimum_size.y if spacer != null else 0.0)
+		var rbox: StyleBox = rtl.get_theme_stylebox("normal")
+		var r_top: float = rbox.get_margin(SIDE_TOP) if rbox else 0.0
+		text0 = (rtl.global_position.y + r_top) - host.global_position.y + v
+	var lines: Array[float] = []
+	for i in range(count):
+		lines.append(text0 + float(rtl.get_line_offset(i)))
+	lines.append(text0 + float(rtl.get_content_height()))
+	# the top edge: rest on a line's start, the way the scroll was moving
+	var last_v: float = rec["last_v"]
+	for i in range(count):
+		if lines[i] < v - WHOLE_LINE_EDGE and lines[i + 1] > v + WHOLE_LINE_EDGE:
+			var to: float
+			if last_v < 0.0:
+				to = lines[i] if v - lines[i] <= lines[i + 1] - v else lines[i + 1]
+			else:
+				to = lines[i + 1] if v > last_v else lines[i]
+			# a scroll at its end cannot step forward onto a line: step back
+			var top_max: float = maxf(float(bar.max_value - bar.page), 0.0)
+			if to > top_max + 0.5:
+				to = lines[i]
+			to = clampf(to, 0.0, top_max)
+			v = to
+			rec["last_v"] = to
+			if own:
+				bar.value = to
+			else:
+				(host as ScrollContainer).scroll_vertical = int(round(to))
+			break
+	rec["last_v"] = v
+	# the bottom edge: pad away the part of a line that would show cut
+	var bottom := v + view_h
+	var pad := 0.0
+	for i in range(count):
+		if lines[i] > v + 1.0 and lines[i] < bottom - WHOLE_LINE_EDGE and lines[i + 1] > bottom + WHOLE_LINE_EDGE:
+			# whole pixels, and one more: the layout rounds sizes to the pixel
+			pad = ceilf(bottom - lines[i]) + 1.0
+			break
+	if own:
+		if not is_equal_approx(box.content_margin_bottom, base + pad):
+			box.content_margin_bottom = base + pad
+	elif spacer != null:
+		# a scroll held at its height floor (the settlement table's) gives
+		# the pad up from that floor — never more than the line it hides
+		if host.custom_minimum_size.y > view_h - pad:
+			host.custom_minimum_size.y = maxf(view_h - pad, 0.0)
+		if not is_equal_approx(spacer.custom_minimum_size.y, pad):
+			spacer.custom_minimum_size.y = pad
+
+
 static func clamp_centered_panel(panel: Control) -> void:
 	"""Fit a centre-anchored fixed-size panel inside the CURRENT logical
 	viewport. The layer-50 screens and every modal popup are authored as fixed

@@ -66,6 +66,9 @@ func _ready():
 	# robbing exactly the region the player needs most.
 	if per_court_scroll:
 		per_court_scroll.set_meta("relax_last", true)
+	# UXR3-F3: the document's three regions come to rest on whole lines.
+	for region in [content_label, per_court_table, footer_label]:
+		Utils.keep_whole_lines(region)
 	# UXR3-F5 (Pre-Deploy S12 part 2): a drawn cross at the top right, like
 	# every screen's — it takes the dialogue's own safe exit (Esc's), and
 	# stands only where the dialogue has one.
@@ -289,7 +292,10 @@ func show_dialogue(data: Dictionary):
 		$PanelContainer.set_meta("clamp_ceiling_override", SETTLEMENT_CEILING)
 	elif $PanelContainer.has_meta("clamp_ceiling_override"):
 		$PanelContainer.remove_meta("clamp_ceiling_override")
+	_reset_document_shares()
 	Utils.clamp_centered_panel($PanelContainer)
+	if is_settlement_table:
+		_fit_settlement_document()
 
 func _add_settlement_tier2_buttons(data: Dictionary):
 	# UX-2 (GT-Slice-3): REVIEW is a frozen staged-decision surface — no
@@ -822,6 +828,83 @@ func _safe_str(v) -> String:
 	# the per-court table on first paint (delta_display is null before any dial).
 	return "" if v == null else str(v)
 
+# UXR3-F7 (Pre-Deploy S12 part 2): the settlement document stands on its
+# 1160 x 980 ceiling (IGR-G1) with three expanding regions — the header, the
+# per-court table, the footer — which shared the spare height equally. A
+# white peace's review holds a few lines in each, so two empty bands split it.
+# When the regions need less than the ceiling, the panel shrinks to them and
+# each region takes the height of what it holds (its stretch ratio is that
+# height; the table's floor drops to its rows). When they need more, nothing
+# changes: the equal shares and IGR-G1's relax order stand.
+const DOCUMENT_SLACK := 4.0
+
+
+func _document_regions() -> Array:
+	return [content_label, per_court_scroll, footer_label]
+
+
+func _reset_document_shares() -> void:
+	for region in _document_regions():
+		if region:
+			region.size_flags_stretch_ratio = 1.0
+
+
+func _refit_settlement_document() -> void:
+	if str(current_data.get("type", "")) != "settlement_confirm" or not visible:
+		return
+	_reset_document_shares()
+	Utils.clamp_centered_panel($PanelContainer)
+	_fit_settlement_document()
+
+
+func _region_need(region: Control) -> float:
+	# The height a region's content takes: a label's text plus its box's
+	# margins; the table's rows (a fit_content label inside the scroll).
+	if region == per_court_scroll:
+		return per_court_table.get_combined_minimum_size().y + DOCUMENT_SLACK
+	var label := region as RichTextLabel
+	var box: StyleBox = label.get_theme_stylebox("normal")
+	var margins: float = box.get_minimum_size().y if box else 0.0
+	return float(label.get_content_height()) + margins + DOCUMENT_SLACK
+
+
+func _fit_settlement_document() -> void:
+	var panel := $PanelContainer as Control
+	# the frame the text is set, a wrapping label has no width yet
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not is_instance_valid(panel) or not visible:
+		return
+	var have: float = panel.offset_bottom - panel.offset_top
+	var need_panel: float = panel.get_combined_minimum_size().y
+	var shares: Array = []
+	var table_floor: float = -1.0
+	for region in _document_regions():
+		if region == null or not region.visible:
+			shares.append(0.0)
+			continue
+		var need: float = _region_need(region)
+		var floor_y: float = region.get_combined_minimum_size().y
+		if region == per_court_scroll and need < floor_y:
+			# the table's floor is a priority for a long table, not a band
+			table_floor = need
+			need_panel -= floor_y - need
+			floor_y = need
+		need_panel += maxf(need - floor_y, 0.0)
+		shares.append(maxf(need, floor_y))
+	need_panel = ceilf(need_panel)
+	if need_panel >= have:
+		return
+	if table_floor >= 0.0:
+		per_court_scroll.custom_minimum_size.y = table_floor
+	var regions := _document_regions()
+	for i in regions.size():
+		if regions[i] and regions[i].visible:
+			regions[i].size_flags_stretch_ratio = maxf(float(shares[i]), 1.0)
+	panel.offset_top = -need_panel / 2.0
+	panel.offset_bottom = need_panel / 2.0
+
+
 func _render_per_court_table():
 	# GT-Slice-3 / UX-5: (re)paint the scrollable per-court table region from
 	# current_data. Client-side expansion toggles re-enter here without a
@@ -1170,16 +1253,19 @@ func _on_per_court_meta_clicked(meta):
 		"addmenu":
 			_add_demand_expanded[nation] = not bool(_add_demand_expanded.get(nation, false))
 			_render_per_court_table()
+			_refit_settlement_document()
 		"group":
 			if parts.size() >= 3:
 				var group_key = "%s|%s" % [nation, parts[2]]
 				_trailing_group_expanded[group_key] = not bool(_trailing_group_expanded.get(group_key, false))
 				_render_per_court_table()
+				_refit_settlement_document()
 		"suggopts":
 			if parts.size() >= 3:
 				var options_key = "%s|%s" % [parts[1], parts[2]]
 				_suggestion_options_expanded[options_key] = not bool(_suggestion_options_expanded.get(options_key, false))
 				_render_per_court_table()
+				_refit_settlement_document()
 		"sugg", "suggcs", "suggpick":
 			if parts.size() >= 3:
 				_fire_suggestion(row, int(parts[2]), op, parts)

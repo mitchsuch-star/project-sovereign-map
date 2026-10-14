@@ -1,7 +1,7 @@
 """UXR-3 fixes — the re-read's comparison (Pre-Deploy S12, October 13, 2026).
 
     .venv/Scripts/python.exe -X utf8 tools/uxr3_reread.py --before docs/audits/uxr3 \
-        --after docs/audits/uxr3_s12 [--write]
+        --after docs/audits/uxr3_s12 [--write] [--rows docs/audits/uxr3_s12/new_rows.json ...]
 
 Reads two `review.json` records made by `tools/uxr3_review.py aggregate`
 against the SAME frozen checklist (`docs/UX_CHECKLIST_V1.json`): the S11
@@ -11,9 +11,11 @@ re-read's records directory:
     flips      every (surface, item) whose mark changed, ✗ → ✓ and ✓ → ✗
     items      ✓ of 145 per item, before and after
     groups     the group table after (mean, lowest, 8 of 8, under 6), and before
-    rows       every BUG_FIXES §UXR-3 row (`docs/audits/uxr3/bug_rows.json`):
-               FIXED when every (surface, item) it names now reads ✓, else
-               OPEN with the (surface, item) pairs still ✗
+    rows       every BUG_FIXES §UXR-3 row (`docs/audits/uxr3/bug_rows.json`,
+               plus any later re-read's filed rows passed with `--rows`, e.g.
+               S12 part 1's `docs/audits/uxr3_s12/new_rows.json`): FIXED when
+               every (surface, item) it names now reads ✓, else OPEN with the
+               (surface, item) pairs still ✗
     done_when  §UXR-3's: the top five groups at 8 of 8, none under 6
 
 Nothing here judges: it compares two records the instruments and the readers
@@ -113,7 +115,7 @@ def markdown(out: dict, after: dict, frames_dir: str) -> str:
     open_rows = [r for r in out["rows"] if r["state"] == "OPEN"]
     lines += ["", "### The rows", "",
               f"{sum(1 for r in out['rows'] if r['state'] == 'FIXED')} of {len(out['rows'])} rows read ✓ on every "
-              f"(surface, item) they name; {len(open_rows)} stay open for part 2:", "",
+              f"(surface, item) they name; {len(open_rows)} stay open:", "",
               "| Row | Still ✗ |", "|---|---|"]
     for r in open_rows:
         still = ", ".join(r["still"][:6]) + (f" (+{len(r['still']) - 6} more)" if len(r["still"]) > 6 else "")
@@ -129,10 +131,14 @@ def main(argv=None) -> int:
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--markdown", default="", help="write the re-read's tables to this file")
     ap.add_argument("--frames-dir", default="docs/audits/uxr3_s12/frames")
+    ap.add_argument("--rows", action="append", default=[],
+                    help="a later re-read's filed rows (its new_rows.json), judged with the review's")
     args = ap.parse_args(argv)
     before_dir, after_dir = pathlib.Path(args.before), pathlib.Path(args.after)
-    out = compare(load(before_dir / "review.json"), load(after_dir / "review.json"),
-                  load(before_dir / "bug_rows.json"))
+    rows = load(before_dir / "bug_rows.json") if (before_dir / "bug_rows.json").is_file() else []
+    for extra in args.rows:
+        rows = rows + load(pathlib.Path(extra))
+    out = compare(load(before_dir / "review.json"), load(after_dir / "review.json"), rows)
     print(f"ticks: {out['ticks']['before']} -> {out['ticks']['after']} of 1160")
     for item in ITEMS:
         print(f"  {item}: {out['items'][item]['before']:3d} -> {out['items'][item]['after']:3d}")
