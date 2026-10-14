@@ -668,7 +668,7 @@ func _add_header(text: String) -> void:
 func _add_hint(text: String) -> void:
 	var hint := Label.new()
 	hint.text = text
-	hint.add_theme_color_override("font_color", Color(0.627, 0.627, 0.659))
+	hint.add_theme_color_override("font_color", Color(Utils.COLOR_INFO))
 	hint.theme_type_variation = &"Caption"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(hint)

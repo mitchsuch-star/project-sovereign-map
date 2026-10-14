@@ -245,7 +245,7 @@ func _build_title_block() -> void:
 	over.name = "OverTitle"
 	over.text = "ANNO 1805 · EUROPE IN THE BALANCE"
 	over.add_theme_font_override("font", _font_fell)
-	over.add_theme_font_size_override("font_size", 19)
+	over.theme_type_variation = &"TitleScreenOverline"
 	over.add_theme_color_override("font_color", Color(0.87, 0.8, 0.62, 0.92))
 	over.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	over.add_theme_constant_override("shadow_offset_y", 2)
@@ -255,7 +255,7 @@ func _build_title_block() -> void:
 	title.name = "Title"
 	title.text = "INK & IRON"
 	title.add_theme_font_override("font", _font_title)
-	title.add_theme_font_size_override("font_size", 96)
+	title.theme_type_variation = &"TitleScreen"
 	title.add_theme_color_override("font_color", Color(0.92, 0.83, 0.6))
 	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.78))
 	title.add_theme_constant_override("shadow_offset_x", 0)
@@ -278,7 +278,7 @@ func _build_title_block() -> void:
 	sub.name = "SubTitle"
 	sub.text = "The Campaigns of Napoleon"
 	sub.add_theme_font_override("font", _font_fell_italic)
-	sub.add_theme_font_size_override("font_size", 24)
+	sub.theme_type_variation = &"TitleScreenLead"
 	sub.add_theme_color_override("font_color", Color(0.88, 0.83, 0.7, 0.95))
 	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	sub.add_theme_constant_override("shadow_offset_y", 2)
@@ -381,11 +381,11 @@ func _make_button(text: String, prominent: bool) -> Button:
 	b.custom_minimum_size = Vector2(400, 56 if prominent else 50)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_font_override("font", _font_button)
-	b.add_theme_font_size_override("font_size", 26 if prominent else 23)
+	b.theme_type_variation = &"TitleScreenButtonProminent" if prominent else &"TitleScreenButton"
 	b.add_theme_color_override("font_color", Color(0.93, 0.88, 0.74) if prominent else Color(0.85, 0.82, 0.72))
 	b.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.8))
 	b.add_theme_color_override("font_focus_color", Color(1.0, 0.95, 0.8))
-	b.add_theme_color_override("font_disabled_color", Color(0.55, 0.55, 0.55, 0.8))
+	b.add_theme_color_override("font_disabled_color", Utils.UI_DISABLED_TEXT)
 
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.03, 0.045, 0.085, 0.62)
@@ -404,7 +404,7 @@ func _make_button(text: String, prominent: bool) -> Button:
 	pressed.bg_color = Color(0.14, 0.13, 0.10, 0.9)
 	var disabled: StyleBoxFlat = normal.duplicate()
 	disabled.bg_color = Color(0.03, 0.04, 0.06, 0.4)
-	disabled.border_color = Color(0.5, 0.48, 0.42, 0.2)
+	disabled.border_color = Utils.UI_FAINT_BORDER
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
@@ -453,7 +453,7 @@ func _build_footer() -> void:
 	version.anchor_bottom = 0.925
 	version.text = "Ink & Iron — " + Utils.build_label()
 	version.theme_type_variation = &"Caption"
-	version.add_theme_color_override("font_color", Color(0.65, 0.63, 0.58, 0.8))
+	version.add_theme_color_override("font_color", Utils.UI_VERSION_LINE)
 	version.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	version.add_theme_constant_override("shadow_offset_y", 1)
 	version.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -484,7 +484,7 @@ func _build_settings_view() -> void:
 	var header := Label.new()
 	header.text = "SETTINGS"
 	header.add_theme_font_override("font", _font_title)
-	header.add_theme_font_size_override("font_size", 26)
+	header.theme_type_variation = &"TitleScreenHeader"
 	header.add_theme_color_override("font_color", Color(0.92, 0.83, 0.6))
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(header)

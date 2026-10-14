@@ -50,7 +50,7 @@ text = "THE SCHOOL OF WAR"
 [node name="StepBadge" type="Label" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.55, 0.55, 0.6, 1)
+theme_override_colors/font_color = Color(0.6275, 0.6275, 0.6588, 1)
 theme_type_variation = &"Caption"
 text = ""
 

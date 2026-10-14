@@ -55,6 +55,6 @@ theme_override_constants/separation = 4
 [node name="OverflowLabel" type="Label" parent="RailPanel/RailLayout"]
 visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.62, 0.66, 0.74, 1)
+theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
 theme_type_variation = &"Caption"
 text = "+0"

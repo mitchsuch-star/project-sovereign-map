@@ -32,7 +32,7 @@ func show_saves(saves: Array, damaged: Array = []):
 	if saves.is_empty() and damaged.is_empty():
 		var label = Label.new()
 		label.text = "No saves found."
-		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
+		label.add_theme_color_override("font_color", Utils.UI_HINT_GREY)
 		saves_container.add_child(label)
 	else:
 		for save_data in saves:

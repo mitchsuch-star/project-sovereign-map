@@ -67,7 +67,7 @@ const REGISTER_STYLE := {
 		"title": "THE VERDICT OF HISTORY",
 		"title_hex": "d9c08c",          # Utils.COLOR_GOLD
 		"border": Color(0.66, 0.56, 0.38, 1.0),
-		"bg": Color(0.17, 0.15, 0.11, 1.0),
+		"bg": Utils.UI_END_PLATE_BG,
 		"overlay": Color(0.0, 0.0, 0.0, 0.82),
 		"cue": "parchment_open",
 		"primary": "Continue",

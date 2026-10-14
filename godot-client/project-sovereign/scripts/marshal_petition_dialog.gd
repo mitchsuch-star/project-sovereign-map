@@ -164,8 +164,8 @@ func _add_option(option: Dictionary):
 		# July 25, 2026 in-game review: a greyed arm used to say nothing about
 		# WHY, and at a glance read as merely un-hovered. Dim the label and let
 		# the detail line carry the backend's reason.
-		btn.add_theme_color_override("font_color", Color(0.55, 0.52, 0.48, 1))
-		btn.add_theme_color_override("font_disabled_color", Color(0.55, 0.52, 0.48, 1))
+		btn.add_theme_color_override("font_color", Utils.UI_CLOSED_ARM)
+		btn.add_theme_color_override("font_disabled_color", Utils.UI_CLOSED_ARM)
 	btn.pressed.connect(_on_option_pressed.bind(str(option.get("id", ""))))
 	options_container.add_child(btn)
 
@@ -180,7 +180,7 @@ func _add_option(option: Dictionary):
 		var detail_label = Label.new()
 		detail_label.text = "    " + detail
 		detail_label.theme_type_variation = &"Caption"
-		detail_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
+		detail_label.add_theme_color_override("font_color", Utils.UI_REASON_GREY)
 		detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		options_container.add_child(detail_label)
 

@@ -483,7 +483,7 @@ func _add_congress_row(congress) -> void:
 		var reason_label = Label.new()
 		reason_label.text = "    " + reason
 		reason_label.theme_type_variation = &"Caption"
-		reason_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
+		reason_label.add_theme_color_override("font_color", Utils.UI_REASON_GREY)
 		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_list.add_child(reason_label)
 
@@ -794,7 +794,7 @@ func _add_action_button(action: Dictionary):
 		var reason_label = Label.new()
 		reason_label.text = "    " + disabled_reason
 		reason_label.theme_type_variation = &"Caption"
-		reason_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
+		reason_label.add_theme_color_override("font_color", Utils.UI_REASON_GREY)
 		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_list.add_child(reason_label)
 

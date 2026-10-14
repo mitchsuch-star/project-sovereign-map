@@ -12,7 +12,7 @@ extends Control
 const DASH_LENGTH: float = 12.0
 
 var _connections: Array = []
-var _line_color: Color = Color(0.6, 0.6, 0.6)
+var _line_color: Color = Utils.MAP_CONNECTION_GREY
 var _line_width: float = 2.0
 var _port_glyphs: Array = []
 const GLYPH_COLOR := Color(0.85, 0.25, 0.25, 0.95)

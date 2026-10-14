@@ -470,6 +470,49 @@ const UI_SCORE_POSITIVE := Color(0.29, 0.67, 0.29)            # winning green
 const UI_SCORE_NEGATIVE := Color(0.67, 0.27, 0.27)           # losing red
 const UI_SCORE_NEUTRAL := Color(0.75, 0.75, 0.78)           # neutral grey
 const UI_BAR_BG := Color(0.15, 0.15, 0.2, 0.8)              # score bar track
+# UXR-3 fixes (Pre-Deploy S12, R4 "0 one-off greys in a surface's own files"):
+# every grey a script drew as a literal is a named token here, its value
+# unchanged. Alpha is part of the token where the site drew one.
+const UI_REASON_GREY := Color(0.6, 0.6, 0.65, 1)            # a closed arm's reason line (wizard, petition card)
+const UI_DISABLED_TEXT := Color(0.55, 0.55, 0.55, 0.8)      # the title screen's disabled button text
+const UI_FAINT_BORDER := Color(0.5, 0.48, 0.42, 0.2)        # the title screen's disabled button border
+const UI_VERSION_LINE := Color(0.65, 0.63, 0.58, 0.8)       # the build line (title screen, pause menu)
+const UI_CLOSED_ARM := Color(0.55, 0.52, 0.48, 1)           # the petition card's closed command arm
+const UI_MAILBOX_NOTE := Color(0.7, 0.72, 0.78, 1.0)        # the letter-book's caption note
+const UI_MAILBOX_IDLE_BORDER := Color(0.26, 0.3, 0.38, 0.9) # a waiting letter's border
+const UI_MAILBOX_WAITING := Color(0.66, 0.66, 0.7, 1.0)     # the WAITING badge
+const UI_TURN_STAMP := Color(0.56, 0.58, 0.64, 1.0)         # a letter's turn stamp; the letter-book hint
+const UI_MAILBOX_TERMS := Color(0.68, 0.72, 0.8, 1.0)       # a digest letter's terms line
+const UI_RAIL_TURN_STAMP := Color(0.58, 0.58, 0.64, 1)      # the notice rail's turn stamp
+const UI_ENVOY_IDLE_BORDER := Color(0.32, 0.35, 0.42, 0.9)  # the top bar's idle Envoys border
+const UI_ENVOY_IDLE_HOVER := Color(0.16, 0.18, 0.23, 0.95)  # its hover fill
+const UI_BAR_CENTER_HUD := Color(0.35, 0.35, 0.4, 0.6)      # the war HUD bar's centre tick
+const UI_BAR_CENTER_DETAIL := Color(0.4, 0.4, 0.45, 0.6)    # the war-detail bar's centre tick
+const UI_NEUTRAL_FIGURE := Color(0.6, 0.6, 0.6)             # a tableau figure with no nation colour
+const UI_ABSENT_FIGURE := Color(0.62, 0.62, 0.66, 1.0)      # a no-show's line on the tableau's shelf
+const UI_ABSENT_WASH := Color(0.62, 0.62, 0.66, 0.9)        # the no-show shelf's figure wash
+const UI_DIORAMA_BAIZE := Color(0.129, 0.208, 0.153, 1.0)   # the tableau's green felt
+const UI_TOPPLE_TINT := Color(0.52, 0.47, 0.44, 1.0)        # a fallen figure
+const UI_FOUNDER_TINT := Color(0.42, 0.40, 0.42, 1.0)       # a foundering ship
+const UI_DEAD_RING := Color(0.45, 0.45, 0.48, 1.0)          # a fallen marshal's locket ring
+const UI_END_PLATE_BG := Color(0.17, 0.15, 0.11, 1.0)       # the end card's register plate
+const UI_HINT_GREY := Color(0.7, 0.7, 0.75, 1)              # a dialog's hint line (Load, Reward)
+const COLOR_REPORT := "aaaaaa"                              # the enemy phase's report lines (toned at the site)
+const COLOR_CHIP_BG_NAVY := "22283a"                        # the Marshalate's Back chip
+const COLOR_CHIP_BG_GREEN := "1e3320"                       # the Commission chip
+# The war room's map: the renderer's 29 grey literals, values unchanged.
+const MAP_UNWIRED_GREY := Color(0.32, 0.32, 0.34, 1.0)      # a province not yet in play
+const MAP_CONNECTION_GREY := Color(0.6, 0.6, 0.6)           # a road with no colour of its own
+const MAP_FOG_BORDER := Color(0.25, 0.25, 0.3)              # an unknown province's border
+const MAP_FOG_TEXT := Color(0.5, 0.5, 0.55)                 # unknown / last-known text
+const MAP_STALE_TEXT := Color(0.7, 0.7, 0.75)               # stale text; a fogged tooltip's border
+const MAP_NEUTRAL_NATION := Color(0.5, 0.5, 0.5)            # a force or province with no nation colour
+const MAP_CHIP_BORDER := Color(0.4, 0.4, 0.45)              # a force chip's border
+const MAP_CHIP_DARK_BORDER := Color(0.25, 0.22, 0.18)       # a garrison chip's border on a light fill
+const MAP_TEXT_GREY := Color(0.7, 0.7, 0.7)                 # secondary tooltip and chip text
+const MAP_TOOLTIP_BORDER := Color(0.6, 0.6, 0.7)            # a force tooltip's border
+const MAP_TOOLTIP_FOG_BORDER := Color(0.4, 0.4, 0.5)        # an unknown province's tooltip border
+const MAP_UNKNOWN_TEXT := Color(0.55, 0.55, 0.6)            # "Income: Unknown", "Stability: Unknown"
 
 # === UI-3 Icon Wiring Helpers ===
 # The curated icon sets ship as WHITE silhouettes (game-icons: black bg stripped;
@@ -822,6 +865,17 @@ static var _text_size_default_base := 0
 static var _text_size_applied := 1.0
 
 
+# UXR-3 fixes (Pre-Deploy S12): the title screen's and the tableau's display
+# type are named theme steps now (they were the RAW_RATCHET's exemptions), and
+# Text size leaves them at their authored sizes, as it left the raw overrides:
+# both are fixed-geometry art (a 96-px title, the engraved tableau).
+const TEXT_SIZE_FIXED_STEPS := [
+	"TitleScreen", "TitleScreenOverline", "TitleScreenLead", "TitleScreenHeader",
+	"TitleScreenButton", "TitleScreenButtonProminent",
+	"TableauClash", "TableauOdometer", "TableauBanner", "TableauPlate",
+]
+
+
 static func apply_text_size(preview := -1.0) -> void:
 	"""Settings → INTERFACE → Text size: every named type size in the project
 	theme — the default 16, the Label / Button / RichTextLabel / LineEdit
@@ -843,6 +897,8 @@ static func apply_text_size(preview := -1.0) -> void:
 	if _text_size_bases.is_empty():
 		_text_size_default_base = theme.default_font_size
 		for theme_type in theme.get_font_size_type_list():
+			if String(theme_type) in TEXT_SIZE_FIXED_STEPS:
+				continue
 			for item in theme.get_font_size_list(theme_type):
 				_text_size_bases["%s|%s" % [theme_type, item]] = [
 					theme_type, item, theme.get_font_size(item, theme_type)]

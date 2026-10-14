@@ -581,7 +581,7 @@ func _show_expanded_panel(notif: Dictionary):
 	if turn_created > 0:
 		var turn_label = Label.new()
 		turn_label.text = "T%d" % turn_created
-		turn_label.add_theme_color_override("font_color", Color(0.58, 0.58, 0.64, 1))
+		turn_label.add_theme_color_override("font_color", Utils.UI_RAIL_TURN_STAMP)
 		turn_label.theme_type_variation = &"Caption"
 		header.add_child(turn_label)
 

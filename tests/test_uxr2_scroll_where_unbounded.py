@@ -38,6 +38,9 @@ ALLOW_SCRIPT = {
     ("battle_diorama.gd", "_verdict"): "free-positioned",
     ("main.gd", "_suggestion_row"): "count-capped",
     ("notification_bar.gd", "body"): "bounds itself",
+    # Pre-Deploy S12 (UXR3-62): two fixed lines over the proclamation's name —
+    # the heading and the struck old name; the body below stays in its scroll.
+    ("proclamation_popup.gd", "head_label"): "two fixed lines",
 }
 # ScrollContainers that declare no height floor: a floorless list is squeezed
 # to a strip by fixed chrome (the IGR-F letter-book shape). It may only fall.

@@ -73,7 +73,7 @@ const THE_RESERVE_NAMES_ITS_DEAD := true
 # ── Palette (colour rarity per the brief: wood, brass, baize; red = casualties)
 const WOOD_BG := Color(0.165, 0.118, 0.078, 1.0)        # walnut tray
 const WOOD_EDGE := Color(0.24, 0.175, 0.115, 1.0)
-const BAIZE := Color(0.129, 0.208, 0.153, 1.0)          # green felt
+const BAIZE := Utils.UI_DIORAMA_BAIZE          # green felt
 const BAIZE_EDGE := Color(0.086, 0.145, 0.104, 1.0)
 const BRASS := Color(0.72, 0.60, 0.36, 1.0)
 const BRASS_DARK := Color(0.42, 0.33, 0.17, 1.0)
@@ -339,7 +339,7 @@ func _build_stage() -> void:
 
 	_clash_label = Label.new()
 	_clash_label.text = "⚔"
-	_clash_label.add_theme_font_size_override("font_size", 26)
+	_clash_label.theme_type_variation = &"TableauClash"
 	# S12 (UXR3-50, 51): at 55 % alpha the ⚔ read 2.77 : 1 on the field; full
 	# alpha (5.44 : 1).
 	_clash_label.add_theme_color_override("font_color", Utils.UI_GOLD)
@@ -348,17 +348,14 @@ func _build_stage() -> void:
 
 	# Odometers — the ONLY red on the table.
 	_odo_left_cap = _mk_label(_stage, "", &"Caption", Color(BONE_HEX))
-	_odo_left = _mk_label(_stage, "0", &"", CRIMSON, _font_engraved)
-	_odo_left.add_theme_font_size_override("font_size", 24)
+	_odo_left = _mk_label(_stage, "0", &"TableauOdometer", CRIMSON, _font_engraved)
 	_odo_right_cap = _mk_label(_stage, "", &"Caption", Color(BONE_HEX))
 	_odo_right_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_odo_right = _mk_label(_stage, "0", &"", CRIMSON, _font_engraved)
-	_odo_right.add_theme_font_size_override("font_size", 24)
+	_odo_right = _mk_label(_stage, "0", &"TableauOdometer", CRIMSON, _font_engraved)
 	_odo_right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 	# The outcome banner — engraved capitals, register-toned, arrives LAST.
-	_banner = _mk_label(_stage, "", &"", Utils.UI_GOLD, _font_engraved)
-	_banner.add_theme_font_size_override("font_size", 30)
+	_banner = _mk_label(_stage, "", &"TableauBanner", Utils.UI_GOLD, _font_engraved)
 	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_banner.add_theme_constant_override("outline_size", 6)
@@ -433,7 +430,7 @@ func _build_verdict_and_plate() -> void:
 	_plate_name = Label.new()
 	_plate_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_plate_name.add_theme_font_override("font", _font_engraved)
-	_plate_name.add_theme_font_size_override("font_size", 19)
+	_plate_name.theme_type_variation = &"TableauPlate"
 	_plate_name.add_theme_color_override("font_color", ENGRAVE)
 	plate_box.add_child(_plate_name)
 	_plate_sub = Label.new()
@@ -763,7 +760,7 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	var nation := str(c.get("nation", ""))
 	var color_key := str(c.get("origin_nation", nation))
 	var nation_color: Color = Utils.NATION_COLORS.get(
-		color_key, Color(0.6, 0.6, 0.6))
+		color_key, Utils.UI_NEUTRAL_FIGURE)
 
 	var committed := maxi(int(c.get("committed", 0)), 1)
 	var casualties := int(c.get("casualties", 0))
@@ -1038,7 +1035,7 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 		var f := DioramaFigure.new()
 		f.setup(str(c.get("arm", "infantry")), "r" if is_left else "l",
 				Utils.NATION_COLORS.get(str(c.get("nation", "")),
-				Color(0.6, 0.6, 0.6)), SHELF_FIGURE_PX)
+				Utils.UI_NEUTRAL_FIGURE), SHELF_FIGURE_PX)
 		f.position = Vector2(23.0, SHELF_H - 16.0)
 		f.grey_out()
 		cell.add_child(f)
@@ -1052,7 +1049,7 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 				str(c.get("absence_reason", "did not march"))]
 		head.theme_type_variation = &"Caption"
 		head.add_theme_color_override("font_color",
-				Color(0.62, 0.62, 0.66, 1.0))
+				Utils.UI_ABSENT_FIGURE)
 		text_box.add_child(head)
 		var grudge := str(c.get("grudge", ""))
 		if grudge != "":

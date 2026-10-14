@@ -25,9 +25,12 @@ const COLOR_GREEN = Utils.UI_SCORE_POSITIVE
 const COLOR_RED = Utils.UI_SCORE_NEGATIVE
 const COLOR_WHITE = Utils.UI_SCORE_NEUTRAL
 const COLOR_GOLD = Color(0.85, 0.7, 0.3)
-const COLOR_DIMMED = Color(0.5, 0.5, 0.5)
+# 808080 is a palette step (S12, R4): its token. Every use is a caption,
+# which keeps 808080 at >= 3 : 1 on the HUD (the R3 rule's one allowance).
+var COLOR_DIMMED: Color:
+	get: return Color(Utils.COLOR_DIMMED)
 const COLOR_BAR_BG = Utils.UI_BAR_BG
-const COLOR_BAR_CENTER = Color(0.35, 0.35, 0.4, 0.6)
+const COLOR_BAR_CENTER = Utils.UI_BAR_CENTER_HUD
 # War-score bar frame (CC0 Kenney RPG track): 9px 3-slice caps; a cool-navy
 # modulate tints the dark track to match the UI without lightening (modulate
 # multiplies).

@@ -134,7 +134,7 @@ func _draw() -> void:
 		var fsize := int(radius * 1.1)
 		var ls := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_CENTER,
 				-1, fsize)
-		var col := RING_COLOR if _dead < 0.5 else Color(0.45, 0.45, 0.48, 1.0)
+		var col := RING_COLOR if _dead < 0.5 else Utils.UI_DEAD_RING
 		draw_string(font, Vector2(c.x - ls.x / 2.0,
 				c.y + ls.y * 0.34), letter,
 				HORIZONTAL_ALIGNMENT_CENTER, -1, fsize, col)

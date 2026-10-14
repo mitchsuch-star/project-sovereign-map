@@ -119,7 +119,7 @@ func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
 	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.theme_type_variation = &"Caption"
-	note.add_theme_color_override("font_color", Color(0.7, 0.72, 0.78, 1.0))
+	note.add_theme_color_override("font_color", Utils.UI_MAILBOX_NOTE)
 	box.add_child(note)
 
 	return box
@@ -152,7 +152,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	style.border_width_top = 1
 	style.border_width_right = 1
 	style.border_width_bottom = 1
-	style.border_color = Color(0.5, 0.72, 0.86, 0.9) if is_active else Color(0.26, 0.3, 0.38, 0.9)
+	style.border_color = Color(0.5, 0.72, 0.86, 0.9) if is_active else Utils.UI_MAILBOX_IDLE_BORDER
 	style.corner_radius_top_left = 6
 	style.corner_radius_top_right = 6
 	style.corner_radius_bottom_right = 6
@@ -179,7 +179,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	state_badge.theme_type_variation = &"Caption"
 	state_badge.add_theme_color_override(
 		"font_color",
-		Color(0.5, 0.72, 0.86, 1.0) if is_active else Color(0.66, 0.66, 0.7, 1.0)
+		Color(0.5, 0.72, 0.86, 1.0) if is_active else Utils.UI_MAILBOX_WAITING
 	)
 	top_row.add_child(state_badge)
 
@@ -213,7 +213,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	turn_label.text = "Turn %d" % arrival_turn
 	turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	turn_label.theme_type_variation = &"Caption"
-	turn_label.add_theme_color_override("font_color", Color(0.56, 0.58, 0.64, 1.0))
+	turn_label.add_theme_color_override("font_color", Utils.UI_TURN_STAMP)
 	top_row.add_child(turn_label)
 
 	var summary_label = Label.new()
@@ -251,7 +251,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 			terms_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			terms_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			terms_label.theme_type_variation = &"Caption"
-			terms_label.add_theme_color_override("font_color", Color(0.68, 0.72, 0.8, 1.0))
+			terms_label.add_theme_color_override("font_color", Utils.UI_MAILBOX_TERMS)
 			vbox.add_child(terms_label)
 		vbox.add_child(_build_action_row(mailbox_id))
 
@@ -284,7 +284,7 @@ func _build_action_row(mailbox_id: int) -> HBoxContainer:
 	hint.text = "or click the letter to reply in full"
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hint.theme_type_variation = &"Caption"
-	hint.add_theme_color_override("font_color", Color(0.56, 0.58, 0.64, 1.0))
+	hint.add_theme_color_override("font_color", Utils.UI_TURN_STAMP)
 	row.add_child(hint)
 
 	return row

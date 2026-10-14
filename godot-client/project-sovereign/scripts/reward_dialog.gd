@@ -156,7 +156,7 @@ func show_reward(card: Dictionary):
 			label.text = "No conquered province remains to endow, and no rente is possible.\nVictory abroad will furnish an estate."
 		else:
 			label.text = "His expectation is met — no reward is needed."
-		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
+		label.add_theme_color_override("font_color", Utils.UI_HINT_GREY)
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		options_container.add_child(label)
 

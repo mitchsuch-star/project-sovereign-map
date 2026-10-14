@@ -347,7 +347,7 @@ func _render_glory_ladder() -> String:
 func _render_commission_view():
 	"""Marshal Recruitment: the candidate bench — full character sheets,
 	honest availability (the executor's own check), price/corps chips."""
-	var bbcode = _button_chip("commission_back", "← Back to the Marshalate", "a9c7e6", "22283a") + "\n\n"
+	var bbcode = _button_chip("commission_back", "← Back to the Marshalate", "a9c7e6", Utils.COLOR_CHIP_BG_NAVY) + "\n\n"
 	bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 20, Utils.COLOR_GOLD)
 	bbcode += " [color=#" + Utils.COLOR_GOLD + "]COMMISSION A MARSHAL[/color]\n"
 	var treasury = int(cached_recruitment.get("treasury", 0))
@@ -413,7 +413,7 @@ func _render_commission_view():
 				seed_parts.append(other + ": " + _relationship_colored(v, vlabel))
 			bbcode += "  [color=#" + Utils.COLOR_INFO + "]Arrives with a history —[/color] " + ", ".join(seed_parts) + "\n"
 		if available:
-			bbcode += "  " + _button_chip("commission:" + cname, "Commission " + cname + " — " + _format_number(cost) + "g", "b6e6b6", "1e3320") + "\n"
+			bbcode += "  " + _button_chip("commission:" + cname, "Commission " + cname + " — " + _format_number(cost) + "g", "b6e6b6", Utils.COLOR_CHIP_BG_GREEN) + "\n"
 		else:
 			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]Unavailable: " + reason + "[/color]\n"
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]────────────────────────────────────────[/color]\n\n"

@@ -44,7 +44,7 @@ var COLOR_INFO: String:
 # Bar colors — nation tints come from Utils.NATION_COLORS (§3.3).
 # UI-2 Part 2: the bar track is shared with war_status_panel via Utils.
 const COLOR_BAR_BG = Utils.UI_BAR_BG
-const COLOR_BAR_CENTER = Color(0.4, 0.4, 0.45, 0.6)
+const COLOR_BAR_CENTER = Utils.UI_BAR_CENTER_DETAIL
 # War-score bar frame (CC0 Kenney RPG track): 9px 3-slice caps + cool-navy tint.
 const BAR_FRAME_CAP = 9
 const COLOR_BAR_FRAME_TINT = Color(0.72, 0.78, 1.0)

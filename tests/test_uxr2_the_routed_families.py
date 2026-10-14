@@ -120,18 +120,27 @@ class TestTheTextLeavesTheDepthScale:
         assert "add_theme_font_size_override" not in body
         calls = G.call_args(_src("battle_diorama.gd"), "_mk_label")
         assert len(calls) >= 12, calls
+        # Pre-Deploy S12 (UXR-3's R4): the engraved display sizes are named
+        # steps now (Tableau*), passed like any other variation.
+        steps = ('&"Caption"', '&""', '&"TableauOdometer"', '&"TableauBanner"')
         for args in calls:
-            assert args[2] in ('&"Caption"', '&""'), f"a size reached _mk_label: {args}"
+            assert args[2] in steps, f"a size reached _mk_label: {args}"
 
     def test_the_only_literal_sizes_are_the_engraved_display(self):
         """The tableau keeps five display sizes (clash 26, the odometer
-        figures 24, the banner 30, the plate 19) — every one a literal at or
-        above the body floor; nothing computed. The verdict's 17 became the
-        theme's `BodyLargeRich` in Slice B (the override diet)."""
-        calls = G.call_args(_src("battle_diorama.gd"), "add_theme_font_size_override")
-        assert all(re.fullmatch(r"\d+", a[1]) for a in calls), calls
-        assert sorted(int(a[1]) for a in calls) == [19, 24, 24, 26, 30]
-        assert '_verdict.theme_type_variation = &"BodyLargeRich"' in _src("battle_diorama.gd")
+        figures 24, the banner 30, the plate 19), every one at or above the
+        body floor and nothing computed. Since Pre-Deploy S12 (UXR-3's R4)
+        they are named theme steps, not literals; Text size leaves them
+        alone. The verdict's 17 became `BodyLargeRich` in Slice B."""
+        src = _src("battle_diorama.gd")
+        assert G.call_args(src, "add_theme_font_size_override") == []
+        theme = G.theme_variations(G.read(G.THEME))
+        sizes = {k: theme[k]["sizes"]["font_size"] for k in
+                 ("TableauClash", "TableauOdometer", "TableauBanner", "TableauPlate")}
+        assert sizes == {"TableauClash": 26, "TableauOdometer": 24, "TableauBanner": 30, "TableauPlate": 19}
+        for step in sizes:
+            assert f'&"{step}"' in src, step
+        assert '_verdict.theme_type_variation = &"BodyLargeRich"' in src
 
     def test_the_status_is_a_fate_line_under_the_feet(self):
         body = _body("battle_diorama.gd", "_make_block")

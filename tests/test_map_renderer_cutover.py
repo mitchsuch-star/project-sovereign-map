@@ -346,7 +346,11 @@ def test_renderer_declares_unwired_grey_overlay_constants():
     tooltip (audit 2026-04-19).
     """
     source = _read(BASE_GD)
-    assert "const UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)" in source
+    # Pre-Deploy S12 (UXR-3's R4): the grey is the palette token of its value,
+    # unchanged — the renderer names Utils.MAP_UNWIRED_GREY.
+    assert "const UNWIRED_GREY_COLOR := Utils.MAP_UNWIRED_GREY" in source
+    assert "const MAP_UNWIRED_GREY := Color(0.32, 0.32, 0.34, 1.0)" in _read(
+        BASE_GD.parents[1] / "scripts" / "utils.gd")
     assert "const UNWIRED_GREY_BLEND: float = 0.7" in source
     assert 'const UNWIRED_TOOLTIP_SUFFIX := "(not yet in play)"' in source
     # Warm-sepia tooltip palette — must differ meaningfully from the fogged

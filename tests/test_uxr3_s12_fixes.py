@@ -209,8 +209,11 @@ from tests import _godot_scenes as GS  # noqa: E402
 
 _DIM_TOKEN = re.compile(r'Utils\.COLOR_(?:DIMMED|GREY|DIM)\b|toned_hex\("(?:808080|666670)"\)')
 # The one allowance: the tableau's two engraved Caption labels (the skip hint
-# on the tray and a side's tail line), 808080 at >= 4.1 : 1 on its dark field.
-CAPTION_KEEPS = {"battle_diorama.gd": 2}
+# on the tray and a side's tail line), 808080 at >= 4.1 : 1 on its dark field;
+# and the war HUD's 808080 (part 4 gave its local grey the token of its value),
+# whose four uses are all captions (the T: stamp, the armistice card, the
+# foreign wars' header and rows).
+CAPTION_KEEPS = {"battle_diorama.gd": 2, "war_status_panel.gd": 1}
 
 
 class TestNoBodyLineTakesADimStepUnderTheFloor:
@@ -229,6 +232,14 @@ class TestNoBodyLineTakesADimStepUnderTheFloor:
         for m in re.finditer(r"Color\(Utils\.COLOR_DIMMED\)", code):
             call = code[code.rfind("_mk_label(", 0, m.start()):m.end()]
             assert '&"Caption"' in call, call
+        hud = GS.read(SCRIPTS / "war_status_panel.gd")
+        uses = [ln for ln in GS.code_lines(hud).splitlines() if '"font_color", COLOR_DIMMED)' in ln]
+        assert len(uses) == 4, uses
+        for name in ("_add_war_entry", "_add_armistice_card", "_add_foreign_wars_header",
+                     "_add_foreign_war_row"):
+            body = _func(hud, name)
+            if '"font_color", COLOR_DIMMED)' in body:
+                assert '&"Caption"' in body or '&"CaptionButton"' in body, name
 
     def test_the_floor_step_reads_on_every_panel_the_review_measured(self):
         info = CR._hex("a0a0a8")
@@ -407,3 +418,76 @@ class TestTheInertLookingControls:
         body = _func(_src("scripts/mailbox_panel.gd"), "_build_item_row")
         assert "panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND" in body
         assert 'open_label.text = "Open ▸"' in body
+
+
+# ═══ Part 4 — R4 Consistency, by file (UXR3-7 … 11, 26, 36, 48, 49, 53, 54, 60 … 62, 64 … 66, 72) ═══
+#
+# Decided: a code grey takes the palette token of its value; where none
+# exists, a NEW named token in utils.gd's palette block, with no visual change.
+# A scene grey off the dim ladder moves to the nearest ladder step at or above
+# it. The raw display sizes became named theme steps (the title screen's and
+# the tableau's fixed, untouched by Text size); the two BBCode sizes are gone.
+# The map renderer's 29 greys took Utils.MAP_* tokens, values unchanged.
+
+class TestTheWholeClientCarriesNoOneOffGreyOrSize:
+    def test_the_census_finds_nothing_in_any_client_file(self):
+        """The census R4 runs per surface, run over every client scene and
+        script (the palette's own files excluded, as the rule excludes them).
+        The one survivor is the developer smoke scene's raw size."""
+        cache: dict = {}
+        hits = {}
+        for p in GS.client_scripts() + GS.client_scenes():
+            res = "res://" + p.relative_to(PROJECT).as_posix()
+            if res in CEN.EXCLUDED:
+                continue
+            found = CEN.census_file(res, cache)
+            if found:
+                hits[res] = [(h["kind"], h.get("snippet", "")) for h in found]
+        assert hits == {"res://scenes/europe_map_smoke.gd": [("size", '"font_size", 22')]}, hits
+
+    def test_the_map_tokens_keep_the_renderers_values(self):
+        utils = GS.code_lines(GS.read(SCRIPTS / "utils.gd"))
+        for line in ("const MAP_UNWIRED_GREY := Color(0.32, 0.32, 0.34, 1.0)",
+                     "const MAP_CONNECTION_GREY := Color(0.6, 0.6, 0.6)",
+                     "const MAP_FOG_TEXT := Color(0.5, 0.5, 0.55)",
+                     "const MAP_STALE_TEXT := Color(0.7, 0.7, 0.75)",
+                     "const MAP_NEUTRAL_NATION := Color(0.5, 0.5, 0.5)",
+                     "const MAP_TEXT_GREY := Color(0.7, 0.7, 0.7)",
+                     "const MAP_UNKNOWN_TEXT := Color(0.55, 0.55, 0.6)"):
+            assert line in utils, line
+        rend = GS.code_lines(GS.read(SCENES / "map_renderer_base.gd"))
+        assert "Color(Utils.MAP_FOG_TEXT, 0.5)" in rend and "Color(Utils.MAP_STALE_TEXT, 0.7)" in rend
+
+    def test_the_scene_greys_sit_on_the_ladder(self):
+        for name, node in (("main.tscn", None), ("top_bar.tscn", None), ("pause_menu.tscn", None),
+                           ("notification_bar.tscn", None), ("marshal_petition_dialog.tscn", None)):
+            scene = GS.read(SCENES / name)
+            for off in ("Color(0.7, 0.7, 0.75, 1)", "Color(0.72, 0.72, 0.76, 1)", "Color(0.62, 0.66, 0.74, 1)"):
+                assert f"font_color = {off}" not in scene, (name, off)
+        assert "font_color = Color(0.6275, 0.6275, 0.6588, 1)" in GS.read(SCENES / "tutorial_overlay.tscn")
+
+
+class TestTheDisplaySizesAreNamedSteps:
+    def test_the_title_screen_and_the_tableau_use_steps(self):
+        menu = GS.code_lines(GS.read(SCRIPTS / "main_menu.gd"))
+        for step in ("TitleScreen", "TitleScreenOverline", "TitleScreenLead", "TitleScreenHeader"):
+            assert f'.theme_type_variation = &"{step}"' in menu, step
+        assert '&"TitleScreenButtonProminent" if prominent else &"TitleScreenButton"' in menu
+        diorama = GS.code_lines(GS.read(SCRIPTS / "battle_diorama.gd"))
+        assert '_clash_label.theme_type_variation = &"TableauClash"' in diorama
+        assert '_plate_name.theme_type_variation = &"TableauPlate"' in diorama
+        assert diorama.count('&"TableauOdometer"') == 2 and '&"TableauBanner"' in diorama
+
+    def test_the_proclamations_name_is_a_label_on_a_step(self):
+        src = GS.read(SCRIPTS / "proclamation_popup.gd")
+        head = _func(src, "_build_head")
+        assert "name_label = Label.new()" in head
+        assert 'name_label.theme_type_variation = &"ProclamationName"' in head
+        assert "[font_size=" not in GS.code_lines(src)
+        show = _func(src, "show_proclamation")
+        assert "name_label.text = Utils.humanize_nation_keys_in_text(new_name)" in show
+
+    def test_the_logs_end_heading_keeps_its_bold_and_no_size(self):
+        main = GS.code_lines(GS.read(SCRIPTS / "main.gd"))
+        assert '[center][color=#" + heading_color + "][b]" + title + "[/b][/color][/center]' in main
+        assert "[font_size=" not in main

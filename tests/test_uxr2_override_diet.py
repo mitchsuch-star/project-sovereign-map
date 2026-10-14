@@ -33,16 +33,16 @@ from tests import _godot_scenes as G
 EXEMPT = {
     # map_renderer_base.gd's 7 RETIRED by UXR-X4 (Pre-Deploy S9b): the map's
     # furniture sizes through per-kind Themes and a screen-space scale term.
+    # main_menu.gd's 5 and battle_diorama.gd's 5 RETIRED by the UXR-3 fixes
+    # (Pre-Deploy S12, R4): the title screen's and the tableau's display type
+    # are named theme steps (TitleScreen*, Tableau*), which Text size leaves at
+    # their authored sizes (Utils.TEXT_SIZE_FIXED_STEPS).
     "europe_map_smoke.gd": 1,    # the developer smoke scene — no player sees it
-    "main_menu.gd": 5,           # the title screen's display type on its own runtime FontVariations
-    "battle_diorama.gd": 5,      # the tableau's engraved display: clash 26, odometers 24, banner 30, plate 19
 }
-RAW_RATCHET = 11                 # 72 at S9's start → 18 → 11 (UXR-X4, S9b); it may fall, never rise
+RAW_RATCHET = 1                  # 72 at S9's start → 18 → 11 (UXR-X4, S9b) → 1 (S12); it may fall, never rise
 # Sizes passed as an expression, not a literal — each named, nowhere else.
-NON_LITERAL = {
-    "main_menu.gd": 1,           # the prominent / plain menu button
-}
-BBCODE_SIZE_RATCHET = 2          # main.gd's end heading 24, proclamation_popup.gd's 26
+NON_LITERAL: dict = {}           # the menu button's 26 / 23 is two named steps since S12
+BBCODE_SIZE_RATCHET = 0          # S12: the proclamation's name is a Label on a step; the log's end heading is bold
 # The named ladder, exactly (a step's size is a visible decision).
 LADDER = {
     "Caption": {"font_size": 14},
@@ -59,7 +59,24 @@ LADDER = {
     "DialogTitleLarge": {"font_size": 24},
     "DisplayTitle": {"font_size": 28},
     "DisplayTitleLarge": {"font_size": 30},
+    # S12 (UXR-3 fixes, R4): the raw display sizes, named. The Tableau* and
+    # TitleScreen* steps are fixed-geometry art (Utils.TEXT_SIZE_FIXED_STEPS).
+    "ProclamationName": {"font_size": 26},
+    "TableauBanner": {"font_size": 30},
+    "TableauClash": {"font_size": 26},
+    "TableauOdometer": {"font_size": 24},
+    "TableauPlate": {"font_size": 19},
+    "TitleScreen": {"font_size": 96},
+    "TitleScreenButton": {"font_size": 23},
+    "TitleScreenButtonProminent": {"font_size": 26},
+    "TitleScreenHeader": {"font_size": 26},
+    "TitleScreenLead": {"font_size": 24},
+    "TitleScreenOverline": {"font_size": 19},
 }
+# The steps Text size never scales (they were the raw exemptions; S12).
+FIXED_STEPS = {"TitleScreen", "TitleScreenOverline", "TitleScreenLead", "TitleScreenHeader",
+               "TitleScreenButton", "TitleScreenButtonProminent",
+               "TableauClash", "TableauOdometer", "TableauBanner", "TableauPlate"}
 STYLED = {"HeadingLabel"}        # the one step that also sets a face, a colour, an outline
 # A variation's base type, and the node classes it may be set on.
 ACCEPTS = {
@@ -135,6 +152,17 @@ class TestTheRatchet:
         hits = [(n, m) for n, t in files.items() if n.endswith(".gd")
                 for m in re.findall(r"\[font_size=", G.code_lines(t))]
         assert len(hits) <= BBCODE_SIZE_RATCHET, hits
+
+    def test_text_size_leaves_the_fixed_display_steps_alone(self, theme):
+        """S12: the steps that replaced the raw display sizes keep the raw
+        overrides' one property — Text size does not move them."""
+        src = G.read(G.SCRIPTS_DIR / "utils.gd")
+        m = re.search(r"const TEXT_SIZE_FIXED_STEPS := \[(.*?)\]", src, re.S)
+        assert m, "the fixed set is gone"
+        assert set(re.findall(r'"(\w+)"', m.group(1))) == FIXED_STEPS
+        assert FIXED_STEPS <= set(theme)
+        body = G.func_body(src, "apply_text_size")
+        assert "if String(theme_type) in TEXT_SIZE_FIXED_STEPS:" in body
 
 
 class TestTheLadder:

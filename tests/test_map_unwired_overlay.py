@@ -102,7 +102,10 @@ def _apply_overlay_rgba(
 def test_overlay_constants_match_renderer_source():
     """Pin the renderer constants so the Python mirror stays in sync."""
     source = BASE_GD.read_text(encoding="utf-8")
-    assert "const UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)" in source
+    # Pre-Deploy S12 (UXR-3's R4): the value lives in the palette, unchanged.
+    utils = (BASE_GD.parents[1] / "scripts" / "utils.gd").read_text(encoding="utf-8")
+    assert "const UNWIRED_GREY_COLOR := Utils.MAP_UNWIRED_GREY" in source
+    assert "const MAP_UNWIRED_GREY := Color(0.32, 0.32, 0.34, 1.0)" in utils
     assert "const UNWIRED_GREY_BLEND: float = 0.7" in source
 
 

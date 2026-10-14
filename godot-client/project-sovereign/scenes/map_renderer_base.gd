@@ -86,7 +86,7 @@ const NO_PROVINCE_COLOR := Color8(0, 0, 0, 255)
 # playable. `UNWIRED_GREY_BLEND` is the lerp factor toward `UNWIRED_GREY_COLOR`:
 # 0.0 = underlying visual unchanged, 1.0 = fully flat grey. Kept high enough to
 # clearly read as "not yet in play" without erasing the underlying shape.
-const UNWIRED_GREY_COLOR := Color(0.32, 0.32, 0.34, 1.0)
+const UNWIRED_GREY_COLOR := Utils.MAP_UNWIRED_GREY
 const UNWIRED_GREY_BLEND: float = 0.7
 const UNWIRED_TOOLTIP_SUFFIX := "(not yet in play)"
 # §4.4 tooltip palette: warm sepia so "unwired" is visually unmistakable next to
@@ -1346,7 +1346,7 @@ func _build_connection_nodes():
 				"start": start_pos, "end": end_pos})
 			drawn_connections[key_text] = true
 
-	connection_layer.set_connections(segments, colors.get("connection", Color(0.6, 0.6, 0.6)), 2.0)
+	connection_layer.set_connections(segments, colors.get("connection", Utils.MAP_CONNECTION_GREY), 2.0)
 	_refresh_port_glyphs()
 
 
@@ -1479,13 +1479,13 @@ func _refresh_region_visual(region_name: String):
 	if region_name in _get_capital_regions():
 		border_color = Color(0.85, 0.75, 0.3)
 	elif visibility == "unknown" or visibility == "last_known":
-		border_color = Color(0.25, 0.25, 0.3)
+		border_color = Utils.MAP_FOG_BORDER
 
 	var label_color = Color.WHITE if controller != "Neutral" else Color.BLACK
 	if visibility == "unknown" or visibility == "last_known":
-		label_color = Color(0.5, 0.5, 0.55)
+		label_color = Utils.MAP_FOG_TEXT
 	elif visibility == "stale":
-		label_color = Color(0.7, 0.7, 0.75)
+		label_color = Utils.MAP_STALE_TEXT
 
 	var nodes: Dictionary = region_nodes[region_name]
 	var border_width = 2.0
@@ -1896,7 +1896,7 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		var chip_size: Vector2 = MARSHAL_ICON_SIZE * _furniture_scale
 		var icon_pos = slot_pos + (MARSHAL_ICON_SIZE - chip_size) / 2.0
 		var layer_icon_pos = _world_to_layer_position(icon_pos)
-		var nation_color = colors.get(force_nation, Color(0.5, 0.5, 0.5))
+		var nation_color = colors.get(force_nation, Utils.MAP_NEUTRAL_NATION)
 		var fill_color = nation_color.darkened(0.5 if fog_level == "partial" else 0.7)
 		fill_color.a = 0.7 if fog_level == "partial" else 0.5
 
@@ -1904,7 +1904,7 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon_panel.position = layer_icon_pos
 		icon_panel.size = chip_size
-		icon_panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, Color(0.4, 0.4, 0.45, 0.6), 1.5, 2))
+		icon_panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, Color(Utils.MAP_CHIP_BORDER, 0.6), 1.5, 2))
 		force_layer.add_child(icon_panel)
 
 		var icon_label = Label.new()
@@ -1929,7 +1929,7 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		_style_furniture(name_label, "name")
 		name_label.add_theme_color_override(
 			"font_color",
-			Color(0.7, 0.7, 0.75, 0.7) if fog_level == "partial" else Color(0.5, 0.5, 0.55, 0.5)
+			Color(Utils.MAP_STALE_TEXT, 0.7) if fog_level == "partial" else Color(Utils.MAP_FOG_TEXT, 0.5)
 		)
 		name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
 		name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
@@ -1946,12 +1946,12 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String):
 	var strength = garrison_data.get("strength", 0)
 	var colors = _get_colors()
-	var nation_color = colors.get(controller, Color(0.5, 0.5, 0.5))
+	var nation_color = colors.get(controller, Utils.MAP_NEUTRAL_NATION)
 	var fill_color = nation_color
 	# Slice 7.5 review fold: light nation fills (PapalStates white, Bavaria
 	# pale blue) need dark text/border — white-on-near-white was illegible.
 	var text_color: Color = Utils.contrast_text_color(nation_color)
-	var border_color = Color(0.9, 0.9, 0.9) if text_color == Color.WHITE else Color(0.25, 0.22, 0.18)
+	var border_color = Color(0.9, 0.9, 0.9) if text_color == Color.WHITE else Utils.MAP_CHIP_DARK_BORDER
 	var label_text = "?"
 	if strength >= 1000:
 		label_text = "%sk" % int(strength / 1000)
@@ -1960,12 +1960,12 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 
 	if visibility == "stale":
 		fill_color = Color(nation_color.r * 0.5, nation_color.g * 0.5, nation_color.b * 0.5, 0.6)
-		text_color = Color(0.7, 0.7, 0.7)
-		border_color = Color(0.5, 0.5, 0.5)
+		text_color = Utils.MAP_TEXT_GREY
+		border_color = Utils.MAP_NEUTRAL_NATION
 	elif visibility == "partial":
 		fill_color = Color(nation_color.r * 0.7, nation_color.g * 0.7, nation_color.b * 0.7, 0.8)
 		text_color = Color(0.85, 0.85, 0.85)
-		border_color = Color(0.7, 0.7, 0.7)
+		border_color = Utils.MAP_TEXT_GREY
 
 	# UXR-X4: the chip and its text grow together (the chip's centre keeps
 	# its authored place below the province's anchor).
@@ -2590,7 +2590,7 @@ func _draw_marshal_tooltip():
 	var lines: Array = []
 
 	_push_tooltip_line(lines, str(marshal.get("name", "Unknown")), Color.WHITE, 14)
-	_push_tooltip_line(lines, Utils.display_nation_name(str(marshal.get("nation", "Neutral"))), Color(0.7, 0.7, 0.7))
+	_push_tooltip_line(lines, Utils.display_nation_name(str(marshal.get("nation", "Neutral"))), Utils.MAP_TEXT_GREY)
 	_push_tooltip_spacer(lines, 8.0)
 
 	_push_tooltip_line(lines, "Troops: " + _format_number(marshal.get("strength", 0)), Color.WHITE)
@@ -2646,7 +2646,7 @@ func _draw_marshal_tooltip():
 		_push_tooltip_spacer(lines, 8.0)
 		var stance = str(tactical_state.get("stance", "neutral"))
 		var stance_text = "Stance: NEUTRAL"
-		var stance_color = Color(0.7, 0.7, 0.7)
+		var stance_color = Utils.MAP_TEXT_GREY
 		if stance == "aggressive":
 			stance_text = "Stance: AGGRESSIVE (+15% atk, -10% def)"
 			stance_color = Color(0.9, 0.4, 0.3)
@@ -2815,12 +2815,12 @@ func _draw_fogged_force_tooltip():
 
 	_push_tooltip_line(lines, str(force.get("name", "Unknown")), Color(0.85, 0.85, 0.9), 14)
 	# Display name in the text; the raw key stays in the color lookup.
-	_push_tooltip_line(lines, Utils.display_nation_name(str(force.get("nation", "Unknown"))), _get_colors().get(str(force.get("nation", "Unknown")), Color(0.7, 0.7, 0.7)).lightened(0.2))
+	_push_tooltip_line(lines, Utils.display_nation_name(str(force.get("nation", "Unknown"))), _get_colors().get(str(force.get("nation", "Unknown")), Utils.MAP_TEXT_GREY).lightened(0.2))
 	_push_tooltip_spacer(lines, 8.0)
 	_push_tooltip_line(lines, "Estimated: " + str(force.get("strength_band", "unknown forces")), Color(0.8, 0.75, 0.5))
 	_push_tooltip_line(lines, intel_text, intel_color)
 
-	_draw_tooltip_lines(lines, 220.0, Color(0.12, 0.1, 0.18, 0.95), Color(0.6, 0.6, 0.7, 0.8))
+	_draw_tooltip_lines(lines, 220.0, Color(0.12, 0.1, 0.18, 0.95), Color(Utils.MAP_TOOLTIP_BORDER, 0.8))
 
 
 func _draw_unwired_region_tooltip():
@@ -2846,18 +2846,18 @@ func _draw_region_tooltip():
 	var terrain = str(data.get("terrain", "plains"))
 	var lines: Array = []
 
-	_push_tooltip_line(lines, hovered_region, Color.WHITE if visibility == "full" else Color(0.7, 0.7, 0.75), 14)
+	_push_tooltip_line(lines, hovered_region, Color.WHITE if visibility == "full" else Utils.MAP_STALE_TEXT, 14)
 	# Display name in the text; the raw key stays in the color lookup.
-	_push_tooltip_line(lines, Utils.display_nation_name(str(controller)), _get_colors().get(str(controller), Color(0.7, 0.7, 0.7)))
+	_push_tooltip_line(lines, Utils.display_nation_name(str(controller)), _get_colors().get(str(controller), Utils.MAP_TEXT_GREY))
 	_push_tooltip_spacer(lines, 8.0)
 
 	if visibility == "unknown" or visibility == "last_known":
-		_push_tooltip_line(lines, terrain.replace("_", " ").capitalize(), Color(0.5, 0.5, 0.55))
+		_push_tooltip_line(lines, terrain.replace("_", " ").capitalize(), Utils.MAP_FOG_TEXT)
 		_push_tooltip_line(lines, "No intelligence" if visibility == "unknown" else "Last known (outdated)", Color(0.6, 0.4, 0.4))
-		_draw_tooltip_lines(lines, 240.0, Color(0.08, 0.08, 0.12, 0.95), Color(0.4, 0.4, 0.5))
+		_draw_tooltip_lines(lines, 240.0, Color(0.08, 0.08, 0.12, 0.95), Utils.MAP_TOOLTIP_FOG_BORDER)
 		return
 
-	_push_tooltip_line(lines, "%s | %s" % [region_type.replace("_", " ").capitalize(), terrain.replace("_", " ").capitalize()], Color(0.7, 0.7, 0.7))
+	_push_tooltip_line(lines, "%s | %s" % [region_type.replace("_", " ").capitalize(), terrain.replace("_", " ").capitalize()], Utils.MAP_TEXT_GREY)
 	# SF7-X22: the hedge is for someone else's ground — Normandy, French and
 	# empty of corps, read "Intel: Partial (reports only)" above four exact
 	# figures (WO-V-D2 fixed the region panel; this is its tooltip twin).
@@ -2873,7 +2873,7 @@ func _draw_region_tooltip():
 	var income_value = int(data.get("income_value", 0))
 	var effective_income = int(data.get("effective_income", 0))
 	if effective_income < 0:
-		_push_tooltip_line(lines, "Income: Unknown", Color(0.55, 0.55, 0.6))
+		_push_tooltip_line(lines, "Income: Unknown", Utils.MAP_UNKNOWN_TEXT)
 	else:
 		var income_text = "Income: %s" % effective_income
 		if effective_income != income_value:
@@ -2883,7 +2883,7 @@ func _draw_region_tooltip():
 	var stability = int(data.get("stability", 100))
 	var stability_label = str(data.get("stability_label", "Stable"))
 	if stability < 0:
-		_push_tooltip_line(lines, "Stability: Unknown", Color(0.55, 0.55, 0.6))
+		_push_tooltip_line(lines, "Stability: Unknown", Utils.MAP_UNKNOWN_TEXT)
 	else:
 		var stability_color = Color(0.5, 0.85, 0.5)
 		if stability <= 25:
@@ -2991,7 +2991,7 @@ func _draw_region_tooltip():
 		if has_artillery:
 			unit_types.append("Art")
 		var unit_count = unit_types.size()
-		var combined_arms_color = Color(0.7, 0.7, 0.7)
+		var combined_arms_color = Utils.MAP_TEXT_GREY
 		if unit_count >= 2:
 			combined_arms_color = Color(0.5, 0.85, 0.5)
 		_push_tooltip_line(
@@ -3032,7 +3032,7 @@ func _draw_region_tooltip():
 	var border_color = Color.WHITE
 	if visibility == "stale":
 		panel_color = Color(0.1, 0.09, 0.14, 0.95)
-		border_color = Color(0.7, 0.7, 0.75)
+		border_color = Utils.MAP_STALE_TEXT
 	elif visibility == "partial":
 		border_color = Color(0.85, 0.85, 0.9)
 
@@ -3292,8 +3292,8 @@ func _draw_fleet_tooltip():
 		+ str(int(f.get("readiness", 0))), Color.WHITE)
 	var posture := str(f.get("posture", "guard"))
 	_push_tooltip_line(lines, "Posture: " + ("blockade — every enemy port watched"
-		if posture == "blockade" else "guard — home waters covered"), Color(0.7, 0.7, 0.7))
-	_push_tooltip_line(lines, "Station: " + str(f.get("station", "")), Color(0.7, 0.7, 0.7))
+		if posture == "blockade" else "guard — home waters covered"), Utils.MAP_TEXT_GREY)
+	_push_tooltip_line(lines, "Station: " + str(f.get("station", "")), Utils.MAP_TEXT_GREY)
 	var blockaded_by := str(f.get("blockaded_by", ""))
 	if blockaded_by != "":
 		_push_tooltip_line(lines, "BLOCKADED by " + Utils.display_nation_name(blockaded_by),

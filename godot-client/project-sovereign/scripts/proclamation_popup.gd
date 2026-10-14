@@ -20,6 +20,11 @@ signal dismissed
 @onready var new_flag = $PanelContainer/VBoxContainer/FlagRow/NewFlag
 @onready var content_label = $PanelContainer/VBoxContainer/ContentScroll/ContentLabel
 @onready var acknowledge_btn = $PanelContainer/VBoxContainer/ButtonContainer/AcknowledgeButton
+# UXR3-62 (Pre-Deploy S12): the name was a BBCode [font_size=26] inside the
+# body; it is a Label on the theme step ProclamationName, under a rich head
+# (the heading and the struck old name), above the scrolling body.
+var head_label: RichTextLabel
+var name_label: Label
 
 
 func _ready():
@@ -29,6 +34,32 @@ func _ready():
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
 	# before its parent can scroll. PASS still delivers _gui_input.
 	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
+
+
+func _build_head() -> void:
+	if name_label != null:
+		return
+	var vbox: VBoxContainer = $PanelContainer/VBoxContainer
+	var scroll: Control = $PanelContainer/VBoxContainer/ContentScroll
+	head_label = RichTextLabel.new()
+	head_label.name = "HeadLabel"
+	head_label.bbcode_enabled = true
+	head_label.fit_content = true
+	head_label.scroll_active = false
+	head_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(head_label)
+	vbox.move_child(head_label, scroll.get_index())
+	name_label = Label.new()
+	name_label.name = "NameLabel"
+	name_label.theme_type_variation = &"ProclamationName"
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.add_theme_color_override("font_color", Color(Utils.COLOR_GOLD))
+	var bold := head_label.get_theme_font("bold_font")
+	if bold != null:
+		name_label.add_theme_font_override("font", bold)
+	vbox.add_child(name_label)
+	vbox.move_child(name_label, scroll.get_index())
 
 
 func show_proclamation(data: Dictionary):
@@ -50,16 +81,18 @@ func show_proclamation(data: Dictionary):
 		new_flag.texture = null
 		new_flag.visible = false
 
-	var bbcode := ""
-	bbcode += "[center]%s[/center]\n" % Utils.bbcode_color(
+	_build_head()
+	var head := "[center]%s[/center]" % Utils.bbcode_color(
 		"[b]A NATION IS PROCLAIMED[/b]", Utils.COLOR_GOLD)
 
 	# The old name, struck through — "a country ended, a country began".
 	if old_name != "" and old_name != new_name:
-		bbcode += "[center]%s[/center]\n" % Utils.bbcode_color(
+		head += "\n[center]%s[/center]" % Utils.bbcode_color(
 			"[s]%s[/s]" % old_name, Utils.COLOR_INFO)
-	bbcode += "[center][font_size=26]%s[/font_size][/center]\n\n" % (
-		Utils.bbcode_color("[b]%s[/b]" % new_name, Utils.COLOR_GOLD))
+	head_label.text = Utils.humanize_nation_keys_in_text(head)
+	name_label.text = Utils.humanize_nation_keys_in_text(new_name)
+
+	var bbcode := ""
 
 	# The engraved proclamation line (authored per formation).
 	var proclamation := str(data.get("proclamation", ""))

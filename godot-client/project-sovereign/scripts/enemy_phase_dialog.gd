@@ -611,7 +611,7 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 func _format_berthier_report(report: Dictionary) -> String:
 	"""Format Berthier's After-Action Report for enemy phase dialog."""
 	var result = ""
-	var COLOR_RPT = "AAAAAA"
+	var COLOR_RPT = Utils.toned_hex(Utils.COLOR_REPORT)
 
 	result += "[color=#" + Utils.COLOR_BERTHIER + "]    --- Berthier's Report ---[/color]\n"
 
@@ -806,7 +806,7 @@ func _format_bombardment(event: Dictionary) -> String:
 func _format_bombardment_report(bombard_result: Dictionary) -> String:
 	"""Format bombardment result details for enemy phase dialog."""
 	var result = ""
-	var COLOR_RPT = "AAAAAA"
+	var COLOR_RPT = Utils.toned_hex(Utils.COLOR_REPORT)
 
 	result += "[color=#" + Utils.COLOR_BERTHIER + "]    --- Bombardment Report ---[/color]\n"
 

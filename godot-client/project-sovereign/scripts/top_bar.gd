@@ -97,7 +97,7 @@ func _ready():
 	_mailbox_idle_style.border_width_top = 1
 	_mailbox_idle_style.border_width_right = 1
 	_mailbox_idle_style.border_width_bottom = 1
-	_mailbox_idle_style.border_color = Color(0.32, 0.35, 0.42, 0.9)
+	_mailbox_idle_style.border_color = Utils.UI_ENVOY_IDLE_BORDER
 	_mailbox_idle_style.corner_radius_top_left = 4
 	_mailbox_idle_style.corner_radius_top_right = 4
 	_mailbox_idle_style.corner_radius_bottom_right = 4
@@ -108,7 +108,7 @@ func _ready():
 	_mailbox_idle_style.content_margin_bottom = 4.0
 
 	_mailbox_idle_hover_style = _mailbox_idle_style.duplicate()
-	_mailbox_idle_hover_style.bg_color = Color(0.16, 0.18, 0.23, 0.95)
+	_mailbox_idle_hover_style.bg_color = Utils.UI_ENVOY_IDLE_HOVER
 
 	_mailbox_alert_style = _mailbox_idle_style.duplicate()
 	_mailbox_alert_style.bg_color = Color(0.23, 0.18, 0.08, 0.95)

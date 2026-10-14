@@ -77,7 +77,7 @@ func _ready():
 	_version_line = Label.new()
 	_version_line.name = "VersionLine"
 	_version_line.theme_type_variation = &"Caption"
-	_version_line.add_theme_color_override("font_color", Color(0.65, 0.63, 0.58, 0.8))
+	_version_line.add_theme_color_override("font_color", Utils.UI_VERSION_LINE)
 	_version_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_version_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	$PanelContainer/VBoxContainer.add_child(_version_line)

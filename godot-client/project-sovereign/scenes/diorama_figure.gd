@@ -23,8 +23,8 @@ const GROUND_LAYERS := ["shadow", "base"]  # what stays
 
 # The fall: ~78 degrees, darkened toward bare timber, a long cast shadow.
 const TOPPLE_DEG := 78.0
-const TOPPLE_TINT := Color(0.52, 0.47, 0.44, 1.0)
-const GREY_TINT := Color(0.62, 0.62, 0.66, 0.9)   # the no-show shelf wash
+const TOPPLE_TINT := Utils.UI_TOPPLE_TINT
+const GREY_TINT := Utils.UI_ABSENT_WASH   # the no-show shelf wash
 const LONG_SHADOW_STRETCH := 2.3
 
 # NV-8b (Aug 2, 2026 visual pass): a SHIP does not topple like a soldier.
@@ -35,7 +35,7 @@ const LONG_SHADOW_STRETCH := 2.3
 # shadow stay put, same as the land verb — she founders AT her station.
 const FOUNDER_DEG := 26.0
 const FOUNDER_SETTLE_PX := 9.0
-const FOUNDER_TINT := Color(0.42, 0.40, 0.42, 1.0)
+const FOUNDER_TINT := Utils.UI_FOUNDER_TINT
 
 var arm: String = "infantry"
 var facing: String = "r"

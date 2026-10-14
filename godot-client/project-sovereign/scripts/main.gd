@@ -5247,7 +5247,7 @@ func _show_game_over_screen(game_state: Dictionary, ending = null):
 
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[center][color=#" + heading_color + "][b][font_size=24]" + title + "[/font_size][/b][/color][/center]")
+	add_output("[center][color=#" + heading_color + "][b]" + title + "[/b][/color][/center]")
 	if ending is Dictionary:
 		var date_bits: Array = []
 		var cal := str(ending.get("calendar_label", "")).strip_edges()
@@ -5357,7 +5357,7 @@ func _update_status(action_summary: Dictionary):
 
 	# Admin AP display
 	if admin_actions_remaining == 0:
-		admin_value.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))  # Grey when spent
+		admin_value.add_theme_color_override("font_color", Color(Utils.COLOR_INFO))  # spent: the floor step (S12)
 	else:
 		admin_value.add_theme_color_override("font_color", Color(0.6, 0.7, 0.9))  # Blue when available
 	admin_value.text = str(int(admin_actions_remaining)) + "/" + str(int(max_admin_actions))
