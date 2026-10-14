@@ -109,6 +109,7 @@ ENGINE_GROUP_MODULES = frozenset({
     "test_cn3_the_chip_tells_the_truth",
     "test_cn4_the_chip_honesty_census",
     "test_cx7_predictor_driven",
+    "test_dd_b_the_client_hands",          # + a sandboxed backend from 8006
     "test_economy_gate_2026_10_05",
     "test_ep_f1_the_first_ten_minutes",
     "test_ep_f3_the_client_layout_pass",
