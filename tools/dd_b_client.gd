@@ -652,6 +652,23 @@ func _state() -> Dictionary:
 			surfaces[sname] = {"name": sname, "layer": b["layer"], "lines": [], "buttons": []}
 			order.append(sname)
 		surfaces[sname]["buttons"].append(b)
+	# Where each scrolling pane stands (a surface's full text does not change
+	# when the player scrolls it; its scroll does).
+	for n in _all_nodes(root):
+		if not (n is Control) or not _shown(n) or _inside_subviewport(n):
+			continue
+		var bar: VScrollBar = null
+		if n is ScrollContainer:
+			bar = (n as ScrollContainer).get_v_scroll_bar()
+		elif n is RichTextLabel and (n as RichTextLabel).scroll_active and n != log_node:
+			bar = (n as RichTextLabel).get_v_scroll_bar()
+		if bar == null or bar.max_value - bar.page <= 1.0:
+			continue
+		var sc := _surface_of(n as Control)
+		if surfaces.has(sc["name"]):
+			if not surfaces[sc["name"]].has("scroll"):
+				surfaces[sc["name"]]["scroll"] = []
+			surfaces[sc["name"]]["scroll"].append([roundf(bar.value), roundf(bar.max_value - bar.page)])
 	var floor_layer := _live_floor()
 	var listed: Array = []
 	for name in order:

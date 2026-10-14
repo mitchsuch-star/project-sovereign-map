@@ -318,8 +318,8 @@ def _new_script_errors(run: pathlib.Path) -> list:
 # ── the summary ─────────────────────────────────────────────────────────────
 
 def _sig(sf: dict) -> str:
-    return json.dumps([sf.get("lines", []), [(b.get("text"), b.get("disabled")) for b in sf.get("buttons", [])]],
-                      ensure_ascii=False)
+    return json.dumps([sf.get("lines", []), [(b.get("text"), b.get("disabled")) for b in sf.get("buttons", [])],
+                       sf.get("scroll", [])], ensure_ascii=False)
 
 
 def _centre(rect) -> str:
@@ -348,7 +348,7 @@ def _button_label(b: dict) -> str:
     return out
 
 
-def summary(run: pathlib.Path, n: int, width: int = 9000) -> str:
+def summary(run: pathlib.Path, n: int, width: int = 9000, live: bool = True) -> str:
     s = _read(run / "state" / f"{n:04d}.json")
     prev = None
     if n > 0 and (run / "state" / f"{n - 1:04d}.json").is_file():
@@ -367,8 +367,9 @@ def summary(run: pathlib.Path, n: int, width: int = 9000) -> str:
             f"#{i + 1} {_button_label(c)} on {c.get('surface')} @{_centre(c['rect'])}"
             for i, c in enumerate(s["candidates"][:20])))
     f = s.get("factor", {})
-    out.append(f"view: {run / s.get('view', '')}   (a view-JPEG pixel x {f.get('logical_per_view_px', '?')} "
-               f"= logical px; screen {f.get('logical_size')} logical)")
+    k = float(f.get("logical_per_view_px") or 0)
+    out.append(f"view: {run / s.get('view', '')}   (a view-JPEG pixel x {k} = logical px; if your viewer "
+               f"shows it 2000 px wide, x {round(k * 2560 / 2000, 4)}; screen {f.get('logical_size')} logical)")
     cl = s.get("command_line") or {}
     line = f"turn: {s.get('turn', '-')}"
     if cl:
@@ -386,6 +387,8 @@ def summary(run: pathlib.Path, n: int, width: int = 9000) -> str:
     for sf in s.get("surfaces", []):
         key = (sf["name"], sf["layer"])
         tag = f"── {sf['name']} (layer {sf['layer']})" + ("" if sf.get("above_floor", True) else " [under a modal]")
+        if sf.get("scroll"):
+            tag += " [scrolled " + ", ".join(f"{int(v)} of {int(m)} px" for v, m in sf["scroll"]) + "]"
         if prev is not None and prev_sigs.get(key) == _sig(sf):
             out.append(tag + ": unchanged")
             continue
@@ -427,7 +430,7 @@ def summary(run: pathlib.Path, n: int, width: int = 9000) -> str:
                 out.append("map names: " + "  ".join(f"{r['text']}{_centre(r['rect'])}" for r in places[:90]))
             if pieces:
                 out.append("map pieces: " + "  ".join(f"{r['text']}{_centre(r['rect'])}" for r in pieces[:60]))
-    errs = _new_script_errors(run)
+    errs = _new_script_errors(run) if live else []
     if errs:
         out.append(f"engine: {len(errs)} new SCRIPT ERROR line(s): " + " || ".join(errs[:3]))
     text = "\n".join(out)
@@ -540,6 +543,75 @@ def cmd_judge(args) -> int:
     return 0
 
 
+def merged_rows(run: pathlib.Path) -> list:
+    """The player's rows, with the judge's P1s merged in: a judged line the
+    player also filed raises that row to P1 and names the class; any other
+    judged P1 is a row by itself."""
+    rows = _read(run / "rows.json") if (run / "rows.json").is_file() else []
+    rows = [dict(r) for r in rows]
+    record = judge_run(run)
+    for j in record["p1"]:
+        mine = [r for r in rows if r.get("action") == j["n"]]
+        if mine:
+            for r in mine:
+                r["judge"] = j["class"]
+                r["severity_player"] = r.get("severity")
+                r["severity"] = "P1"
+            continue
+        st = _read(run / "state" / f"{j['n']:04d}.json")
+        rows.append({"id": len(rows) + 1, "source": "judge", "turn": j["turn"],
+                     "turn_number": _turn_number(j["turn"]), "action": j["n"],
+                     "action_text": "type " + j["line"], "frame": st.get("view", ""),
+                     "did": f"typed {j['line']!r}, meaning {j['meant']!r}",
+                     "expected": f"the order read as {j['meant']!r}",
+                     "saw": j["reply"], "severity": "P1", "judge": j["class"]})
+    return rows
+
+
+def cmd_export(args) -> int:
+    """The run's records into the repository (`docs/audits/dd_b/<road>/`):
+    actions.log, rows.json (the judge's P1s merged), run.json, judge.json,
+    meta.json, the player's notes, every action's summary, and each cited
+    frame as a JPEG crop (1600 wide) — never the full PNGs."""
+    import shutil
+    from PIL import Image
+    run = pathlib.Path(args.out).resolve()
+    dest = (REPO / args.to).resolve() if not pathlib.Path(args.to).is_absolute() else pathlib.Path(args.to)
+    (dest / "frames").mkdir(parents=True, exist_ok=True)
+    for name in ("actions.log", "run.json", "meta.json", "player_notes.md"):
+        if (run / name).is_file():
+            text = (run / name).read_text(encoding="utf-8").replace("\r\n", "\n")
+            if name == "meta.json":
+                meta = json.loads(text)
+                meta.pop("godot", None)
+                text = json.dumps(meta, indent=1, ensure_ascii=False)
+            (dest / name).write_text(text, encoding="utf-8", newline="\n")
+    judged = judge_run(run)
+    _write(dest / "judge.json", judged)
+    rows = merged_rows(run)
+    _write(dest / "rows.json", rows)
+    states = sorted(int(p.stem) for p in (run / "state").glob("[0-9][0-9][0-9][0-9].json"))
+    with (dest / "summaries.md").open("w", encoding="utf-8", newline="\n") as f:
+        for n in states:
+            text = summary(run, n, live=False).replace(str(run), "<run>")
+            f.write("```\n" + text + "\n```\n\n")
+    cited = sorted({int(r["action"]) for r in rows if r.get("action") is not None})
+    for n in cited:
+        src = run / "frames" / f"{n:04d}_view.jpg"
+        if not src.is_file():
+            continue
+        with Image.open(src) as im:
+            w, h = im.size
+            im.convert("RGB").resize((1600, int(h * 1600 / w)), Image.LANCZOS).save(
+                dest / "frames" / f"{n:04d}.jpg", quality=72)
+    for crop in sorted((run / "crops").glob("*.jpg")) if (run / "crops").is_dir() else []:
+        n = int(crop.name[:4]) if crop.name[:4].isdigit() else -1
+        if n in cited:
+            shutil.copyfile(crop, dest / "frames" / ("crop_" + crop.name))
+    print(f"exported {len(states)} actions, {len(rows)} rows, {len(cited)} frames -> {dest}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -574,6 +646,10 @@ def main(argv=None) -> int:
     p = sub.add_parser("judge")
     p.add_argument("--out", required=True)
     p.set_defaults(fn=cmd_judge)
+    p = sub.add_parser("export")
+    p.add_argument("--out", required=True)
+    p.add_argument("--to", required=True)
+    p.set_defaults(fn=cmd_export)
     p = sub.add_parser("summary")
     p.add_argument("--out", required=True)
     p.add_argument("--n", type=int, required=True)

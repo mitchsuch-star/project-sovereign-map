@@ -137,6 +137,23 @@ class TestTheJudge:
         assert classes == ["as_meant", "misread", "answered", "board_refusal", "unjudged_other"]
         assert [r["n"] for r in rec["p1"]] == [2]
 
+    def test_an_assault_on_the_works_is_the_attack_meant(self, tmp_path):
+        """The conquest road's twelve false misreads (S13): a typed attack on a
+        province's works answers in the assault's own words."""
+        run = self._run(tmp_path, [
+            ("Ney, attack Vienna", "attack Ney",
+             {"success": True, "message": "ASSAULT — Ney storms the works at Vienna alone: 16,494 men."}),
+            ("Soult, attack Silesia", "attack Soult",
+             {"success": True, "message": "Soult assaults the Silesia garrison! Garrison holds."}),
+            ("Lannes, take Posen", "attack Lannes",
+             {"success": True, "message": "The detachment of 375 at Posen lays down its arms."}),
+            ("Massena, retake Vienna", "attack Massena",
+             {"success": True, "message": "Massena marches from Dresden into Vienna unopposed!"}),
+        ])
+        rec = P.judge_run(run)
+        assert [r["class"] for r in rec["rows"]] == ["as_meant"] * 4
+        assert rec["p1"] == []
+
 
 # ── the driven test: a player's hands on the real client ───────────────────
 

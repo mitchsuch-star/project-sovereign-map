@@ -1308,7 +1308,17 @@ def vassals_c5_client_capital_contested(arms, ctx):
 #
 # ACTION_WORDS: the words a reply uses when it did the intended family.
 ACTION_WORDS = {
-    "attack": r"MUSTER|attack|pursu|⚔|marches on|falls upon|engag",
+    # DD-B (Pre-Deploy S13, October 14, 2026): the conquest road's typed
+    # attacks on a province's works answered in a shape this judge did not
+    # know — "ASSAULT — Ney storms the works at Vienna", "assaults the Vienna
+    # garrison", the place "Captured:", its last men laying down their arms,
+    # "falls to France", a march in "unopposed" — 12 lines read as misreads
+    # that had done exactly the attack meant. Checked first: the extension
+    # moves 0 of the 4,350 orders in the committed census records
+    # (`docs/audits/unrehearsed/`) and no command line of the score-run
+    # archives' HOLD arms.
+    "attack": r"MUSTER|attack|pursu|⚔|marches on|falls upon|engag|"
+              r"ASSAULT|assaults the|storms the works|Captured:|lays down its arms|falls to France|unopposed",
     "move": r"moves? (to|from)|begins march|march|Route:|road to|bars the way|reaches the approach",
     "hold": r"hold|defend|DEFENSIVE|stands? fast",
     "defend": r"hold|defend|DEFENSIVE|stands? fast",
