@@ -13,6 +13,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 7. **Port 8005 default; `SOVEREIGN_PORT` env overrides BOTH sides at once** (Aug 15, 2026) — `backend/main.py` reads it, every `.gd` derives its origin from `Utils.backend_url()`. Never hardcode the origin in a `.gd` again; run a test pair beside the player's live 8005 session via `SOVEREIGN_PORT=8006`.
 8. **Scale-ready code: NO per-region scans in hot paths** — Map is scaling to full 1805 Europe. Never iterate `world.regions.values()` in loops called multiple times per turn. Use cached helpers (e.g. `get_active_nations()` is per-turn cached, `get_nation_regions()` for region lookups). If adding a new helper that scans regions, cache the result per-turn and invalidate via `invalidate_active_nations_cache()` pattern.
 9. **No open-ended deferrals** — any hidden, cut, deferred, later, v2, or polish player-facing work must name a concrete owner row/spec, landing slice, completion definition, STATUS tracking line, and behavior test. If the work is not going to land, remove the player-facing promise explicitly. Do not leave "future work" labels, disabled placeholders, or vague backlog notes in active specs.
+10. **Sibling sweep** (Oct 14, 2026) — a fix ends with a search for its class (other courts, dialogues, roads, the AI's side); each sibling found is filed (tagged) and fixed in that slice or heads the next part. The release build waits for 0 open defect rows.
 
 ## Workflow: work directly on master
 
@@ -34,11 +35,11 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 14, 2026).** The three most recent landed rows:
-- **S13 (October 14, 2026) — DD-B the fresh-eyes campaign — LANDED; done-when NOT met.** 3 roads × 20 turns in the client: 69 causes, 11.5 per 10 turns, 3 P1 (`docs/audits/DD_B_FRESH_EYES_2026_10_14.md`). 62 rows → S13b. **NEXT = S13b part 1.**
-- **S12b (October 14, 2026) — UXR-D4 the Side Desk + UXR-X28 — LANDED.** Six screens pin non-modal beside a live map; map furniture 71 → 0 overlaps; driven proof passes (`SYSTEMS_REFERENCE.md` §114). **NEXT = S13 DD-B.**
-- **S12 part 2 (October 14, 2026) — UXR-3 fixes closed — LANDED; S12 STRUCK.** Grip, R6 proofs, boards, F1–F10. Re-read 977 → 1,149 ✓, under 6 → 0, 74/78 rows; 11 R2 marks to UXR-4 (`docs/audits/UXR3_REREAD2_2026_10_14.md`). **NEXT = S12b.**
+- **S13 (October 14, 2026) — DD-B the fresh-eyes campaign — LANDED; done-when NOT met.** 3 roads × 20 turns in the client: 69 causes, 11.5 per 10 turns, 3 P1; 62 rows → S13b; 9 design rows ruled (`docs/audits/DD_B_RULINGS_2026_10_14.md`). **NEXT = S13b part 1.**
+- **S12b (October 14, 2026) — UXR-D4 the Side Desk + UXR-X28 — LANDED.** Six screens pin beside a live map; map furniture 71 → 0.
+- **S12 part 2 (October 14, 2026) — UXR-3 fixes closed — LANDED; S12 STRUCK.** Re-read 977 → 1,149 ✓; 11 R2 marks to UXR-4.
 
-**Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440, S15, with S12's 11 R2 marks) and DD-B's 9 design rows (`DESIGN_REFINEMENT.md` §DD-B), at S15.
+**Open with the user:** UXR-4 alone (the eyes-on sign-off at 5120×1440, S15, with S12's 11 R2 marks).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

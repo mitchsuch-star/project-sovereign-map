@@ -261,3 +261,10 @@ deliberately does not hold. Neither class is a P1.
   If the user rules BUILD, a row lands at S15's head, before the release
   build. **DDB-D2 is the weightiest:** seen on all three roads, the first
   confusion every player named.
+
+**Ruled the same day** (after this write-up, under the user's delegation "make
+design calls please do research …"): all nine are decided in
+`docs/audits/DD_B_RULINGS_2026_10_14.md`, their builds homed to S13b (now five
+parts), SFR-B3 moved to S14's head, and the plan's guarantee (every open row
+has a session; the sibling sweep; S13c if the re-measure misses; the release
+build waits for 0 open defect rows) written into `PRE_DEPLOY_PLAN.md` §2.
