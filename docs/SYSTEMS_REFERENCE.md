@@ -10484,3 +10484,54 @@ The mailbox closes no screen (its panel rises above). A scene change leaves the 
 - **The judge's shapes.** A reply shape the judge does not know reads as a misread: the assault on the works ("ASSAULT — Ney storms the works", "Captured:") and a support halted at the approach were added to `ACTION_WORDS`, each only after checking that no class of the 4,350 committed census orders and no HOLD command line moves.
 - **The state caps a text row at 4,000 characters** and a new line at 1,200: the full help reads only in the client's own window.
 - **One engine.** Never start a run while the hook runs (the hook's engine group drives Godot), and never commit while a run plays.
+
+## 116. DD-B FIXES, PART 1 — THE OBJECTION'S ROAD, THE CALL TO ARMS, THE TRUCE, THE TABLE (Pre-Deploy S13b part 1, October 14, 2026)
+
+*`BUG_FIXES.md` §DD-B: DDB-1 … DDB-12, DDB-X5 and the siblings DDB-X7, X8, X10 (X9 and X11 head part 2). Pins `tests/test_ddb_s13b_the_p1s.py`, `tests/test_ddb_s13b_the_table.py`, `tests/test_ddb_s13b_the_rulings.py`. The series: `tools/_ddb_s13b_series_arms.py` patches one function seam per behaviour change in the child (the code-health ratchet forbids a new lever) — eight arms, every one byte-identical to `BASELINE_SERIES` (`tools/_ddb_s13b_series_arms_final.json`).*
+
+### 116.1 The objection's road (DDB-1)
+
+- **It arrives with the proposal.** `_merge_pre_proposal_objection` (`diplomatic_dialogue.py`) raises the pre-proposal objection (`diplomatic_defiance.objection_fires`: MODERATE or worse) on the proposal's FIRST response, before anything is sent: the dialogue mints its `dialogue_id`, and the TALLEYRAND OBJECTS popup carries the same id, so the response drain delivers it beside the preview.
+- **Its answers.** *Send these terms anyway* (`send_override`) sends as drafted. *Use Talleyrand's suggestion* (`apply_suggestion`) APPLIES `draft_terms_talleyrand_supports`: the demanded gold halved (floor 50) until the objection stops firing, else no tribute at all, its line saying which (`talleyrand_draft`: `as_drafted` / `stepped_down` / `no_tribute`); it rebuilds the proposal under the same id with `objection_resolved`, and sends nothing — Send is the player's next click. *Modify* returns to the draft ("nothing has been sent"); *Cancel* (`reconsider`) drops it at no cost. Harsher, More generous and Adjust survive the rebuild. An answer bearing a stale `dialogue_id` changes nothing.
+- **The band word is the draft's own.** The Cabinet's likelihood on a proposal scores `generate_suggested_terms(…, deterministic=True)` — the draft the click opens.
+
+### 116.2 The call to arms (DDB-2, DDB-D8)
+
+- **France is asked.** `backend/game_logic/call_to_arms.py`. In the OFFENSIVE cascade, when `asks_the_callee(world, callee)` (the callee is the player nation, with no entry decision of its own already struck) and the offensive bar does not bar it, France is not joined: `post_call` sends a `call_to_arms` letter on the incoming-proposal transport ("Prussia calls on her ally to join her war on Hanover — join, or refuse at a price …"), answered *Join the war* / *Refuse the call*; a Counter is refused ("A call to arms is joined or refused, Sire — not bargained."). The war-entry ledger records `call_posted`.
+- **Join** (`join_call` → `diplomacy._enter_offensive_war`): France is attached to the ally's war instance with entry path `call_accepted` and reason `offensive_cascade_accepted` (`player_drew_the_sword` reads it as France's own choice); the −20 with the target, `congress.note_joined`, the war-entry bargains.
+- **Refuse** (`refuse_call`) emits `emit_call_to_arms_refused_offensive`. **Unanswered:** the letter stands until its `answer_by_turn` (`GUARANTEE_GRACE_TURNS`) — `dialogue_manager.lapse_pending_offers` keeps it (`keeps_open`) and at its lapse `refuse_lapsed_letter` refuses it at the same price, said on the letter. A moot call (the ally's war over) or a barred one says so at the answer (`can_sign`'s `_call_to_arms_verdict`).
+- **The exit.** For a pair France entered at an accepted call (`entered_by_call`), the separate-peace paradox is a WARNING, not a HARD_STOP, and the WAR-state Cabinet offers *Propose Separate Peace*, priced by the existing separate-peace penalty.
+- **Legibility.** A full-alliance proposal (France's or a court's) lists "Binds France to <ally>'s wars, offensive and defensive" and one line per live design of the ally (`alliance_binding_lines`).
+- **Unchanged:** an AI callee (`_resolve_offensive_call_path` still decides), the defensive call, the League's suppression.
+
+### 116.3 The truce rule for contingents (DDB-3, DDB-D9; DDB-X7)
+
+- **A truce pauses the shared war.** `contingent.truce_courts(world, lord, vassal)`: the courts the lord stands in ARMISTICE with while the satellite stands in WAR or ARMISTICE with them too. For a SERVING contingent that is still the war it shares — the per-turn pass keeps it at its post. The raise stays WAR-only.
+- **The Road Home leaves it be.** `holds_its_post`: while its lord's truce stands the corridor neither issues it a march nor judges it stranded. Every lord alike (Golden Rule 5).
+- **A peace releases it, and says so.** `released_by_peace` / `released_contingent_lines`: the PEACE preview's fallout (`contingent_released`) and a court's peace offer name each contingent the peace releases and the post it leaves.
+- **Its own road (DDB-X7).** `takes_its_own_road`: at the peace's corridor a client's contingent takes its court's road (`release_home`, the pass's own `marching_home` release), never the treaty's road to the lord's home zone; the grant message reads "marching home under Holland's colours", never "not moved".
+
+### 116.4 Counter's dry run (DDB-4)
+
+- *Let Talleyrand haggle (1 DP)* — "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands". `generate_counter_offer(terms, world, dry_run=True)` runs first (checking the court's own DP, charging nothing): none → "Talleyrand finds no counter <court> could take — the offer stands.", `decision_reason: offer_stands`, nothing spent, the letter re-mounted. A real run that finds none refunds the DP.
+- **The war score is re-read at every show.** `treaty.refresh_letter_verdict` re-attaches `mailbox_payloads.attach_peace_preview` to a peace letter, and `main.py`'s passthrough carries the refreshed preview.
+
+### 116.5 The table (DDB-5 … DDB-11, DDB-X5, DDB-X8, DDB-X10)
+
+- **What the treaty titles (DDB-5).** `settlement_staging.settlement_status_quo_review` lists, per cross-side pair, the ratifier's own `status_quo_forecast_lines` (a preview, no mutation) — the player's homeland lines first — as the review's `status_quo_review` ("What the treaty titles"). The white peace says "no further land changes hands — each side keeps what it holds, now by treaty"; a consented court's row shows no /50.
+- **France's gold is a concession (DDB-6).** `_has_non_trivial_terms(terms, proposer_side_participants)` skips burden the proposer's side pays: an Ease never reads as "a victory the field has not delivered".
+- **The counsel first (DDB-7).** `diplomacy.counsel_first`: the recommended action and a running mission's Cancel head the court's list (`counsel_first: true`); the wizard keeps them on top and cues a taller list with "▼ more below" (Caption, `COLOR_INFO`).
+- **The paradox before the click (DDB-8, DDB-9).** The per-court separate peace refuses with `commitment_paradox` ("Bavaria is still at war with Austria — a separate peace would break her war."), disabled via `Utils.set_available`; the block text quotes the armistice's own likelihood (`armistice_likelihood`). The generic proposal menu stamps its sends from `can_sign(at_send=True)` (`_stamp_menu_sends`); the proposal popup renders `transient_error_display`.
+- **The Cabinet's controls (DDB-10, DDB-X8).** The door passes a priced bid ("bid for <court>, <N> gold", `_is_priced_bid`); a line it refuses names the control the player wanted ("In the Cabinet: F1 → <court> → <row>.", `_cabinet_control_for`). The rail's Recall sends its structured order. The help's COMPACTS, the Congress table, the league counsel, the question desk and `league_cheapest_keep_out` name "F1 → <court> → <row>", never a typed line; the bid chips bid 100g and say a larger bid is typed.
+- **The chip's estimate (DDB-11).** `settlement_staging.bilateral_estimate` scores the court's share as the bilateral hand-off will (`_pair_substitute_seed_terms`, now in staging); the chip reads "Separate peace with <court> — alone: N (band)".
+- **One credit (DDB-X5, DW-2).** `diplomacy.bilateral_war_score_weight()` returns `settlement_scoring.BASE_SIDE_PRESSURE_SCALE` (0.65, was 0.3): on one package the two scorers now read within a few points (Britain at war score 50: the table 56 accept, the bilateral 54 ACCEPT).
+- **A truce extracts no tribute (DDB-X10).** The armistice hand-off clears its sends' demands whatever the seed, re-reads its summary and voices the drop.
+
+### 116.6 The status quo's homeland clause (DDB-12)
+
+- `game_end.homeland_returns(world, holder_leader, ceder, kept)`: a province's home nation is its `starting_controller` (`home_nation_of`); one whose home nation is a co-belligerent of its holder (outside the holder's bloc and not the ceder; allied, overlord or client, or itself at WAR / ARMISTICE with the ceder) is titled HOME at the signature — `_return_home`: controller, stability 50, a TREATY title, a `province_returned` event `by: status_quo`. Read by `title_status_quo_retentions` and by `status_quo_forecast`, so the review lists it: "Status quo: Franche-Comte returns to us by the treaty — homeland retaken by an ally."
+
+### 116.7 Open, heading part 2
+
+- **DDB-X9:** the incoming offer letter's status-quo lines (`_derive_status_quo_lines`) use their own homeland-only rule, not the ratifier's retention and DDB-12's returns.
+- **DDB-X11:** at ×0.65 CA9 row 1's two-turn cheese re-opens at +30, and a beaten AI court's bare P1 letter to a winning France can fall under the AI's send filter (< 20); the threshold pins are seam-isolated at ×0.3 until it lands.

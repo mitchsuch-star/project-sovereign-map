@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 14, 2026).** The three most recent landed rows:
-- **S13 (October 14, 2026) — DD-B the fresh-eyes campaign — LANDED; done-when NOT met.** 69 causes, 11.5 per 10 turns, 3 P1 → S13b; 9 design rows ruled; VP-1, events and the table lesson brought before the deploy (S14b–d; `docs/audits/DD_B_RULINGS_2026_10_14.md`). **NEXT = S13b part 1.**
+- **S13b part 1 (October 14, 2026) — DD-B P1s, table P2s, DW-2 — LANDED.** D8/D9 built. **NEXT = S13b part 2** (X9/X11 first).
+- **S13 (October 14, 2026) — DD-B the fresh-eyes campaign — LANDED; done-when NOT met.** 69 causes, 11.5 per 10 turns, 3 P1 → S13b; 9 design rows ruled; VP-1, events and the table lesson brought before the deploy (S14b–d; `docs/audits/DD_B_RULINGS_2026_10_14.md`).
 - **S12b (October 14, 2026) — UXR-D4 the Side Desk + UXR-X28 — LANDED.** Six screens pin beside a live map; map furniture 71 → 0.
-- **S12 part 2 (October 14, 2026) — UXR-3 fixes — LANDED; S12 STRUCK.** Re-read 977 → 1,149 ✓.
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15, with S12's 11 R2 marks) and a code-signing certificate before S15.
 
