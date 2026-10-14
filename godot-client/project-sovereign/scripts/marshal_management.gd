@@ -82,6 +82,8 @@ var _commission_view := false
 var _api_client_ref = null
 
 func _ready():
+	# UXR3-F3: the reading scroll comes to rest on whole lines.
+	Utils.keep_whole_lines(scroll_container)
 	close_button.pressed.connect(close_view)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)

@@ -111,6 +111,8 @@ func _settle_fit() -> void:
 
 
 func _ready():
+	# UXR3-F3: the reading scroll comes to rest on whole lines.
+	Utils.keep_whole_lines(content_label)
 	hide()
 	close_button.pressed.connect(_close_popup)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")

@@ -21,6 +21,8 @@ var _default_border_color: Color
 @onready var panel_style: StyleBoxFlat = $PanelContainer.get_theme_stylebox("panel")
 
 func _ready():
+	# UXR3-F3: the reading scroll comes to rest on whole lines.
+	Utils.keep_whole_lines(content_label)
 	hide()
 	accept_btn.pressed.connect(_on_accept)
 	counter_btn.pressed.connect(_on_counter)

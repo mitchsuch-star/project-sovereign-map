@@ -587,25 +587,43 @@ class TestTheFoundRows:
         assert "win_top = s_rect.position.y" in cut and "win_bottom = s_rect.end.y" in cut
 
     def test_f3_every_reading_scroll_rests_on_whole_lines(self):
-        """UXR3-F3 (part 5b): the reading labels' scrolls come to rest on
-        whole lines — the top onto a line's start the way it was moving, the
-        bottom padded inside a self-scrolling label or by a spacer beside a
-        ScrollContainer (whose panel margin does not clip its child)."""
+        """UXR3-F3 (parts 5b and 5c): every reading scroll comes to rest on
+        whole lines — a self-scrolling label's own lines, or for a
+        ScrollContainer every line of every label in it and every other control
+        as one whole box (borders and all). The top snaps onto a line's start
+        the way it was moving; the bottom is padded inside a self-scrolling
+        label, or by a spacer beside a ScrollContainer sized by the share of it
+        the scroll was measured to give up (a container's panel margin does not
+        clip its child), or from a floored scroll's own floor."""
         utils = _src("scripts/utils.gd")
         keep = _func(utils, "keep_whole_lines")
         assert 'spacer.name = "WholeLinePad"' in keep and "sc.add_sibling(spacer)" in keep
         assert 'rtl.add_theme_stylebox_override("normal", box)' in keep
-        for signal in ("bar.value_changed.connect", "host.resized.connect", "rtl.finished.connect"):
+        for signal in ("bar.value_changed.connect", "host.resized.connect", "rtl.finished.connect",
+                       "sc.sort_children.connect"):
             assert signal in keep, signal
+        boxes = _func(utils, "_whole_line_boxes")
+        assert "_rtl_lines(n as RichTextLabel" in boxes
+        assert "g.position.y - origin - WHOLE_LINE_EDGE - 1.0" in boxes   # a control is whole with its borders
         snap = _func(utils, "snap_whole_lines")
-        assert "to = lines[i + 1] if v > last_v else lines[i]" in snap
-        assert "if to > top_max + 0.5:\n\t\t\t\tto = lines[i]" in snap
-        assert "pad = ceilf(bottom - lines[i]) + 1.0" in snap
-        assert "host.custom_minimum_size.y = maxf(view_h - pad, 0.0)" in snap
+        assert "to = b.y if v > last_v else b.x" in snap
+        assert "if to > top_max + 0.5:\n\t\t\t\tto = b.x" in snap
+        assert "ceilf(bottom - cut_at) + 1.0" in snap
+        assert 'var floor_y: float = maxf(float(rec["floor0"]) - pad, 0.0)' in snap
+        assert 'var want: float = ceilf(pad / maxf(float(rec["share"]), 0.2))' in snap
+        settled = _func(utils, "_scroll_window_settled")
+        assert 'rec["share"] = clampf((float(rec["h0"]) - sc.size.y) / spacer.custom_minimum_size.y, 0.2, 1.0)' \
+            in settled
         for rel, var in (("scripts/dispatch_view.gd", "content_label"), ("scripts/gazette_view.gd", "content_label"),
                          ("scripts/campaign_end.gd", "content_label"), ("scripts/diplomacy_wizard.gd", "assessment_panel"),
-                         ("scripts/diplomatic_ledger.gd", "content_area"), ("scripts/strategic_ledger.gd", "content_area")):
-            assert f"Utils.keep_whole_lines({var})" in _func(_src(rel), "_ready"), rel
+                         ("scripts/diplomacy_wizard.gd", "scroll_container"),
+                         ("scripts/diplomatic_ledger.gd", "content_area"), ("scripts/strategic_ledger.gd", "content_area"),
+                         ("scripts/marshal_management.gd", "scroll_container"),
+                         ("scripts/war_detail_popup.gd", "content_label"),
+                         ("scripts/incoming_proposal_popup.gd", "content_label"),
+                         ("scripts/enemy_phase_dialog.gd", "content_label"),
+                         ("scripts/campaign_log.gd", "scroll_container")):
+            assert f"Utils.keep_whole_lines({var})" in _func(_src(rel), "_ready"), (rel, var)
         assert "for region in [content_label, per_court_table, footer_label]:\n\t\tUtils.keep_whole_lines(region)" in \
             _func(_src("scripts/proposal_confirm_popup.gd"), "_ready")
         # the war-room log keeps its own snap: it follows the newest line

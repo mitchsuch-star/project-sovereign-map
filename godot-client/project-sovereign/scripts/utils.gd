@@ -1100,36 +1100,49 @@ static func shrink_centered_panel_to_content(panel: Control) -> void:
 
 # ── UXR3-F3 (Pre-Deploy S12 part 2): whole lines at a scroll's edges ─────
 # A scroll at rest showed a line cut in half under its top or bottom edge
-# (the dispatch, the end card, the wizard's counsel, the settlement table,
-# the Congress table). `keep_whole_lines` makes a reading label's scroll —
-# its own scrollbar, or the ScrollContainer around it — come to rest on a
-# whole line: the top snaps onto a line start (in the direction it was
-# moving, so a wheel step smaller than a line still advances), and the
-# bottom is padded by the part of a line that would show cut — inside a
-# self-scrolling label, as its own bottom margin (it draws no line that
-# starts there); around a ScrollContainer, as a spacer beside it in its box
-# (a container's panel margin does not clip its child: the container clips
-# at its own rect, so the scroll itself must end on the line). The war-room
-# log keeps its own snap (main.gd, which follows the newest line).
+# (the dispatch, the end card, the wizard, the settlement table, the Congress
+# table, the Generals, the war detail, the log's folds). `keep_whole_lines`
+# makes a reading scroll come to rest on whole lines: a self-scrolling
+# RichTextLabel's own lines, or — for a ScrollContainer — every line of every
+# RichTextLabel inside it and every other control in it as one whole box.
+# At rest the top snaps onto a line's start, the way the scroll was moving
+# (a wheel step smaller than a line still advances; a scroll at its end steps
+# back), and the bottom is padded by the part of a line that would show cut:
+# inside a self-scrolling label as its own bottom margin (it draws no line
+# that starts there); around a ScrollContainer as a spacer beside it in its
+# box (a container's panel margin does not clip its child: the container
+# clips at its own rect, so the scroll itself must end on the line). A box
+# taller than WHOLE_LINE_MAX_BOX is never padded away (a tall card is cut,
+# not hidden). The war-room log keeps its own snap (main.gd), which follows
+# the newest line.
 const WHOLE_LINE_EDGE := 2.0
+const WHOLE_LINE_MAX_BOX := 120.0
 
 
-static func keep_whole_lines(rtl: RichTextLabel) -> void:
-	if rtl == null or rtl.has_meta("whole_lines"):
+static func keep_whole_lines(node: Control) -> void:
+	"""A self-scrolling RichTextLabel, a ScrollContainer, or a label inside one."""
+	if node == null:
 		return
 	var sc: ScrollContainer = null
-	if not rtl.scroll_active:
-		var p: Node = rtl.get_parent()
+	var rtl: RichTextLabel = null
+	if node is ScrollContainer:
+		sc = node as ScrollContainer
+	elif node is RichTextLabel and (node as RichTextLabel).scroll_active:
+		rtl = node as RichTextLabel
+	else:
+		var p: Node = node.get_parent()
 		while p != null and not (p is ScrollContainer):
 			p = p.get_parent()
 		sc = p as ScrollContainer
-		if sc == null:
-			return
+	if sc == null and rtl == null:
+		return
 	var host: Control = sc if sc != null else rtl
+	if host.has_meta("whole_lines"):
+		return
 	var box: StyleBox = null
 	var base := 0.0
 	var spacer: Control = null
-	if sc == null:
+	if rtl != null:
 		var found: StyleBox = rtl.get_theme_stylebox("normal")
 		box = found.duplicate() if found != null else StyleBoxEmpty.new()
 		base = box.get_margin(SIDE_BOTTOM)
@@ -1141,75 +1154,113 @@ static func keep_whole_lines(rtl: RichTextLabel) -> void:
 		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		sc.add_sibling(spacer)
 	var bar: ScrollBar = sc.get_v_scroll_bar() if sc != null else rtl.get_v_scroll_bar()
-	rtl.set_meta("whole_lines", {"host": host, "box": box, "base": base, "bar": bar,
-			"spacer": spacer, "last_v": -1.0})
-	bar.value_changed.connect(func(_v: float): _whole_lines_soon(rtl))
-	host.resized.connect(func(): _whole_lines_soon(rtl))
-	rtl.finished.connect(func(): _whole_lines_soon(rtl))
-	_whole_lines_soon(rtl)
+	host.set_meta("whole_lines", {"box": box, "base": base, "bar": bar, "spacer": spacer, "last_v": -1.0,
+			"key": Vector3(-1.0, -1.0, -1.0), "h0": -1.0, "share": 1.0, "share_read": false,
+			"floor0": -1.0, "floor_set": -1.0})
+	bar.value_changed.connect(func(_v: float): _whole_lines_soon(host))
+	host.resized.connect(func(): _whole_lines_soon(host))
+	if rtl != null:
+		rtl.finished.connect(func(): _whole_lines_soon(host))
+	else:
+		sc.sort_children.connect(func(): _whole_lines_soon(host))
+	_whole_lines_soon(host)
 
 
-static func _whole_lines_soon(rtl: RichTextLabel) -> void:
+static func _whole_lines_soon(host: Control) -> void:
 	# Two frames after the last change (a wrapping label has no lines the
 	# frame its text is set), and only once the scroll has come to rest.
-	if not is_instance_valid(rtl) or not rtl.is_inside_tree():
+	if not is_instance_valid(host) or not host.is_inside_tree():
 		return
-	var tick: int = int(rtl.get_meta("whole_lines_tick", 0)) + 1
-	rtl.set_meta("whole_lines_tick", tick)
-	await rtl.get_tree().process_frame
-	if not is_instance_valid(rtl) or not rtl.is_inside_tree():
+	var tick: int = int(host.get_meta("whole_lines_tick", 0)) + 1
+	host.set_meta("whole_lines_tick", tick)
+	await host.get_tree().process_frame
+	if not is_instance_valid(host) or not host.is_inside_tree():
 		return
-	await rtl.get_tree().process_frame
-	if not is_instance_valid(rtl) or int(rtl.get_meta("whole_lines_tick", 0)) != tick:
+	await host.get_tree().process_frame
+	if not is_instance_valid(host) or int(host.get_meta("whole_lines_tick", 0)) != tick:
 		return
-	snap_whole_lines(rtl)
+	snap_whole_lines(host)
 
 
-static func snap_whole_lines(rtl: RichTextLabel) -> void:
-	var rec: Dictionary = rtl.get_meta("whole_lines", {})
-	if rec.is_empty() or not rtl.is_visible_in_tree():
+static func _rtl_lines(r: RichTextLabel, top: float, out: Array) -> void:
+	var rbox: StyleBox = r.get_theme_stylebox("normal")
+	var t0: float = top + (rbox.get_margin(SIDE_TOP) if rbox else 0.0)
+	var count := r.get_line_count()
+	for i in range(count):
+		var a: float = t0 + float(r.get_line_offset(i))
+		var b: float = t0 + (float(r.get_line_offset(i + 1)) if i + 1 < count else float(r.get_content_height()))
+		out.append(Vector2(a, b))
+
+
+static func _whole_line_boxes(sc: ScrollContainer, v: float) -> Array:
+	# In the scrolled content's coordinates: every line of every visible
+	# RichTextLabel inside the scroll, and every other visible leaf control
+	# as one box.
+	var out: Array = []
+	var origin: float = sc.global_position.y - v
+	var stack: Array = sc.get_children()
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if not (n is Control) or not (n as Control).visible or n.name == "WholeLinePad":
+			continue
+		if n is RichTextLabel:
+			_rtl_lines(n as RichTextLabel, (n as Control).global_position.y - origin, out)
+			continue
+		if n is ScrollContainer:
+			# a scroll inside the scroll is one box (its own lines scroll apart)
+			var gs: Rect2 = (n as Control).get_global_rect()
+			out.append(Vector2(gs.position.y - origin, gs.end.y - origin))
+			continue
+		if n is Container or (n.get_child_count() > 0 and not (n is BaseButton) and not (n is Label)):
+			stack.append_array(n.get_children())
+			continue
+		var g: Rect2 = (n as Control).get_global_rect()
+		if g.size.y > 0.5:
+			# a control is whole only with its borders: no edge tolerance
+			out.append(Vector2(g.position.y - origin - WHOLE_LINE_EDGE - 1.0,
+					g.end.y - origin + WHOLE_LINE_EDGE + 1.0))
+	return out
+
+
+static func snap_whole_lines(host: Control) -> void:
+	var rec: Dictionary = host.get_meta("whole_lines", {})
+	if rec.is_empty() or not host.is_visible_in_tree():
 		return
-	var host: Control = rec["host"]
 	var box: StyleBox = rec["box"]
 	var base: float = rec["base"]
 	var bar: ScrollBar = rec["bar"]
 	var spacer: Control = rec["spacer"]
-	var count := rtl.get_line_count()
-	if count == 0:
-		return
-	var own := host == rtl
+	var own := host is RichTextLabel
 	var v: float = float(bar.value)
 	var view_h: float
-	# the text's lines in the scrolled content's coordinates
-	var text0 := 0.0
+	var boxes: Array = []
 	if own:
-		view_h = rtl.size.y - box.get_margin(SIDE_TOP) - base
+		view_h = host.size.y - box.get_margin(SIDE_TOP) - base
+		_rtl_lines(host as RichTextLabel, -box.get_margin(SIDE_TOP), boxes)
 	else:
-		# the scroll's height before the spacer took its share
-		view_h = host.size.y + (spacer.custom_minimum_size.y if spacer != null else 0.0)
-		var rbox: StyleBox = rtl.get_theme_stylebox("normal")
-		var r_top: float = rbox.get_margin(SIDE_TOP) if rbox else 0.0
-		text0 = (rtl.global_position.y + r_top) - host.global_position.y + v
-	var lines: Array[float] = []
-	for i in range(count):
-		lines.append(text0 + float(rtl.get_line_offset(i)))
-	lines.append(text0 + float(rtl.get_content_height()))
+		var sc := host as ScrollContainer
+		if spacer != null and not _scroll_window_settled(sc, rec, spacer):
+			return    # the layout moves; its resize brings the snap back
+		# the window as it stands with no pad
+		view_h = float(rec["h0"]) if spacer != null else sc.size.y
+		boxes = _whole_line_boxes(sc, v)
+	if boxes.is_empty():
+		return
 	# the top edge: rest on a line's start, the way the scroll was moving
 	var last_v: float = rec["last_v"]
-	for i in range(count):
-		if lines[i] < v - WHOLE_LINE_EDGE and lines[i + 1] > v + WHOLE_LINE_EDGE:
+	var top_max: float = maxf(float(bar.max_value - bar.page), 0.0)
+	for b in boxes:
+		if b.x < v - WHOLE_LINE_EDGE and b.y > v + WHOLE_LINE_EDGE and b.y - b.x <= WHOLE_LINE_MAX_BOX:
 			var to: float
 			if last_v < 0.0:
-				to = lines[i] if v - lines[i] <= lines[i + 1] - v else lines[i + 1]
+				to = b.x if v - b.x <= b.y - v else b.y
 			else:
-				to = lines[i + 1] if v > last_v else lines[i]
+				to = b.y if v > last_v else b.x
 			# a scroll at its end cannot step forward onto a line: step back
-			var top_max: float = maxf(float(bar.max_value - bar.page), 0.0)
 			if to > top_max + 0.5:
-				to = lines[i]
+				to = b.x
 			to = clampf(to, 0.0, top_max)
 			v = to
-			rec["last_v"] = to
 			if own:
 				bar.value = to
 			else:
@@ -1218,22 +1269,68 @@ static func snap_whole_lines(rtl: RichTextLabel) -> void:
 	rec["last_v"] = v
 	# the bottom edge: pad away the part of a line that would show cut
 	var bottom := v + view_h
-	var pad := 0.0
-	for i in range(count):
-		if lines[i] > v + 1.0 and lines[i] < bottom - WHOLE_LINE_EDGE and lines[i + 1] > bottom + WHOLE_LINE_EDGE:
-			# whole pixels, and one more: the layout rounds sizes to the pixel
-			pad = ceilf(bottom - lines[i]) + 1.0
-			break
+	var cut_at := INF
+	for b in boxes:
+		if b.x > v + 1.0 and b.x < bottom - WHOLE_LINE_EDGE and b.y > bottom + WHOLE_LINE_EDGE \
+				and b.y - b.x <= WHOLE_LINE_MAX_BOX:
+			cut_at = minf(cut_at, b.x)
+	# whole pixels, and one more: the layout rounds sizes to the pixel
+	var pad := 0.0 if cut_at == INF else ceilf(bottom - cut_at) + 1.0
 	if own:
 		if not is_equal_approx(box.content_margin_bottom, base + pad):
 			box.content_margin_bottom = base + pad
 	elif spacer != null:
-		# a scroll held at its height floor (the settlement table's) gives
-		# the pad up from that floor — never more than the line it hides
-		if host.custom_minimum_size.y > view_h - pad:
-			host.custom_minimum_size.y = maxf(view_h - pad, 0.0)
-		if not is_equal_approx(spacer.custom_minimum_size.y, pad):
-			spacer.custom_minimum_size.y = pad
+		var sc := host as ScrollContainer
+		if float(rec["floor0"]) >= 0.0 or (pad > 0.0 and sc.custom_minimum_size.y >= view_h - 0.5):
+			# a scroll held at its height floor (the settlement table's)
+			# gives the pad up from that floor — never more than the line it
+			# hides; the room it frees goes to its neighbours
+			if float(rec["floor0"]) < 0.0:
+				rec["floor0"] = sc.custom_minimum_size.y
+			var floor_y: float = maxf(float(rec["floor0"]) - pad, 0.0)
+			if not is_equal_approx(sc.custom_minimum_size.y, floor_y):
+				sc.custom_minimum_size.y = floor_y
+				rec["floor_set"] = floor_y
+		else:
+			# a spacer beside the scroll; when the box has other expanding
+			# children they give up part of its height too, so the spacer
+			# is the pad over the share the scroll was measured to give up
+			var want: float = ceilf(pad / maxf(float(rec["share"]), 0.2))
+			if not is_equal_approx(spacer.custom_minimum_size.y, want):
+				spacer.custom_minimum_size.y = want
+
+
+static func _scroll_window_settled(sc: ScrollContainer, rec: Dictionary, spacer: Control) -> bool:
+	"""The scroll's unpadded window (h0) and the share of a spacer's height it
+	gives up. An outside change — its content, its width, its box's height —
+	takes the pad away and measures again; the pad's own effect on the layout
+	does not count as one."""
+	var content_h := 0.0
+	for c in sc.get_children():
+		if c is Control:
+			content_h = maxf(content_h, (c as Control).get_combined_minimum_size().y)
+	var box_h: float = (sc.get_parent() as Control).size.y if sc.get_parent() is Control else 0.0
+	var key := Vector3(content_h, sc.size.x, box_h)
+	if not key.is_equal_approx(rec["key"]):
+		rec["key"] = key
+		rec["h0"] = -1.0
+		rec["share"] = 1.0
+		rec["share_read"] = false
+		var moved := spacer.custom_minimum_size.y > 0.0
+		spacer.custom_minimum_size.y = 0.0
+		if float(rec["floor_set"]) >= 0.0 and is_equal_approx(sc.custom_minimum_size.y, float(rec["floor_set"])):
+			sc.custom_minimum_size.y = float(rec["floor0"])
+			moved = true
+		rec["floor0"] = -1.0
+		rec["floor_set"] = -1.0
+		if moved:
+			return false
+	if float(rec["h0"]) < 0.0:
+		rec["h0"] = sc.size.y
+	elif not bool(rec["share_read"]) and spacer.custom_minimum_size.y > 0.5:
+		rec["share"] = clampf((float(rec["h0"]) - sc.size.y) / spacer.custom_minimum_size.y, 0.2, 1.0)
+		rec["share_read"] = true
+	return true
 
 
 static func clamp_centered_panel(panel: Control) -> void:

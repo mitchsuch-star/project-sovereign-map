@@ -53,6 +53,8 @@ const THE_COLOURS_KNOW_OUR_FRIENDS := true
 var _diorama_payloads: Array = []
 
 func _ready():
+	# UXR3-F3: the reading scroll comes to rest on whole lines.
+	Utils.keep_whole_lines(content_label)
 	# Connect button signal
 	continue_button.pressed.connect(_on_continue_pressed)
 	# BD: battle lines carry [url=diorama:N] view-field links.

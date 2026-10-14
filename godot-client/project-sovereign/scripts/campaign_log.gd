@@ -62,6 +62,8 @@ var turn_data: Dictionary = {}
 
 
 func _ready():
+	# UXR3-F3: the reading scroll comes to rest on whole lines.
+	Utils.keep_whole_lines(scroll_container)
 	close_button.pressed.connect(close_log)
 	# UXR3-F5 (Pre-Deploy S12 part 2): the drawn cross every screen closes
 	# with, not a boxed letter X.

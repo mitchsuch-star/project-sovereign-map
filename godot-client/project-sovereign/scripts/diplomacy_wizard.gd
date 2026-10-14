@@ -70,6 +70,7 @@ var _likelihood_colors: Dictionary = {
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(assessment_panel)
+	Utils.keep_whole_lines(scroll_container)
 	hide()
 	close_button.pressed.connect(_close_wizard)
 	# UXR3-F5: the drawn cross every screen closes with.
