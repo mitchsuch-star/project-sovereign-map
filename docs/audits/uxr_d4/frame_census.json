@@ -1,0 +1,85 @@
+{
+ "tool": "tools/uxr3_frame_census.py",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\index.json",
+ "client_commit": "55ef1d1e",
+ "frames": 15,
+ "frames_without_record": [],
+ "cut_lines": [],
+ "grip_overlaps": [],
+ "tick_overlaps": [],
+ "verdict_gaps": [],
+ "map_frames": 15,
+ "map_overlaps": [],
+ "map_hidden": [
+  {
+   "surface": "war_room_boot",
+   "res": "1920x1080",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_boot",
+   "res": "5120x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_ledger",
+   "res": "1920x1080",
+   "what": "fog_name:Mack"
+  },
+  {
+   "surface": "side_desk_ledger",
+   "res": "1920x1080",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_ledger",
+   "res": "1920x1080",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_ledger",
+   "res": "1920x1080",
+   "what": "garrison:?"
+  },
+  {
+   "surface": "side_desk_ledger",
+   "res": "2560x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_ledger",
+   "res": "5120x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_ledger",
+   "res": "3840x2160",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_generals",
+   "res": "1920x1080",
+   "what": "fog_name:Mack"
+  },
+  {
+   "surface": "side_desk_generals",
+   "res": "1920x1080",
+   "what": "garrison:?"
+  },
+  {
+   "surface": "side_desk_generals",
+   "res": "2560x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_generals",
+   "res": "5120x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "side_desk_generals",
+   "res": "3840x2160",
+   "what": "fog_chip:?"
+  }
+ ]
+}

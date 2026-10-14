@@ -76,6 +76,15 @@ class TestTheCensusOnItsRecord:
         assert board["map_overlaps_count"] == 0 and board["map_overlaps"] == []
         assert set(board["map_overlaps_by_resolution"].values()) == {0}
 
+    def test_the_whole_map_reads_clear_with_the_dock_open(self):
+        # S12b Slice 3: the Side Desk's dock narrows the map's room and the
+        # whole-map view re-fits into it (a denser map) — still 0.
+        board = _record()["boards"]["dock_open"]
+        assert sorted(board["surfaces"]) == ["side_desk_generals", "side_desk_ledger"]
+        assert sorted(set(board["resolutions"])) == sorted(FIVE)
+        assert board["map_frames"] == 10
+        assert board["map_overlaps_count"] == 0 and board["map_overlaps"] == []
+
     def test_no_standee_name_ever_hides(self):
         # The zero is never bought by hiding a standee's name: what the
         # layout hid is recorded, and it is chips, or a fogged force's name

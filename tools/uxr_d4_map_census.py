@@ -1,8 +1,13 @@
 """UXR-X28 — the map census record (Pre-Deploy S12b, October 14, 2026).
 
     .venv/Scripts/python.exe -X utf8 tools/uxr_d4_map_census.py \
-        --board before=RUN/index.json --board dock_closed=RUN2/index.json \
+        --board before=RUN/index.json --board dock_closed=RUN2/index.json@war_room_boot \
         [--note dock_closed="…"] [--out docs/audits/uxr_d4/map_census.json]
+
+A board may name the surfaces it reads after an `@` (comma-separated), so
+one shoot's index serves several boards (the Side Desk's `dock_open` reads
+`side_desk_ledger` and `side_desk_generals`, `dock_closed` reads
+`war_room_boot`).
 
 Reads each run's frames with `tools/uxr3_frame_census.py`'s map census
 (`map_overlaps`: every pair of map-tier rows — the furniture's text rows and
@@ -31,11 +36,18 @@ import uxr3_frame_census as FC  # noqa: E402
 DEFAULT_OUT = REPO / "docs" / "audits" / "uxr_d4" / "map_census.json"
 
 
-def board(index_path: pathlib.Path, note: str = "") -> dict:
+def board(index_path: pathlib.Path, note: str = "", only: list[str] | None = None) -> dict:
     out = FC.census(index_path)
+    if only:
+        out["map_overlaps"] = [o for o in out["map_overlaps"] if o["surface"] in only]
+        out["map_hidden"] = [h for h in out["map_hidden"] if h["surface"] in only]
+        out["map_frames"] = sum(1 for sid, _r, fr in FC.frames(index_path)
+                                if sid in only and "map_labels" in fr)
     index = json.loads(index_path.read_text(encoding="utf-8"))
     resolutions, surfaces = [], []
     for sid, res, fr in FC.frames(index_path):
+        if only and sid not in only:
+            continue
         if "map_labels" in fr:
             resolutions.append(res)
             if sid not in surfaces:
@@ -53,7 +65,7 @@ def board(index_path: pathlib.Path, note: str = "") -> dict:
         "resolutions": resolutions,
         "map_frames": out["map_frames"],
         "map_overlaps_count": len(out["map_overlaps"]),
-        "map_overlaps_by_resolution": {r: per_res.get(r, 0) for r in resolutions},
+        "map_overlaps_by_resolution": {r: per_res.get(r, 0) for r in dict.fromkeys(resolutions)},
         "map_overlaps_by_kind": dict(sorted(pairs.items())),
         "map_overlaps": out["map_overlaps"],
         "map_hidden": out["map_hidden"],
@@ -73,7 +85,9 @@ def main(argv=None) -> int:
         record = json.loads(out_path.read_text(encoding="utf-8"))
     for spec in args.board:
         name, path = spec.split("=", 1)
-        record["boards"][name] = board(pathlib.Path(path), notes.get(name, ""))
+        path, _, only = path.partition("@")
+        record["boards"][name] = board(pathlib.Path(path), notes.get(name, ""),
+                                       [s for s in only.split(",") if s] or None)
         b = record["boards"][name]
         print(f"{name}: {b['map_overlaps_count']} overlaps over {b['map_frames']} frames "
               f"{b['map_overlaps_by_resolution']}; hidden {len(b['map_hidden'])}")

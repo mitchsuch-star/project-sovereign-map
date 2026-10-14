@@ -9,14 +9,32 @@ A pinned screen docks in the right third of the HUD band; the map, the
 command line and the rail stay live; a decision popup (layer >= 100) still
 blocks above it. One pinned screen at a time; Esc or Unpin closes it.
 
-Slice 1 (the pin and the dock) is pinned here on the source. The driven
-proof — a pinned ledger survives a command, a popup and an end turn beside a
-live map — and the census join this file with Slices 2 and 3.
+Slices 1 (the pin and the dock) and 2 (it lives through the turn) are
+pinned here on the source. Slice 3 is the proof:
+
+* the DRIVEN proof — `tools/uxr_d4_side_desk_harness.gd` boots the real
+  `main.tscn` against a sandboxed live backend (`tools/uxr3_action_probe.py`
+  `start_backend`: an unused port from 8006, never 8005, its own saves, the
+  mock parser) and plays it: the ledger pinned beside the map, a map click,
+  a typed command, the end turn's popup, the new turn, Esc. The done-when:
+  a pinned ledger survives a command, a popup and an end turn beside a live
+  map. It SKIPS without the engine (a skip is not a pass);
+* the census, held on its committed records (`docs/audits/uxr_d4/`): the
+  IQ-10 rows `side_desk_ledger` and `side_desk_generals` (not checklist
+  surfaces) shot at five resolutions read 0 RED / 0 P1, 0 cut lines, 0 grip
+  overlaps, 0 map overlaps, and R7 clean.
 """
 from __future__ import annotations
 
+import json
+import os
 import pathlib
 import re
+import shutil
+import subprocess
+import sys
+
+import pytest
 
 from tests import _godot_scenes as G
 
@@ -24,6 +42,10 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 PROJECT = REPO / "godot-client" / "project-sovereign"
 SCRIPTS = PROJECT / "scripts"
 SCENES = PROJECT / "scenes"
+HARNESS = REPO / "tools" / "uxr_d4_side_desk_harness.gd"
+REC = REPO / "docs" / "audits" / "uxr_d4"
+DESK_SURFACES = ("side_desk_ledger", "side_desk_generals")
+sys.path.insert(0, str(REPO / "tools"))
 SIX_SCREENS = ("strategic_ledger", "marshal_management", "dispatch_view", "campaign_log",
                "gazette_view", "diplomatic_ledger")
 
@@ -253,3 +275,176 @@ class TestTheKeys:
         assert "top_bar.close_everything()" in G.func_body(main, "_on_campaign_over")
         ending = G.func_body(main, "_show_pending_ending")
         assert 'if bool(payload.get("terminal", false)):\n\t\t\ttop_bar.close_everything()' in ending
+
+
+# ── Slice 3: the driven proof ──────────────────────────────────────────────
+
+_CANDIDATES = [
+    os.environ.get("GODOT_BIN", ""),
+    r"C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe"
+    r"\Godot_v4.4.1-stable_win64.exe",
+    "godot",
+    "godot4",
+]
+
+
+def _engine():
+    for candidate in _CANDIDATES:
+        if not candidate:
+            continue
+        if os.path.sep in candidate or "/" in candidate:
+            if pathlib.Path(candidate).is_file():
+                return candidate
+            continue
+        found = shutil.which(candidate)
+        if found:
+            return found
+    return None
+
+
+@pytest.fixture(scope="module")
+def driven(tmp_path_factory) -> dict:
+    engine = _engine()
+    if engine is None:
+        pytest.skip("Godot engine not on this machine — the driven pins skip, "
+                    "and a skip is not a pass")
+    import uxr3_action_probe as AP
+
+    work = tmp_path_factory.mktemp("uxr_d4_side_desk")
+    backend, port = AP.start_backend(work, AP.WAR_ROOM_PORT)
+    out = work / "side_desk.json"
+    try:
+        assert port != 8005, "never the player's 8005"
+        env = dict(os.environ, SOVEREIGN_PORT=str(port), UXR_D4_OUT=str(out))
+        env.pop("PYTHONIOENCODING", None)
+        proc = subprocess.run(
+            [engine, "--audio-driver", "Dummy", "--windowed", "--resolution", "1920x1080",
+             "--position", "5200,20", "--path", str(PROJECT), "--script", str(HARNESS)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=900,
+            env=env, cwd=str(PROJECT), stdin=subprocess.DEVNULL)
+    finally:
+        AP.stop_backend(backend)
+    if not out.is_file():
+        pytest.fail(f"the harness wrote nothing (exit {proc.returncode}):\n"
+                    f"{proc.stdout[-3000:]}\n{proc.stderr[-3000:]}")
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["fatal"] == "", data["fatal"]
+    assert data["backend"].endswith(f":{port}"), data["backend"]
+    return data
+
+
+class TestTheDrivenProof:
+    def test_the_ledger_pins_in_the_right_third_and_the_map_takes_the_mouse(self, driven):
+        p = driven["steps"]["pin"]
+        assert p["opened"]["screen_open"] is True and p["opened"]["map_mouse_filter"] == 2, (
+            "open, the ledger was the modal screen it always was")
+        assert p["pinned"] == "ledger" and p["screen_open"] is False and p["visible"] is True
+        assert p["chip_text"] == "Unpin" and p["overlay_visible"] is False and p["grip_visible"] is False
+        vx, vy = p["view"]
+        x, y, w, h = p["panel"]
+        assert x + w == pytest.approx(vx - 8.0), "the dock's right edge: HUD_MARGIN off the band's"
+        assert y == pytest.approx(44.0) and y + h == pytest.approx(vy - 8.0), "under the top bar to the bottom"
+        assert vx / 4.0 - 0.5 <= w <= vx / 2.0 + 0.5 and w == pytest.approx(p["dock_width"])
+        assert p["band"] == [0.0, pytest.approx(x)], "the HUD band ends at the dock's edge"
+        assert p["map_mouse_filter"] == 0 and p["panning"] is True, "STOP: the map takes the mouse"
+        t = p["terminal"]
+        assert t[0] + t[2] <= x, "the command window stands beside the dock"
+        if "war_hud" in p:
+            assert p["war_hud"][0] + p["war_hud"][2] <= x, "the war HUD stands beside the dock"
+
+    def test_a_map_click_selects_and_a_click_on_the_desk_does_not(self, driven):
+        p = driven["steps"]["pin"]
+        assert p["paris_point"][0] < p["panel"][0], "Paris lies left of the dock"
+        assert p["selected_after_map_click"] == "Paris" and p["region_panel_after_map_click"] is True
+        assert p["selected_after_panel_click"] == p["selected_before_panel_click"]
+        assert p["region_panel_after_panel_click"] is False
+        assert p["pinned_after_clicks"] == "ledger"
+
+    def test_a_command_re_reads_the_pinned_ledger(self, driven):
+        c = driven["steps"]["command"]
+        assert c["ledger_reads"] >= 1, "the command's answer re-read the ledger"
+        assert c["pinned"] == "ledger" and c["visible"] is True
+        assert "Status: Idle" in c["ney_before"] and c["ney_after"] != c["ney_before"], (
+            c["ney_before"], c["ney_after"])
+        if c["objection_visible"]:
+            assert c["objection_layer"] > c["ledger_layer"] and c["ledger_visible_under_popup"] is True
+
+    def test_the_end_turns_popup_stands_above_the_visible_ledger(self, driven):
+        e = driven["steps"]["end_turn"]
+        assert e["enemy_phase_visible"] is True and e["enemy_phase_layer"] >= 100
+        assert e["ledger_visible_under_popup"] is True and e["pinned_under_popup"] == "ledger"
+
+    def test_the_ledger_survives_the_end_turn_and_reads_the_new_turn(self, driven):
+        e = driven["steps"]["end_turn"]
+        assert e["turn_before"].startswith("Turn 1") and e["turn_after"].startswith("Turn 2")
+        assert e["calendar_after"] and e["calendar_after"] != e["calendar_before"], (
+            e["calendar_before"], e["calendar_after"])
+        assert e["ledger_reads"] >= 1 and e["pinned"] == "ledger" and e["visible"] is True
+        assert e["panel"] == driven["steps"]["pin"]["panel"], "still at the desk"
+        assert e["input_enabled"] is True, "the chain settled: the command line is the player's"
+
+    def test_esc_unpins_and_closes_and_the_map_stays_live(self, driven):
+        x = driven["steps"]["esc"]
+        assert x["pinned"] == "" and x["visible"] is False and x["pause_open"] is False
+        assert x["map_mouse_filter"] == 0 and x["panning"] is True
+        assert x["dock_width"] == 0.0 and x["band"] == [0.0, x["view"][0]], "the HUD band is whole again"
+        assert x["chip_text"] == "Pin"
+        assert x["selected_after_map_click"] == "Paris"
+
+    def test_the_harness_never_touches_the_players_backend(self):
+        src = HARNESS.read_text(encoding="utf-8")
+        assert 'Utils.backend_url().ends_with(":8005")' in src
+        assert 'settings_class.set("_persist", false)' in src
+        api = G.read(SCRIPTS / "api_client.gd")
+        assert "sent_counts[endpoint] = int(sent_counts.get(endpoint, 0)) + 1" in api
+
+
+# ── Slice 3: the census on its committed records ───────────────────────────
+
+class TestTheCensus:
+    def _load(self, name: str) -> dict:
+        path = REC / name
+        assert path.is_file(), f"the committed record is missing: {path}"
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def test_the_desk_reads_at_the_five_resolutions(self):
+        from uxr0_readability_report import PHYSICAL_RESOLUTIONS
+
+        five = {f"{w}x{h}" for (w, h) in PHYSICAL_RESOLUTIONS}
+        rec = self._load("readability.json")
+        for sid in DESK_SURFACES + ("war_room_boot",):
+            readings = rec["surfaces"][sid]["readings"]
+            assert {k.split("@")[0] for k in readings} == five, sid
+            for key, r in readings.items():
+                assert r["ok"] and r["counts"]["red"] == 0 and r["counts"]["p1"] == 0, (sid, key)
+        assert "5120x1440@1.40" in rec["surfaces"]["side_desk_ledger"]["readings"]
+
+    def test_no_cut_line_no_grip_overlap_no_map_overlap(self):
+        rec = self._load("frame_census.json")
+        assert rec["frames"] == 15 and rec["frames_without_record"] == []
+        assert rec["cut_lines"] == [] and rec["grip_overlaps"] == [] and rec["tick_overlaps"] == []
+        assert rec["map_frames"] == 15 and rec["map_overlaps"] == []
+
+    def test_r7_reads_clean_beside_the_dock(self):
+        rec = self._load("fit.json")
+        for sid in DESK_SURFACES + ("war_room_boot",):
+            for res, r in rec["surfaces"][sid]["readings"].items():
+                assert r["ok"], (sid, res)
+                for key in ("clipped_text", "truncated_text", "buttons_offscreen", "text_offscreen", "under_modal"):
+                    assert r[key] == [], (sid, res, key, r[key][:2])
+
+    def test_the_map_reads_clear_with_the_dock_open(self):
+        board = self._load("map_census.json")["boards"]["dock_open"]
+        assert sorted(board["surfaces"]) == sorted(DESK_SURFACES)
+        assert board["map_frames"] == 10 and board["map_overlaps_count"] == 0
+        assert set(board["map_overlaps_by_resolution"].values()) == {0}
+
+    def test_the_desk_rows_are_manifest_rows_not_checklist_surfaces(self):
+        import iq10_run_captures as R
+
+        ids = {s["id"] for s in R.SHOTS}
+        for sid in DESK_SURFACES:
+            assert sid in ids, sid
+        checklist = (REPO / "docs" / "UX_CHECKLIST_V1.json").read_text(encoding="utf-8")
+        for sid in DESK_SURFACES:
+            assert sid not in checklist, f"{sid}: the frozen checklist stays frozen"

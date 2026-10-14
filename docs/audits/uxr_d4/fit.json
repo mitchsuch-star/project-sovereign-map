@@ -1,0 +1,178 @@
+{
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\index.json",
+ "client_commit": "55ef1d1e",
+ "physical_scale": "auto",
+ "surfaces": {
+  "war_room_boot": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_WAR_ROOM_BOOT_1920x1080_S1.00_2026_10_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_WAR_ROOM_BOOT_5120x1440_S1.40_2026_10_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_WAR_ROOM_BOOT_3840x2160_S1.50_2026_10_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "side_desk_ledger": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_SIDE_DESK_LEDGER_1920x1080_S1.00_2026_10_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_SIDE_DESK_LEDGER_5120x1440_S1.40_2026_10_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_SIDE_DESK_LEDGER_3840x2160_S1.50_2026_10_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "side_desk_generals": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_SIDE_DESK_GENERALS_1920x1080_S1.00_2026_10_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_SIDE_DESK_GENERALS_5120x1440_S1.40_2026_10_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\frames\\UXR0_SIDE_DESK_GENERALS_3840x2160_S1.50_2026_10_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  }
+ }
+}

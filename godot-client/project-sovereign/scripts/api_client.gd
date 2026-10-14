@@ -13,6 +13,9 @@ var http_request: HTTPRequest
 var _request_in_flight: bool = false
 var pending_callback: Callable
 var _request_queue: Array = []
+# UXR-D4 (Pre-Deploy S12b): the requests this client has SENT, by endpoint —
+# the Side Desk's driven proof counts a pinned ledger's re-reads on it.
+var sent_counts: Dictionary = {}
 
 
 func _ready():
@@ -55,6 +58,7 @@ func _start_next_request():
 	var request_data = _request_queue.pop_front()
 	pending_callback = request_data.get("callback", Callable())
 	var endpoint = str(request_data.get("endpoint", ""))
+	sent_counts[endpoint] = int(sent_counts.get(endpoint, 0)) + 1
 	var method = int(request_data.get("method", HTTPClient.METHOD_GET))
 	var error = OK
 

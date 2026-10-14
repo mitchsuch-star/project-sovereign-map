@@ -1,0 +1,130 @@
+{
+ "backend": "http://127.0.0.1:8006",
+ "fatal": "",
+ "modals_answered": [
+  "enemy_phase_dialog: continue",
+  "battle_diorama: _on_close_pressed"
+ ],
+ "steps": {
+  "command": {
+   "ledger_layer": 50,
+   "ledger_reads": 1,
+   "ledger_visible_under_popup": true,
+   "ney_after": "Ney  Infantry\n  Status: Fortified  Location: Rhineland\n  Strength: 24,000  Stance: defensive\n  Trust: 75  Morale: 100%  W/L: 0/0\n\nDavout  Infantry\n  Status: Idl",
+   "ney_before": "Ney  Infantry\n  Status: Idle  Location: Rhineland\n  Strength: 24,000  Stance: neutral\n  Trust: 75  Morale: 100%  W/L: 0/0\n\nDavout  Infantry\n  Status: Idle  Loca",
+   "objection_layer": 108,
+   "objection_visible": false,
+   "pinned": "ledger",
+   "pinned_under_popup": "ledger",
+   "terminal_tail": "────────────────────────────────\n\n► Ney, fortify\nNey grumbles about defensive orders but complies. [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Ney fortifies position at Rhineland. Defense bonus: +2% (grows +2% per turn, max 8%) (Aggressive: max 8% only). Cannot move or attack while fortified. Use 'unfortify' to become mobile.\n   [2/4 actions remaining]",
+   "visible": true
+  },
+  "end_turn": {
+   "calendar_after": "Early October 1805",
+   "calendar_before": "Late September 1805",
+   "enemy_phase_layer": 118,
+   "enemy_phase_visible": true,
+   "input_enabled": true,
+   "ledger_panel_under_popup": [
+    1175.0,
+    44.0,
+    737.0,
+    1028.0
+   ],
+   "ledger_reads": 3,
+   "ledger_visible_under_popup": true,
+   "panel": [
+    1175.0,
+    44.0,
+    737.0,
+    1028.0
+   ],
+   "pinned": "ledger",
+   "pinned_under_popup": "ledger",
+   "turn_after": "Turn 2 — Early October 1805",
+   "turn_before": "Turn 1 — Late September 1805",
+   "visible": true
+  },
+  "esc": {
+   "band": [
+    0.0,
+    1920.0
+   ],
+   "chip_text": "Pin",
+   "dock_width": 0.0,
+   "map_mouse_filter": 0,
+   "panning": true,
+   "pause_open": false,
+   "pinned": "",
+   "selected_after_map_click": "Paris",
+   "view": [
+    1920.0,
+    1080.0
+   ],
+   "visible": false
+  },
+  "pin": {
+   "band": [
+    0.0,
+    1175.0
+   ],
+   "chip_text": "Unpin",
+   "dock_width": 737.0,
+   "grip_visible": false,
+   "ledger_reads_on_pin": 0,
+   "map_mouse_filter": 0,
+   "opened": {
+    "map_mouse_filter": 2,
+    "screen_open": true,
+    "visible": true
+   },
+   "overlay_visible": false,
+   "panel": [
+    1175.0,
+    44.0,
+    737.0,
+    1028.0
+   ],
+   "panning": true,
+   "paris_point": [
+    420.888702392578,
+    510.625030517578
+   ],
+   "pinned": "ledger",
+   "pinned_after_clicks": "ledger",
+   "region_panel_after_map_click": true,
+   "region_panel_after_panel_click": false,
+   "screen_open": false,
+   "selected_after_map_click": "Paris",
+   "selected_after_panel_click": "",
+   "selected_before_panel_click": "",
+   "terminal": [
+    10.0,
+    686.0,
+    461.0,
+    384.0
+   ],
+   "view": [
+    1920.0,
+    1080.0
+   ],
+   "visible": true,
+   "war_hud": [
+    859.0,
+    971.0,
+    308.0,
+    101.0
+   ]
+  }
+ },
+ "run": {
+  "harness": "tools/uxr_d4_side_desk_harness.gd",
+  "client": "55ef1d1e (S12b Slice 2) with Slice 3 request counter in api_client.gd",
+  "backend": "a sandboxed backend (tools/uxr3_action_probe.py start_backend: mock parser, its own saves) on 127.0.0.1:8006",
+  "window": [
+   1920,
+   1080
+  ],
+  "scale": 1.0
+ }
+}

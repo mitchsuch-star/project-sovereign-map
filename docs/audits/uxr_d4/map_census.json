@@ -540,10 +540,10 @@
   },
   "dock_closed": {
    "source": "index.json",
-   "client_commit": "87d18d95",
+   "client_commit": "55ef1d1e",
    "physical_scale": "auto",
    "hud_width": "full",
-   "note": "the S12b Slice 0 working tree over 87d18d95 (the commit that lands this record carries the same client files); Slice 3 re-shoots it on its committed tree beside dock_open",
+   "note": "the client of 55ef1d1e (S12b Slice 2) with Slice 3's request counter in api_client.gd beside it (it draws nothing): the war room's whole-map view with nothing pinned; payloads captured on the same tree",
    "surfaces": [
     "war_room_boot"
    ],
@@ -574,6 +574,102 @@
     {
      "surface": "war_room_boot",
      "res": "5120x1440",
+     "what": "fog_chip:?"
+    }
+   ]
+  },
+  "dock_open": {
+   "source": "index.json",
+   "client_commit": "55ef1d1e",
+   "physical_scale": "auto",
+   "hud_width": "full",
+   "note": "the client of 55ef1d1e (S12b Slice 2) with Slice 3's request counter in api_client.gd beside it (it draws nothing): the Strategic Ledger and the Generals pinned at the Side Desk beside the war room, the map re-fitted into the room left of the dock; payloads captured on the same tree",
+   "surfaces": [
+    "side_desk_ledger",
+    "side_desk_generals"
+   ],
+   "resolutions": [
+    "1920x1080",
+    "2560x1440",
+    "3440x1440",
+    "5120x1440",
+    "3840x2160",
+    "1920x1080",
+    "2560x1440",
+    "3440x1440",
+    "5120x1440",
+    "3840x2160"
+   ],
+   "map_frames": 10,
+   "map_overlaps_count": 0,
+   "map_overlaps_by_resolution": {
+    "1920x1080": 0,
+    "2560x1440": 0,
+    "3440x1440": 0,
+    "5120x1440": 0,
+    "3840x2160": 0
+   },
+   "map_overlaps_by_kind": {},
+   "map_overlaps": [],
+   "map_hidden": [
+    {
+     "surface": "side_desk_ledger",
+     "res": "1920x1080",
+     "what": "fog_name:Mack"
+    },
+    {
+     "surface": "side_desk_ledger",
+     "res": "1920x1080",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "side_desk_ledger",
+     "res": "1920x1080",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "side_desk_ledger",
+     "res": "1920x1080",
+     "what": "garrison:?"
+    },
+    {
+     "surface": "side_desk_ledger",
+     "res": "2560x1440",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "side_desk_ledger",
+     "res": "5120x1440",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "side_desk_ledger",
+     "res": "3840x2160",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "side_desk_generals",
+     "res": "1920x1080",
+     "what": "fog_name:Mack"
+    },
+    {
+     "surface": "side_desk_generals",
+     "res": "1920x1080",
+     "what": "garrison:?"
+    },
+    {
+     "surface": "side_desk_generals",
+     "res": "2560x1440",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "side_desk_generals",
+     "res": "5120x1440",
+     "what": "fog_chip:?"
+    },
+    {
+     "surface": "side_desk_generals",
+     "res": "3840x2160",
      "what": "fog_chip:?"
     }
    ]

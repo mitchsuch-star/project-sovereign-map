@@ -1,0 +1,294 @@
+{
+ "date": "2026_10_14",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\816c7851-7853-464a-948b-af09429e4941\\scratchpad\\x28\\final\\index.json",
+ "surfaces": {
+  "war_room_boot": {
+   "surface": "The war room — map, command window, top bar (Begin the 1805 campaign)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 45,
+      "red": 0,
+      "p1": 0,
+      "ok": 45,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "side_desk_ledger": {
+   "surface": "The war room with the Strategic Ledger pinned at the Side Desk (UXR-D4)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 56,
+      "red": 0,
+      "p1": 0,
+      "ok": 56,
+      "map": 30,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 56,
+      "red": 0,
+      "p1": 0,
+      "ok": 56,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 56,
+      "red": 0,
+      "p1": 0,
+      "ok": 56,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 56,
+      "red": 0,
+      "p1": 0,
+      "ok": 56,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 56,
+      "red": 0,
+      "p1": 0,
+      "ok": 56,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "side_desk_generals": {
+   "surface": "The war room with the Generals pinned at the Side Desk (UXR-D4)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 48,
+      "red": 0,
+      "p1": 0,
+      "ok": 48,
+      "map": 32,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 48,
+      "red": 0,
+      "p1": 0,
+      "ok": 48,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 48,
+      "red": 0,
+      "p1": 0,
+      "ok": 48,
+      "map": 34,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 48,
+      "red": 0,
+      "p1": 0,
+      "ok": 48,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 48,
+      "red": 0,
+      "p1": 0,
+      "ok": 48,
+      "map": 33,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "55ef1d1e",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}
