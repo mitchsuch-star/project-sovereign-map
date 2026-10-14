@@ -240,7 +240,7 @@ Each row gets one class, `TestDDB<n>`, as its completion names it. Drive the rea
   - Park a later slice's test edits outside `tests/` before committing an earlier slice. An untracked test in `tests/` runs in the hook.
   - Do not edit files the tests read while a commit's hook runs.
 - **`PYTHONDONTWRITEBYTECODE=1`** fails two stale-bytecode pins. Run pytest and `git commit` with `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING`.
-- **The hook** runs ruff and the full parallel suite (about 6:20; 30,976 tests at S13's end).
+- **The hook** runs ruff and the full parallel suite (about 6:20; 30,981 tests at S13's end).
   - Commit with `run_in_background: true` from Bash, with a message file, and never `--no-verify`.
   - Read the log's `[pre-commit]` and `EXIT=` lines before believing a commit.
   - The G4 timing pin can fail under load. Re-run it alone; if it passes, re-commit unchanged.
@@ -268,7 +268,7 @@ Each row gets one class, `TestDDB<n>`, as its completion names it. Drive the rea
 - Golden Rule 8: no per-region scan in a hot path.
 - Golden Rule 9: nothing deferred without a home.
 
-**Open with the user:** UXR-4 at S15: S12's eleven R2 marks, and S12b's and DD-B's frames. Nothing in part 1 waits on it.
+**Open with the user:** UXR-4 at S15 (S12's eleven R2 marks, and S12b's and DD-B's frames), and a code-signing certificate before S15. Nothing in part 1 waits on either.
 
 **Do not:**
 - edit `docs/UX_CHECKLIST_V1.json`;
