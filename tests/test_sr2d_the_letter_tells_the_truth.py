@@ -197,7 +197,8 @@ class TestTheLetterSubtractsWhatItCarves:
         prov = _occupy_an_austrian_home_province(world)
         war_id, inst, _ = _boot_war(world)
         without_terms = _derive_status_quo_lines(world, inst)
-        assert any(prov in line and line.startswith("France retains")
+        # DDB-X9: the ratifier's sentence ("… stays ours by the treaty").
+        assert any(prov in line and "ours by the treaty" in line
                    for line in without_terms), without_terms
         carve = {"type": "create_client", "from": "France", "to": "Austria",
                  "tag": "Carved", "provinces": [prov],

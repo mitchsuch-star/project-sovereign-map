@@ -90,26 +90,14 @@ def set_relation(world, nation_a, nation_b, value):
     world.nation_relations[key] = value
 
 
-def _p1_board_at_the_old_weight(monkeypatch):
-    """DDB-X5 (DW-2, Pre-Deploy S13b): these pins test P1's THRESHOLD
-    arithmetic (personality, exhaustion, the league's arms). At a war score
-    of -50 and below, the winner's steeper reading (x0.65) keeps the bare
-    test letter under the AI's send filter whatever the board, so the
-    threshold is read at the pre-DW-2 x0.3 through the weight's one seam;
-    DDB-X5's own pin is `test_ddb_s13b_the_rulings.py::TestDDBX5`."""
-    from backend.game_logic import diplomacy as _D
-    monkeypatch.setattr(_D, "bilateral_war_score_weight", lambda: 0.3)
-
-
 def _boost_past_the_filter(world):
-    """DDB-X5 (DW-2, Pre-Deploy S13b): the winner reads a beaten court's
-    peace at the settlement scorer's felt weight (x0.65, was x0.3), so the
-    P1 letter clears the AI's "never sent to be refused" filter (score >= 20)
-    only with the opening bloc's hegemony tax off and relations warm (the
-    war caps their term at +10). The threshold logic these tests pin is
-    unchanged; only the board that lets the letter be sent is."""
-    _clear_opening_bloc(world)
-    set_relation(world, "France", "Prussia", 40)
+    """Boost acceptance past the AI's send filter: the board these pins were
+    written on (relations +20). DDB-X11 (Pre-Deploy S13b part 2): DDB-X5 had
+    to clear the opening bloc and warm relations to +40 while a beaten
+    court's letter fell under the filter at x0.65; the filter is re-read at
+    the shipped weight (`ai_diplomacy._send_floor`), so the board is the
+    original one again."""
+    set_relation(world, "France", "Prussia", 20)
 
 
 # ═══════════════════════════════════════════════════════
@@ -292,9 +280,8 @@ class TestA3P1ThresholdWE:
         result = process_diplomatic_phase("Prussia", world)
         assert result is None
 
-    def test_hawk_with_we_fires(self, monkeypatch):
+    def test_hawk_with_we_fires(self):
         """Hawk (delta -20) + WE=60: war_score=-58 < -57, fires."""
-        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
@@ -438,9 +425,8 @@ class TestA2CoalitionGuard:
         """Set up active coalition with given members."""
         world.active_coalition = {"members": members, "leader": members[0]}
 
-    def test_non_member_passes(self, monkeypatch):
+    def test_non_member_passes(self):
         """Non-coalition member can still sue for peace via P1."""
-        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
@@ -461,9 +447,8 @@ class TestA2CoalitionGuard:
         result = process_diplomatic_phase("Prussia", world)
         assert result is None
 
-    def test_member_ws_below_minus50(self, monkeypatch):
+    def test_member_ws_below_minus50(self):
         """Coalition member with war_score < -50 can break loyalty."""
-        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")
@@ -1067,9 +1052,8 @@ class TestIntegration:
         result = process_diplomatic_phase("Prussia", world)
         assert result is None
 
-    def test_a2_with_a3_we_bypass(self, monkeypatch):
+    def test_a2_with_a3_we_bypass(self):
         """Coalition member with high WE gets both A2 WE bypass and A3 threshold shift."""
-        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
@@ -1167,9 +1151,8 @@ class TestIntegration:
         assert result is not None
         assert result["proposal_type"] == "armistice"
 
-    def test_hawk_p1_threshold_with_we(self, monkeypatch):
+    def test_hawk_p1_threshold_with_we(self):
         """Hawk + WE combination: threshold = -40 + (-20) + we//20."""
-        _p1_board_at_the_old_weight(monkeypatch)
         world = make_world()
         _clear_opening_bloc(world)
         set_war(world, "France", "Prussia")

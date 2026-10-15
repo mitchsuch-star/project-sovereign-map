@@ -71,7 +71,9 @@ class TestSettlementOfferPopupIsRebuiltOnActivation:
             "proposer_nation": "Britain",
             "accepting_side": "attackers",
             "accepting_leader": "France",
-            "covered_enemy_participants": ["Britain"],
+            # DDB-X9: the letter titles only the pairs it resolves, so the
+            # offer covers Austria, whose province the capture moves.
+            "covered_enemy_participants": ["Britain", "Austria"],
             "settlement_terms": [{"type": "peace"}],
             "turn_created": int(world.current_turn),
         }

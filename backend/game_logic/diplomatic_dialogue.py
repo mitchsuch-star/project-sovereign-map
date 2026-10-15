@@ -1421,37 +1421,9 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # the one the proposal never named was the enemy's. The forecast is
     # `game_end.status_quo_forecast`, the ratifier's own rule; a truce
     # titles nothing, so only a peace from war or truce carries it.
-    if ((terms.get("type") or proposal_type) == "peace"
-            and str(world.get_diplomatic_state(player_nation, target_nation) or "")
-            in ("WAR", "ARMISTICE")):
-        from backend.game_logic.game_end import status_quo_forecast_lines
-        from backend.game_logic.settlement_scoring import cession_shaped_regions as _csr
-        _moved = set()
-        for _clause in (list(terms.get("sweeteners", []) or [])
-                        + list(terms.get("demands", []) or [])
-                        + list(terms.get("clauses", []) or [])):
-            if isinstance(_clause, dict):
-                _moved.update(str(r) for r in _csr(_clause))
-        _sq = status_quo_forecast_lines(world, player_nation, target_nation,
-                                        player_nation, moved=_moved)
-        # Both display paths, the estate warning's precedent — but an
-        # annotated row only where the annotated section already renders
-        # (the client falls back to the plain summary when it is empty, and
-        # a lone status-quo row would hide a white peace's own summary).
-        _annotated = dialogue.get("annotated_terms")
-        _rows = _annotated if isinstance(_annotated, list) and _annotated else None
-        for _line in _sq["lines"]:
-            dialogue.setdefault("proposal_terms_summary", []).append(_line)
-            if _rows is not None:
-                _rows.append({"type": "status_quo", "term_direction": "mutual",
-                              "display_label": _line})
-        for _warn in _sq["warnings"]:
-            dialogue.setdefault("proposal_terms_summary", []).append("WARNING: " + _warn)
-            if _rows is not None:
-                _rows.append({"type": "status_quo_warning", "term_direction": "concession",
-                              "display_label": "WARNING: " + _warn})
-        dialogue["status_quo_forecast"] = {"lines": list(_sq["lines"]),
-                                           "warnings": list(_sq["warnings"])}
+    if (terms.get("type") or proposal_type) == "peace":
+        attach_status_quo_forecast(world, dialogue, player_nation, target_nation,
+                                   terms, summary_key="proposal_terms_summary")
 
     peace_proposal_types = {"peace", "armistice", "armistice_losing", "armistice_winning"}
     if proposal_type in peace_proposal_types or terms.get("type") in peace_proposal_types:
@@ -1664,6 +1636,49 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
                 dialogue["options"] = _desk_options
 
     return dialogue
+
+
+def attach_status_quo_forecast(world, payload: Dict, player_nation: str,
+                               other: str, terms: Dict, *,
+                               summary_key: Optional[str] = None) -> Dict:
+    """SF7-X7: a bilateral PEACE between `player_nation` and `other` (from
+    WAR or ARMISTICE) says what EACH side keeps — `game_end.status_quo_
+    forecast_lines`, the ratifier's own rule, from the player's chair, the
+    provinces the terms themselves move left out. One reader for the
+    outgoing preview and (DDB-X12, Pre-Deploy S13b part 2) a court's own
+    peace letter, which titled the status quo at the signature and never
+    listed it. Rows go to `annotated_terms` only where that section already
+    renders (a lone status-quo row would hide a white peace's own summary);
+    `summary_key` names the plain summary list, when the surface has one."""
+    if str(world.get_diplomatic_state(player_nation, other) or "") not in ("WAR", "ARMISTICE"):
+        payload.pop("status_quo_forecast", None)
+        return payload
+    from backend.game_logic.game_end import status_quo_forecast_lines
+    from backend.game_logic.settlement_scoring import cession_shaped_regions as _csr
+    moved = set()
+    for clause in (list(terms.get("sweeteners", []) or [])
+                   + list(terms.get("demands", []) or [])
+                   + list(terms.get("clauses", []) or [])):
+        if isinstance(clause, dict):
+            moved.update(str(r) for r in _csr(clause))
+    sq = status_quo_forecast_lines(world, player_nation, other, player_nation, moved=moved)
+    annotated = payload.get("annotated_terms")
+    rows = annotated if isinstance(annotated, list) and annotated else None
+    for line in sq["lines"]:
+        if summary_key:
+            payload.setdefault(summary_key, []).append(line)
+        if rows is not None:
+            rows.append({"type": "status_quo", "term_direction": "mutual",
+                         "display_label": line})
+    for warn in sq["warnings"]:
+        if summary_key:
+            payload.setdefault(summary_key, []).append("WARNING: " + warn)
+        if rows is not None:
+            rows.append({"type": "status_quo_warning", "term_direction": "concession",
+                         "display_label": "WARNING: " + warn})
+    payload["status_quo_forecast"] = {"lines": list(sq["lines"]),
+                                      "warnings": list(sq["warnings"])}
+    return payload
 
 
 def _format_terms_for_display(terms: Dict, proposal_type: str, target_nation: str) -> list:

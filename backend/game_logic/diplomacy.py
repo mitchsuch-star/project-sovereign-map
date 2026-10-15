@@ -247,7 +247,13 @@ SWEETENER_CAP = 60                 # R146: was 30, raised to 60 so escalated off
 # battle-vs-territory re-weight on `calculate_war_score` itself — is
 # deliberately NOT built here: the gate defers it to a judgement after the
 # playtest, because it is a balance retune that wants a played campaign.
-WAR_AGE_PENALTY_MAX = 30      # at the moment the war is declared
+#
+# DDB-X11 (Pre-Deploy S13b part 2, October 15, 2026): the curve was sized
+# against the bilateral's x0.3 war credit; DW-2 (DDB-X5) raised that credit to
+# the table's x0.65, so a two-turn war at +30 cashed out again. The maximum
+# scales by the same ratio — 30 x 0.65 / 0.3 = 65 — one demand-side reading
+# beside one credit.
+WAR_AGE_PENALTY_MAX = 65      # at the moment the war is declared
 WAR_AGE_PENALTY_WINDOW = 8    # turns until it has decayed to nothing
 
 # War-ENDING or war-SUSPENDING instruments only. Alliances, open borders and
@@ -282,8 +288,8 @@ def war_age_acceptance_mod(turns_at_war, *, extracts_value: bool) -> int:
     because the two acceptance seams have different authorities for it — the
     bilateral scorer reads `world.war_start_turns[pair]`, the common-peace
     scorer reads the war instance's own start turn — and neither should be
-    re-deriving the shape. -30 on the turn war is declared, decaying linearly
-    to 0 by turn 8.
+    re-deriving the shape. -65 on the turn war is declared (DDB-X11; -30 at
+    the old x0.3 credit), decaying linearly to 0 by turn 8.
 
     `turns_at_war=None` means "age unknown" and returns 0. That is the
     deliberate direction: an instance missing its start key must not be
@@ -7874,7 +7880,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # same as "it began this turn". R142's default below cannot tell them
     # apart, and it does not need to: collapsing both to 0 is harmless for a
     # BONUS. It is wrong for a PENALTY — an unrecorded war would be charged
-    # the full -30 forever — so the age term reads presence explicitly.
+    # the full maximum forever — so the age term reads presence explicitly.
     turns_at_war_for_age = None
     if current_diplo_state == "WAR":
         _war_starts = getattr(world, 'war_start_turns', {}) or {}

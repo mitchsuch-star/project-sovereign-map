@@ -537,6 +537,20 @@ def attach_peace_preview(world, payload: Dict, nation: str, terms: Dict) -> Dict
         snapshot["harshness_label"] = get_harshness_label(_our_burden)
         payload["harshness"] = snapshot["harshness"]
         payload["harshness_label"] = snapshot["harshness_label"]
+        # DDB-X12 (Pre-Deploy S13b part 2): a court's peace letter says what
+        # each side keeps, as France's own preview does — the signature
+        # titles the status quo. Re-read at every show; the previous show's
+        # plain lines are dropped first, so nothing is said twice.
+        if proposal_type == "peace":
+            from backend.game_logic.diplomatic_dialogue import attach_status_quo_forecast
+            _prior = payload.get("status_quo_forecast") or {}
+            _stale = set(_prior.get("lines") or []) | {
+                "WARNING: " + w for w in (_prior.get("warnings") or [])}
+            if _stale and isinstance(payload.get("clauses"), list):
+                payload["clauses"] = [c for c in payload["clauses"] if c not in _stale]
+            attach_status_quo_forecast(
+                world, payload, player_nation, nation, terms,
+                summary_key=None if payload.get("annotated_terms") else "clauses")
     except Exception as exc:
         report(exc, "mailbox_payloads.attach_peace_preview: import backend.game_logic.diplomacy")
         payload["annotated_terms"] = []

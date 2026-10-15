@@ -351,8 +351,11 @@ class TestTerritorialHonesty:
         world.invalidate_active_nations_cache()
         lines = _derive_status_quo_lines(
             world, self._war(Britain="attackers", France="defenders"))
+        # DDB-X9: the ratifier's own sentence from France's chair — French
+        # homeland the other side keeps is the closed-frontier warning.
         assert len(lines) == 1
-        assert lines[0] == f"Britain retains {', '.join(sorted(occupied))}"
+        assert "Britain" in lines[0] and "closed frontier" in lines[0]
+        assert all(r in lines[0] for r in occupied)
 
     def test_no_line_without_occupation(self, world):
         lines = _derive_status_quo_lines(
@@ -377,11 +380,15 @@ class TestTerritorialHonesty:
         target = russia_home[0]
         world.regions[target].controller = "Austria"
         world.invalidate_active_nations_cache()
+        # DDB-X9: the ratifier titles a pair the peace resolves — Austria
+        # and Russia must be at war for the treaty to fix Austria's hold.
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        set_diplomatic_state(world, "Austria", "Russia", "WAR")
         lines = _derive_status_quo_lines(
             world, self._war(Austria="attackers", Russia="defenders",
                              France="defenders"))
-        assert any(line.startswith("Austria retains") and target in line
-                   for line in lines)
+        assert any(line.startswith("Status quo:") and target in line
+                   and "Austria" in line for line in lines), lines
 
     def test_offer_popup_appends_status_quo(self, world):
         france_home = list(world.nation_starting_regions.get("France", []))
@@ -408,8 +415,10 @@ class TestTerritorialHonesty:
             "settlement_terms": [{"type": "peace"}],
             "turn_created": 1,
         })
+        # DDB-X9: French homeland Britain keeps is the review's own
+        # closed-frontier warning, word for word.
         status_lines = [s for s in payload["terms_summary"]
-                        if s.startswith("Status quo:")]
+                        if "closed frontier" in s]
         assert len(status_lines) == 1
-        assert "Britain retains" in status_lines[0]
+        assert "Britain" in status_lines[0]
         assert occupied in status_lines[0]

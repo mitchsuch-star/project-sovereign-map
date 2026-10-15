@@ -2591,36 +2591,40 @@ def _provinces_the_terms_move(
 def _derive_status_quo_lines(
     world: Any, war: Any,
     settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
+    *,
+    accepting_side: Optional[str] = None,
+    covered: Optional[Iterable[str]] = None,
 ) -> List[str]:
-    """W6-10 (E-CA-5): who keeps what, derived from current controller vs
-    `nation_starting_regions` across the war's opposing participants.
-    One clause per occupier holding enemy homeland soil.
+    """W6-10 (E-CA-5): who keeps what. DDB-X9 (Pre-Deploy S13b part 2): in
+    the ratifier's own words — the review's reader
+    (`settlement_staging.settlement_status_quo_review`, i.e.
+    `game_end.status_quo_forecast_lines` per cross-side pair the peace
+    resolves: the retention the signing runs, DDB-12's homeland returns
+    included), from the player's chair, their homeland first. The old
+    homeland-only rule left a conquest titled outside a homeland unlisted
+    and read an ally's retaken homeland as "retained", where the signature
+    titles it home; the letter and the review now say the same thing.
 
     SR-2d (SR-2-X2): a province the SAME package carves or cedes is left
-    out — the treaty moves it, so nobody "retains" it (the ratified line
-    already reads that way; the letter now agrees with it)."""
+    out — the treaty moves it, so nobody "retains" it.
+
+    `accepting_side` defaults to the player's side, `covered` to every
+    court of the other side; only pairs at WAR or ARMISTICE are read."""
     if not isinstance(war, Mapping):
         return []
     side_by_nation = war.get("side_by_nation") or {}
-    participants = list(side_by_nation)
-    moved = _provinces_the_terms_move(settlement_terms)
-    lines: List[str] = []
-    for occupier in participants:
-        occupier_side = side_by_nation.get(occupier)
-        occupier_regions = world.get_nation_regions(occupier)
-        held: List[str] = []
-        for victim in participants:
-            if victim == occupier:
-                continue
-            if side_by_nation.get(victim) == occupier_side:
-                continue
-            victim_home = set(
-                world.nation_starting_regions.get(victim, []) or [])
-            held.extend(r for r in occupier_regions
-                        if r in victim_home and r not in moved)
-        if held:
-            lines.append(f"{occupier} retains {', '.join(sorted(held))}")
-    return lines
+    player = str(getattr(world, "player_nation", "France") or "France")
+    side = str(accepting_side or side_by_nation.get(player) or "")
+    if side not in VALID_SIDES:
+        return []
+    courts = [str(n) for n in (covered or []) if n]
+    if not courts:
+        courts = [n for n, s in side_by_nation.items() if s and s != side]
+    from backend.game_logic.settlement_staging import (
+        settlement_status_quo_review,
+    )
+    return settlement_status_quo_review(
+        world, war, side, courts, list(settlement_terms or []))
 
 
 # SR-2d (SR-2-X5, Score Mandate Chunk 2 exit, September 26, 2026): the
@@ -2850,9 +2854,15 @@ def build_incoming_settlement_offer_popup(
     # SR-2d (SR-2-X2): a province this same letter carves or cedes is not
     # "retained" — the terms are passed so the line reads as the ratified
     # line will.
-    status_quo = _derive_status_quo_lines(world, war, settlement_terms)
-    if status_quo:
-        terms_summary.append("Status quo: " + "; ".join(status_quo) + ".")
+    # DDB-X9: the review's own sentences, pair by pair, for the courts this
+    # letter covers (still at war) — one reading on one board.
+    _sq_covered: List[str] = []
+    if war_id and accepting_side in VALID_SIDES:
+        _sq_covered, _ = _live_covered_for_offer(
+            world, war_id=war_id, dialogue=offer)
+    terms_summary.extend(_derive_status_quo_lines(
+        world, war, settlement_terms, accepting_side=accepting_side or None,
+        covered=_sq_covered))
 
     # SC-5R-2: action labels must match behavior. `accept_settlement_offer`
     # stages a fresh `settlement_confirm` review (not an immediate

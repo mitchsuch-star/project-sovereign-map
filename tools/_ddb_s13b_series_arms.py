@@ -12,10 +12,13 @@ the code-health ratchet forbids a new lever):
     X = diplomacy.bilateral_war_score_weight   (DDB-X5 / DW-2: x0.65; down -> 0.3)
     S = settlement_scoring._has_non_trivial_terms (DDB-6: proposer-paid terms skipped; down -> the shipped read)
     H = game_end.homeland_returns         (DDB-12: an ally's retaken homeland goes home; down -> no returns)
+    A = diplomacy.war_age_acceptance_mod  (DDB-X11, part 2: the curve's maximum 65; down -> the -30 curve)
+    F = ai_diplomacy._send_floor          (DDB-X11, part 2: the send filter re-read at x0.65; down -> 20)
 
 DDB-1, DDB-4, DDB-5, DDB-7 … 11 and DDB-X8 / X10 are the player's own roads
 (the passive France never proposes, counters or opens a table) or display
-reads; they have no seam here.
+reads; they have no seam here. Nor do part 2's DDB-X9 / X12 (the letters'
+status-quo lines: display, read when a letter is shown).
 
 Arm 0 (every lever down) must reproduce the recorded series byte for byte.
 The reach is COUNTED in the child — for a lever whose arm is byte-identical,
@@ -50,6 +53,10 @@ LEVERS = {
     "S": ("backend.game_logic.settlement_scoring", "_has_non_trivial_terms",
           "_orig(a[0], ())"),
     "H": ("backend.game_logic.game_end", "homeland_returns", "(a[3], {})"),
+    "A": ("backend.game_logic.diplomacy", "war_age_acceptance_mod",
+          "(0 if (not k.get('extracts_value') or a[0] is None or max(0, int(a[0])) >= 8)"
+          " else -int(round(30 * (8 - max(0, int(a[0]))) / 8)))"),
+    "F": ("backend.game_logic.ai_diplomacy", "_send_floor", "20.0"),
 }
 ARMS = {"0": set(), **{k: {k} for k in LEVERS}, "ALL": set(LEVERS)}
 
@@ -104,6 +111,21 @@ def _rel(world, marshal):
     _c["release_home|" + str(getattr(marshal, "name", "")) + "|" + ("beat" if out else "none")] += 1
     return out
 CG.release_home = _rel
+import backend.game_logic.ai_diplomacy as AID
+_o_floor = AID._send_floor
+def _floor(proposal, world, nation):
+    out = _o_floor(proposal, world, nation)
+    if out < 20:
+        _c["send_floor_lowered|" + str(nation)] += 1
+    return out
+AID._send_floor = _floor
+_o_age = DP.war_age_acceptance_mod
+def _age(turns_at_war, *, extracts_value):
+    out = _o_age(turns_at_war, extracts_value=extracts_value)
+    if out:
+        _c["war_age_charged|" + str(out)] += 1
+    return out
+DP.war_age_acceptance_mod = _age
 
 def _dump():
     print("REACH=" + repr(dict(_c)))

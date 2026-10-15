@@ -73,7 +73,8 @@ def mechanic_off(monkeypatch):
 
 class TestTheCurve:
     def test_full_penalty_on_the_turn_war_is_declared(self):
-        assert war_age_acceptance_mod(0, extracts_value=True) == -30
+        # DDB-X11 (S13b part 2): 30 x 0.65 / 0.3 = 65 at the shipped credit.
+        assert war_age_acceptance_mod(0, extracts_value=True) == -65
 
     def test_decays_to_nothing_by_the_window(self):
         assert war_age_acceptance_mod(
@@ -103,7 +104,7 @@ class TestTheCurve:
         assert war_age_acceptance_mod(None, extracts_value=True) == 0
 
     def test_negative_age_cannot_exceed_the_maximum(self):
-        assert war_age_acceptance_mod(-5, extracts_value=True) == -30
+        assert war_age_acceptance_mod(-5, extracts_value=True) == -65  # DDB-X11
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -232,11 +233,8 @@ class TestTheCheeseIsClosed:
         terms = generate_suggested_terms("Prussia", "peace", world)
         return [d.get("type") for d in (terms.get("demands") or [])]
 
-    def test_arm_a_a_two_turn_war_yields_no_recommended_extraction(self, europe, monkeypatch):
-        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
-        # at x0.65 this arm re-opens at +30: DDB-X11, heads S13b part 2.
-        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
-                            'bilateral_war_score_weight', lambda: 0.3)
+    def test_arm_a_a_two_turn_war_yields_no_recommended_extraction(self, europe):
+        # DDB-X11 (S13b part 2): read at the shipped weight (x0.65).
         assert self._suggested_demands(europe, 1) == [], (
             "Talleyrand still recommends cashing out a war two turns old")
 

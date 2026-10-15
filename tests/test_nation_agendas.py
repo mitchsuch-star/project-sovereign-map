@@ -1313,14 +1313,11 @@ class TestPressburgArm:
         world.invalidate_bloc_members_cache()
         assert agenda_separate_peace_ready("Austria", world)
 
-    def test_satisfied_member_breaks_ranks(self, world, monkeypatch):
+    def test_satisfied_member_breaks_ranks(self, world):
         """The Pressburg pin pair: at war_score -49 (past the P1 threshold,
         NOT past the stock -50 coalition gate) a satisfied Austria sues for
         a separate armistice; the boot (denied) Austria stays loyal."""
-        # DDB-X5 (S13b): P1's threshold logic, read at the pre-DW-2 x0.3 —
-        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
-        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
-                            'bilateral_war_score_weight', lambda: 0.3)
+        # DDB-X11 (S13b part 2): read at the shipped weight (x0.65).
         from backend.game_logic.ai_diplomacy import process_diplomatic_phase
         key = world._make_diplo_key("Austria", "France")
         world.war_scores[key] = -49  # Austria (first in key) losing 49
@@ -1404,15 +1401,12 @@ class TestResolveWiring:
     Austria's diplomat is a schemer (peace_threshold_delta 0), boot WE 0,
     no war objectives → the stock effective threshold is exactly -40."""
 
-    def test_advancing_design_holds_the_court_in_the_war(self, world, monkeypatch):
+    def test_advancing_design_holds_the_court_in_the_war(self, world):
         """France's bloc holds Milan — the war ADVANCES redeem_italy, so
         the threshold hardens -40 → -48 and Austria at -45 fights on.
         Deleting the §5.5 wiring fails the second half: the same score
         with the deck stripped sues immediately."""
-        # DDB-X5 (S13b): P1's threshold logic, read at the pre-DW-2 x0.3 —
-        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
-        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
-                            'bilateral_war_score_weight', lambda: 0.3)
+        # DDB-X11 (S13b part 2): read at the shipped weight (x0.65).
         from backend.game_logic.ai_diplomacy import process_diplomatic_phase
         world.active_coalition = None  # isolate P1 from the loyalty gate
         _set_war_score(world, "Austria", "France", -45)
@@ -1426,15 +1420,12 @@ class TestResolveWiring:
         assert (result is not None
                 and result["proposal_type"] == "armistice_losing")
 
-    def test_satisfied_design_sues_sooner_and_breaks_ranks(self, world, monkeypatch):
+    def test_satisfied_design_sues_sooner_and_breaks_ranks(self, world):
         """Austria holding all of redeem_italy sues at -35 (threshold
         -40 → -30) THROUGH the boot coalition — the Pressburg arm
         (-35 < -30) unlocks the loyalty gate the same turn the resolve
         delta opens the P1 gate: §5.4's 'completed by NA-3' note."""
-        # DDB-X5 (S13b): P1's threshold logic, read at the pre-DW-2 x0.3 —
-        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
-        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
-                            'bilateral_war_score_weight', lambda: 0.3)
+        # DDB-X11 (S13b part 2): read at the shipped weight (x0.65).
         from backend.game_logic.ai_diplomacy import process_diplomatic_phase
         _set_war_score(world, "Austria", "France", -35)
         result = process_diplomatic_phase("Austria", world)

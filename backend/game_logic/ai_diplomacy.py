@@ -2219,7 +2219,8 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
 
     # AI won't propose something that would be auto-rejected (score < 20)
     # A1: _force_send bypasses this filter for fallback proposals
-    if score < 20 and not proposal.get("_force_send"):
+    if (score < _send_floor(proposal, world, nation)
+            and not proposal.get("_force_send")):
         return None
 
     # Fix 11 / R126: Record metadata AFTER acceptance check passes
@@ -2235,6 +2236,36 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # dialogue_manager.push() — no separate queue needed. The dialogue
     # manager handles queuing internally when another dialogue is active.
     return proposal
+
+
+AI_SEND_FLOOR = 20                    # "never sent to be refused"
+AI_SEND_FLOOR_CALIBRATION_WEIGHT = 0.3  # the bilateral war credit it was set at
+_HONEST_LETTER_TYPES = frozenset({
+    "peace", "armistice", "armistice_losing", "armistice_stalemate"})
+
+
+def _send_floor(proposal: Dict, world, nation: str) -> float:
+    """DDB-X11 (Pre-Deploy S13b part 2): the AI's send filter, re-read at the
+    shipped weight. The floor (20) was set when the bilateral credited war
+    dominance at x0.3; DW-2 (DDB-X5) raised that credit to the table's x0.65,
+    so the WINNER now reads a beaten court's letter steeper by
+    (w - 0.3) x |war score| — and a beaten court's honest truce or peace
+    (one that asks the winner for nothing) fell under the filter on the board
+    where it had always been sent. For that letter the floor falls by exactly
+    the extra steepness; the player still reads the letter at its honest
+    x0.65 score. A letter that demands anything clears the plain floor."""
+    terms = proposal.get("terms") or {}
+    ptype = str(proposal.get("proposal_type") or terms.get("type") or "")
+    player = getattr(world, "player_nation", "France")
+    if (ptype not in _HONEST_LETTER_TYPES
+            or str(terms.get("target_nation") or player) != player
+            or terms.get("demands")):
+        return float(AI_SEND_FLOOR)
+    from backend.game_logic.diplomacy import bilateral_war_score_weight
+    losing_by = max(0, -int(get_war_score_for(world, nation, player) or 0))
+    extra = max(0.0, bilateral_war_score_weight() - AI_SEND_FLOOR_CALIBRATION_WEIGHT)
+    # Rounded as the score is, so a letter at the old floor stays sent.
+    return float(AI_SEND_FLOOR - int(round(extra * losing_by)))
 
 
 def _make_proposal(

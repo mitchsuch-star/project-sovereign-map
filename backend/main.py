@@ -6822,7 +6822,9 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     elif dtype == "incoming_settlement_offer":
         # REBUILD every activation, exactly like the proposal arm above. The
         # offer's territorial clause is DERIVED from current controllers
-        # (`_derive_status_quo_lines`), so re-showing a cached payload told
+        # (`_derive_status_quo_lines` — since DDB-X9 the ratifier's own
+        # `status_quo_forecast_lines`, as the review reads them), so
+        # re-showing a cached payload told
         # the player who held what on the turn the offer ARRIVED: a turn-3
         # offer re-opened on turn 8 still read "Austria retains Swabia"
         # after France had retaken it — false facts on the surface where

@@ -501,9 +501,12 @@ class TestFix11ProposalMetadata:
         # Give Austria gold so it tries to build a proposal
         world.nation_gold[nation] = 500
 
-        # Mock acceptance to return very low score (below 20 threshold)
+        # Mock acceptance to return very low score (below the send floor).
+        # DDB-X11 (S13b part 2): a beaten court's honest letter reads the
+        # floor re-read at the shipped weight (20 - 0.35 x 80 = -8 here), so
+        # "very low" sits under it.
         with patch("backend.game_logic.ai_diplomacy.calculate_acceptance") as mock_accept:
-            mock_accept.return_value = {"score": 5, "factors": []}
+            mock_accept.return_value = {"score": -50, "factors": []}
 
             from backend.game_logic.ai_diplomacy import process_diplomatic_phase
             result = process_diplomatic_phase(nation, world)

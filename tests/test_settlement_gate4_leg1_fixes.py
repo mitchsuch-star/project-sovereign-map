@@ -1459,16 +1459,19 @@ class TestDialTerritoryEscalation:
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
-def _bilateral_war_world(*, france_gold=2000, britain_dp=3, relations=-40):
+def _bilateral_war_world(*, france_gold=2000, britain_dp=3, relations=-40,
+                         war_score=50):
     """France vs Britain bilateral WAR in the COUNTER band shape the live
-    smoke reproduced (France winning ~+50, hostile relations)."""
+    smoke reproduced (France winning ~+50, hostile relations). DDB-X11:
+    at the shipped x0.65 credit the same band sits at +23 (0.65 x 23 ~
+    0.3 x 50); the band pins pass `war_score=23`."""
     from backend.game_logic.diplomacy import set_diplomatic_state
 
     world = WorldState()
     set_diplomatic_state(world, "France", "Britain", "WAR", "g4f13-fixture")
     key = world._make_diplo_key("France", "Britain")
     world.nation_relations[key] = relations
-    world.war_scores[key] = 50 if key.split("|")[0] == "France" else -50
+    world.war_scores[key] = war_score if key.split("|")[0] == "France" else -war_score
     world.nation_gold["France"] = france_gold
     world.nation_dp = dict(getattr(world, "nation_dp", {}) or {})
     world.nation_dp["Britain"] = britain_dp
@@ -1493,14 +1496,12 @@ class TestCounterOfferReachesThePlayer:
     diplomat), so a counter was structurally impossible for player-sent
     proposals."""
 
-    def test_player_sent_counter_band_proposal_yields_counter_dialogue(self, monkeypatch):
-        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
-        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
-        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
-                            'bilateral_war_score_weight', lambda: 0.3)
+    def test_player_sent_counter_band_proposal_yields_counter_dialogue(self):
+        # DDB-X11 (S13b part 2): read at the shipped weight (x0.65), the
+        # counter band at +23.
         from backend.game_logic.diplomacy import calculate_acceptance
 
-        world = _bilateral_war_world()
+        world = _bilateral_war_world(war_score=23)
         proposal = _armistice_proposal(sweeteners=[{"type": "gold_lump", "value": 200}])
         baseline = calculate_acceptance(proposal, world)
         assert baseline.get("outcome") == "COUNTER_OFFER", baseline
@@ -1549,12 +1550,10 @@ class TestCounterOfferReachesThePlayer:
         # though Britain's diplomat is a hawk (R125 accept=60 stays M3-only).
         assert calculate_acceptance(result, world)["score"] >= 50
 
-    def test_counter_degrades_honestly_when_payer_cannot_bridge(self, monkeypatch):
-        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
-        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
-        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
-                            'bilateral_war_score_weight', lambda: 0.3)
-        world = _bilateral_war_world(france_gold=0)
+    def test_counter_degrades_honestly_when_payer_cannot_bridge(self):
+        # DDB-X11 (S13b part 2): read at the shipped weight (x0.65), the
+        # counter band at +23.
+        world = _bilateral_war_world(france_gold=0, war_score=23)
         world.current_turn = 2
         proposal = _armistice_proposal()
         world.proposal_in_transit = {
@@ -1608,14 +1607,12 @@ class TestCounterOfferReachesThePlayer:
         assert world.nation_dp["Austria"] == 1
         assert world.nation_dp["Britain"] == 5
 
-    def test_preview_enrich_attaches_counter_constructibility(self, monkeypatch):
-        # DDB-X5 (S13b): the band this pin was calibrated in, read at the pre-DW-2 x0.3 —
-        # the steeper reading's own pin is test_ddb_s13b_the_rulings::TestDDBX5.
-        monkeypatch.setattr(__import__('backend.game_logic.diplomacy', fromlist=['x']),
-                            'bilateral_war_score_weight', lambda: 0.3)
+    def test_preview_enrich_attaches_counter_constructibility(self):
+        # DDB-X11 (S13b part 2): read at the shipped weight (x0.65), the
+        # counter band at +23.
         from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
 
-        world = _bilateral_war_world()
+        world = _bilateral_war_world(war_score=23)
         terms = _armistice_proposal()
         terms["type"] = "armistice_winning"
         dialogue = {
@@ -1629,7 +1626,7 @@ class TestCounterOfferReachesThePlayer:
         assert enriched.get("counter_constructible") is True
         assert enriched.get("acceptance_outcome_display") == "COUNTER expected"
 
-        broke = _bilateral_war_world(france_gold=0)
+        broke = _bilateral_war_world(france_gold=0, war_score=23)
         dialogue2 = {
             "type": "proposal_confirm",
             "target_nation": "Britain",

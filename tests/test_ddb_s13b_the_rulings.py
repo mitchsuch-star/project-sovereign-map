@@ -12,6 +12,17 @@
            refuses.
   DDB-X10  (found by DDB-X5) the armistice handoff carries concessions only —
            the drafted truce's own border demand is dropped and voiced.
+
+Part 2 (October 15, 2026), its head:
+
+  DDB-X9   a court's settlement offer lists who keeps what in the ratifier's
+           own words (`status_quo_forecast_lines` per covered pair), as the
+           review does — one reading on one board.
+  DDB-X11  one demand-side reading at x0.65: the war-age maximum scales with
+           the credit (30 -> 65); the AI's send filter is re-read at the
+           shipped weight, so a beaten court's honest letter is sent.
+  DDB-X12  (found by DDB-X9) a court's bilateral peace letter names what each
+           side keeps, as France's own preview does.
 """
 from __future__ import annotations
 
@@ -178,3 +189,204 @@ class TestDDBX10:
         assert bilateral.get("armistice_demands_dropped") is True
         assert "Waterloo" not in str(bilateral.get("proposal_terms_summary"))
         assert "concessions travel" in str(bilateral.get("talleyrand_text") or "").lower()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S13b part 2 — the found rows at its head
+# ═══════════════════════════════════════════════════════════════════════════
+
+@pytest.fixture
+def client(monkeypatch):
+    import backend.main as M
+    from backend.commands.parser import CommandParser
+    from fastapi.testclient import TestClient
+    for key in ("SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "SOVEREIGN_SMOKE_START"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("LLM_MODE", "mock")
+    with contextlib.redirect_stdout(io.StringIO()):
+        M._reset_world_state()
+    monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
+    return TestClient(M.app), M.world
+
+
+def _post(client, path: str, body: dict) -> dict:
+    with contextlib.redirect_stdout(io.StringIO()):
+        return client.post(path, json=body).json()
+
+
+def _get(client, path: str) -> dict:
+    with contextlib.redirect_stdout(io.StringIO()):
+        return client.get(path).json()
+
+
+def _sea_18(w) -> None:
+    """The sea #18 board: France holds Vienna, Bavaria has retaken
+    Franche-Comte from Austria."""
+    from backend.game_logic import game_end as GE
+    w.regions["Vienna"].controller = "France"
+    GE.record_province_title(w, "Vienna", GE.TITLE_CONQUEST, "Austria", "France")
+    w.regions["Franche-Comte"].controller = "Bavaria"
+    GE.record_province_title(w, "Franche-Comte", GE.TITLE_CONQUEST, "Austria", "Bavaria")
+    w.invalidate_active_nations_cache()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DDB-X9 — the letter's status quo is the ratifier's
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestDDBX9:
+    _SAID = [
+        "Status quo: Franche-Comte returns to us by the treaty — homeland retaken by an ally.",
+        "Status quo: Vienna stays ours by the treaty — titled.",
+    ]
+
+    @staticmethod
+    def _offer(w, seq: int = 1) -> dict:
+        war_id = next(wid for wid, inst in w.war_instances.items()
+                      if isinstance(inst, dict) and inst.get("ended_turn") is None
+                      and {"France", "Austria"} <= set(inst.get("side_by_nation") or {}))
+        side = w.war_instances[war_id]["side_by_nation"]
+        return {
+            "type": "incoming_settlement_offer",
+            "dialogue_type": "incoming_settlement_offer",
+            "offer_id": f"settlement_offer:{war_id}:{w.current_turn}:{seq}",
+            "war_id": war_id,
+            "proposer_nation": "Austria",
+            "proposer_side": side["Austria"],
+            "accepting_side": side["France"],
+            "accepting_leader": "France",
+            "covered_enemy_participants": ["Austria"],
+            "settlement_terms": [{"type": "peace"}],
+            "turn_created": int(w.current_turn),
+        }
+
+    @staticmethod
+    def _status(letter: dict) -> list:
+        return [s for s in letter["terms_summary"]
+                if s.startswith("Status quo:") or "closed frontier" in s]
+
+    def test_the_letter_and_the_review_say_the_same_thing(self, client):
+        from backend.game_logic.settlement_offers import promote_pending_settlement_offers
+        c, w = client
+        _sea_18(w)
+        offer = self._offer(w)
+        w.pending_settlement_dialogues = [offer]
+        with contextlib.redirect_stdout(io.StringIO()):
+            promote_pending_settlement_offers(w)
+        box = _get(c, "/mailbox")
+        item = next(i for i in box["items"] if i.get("source_nation") == "Austria"
+                    and i.get("item_type") == "incoming_settlement_offer")
+        shown = _post(c, "/mailbox/activate", {"mailbox_id": item["mailbox_id"]})
+        letter = shown["incoming_settlement_offer"]
+        assert self._status(letter) == self._SAID, letter["terms_summary"]
+        review = _post(c, "/respond_to_diplomatic_dialogue", {
+            "choice": "accept_settlement_offer",
+            "dialogue_id": (w.pending_diplomatic_dialogue or {}).get("dialogue_id")})
+        assert review["diplomatic_dialogue"]["status_quo_review"] == self._SAID
+
+    def test_a_conquest_outside_a_homeland_is_listed(self, w):
+        from backend.game_logic import game_end as GE
+        from backend.game_logic.settlement_offers import build_incoming_settlement_offer_popup
+        hanoverian = sorted(w.nation_starting_regions["Hanover"])[0]
+        w.regions[hanoverian].controller = "France"
+        GE.record_province_title(w, hanoverian, GE.TITLE_CONQUEST, "Austria", "France")
+        w.invalidate_active_nations_cache()
+        letter = build_incoming_settlement_offer_popup(w, self._offer(w))
+        assert f"Status quo: {hanoverian} stays ours by the treaty — titled." in self._status(letter)
+
+    def test_the_package_s_own_carve_is_left_out(self, w):
+        from backend.game_logic.settlement_offers import build_incoming_settlement_offer_popup
+        _sea_18(w)
+        offer = self._offer(w)
+        offer["settlement_terms"] = [{"type": "peace"}, {
+            "type": "territory_cede", "from": "France", "to": "Austria", "region": "Vienna"}]
+        status = self._status(build_incoming_settlement_offer_popup(w, offer))
+        assert not any("Vienna" in s for s in status), status
+        assert any("Franche-Comte returns to us" in s for s in status)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DDB-X12 (found by DDB-X9) — a court's peace letter names what each keeps
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestDDBX12:
+    _AUSTRIA = {"type": "peace", "proposer_nation": "Austria", "target_nation": "France",
+                "demands": [{"type": "gold_lump", "value": 300}], "sweeteners": [], "clauses": []}
+
+    def test_the_letter_lists_the_status_quo_as_the_preview_does(self, client):
+        from backend.game_logic.ai_diplomacy import _make_proposal, deliver_ai_proposal
+        from backend.game_logic.treaty import refresh_letter_verdict
+        _c, w = client
+        _sea_18(w)
+        with contextlib.redirect_stdout(io.StringIO()):
+            letter = deliver_ai_proposal(_make_proposal("Austria", "peace", 5, dict(self._AUSTRIA), w), w)
+        payload = letter["popup_payload"]
+        # A bilateral peace resolves France and Austria alone: Bavaria's
+        # retaken Franche-Comte is her own war's, so only Vienna is said.
+        said = ["Status quo: Vienna stays ours by the treaty — titled."]
+        assert payload["status_quo_forecast"]["lines"] == said
+        rows = [t["display_label"] for t in payload["war_context_snapshot"]["annotated_terms"]
+                if t.get("type") == "status_quo"] or [
+                    s for s in payload.get("clauses") or [] if s.startswith("Status quo:")]
+        assert rows == said
+        # Re-read at every show, never said twice.
+        again = refresh_letter_verdict(w, letter)
+        rows_again = [t["display_label"] for t in again["war_context_snapshot"]["annotated_terms"]
+                      if t.get("type") == "status_quo"] or [
+                          s for s in again.get("clauses") or [] if s.startswith("Status quo:")]
+        assert rows_again == said
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DDB-X11 — one demand-side reading at x0.65
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestDDBX11:
+    def test_the_war_age_maximum_scales_with_the_credit(self):
+        assert D.WAR_AGE_PENALTY_MAX == round(30 * SC.BASE_SIDE_PRESSURE_SCALE / 0.3) == 65
+        assert D.war_age_acceptance_mod(0, extracts_value=True) == -65
+        assert D.war_age_acceptance_mod(0, extracts_value=False) == 0
+
+    def test_a_two_turn_war_at_plus_thirty_recommends_no_extraction(self, w):
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        from tests.test_ca9_row1_war_age_penalty import _at_war
+        assert D.bilateral_war_score_weight() == 0.65
+        _at_war(w, age=1, war_score=30)
+        assert not (generate_suggested_terms("Prussia", "peace", w).get("demands") or [])
+        _at_war(w, age=D.WAR_AGE_PENALTY_WINDOW + 1, war_score=30)
+        assert generate_suggested_terms("Prussia", "peace", w).get("demands")
+
+    @staticmethod
+    def _beaten_prussia(war_score: int):
+        from tests import test_da1_ai_intelligence as DA
+        world = DA.make_world()
+        DA._clear_opening_bloc(world)
+        DA.set_war(world, "France", "Prussia")
+        DA.set_diplomat_personality(world, "Prussia", "hawk")
+        DA.set_relation(world, "France", "Prussia", 20)
+        world.war_exhaustion["Prussia"] = 60
+        DA.set_war_score(world, "Prussia", "France", war_score)
+        return world
+
+    def test_a_beaten_court_s_honest_letter_is_sent(self):
+        from backend.game_logic.ai_diplomacy import process_diplomatic_phase
+        world = self._beaten_prussia(-58)
+        with contextlib.redirect_stdout(io.StringIO()):
+            letter = process_diplomatic_phase("Prussia", world)
+        assert letter is not None
+        terms = letter["terms"]
+        assert terms["type"] == "armistice_losing" and not terms["demands"]
+        # The player reads it at its honest x0.65 score.
+        assert D.calculate_acceptance(terms, world)["score"] < 20
+
+    def test_the_floor_falls_by_exactly_the_extra_steepness(self):
+        from backend.game_logic.ai_diplomacy import _send_floor
+        world = self._beaten_prussia(-58)
+        honest = {"proposal_type": "armistice_losing",
+                  "terms": {"type": "armistice_losing", "target_nation": "France",
+                            "sweeteners": [], "demands": []}}
+        assert _send_floor(honest, world, "Prussia") == 20 - round(0.35 * 58)
+        asks = {"proposal_type": "peace",
+                "terms": {"type": "peace", "target_nation": "France",
+                          "demands": [{"type": "gold_lump", "value": 100}]}}
+        assert _send_floor(asks, world, "Prussia") == 20
