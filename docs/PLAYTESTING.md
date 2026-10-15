@@ -70,7 +70,7 @@ game's own counsel names; `off`, the default, mirrors `--diplomacy` — see
 [the Cabinet arm](#--missions-advisor--the-cabinet-arm-iq-4-september-14-2026))
 (there is no `--ultimatum` flag — `defy` is the policy default, stamped into
 every run's `meta.json`)
-· `--lever MODULE:NAME=0|1` (SR-1d, repeatable: set a backend flip lever for the run — recorded in `meta.json` `levers`; how a subprocess arm plays a board a slice's lever has moved off, e.g. IQ-6's volte-face arms with `backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0`) · `--stop-on-ending` (GE-2: stop at a MARKED ending — the Verdict, a Humbled
+· `--lever MODULE:NAME=0|1` (SR-1d, repeatable: set a backend flip lever for the run — recorded in `meta.json` `levers`; how a subprocess arm plays a board a slice's lever has moved off, e.g. IQ-6's volte-face arms with `backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0`) · `--seam MODULE:NAME=EXPR` (Pre-Deploy S13b part 3, repeatable: hold a backend FUNCTION seam down for the run as `lambda *a, **k: EXPR` — the series arms' idiom, since the code-health ratchet forbids a new module lever; recorded in `meta.json` `seams`; e.g. `backend.game_logic.garrison_report:detachment_capitulates=False`, DDB-R3's capitulation, on the sf_page CMD-H-DOWN arm) · `--stop-on-ending` (GE-2: stop at a MARKED ending — the Verdict, a Humbled
 Peace — with status `ending-reached`; a Fall stops the run as `game-over`
 regardless) · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
 (unknown blocking shapes fail the run, exit 3) · `--verbose` (backend

@@ -129,6 +129,16 @@ def intercepted_at_sea_line(outcome: Dict, marshal_name: str, target: str,
             f"and the water before the convoy scatters home.{sea_line}")
 
 
+def landing_garrison_fights(region, nation) -> bool:
+    """DDB-X1 (Pre-Deploy S13b part 3): a landing meets a garrison that
+    fights by the attack's ONE predicate (`garrison_report.garrison_fights`,
+    SR-7a's surrender floor included). The seam the BASELINE_SERIES
+    attribution holds down (down -> the landing's own pre-slice copy)."""
+    from backend.game_logic import garrison_report as _garrison_report
+    return (getattr(region, "controller", None) != nation
+            and _garrison_report.garrison_fights(region))
+
+
 class NavalExecutor:
     """Handles the four naval commands."""
 
@@ -530,14 +540,13 @@ class NavalExecutor:
                 # the conqueror. Same predicate as `_execute_attack`'s
                 # garrison gate: a detachment always fights, a capital
                 # garrison fights above the 5,000 collapse threshold.
-                garrison_fights = False
-                from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
-                if (getattr(target_region, "garrison_strength", 0) > 0
-                        and target_region.controller != marshal.nation):
-                    if getattr(target_region, "garrison_detachment", False):
-                        garrison_fights = True
-                    elif target_region.garrison_strength >= MARCH_HALTS_AT_GARRISON:
-                        garrison_fights = True
+                # DDB-X1 (Pre-Deploy S13b part 3): the landing reads the
+                # attack's ONE predicate (`garrison_report.garrison_fights`)
+                # instead of re-implementing "garrison fights" without SR-7a's
+                # floor — a detachment under 500 lays down its arms to the
+                # landing, as it does to a march or an attack.
+                from backend.game_logic import garrison_report as _garrison_report
+                garrison_fights = landing_garrison_fights(target_region, marshal.nation)
                 if not defenders and garrison_fights:
                     garrison_result = (
                         self._executor._combat._resolve_garrison_combat(
@@ -557,6 +566,12 @@ class NavalExecutor:
                     capture = {"captured": False, "occupation_started": False,
                                "capture_refused_raiding_party": True}
                 elif not defenders:
+                    # DDB-X1: the surrender is said, as the attack says it
+                    # (the capture clears the loser's garrison, AAR4-X1).
+                    if _garrison_report.detachment_surrenders(target_region):
+                        message += (f" The detachment of "
+                                    f"{int(target_region.garrison_strength):,} at "
+                                    f"{target} lays down its arms.")
                     # The existing land game takes over (§4.3): undefended
                     # soil falls through the SAME capture pipeline every
                     # march uses (capture-choice, estates, EC-W1 — all free).

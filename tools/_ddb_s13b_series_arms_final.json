@@ -58,7 +58,12 @@
   "G": "backend.models.world_state.capture_recovers_title",
   "D": "backend.models.world_state.announce_third_party_capture",
   "U": "backend.commands.strategic.support_stands_at_approach",
-  "Y": "backend.models.world_state.cession_recovers_province"
+  "Y": "backend.models.world_state.cession_recovers_province",
+  "Q": "backend.commands.combat_executor.charge_on_peace_soil",
+  "V": "backend.models.world_state.reckless_charge_peace_owner",
+  "N": "backend.game_logic.garrison_report.detachment_capitulates",
+  "L": "backend.commands.naval_executor.landing_garrison_fights",
+  "Z": "backend.ai.enemy_ai.ai_retreat_soil_is_friendly"
  },
  "arm_levers": {
   "0": [],
@@ -110,6 +115,21 @@
   "Y": [
    "Y"
   ],
+  "Q": [
+   "Q"
+  ],
+  "V": [
+   "V"
+  ],
+  "N": [
+   "N"
+  ],
+  "L": [
+   "L"
+  ],
+  "Z": [
+   "Z"
+  ],
   "ALL": [
    "A",
    "B",
@@ -119,11 +139,103 @@
    "G",
    "H",
    "K",
+   "L",
+   "N",
+   "P",
+   "Q",
+   "R",
+   "S",
+   "T",
+   "U",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "X17OFF": [
+   "A",
+   "B",
+   "C",
+   "D",
+   "F",
+   "G",
+   "H",
+   "K",
+   "L",
+   "N",
    "P",
    "R",
    "S",
    "T",
    "U",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "-N": [
+   "A",
+   "B",
+   "C",
+   "D",
+   "F",
+   "G",
+   "H",
+   "K",
+   "L",
+   "P",
+   "Q",
+   "R",
+   "S",
+   "T",
+   "U",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "-L": [
+   "A",
+   "B",
+   "C",
+   "D",
+   "F",
+   "G",
+   "H",
+   "K",
+   "N",
+   "P",
+   "Q",
+   "R",
+   "S",
+   "T",
+   "U",
+   "V",
+   "W",
+   "X",
+   "Y",
+   "Z"
+  ],
+  "-Z": [
+   "A",
+   "B",
+   "C",
+   "D",
+   "F",
+   "G",
+   "H",
+   "K",
+   "L",
+   "N",
+   "P",
+   "Q",
+   "R",
+   "S",
+   "T",
+   "U",
+   "V",
    "W",
    "X",
    "Y"
@@ -203,7 +315,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "C": {
    "levers_up": [
@@ -280,7 +392,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "T": {
    "levers_up": [
@@ -357,7 +469,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "R": {
    "levers_up": [
@@ -434,7 +546,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "X": {
    "levers_up": [
@@ -511,7 +623,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "S": {
    "levers_up": [
@@ -588,7 +700,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "H": {
    "levers_up": [
@@ -665,7 +777,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "A": {
    "levers_up": [
@@ -742,7 +854,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "F": {
    "levers_up": [
@@ -819,7 +931,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "P": {
    "levers_up": [
@@ -896,7 +1008,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "W": {
    "levers_up": [
@@ -973,7 +1085,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "K": {
    "levers_up": [
@@ -1050,7 +1162,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "B": {
    "levers_up": [
@@ -1129,7 +1241,7 @@
     "own_soil_win|Austria|Flanders": 1,
     "own_soil_win|Austria|Picardy": 1
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "G": {
    "levers_up": [
@@ -1206,7 +1318,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "D": {
    "levers_up": [
@@ -1283,7 +1395,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "U": {
    "levers_up": [
@@ -1360,7 +1472,7 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   },
   "Y": {
    "levers_up": [
@@ -1437,6 +1549,397 @@
     "third_party_change|Britain>Spain": 1,
     "third_party_change|Holland>Britain": 4
    },
+   "first_divergence_vs_all": 28
+  },
+  "Q": {
+   "levers_up": [
+    "Q"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "Britain": 28,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4
+   },
+   "first_divergence_vs_all": 28
+  },
+  "V": {
+   "levers_up": [
+    "V"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "Britain": 28,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4
+   },
+   "first_divergence_vs_all": 28
+  },
+  "N": {
+   "levers_up": [
+    "N"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "Britain": 28,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4
+   },
+   "first_divergence_vs_all": 28
+  },
+  "L": {
+   "levers_up": [
+    "L"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "Britain": 28,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4
+   },
+   "first_divergence_vs_all": 28
+  },
+  "Z": {
+   "levers_up": [
+    "Z"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 28,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Britain": 29,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "ai_retreat_onto_ally|Bavaria|France": 1,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4,
+    "ai_retreat_onto_ally|Russia|Austria": 34,
+    "ai_retreat_onto_ally|Britain|Austria": 10,
+    "ai_retreat_onto_ally|Austria|Russia": 2,
+    "ai_retreat_onto_ally|Russia|Britain": 18,
+    "ai_retreat_onto_ally|Austria|Britain": 2
+   },
    "first_divergence_vs_all": null
   },
   "ALL": {
@@ -1449,11 +1952,435 @@
     "G",
     "H",
     "K",
+    "L",
+    "N",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 28,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Britain": 29,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "ai_retreat_onto_ally|Bavaria|France": 1,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4,
+    "ai_retreat_onto_ally|Russia|Austria": 34,
+    "ai_retreat_onto_ally|Britain|Austria": 10,
+    "ai_retreat_onto_ally|Austria|Russia": 2,
+    "ai_retreat_onto_ally|Russia|Britain": 18,
+    "own_soil_win|Austria|Swabia": 6,
+    "ai_retreat_onto_ally|Austria|Britain": 2,
+    "own_soil_win|Austria|Orleanais": 1,
+    "own_soil_win|Russia|Franche-Comte": 1
+   },
+   "first_divergence_vs_all": null
+  },
+  "X17OFF": {
+   "levers_up": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "F",
+    "G",
+    "H",
+    "K",
+    "L",
+    "N",
     "P",
     "R",
     "S",
     "T",
     "U",
+    "W",
+    "X",
+    "Y",
+    "Z"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 28,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Britain": 29,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "ai_retreat_onto_ally|Bavaria|France": 1,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4,
+    "ai_retreat_onto_ally|Russia|Austria": 34,
+    "ai_retreat_onto_ally|Britain|Austria": 10,
+    "ai_retreat_onto_ally|Austria|Russia": 2,
+    "ai_retreat_onto_ally|Russia|Britain": 18,
+    "own_soil_win|Austria|Swabia": 6,
+    "ai_retreat_onto_ally|Austria|Britain": 2,
+    "own_soil_win|Austria|Orleanais": 1,
+    "own_soil_win|Russia|Franche-Comte": 1
+   },
+   "first_divergence_vs_all": null
+  },
+  "-N": {
+   "levers_up": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "F",
+    "G",
+    "H",
+    "K",
+    "L",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 28,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Britain": 29,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "ai_retreat_onto_ally|Bavaria|France": 1,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4,
+    "ai_retreat_onto_ally|Russia|Austria": 34,
+    "ai_retreat_onto_ally|Britain|Austria": 10,
+    "ai_retreat_onto_ally|Austria|Russia": 2,
+    "ai_retreat_onto_ally|Russia|Britain": 18,
+    "own_soil_win|Austria|Swabia": 6,
+    "ai_retreat_onto_ally|Austria|Britain": 2,
+    "own_soil_win|Austria|Orleanais": 1,
+    "own_soil_win|Russia|Franche-Comte": 1
+   },
+   "first_divergence_vs_all": null
+  },
+  "-L": {
+   "levers_up": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "F",
+    "G",
+    "H",
+    "K",
+    "N",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 28,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Britain": 29,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "third_party_change|Bavaria>Austria": 3,
+    "ai_retreat_onto_ally|Bavaria|France": 1,
+    "third_party_change|KingdomOfItaly>Austria": 2,
+    "third_party_change|Spain>Britain": 1,
+    "third_party_change|Hanover>Prussia": 5,
+    "third_party_change|Britain>Spain": 1,
+    "third_party_change|Holland>Britain": 4,
+    "ai_retreat_onto_ally|Russia|Austria": 34,
+    "ai_retreat_onto_ally|Britain|Austria": 10,
+    "ai_retreat_onto_ally|Austria|Russia": 2,
+    "ai_retreat_onto_ally|Russia|Britain": 18,
+    "own_soil_win|Austria|Swabia": 6,
+    "ai_retreat_onto_ally|Austria|Britain": 2,
+    "own_soil_win|Austria|Orleanais": 1,
+    "own_soil_win|Russia|Franche-Comte": 1
+   },
+   "first_divergence_vs_all": null
+  },
+  "-Z": {
+   "levers_up": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "F",
+    "G",
+    "H",
+    "K",
+    "L",
+    "N",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
     "W",
     "X",
     "Y"
@@ -1531,7 +2458,7 @@
     "own_soil_win|Austria|Flanders": 1,
     "own_soil_win|Austria|Picardy": 1
    },
-   "first_divergence_vs_all": null
+   "first_divergence_vs_all": 28
   }
  }
 }

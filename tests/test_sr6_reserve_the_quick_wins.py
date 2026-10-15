@@ -298,19 +298,25 @@ class TestTheEngagedRefusalNamesTheEnemy:
         assert r.get("success") is False
         msg = r.get("message", "")
         assert msg.startswith("Cannot advance while engaged with Mack at Swabia."), msg
-        assert "fall back to friendly ground — " in msg and "Lorraine" in msg, msg
+        # DDB-R6 (Pre-Deploy S13b part 3): the fall-back is a WITHDRAWAL onto
+        # the retreat's own friendly set (an ally's province included — here
+        # Bavaria's Franconia), named with its order and price.
+        assert "withdraw onto friendly ground — " in msg and "Lorraine" in msg, msg
+        assert "'Ney, retreat to Franconia' (free, −" in msg, msg
         assert "Friendly regions adjacent:" not in json.dumps(r)
         # The structured hint rides the executor's own result.
         direct = M.executor.execute(
             {"success": True, "command": {"marshal": "Ney", "action": "move", "target": "Tyrol"}},
             {"world": world})
-        assert "'Ney, retreat' falls back to" in (direct.get("suggestion") or ""), direct
+        assert "'Ney, retreat to Franconia' withdraws there" in (direct.get("suggestion") or ""), direct
         assert "Lorraine" in (direct.get("retreat_options") or []), direct
 
     def test_no_friendly_ground_says_so(self, shipped):
         client, world = shipped
         self._engage(world)
-        for name in ("Rhineland", "Lorraine", "Franche-Comte"):
+        # DDB-R6: an ally's province is friendly ground too (Bavaria's
+        # Franconia and Munich), so they fall as well.
+        for name in ("Rhineland", "Lorraine", "Franche-Comte", "Franconia", "Munich"):
             world.regions[name].controller = "Austria"
         world.invalidate_active_nations_cache()
         r = post(client, "Ney, move to Tyrol")

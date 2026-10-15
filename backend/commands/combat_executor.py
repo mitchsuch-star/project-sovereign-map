@@ -780,11 +780,20 @@ def works_halt_line(world, marshal, region) -> str:
     if not garrison_fights(region):
         return ""
     garrison = int(getattr(region, "garrison_strength", 0) or 0)
-    kind = ("a detachment that fights to the last man"
-            if getattr(region, "garrison_detachment", False)
-            else "the garrison")
-    return (f" {marshal.name} halts before {region.name}'s works — "
-            f"{kind} of {garrison:,} still stands and must be assaulted.")
+    # DDB-X2: the thresholds, said — a detachment's floor and its 4:1, a
+    # garrison's collapse line.
+    from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+    from backend.game_logic.garrison_report import (
+        DETACHMENT_CAPITULATES_AT_ODDS, SMALL_GARRISON_SURRENDER_FLOOR)
+    if getattr(region, "garrison_detachment", False):
+        return (f" {marshal.name} halts before {region.name}'s works — a "
+                f"detachment of {garrison:,} still stands and must be "
+                f"assaulted (it capitulates whole to a storm at "
+                f"{DETACHMENT_CAPITULATES_AT_ODDS}:1, and lays down its arms "
+                f"below {SMALL_GARRISON_SURRENDER_FLOOR:,}).")
+    return (f" {marshal.name} halts before {region.name}'s works — the "
+            f"garrison of {garrison:,} still stands and must be assaulted "
+            f"(it breaks below {MARCH_HALTS_AT_GARRISON:,}).")
 
 
 # CODE-2a (October 2026): what the stages of `CombatExecutor._execute_attack`
@@ -4841,9 +4850,13 @@ class CombatExecutor:
         # byte-identical. The P4.25 futility guard is consciously NOT
         # built (spec slice 3): with the floor fixed every assault
         # progresses, so unbounded futility cannot recur.
+        # DDB-R3: read BEFORE the blow lands — the detachment at these odds.
+        capitulated = _garrison_report.detachment_capitulates(
+            target_region, attacker_effective, garrison_effective)
         attacker_losses, garrison_losses = self.garrison_exchange(
             marshal.strength, attacker_effective,
-            target_region.garrison_strength, garrison_effective)
+            target_region.garrison_strength, garrison_effective,
+            region=target_region)
 
         # Apply losses
         marshal.strength = max(0, marshal.strength - attacker_losses)
@@ -4955,12 +4968,28 @@ class CombatExecutor:
             capture_result = self._attempt_region_capture(
                 marshal, target_region.name, world, game_state, had_garrison=False)
 
+            # DDB-R3: a detachment taken whole at the odds is said so.
+            _collapse = (f"The detachment capitulates to odds of "
+                         f"{_garrison_report.DETACHMENT_CAPITULATES_AT_ODDS}:1 or "
+                         f"better ({old_garrison:,} -> 0)."
+                         if capitulated else
+                         f"Garrison collapses ({old_garrison:,} -> 0).")
             msg = assault_line + (
                 f"{marshal.name} assaults the {target_region.name} garrison!{iron_note} "
-                f"Garrison collapses ({old_garrison:,} -> 0). "
+                f"{_collapse} "
                 f"{marshal.name} loses {attacker_losses:,} troops in the assault. "
                 f"{marshal.name} marches into {target_region.name}!"
             )
+            # DDB-R3's seam fix (repro K2): EVERY collapse exit emits its
+            # garrison event — the capture exit carried only the conquest.
+            garrison_event = {
+                "type": "garrison_destroyed",
+                "marshal": marshal.name,
+                "region": target_region.name,
+                "garrison_losses": int(garrison_losses),
+                "attacker_losses": int(attacker_losses),
+                "capitulated": bool(capitulated),
+            }
             if attrition_info["total_losses"] > 0:
                 msg += f" ({attrition_info['total_losses']:,} lost to march)"
             # EC-W3 (review finding #4): the materiel bill was applied by the
@@ -4974,13 +5003,7 @@ class CombatExecutor:
                     "success": True,
                     "message": msg,
                     "occupation_started": True,
-                    "events": [{
-                        "type": "garrison_destroyed",
-                        "marshal": marshal.name,
-                        "region": target_region.name,
-                        "garrison_losses": int(garrison_losses),
-                        "attacker_losses": int(attacker_losses),
-                    }, {
+                    "events": [garrison_event, {
                         "type": "occupation_started",
                         "marshal": marshal.name,
                         "region": target_region.name,
@@ -5009,7 +5032,7 @@ class CombatExecutor:
             result = {
                 "success": True,
                 "message": msg,
-                "events": [conquest_event],
+                "events": [garrison_event, conquest_event],
                 "new_state": game_state
             }
 
@@ -5218,12 +5241,15 @@ class CombatExecutor:
 
     def garrison_exchange(self, attacker_strength: int, attacker_effective: int,
                           garrison_strength: int,
-                          garrison_effective: int) -> tuple:
+                          garrison_effective: int, region=None) -> tuple:
         """The garrison assault's loss arithmetic — ONE copy (SR session-exit
         residue, Sept 26 2026), read by `_resolve_garrison_combat` and by the
         desk's assault forecast. Proportional exchange, capped; then the
         floors — the attacker's reads the GARRISON (FA-D28, the ruling above
-        the call site), the defender's carries WO-3's `+1`."""
+        the call site), the defender's carries WO-3's `+1`. DDB-R3: a
+        DETACHMENT stormed at ≥ 4:1 effective odds capitulates whole
+        (`garrison_report.detachment_capitulates`, read when the caller names
+        the `region`; both boards pass it)."""
         attacker_damage_ratio = min(
             0.35, garrison_effective / max(attacker_effective, 1) * 0.25)
         garrison_damage_ratio = min(
@@ -5238,6 +5264,11 @@ class CombatExecutor:
             int(_floor_base * self.GARRISON_ASSAULT_LOSS_FLOOR))
         garrison_losses = max(
             garrison_losses, int(garrison_strength * 0.10), 1)
+        if region is not None:
+            from backend.game_logic import garrison_report as _gr
+            if _gr.detachment_capitulates(region, attacker_effective,
+                                          garrison_effective):
+                garrison_losses = int(garrison_strength)
         return attacker_losses, garrison_losses
 
     def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):

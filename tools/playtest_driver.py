@@ -1479,6 +1479,7 @@ def make_inprocess_transport(args, out_dir):
     else:
         import backend.main as backend_main
     _apply_levers(getattr(args, "lever", None) or [])
+    _apply_seams(getattr(args, "seam", None) or [])
 
     tx = Transport(TestClient(backend_main.app), "in-process", console_log)
     # IQ-8: the game-shaping environment AFTER the import — what the engine
@@ -3836,6 +3837,28 @@ def _apply_levers(specs) -> None:
         setattr(module, attr, value.strip().lower() in ("1", "true", "yes", "on"))
 
 
+def _apply_seams(specs) -> None:
+    """Pre-Deploy S13b part 3 (DDB-R3 / DDB-X3): `--seam MODULE:NAME=EXPR` —
+    replace a backend FUNCTION seam for this run with `lambda *a, **k: EXPR`
+    (the series arms' idiom, `tools/_ddb_s13b_series_arms.py`): the code-
+    health ratchet forbids a new module lever, so a decided fix is held down
+    at its seam, e.g.
+    `backend.game_logic.garrison_report:detachment_capitulates=False`.
+    Applied after the levers; a malformed spec, or a name that is not a
+    callable, is an error, never a silent no-op."""
+    import importlib
+    for spec in specs or []:
+        try:
+            target, expr = str(spec).split("=", 1)
+            module_name, attr = target.split(":", 1)
+        except ValueError as exc:
+            raise SystemExit(f"--seam expects MODULE:NAME=EXPR, got {spec!r}") from exc
+        module = importlib.import_module(module_name)
+        if not callable(getattr(module, attr, None)):
+            raise SystemExit(f"--seam: {module_name} has no seam {attr!r}")
+        setattr(module, attr, eval("lambda *a, **k: " + expr.strip(), {}))
+
+
 def run(args):
     script = {}
     if args.script:
@@ -3924,6 +3947,7 @@ def run(args):
         # SR-1d: the flip levers this run set (provenance — an arm played
         # with a lever down says so in its own record).
         "levers": list(getattr(args, "lever", None) or []),
+        "seams": list(getattr(args, "seam", None) or []),
         "strict": bool(getattr(args, "strict", False)),
         "rng": rng_meta,
         # FA-75/79 (slice 17): the driver revision that produced this run —
@@ -4974,6 +4998,9 @@ def main():
     # arm can play a board a slice's lever has moved off — `MODULE:NAME=0|1`,
     # repeatable, applied right after the backend import and recorded in
     # meta.json (an instrument's dial, never a game config surface).
+    ap.add_argument("--seam", action="append", default=[], metavar="MODULE:NAME=EXPR",
+                    help="hold a backend function seam down for this run, e.g. "
+                         "backend.game_logic.garrison_report:detachment_capitulates=False")
     ap.add_argument("--lever", action="append", default=[], metavar="MODULE:NAME=0|1",
                     help="set a backend flip lever for this run, e.g. "
                          "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0")

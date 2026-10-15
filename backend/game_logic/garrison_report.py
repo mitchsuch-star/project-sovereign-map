@@ -52,6 +52,27 @@ def detachment_surrenders(region) -> bool:
             and garrison < SMALL_GARRISON_SURRENDER_FLOOR)
 
 
+# DDB-R3 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D3 — BUILD
+# FA-D28'S OPEN HALF FOR DETACHMENTS): at these effective odds or better an
+# assault takes a DETACHMENT whole — it capitulates (Memmingen and Ulm,
+# October 1805). Below them the capped exchange stands; a capital's own
+# garrison and an authored depot (DEF-6's Flanders) are not detachments and
+# keep the 0.50 cap. One arithmetic, both boards (`garrison_exchange`).
+DETACHMENT_CAPITULATES_AT_ODDS = 4
+
+
+def detachment_capitulates(region, attacker_effective: int,
+                           garrison_effective: int) -> bool:
+    """DDB-R3: a detachment assaulted at ≥ 4:1 effective odds is taken whole.
+    The seam the BASELINE_SERIES attribution holds down."""
+    if region is None or not getattr(region, "garrison_detachment", False):
+        return False
+    if int(getattr(region, "garrison_strength", 0) or 0) <= 0:
+        return False
+    return int(attacker_effective) >= (DETACHMENT_CAPITULATES_AT_ODDS
+                                       * max(int(garrison_effective), 1))
+
+
 def works_bonus(region) -> float:
     """The fortification building's defense bonus, or 0.0 (a damaged work
     does not count — `has_building` reads functional buildings only)."""
@@ -115,9 +136,13 @@ def describe_garrison(world, region, viewer: str) -> str:
                 f"{SMALL_GARRISON_SURRENDER_FLOOR:,}) — it lays down its arms "
                 f"to the first corps that marches in")
     elif getattr(region, "garrison_detachment", False):
-        kind = "a detachment that fights to the last man — it must be assaulted"
+        # DDB-X2: the thresholds, said (SR-7a's floor, DDB-R3's odds).
+        kind = (f"a detachment — it must be assaulted; it lays down its arms "
+                f"below {SMALL_GARRISON_SURRENDER_FLOOR:,}, and capitulates "
+                f"whole to a storm at {DETACHMENT_CAPITULATES_AT_ODDS}:1 odds")
     elif strength >= MARCH_HALTS_AT_GARRISON:
-        kind = "it must be assaulted — a march halts before it"
+        kind = (f"it must be assaulted — a march halts before it; it breaks "
+                f"below {MARCH_HALTS_AT_GARRISON:,}")
         if getattr(region, "is_capital", False):
             cap = world.get_capital_garrison_target(holder)
             kind += (f"; a capital's garrison, it regrows "
@@ -184,7 +209,16 @@ def assault_muster_line(world, marshal, region, attacker_effective: int,
         verb = "does" if len(names) == 1 else "do"
         tail = f" {joined} {verb} not join an assault on the works;"
     if getattr(region, "garrison_detachment", False):
-        tail += " a detachment fights to the last man."
+        # DDB-X2: a detachment does not fight to the last man — it lays down
+        # its arms below the floor and capitulates whole at 4:1 (DDB-R3).
+        if detachment_capitulates(region, attacker_effective, garrison_effective_now):
+            tail += (f" at {DETACHMENT_CAPITULATES_AT_ODDS}:1 or better the "
+                     f"detachment capitulates whole.")
+        else:
+            tail += (f" a detachment fights on until it is spent — it would "
+                     f"capitulate whole at {DETACHMENT_CAPITULATES_AT_ODDS}:1, "
+                     f"and lays down its arms below "
+                     f"{SMALL_GARRISON_SURRENDER_FLOOR:,}.")
     else:
         tail += f" the garrison breaks below {MARCH_HALTS_AT_GARRISON:,}."
     return (lead + tail).replace(";  ", "; ").strip()
@@ -276,7 +310,8 @@ def assault_forecast(world, marshal, region) -> dict:
     garrison_now = int(getattr(region, "garrison_strength", 0) or 0)
     defence = garrison_effective(region)
     attacker_losses, garrison_losses = combat.garrison_exchange(
-        int(marshal.strength), attacker_effective, garrison_now, defence)
+        int(marshal.strength), attacker_effective, garrison_now, defence,
+        region=region)
     remaining = max(0, garrison_now - garrison_losses)
     return {"attacker_effective": attacker_effective,
             "garrison_effective": defence, "coordination": coordination,

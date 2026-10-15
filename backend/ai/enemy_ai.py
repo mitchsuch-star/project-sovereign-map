@@ -178,6 +178,16 @@ COURT_ARMS_PEACE_FACTOR = 1.25     # at peace: up to this × the boot establishm
 # Milan. ONE predicate, `attack_achieved_something`. False = battles only.
 THE_STAGNATION_COUNTS_A_CAPTURE = True
 CAPTURE_EVENT_TYPES = ("conquest", "occupation_started", "garrison_destroyed")
+
+
+def ai_retreat_soil_is_friendly(world, nation, controller) -> bool:
+    """DDB-X3 (Pre-Deploy S13b part 3): the AI retreat finder's first tier
+    reads the player's friendly set (`WorldState.retreat_soil_is_friendly`).
+    The seam the BASELINE_SERIES attribution holds down (down -> own soil
+    only, the shipped read)."""
+    return world.retreat_soil_is_friendly(nation, controller)
+
+
 # F5 "Bohemia is not empty" (row EP, Sept 25 2026 — LV-D2 / FA-D13 option (a)):
 # P4.5 hands a corps at most `movement_range` walk-ins a turn, and a literal
 # corps runs the cautious 1.5x counter-attack check before a walk-in.
@@ -5701,7 +5711,9 @@ class EnemyAI:
         Find safe retreat destination using same logic as player retreat.
 
         Priority:
-        1. Friendly region (controlled by nation) without enemies
+        1. Friendly region without enemies — the retreat's ONE friendly set
+           (`retreat_soil_is_friendly`: our own soil, or an ally's or a
+           vassal's that feeds a guest army — AAR-D4; DDB-X3, Golden Rule 5)
         2. Nearest such region
         """
         marshal_region = world.get_region(marshal.location)
@@ -5727,8 +5739,10 @@ class EnemyAI:
                                         marshal.location, adj_name):
                     continue
 
-            # Check if controlled by this nation
-            if adj_region.controller == nation:
+            # DDB-X3 (Pre-Deploy S13b part 3): the player's retreat scan's
+            # friendly set (AAR-D4 / SR-7c) — own soil read alone here was a
+            # Golden Rule 5 drift.
+            if ai_retreat_soil_is_friendly(world, nation, adj_region.controller):
                 # Check if enemies present
                 enemies_there = self._get_hostile_marshals_in_region(adj_name, nation, world)
                 if not enemies_there:

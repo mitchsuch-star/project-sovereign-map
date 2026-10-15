@@ -74,6 +74,20 @@ Part 3, slice 2's sweep:
            reach, not adjacency.
   DDB-X24  (found by DDB-R1) the player's bare attack with nobody in reach
            asks before it marches.
+
+Part 3, slice 3 — the garrison and the retreat:
+
+  DDB-R3   a detachment assaulted at ≥ 4:1 effective odds capitulates whole
+           (both boards, one arithmetic; a capital and a depot keep the cap);
+           every collapse exit emits its garrison event.
+  DDB-X1   a naval landing reads the attack's ONE garrison predicate.
+  DDB-X2   the scout, assault and works-halt lines name the 500 floor, the
+           4:1 capitulation and a capital's 5,000 line.
+  DDB-R6   an engaged marshal's move onto an ally's province names the
+           withdrawal and its price (the retreat's own friendly set).
+  DDB-X3   the AI's retreat finder's first tier reads AAR-D4's friendly set
+           (BASELINE_SERIES re-pinned, the row named).
+  DDB-X25  (found by DDB-X2) the help's garrison entry names the thresholds.
 """
 from __future__ import annotations
 
@@ -1188,3 +1202,257 @@ class TestDDBX24:
         r = _post(c, "/command", {"command": "Ney, attack"})
         assert r.get("state") != "awaiting_clarification"
         assert "moving toward Kutuzov" in str(r.get("message")), r.get("message")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Part 3, slice 3 — the garrison and the retreat: DDB-R3, X1, X2, R6, X3
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _tyrol_detachment(w, ney_strength: int, garrison: int = 3000):
+    """The conquest #18 shape on the 1805 boot: a 3,000 Austrian detachment
+    on Tyrol, Ney beside it at Munich."""
+    ney, tyrol = w.get_marshal("Ney"), w.get_region("Tyrol")
+    for m in w.marshals.values():
+        if m.location == "Tyrol" and m.nation != "France":
+            m.location = "Vienna"
+    ney.location, ney.strength = "Munich", ney_strength
+    tyrol.garrison_strength, tyrol.garrison_detachment = garrison, True
+    w._build_marshal_index()
+    w.calculate_visibility()
+    return ney, tyrol
+
+
+def _exchange(w, region, attacker_effective, garrison_effective):
+    from backend.commands.executor import CommandExecutor
+    with contextlib.redirect_stdout(io.StringIO()):
+        combat = CommandExecutor()._combat
+    return combat.garrison_exchange(40000, attacker_effective,
+                                    int(region.garrison_strength),
+                                    garrison_effective, region=region)
+
+
+class TestDDBR3:
+    """DDB-D3 — BUILD FA-D28'S OPEN HALF FOR DETACHMENTS: at ≥ 4:1 effective
+    odds an assault takes a detachment whole."""
+
+    def test_a_detachment_at_four_to_one_falls_in_one_assault(self, client):
+        c, w = client
+        ney, tyrol = _tyrol_detachment(w, 19000)
+        r = _post(c, "/command", {"command": "Ney, attack Tyrol"})
+        assert r.get("success") is True, r.get("message")
+        assert tyrol.garrison_strength == 0 and tyrol.controller == "France"
+        assert "The detachment capitulates to odds of 4:1 or better (3,000 -> 0)." in r["message"]
+        events = {e["type"]: e for e in r.get("events") or []}
+        assert events["garrison_destroyed"]["capitulated"] is True
+        assert "conquest" in events          # the seam fix: both events ride
+
+    def test_at_two_to_one_it_loses_the_capped_half(self, client):
+        c, w = client
+        _ney, tyrol = _tyrol_detachment(w, 6000)
+        r = _post(c, "/command", {"command": "Ney, attack Tyrol"})
+        assert tyrol.garrison_strength == 1500 and tyrol.controller == "Austria", r.get("message")
+
+    def test_a_capital_and_a_depot_keep_the_cap(self, w):
+        vienna, flanders = w.get_region("Vienna"), w.get_region("Flanders")
+        for region in (vienna, flanders):
+            assert not region.garrison_detachment
+            garrison = int(region.garrison_strength)
+            _att, lost = _exchange(w, region, 5 * garrison, garrison)
+            assert lost == int(garrison * 0.50), (region.name, lost)
+
+    def test_one_arithmetic_for_both_boards(self, w):
+        """The desk's forecast and the AI's assault read the same exchange."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import garrison_report as GR
+        ney, tyrol = _tyrol_detachment(w, 19000)
+        forecast = GR.assault_forecast(w, ney, tyrol)
+        assert forecast["breaks"] and forecast["remaining"] == 0
+        # The AI's side: Austria storms a French detachment at the same odds.
+        lorraine = w.get_region("Lorraine")
+        for m in w.marshals.values():
+            if m.location == "Lorraine":
+                m.location = "Paris"
+        lorraine.garrison_strength, lorraine.garrison_detachment = 2000, True
+        mack = w.get_marshal("Mack")
+        mack.location, mack.strength = "Rhineland", 60000
+        w._build_marshal_index()
+        with contextlib.redirect_stdout(io.StringIO()):
+            ex = CommandExecutor()
+            r = ex._combat._resolve_garrison_combat(mack, lorraine, w, {"world": w})
+        assert lorraine.garrison_strength == 0, r.get("message")
+        assert any(e.get("type") == "garrison_destroyed" for e in r.get("events") or [])
+
+
+class TestDDBX1:
+    """Found while ruling: a naval landing re-implemented "garrison fights"
+    without SR-7a's 500-man floor — it now reads the attack's ONE predicate."""
+
+    def test_the_landing_reads_the_one_predicate(self, w):
+        from backend.commands.naval_executor import landing_garrison_fights
+        from backend.game_logic.garrison_report import garrison_fights
+        munster = w.get_region("Munster")
+        for strength, detach in ((400, True), (600, True), (6000, False), (4000, False)):
+            munster.garrison_strength, munster.garrison_detachment = strength, detach
+            assert landing_garrison_fights(munster, "France") is garrison_fights(munster), strength
+        munster.garrison_strength, munster.garrison_detachment = 400, True
+        assert landing_garrison_fights(munster, "France") is False
+        assert landing_garrison_fights(munster, munster.controller) is False
+
+    def test_a_landing_on_a_detachment_under_500_takes_its_surrender(self, w, monkeypatch):
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import naval
+        munster = w.get_region("Munster")
+        for m in w.marshals.values():
+            if m.location == "Munster" and m.nation != "France":
+                m.location = "London"
+        munster.garrison_strength, munster.garrison_detachment = 400, True
+        bern = w.get_marshal("Bernadotte")
+        bern.strength = 12000
+        bern.location = naval.controlled_dockyards(w, "France")[0]
+        w._build_marshal_index()
+        monkeypatch.setattr(naval, "resolve_expedition",
+                            lambda world, marshal, target: {"landed": True, "coverer": None,
+                                                            "odds": 100})
+        with contextlib.redirect_stdout(io.StringIO()):
+            ex = CommandExecutor()
+            r = ex._naval._execute_naval_expedition(
+                {"action": "naval_expedition", "marshal": "Bernadotte",
+                 "target": "Munster", "confirmed": True}, {"world": w})
+        assert r.get("success") is True, r.get("message")
+        assert "The detachment of 400 at Munster lays down its arms." in r["message"], r["message"]
+        assert "assaults the Munster garrison" not in r["message"]
+        assert munster.garrison_strength == 0
+
+
+class TestDDBX2:
+    """Found while ruling: the garrison copy said a detachment "fights to the
+    last man" though under 500 it lays down its arms; the lines now name the
+    500 floor, the 4:1 capitulation and a capital's 5,000 line."""
+
+    def test_the_scout_line_names_the_thresholds(self, w):
+        from backend.game_logic.garrison_report import describe_garrison
+        _ney, tyrol = _tyrol_detachment(w, 19000)
+        line = describe_garrison(w, tyrol, "France")
+        assert "lays down its arms below 500" in line, line
+        assert "capitulates whole to a storm at 4:1 odds" in line, line
+        assert "last man" not in line
+        vienna = describe_garrison(w, w.get_region("Vienna"), "France")
+        assert "it breaks below 5,000" in vienna, vienna
+
+    def test_the_assault_line_names_them(self, w):
+        from backend.game_logic import garrison_report as GR
+        ney, tyrol = _tyrol_detachment(w, 6000)
+        f = GR.assault_forecast(w, ney, tyrol)
+        line = GR.assault_muster_line(w, ney, tyrol, f["attacker_effective"],
+                                      f["garrison_effective"], f["coordination"])
+        assert "it would capitulate whole at 4:1" in line, line
+        assert "lays down its arms below 500" in line and "last man" not in line
+
+    def test_the_works_halt_line_names_them(self, w):
+        from backend.commands.combat_executor import works_halt_line
+        ney, tyrol = _tyrol_detachment(w, 6000)
+        line = works_halt_line(w, ney, tyrol)
+        assert "capitulates whole to a storm at 4:1" in line, line
+        assert "lays down its arms below 500" in line and "last man" not in line
+        vienna = w.get_region("Vienna")
+        assert "it breaks below 5,000" in works_halt_line(w, ney, vienna)
+
+
+def _davout_engaged_beside_swabia(w):
+    """diplomacy-first #16: Davout engaged at Lorraine, Swabia (Bavaria's,
+    our ally) beside him."""
+    davout, mack = w.get_marshal("Davout"), w.get_marshal("Mack")
+    davout.location, mack.location = "Lorraine", "Lorraine"
+    w._build_marshal_index()
+    w.calculate_visibility()
+    return davout
+
+
+class TestDDBR6:
+    """DDB-D6 — KEEP THE RULE, FIX THE SENTENCE."""
+
+    def test_a_move_onto_an_allys_province_names_the_withdrawal(self, client):
+        from backend.commands.movement_executor import retreat_initial_penalty_pct
+        c, w = client
+        davout = _davout_engaged_beside_swabia(w)
+        assert w.get_region("Swabia").controller == "Bavaria"
+        pct = retreat_initial_penalty_pct(davout)
+        r = _post(c, "/command", {"command": "Davout, move to Swabia"})
+        assert r.get("success") is False
+        assert r["message"].startswith(
+            f"Davout is engaged with Mack at Lorraine: a march cannot carry him "
+            f"off the field. He may withdraw onto Swabia — 'Davout, retreat to "
+            f"Swabia' (free, −{pct}% effectiveness, once a turn) — or fight."), r["message"]
+        assert "Cannot advance" not in r["message"]
+        assert davout.location == "Lorraine" and w.actions_remaining == 4
+
+    def test_the_named_order_works_at_the_price_named(self, client):
+        from backend.commands.movement_executor import retreat_initial_penalty_pct
+        c, w = client
+        davout = _davout_engaged_beside_swabia(w)
+        pct = retreat_initial_penalty_pct(davout)
+        r = _post(c, "/command", {"command": "Davout, retreat to Swabia"})
+        assert r.get("success") is True, r.get("message")
+        assert davout.location == "Swabia"
+        assert f"-{pct}%" in r["message"], r["message"]
+
+    def test_the_friendly_list_is_the_retreats_own(self, w):
+        from backend.commands.movement_executor import MovementExecutor
+        davout = _davout_engaged_beside_swabia(w)
+        refusal = MovementExecutor.move_refusal_probe(
+            w, davout, w.get_region("Bohemia"), "Bohemia")
+        friendly = set(refusal["retreat_options"])
+        for name in w.get_region("Lorraine").adjacent_regions:
+            region = w.get_region(name)
+            expected = (w.retreat_soil_is_friendly("France", region.controller)
+                        and not any(m.nation != "France" and m.strength > 0
+                                    and w.is_at_war("France", m.nation)
+                                    for m in w.get_marshals_in_region(name)))
+            assert (name in friendly) == expected, name
+        assert "Swabia" in friendly
+        assert refusal["message"].startswith("Cannot advance while engaged with Mack")
+
+    def test_once_a_turn_is_said(self, w):
+        from backend.commands.movement_executor import MovementExecutor
+        davout = _davout_engaged_beside_swabia(w)
+        davout.retreated_this_turn = True
+        refusal = MovementExecutor.move_refusal_probe(
+            w, davout, w.get_region("Swabia"), "Swabia")
+        assert "already fallen back once this turn" in refusal["message"]
+
+
+class TestDDBX3:
+    """Found while ruling: the AI's retreat finder's first tier read own soil
+    only — it reads AAR-D4's friendly set, as the player's retreat does."""
+
+    def test_the_ai_falls_back_onto_an_allys_province(self, w):
+        from backend.ai.enemy_ai import EnemyAI
+        from backend.commands.executor import CommandExecutor
+        kut = w.get_marshal("Kutuzov")
+        # Kutuzov on Bohemia (Austria's, an ally of Russia): the only own or
+        # allied neighbour is the ally's.
+        kut.location = "Bohemia"
+        w._build_marshal_index()
+        with contextlib.redirect_stdout(io.StringIO()):
+            ai = EnemyAI(CommandExecutor())
+        dest = ai._find_retreat_destination(kut, "Russia", w)
+        assert dest is not None
+        assert w.retreat_soil_is_friendly("Russia", w.get_region(dest).controller), dest
+
+    def test_the_seam_reads_the_one_set(self, w):
+        from backend.ai.enemy_ai import ai_retreat_soil_is_friendly
+        for controller in ("Russia", "Austria", "Britain", "France", "Bavaria", None):
+            assert (ai_retreat_soil_is_friendly(w, "Russia", controller)
+                    == w.retreat_soil_is_friendly("Russia", controller)), controller
+
+
+class TestDDBX25:
+    """Found by DDB-X2's sweep: the help's garrison entry said a detachment
+    "Fights to destruction." — it names the floor and the 4:1 too."""
+
+    def test_the_help_names_the_thresholds(self, client):
+        c, _w = client
+        r = _post(c, "/command", {"command": "help"})
+        assert "Fights to destruction" not in r["message"]
+        assert "it lays down its arms below 500, and" in r["message"]
+        assert "capitulates whole to an assault at 4:1 odds." in r["message"]

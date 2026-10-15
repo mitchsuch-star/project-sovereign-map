@@ -273,4 +273,13 @@ class TestTheMeasurement:
             encoding="utf-8"))
         assert econ["arms"]["ALL"]["series"] == gate["prior"]
         assert gate["arms"]["0"]["series"] == gate["prior"]
-        assert BASELINE_SERIES == gate["arms"]["ALL"]["series"]
+        # RE-SEATED by DDB-X3 (Pre-Deploy S13b part 3, October 15, 2026):
+        # one more link — the gate's ALL arm is the prior the DD-B record's
+        # arm 0 reproduces byte for byte, and its ALL arm (the shipped
+        # tree, the AI's retreat onto an ally's soil) is the standing series
+        # (`tools/_ddb_s13b_series_arms_final.json`).
+        ddb = json.loads((ROOT / "tools" / "_ddb_s13b_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert gate["arms"]["ALL"]["series"] == ddb["prior"]
+        assert ddb["arms"]["0"]["series"] == ddb["prior"]
+        assert BASELINE_SERIES == ddb["arms"]["ALL"]["series"]

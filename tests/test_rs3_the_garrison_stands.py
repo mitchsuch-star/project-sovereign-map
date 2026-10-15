@@ -132,7 +132,7 @@ class TestTheFieldWinHaltsBeforeTheWorks:
     def test_a_detachment_fights_to_the_last_man_and_halts_the_win(self):
         world, executor, gs = _boot()
         bohemia = world.get_region("Bohemia")
-        bohemia.garrison_strength = 800     # above SR-7a's surrender floor: it fights to the last man
+        bohemia.garrison_strength = 800     # above SR-7a's surrender floor: it must be assaulted
         bohemia.garrison_detachment = True
         ney = world.marshals["Ney"]
         ney.location = "Dresden"
@@ -146,7 +146,10 @@ class TestTheFieldWinHaltsBeforeTheWorks:
                                      "target": "ArchdukeCharles", "_muster_confirmed": True})
         assert result.get("success")
         assert bohemia.controller == "Austria" and bohemia.garrison_strength == 800
-        assert "a detachment that fights to the last man of 800" in result["message"]
+        # DDB-X2 (Pre-Deploy S13b part 3): the halt names the floor and 4:1.
+        assert ("a detachment of 800 still stands and must be assaulted (it "
+                "capitulates whole to a storm at 4:1, and lays down its arms "
+                "below 500)") in result["message"]
 
     def test_the_charge_exit_reads_the_same_rule(self):
         world, executor, gs = _boot()

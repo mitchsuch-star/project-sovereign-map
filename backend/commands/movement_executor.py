@@ -240,6 +240,29 @@ THE_MARCH_NAMES_THE_FORFEIT = True
 THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY = True
 
 
+def retreat_initial_penalty_pct(marshal) -> int:
+    """The retreat's stage-0 effectiveness penalty, in whole percent — the
+    figure `_execute_retreat` applies and prints (shown = applied): the
+    command-aware base (MC gate Q3) with the ±10pp stance offset. DDB-R6:
+    the engaged move's refusal quotes it."""
+    base = marshal.get_retreat_stage_penalty(0)
+    stance = getattr(marshal, "stance", Stance.NEUTRAL)
+    if stance == Stance.AGGRESSIVE:
+        base += 0.10
+    elif stance == Stance.DEFENSIVE:
+        base -= 0.10
+    return int(round(base * 100))
+
+
+def retreat_price_phrase(marshal) -> str:
+    """DDB-R6: the retreat's price in the refusal's words — "free, −45%
+    effectiveness, once a turn" (and the aggressive stance's 5% of his men)."""
+    loss = (", and 5% of his men from an aggressive stance"
+            if getattr(marshal, "stance", Stance.NEUTRAL) == Stance.AGGRESSIVE else "")
+    return (f"free, −{retreat_initial_penalty_pct(marshal)}% effectiveness"
+            f"{loss}, once a turn")
+
+
 def supply_warning_line(world, marshal) -> str:
     """DDB-44 (Pre-Deploy S13b part 2): the supply warning a move or march
     says where it stops — "Lorraine feeds 60,000; the 206,000 men standing
@@ -389,22 +412,49 @@ class MovementExecutor:
                         and world.is_at_war(marshal.nation, m.nation)]
 
         if enemies_here and target_region.controller != marshal.nation:
+            # DDB-R6 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D6 —
+            # KEEP THE RULE, FIX THE SENTENCE): engaged means fight, stand or
+            # retreat — but `retreat` falls back onto an ally's or a vassal's
+            # province too (AAR-D4), so the friendly list is the retreat's
+            # own (`retreat_soil_is_friendly`, no foe standing there), a
+            # fall-back is a WITHDRAWAL, and the order is named with its price.
             friendly_adjacent = [
                 r for r in current_region.adjacent_regions
-                if world.get_region(r) and world.get_region(r).controller == marshal.nation]
+                if world.get_region(r) is not None
+                and world.retreat_soil_is_friendly(
+                    marshal.nation, world.get_region(r).controller)
+                and not any(m.nation != marshal.nation and m.strength > 0
+                            and world.is_at_war(marshal.nation, m.nation)
+                            for m in world.get_marshals_in_region(r))]
             if THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY:
                 # NPC-13: name the enemy the check already found, and offer
                 # only a retreat that exists — never a dangling empty label.
                 from backend.campaign_log import and_join
                 from backend.display_names import humanize_entity_name as _hname
                 _foes = and_join([_hname(e.name) for e in enemies_here])
-                _msg = (f"Cannot advance while engaged with {_foes} at "
+                _back = target_name in friendly_adjacent
+                _msg = (f"{marshal.name} is engaged with {_foes} at "
+                        f"{marshal.location}: a march cannot carry him off "
+                        f"the field." if _back else
+                        f"Cannot advance while engaged with {_foes} at "
                         f"{marshal.location}.")
-                if friendly_adjacent:
-                    _msg += (f" He may fall back to friendly ground — "
-                             f"{', '.join(friendly_adjacent)} — or fight.")
-                    _hint = (f"'{marshal.name}, retreat' falls back to "
-                             f"{friendly_adjacent[0]}; '{marshal.name}, attack "
+                if friendly_adjacent and getattr(marshal, "retreated_this_turn", False):
+                    _msg += (" He has already fallen back once this turn: he "
+                             "must fight or stand.")
+                    _hint = (f"'{marshal.name}, attack "
+                             f"{_hname(enemies_here[0].name)}' fights; "
+                             f"'{marshal.name}, hold' stands.")
+                elif friendly_adjacent:
+                    _to = target_name if _back else friendly_adjacent[0]
+                    _order = (f"'{marshal.name}, retreat to {_to}' "
+                              f"({retreat_price_phrase(marshal)})")
+                    _msg += (f" He may withdraw onto {_to} — {_order} — or fight."
+                             if _back else
+                             f" He may withdraw onto friendly ground — "
+                             f"{', '.join(friendly_adjacent)} — with {_order}, "
+                             f"or fight.")
+                    _hint = (f"'{marshal.name}, retreat to {_to}' withdraws "
+                             f"there; '{marshal.name}, attack "
                              f"{_hname(enemies_here[0].name)}' fights.")
                 else:
                     _msg += " No friendly province adjoins him: he must fight or stand."
@@ -1606,11 +1656,11 @@ class MovementExecutor:
 
         # Stage-0 display base is command-aware (MC gate Q3 — a poor-command
         # marshal's applied stage-0 penalty is deeper); the ±10pp stance
-        # flavor offsets ride on top of it unchanged.
-        base_stage0 = marshal.get_retreat_stage_penalty(0)
+        # flavor offsets ride on top of it unchanged. DDB-R6: ONE helper, the
+        # engaged move's refusal quotes the same figure.
         if current_stance == Stance.AGGRESSIVE:
             # Aggressive retreat is costly - caught overextended!
-            initial_penalty = f"-{int(round((base_stage0 + 0.10) * 100))}%"
+            initial_penalty = f"-{retreat_initial_penalty_pct(marshal)}%"
             troop_loss_percent = 0.05  # 5% troop loss
             troop_loss = int(marshal.strength * troop_loss_percent)
             marshal.take_casualties(troop_loss)
@@ -1618,11 +1668,11 @@ class MovementExecutor:
             stance_penalty_msg = " (Aggressive stance made retreat costly)"
         elif current_stance == Stance.DEFENSIVE:
             # Defensive retreat is more orderly
-            initial_penalty = f"-{int(round((base_stage0 - 0.10) * 100))}%"
+            initial_penalty = f"-{retreat_initial_penalty_pct(marshal)}%"
             stance_penalty_msg = " (Defensive stance enabled orderly withdrawal)"
         else:
             # Neutral - standard retreat
-            initial_penalty = f"-{int(round(base_stage0 * 100))}%"
+            initial_penalty = f"-{retreat_initial_penalty_pct(marshal)}%"
 
         # ════════════════════════════════════════════════════════════
         # FIGHTING RETREAT (Phase 2.8)

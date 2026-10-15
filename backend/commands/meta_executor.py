@@ -936,7 +936,9 @@ MILITARY COMMANDS:
                "bombard Swabia" - Cannot fire after moving.
 
   garrison   - Leave detachment to defend a region (2 AP)
-               Max 3 garrisons per nation. Fights to destruction.
+               Max 3 garrisons per nation. A detachment must be
+               stormed: it lays down its arms below 500, and
+               capitulates whole to an assault at 4:1 odds.
 
   enact      - Enact a law of state (1 Admin AP + its price)
                "enact the Staff" - the Council of State quotes the

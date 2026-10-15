@@ -662,7 +662,13 @@ class TestTheSeriesRecord:
         gate = json.loads((ROOT / "tools" / "_econ_gate_series_arms_final.json")
                           .read_text(encoding="utf-8"))
         assert rec["arms"]["ALL"]["series"] == gate["prior"]
-        assert gate["arms"]["ALL"]["series"] == BASELINE_SERIES
+        # RE-SEATED by DDB-X3 (Pre-Deploy S13b part 3, October 15, 2026): one
+        # more link — the gate's ALL arm is the DD-B record's prior, and its
+        # ALL arm (the AI's retreat onto an ally's soil) is the standing series.
+        ddb = json.loads((ROOT / "tools" / "_ddb_s13b_series_arms_final.json")
+                         .read_text(encoding="utf-8"))
+        assert gate["arms"]["ALL"]["series"] == ddb["prior"]
+        assert ddb["arms"]["ALL"]["series"] == BASELINE_SERIES
         # every lever the audit landed has its own arm
         assert set(rec["levers"]) == set("DFSBTGCVKWAMOR")
 

@@ -1470,7 +1470,18 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # Russia collapses at turn 12 and Kutuzov walks from Piedmont to Paris while
 # the scripted army stands in Franconia.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# RE-PINNED by DDB-X3 (Pre-Deploy S13b part 3, October 15, 2026; `BUG_FIXES.md`
+# §DD-B): the AI's retreat finder's first tier reads AAR-D4's friendly set
+# (`enemy_ai.ai_retreat_soil_is_friendly` — an ally's or a vassal's soil, as
+# the player's retreat does; Golden Rule 5), so a beaten AI corps falls back
+# onto an ally's province (measured: Russia onto Austria's 34 times, onto
+# Britain's 18, Britain onto Austria's 10 …). Attribution
+# (`tools/_ddb_s13b_series_arms.py`, `tools/_ddb_s13b_series_arms_final.json`):
+# arm Z alone diverges at [28] (France's alarm 0 -> 2); every lever up but Z
+# is byte-identical to the series before it; DDB-R3's capitulation (arm N)
+# and DDB-X1's landing (arm L) are byte-identical — neither is reached here.
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

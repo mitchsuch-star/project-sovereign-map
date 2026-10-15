@@ -28,6 +28,10 @@ the code-health ratchet forbids a new lever):
     V = world_state.reckless_charge_peace_owner       (the player's reckless auto-charge picks no target there; down -> None)
     Q calls P's seam (the charge reads the lead's rule), so Q's attribution
     is the arm X17OFF (every lever up but Q and V) against ALL.
+  Part 3, slice 3 (the garrison and the retreat):
+    N = garrison_report.detachment_capitulates   (DDB-R3: a detachment at >= 4:1 taken whole; down -> False)
+    L = naval_executor.landing_garrison_fights   (DDB-X1: the landing reads garrison_fights; down -> its own copy)
+    Z = enemy_ai.ai_retreat_soil_is_friendly     (DDB-X3: the AI's first tier reads AAR-D4's set; down -> own soil)
 
 DDB-1, DDB-4, DDB-5, DDB-7 … 11 and DDB-X8 / X10 are the player's own roads
 (the passive France never proposes, counters or opens a table) or display
@@ -81,6 +85,13 @@ LEVERS = {
     "Y": ("backend.models.world_state", "cession_recovers_province", "False"),
     "Q": ("backend.commands.combat_executor", "charge_on_peace_soil", "None"),
     "V": ("backend.models.world_state", "reckless_charge_peace_owner", "None"),
+    "N": ("backend.game_logic.garrison_report", "detachment_capitulates", "False"),
+    "L": ("backend.commands.naval_executor", "landing_garrison_fights",
+          "(getattr(a[0], 'controller', None) != a[1]"
+          " and int(getattr(a[0], 'garrison_strength', 0) or 0) > 0"
+          " and (bool(getattr(a[0], 'garrison_detachment', False))"
+          " or int(a[0].garrison_strength) >= 5000))"),
+    "Z": ("backend.ai.enemy_ai", "ai_retreat_soil_is_friendly", "a[2] == a[1]"),
 }
 ARMS = {"0": set(), **{k: {k} for k in LEVERS}, "ALL": set(LEVERS),
         "X17OFF": set(LEVERS) - {"Q", "V"}}
@@ -196,6 +207,29 @@ def _rck(world, marshal, enemy):
         _c["reckless_skipped_peace_soil|" + str(marshal.nation) + "|" + str(out)] += 1
     return out
 WSM.reckless_charge_peace_owner = _rck
+import backend.game_logic.garrison_report as GRM
+_o_cap = GRM.detachment_capitulates
+def _cap(region, attacker_effective, garrison_effective):
+    out = _o_cap(region, attacker_effective, garrison_effective)
+    if out:
+        _c["detachment_capitulated|" + str(getattr(region, "name", ""))] += 1
+    return out
+GRM.detachment_capitulates = _cap
+import backend.commands.naval_executor as NVM
+_o_land = NVM.landing_garrison_fights
+def _land(region, nation):
+    out = _o_land(region, nation)
+    _c["landing_garrison_read|" + str(nation) + "|" + str(out)] += 1
+    return out
+NVM.landing_garrison_fights = _land
+import backend.ai.enemy_ai as EAM
+_o_rsf = EAM.ai_retreat_soil_is_friendly
+def _rsf(world, nation, controller):
+    out = _o_rsf(world, nation, controller)
+    if out and controller != nation:
+        _c["ai_retreat_onto_ally|" + str(nation) + "|" + str(controller)] += 1
+    return out
+EAM.ai_retreat_soil_is_friendly = _rsf
 
 def _dump():
     print("REACH=" + repr(dict(_c)))
@@ -250,6 +284,9 @@ def main() -> int:
     args = ap.parse_args()
     prior = json.loads(args.prior) if args.prior else recorded_series()
     names = [x.strip() for x in args.arms.split(",") if x.strip()]
+    for arm in names:  # "-NZ": every lever up but N and Z (an attribution in the full context)
+        if arm not in ARMS and arm.startswith("-"):
+            ARMS[arm] = set(LEVERS) - set(arm[1:])
     out = {"prior": prior,
            "levers": {k: f"{m}.{n}" for k, (m, n, _d) in LEVERS.items()},
            "arm_levers": {k: sorted(ARMS[k]) for k in names}, "arms": {}}

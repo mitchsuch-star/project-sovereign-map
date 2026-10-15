@@ -126,14 +126,22 @@ class TestTheGarrisonFloorReadsTheGarrison:
         # the row's absurdity no longer reproduces on either arm — measured
         # lever by lever, the surrender is the sole mover. This pin measures
         # FA-D28's loss floor, not the surrender: the grind runs with it down.
+        # DDB-R3 (Pre-Deploy S13b part 3) built FA-D28's OPEN half for
+        # detachments: stormed at >= 4:1 effective odds a detachment
+        # capitulates whole, so a 40,000-man corps takes these in one assault.
+        # This pin measures the LOSS floor, so the grind runs with the
+        # capitulation held down too (`detachment_capitulates`, its seam).
         from backend.game_logic import garrison_report as _GR
         _was = _GR.A_SMALL_GARRISON_SURRENDERS
+        _was_cap = _GR.detachment_capitulates
         _GR.A_SMALL_GARRISON_SURRENDERS = False
+        _GR.detachment_capitulates = lambda *a, **k: False
         try:
             n_before, lost_before = self._grind(False, garrison, 40000)
             n_after, lost_after = self._grind(True, garrison, 40000)
         finally:
             _GR.A_SMALL_GARRISON_SURRENDERS = _was
+            _GR.detachment_capitulates = _was_cap
 
         # The defect, stated as the row states it.
         if garrison < 25000:

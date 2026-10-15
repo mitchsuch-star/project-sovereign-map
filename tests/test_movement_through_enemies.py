@@ -46,7 +46,8 @@ class TestMoveThroughEnemyToEnemyBlocked:
         assert result["success"] is False
         # NPC-13 (SR-6 reserve, Oct 2 2026): the refusal names the enemy.
         assert "Cannot advance while engaged with " in result["message"]
-        assert ("He may fall back to friendly ground" in result["message"]
+        # DDB-R6 (Pre-Deploy S13b part 3): the fall-back is a withdrawal.
+        assert ("He may withdraw onto friendly ground" in result["message"]
                 or "he must fight or stand" in result["message"])
         assert "friendly ground" in result["message"]
         assert ney.location == "Belgium"  # Ney didn't move
@@ -179,7 +180,8 @@ class TestEnemyAIFollowsSameRules:
         assert result["success"] is False
         # NPC-13 (SR-6 reserve, Oct 2 2026): the refusal names the enemy.
         assert "Cannot advance while engaged with " in result["message"]
-        assert ("He may fall back to friendly ground" in result["message"]
+        # DDB-R6 (Pre-Deploy S13b part 3): the fall-back is a withdrawal.
+        assert ("He may withdraw onto friendly ground" in result["message"]
                 or "he must fight or stand" in result["message"])
         assert wellington.location == "Waterloo"
 

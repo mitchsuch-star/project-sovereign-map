@@ -73,8 +73,10 @@ class TestTheScoutNamesTheGarrison:
         msg = data["message"]
         assert "No enemy forces detected" not in msg, msg
         assert "No field army stands there." in msg
+        # DDB-X2 (Pre-Deploy S13b part 3): the collapse line is named.
         assert ("Garrison: 25,000 — it must be assaulted — a march halts before it; "
-                "a capital's garrison, it regrows 2,000 a turn up to 25,000.") in msg, msg
+                "it breaks below 5,000; a capital's garrison, it regrows 2,000 a "
+                "turn up to 25,000.") in msg, msg
         intel = data["events"][0]["intel"]
         assert intel["garrison"] == 25000 and intel["works_bonus"] == 0
 
@@ -103,7 +105,10 @@ class TestTheScoutNamesTheGarrison:
         vienna.garrison_strength = 3000
         vienna.garrison_detachment = True
         data = self._scout_vienna(client, world)
-        assert "a detachment that fights to the last man — it must be assaulted" in data["message"]
+        # DDB-X2 (Pre-Deploy S13b part 3): a detachment does not fight to the
+        # last man — the floor and the 4:1 capitulation are named.
+        assert ("a detachment — it must be assaulted; it lays down its arms below "
+                "500, and capitulates whole to a storm at 4:1 odds") in data["message"]
         assert data["events"][0]["intel"]["garrison_detachment"] is True
 
     def test_a_field_army_and_the_garrison_both(self, shipped):

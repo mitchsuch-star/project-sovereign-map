@@ -694,6 +694,13 @@ class TestTheLedgerAndTheLog:
 # ═════════════════════ the three commanded arms, driven ═══════════════════════
 
 ARMS = {"CMD-H": "historical", "CMD-A": "austerlitz", "CMD-M": "marengo"}
+# DDB-R3 (Pre-Deploy S13b part 3, October 15, 2026): a detachment stormed at
+# >= 4:1 capitulates whole — on CMD-H Archduke Charles takes Bavaria's 3,000
+# at Franconia in one assault at turn 34 and rolls on into Swabia (measured:
+# the world identical to the part's HEAD through turn 33; with the seam down
+# the Step 7 page returns turn for turn). A function seam, not a lever (the
+# ratchet forbids a new one): the driver's `--seam` holds it down.
+SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False"]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",
                "backend.game_logic.dispatch:THE_PASSAGE_COUNTS_ITS_SLACK=0",
@@ -760,6 +767,8 @@ def driven(tmp_path_factory):
                 "--seed", seed]
         for lever in levers:
             argv += ["--lever", lever]
+        for seam in (SEAMS_DOWN if levers else []):
+            argv += ["--seam", seam]
         procs.append(subprocess.Popen(
             argv, cwd=str(REPO), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             env=dict(env, INK_IRON_SAVE_DIR=str(run / f"_saves_{name}"))))

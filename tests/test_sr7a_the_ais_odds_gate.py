@@ -166,6 +166,10 @@ class TestTheSmallGarrisonSurrenders:
 
     def test_lever_down_the_last_man_fights(self, monkeypatch):
         monkeypatch.setattr(GR, "A_SMALL_GARRISON_SURRENDERS", False)
+        # DDB-R3 (Pre-Deploy S13b part 3): Mack stands at far better than 4:1
+        # against 47 men, so the detachment would CAPITULATE whole; this pin's
+        # subject is the surrender lever, so the capitulation is held down too.
+        monkeypatch.setattr(GR, "detachment_capitulates", lambda *a, **k: False)
         world, executor, gs = _boot()
         region = _stage_franconia(world, 47)
         assert GR.garrison_fights(region) is True
