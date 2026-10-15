@@ -377,6 +377,49 @@ def compute_buyoff_price(world, nation: str) -> Optional[int]:
     return int(BUYOFF_BASE_PRICE + BUYOFF_PRICE_PER_WEIGHT * view.weight)
 
 
+def next_design_after_buyoff(world, payer: str, court: str) -> Optional[Dict]:
+    """DDB-31 (Pre-Deploy S13b part 2): the design that wakes when `court`'s
+    active design is bought off, and ITS price — {"title", "price"} — or
+    None when nothing gold can buy wakes after it. Read counterfactually: a
+    bargain for the active design is recorded and the court warmed by the
+    purchase's own `BUYOFF_RELATION_BONUS` (shown = applied), the intent is
+    re-read, and everything is put back exactly (the bargain popped, the
+    relation restored, the caches flushed both ways). Pure in effect.
+    (diplomacy-first #27: 1,272g bought off Austria's Italian design and a
+    German one woke the next turn at 1,128g, unannounced.)"""
+    from backend.game_logic.intent import get_nation_intent
+    view = get_nation_intent(court, world)
+    if view.want_id is None or view.survival:
+        return None
+    records = getattr(world, "compensation_bargains", None)
+    if records is None:
+        records = world.compensation_bargains = []
+    key = world._make_diplo_key(payer, court)
+    relations = world.nation_relations
+    had_relation = key in relations
+    old_relation = relations.get(key)
+    probe = {"payer": payer, "recipient": court, "design_id": view.want_id,
+             "granted": {}, "turn": int(world.current_turn),
+             "expires_turn": int(world.current_turn) + COMPENSATION_TERM_TURNS,
+             "_probe": True}
+    records.append(probe)
+    relations[key] = max(-100, min(100, int(old_relation or 0) + BUYOFF_RELATION_BONUS))
+    world.invalidate_bloc_members_cache()
+    try:
+        after = get_nation_intent(court, world)
+        if after.want_id is None or after.survival or after.want_id == view.want_id:
+            return None
+        price = compute_buyoff_price(world, court)
+        return {"title": str(after.want_title or after.want_id), "price": int(price or 0)}
+    finally:
+        records[:] = [r for r in records if r is not probe]
+        if had_relation:
+            relations[key] = old_relation
+        else:
+            relations.pop(key, None)
+        world.invalidate_bloc_members_cache()
+
+
 def buy_off_refusal(world, payer: str, court: str) -> str:
     """SF-LB-3: why `buy off <court>` would be refused today — '' when the
     verb (`DiplomaticExecutor._execute_buy_off_design`) would carry it out.

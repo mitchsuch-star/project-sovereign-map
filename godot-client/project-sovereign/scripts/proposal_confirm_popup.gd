@@ -66,6 +66,10 @@ func _ready():
 	# robbing exactly the region the player needs most.
 	if per_court_scroll:
 		per_court_scroll.set_meta("relax_last", true)
+	# DDB-28 (Pre-Deploy S13b part 2): the footer's petition lines carry
+	# Grant / Decline links acting on the staged draft.
+	if footer_label:
+		footer_label.meta_clicked.connect(_on_footer_meta_clicked)
 	# UXR3-F3: the document's three regions come to rest on whole lines.
 	for region in [content_label, per_court_table, footer_label]:
 		Utils.keep_whole_lines(region)
@@ -319,7 +323,7 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			if not (row is Dictionary):
 				continue
 			var court_affordances: Array = []
-			# Focused dials ("Press <court>" / "Ease <court>") ride on every
+			# Focused dials ("Demand more of <court>" / "Ease <court>") ride on every
 			# dialable row; holdout Ease/Drop ride on holdout rows.
 			var dial_actions = row.get("dial_actions", [])
 			if dial_actions is Array:
@@ -600,8 +604,10 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	var ally_petitions = data.get("ally_petitions", [])
 	if ally_petitions is Array and ally_petitions.size() > 0:
 		bbcode += "[b]Allied petitions[/b]\n"
+		var petition_index = 0
 		for petition in ally_petitions:
 			if not petition is Dictionary:
+				petition_index += 1
 				continue
 			var ally = str(petition.get("ally_nation", "An ally"))
 			var ally_voice = str(petition.get("ally_voice", ""))
@@ -609,6 +615,11 @@ func _build_settlement_footer(data: Dictionary) -> String:
 				bbcode += "  [color=#e0c070]*[/color] [i]\"" + ally_voice + "\"[/i]\n"
 			else:
 				bbcode += "  [color=#e0c070]*[/color] " + Utils.display_nation_name(ally) + " petitions over settlement scope.\n"
+			# DDB-28: answered here, on the staged draft — the petition no
+			# longer waits until the settlement is ratified and gone.
+			if str(petition.get("petition_key", "")) != "":
+				bbcode += "    [url=petition:%d:grant][color=#80c080]Grant[/color][/url]   [url=petition:%d:decline][color=#e08060]Decline[/color][/url]\n" % [petition_index, petition_index]
+			petition_index += 1
 		bbcode += "\n"
 
 	var allies = sections.get("allies", {}) if sections is Dictionary else {}
@@ -1299,6 +1310,27 @@ func _on_per_court_meta_clicked(meta):
 				_fire_magnitude_step(row, int(parts[2]), parts[3], parts[4])
 
 
+func _on_footer_meta_clicked(meta):
+	# DDB-28: `petition:<index>:grant|decline` — the petition resolved from
+	# current_data at click time (an index, never an embedded identity).
+	var parts = str(meta).split(":")
+	if parts.size() < 3 or parts[0] != "petition":
+		return
+	var petitions = current_data.get("ally_petitions", [])
+	var index = int(parts[1])
+	if not (petitions is Array) or index < 0 or index >= petitions.size():
+		return
+	var petition = petitions[index]
+	if not (petition is Dictionary):
+		return
+	_emit_settlement_action("settlement_answer_petition", {
+		"nation": str(petition.get("ally_nation", "")),
+		"petition_key": str(petition.get("petition_key", "")),
+		"answer": parts[2],
+		"war_id": str(current_data.get("war_id", "")),
+	})
+
+
 func _per_court_row(court_index: int) -> Dictionary:
 	var per_court = current_data.get("per_court_acceptance", [])
 	if per_court is Array and court_index >= 0 and court_index < per_court.size():
@@ -1496,7 +1528,10 @@ func _build_war_purpose_content(data: Dictionary) -> String:
 func _build_peace_preview_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
 	var snapshot = data.get("war_context_snapshot", {})
-	var bbcode = "[b]PEACE PREVIEW - %s[/b]\n\n" % Utils.display_nation_name(str(target))
+	# DDB-26 (Pre-Deploy S13b part 2): titled by its treaty type — an
+	# armistice preview read "PEACE PREVIEW".
+	var preview_title = str(snapshot.get("preview_title", "PEACE PREVIEW"))
+	var bbcode = "[b]%s - %s[/b]\n\n" % [preview_title, Utils.display_nation_name(str(target))]
 
 	# UXR3-31 (Pre-Deploy S12 part 2): the terms and the acceptance
 	# components lead the snapshot; the War Summary (a long red list
@@ -1520,6 +1555,19 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 		elif harshness_label == "punitive":
 			h_color = "#e66262"
 		bbcode += "Assessment: [color=%s]%s[/color]\n" % [h_color, harshness_label.to_upper()]
+
+	# G4F-17: explain what an armistice IS at decision time — duration,
+	# the relations-vs--60 expiry fork, and where this one is heading.
+	# DDB-26 (Pre-Deploy S13b part 2): above the score — the player learned
+	# only at the bottom that the truce strikes the battle from the war score.
+	var armistice_mechanics = snapshot.get("armistice_mechanics", {})
+	if armistice_mechanics is Dictionary and not armistice_mechanics.is_empty():
+		bbcode += "\n[b]Armistice Terms[/b]\n"
+		for line in armistice_mechanics.get("display_lines", []):
+			var line_color = "#a0a0d0"
+			if str(line).begins_with("Relations stand"):
+				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
+			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
 
 	bbcode += "\n[b]Acceptance Estimate[/b]\n"
 	var acceptance = snapshot.get("acceptance_preview", {})
@@ -1610,16 +1658,6 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	if snapshot.has("armistice_remaining_turns"):
 		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
 
-	# G4F-17: explain what an armistice IS at decision time — duration,
-	# the relations-vs--60 expiry fork, and where this one is heading.
-	var armistice_mechanics = snapshot.get("armistice_mechanics", {})
-	if armistice_mechanics is Dictionary and not armistice_mechanics.is_empty():
-		bbcode += "\n[b]Armistice Terms[/b]\n"
-		for line in armistice_mechanics.get("display_lines", []):
-			var line_color = "#a0a0d0"
-			if str(line).begins_with("Relations stand"):
-				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
-			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
 
 	var warnings = data.get("warnings", [])
 	var tier_warnings = snapshot.get("tier_mismatch_warnings", [])

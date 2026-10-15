@@ -148,17 +148,24 @@ class TestAssessmentTemplates:
     """Test all 15 templates + fallback."""
 
     def test_war_winning(self):
+        # DDB-27 (S13b part 2): the assessment reads the war score LIVE —
+        # the board wins it (France holds Prussia's soil), not a stored number.
         world = _make_world()
         _set_diplo_state(world, "France", "Prussia", "WAR")
-        world.war_scores[world._make_diplo_key("France", "Prussia")] = 30
+        for region in world.nation_starting_regions.get("Prussia", []):
+            world.regions[region].controller = "France"
+        world.invalidate_active_nations_cache()
         text = get_assessment_text(world, "Prussia")
         assert "falters" in text
         assert "Prussia" in text
 
     def test_war_losing(self):
+        # DDB-27 (S13b part 2): read LIVE — Prussia holds French soil.
         world = _make_world()
         _set_diplo_state(world, "France", "Prussia", "WAR")
-        world.war_scores[world._make_diplo_key("France", "Prussia")] = -30
+        for region in world.nation_starting_regions.get("France", []):
+            world.regions[region].controller = "Prussia"
+        world.invalidate_active_nations_cache()
         text = get_assessment_text(world, "Prussia")
         assert "poorly" in text
 

@@ -45,6 +45,9 @@ _SETTLEMENT_TIER2_ACTION_IDS = frozenset({
     # the set the structured path resolves directly.
     "seek_bilateral_peace",
     "seek_armistice_instead",
+    # DDB-28 (Pre-Deploy S13b part 2): an ally's petition answered on the
+    # review's own line (`nation` / `petition_key` / `answer`).
+    "settlement_answer_petition",
 })
 
 
@@ -3554,6 +3557,38 @@ class DiplomaticExecutor:
             caller_kind="player_editor",
             white_peace=True,
         )
+        # DDB-24 (Pre-Deploy S13b part 2): a white peace asked of ONE court
+        # stages the whole war on purpose — the review says so, beside the
+        # per-court road (diplomacy-first #2 picked Austria and got Austria +
+        # Britain + Russia, unannounced).
+        _wp = result.get("diplomatic_dialogue") if isinstance(result, dict) else None
+        if isinstance(_wp, dict):
+            from backend.display_names import display_nation as _dn
+            _courts = [str(c) for c in (_wp.get("covered_enemy_participants") or []) if c]
+            if len(_courts) > 1 and target_nation in _courts:
+                _names = ", ".join(_dn(c) for c in _courts[:-1]) + f" and {_dn(_courts[-1])}"
+                # The per-court road by the label the review itself carries.
+                _road = ""
+                _labels = [str(o.get("label") or "") for o in (_wp.get("options") or [])
+                           if isinstance(o, dict)]
+                for _row in _wp.get("per_court_acceptance") or []:
+                    if isinstance(_row, dict) and _row.get("nation") == target_nation:
+                        _labels += [str(a.get("label") or "") for a in
+                                    (_row.get("dial_actions") or [])
+                                    if isinstance(a, dict)]
+                for _label in _labels:
+                    if (_dn(target_nation) in _label or target_nation in _label) and (
+                            _label.startswith("Make peace with")
+                            or _label.startswith("Separate peace with")):
+                        _road = _label
+                        break
+                _how = (f"choose '{_road}'" if _road
+                        else "take the per-court road on its row")
+                _note = (f"This white peace settles the whole war — with {_names}. "
+                         f"To settle with {_dn(target_nation)} alone, {_how}.")
+                _wp["scope_note"] = _note
+                _wp["talleyrand_text"] = f"{_note} {_wp.get('talleyrand_text') or ''}".strip()
+                result["message"] = _wp["talleyrand_text"]
         if resolution.get("backfilled"):
             result["war_instance_backfilled"] = True
         result.setdefault("awaiting_diplomatic_response", True)
@@ -4558,6 +4593,8 @@ class DiplomaticExecutor:
             # and save-loaded dialogues dispatchable.
             "settlement_demand_add",
             "settlement_demand_remove",
+            # DDB-28: an ally's petition answered on the review's own line.
+            "settlement_answer_petition",
             "settlement_demand_set_magnitude",
             "open_war_detail",
             # G2-Slice-W1 re-author with concessions handler.
@@ -4993,6 +5030,17 @@ class DiplomaticExecutor:
                     "action": "modify_harsh",
                     "terms": {**suggested, "proposal_type": proposal_type},
                 })
+            # DDB-X13 (found by DDB-30, Pre-Deploy S13b part 2): a harsher
+            # round steps back too — "Less harsh" restores exactly the
+            # previous round (the shared `less_generous` restore). Its label
+            # carries no "harsh": a typed "harsh" keeps meaning "harsher".
+            import copy as _copy
+            options.append({
+                "label": "Milder terms",
+                "description": "Step back to the previous terms.",
+                "action": "less_generous",
+            })
+            context["previous_round"] = _copy.deepcopy(dict(ctx.dialogue))
             options.append({"label": "Reconsider", "description": "Let me think.", "action": "reconsider"})
 
             cap_msg = ""
@@ -5442,6 +5490,16 @@ class DiplomaticExecutor:
                     "action": "modify_generous",
                     "terms": {**suggested, "proposal_type": proposal_type},
                 })
+            # DDB-30 (Pre-Deploy S13b part 2): a generous round can be stepped
+            # back — "Less generous" restores exactly the previous round (the
+            # dialogue this click replaced, its terms and its controls). The
+            # drafted proposal itself is round 1 and has nothing to step to.
+            options.append({
+                "label": "Less generous",
+                "description": "Step back to the previous terms.",
+                "action": "less_generous",
+            })
+            context["previous_round"] = copy.deepcopy(dict(ctx.dialogue))
             options.append({"label": "Reconsider", "description": "Let me think.", "action": "reconsider"})
 
             cap_msg = ""
@@ -5469,6 +5527,23 @@ class DiplomaticExecutor:
                 "success": True,
                 "message": new_dialogue["talleyrand_text"],
                 "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif ctx.action == "less_generous":
+            # DDB-30: the previous round, exactly as it stood.
+            previous = (ctx.dialogue.get("context") or {}).get("previous_round")
+            if not isinstance(previous, dict):
+                return {"success": False,
+                        "message": "These are the first terms drafted, Sire — there is nothing to step back to.",
+                        "diplomatic_dialogue": ctx.dialogue,
+                        "awaiting_diplomatic_response": True}
+            import copy as _copy
+            restored = _copy.deepcopy(previous)
+            ctx.world.dialogue_manager.replace(restored)
+            return {
+                "success": True,
+                "message": "Very well, Sire — the previous terms stand.",
+                "diplomatic_dialogue": restored,
             }
 
         elif ctx.action == "expand_options":
@@ -5543,6 +5618,14 @@ class DiplomaticExecutor:
                     {"target_nation": suggestion.get("target_nation", "")},
                     {"world": ctx.world})
                 result.pop("new_state", None)  # circular refs (R4 warning)
+                return result
+            if kind == "bid_for_allegiance":
+                # DDB-34: the advice's bid runs the typed verb's own gate and
+                # price (`_execute_diplomatic_bid`, its default sum).
+                result = self._execute_diplomatic_bid(
+                    {"target_nation": suggestion.get("target_nation", ""),
+                     "raw_text": ""}, ctx.world)
+                result.pop("new_state", None)
                 return result
             if kind == "invest_vassal":
                 # R72 parity: the typed invest route is a free action —
@@ -6012,6 +6095,25 @@ class DiplomaticExecutor:
         elif ctx.action == "reject_ai_ultimatum":
             return self._handle_reject_ai_ultimatum(ctx.dialogue, ctx.world)
 
+        elif ctx.action == "assess_terms":
+            # DDB-25 (Pre-Deploy S13b part 2): "What terms would they
+            # accept?" opens the feasibility card on the terms Talleyrand
+            # would draft (the suggested terms at their centre) with their
+            # acceptance — it landed on the standstill menu, naming none.
+            from backend.game_logic.diplomatic_dialogue import generate_feasibility_dialogue
+            assess_target = ctx.dialogue.get("target_nation", ctx.target_nation)
+            sel_terms = ctx.selected.get("terms") or {}
+            new_dialogue = generate_feasibility_dialogue({
+                "target_nation": assess_target,
+                "proposal_type": sel_terms.get("proposal_type") or "peace",
+                "with_suggested_terms": True,
+            }, ctx.world)
+            ctx.world.dialogue_manager.replace(new_dialogue)
+            return {
+                "success": True,
+                "message": new_dialogue.get("talleyrand_text", ""),
+                "diplomatic_dialogue": new_dialogue,
+            }
         elif ctx.action == "expand_to_proposal":
             # Advisory drill-down: re-route to proposal dialogue for a nation
             expand_target = ctx.dialogue.get("target_nation", ctx.target_nation)

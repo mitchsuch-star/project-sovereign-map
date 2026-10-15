@@ -194,8 +194,8 @@ def test_settlement_review_emits_uncovered_chips_and_side_labels() -> None:
         "backend/game_logic/settlement_presentation.py"
     )
 
-    assert "side_label_display" in presentation
-    assert '"side_label": side_label_display(side)' in presentation
+    # DDB-24 (S13b part 2): the side is named by its court.
+    assert '"side_label": side_court_label(' in presentation
     assert "uncovered_enemy_display_chips" in presentation
     assert "_beneficiaries_from_terms" in presentation
     assert '"is_beneficiary": nation in beneficiaries' in presentation

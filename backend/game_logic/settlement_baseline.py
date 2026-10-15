@@ -240,18 +240,20 @@ def compute_settlement_treasury_line(
 def _promised_regions_in_terms(
     settlement_terms: Iterable[Mapping[str, Any]],
 ) -> Set[str]:
-    """Regions already promised by ANY ``territory_cede`` clause in the
-    staged package (V1 is table-scoped: one region, one clause —
-    regardless of which court the clause touches)."""
+    """Regions already promised by ANY cession-shaped clause in the staged
+    package (V1 is table-scoped: one region, one clause — regardless of
+    which court the clause touches).
+
+    DDB-33 (Pre-Deploy S13b part 2): a client state's provinces count —
+    `cession_shaped_regions`, every dialect (the Ease dial offered
+    Ulster, already promised by "Erect Ireland", and the validator refused
+    the draft as `carve_region_double_promised`)."""
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
     promised: Set[str] = set()
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
-        if str(term.get("type") or "") != "territory_cede":
-            continue
-        region = str(term.get("region") or "")
-        if region:
-            promised.add(region)
+        promised.update(str(r) for r in cession_shaped_regions(term) if r)
     return promised
 
 

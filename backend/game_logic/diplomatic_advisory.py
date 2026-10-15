@@ -14,7 +14,7 @@ Entry points:
 
 from typing import Dict, List, Optional
 
-from backend.game_logic.diplomacy import get_war_score_for
+from backend.game_logic.diplomacy import get_war_score_for, live_war_score_for
 from backend.game_logic.diplomatic_dialogue import (
     get_known_nations,
 )
@@ -1221,7 +1221,9 @@ def _assess_nation(nation: str, world) -> Dict:
             f"skill {int(diplomat.skill)}. "
         )
 
-    player_war_score = get_war_score_for(world, player_nation, nation)
+    # DDB-27's sibling (S13b part 2): the score the advice quotes is read
+    # live, as the war panel's — battles since the last end turn count.
+    player_war_score = live_war_score_for(world, player_nation, nation)
 
     state_text = _STATE_DISPLAY.get(state, state.lower())
     summary = _get_nation_summary(nation, world)
@@ -1256,7 +1258,7 @@ def _assess_nation(nation: str, world) -> Dict:
             f"{confidence_preamble}"
             f"We are {state_text} with {nation}, Sire. "
             f"War score stands at {int(player_war_score)} from our perspective. "
-            f"Their military strength is {advantage} relative to ours. "
+            f"{strength_sentence(advantage)} "
             f"{diplomat_desc}"
             f"{summary}"
         )
@@ -1274,7 +1276,7 @@ def _assess_nation(nation: str, world) -> Dict:
             f"{confidence_preamble}"
             f"We are {state_text} with {nation}, Sire. "
             f"Relations stand at {relation}. "
-            f"Their military strength is {advantage} relative to ours. "
+            f"{strength_sentence(advantage)} "
             f"{diplomat_desc}"
             f"{summary}"
         )
@@ -1294,10 +1296,13 @@ def _assess_nation(nation: str, world) -> Dict:
     # Build options
     options = []
     if state == "WAR":
+        # DDB-25 (Pre-Deploy S13b part 2): the feasibility card on the terms
+        # Talleyrand would draft, with their acceptance.
         options.append({
             "label": "What terms would they accept?",
-            "description": f"Assess feasibility of peace with {nation}.",
-            "action": "expand_to_proposal",
+            "description": f"The peace terms {nation} would weigh, and how they would read them.",
+            "action": "assess_terms",
+            "terms": {"proposal_type": "peace", "target_nation": nation},
         })
     else:
         options.append({
@@ -1564,7 +1569,7 @@ def _recommend_action(target_nation: str, world) -> Dict:
     relation = int(world.nation_relations.get(diplo_key, 0))
     advantage = _get_military_advantage(target_nation, world)
 
-    player_war_score = get_war_score_for(world, player_nation, target_nation)
+    player_war_score = live_war_score_for(world, player_nation, target_nation)
     from backend.game_logic.collapse import get_collapse_state
     collapse = get_collapse_state(world, player_nation)
 
@@ -1573,7 +1578,7 @@ def _recommend_action(target_nation: str, world) -> Dict:
             text = (
                 f"Sire, we hold the upper hand against {target_nation}. "
                 f"War score: {int(player_war_score)}. I recommend pressing for peace "
-                f"on favorable terms. Their {advantage} military position means they "
+                f"on favorable terms. {strength_sentence(advantage)} They "
                 f"cannot sustain this war indefinitely.\n\n"
                 f"Alternatively, continue fighting to improve terms further — "
                 f"though I caution against overreach. Empires are lost to greed "
@@ -1789,12 +1794,12 @@ def _diplomatic_overview(world) -> Dict:
 
         war_note = ""
         if state == "WAR":
-            player_ws = get_war_score_for(world, player_nation, nation)
+            player_ws = live_war_score_for(world, player_nation, nation)
             war_note = f" War score: {int(player_ws)}."
 
         lines.append(
             f"  {nation} — {state_text.capitalize()}. Relations: {relation}. "
-            f"Military: {advantage}.{war_note} {summary}"
+            f"{strength_sentence(advantage)}{war_note} {summary}"  # DDB-25
         )
 
     lines.append("")
@@ -1909,6 +1914,29 @@ def _get_fogged_strength(nation: str, world) -> int:
 
     # UNKNOWN: use a default mid-range estimate
     return 30000
+
+
+# DDB-25 (Pre-Deploy S13b part 2): the ladder word said which way it read
+# only to a player who knew the ladder ("Their military strength is
+# overmatched relative to ours" — whose?). One sentence per band, the
+# direction in the words.
+_STRENGTH_SENTENCES = {
+    "overwhelming": "In the field they outmatch us decisively.",
+    "superior": "In the field they outmatch us.",
+    "comparable": "In the field we are evenly matched.",
+    "inferior": "In the field we outmatch them.",
+    "overmatched": "In the field we outmatch them decisively.",
+    "considerable": "In the field they appear to outmatch us.",
+    "modest": "In the field we appear to outmatch them.",
+    "unknown": "Their strength in the field is unknown to us.",
+}
+
+
+def strength_sentence(advantage: str) -> str:
+    """The `_get_military_advantage` band as a sentence that names its
+    direction: "we outmatch them" / "they outmatch us"."""
+    return _STRENGTH_SENTENCES.get(str(advantage or ""),
+                                   "Their strength in the field is unknown to us.")
 
 
 def _get_military_advantage(nation: str, world) -> str:

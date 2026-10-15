@@ -23,6 +23,15 @@ Part 2 (October 15, 2026), its head:
            shipped weight, so a beaten court's honest letter is sent.
   DDB-X12  (found by DDB-X9) a court's bilateral peace letter names what each
            side keeps, as France's own preview does.
+
+Part 2, slice 2's sweep (the table's P3s):
+
+  DDB-X13  (found by DDB-30) a harsher round steps back too ("Milder terms").
+  DDB-X14  (found by DDB-27) the advice quotes the war score live.
+  DDB-X15  (found by DDB-25) the overview and the war-room counsel say who
+           outmatches whom.
+  DDB-X16  (found by DDB-26) the armistice quote and the per-court chip promise
+           a counter only when the generator can build one.
 """
 from __future__ import annotations
 
@@ -390,3 +399,74 @@ class TestDDBX11:
                 "terms": {"type": "peace", "target_nation": "France",
                           "demands": [{"type": "gold_lump", "value": 100}]}}
         assert _send_floor(asks, world, "Prussia") == 20
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Part 2, slice 2's sweep — the siblings the table's P3s found
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _respond(c, choice, w, **params) -> dict:
+    body = {"choice": choice,
+            "dialogue_id": (w.pending_diplomatic_dialogue or {}).get("dialogue_id")}
+    if params:
+        body["action_params"] = params
+    return _post(c, "/respond_to_diplomatic_dialogue", body)
+
+
+class TestDDBX13:
+    """Found by DDB-30: a harsher round could not be stepped back either."""
+
+    def test_less_harsh_restores_the_previous_round(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        first = _post(c, "/command", {"command": "Talleyrand, propose armistice to Austria"})["diplomatic_dialogue"]
+        harsh = _respond(c, "modify_harsh", w)["diplomatic_dialogue"]
+        assert "Milder terms" in [o["label"] for o in harsh["options"]]
+        back = _respond(c, "less_generous", w)["diplomatic_dialogue"]
+        assert back["proposal_terms_summary"] == first["proposal_terms_summary"]
+        assert [o["label"] for o in back["options"]] == [o["label"] for o in first["options"]]
+
+
+class TestDDBX14:
+    """Found by DDB-27: the advice quoted the STORED war score."""
+
+    def test_the_advice_quotes_the_live_score(self, client):
+        c, w = client
+        for region in ("Vienna", "Bohemia", "Moravia", "Tyrol"):
+            w.regions[region].controller = "France"
+        w.invalidate_active_nations_cache()
+        live = D.live_war_score_for(w, "France", "Austria")
+        assert live != D.get_war_score_for(w, "France", "Austria")
+        adv = _post(c, "/command", {"command": "Talleyrand, what about Austria?"})["diplomatic_dialogue"]
+        assert f"War score stands at {live} from our perspective." in adv["talleyrand_text"]
+
+
+class TestDDBX15:
+    """Found by DDB-25: the overview and the war-room counsel used the ladder
+    word too ("Military: overmatched", "Their overmatched military position")."""
+
+    def test_every_strength_line_names_its_direction(self, w):
+        from backend.game_logic import diplomatic_advisory as DA
+        src = (REPO / "backend" / "game_logic" / "diplomatic_advisory.py").read_text(encoding="utf-8")
+        assert 'f"Military: {advantage}' not in src
+        assert "Their {advantage} military position" not in src
+        overview = DA._diplomatic_overview(w)
+        text = str(overview.get("talleyrand_text") or overview)
+        assert "In the field" in text
+
+
+class TestDDBX16:
+    """Found by DDB-26: the armistice quote and the per-court chip promised a
+    counter by score band alone."""
+
+    def test_one_counter_aware_band_for_every_reader(self, w, monkeypatch):
+        from backend.game_logic import ai_diplomacy as AI
+        monkeypatch.setattr(AI, "generate_counter_offer", lambda *a, **k: None)
+        proposal = {"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                    "sweeteners": [], "demands": [], "clauses": []}
+        assert D.counter_aware_likelihood(w, proposal, 35) == "Doubtful"
+        assert D.counter_aware_likelihood(w, proposal, 60) == "Favorable"
+        src = (REPO / "backend" / "game_logic" / "settlement_staging.py").read_text(encoding="utf-8")
+        assert '"band": counter_aware_likelihood(world, proposal, score)' in src
+        dsrc = (REPO / "backend" / "game_logic" / "diplomacy.py").read_text(encoding="utf-8")
+        assert "return counter_aware_likelihood(world, proposal, score), score" in dsrc

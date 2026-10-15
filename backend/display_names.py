@@ -953,7 +953,9 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "self_settlement": "France cannot settle with itself.",
     "not_at_war": "France is not at war with this court.",
     "not_side_leader": "Only the war leader can settle this side.",
-    "one_to_one_war": "Use bilateral peace or armistice for a one-on-one war.",
+    # DDB-35 (Pre-Deploy S13b part 2): the refusal names the court's own
+    # controls — Propose Peace now stands in the WAR state.
+    "one_to_one_war": "A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.",
     # DD-1 Slice B (DD1-1): the scorer's hard stop in words — a covered
     # court with no live war pair against our side cannot be scored as
     # burdened; narrow the coverage or press it on its own.
@@ -1692,9 +1694,10 @@ def _format_clause_detail(clause) -> str:
 def _format_popup_clause_line(prefix: str, clause_type: str, clause) -> str:
     label = clause_display_name(clause_type)
     detail = _format_clause_detail(clause)
+    term = stream_term_phrase(clause)  # DDB-23
     if detail:
-        return f"{prefix}: {label} - {detail}"
-    return f"{prefix}: {label}"
+        return f"{prefix}: {label} - {detail}{term}"
+    return f"{prefix}: {label}{term}"
 
 
 def build_proposal_popup_clauses(terms: dict, *, include_base: bool = True) -> list[str]:
@@ -1717,6 +1720,29 @@ def build_proposal_popup_clauses(terms: dict, *, include_base: bool = True) -> l
     if not clauses:
         return ["Diplomatic proposal"]
     return clauses
+
+
+# DDB-23 (Pre-Deploy S13b part 2): a stream — gold, actions or men a turn —
+# names its term on every line that offers or demands it. A bilateral stream
+# carries no `turns` (it runs while the treaty stands); a settlement stream
+# carries its turns.
+STREAM_TERM_TYPES = frozenset({"gold_per_turn", "ap_per_turn", "manpower_per_turn"})
+
+
+def stream_term_phrase(term) -> str:
+    """" for 5 turns" / " for as long as the treaty stands" — "" for a
+    term that is not a stream."""
+    if not isinstance(term, dict):
+        return ""
+    if str(term.get("type") or "").strip().lower() not in STREAM_TERM_TYPES:
+        return ""
+    try:
+        turns = int(term.get("turns") or 0)
+    except (TypeError, ValueError):
+        turns = 0
+    if turns > 0:
+        return f" for {turns} turn{'s' if turns != 1 else ''}"
+    return " for as long as the treaty stands"
 
 
 def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str) -> list[str]:
@@ -1742,7 +1768,7 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
         demand_type = str(demand.get("type", "")).strip().lower()
         value = demand.get("value", 0)
         if demand_type == "gold_per_turn":
-            lines.append(f"{target_label} pays {int(value)} gold/turn")
+            lines.append(f"{target_label} pays {int(value)} gold/turn{stream_term_phrase(demand)}")
         elif demand_type in ("territory_cede", "territory"):
             regions = demand.get("regions", [])
             lines.append(f"{target_label} cedes {', '.join(regions) if regions else 'territory'}")
@@ -1755,7 +1781,7 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
         elif demand_type == "gold_lump":
             lines.append(f"{target_label} pays {int(value)} gold")
         elif demand_type == "ap_per_turn":
-            lines.append(f"{target_label} loses {int(value)} AP/turn")
+            lines.append(f"{target_label} loses {int(value)} AP/turn{stream_term_phrase(demand)}")
         elif demand_type == "create_client":
             # NA-6c / IGR-D: without this arm the generic fallback below
             # renders a bare "Demand: Client state erected" — naming
@@ -1780,7 +1806,7 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
         sweetener_type = str(sweetener.get("type", "")).strip().lower()
         value = sweetener.get("value", 0)
         if sweetener_type == "gold_per_turn":
-            lines.append(f"France offers {int(value)} gold/turn")
+            lines.append(f"France offers {int(value)} gold/turn{stream_term_phrase(sweetener)}")
         elif sweetener_type == "gold_lump":
             lines.append(f"France offers {int(value)} gold (lump sum)")
         elif sweetener_type in ("territory_cede", "territory"):
@@ -1793,7 +1819,7 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
         elif sweetener_type in ("artillery_manpower", "manpower_artillery"):
             lines.append(f"France provides {int(value)} artillery reserves")
         elif sweetener_type == "ap_per_turn":
-            lines.append(f"France concedes {int(value)} AP/turn")
+            lines.append(f"France concedes {int(value)} AP/turn{stream_term_phrase(sweetener)}")
         else:
             detail = _format_clause_detail(sweetener)
             detail_suffix = f" ({detail})" if detail else ""
@@ -1814,7 +1840,7 @@ def format_proposal_summary(terms: dict) -> str:
         sweetener_type = str(sweetener.get("type", "")).strip().lower()
         value = sweetener.get("value", 0)
         if sweetener_type == "gold_per_turn":
-            parts.append(f"  - {proposer} offers {int(value)} gold per turn")
+            parts.append(f"  - {proposer} offers {int(value)} gold per turn{stream_term_phrase(sweetener)}")
         elif sweetener_type == "gold_lump":
             parts.append(f"  - {proposer} offers {int(value)} gold")
         elif sweetener_type in ("territory_cede", "territory"):
@@ -1837,7 +1863,7 @@ def format_proposal_summary(terms: dict) -> str:
         demand_type = str(demand.get("type", "")).strip().lower()
         value = demand.get("value", 0)
         if demand_type == "gold_per_turn":
-            parts.append(f"  - {proposer} demands {int(value)} gold per turn")
+            parts.append(f"  - {proposer} demands {int(value)} gold per turn{stream_term_phrase(demand)}")
         elif demand_type == "gold_lump":
             parts.append(f"  - {proposer} demands {int(value)} gold")
         elif demand_type in ("territory_cede", "territory"):
@@ -1874,9 +1900,9 @@ def summarize_proposal(proposal: dict) -> str:
             regions = demand.get("regions", [])
             parts.append(f"cede {', '.join(regions)}" if regions else "territory")
         elif demand_type == "gold_per_turn":
-            parts.append(f"{int(demand.get('value', 0))} gold/turn")
+            parts.append(f"{int(demand.get('value', 0))} gold/turn{stream_term_phrase(demand)}")
         elif demand_type == "ap_per_turn":
-            parts.append(f"{int(demand.get('value', 1))} AP/turn")
+            parts.append(f"{int(demand.get('value', 1))} AP/turn{stream_term_phrase(demand)}")
         elif demand_type == "unit_trade":
             parts.append(f"{int(demand.get('value', 0))} units")
         else:

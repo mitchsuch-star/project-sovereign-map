@@ -1000,6 +1000,23 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
     # pressed into a silent re-mount (diplomacy-first #5).
     if target_nation and intent_type == "proposal_options":
         options = _stamp_menu_sends(world, options, player_nation, target_nation)
+        # DDB-34 (Pre-Deploy S13b part 2): while this court's allegiance is
+        # in play, the advice offers the bid (the Cabinet chip's own verb,
+        # its default sum) — "What should we do about Sardinia?" answered
+        # with a peace-time template that never named the auction.
+        if (getattr(world, "allegiance_auctions", {}) or {}).get(target_nation):
+            from backend.game_logic.ai_diplomacy import DEFAULT_ALLEGIANCE_BID
+            from backend.game_logic.instruments import INSTRUMENT_DP_COST
+            options = list(options)
+            options.insert(0, {
+                "label": (f"Bid for their allegiance ({int(DEFAULT_ALLEGIANCE_BID)}g, "
+                          f"{int(INSTRUMENT_DP_COST)} DP)"),
+                "description": ("Their allegiance is in play — lay gold before their court. "
+                                "A larger bid is typed in the Cabinet."),
+                "action": "execute_suggestion",
+                "terms": {"suggestion": {"kind": "bid_for_allegiance",
+                                         "target_nation": target_nation}},
+            })
 
     # Context-aware option descriptions for war proposals
     if target_nation and intent_type == "proposal_confirm":
@@ -1948,6 +1965,19 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         "demands": [],
         "clauses": [],
     }
+    # DDB-25 (Pre-Deploy S13b part 2): "What terms would they accept?" is
+    # answered with TERMS — the draft Talleyrand would write (the suggested
+    # terms at their centre, the Cabinet's own band source) and its score.
+    suggested_lines: list = []
+    if parsed_command.get("with_suggested_terms"):
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        draft = generate_suggested_terms(target_nation, proposal_type, world, deterministic=True)
+        hypothetical["sweeteners"] = list(draft.get("sweeteners") or [])
+        hypothetical["demands"] = list(draft.get("demands") or [])
+        hypothetical["clauses"] = list(draft.get("clauses") or [])
+        if draft.get("type"):
+            hypothetical["type"] = draft["type"]
+        suggested_lines = _format_terms_for_display(hypothetical, proposal_type, target_nation)
     result = calculate_acceptance(hypothetical, world)
     score = result["score"]
     outcome = result["outcome"]
@@ -2014,6 +2044,11 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
     if steps > 0:
         assessment += f" We would need {steps} diplomatic steps to reach {goal_state}."
 
+    if suggested_lines:
+        rest = assessment[len("Sire, "):] if assessment.startswith("Sire, ") else assessment
+        assessment = (f"Sire, the terms I would draft: {'; '.join(suggested_lines)}. "
+                      f"{rest[:1].upper()}{rest[1:]}")
+
     # DP cost info
     dp_cost = get_dp_cost(f"propose_{proposal_type}", 10)
     assessment += f" The proposal itself would cost {int(dp_cost)} DP."
@@ -2024,15 +2059,17 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         "talleyrand_text": assessment,
         "options": [
             {
-                "label": "Proceed anyway",
-                "description": f"Send the {display_type} proposal despite the assessment.",
+                "label": ("Propose these terms" if suggested_lines else "Proceed anyway"),
+                "description": (f"Send the {display_type} proposal on these terms."
+                                if suggested_lines else
+                                f"Send the {display_type} proposal despite the assessment."),
                 "action": "execute_proposal",
                 "terms": {
                     "proposal_type": proposal_type,
                     "target_nation": target_nation,
-                    "sweeteners": [],
-                    "demands": [],
-                    "clauses": [],
+                    "sweeteners": list(hypothetical["sweeteners"]),
+                    "demands": list(hypothetical["demands"]),
+                    "clauses": list(hypothetical["clauses"]),
                 },
             },
             {"label": "Dismiss", "description": "Thank you, Talleyrand.", "action": "dismiss"},
@@ -2045,6 +2082,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             "acceptance_outcome": outcome,
             "largest_obstacle": largest_obstacle,
             "steps_to_goal": int(steps),
+            "suggested_terms": list(suggested_lines),
         },
         "turn_created": int(world.current_turn),
         "blocking": False,

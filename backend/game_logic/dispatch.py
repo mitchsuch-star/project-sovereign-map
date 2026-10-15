@@ -6877,9 +6877,11 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "breaker in every chancery of Europe."
     ),
     # AI-2d §12.6 — the allegiance auction's Courier beat.
+    # DDB-34 (Pre-Deploy S13b part 2): the line names where to bid.
     "allegiance_in_play": (
         "The allegiance of {nation_display} is in play — every court with gold "
-        "or standing now bids for the flip."
+        "or standing now bids for the flip. Bid in the Cabinet: "
+        "F1 → {nation_display} → Bid for Their Allegiance."
     ),
     # DD-1 S8 Step 3 (SFR-D42) — a home province asked back from an ally.
     "province_returned": (

@@ -452,6 +452,9 @@ SETTLEMENT_DIALOGUE_DISPATCH_ACTION_IDS = [
     "settlement_demand_add",
     "settlement_demand_remove",
     "settlement_demand_set_magnitude",
+    # DDB-28 (Pre-Deploy S13b part 2): an ally's petition answered on the
+    # review's own line (`nation` / `petition_key` / `answer` params).
+    "settlement_answer_petition",
     "open_war_detail",
     "re_author_with_concessions",
     "apply_concession_baseline_replacement",

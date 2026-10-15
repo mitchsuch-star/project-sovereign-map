@@ -977,6 +977,38 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
             "armistice_remaining": armistice_remaining,
         })
 
+    # DDB-32 (Pre-Deploy S13b part 2): an alliance France holds with no
+    # treaty record — the 1805 alliances (Spain, Bavaria) the scenario boots
+    # — is listed too, as what it is. The book read "No active treaties"
+    # while the Cabinet counted them.
+    recorded = set()
+    for treaty in treaties:
+        recorded.add(world._make_diplo_key(str(treaty.get("nation_a") or ""),
+                                           str(treaty.get("nation_b") or "")))
+    for other in sorted(world.get_active_nations()):
+        if other == player:
+            continue
+        state = str(world.get_diplomatic_state(player, other) or "")
+        if state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            continue
+        if world._make_diplo_key(player, other) in recorded:
+            continue
+        treaties.append({
+            "nation_a": player,
+            "nation_b": other,
+            "treaty_type": state.lower(),
+            "clauses": [],
+            "harshness": 0.0,
+            "duration": "permanent",
+            "cancel_cost": 1,
+            "gold_per_turn": None,
+            "turn_signed": 0,
+            "involves_player": True,
+            "armistice_remaining": None,
+            "inherited": True,
+            "note": "an alliance of 1805, not a treaty of ours",
+        })
+
     return treaties
 
 

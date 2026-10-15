@@ -185,7 +185,7 @@ class TestTheSettlementVerdict:
         monkeypatch.setattr(SV, "evaluate_open_settlement_eligibility", lambda *a, **k: dict(blocked))
         v = can_sign(w, self._draft(w))
         assert v.clause == "one_to_one_war"
-        assert v.message == "Use bilateral peace or armistice for a one-on-one war."
+        assert v.message == "A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice."
         with contextlib.redirect_stdout(io.StringIO()):
             assert ai_diplomacy._emit_settlement_offer_for_war(
                 w, "war_1", w.war_instances["war_1"], player="France",
@@ -212,7 +212,7 @@ class TestTheSettlementVerdict:
                 {"command": {"action": "propose_white_peace", "target_nation": "Britain",
                              "war_id": "war_1"}}, {"world": w, "executor": ex})
         assert r["success"] is False and r["error"] == "one_to_one_war", r
-        assert r["message"].endswith("Use bilateral peace or armistice for a one-on-one war.")
+        assert r["message"].endswith("A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.")
 
 
 # ── (c) the ally's petition, (d) the client's ──────────────────────────────

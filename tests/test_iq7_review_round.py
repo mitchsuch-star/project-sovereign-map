@@ -3822,7 +3822,11 @@ class TestR42AQuestionShapedLabelStillResolves:
         assert r.get("success") is True, r.get("message")
         assert "COMMAND REFERENCE" not in str(r.get("message"))
         now = w.dialogue_manager.peek()
-        assert now is not top and now.get("type") == "proposal_options"
+        # DDB-25 (S13b part 2): "What terms would they accept?" opens the
+        # feasibility card on the terms Talleyrand would draft.
+        expected = ("feasibility" if label == "What terms would they accept?"
+                    else "proposal_options")
+        assert now is not top and now.get("type") == expected
 
     @pytest.mark.parametrize("phrase,route", [
         ("what should we do", "typed"), ("so, what should we do?", "typed"),

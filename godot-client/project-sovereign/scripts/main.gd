@@ -83,6 +83,9 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 	"settlement_demand_add",
 	"settlement_demand_remove",
 	"settlement_demand_set_magnitude",
+	# DDB-28: an ally's petition answered on the review's own line (carries
+	# `nation` + `petition_key` + `answer` as action_params).
+	"settlement_answer_petition",
 	# SC-5R-2 follow-up: the non-destructive Back Out on the PROPOSE
 	# authoring surface. Pops the staged settlement_confirm while preserving
 	# the scoped draft (back_out_settlement discards; this suspend does not).

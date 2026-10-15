@@ -42,7 +42,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from backend.display_names import clause_display_name, side_label_display
+from backend.display_names import clause_display_name
 
 from backend.models.intel import FULL, PARTIAL, VISIBILITY_PRIORITY
 from backend.errors import report
@@ -386,6 +386,27 @@ def is_settlement_event_visible(
 # label.
 
 _WAR_LABEL_SEPARATORS = (" vs ", " + ")
+
+
+def side_court_label(world: Any, members: Iterable[str], *, leader: str = "") -> str:
+    """DDB-24 (Pre-Deploy S13b part 2): a war's side named by its court,
+    never "Attackers" / "Defenders" — France is the attacker of record in
+    the 1805 `starting_wars` while every belligerent fights a defense
+    purpose, so the table read "France (Attackers, war leader)" beside
+    "Defense vs Austria". The player's side is the player's name; a side
+    the standing coalition fights on is the coalition's name ("The Third
+    Coalition"); any other side is its leader's."""
+    names = [str(n) for n in (members or []) if n]
+    from backend.display_names import display_nation
+    player = str(getattr(world, "player_nation", "") or "France") if world is not None else "France"
+    if player in names:
+        return display_nation(player)
+    coalition = (getattr(world, "active_coalition", None) or {}) if world is not None else {}
+    name = str((coalition or {}).get("name") or "").strip()
+    if name and set((coalition or {}).get("members") or []) & set(names):
+        return name if name.lower().startswith("the ") else f"The {name}"
+    lead = str(leader or (names[0] if names else ""))
+    return display_nation(lead) if lead else ""
 
 
 def humanize_war_label(label: str) -> str:
@@ -1847,10 +1868,16 @@ def build_settlement_review_from_event(
                 "defenders" if event.get("proposer_side") == "attackers" else "attackers"
             )
         )
+        _members = (proposer_members if nation in proposer_members_set
+                    else accepting_members)
         allies.append({
             "nation": nation,
             "side": side,
-            "side_label": side_label_display(side),
+            # DDB-24: the side by its court, never attacker / defender.
+            "side_label": side_court_label(
+                world, _members,
+                leader=(proposer_leader if nation in proposer_members_set
+                        else accepting_leader)),
             "standing": "leader" if nation in leader_set else "consult",
             "material_share": 0.0,
             "is_leader": nation in leader_set,
@@ -2152,7 +2179,11 @@ def build_contribution_share_rows(
         rows.append({
             "nation": nation,
             "side": side,
-            "side_label": side_label_display(side),
+            # DDB-24: the side by its court, never attacker / defender.
+            "side_label": side_court_label(
+                world, war.get(side) or [],
+                leader=str(war.get("attacker_leader" if side == "attackers"
+                                   else "defender_leader") or "")),
             "standing": standing,
             "standing_display": _standing_display(standing),
             "material_share": float(inputs.get("material_share", 0.0) or 0.0),

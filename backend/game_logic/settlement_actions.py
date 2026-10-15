@@ -2732,6 +2732,24 @@ def _action_confirm_settlement(
 # action-id whitelist test asserts membership against these tables (runtime
 # truth), replacing the old `action == "..."` source scan.
 
+def _action_settlement_answer_petition(
+    world: Any,
+    *,
+    action: str,
+    dialogue: Mapping[str, Any],
+    action_params: Dict[str, Any],
+    war_id: str,
+) -> Dict[str, Any]:
+    """DDB-28 (Pre-Deploy S13b part 2): Grant / Decline from the review's own
+    petition line, acting on the staged draft."""
+    from backend.game_logic.settlement_offers import answer_ally_petition_from_table
+    return answer_ally_petition_from_table(
+        world,
+        petition_key=str(action_params.get("petition_key") or ""),
+        answer=str(action_params.get("answer") or ""),
+    )
+
+
 # Same-war different-scope chooser (G2-Slice-G2e): selected by the staged
 # dialogue's TYPE before the action id is consulted, so a chooser click can
 # never fall through to the main table.
@@ -2776,6 +2794,8 @@ SETTLEMENT_ACTION_DISPATCH: Dict[str, Callable[..., Dict[str, Any]]] = {
     "seek_bilateral_peace": _action_pair_peace_substitute,
     "seek_armistice_instead": _action_pair_peace_substitute,
     "confirm_settlement": _action_confirm_settlement,
+    # DDB-28: the review's petition line answered on the table.
+    "settlement_answer_petition": _action_settlement_answer_petition,
 }
 
 

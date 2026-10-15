@@ -425,7 +425,8 @@ class TestTheStandingBlockNamesItsSides:
         m = re.search(r"def build_contribution_share_rows\(.*?\n(?=\ndef |\nclass )",
                       src, re.S)
         assert m, "build_contribution_share_rows moved"
-        assert '"side_label": side_label_display(side)' in m.group(0)
+        # DDB-24 (S13b part 2): the side is named by its court.
+        assert '"side_label": side_court_label(' in m.group(0)
 
     def test_the_war_panel_rows_come_from_that_builder(self):
         src = (ROOT / "backend" / "game_logic" / "war_status.py").read_text(

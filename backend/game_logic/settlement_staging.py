@@ -1288,6 +1288,16 @@ def _redial_settlement_terms(
     changed: Set[str] = set()
     noted: Set[str] = set()
     ceiling: Set[str] = set()
+    # DDB-33 (Pre-Deploy S13b part 2): courts whose eased gold reached the
+    # scorer's own ceiling — the concession credit stops counting at
+    # CONCESSION_GOLD_CAP x CONCESSION_GOLD_DIVISOR (1,000), so gold past it
+    # bought nothing (the sea #17 eased to 1,500).
+    credit_ceiling: Set[str] = set()
+    from backend.game_logic.settlement_scoring import (
+        CONCESSION_GOLD_CAP as _CREDIT_CAP,
+        CONCESSION_GOLD_DIVISOR as _CREDIT_DIVISOR,
+    )
+    _credit_gold_ceiling = int(_CREDIT_CAP) * int(_CREDIT_DIVISOR)
     remaining_budget: Optional[Dict[str, int]] = (
         dict(payer_gold_budgets) if payer_gold_budgets is not None else None
     )
@@ -1354,6 +1364,13 @@ def _redial_settlement_terms(
                     amount + SETTLEMENT_DIAL_GOLD_STEP,
                     CONCESSION_BASELINE_GOLD_HARD_CAP,
                 )
+                if direction != "harsher" and not is_demand:
+                    # DDB-33: an Ease stops where the scorer stops crediting
+                    # (a stream's whole projected obligation counts).
+                    _per_unit_cap = _credit_gold_ceiling // max(1, per_unit)
+                    if grown > _per_unit_cap:
+                        grown = max(amount, _per_unit_cap)
+                        credit_ceiling.add(court)
                 # G4F-2 / DC-1 (+ G4S-2 delta accounting): bound the grow at
                 # the payer's remaining EXTRA capacity — the whole package is
                 # pre-charged, so `remaining_budget` is what the payer can
@@ -1516,8 +1533,14 @@ def _redial_settlement_terms(
     for court in sorted(ceiling - escalated):
         if direction == "harsher":
             notes.append(f"{court} can pay no more, Sire.")
+        elif court in credit_ceiling:
+            notes.append(f"Gold past {_credit_gold_ceiling:,} buys nothing more from "
+                         f"{court} at this table, Sire.")
         else:
             notes.append("The treasury can bear no more, Sire.")
+    for court in sorted(credit_ceiling - (ceiling - escalated)):
+        notes.append(f"Gold past {_credit_gold_ceiling:,} buys nothing more from "
+                     f"{court} at this table, Sire.")
     return out
 
 
@@ -2625,7 +2648,7 @@ def bilateral_estimate(world, court: str, *, staged_terms, actor: str) -> Dict[s
     per-court chip hands off — the court's slice of the staged package in
     the bilateral dialect (or the suggested peace, at its centre, when the
     slice is empty), through `calculate_acceptance`. {score, outcome, band}."""
-    from backend.game_logic.diplomacy import calculate_acceptance, get_likelihood_descriptor
+    from backend.game_logic.diplomacy import calculate_acceptance, counter_aware_likelihood
     from backend.game_logic.diplomatic_templates import generate_suggested_terms
     seed = _pair_substitute_seed_terms(
         [t for t in (staged_terms or []) if isinstance(t, Mapping)],
@@ -2633,16 +2656,19 @@ def bilateral_estimate(world, court: str, *, staged_terms, actor: str) -> Dict[s
     terms = generate_suggested_terms(court, "peace", world, deterministic=True)
     if seed["demands"] or seed["sweeteners"]:
         terms = dict(terms, demands=seed["demands"], sweeteners=seed["sweeteners"])
-    result = calculate_acceptance({
+    proposal = {
         "type": terms.get("type") or "peace", "proposer_nation": actor,
         "target_nation": court,
         "sweeteners": list(terms.get("sweeteners") or []),
         "demands": list(terms.get("demands") or []),
         "clauses": list(terms.get("clauses") or []),
-    }, world)
+    }
+    result = calculate_acceptance(proposal, world)
     score = int(result.get("score", 0) or 0)
+    # DDB-X16 (found by DDB-26): the chip's band promises a counter only when
+    # the generator's dry run builds one.
     return {"score": score, "outcome": str(result.get("outcome") or ""),
-            "band": get_likelihood_descriptor(score)}
+            "band": counter_aware_likelihood(world, proposal, score)}
 
 
 def _scoped_settlement_drafts(world: Any) -> Dict[str, List[Dict[str, Any]]]:
@@ -2753,6 +2779,33 @@ def discard_scoped_settlement_draft(
         war_id, selected_target_nation, covered_enemy_participants,
     )
     return drafts.pop(draft_key, None) is not None
+
+
+def purge_drafts_naming(world: Any, court: str) -> int:
+    """DDB-29 (Pre-Deploy S13b part 2): every scoped settlement draft whose
+    selected court is `court` is dropped — called when that court leaves the
+    war with the player. A ratified separate peace was followed at turn's end
+    by "Your unratified settlement draft with Austria (1 clause) was set
+    aside": the earlier whole-war draft naming the same court survived the
+    ratification (which discards only its own scope key). Returns the count."""
+    drafts = getattr(world, "pending_settlement_drafts_by_key", None)
+    if not isinstance(drafts, dict) or not court:
+        return 0
+    prefix = "settlement_draft:"
+    gone = []
+    for key in list(drafts):
+        key_str = str(key)
+        if not key_str.startswith(prefix):
+            continue
+        try:
+            _wid, selected, _hash = key_str[len(prefix):].rsplit(":", 2)
+        except ValueError:
+            continue
+        if selected == str(court):
+            gone.append(key)
+    for key in gone:
+        drafts.pop(key, None)
+    return len(gone)
 
 
 def _discard_scoped_settlement_draft_for_dialogue(
@@ -3521,14 +3574,17 @@ def build_settlement_confirm_dialogue(
             and dialogue_mode == "PROPOSE"
             and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
         ):
+            # DDB-22 (Pre-Deploy S13b part 2): "Press <court>" is the
+            # advice's word for the SEPARATE peace ("Press Austria alone");
+            # the harsher dial says what it does.
             dial_actions.append({
-                "label": f"Press {court}",
+                "label": f"Demand more of {court}",
                 "action": "settlement_dial_harsher",
                 "scope": court,
                 "nation": court,
                 "war_id": war_id,
                 "draft_key": settlement_draft_key_for_options,
-                "description": f"Press {court} harder — applies to this court only.",
+                "description": f"Demand more of {court} — applies to this court only.",
             })
             if not is_holdout:
                 dial_actions.append({

@@ -2843,6 +2843,13 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     if (old_state in ("WAR", "ARMISTICE")
             and new_state not in ("WAR", "ARMISTICE")):
         getattr(world, "campaign_ledgers", {}).pop(key, None)
+        # DDB-29 (Pre-Deploy S13b part 2): a court that leaves the war with
+        # the player leaves no settlement draft naming it to be "set aside"
+        # at turn's end — every road out of the war, at this one setter.
+        _player = getattr(world, "player_nation", None)
+        if _player in (nation_a, nation_b):
+            from backend.game_logic.settlement_staging import purge_drafts_naming
+            purge_drafts_naming(world, nation_b if nation_a == _player else nation_a)
 
     # PT-J1 "The Truce Holds" (gate record PLAYTEST_FIXES_SPEC.md §4): a
     # court leaves the coalition when it leaves the war FOR GOOD — the
@@ -3828,6 +3835,18 @@ def armistice_variant_for(world, proposer: str, target: str) -> str:
     return ("armistice_losing"
             if get_war_score_for(world, proposer, target) < 0
             else "armistice_winning")
+
+
+def live_war_score_for(world, nation: str, opponent: str) -> int:
+    """DDB-27 (Pre-Deploy S13b part 2): the war score from `nation`'s chair
+    as it stands NOW — `calculate_war_score`, the war panel's own read. The
+    stored score (`get_war_score_for`) is recomputed only at end turn; a
+    surface that QUOTES the score to the player reads this one."""
+    try:
+        return int(calculate_war_score(nation, opponent, world))
+    except Exception as exc:
+        report(exc, "diplomacy.live_war_score_for: calculate_war_score")
+        return int(get_war_score_for(world, nation, opponent))
 
 
 def get_war_score_for(world, nation: str, opponent: str) -> int:
@@ -4828,6 +4847,22 @@ def build_war_context_snapshot(
     annotated = annotate_peace_terms(effective_terms, player_nation, target_nation)
 
     proposed_state = "ARMISTICE" if "armistice" in proposal_type else "PEACE"
+    # DDB-23 / DDB-26 (Pre-Deploy S13b part 2): the treaty itself is the
+    # first term listed — a generous round on an armistice kept only its
+    # stream ("France pays 130 gold per turn to Austria") and the truce went
+    # unnamed — and the preview is titled by its treaty type.
+    from backend.display_names import proposal_summary_display_name
+    annotated.insert(0, {
+        "clause_type": "treaty",
+        "type": "treaty",
+        "from_nation": player_nation,
+        "to_nation": target_nation,
+        "regions": [],
+        "term_direction": "mutual",
+        "sweetener_value": 0,
+        "display_label": (f"{proposal_summary_display_name(proposal_type)} — "
+                          f"{player_nation} and {target_nation}"),
+    })
     fallout_warnings = []
     if proposed_state == "PEACE":
         fallout_warnings = get_separate_peace_fallout_warnings(
@@ -4848,6 +4883,7 @@ def build_war_context_snapshot(
         "target_nation": target_nation,
         "current_state": current_state,
         "proposed_state": proposed_state,
+        "preview_title": f"{proposed_state} PREVIEW",
         "war_score": int(war_score),
         "war_score_components": {
             "territory": int(components["territory"]),
@@ -5268,6 +5304,18 @@ def _formed_display_name_for_bid(world, nation: str) -> str:
     return formed_display_name(world, nation)
 
 
+def counter_aware_likelihood(world, proposal: Dict, score: int) -> str:
+    """DDB-X16 (found by DDB-26, Pre-Deploy S13b part 2): the band word for a
+    proposal's score, promising a counter only when the real generator's dry
+    run builds one — ONE read for the Cabinet rows, the armistice quote and
+    the per-court chip."""
+    constructible = None
+    if 30 <= int(score) < 50:
+        from backend.game_logic.ai_diplomacy import generate_counter_offer
+        constructible = generate_counter_offer(dict(proposal), world, dry_run=True) is not None
+    return get_likelihood_descriptor(int(score), constructible)
+
+
 def armistice_likelihood(world, proposer: str, target: str) -> Tuple[str, int]:
     """DDB-8 (Pre-Deploy S13b): the armistice's OWN likelihood — the score
     of the truce the click would draft (its suggested terms at their centre),
@@ -5275,17 +5323,19 @@ def armistice_likelihood(world, proposer: str, target: str) -> Tuple[str, int]:
     from backend.game_logic.diplomatic_templates import generate_suggested_terms
     try:
         draft = generate_suggested_terms(target, "armistice", world, deterministic=True)
-        score = int(calculate_acceptance({
+        proposal = {
             "type": armistice_variant_for(world, proposer, target),
             "proposer_nation": proposer, "target_nation": target,
             "sweeteners": list(draft.get("sweeteners") or []),
             "demands": list(draft.get("demands") or []),
             "clauses": list(draft.get("clauses") or []),
-        }, world).get("score", 0))
+        }
+        score = int(calculate_acceptance(proposal, world).get("score", 0))
     except Exception as exc:
         report(exc, "diplomacy.armistice_likelihood: calculate_acceptance")
         return "", 0
-    return get_likelihood_descriptor(score), score
+    # DDB-X16: the band's counter promise is the generator's own.
+    return counter_aware_likelihood(world, proposal, score), score
 
 
 def separate_peace_paradox(world, proposer: str, target: str) -> Dict:
@@ -12249,11 +12299,17 @@ def _process_diplomatic_reliability(world) -> None:
 # DIPLOMACY BUTTON — PREVIEW HELPERS (Phase 5)
 # ═══════════════════════════════════════════════════════
 
-def get_likelihood_descriptor(score: int) -> str:
+def get_likelihood_descriptor(score: int,
+                              counter_constructible: Optional[bool] = None) -> str:
     """Map acceptance score to a thematic likelihood word (§3a).
 
     Single source of truth for all likelihood displays:
     wizard, R118 preview, any future acceptance display.
+
+    DDB-26 (Pre-Deploy S13b part 2): `counter_constructible=False` — the
+    real generator's dry run found no counter — drops the counter promise
+    from the band ("Doubtful", never "Doubtful — may counter" beside a
+    preview reading "no workable counter"). None keeps the band's own word.
     """
     if score >= 70:
         return "Almost Certain"
@@ -12264,8 +12320,12 @@ def get_likelihood_descriptor(score: int) -> str:
         # counter is to construct — the 40s read "likely", the 30s "may".
         # The exact promise lives on the proposal preview itself
         # (counter_constructible), which dry-runs the real generator.
+        if counter_constructible is False:
+            return "Uncertain"
         return "Uncertain — a counter is likely"
     elif score >= 30:
+        if counter_constructible is False:
+            return "Doubtful"
         return "Doubtful — may counter"
     elif score >= 15:
         return "Unlikely"
@@ -12336,7 +12396,11 @@ def get_assessment_text(world, target_nation: str) -> str:
         return template.format(nation=target_nation)
 
     if state == "WAR":
-        war_score = get_war_score_for(world, player, target_nation)
+        # DDB-27 (Pre-Deploy S13b part 2): read LIVE — the stored score is
+        # recomputed only at end turn, so the assessment ignored the battles
+        # fought since (diplomacy-first #12: Mack captured, "grinds on
+        # without decisive result"). The war panel reads it live too.
+        war_score = int(calculate_war_score(player, target_nation, world))
         if war_score > 20:
             key = "war_winning"
         elif war_score < -20:
@@ -12756,7 +12820,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
                 }
                 result = calculate_acceptance(proposal, world)
                 likelihood_score = int(result.get("score", 0))
-                likelihood = get_likelihood_descriptor(likelihood_score)
+                # DDB-26 (Pre-Deploy S13b part 2): the band promises a counter
+                # only when the real generator can build one (its dry run —
+                # the preview's own `counter_constructible`).
+                likelihood = counter_aware_likelihood(world, proposal, likelihood_score)
             except Exception as exc:
                 report(exc, "diplomacy.get_available_diplomatic_actions._proposal_action: the guarded block")
                 likelihood_score = 0
@@ -12948,6 +13015,15 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if not settlement_available and _by_call(world, player, target_nation):
             actions.append(_proposal_action(
                 "propose_peace", "Propose Separate Peace", "PEACE"))
+        else:
+            # DDB-35 (Pre-Deploy S13b part 2): Propose Peace stands in the WAR
+            # state — a one-on-one war was told "use bilateral peace" and the
+            # page offered none (the sea #24), though the game stages a peace
+            # straight from war. It carries the ARMISTICE row's hard stop: the
+            # ONE verdict `_proposal_action` asks first (`can_sign(at_send)`,
+            # the paradox — an ally still at war with this court) shuts it
+            # with FA-D17's words, exactly as on the ARMISTICE page.
+            actions.append(_proposal_action("propose_peace", "Propose Peace", "PEACE"))
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
@@ -13323,12 +13399,23 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         else:
             buyoff_ok, reason = True, ""
         price_label = f" ({int(price)}g)" if price is not None else ""
+        # DDB-31 (Pre-Deploy S13b part 2): the chip names the design that
+        # wakes next and its price — buying one wakes the next.
+        buyoff_detail = ("The design sleeps while the bargain stands — and waking it "
+                         "by betrayal is the strongest casus belli in Europe.")
+        if has_design and price is not None:
+            from backend.game_logic.instruments import next_design_after_buyoff
+            _next = next_design_after_buyoff(world, player, target_nation)
+            if _next:
+                buyoff_detail += (f" Buying it wakes {_next['title']} next "
+                                  f"({_next['price']}g to buy off in turn).")
+            else:
+                buyoff_detail += " No other design wakes after it."
         actions.append(_chip(
             "buy_off_design",
             f"Buy Off Their Design{price_label}",
             buyoff_ok, reason,
-            "The design sleeps while the bargain stands — and waking it "
-            "by betrayal is the strongest casus belli in Europe.",
+            buyoff_detail,
             gold_cost=int(price or 0), price=int(price or 0),
         ))
 
@@ -13970,4 +14057,11 @@ def _base_recommendation_and_mission(world, target_nation: str, actions: List[Di
                              + _court_blowback_sentence())
                 return (text, "IMPROVE_RELATIONS")
 
-    return ("Relations must improve before proposals will find purchase. A battlefield victory would change their calculus.", "")
+    # DDB-27 (Pre-Deploy S13b part 2): the battlefield sentence only where a
+    # victory is still wanting — never beside a war France is winning.
+    _player = getattr(world, "player_nation", "France")
+    if (world.get_diplomatic_state(_player, target_nation) == "WAR"
+            and int(calculate_war_score(_player, target_nation, world)) <= 20):
+        return ("Relations must improve before proposals will find purchase. "
+                "A battlefield victory would change their calculus.", "")
+    return ("Relations must improve before proposals will find purchase.", "")

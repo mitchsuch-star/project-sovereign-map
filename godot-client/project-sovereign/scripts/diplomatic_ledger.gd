@@ -679,6 +679,12 @@ func _render_treaties():
 		bbcode += "[color=#" + header_color + "]" + Utils.display_nation_name(nation_b) + "[/color]"
 		bbcode += ": [b]" + treaty_type.replace("_", " ").capitalize() + "[/b]\n"
 
+		# DDB-32: an alliance with no treaty record (the 1805 alliances) says
+		# what it is, and carries no clauses or term of ours.
+		if bool(t.get("inherited", false)):
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "][i]" + str(t.get("note", "")) + "[/i][/color]\n\n"
+			continue
+
 		# Clauses
 		if clauses.size() > 0:
 			var clause_strs = []

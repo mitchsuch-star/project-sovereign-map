@@ -210,14 +210,17 @@ class TestDisplayLabelGeneration:
         terms = {"sweeteners": [{"type": "gold_per_turn", "value": 200}],
                  "demands": [], "clauses": []}
         result = annotate_peace_terms(terms, "France", "Austria")
-        assert result[0]["display_label"] == "France pays 200 gold per turn to Austria"
+        # DDB-23 (S13b part 2): a stream names its term.
+        assert result[0]["display_label"] == ("France pays 200 gold per turn to Austria"
+                                              " for as long as the treaty stands")
 
     def test_ap_per_turn_display_label_format(self):
         terms = {"sweeteners": [],
                  "demands": [{"type": "ap_per_turn", "value": 1}],
                  "clauses": []}
         result = annotate_peace_terms(terms, "France", "Prussia")
-        assert result[0]["display_label"] == "Prussia cedes 1 AP per turn to France"
+        assert result[0]["display_label"] == ("Prussia cedes 1 AP per turn to France"
+                                              " for as long as the treaty stands")  # DDB-23
 
     def test_manpower_display_label_format(self):
         terms = {"sweeteners": [{"type": "manpower_infantry", "value": 3000}],

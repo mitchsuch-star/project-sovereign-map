@@ -21,6 +21,27 @@
           name the Cabinet controls; the priced bid passes the door.
   DDB-11  the per-court chip shows the bilateral estimate it hands off.
   DDB-12  a co-belligerent's homeland retaken by an ally is titled back home.
+
+Part 2, slice S13b-2 (October 15, 2026) — the table's P3s:
+
+  DDB-22  the harsher dial reads "Demand more of <court>".
+  DDB-23  every stream names its term; a generous armistice lists the truce first.
+  DDB-24  a war's sides are named by court; a court's white peace says it
+          settles the whole war, beside the per-court road.
+  DDB-25  "What terms would they accept?" opens the terms with their acceptance;
+          the strength line says who outmatches whom.
+  DDB-26  the band promises a counter only when one can be built; the preview
+          is titled by its treaty, the treaty first, its mechanics above the score.
+  DDB-27  the assessment reads the war score live; the battlefield line is gated.
+  DDB-28  the review's petition line grants or declines on the staged draft.
+  DDB-29  a court that leaves the war leaves no draft naming it.
+  DDB-30  "Less generous" restores exactly the previous round.
+  DDB-31  the buy-off chip names the design that wakes next and its price.
+  DDB-32  the Treaties book lists the 1805 alliances as what they are.
+  DDB-33  Ease stops at the scorer's gold ceiling and says so; a client
+          state's provinces count as promised.
+  DDB-34  the auction's dispatch line names the Cabinet chip; the advice offers the bid.
+  DDB-35  Propose Peace stands in the WAR state, behind the paradox.
 """
 from __future__ import annotations
 
@@ -397,3 +418,305 @@ class TestDDB11:
                                         "sweeteners": [], "clauses": []}, w)["score"]
         assert est["score"] == int(score)
         assert chip["label"] == f"Separate peace with Austria — alone: {est['score']} ({est['band']})"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S13b part 2, slice 2 — the table's P3s, DDB-22 … DDB-35
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _respond(c, choice, w, **params) -> dict:
+    body = {"choice": choice,
+            "dialogue_id": (w.pending_diplomatic_dialogue or {}).get("dialogue_id")}
+    if params:
+        body["action_params"] = params
+    return _post(c, "/respond_to_diplomatic_dialogue", body)
+
+
+class TestDDB22:
+    def test_the_harsher_dial_says_demand_more(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        d = _post(c, "/command", {"command": "propose common peace with Austria"})["diplomatic_dialogue"]
+        assert d["dialogue_mode"] == "PROPOSE"
+        labels = {row["nation"]: [a["label"] for a in row.get("dial_actions") or []]
+                  for row in d["per_court_acceptance"]}
+        assert "Demand more of Austria" in labels["Austria"]
+        assert not any(lab.startswith("Press ") for labs in labels.values() for lab in labs)
+
+
+class TestDDB23:
+    def test_every_stream_names_its_term(self):
+        from backend.display_names import format_terms_for_display, stream_term_phrase
+        from backend.game_logic.diplomatic_templates import annotate_peace_terms
+        assert stream_term_phrase({"type": "gold_per_turn", "value": 50}) == " for as long as the treaty stands"
+        assert stream_term_phrase({"type": "gold_per_turn", "amount": 50, "turns": 5}) == " for 5 turns"
+        assert stream_term_phrase({"type": "gold_lump", "value": 50}) == ""
+        terms = {"type": "vassalage", "sweeteners": [{"type": "ap_per_turn", "value": 1}],
+                 "demands": [], "clauses": []}
+        assert "France concedes 1 AP/turn for as long as the treaty stands" in format_terms_for_display(
+            terms, "vassalage", "Bavaria")
+        (row,) = annotate_peace_terms(terms, "France", "Bavaria")
+        assert row["display_label"] == "France cedes 1 AP per turn to Bavaria for as long as the treaty stands"
+
+    def test_a_generous_round_on_an_armistice_keeps_the_armistice_first(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        d = _post(c, "/command", {"command": "Talleyrand, propose armistice to Austria"})["diplomatic_dialogue"]
+        r = _respond(c, "modify_generous", w)
+        rows = [t["display_label"] for t in r["diplomatic_dialogue"]["war_context_snapshot"]["annotated_terms"]]
+        assert rows[0].startswith("Armistice (cease hostilities temporarily)"), rows
+        assert any("per turn to Austria for as long as the treaty stands" in t for t in rows[1:]), rows
+        assert d["war_context_snapshot"]["annotated_terms"][0]["type"] == "treaty"
+
+
+class TestDDB24:
+    def test_the_sides_are_named_by_court(self, w):
+        from backend.game_logic.settlement_presentation import side_court_label
+        assert side_court_label(w, ["France", "Bavaria", "Spain"]) == "France"
+        assert side_court_label(w, ["Austria", "Britain", "Russia"]) == "The Third Coalition"
+        w.active_coalition = None
+        assert side_court_label(w, ["Austria", "Britain"], leader="Britain") == "Britain"
+        src = (REPO / "backend" / "game_logic" / "settlement_presentation.py").read_text(encoding="utf-8")
+        assert '"side_label": side_label_display(side)' not in src
+
+    def test_a_white_peace_from_a_court_s_page_says_it_settles_the_whole_war(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        r = _post(c, "/command", {"command": "Talleyrand, propose white peace with Austria",
+                                  "action": "propose_white_peace", "target_nation": "Austria"})
+        d = r["diplomatic_dialogue"]
+        assert d["scope_note"] == ("This white peace settles the whole war — with Austria, Britain "
+                                   "and Russia. To settle with Austria alone, choose "
+                                   "'Make peace with Austria only'.")
+        assert d["talleyrand_text"].startswith(d["scope_note"])
+        assert "Make peace with Austria only" in [o["label"] for o in d["options"]]
+
+
+class TestDDB25:
+    def test_the_button_opens_the_terms_with_their_acceptance(self, client):
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        c, w = client
+        adv = _post(c, "/command", {"command": "Talleyrand, what about Austria?"})["diplomatic_dialogue"]
+        opt = next(o for o in adv["options"] if o["label"] == "What terms would they accept?")
+        assert opt["action"] == "assess_terms"
+        card = _respond(c, "assess_terms", w)["diplomatic_dialogue"]
+        assert card["type"] == "feasibility"
+        draft = generate_suggested_terms("Austria", "peace", w, deterministic=True)
+        send = next(o for o in card["options"] if o["action"] == "execute_proposal")
+        assert send["label"] == "Propose these terms"
+        assert send["terms"]["demands"] == list(draft.get("demands") or [])
+        assert card["talleyrand_text"].startswith("Sire, the terms I would draft: ")
+        assert card["context"]["suggested_terms"]
+        score = D.calculate_acceptance({"type": draft.get("type") or "peace", "proposer_nation": "France",
+                                        "target_nation": "Austria",
+                                        "sweeteners": list(draft.get("sweeteners") or []),
+                                        "demands": list(draft.get("demands") or []),
+                                        "clauses": list(draft.get("clauses") or [])}, w)["score"]
+        assert card["context"]["acceptance_score"] == int(score)
+
+    def test_the_strength_line_names_its_direction(self):
+        from backend.game_logic.diplomatic_advisory import strength_sentence
+        assert strength_sentence("overmatched") == "In the field we outmatch them decisively."
+        assert strength_sentence("superior") == "In the field they outmatch us."
+        src = (REPO / "backend" / "game_logic" / "diplomatic_advisory.py").read_text(encoding="utf-8")
+        assert 'f"Their military strength is {advantage} relative to ours. "' not in src
+
+
+class TestDDB26:
+    def test_the_band_promises_a_counter_only_when_one_is_constructible(self):
+        assert D.get_likelihood_descriptor(35) == "Doubtful — may counter"
+        assert D.get_likelihood_descriptor(35, False) == "Doubtful"
+        assert D.get_likelihood_descriptor(45, False) == "Uncertain"
+        assert D.get_likelihood_descriptor(45, True) == "Uncertain — a counter is likely"
+
+    def test_the_preview_is_titled_by_its_treaty_and_lists_it_first(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        d = _post(c, "/command", {"command": "Talleyrand, propose armistice to Austria"})["diplomatic_dialogue"]
+        snap = d["war_context_snapshot"]
+        assert snap["preview_title"] == "ARMISTICE PREVIEW"
+        assert snap["annotated_terms"][0]["display_label"] == (
+            "Armistice (cease hostilities temporarily) — France and Austria")
+        src = (SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
+        body = src[src.index("func _build_peace_preview_content"):]
+        body = body[:body.index("\nfunc ")]
+        assert 'snapshot.get("preview_title", "PEACE PREVIEW")' in body
+        assert body.index("[b]Armistice Terms[/b]") < body.index("[b]Acceptance Estimate[/b]")
+
+
+class TestDDB27:
+    def test_the_assessment_reads_the_battles_since_the_last_end_turn(self, w):
+        before = D.get_assessment_text(w, "Austria")
+        for region in ("Vienna", "Bohemia", "Moravia", "Tyrol"):
+            w.regions[region].controller = "France"
+        w.invalidate_active_nations_cache()
+        assert D.get_war_score_for(w, "France", "Austria") <= 20, "the stored score is stale"
+        after = D.get_assessment_text(w, "Austria")
+        assert after != before
+        assert D.live_war_score_for(w, "France", "Austria") > 20
+
+    def test_the_battlefield_line_is_gated_on_the_score(self, w):
+        for region in ("Vienna", "Bohemia", "Moravia", "Tyrol"):
+            w.regions[region].controller = "France"
+        w.invalidate_active_nations_cache()
+        text, _ = D._base_recommendation_and_mission(w, "Austria", [], 3, False, {})
+        assert "A battlefield victory would change their calculus" not in text
+
+
+class TestDDB28:
+    def test_the_review_s_petition_line_grants_on_the_staged_draft(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        munich = next(r for r in sorted(w.nation_starting_regions["Bavaria"])
+                      if r != w.get_nation_capital("Bavaria")) if len(
+            w.nation_starting_regions["Bavaria"]) > 1 else sorted(w.nation_starting_regions["Bavaria"])[0]
+        w.regions[munich].controller = "Austria"
+        w.invalidate_active_nations_cache()
+        d = _post(c, "/command", {"command": "propose common peace with Austria"})["diplomatic_dialogue"]
+        petitions = d.get("ally_petitions") or []
+        assert petitions and petitions[0]["ally_nation"] == "Bavaria", petitions
+        key = petitions[0]["petition_key"]
+        r = _respond(c, "settlement_answer_petition", w, nation="Bavaria", petition_key=key, answer="grant")
+        assert r["success"] is True, r.get("message")
+        staged = r["diplomatic_dialogue"]
+        assert staged["type"] == "settlement_confirm"
+        assert any(t.get("type") == "territory_cede" and t.get("region") == munich
+                   and t.get("to") == "Bavaria" for t in staged["settlement_terms"]), staged["settlement_terms"]
+
+    def test_decline_answers_on_the_table_and_the_line_carries_both(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        home = sorted(w.nation_starting_regions["Bavaria"])
+        w.regions[home[-1]].controller = "Austria"
+        w.invalidate_active_nations_cache()
+        d = _post(c, "/command", {"command": "propose common peace with Austria"})["diplomatic_dialogue"]
+        key = d["ally_petitions"][0]["petition_key"]
+        r = _respond(c, "settlement_answer_petition", w, nation="Bavaria", petition_key=key, answer="decline")
+        assert r["success"] is True, r.get("message")
+        assert not [q for q in w.dialogue_manager.iter_queue() if q.get("type") == "ally_settlement_petition"]
+        assert r["diplomatic_dialogue"]["type"] == "settlement_confirm"
+        assert not r["diplomatic_dialogue"].get("ally_petitions")
+        src = (SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
+        assert "[url=petition:%d:grant]" in src and "[url=petition:%d:decline]" in src
+        assert '"settlement_answer_petition"' in (SCRIPTS / "main.gd").read_text(encoding="utf-8")
+
+
+class TestDDB29:
+    def test_a_court_leaving_the_war_leaves_no_draft_naming_it(self, w):
+        war_id = next(iter(w.get_war_instances_by_participant("Austria")))
+        SS.save_scoped_settlement_draft(w, war_id=war_id, selected_target_nation="Austria",
+                                        covered_enemy_participants=["Austria", "Britain", "Russia"],
+                                        settlement_terms=[{"type": "peace"}])
+        SS.save_scoped_settlement_draft(w, war_id=war_id, selected_target_nation="Britain",
+                                        covered_enemy_participants=["Britain"],
+                                        settlement_terms=[{"type": "peace"}])
+        with contextlib.redirect_stdout(io.StringIO()):
+            D.set_diplomatic_state(w, "France", "Austria", "PEACE", "common_peace_settlement")
+        selected = {k.split(":")[2] for k in w.pending_settlement_drafts_by_key}
+        assert selected == {"Britain"}
+
+
+class TestDDB30:
+    def test_less_generous_restores_exactly_the_previous_round(self, client):
+        c, w = client
+        w.diplomatic_points = 9
+        first = _post(c, "/command", {"command": "Talleyrand, propose armistice to Austria"})["diplomatic_dialogue"]
+        assert "less_generous" not in [o["action"] for o in first["options"]]
+        r1 = _respond(c, "modify_generous", w)["diplomatic_dialogue"]
+        r2 = _respond(c, "modify_generous", w)["diplomatic_dialogue"]
+        assert "less_generous" in [o["action"] for o in r2["options"]]
+        back = _respond(c, "less_generous", w)["diplomatic_dialogue"]
+        assert back["proposal_terms_summary"] == r1["proposal_terms_summary"]
+        assert [o["label"] for o in back["options"]] == [o["label"] for o in r1["options"]]
+        home = _respond(c, "less_generous", w)["diplomatic_dialogue"]
+        assert home["proposal_terms_summary"] == first["proposal_terms_summary"]
+
+
+class TestDDB31:
+    def test_the_buy_off_chip_names_the_design_that_wakes_next(self, w):
+        from backend.game_logic.instruments import next_design_after_buyoff
+        relations = dict(w.nation_relations)
+        bargains = list(getattr(w, "compensation_bargains", []) or [])
+        nxt = next_design_after_buyoff(w, "France", "Prussia")
+        assert nxt and nxt["title"] and nxt["price"] > 0
+        assert dict(w.nation_relations) == relations
+        assert list(getattr(w, "compensation_bargains", []) or []) == bargains
+        acts = D.get_available_diplomatic_actions(w, "Prussia")
+        acts = acts.get("actions") if isinstance(acts, dict) else acts
+        chip = next(a for a in acts if a["action"] == "buy_off_design")
+        text = str(chip.get("effect_text") or chip.get("description") or "")
+        assert f"Buying it wakes {nxt['title']} next ({nxt['price']}g to buy off in turn)." in text
+
+
+class TestDDB32:
+    def test_the_treaties_book_lists_the_1805_alliances(self, w):
+        from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
+        rows = {(t["nation_b"], t.get("note")) for t in build_diplomatic_ledger(w)["treaties"]
+                if t.get("inherited")}
+        assert ("Bavaria", "an alliance of 1805, not a treaty of ours") in rows
+        assert ("Spain", "an alliance of 1805, not a treaty of ours") in rows
+        src = (SCRIPTS / "diplomatic_ledger.gd").read_text(encoding="utf-8")
+        assert 'bool(t.get("inherited", false))' in src
+
+
+class TestDDB33:
+    def test_ease_stops_at_the_scorer_s_gold_ceiling_and_says_so(self):
+        notes: list = []
+        terms = [{"type": "peace"},
+                 {"type": "gold_indemnity", "from": "France", "to": "Britain", "amount": 950}]
+        out = SS._redial_settlement_terms(terms=terms, scope_courts=["Britain"], direction="generous",
+                                          proposer_side_leader="France", protected_notes=notes)
+        gold = next(t for t in out if t["type"] == "gold_indemnity")
+        assert gold["amount"] == 1000
+        again = SS._redial_settlement_terms(terms=out, scope_courts=["Britain"], direction="generous",
+                                            proposer_side_leader="France", protected_notes=notes)
+        assert next(t for t in again if t["type"] == "gold_indemnity")["amount"] == 1000
+        assert "Gold past 1,000 buys nothing more from Britain at this table, Sire." in notes
+
+    def test_a_client_state_s_provinces_count_as_promised(self):
+        from backend.game_logic.settlement_baseline import _promised_regions_in_terms
+        promised = _promised_regions_in_terms([
+            {"type": "create_client", "from": "Britain", "to": "France", "provinces": ["Ulster", "Leinster"]},
+            {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"}])
+        assert promised == {"Ulster", "Leinster", "Tyrol"}
+
+
+class TestDDB34:
+    def test_the_dispatch_line_names_the_cabinet_chip(self):
+        from backend.game_logic import dispatch
+        text = dispatch._format_dispatch_event_text("allegiance_in_play", {"nation": "Sardinia"})
+        assert text.endswith("Bid in the Cabinet: F1 → Sardinia → Bid for Their Allegiance.")
+
+    def test_the_advice_menu_offers_the_bid_while_the_auction_is_open(self, client):
+        c, w = client
+        w.allegiance_auctions = {"Sardinia": {"resolves_turn": int(w.current_turn) + 3, "bids": {}}}
+        w.diplomatic_points = 9
+        d = _post(c, "/command", {"command": "Talleyrand, propose to Sardinia"})["diplomatic_dialogue"]
+        bid = next(o for o in d["options"] if o["action"] == "execute_suggestion")
+        assert bid["label"].startswith("Bid for their allegiance (")
+        dp, gold = w.diplomatic_points, w.nation_gold["France"]
+        r = _respond(c, "execute_suggestion", w)
+        assert r["success"] is True, r.get("message")
+        assert w.diplomatic_points == dp - 1 and w.nation_gold["France"] < gold
+        assert w.allegiance_auctions["Sardinia"]["bids"].get("France")
+
+
+class TestDDB35:
+    def test_propose_peace_stands_in_a_one_on_one_war(self, w):
+        with contextlib.redirect_stdout(io.StringIO()):
+            for ally in ("Bavaria", "Spain", "Holland", "KingdomOfItaly"):
+                if w.get_diplomatic_state(ally, "Austria") == "WAR":
+                    D.set_diplomatic_state(w, ally, "Austria", "PEACE", "test_fixture")
+        acts = D.get_available_diplomatic_actions(w, "Austria")
+        acts = acts.get("actions") if isinstance(acts, dict) else acts
+        row = next(a for a in acts if a["action"] == "propose_peace")
+        assert row["display_name"] == "Propose Peace" and row["available"] is True, row
+
+    def test_an_ally_still_at_war_shuts_it_with_the_paradox(self, w):
+        acts = D.get_available_diplomatic_actions(w, "Austria")
+        acts = acts.get("actions") if isinstance(acts, dict) else acts
+        row = next(a for a in acts if a["action"] == "propose_peace")
+        assert row["available"] is False
+        assert row["disabled_reason"] == "Would break an ally's war — propose an armistice, or settle jointly"
+        from backend.display_names import settlement_disabled_reason_display
+        assert "Propose Peace or Propose Armistice" in settlement_disabled_reason_display("one_to_one_war")

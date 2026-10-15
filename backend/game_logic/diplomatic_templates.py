@@ -4839,11 +4839,16 @@ def _get_vassal_nation(term: Dict) -> str:
 
 
 def _build_display_label(clause_type: str, from_nation: str, to_nation: str,
-                         regions: list, value: int, vassal_nation: str = "") -> str:
+                         regions: list, value: int, vassal_nation: str = "",
+                         turns: int = 0) -> str:
     template = _TERM_DISPLAY_LABELS.get(clause_type)
     if not template:
         from backend.display_names import clause_display_name
         return clause_display_name(clause_type)
+    # DDB-23 (Pre-Deploy S13b part 2): a stream names its term — a bilateral
+    # stream runs while the treaty stands; a settlement stream for its turns.
+    from backend.display_names import stream_term_phrase
+    term_phrase = stream_term_phrase({"type": clause_type, "turns": turns})
 
     detail = ", ".join(regions) if regions else "territory"
     if vassal_nation and clause_type in ("territory_cede", "territory", "territory_return"):
@@ -4861,7 +4866,7 @@ def _build_display_label(clause_type: str, from_nation: str, to_nation: str,
         from_nation=from_nation, to_nation=to_nation,
         detail=detail, value=int(value),
         nation_a=from_nation, nation_b=to_nation,
-    )
+    ) + term_phrase
 
 
 def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) -> list:
@@ -4898,7 +4903,8 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
             "term_direction": "concession",
             "sweetener_value": value,
             "display_label": _build_display_label(
-                stype, proposer_nation, target_nation, regions, value, vassal_nation),
+                stype, proposer_nation, target_nation, regions, value, vassal_nation,
+                turns=_safe_int(sweetener.get("turns", 0))),
         })
 
     for demand in terms.get("demands", []):
@@ -4920,7 +4926,8 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                  if dtype == "forced_alliance"
                  and demand.get("includes_continental_system") is False
                  else dtype),
-                target_nation, proposer_nation, regions, value, vassal_nation),
+                target_nation, proposer_nation, regions, value, vassal_nation,
+                turns=_safe_int(demand.get("turns", 0))),
         })
 
     for clause in terms.get("clauses", []):

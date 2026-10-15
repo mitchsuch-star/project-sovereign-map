@@ -487,7 +487,7 @@ def test_open_settlement_eligibility_rejects_one_to_one_war():
     assert result["available"] is False
     assert result["error"] == "one_to_one_war"
     assert result["disabled_reason_display"] == (
-        "Use bilateral peace or armistice for a one-on-one war."
+        "A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice."
     )
 
 
@@ -501,7 +501,7 @@ def test_diplomacy_wizard_action_disables_settlement_without_common_war_instance
 
     assert action["available"] is False
     assert action["disabled_reason_display"] == (
-        "Use bilateral peace or armistice for a one-on-one war."
+        "A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice."
     )
     assert action["war_id"] is None
 
@@ -560,13 +560,19 @@ def test_contribution_rows_include_humanized_side_label():
     contribution = build_contribution_share_rows(world, "war_1")
 
     assert contribution["rows"], "fixture should produce at least one row"
+    from backend.game_logic.settlement_presentation import side_court_label
     for row in contribution["rows"]:
         # No raw enum should reach the popup — every row carries a
         # humanized `side_label`. Raw `side` is preserved for downstream
-        # mechanical use but the popup reads side_label.
-        assert row["side_label"] in {"Attackers", "Defenders"}
+        # mechanical use but the popup reads side_label. DDB-24 (S13b
+        # part 2): the side is named by its COURT, never attacker/defender.
         assert row["side"] in {"attackers", "defenders"}
-        assert row["side_label"] == SIDE_LABEL_DISPLAY[row["side"]]
+        assert row["side_label"] not in set(SIDE_LABEL_DISPLAY.values())
+        if row["side"] == "attackers":
+            assert row["side_label"] == "France"
+        else:
+            assert row["side_label"] == side_court_label(
+                world, ["Austria", "Prussia"], leader="Austria")
 
 
 def test_contribution_rows_set_is_beneficiary_from_terms():

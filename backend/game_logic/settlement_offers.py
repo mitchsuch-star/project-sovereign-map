@@ -1833,7 +1833,7 @@ def _pending_envoy_count(world: Any) -> int:
 
 
 def _mounted_propose_settlement_dialogue(
-    world: Any, war_id: str
+    world: Any, war_id: str, *, any_mode: bool = False,
 ) -> Optional[Mapping[str, Any]]:
     """The mounted PROPOSE settlement_confirm for `war_id`, or None. Grant /
     Honor inject through the SAME restage seam every guided demand verb
@@ -1851,7 +1851,10 @@ def _mounted_propose_settlement_dialogue(
         return None
     if str(current.get("war_id") or "") != str(war_id or ""):
         return None
-    if str(current.get("dialogue_mode") or "PROPOSE") != "PROPOSE":
+    # DDB-28 (Pre-Deploy S13b part 2): a petition answered from the table's
+    # own line acts on the staged draft in either mode — the restage seam
+    # keeps the dialogue's mode.
+    if not any_mode and str(current.get("dialogue_mode") or "PROPOSE") != "PROPOSE":
         return None
     return current
 
@@ -2167,14 +2170,18 @@ def _log_ally_petition_event(
 
 
 def _handle_grant_ally_petition(
-    world: Any, dialogue: Mapping[str, Any]
+    world: Any, dialogue: Mapping[str, Any], *, from_table: bool = False,
 ) -> Dict[str, Any]:
     """Slice H §3.3 Grant: inject the carried clause into the mounted
     PROPOSE draft through the demand-add/restage seam. The PLAYER clicks
-    Grant, so the Slice-G player-only mutation boundary is preserved."""
+    Grant, so the Slice-G player-only mutation boundary is preserved.
+
+    DDB-28: `from_table` — granted from the review's own petition line —
+    acts on the mounted draft in either mode."""
     war_id = str(dialogue.get("war_id") or "")
     ally = str(dialogue.get("ally_nation") or "")
-    settlement_dialogue = _mounted_propose_settlement_dialogue(world, war_id)
+    settlement_dialogue = _mounted_propose_settlement_dialogue(
+        world, war_id, any_mode=from_table)
     draft_terms: Optional[List[Dict[str, Any]]] = None
     if settlement_dialogue is not None:
         terms = [
@@ -2514,6 +2521,50 @@ def _handle_honor_bargain_in_settlement(
     return result
 
 
+def answer_ally_petition_from_table(
+    world: Any, *, petition_key: str, answer: str,
+) -> Dict[str, Any]:
+    """DDB-28 (Pre-Deploy S13b part 2): the settlement review's petition line
+    carries Grant / Decline acting on the STAGED draft. The petition waited
+    behind the settlement in the mailbox and became current only after
+    ratification, when the draft was gone ("The draft has moved on") — so
+    an ally's claim could only ever be refused. The answer finds the queued
+    petition by its key and runs the petition's own handlers, the table
+    mounted (Grant restages the review with the clause; Decline is the
+    petition's own decline, its memory and relation dip)."""
+    dm = getattr(world, "dialogue_manager", None)
+    queue = list(getattr(dm, "_queue", []) or []) if dm is not None else []
+    petition = next((
+        item for item in queue
+        if isinstance(item, Mapping)
+        and item.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+        and str(item.get("petition_key") or "") == str(petition_key or "")
+    ), None)
+    if petition is None:
+        return {"success": False, "error": "petition_not_found",
+                "message": "That petition is no longer before us, Sire.",
+                "mutated": False}
+    if answer == "grant":
+        return _handle_grant_ally_petition(world, petition, from_table=True)
+    if answer == "decline":
+        result = _handle_decline_ally_petition(world, petition)
+        # The table stays mounted: the decline names it on the same screen.
+        mounted = _mounted_propose_settlement_dialogue(
+            world, str(petition.get("war_id") or ""), any_mode=True)
+        if isinstance(mounted, Mapping):
+            mounted = dict(mounted)
+            mounted["ally_petitions"] = [
+                p for p in (mounted.get("ally_petitions") or [])
+                if str((p or {}).get("petition_key") or "") != str(petition_key or "")]
+            world.dialogue_manager.replace(mounted)
+            result["diplomatic_dialogue"] = mounted
+            result["dialogue_type"] = "settlement_confirm"
+            result["awaiting_diplomatic_response"] = True
+        return result
+    return {"success": False, "error": "unknown_petition_answer",
+            "message": "Grant or decline, Sire.", "mutated": False}
+
+
 def handle_ally_settlement_petition_action(
     world: Any,
     *,
@@ -2806,9 +2857,10 @@ def build_incoming_settlement_offer_popup(
             # -gold offer overwrote the indemnity figure the popup and the
             # notification quote. Its own name now.
             stream_amount = int(term.get("amount", 0) or 0)
-            turns = int(term.get("turns", 0) or 0)
+            # DDB-23: the term in the one phrase every stream line reads.
+            from backend.display_names import stream_term_phrase
             terms_summary.append(
-                f"{stream_amount} gold/turn for {turns} turns "
+                f"{stream_amount} gold/turn{stream_term_phrase(term)} "
                 f"({term.get('from', '')} → {term.get('to', '')})"
             )
             continue

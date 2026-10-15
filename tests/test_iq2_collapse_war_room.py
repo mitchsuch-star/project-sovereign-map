@@ -167,8 +167,11 @@ class TestCounselUnderTheCollapse:
                                 "France holds a single province:")
 
     def test_the_balanced_war_arm_is_honest_under_collapse(self, collapsed, monkeypatch):
-        assert int(A.get_war_score_for(collapsed, "France", "Austria")) == 0
-        out = A._recommend_action("Austria", collapsed)
+        # DDB-X14 (S13b part 2): the counsel reads the war score LIVE, so the
+        # captor (Austria, -75 on the board) is the losing arm now; the level
+        # arm under collapse is read against a court that took nothing.
+        assert int(A.live_war_score_for(collapsed, "France", "Britain")) == 0
+        out = A._recommend_action("Britain", collapsed)
         assert "Tilsit" not in out["talleyrand_text"]
         # IQ-2 review round — CONSCIOUSLY RE-PINNED: the arm quoted the PAIR
         # score and claimed a level ledger while the war-level score the HUD
