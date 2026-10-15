@@ -10535,3 +10535,85 @@ The mailbox closes no screen (its panel rises above). A scene change leaves the 
 
 - **DDB-X9:** the incoming offer letter's status-quo lines (`_derive_status_quo_lines`) use their own homeland-only rule, not the ratifier's retention and DDB-12's returns.
 - **DDB-X11:** at ×0.65 CA9 row 1's two-turn cheese re-opens at +30, and a beaten AI court's bare P1 letter to a winning France can fall under the AI's send filter (< 20); the threshold pins are seam-isolated at ×0.3 until it lands.
+
+## 117. DD-B FIXES, PART 2 — THE LETTERS' STATUS QUO, ONE DEMAND-SIDE READING, THE TABLE'S P3s, THE FIELD (Pre-Deploy S13b part 2, October 15, 2026)
+
+*`BUG_FIXES.md` §DD-B: DDB-X9, DDB-X11, DDB-13 … 20, DDB-22 … 44 and the siblings DDB-X12 … X22 (X17 heads part 3). Commits `8f3f1141` (the head), `33643c45` (the table), `cd8f3210` (the field). Pins `tests/test_ddb_s13b_the_rulings.py`, `tests/test_ddb_s13b_the_table.py`, `tests/test_ddb_s13b_the_field.py`. The series: `tools/_ddb_s13b_series_arms.py` — eighteen arms, every one byte-identical to `BASELINE_SERIES` (`tools/_ddb_s13b_series_arms_final.json`).*
+
+### 117.1 The letters' status quo (DDB-X9, DDB-X12)
+
+- **A court's settlement offer** lists who keeps what by the review's own reader: `settlement_offers._derive_status_quo_lines` returns `settlement_status_quo_review` (the ratifier's `status_quo_forecast_lines` per covered cross-side pair, DDB-12's homeland returns included), less the provinces the package moves. The letter and the review say the same thing on one board.
+- **A court's bilateral peace letter** names the status quo too: `diplomatic_dialogue.attach_status_quo_forecast` is the ONE reader for France's outgoing preview and the incoming letter (`mailbox_payloads.attach_peace_preview`), re-read at every show.
+
+### 117.2 One demand-side reading at ×0.65 (DDB-X11)
+
+- `WAR_AGE_PENALTY_MAX` = **65** (30 × 0.65 / 0.3): a two-turn war at +30 recommends no extraction.
+- `ai_diplomacy._send_floor(proposal, world, nation)`: the AI's send filter is 20 (`AI_SEND_FLOOR`), except for a beaten court's honest letter to the player (a truce or peace that asks nothing), whose floor falls by the winner's extra steepness, (0.65 − `AI_SEND_FLOOR_CALIBRATION_WEIGHT` 0.3) × |war score|, rounded as the score is.
+
+### 117.3 The table (DDB-22 … DDB-35; DDB-X13 … X16)
+
+- **Labels.** The harsher per-court dial: "Demand more of <court>" (the advice's "Press <court> alone" is the separate peace). A harsher round steps back with "Milder terms" (X13); "Less generous" restores exactly the previous round (`context["previous_round"]`), absent on round 1.
+- **Streams name their term.** `display_names.stream_term_phrase` — "for as long as the treaty stands", or its turns — on the summary, the popup clauses, the labels and the letter; the treaty itself stands first.
+- **Sides by court.** `settlement_presentation.side_court_label(world, members, leader)`: "France" / "The Third Coalition", never attacker / defender. A court's white peace says it settles the whole war and names the per-court road.
+- **The assessment.** `assess_terms` opens the feasibility card on Talleyrand's suggested terms with their acceptance ("Propose these terms"); `diplomatic_advisory.strength_sentence` says "we outmatch them" / "they outmatch us" on every strength line (X15); the war score is read live (`live_war_score_for`, X14); "A battlefield victory would change their calculus" only while a victory is wanting.
+- **The band.** `counter_aware_likelihood(world, proposal, score)` — ONE read (X16): a band word promises a counter only when the generator's dry run builds one. The preview is titled by its treaty, the treaty first, an armistice's mechanics above the score.
+- **The petition at the table.** `settlement_answer_petition` → `answer_ally_petition_from_table` grants or declines on the staged draft.
+- **Drafts.** `settlement_staging.purge_drafts_naming` at `set_diplomatic_state`: a court that leaves the war leaves no draft naming it.
+- **The buy-off chip** names the design that wakes next and its price (`instruments.next_design_after_buyoff`).
+- **The Treaties book** lists the record-less 1805 alliances: "an alliance of 1805, not a treaty of ours".
+- **Ease** stops at the scorer's gold ceiling (1,000) and says so; the promised-region check counts a client state's provinces.
+- **The auction** names "F1 → <court> → Bid for Their Allegiance"; the advice menu offers the bid (`execute_suggestion` kind `bid_for_allegiance`).
+- **Propose Peace** stands in the WAR state, behind the ONE verdict's paradox.
+
+### 117.4 The field: the lead's soil, the joiners, the works (DDB-14; X17 open)
+
+- **The player's lead is refused a field on peace soil.** `combat_executor.field_on_peace_soil(executor, marshal, enemy_location, world)` — the PT-F1 guard's `neutral` arm, read for the LEAD as the muster (`neutral_soil`) and the reinforcement relocation read it for his supporters: "Davout cannot march on Mack: Nassau is Hesse's soil, and we are at peace with Hesse — no corps of ours may take the field there." At no cost; a gun firing from its own province does not march. Pre-validated in `executor.py`'s objection battery (the PF-4 idiom): no objection is raised first. An army on its OWN court's soil (`enemy_nation` is the owner) is not a third party's field: an attack on it declares war, on the war-purpose road, as before.
+- **GR5's named difference: the player's lead only.** The ruling reads "soil France is at peace with". The AI's lead keeps PT-F1: an attack on an army on a third party's soil is legal and the pursuit halts at its frontier, so no court can shelter an army behind a neutral border from the AI (the School of War's counter-blow — Charles on Senarmont in Bavaria — still lands).
+- **Where a joiner stands.** A muster row carries `stands_after`: "— and will stand at Swabia", or "— and returns to Rhineland if the works hold" where the province's works would halt the lead.
+- **The works halt.** `returns_reinforcers_from_works(ctx)`: when the lead halts before the works, the corps that marched to his guns return to their origins (Gate 4's return), each said.
+- **Open (DDB-X17, part 3's head):** the glorious charge and the reckless auto-charge keep only PT-F1's frontier rule.
+
+### 117.5 The treasury and the bill (DDB-13)
+
+- Every base response carries `gold_projected_net` (`ledger.chest_forecast`'s net — the LAWS tab's and the banner's projection). The Gold counter reads "432 (−486 next turn)"; the end-turn gate stops once (`_treasury_warned`) when the chest will go negative.
+- The muster's `materiel_note` quotes the bill at `MATERIEL_RATE` and a hard day (15% of the mustered). The battle's [Materiel] line rides directly under the battle's own lines and, when the player fought, ends "Our treasury stands at N gold."
+
+### 117.6 The objection and the odds (DDB-15, 18, 19, 41; X21)
+
+- **One reading of an attack.** `objection_v2.muster_expected_totals(marshal, enemy, world)` — the muster's committed totals (the lead and every corps likely to arrive; the enemy and his) — read by `_get_attack_odds_ratio` (at FULL / PARTIAL), `personality._get_strength_ratio` and the V1 alternative's `_get_strength_ratio_for_alternative` (X21). Pure: the muster's once-per-campaign hint latch is put back.
+- **A walk-in raises no strength concern.** `evaluate_cautious` returns NONE when `attack_engages` finds nothing to fight on an enemy's province.
+- **The counsel drops a hopeless attack:** `counsel._hopeless_attack` — the objection's suicide mission (`HOPELESS_ATTACK_RATIO` 5.0, at the muster's totals).
+- **Cancel.** `meta_executor.OBJECTION_CANCEL_WORDS` (`cancel`, `withdraw`): the tactical objection's order is withdrawn with no trust, action or authority spent (`objection_withdrawn`, `no_action_cost`); the strategic objection's too. The dialog's "Cancel the Order (no cost)" emits `cancel`.
+
+### 117.7 The cornered marshal (DDB-16)
+
+- The card names each road's chance (`last_stand_odds_line`: the last stand's +25% and its certain capture; the breakout's `MARSHAL_FATE_ESCAPE_CHANCE` − `LAST_STAND_BREAKOUT_PENALTY`).
+- Every answer carries `last_stand_fate` (fallen / escaped / captured); `/strategic_response` drops a peeked earlier battle surface and the client prints the fate first.
+- The desk's roster carries our prisoners (`own_prisoner_names`): "Ney is a prisoner of Austria, held at Vienna since turn 3, Sire — no order can reach him until his release."
+
+### 117.8 The battle's words (DDB-17, 36, 37, 38; X22)
+
+- **The outcome's register.** `_generate_description` chooses the line after the outcome: a beaten attacker never reads a triumph, a victor never a collapse, a stalemate never a triumph (one draw either way). The charge banner follows the outcome ("leads the cavalry in!" when beaten, X22); the resolver's charge line states the mechanic only. The charge card says "charges ALONE — no corps joins a charge".
+- **The posture header** reads "The band weighs more than the men" only when the folded band reads worse than the raw numbers' band (`inferred_attack_odds_reading(..., fold_modifiers=False)`), else "Standing modifiers, already in the band". The cautious line gives the solo figures ("his own 26k against 60k").
+- **The advance** rides the battle event (`advanced_to`); the enemy phase says "— and advances into X". `battle_report._BY_RULE_NO_SHOWS` (literal_personality, neutral_soil) never reach the "Where was" bank.
+- **A forced retreat** clears the counter-punch (`forced_retreat_clears_counter_punch`, its rail row dismissed). `battle_diorama.derive_register(player_side, outcome, field)` reads a stalemate's field: our side routed or our province taken = defeat; theirs = triumph.
+
+### 117.9 SUPPORT at the approach (DDB-20)
+
+- `strategic.support_stands_at_approach(order, ally, blocked_region)`: a SUPPORT whose next step is the supported marshal's own contested field stands at the approach, the order standing, and joins his next attack — at the order's issue (`_handle_first_step_blocked`) and at the turn's tick. SUPPORT of a marshal on the same field passes the engagement gate.
+
+### 117.10 Europe's alarm, read on the province (DDB-42; X18, X20)
+
+- **A win on one's own soil** adds no `battle_win` and no `decisive_victory` (`battle_win_on_own_soil(world, region, nation, conquered)` — owned BEFORE the battle: a field the win itself conquered is not home soil). War exhaustion and the coalition shock stand. Both combat copies (the executor's pipeline and the reckless auto-charge, X18). Every court alike.
+- **Recovering titled soil** adds no `region_capture` (`world_state.capture_recovers_title`: signed to the capturer, or taken from it and retaken); a treaty ceding a province back to its 1805 or titled holder adds no `treaty_annex` (`cession_recovers_province`, X20).
+- **The result names its alarm:** "[Alarm] Europe's alarm rises +8 — Won a battle +3, Won a decisive battle +5." (`CombatExecutor._alarm_line`, the player's own rows since the attack began).
+
+### 117.11 Provinces changing hands, and closed soil (DDB-43; X19)
+
+- `world_state.announce_third_party_capture(world, region, old, new)` at every change between two courts neither of which is the player — the capture, the auto-charge's mirrored conquest and a treaty cession: "Franconia passes from Bavaria to Prussia." (`province_changed_hands`, MEDIUM). Our corps standing there, when entry is now closed (`can_enter_territory(..., ignore_evacuation=True)`), are told: "Bernadotte stands on Franconia, now Prussia's soil — we are at peace and hold no open borders: he may march out, but no corps of ours may enter it again." (`corps_on_closed_soil`, HIGH).
+
+### 117.12 Small honesties (DDB-39, 40, 44)
+
+- Morale "dropped" only when it fell, else "Morale is still low at N%".
+- The province note prices fortify from the stance: "2 AP from a neutral stance — 1 to stand defensive, 1 to fortify".
+- `movement_executor.supply_warning_line(world, marshal)` — the turn's own bill (`WorldState.supply_forecast`: the pooled bodies, the crowding press, the effective cap, the attrition rate), behind the muster's fog gate — on a move, a march's first step and the march's turn reports: "Lorraine feeds 60,000; the 186,000 men standing there would lose ~9,300 a turn to short supply."
