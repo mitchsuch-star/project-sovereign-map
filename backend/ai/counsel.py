@@ -168,6 +168,22 @@ def _crossing_open(world, nation: str, marshal, destination: str) -> bool:
         return False
 
 
+HOPELESS_ATTACK_RATIO = 5.0  # evaluate_cautious's EXTREME: a suicide mission
+
+
+def _hopeless_attack(world, marshal, enemy) -> bool:
+    """DDB-18: the attack the objection system calls a suicide mission."""
+    try:
+        from backend.commands.objection_v2 import _get_attack_odds_ratio
+        ratio = _get_attack_odds_ratio(
+            marshal, {"action": "attack", "target": getattr(enemy, "name", "")},
+            {"world": world})
+        return float(ratio) >= HOPELESS_ATTACK_RATIO
+    except Exception as exc:
+        report(exc, "counsel._hopeless_attack: _get_attack_odds_ratio")
+        return False
+
+
 def _attack_candidates(world, nation: str, marshals, enemies_here):
     """Every (marshal, enemy) pair the ATTACK would take: co-located or
     adjacent, a court we are at war with, the crossing open (AAR-19).
@@ -260,6 +276,13 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
     #    cost of an upstream widening is the game proposing a war on a
     #    neutral. It is pinned at the function instead of at the board.
     for marshal, enemy in _attack_candidates(world, nation, marshals, enemies_here):
+        # DDB-18 (Pre-Deploy S13b part 2): never counsel a hopeless attack —
+        # the objection's own "suicide mission" line (the enemy at five
+        # times our strength or more, read fog-honestly by
+        # `_get_attack_odds_ratio`): the Emperor's few hundred men were
+        # offered against 10,000 (conquest #34).
+        if _hopeless_attack(world, marshal, enemy):
+            continue
         lines.append(f"{_display(marshal.name)}, attack {_display(enemy.name)}")
         seen_verbs.add("attack")
         used.add(marshal.name)

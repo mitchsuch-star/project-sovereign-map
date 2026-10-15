@@ -898,6 +898,88 @@ class AttackContext:
     forced_retreat_msg: Any = field(init=False)
     conquered: Any = field(init=False)
     advance_losses: Any = field(init=False)
+    # DDB-37 (Pre-Deploy S13b part 2): the province the victor advanced
+    # into, on the battle event — the enemy phase said so only in prose.
+    advanced_to: Any = field(init=False)
+    # DDB-42: where this attack's alarm rows begin.
+    _threat_rows_before: Any = field(init=False)
+
+
+# ── Pre-Deploy S13b part 2: the field's behaviour seams (one function per
+#    change, so the BASELINE_SERIES attribution can hold each one down —
+#    `tools/_ddb_s13b_series_arms.py`; the code-health ratchet forbids a
+#    module lever). ──
+
+def field_on_peace_soil(executor, marshal, enemy_location, world, enemy_nation=None):
+    """DDB-14: the frontier guard's NEUTRAL arm for the LEAD's field — the
+    same predicate the muster (`neutral_soil`) and the reinforcement
+    relocation read. Returns the guard's dict, or None when the field is
+    open to him. A gun firing from his own province does not march. An
+    army standing on its OWN court's soil is not a third party's field: an
+    attack on it is a declaration of war, and the war-purpose road owns it
+    (`enemy_nation`).
+
+    The PLAYER's lead (GR5's named difference, recorded in
+    SYSTEMS_REFERENCE §117): the ruling reads "a field on soil France is at
+    peace with". The AI's lead keeps PT-F1's rule — an attack on an army
+    standing on a third party's soil is legal, the pursuit halts at its
+    frontier — so the School of War's counter-blow (Charles on Senarmont in
+    Bavaria, at peace with Austria) still lands and no court shelters an
+    army behind a neutral's border from the AI."""
+    if marshal.nation != getattr(world, "player_nation", None):
+        return None
+    if (not enemy_location or enemy_location == marshal.location
+            or getattr(marshal, "artillery", False)):
+        return None
+    block = executor._pursuit_capture_guard(marshal, enemy_location, world)
+    if block is not None and block.get("arm") == "neutral":
+        if enemy_nation and block.get("owner") == enemy_nation:
+            return None
+        return block
+    return None
+
+
+def returns_reinforcers_from_works(ctx) -> str:
+    """DDB-14: when the lead halts before a province's works, the corps that
+    marched to his guns return to their origins (Gate 4's return), and say
+    so. Returns the sentences ('' when none)."""
+    msg = ""
+    for p in ctx.atk_participants:
+        origin = ctx.reinforcer_origin.get(p.name)
+        if (origin and p.name != ctx.marshal.name and p.strength > 0
+                and p.location == ctx.target_location):
+            p.location = origin
+            p.clear_iron_resolve()
+            msg += f" {p.name} returns to {origin} — the works still hold."
+    return msg
+
+
+def forced_retreat_clears_counter_punch(marshal, world) -> None:
+    """DDB-38: a corps driven from the field has no free strike to make —
+    the counter-punch a stalemate earned is cleared, with its rail row."""
+    if not getattr(marshal, "counter_punch_available", False):
+        return
+    marshal.counter_punch_available = False
+    marshal.counter_punch_turns = 0
+    try:
+        from backend.notifications import COUNTER_PUNCH_EARNED
+        world.notifications.dismiss_by_type(
+            COUNTER_PUNCH_EARNED,
+            lambda n: (n.get("details") or {}).get("marshal") == marshal.name)
+    except Exception as exc:
+        _errors.report(exc, "combat_executor.forced_retreat_clears_counter_punch: dismiss_by_type")
+
+
+def battle_win_on_own_soil(world, region_name, nation, conquered=False) -> bool:
+    """DDB-42: a win in a province the victor owns — driving an invader from
+    its own soil — is no conquest (EB-4.3's rule, applied to the province).
+    Owned BEFORE the battle: a field the win itself conquered reads as the
+    victor's by the time the pipeline asks, so ``conquered`` rules it out."""
+    if conquered:
+        return False
+    field_region = world.get_region(region_name) if region_name else None
+    return bool(field_region is not None and nation
+                and getattr(field_region, "controller", None) == nation)
 
 
 class CombatExecutor:
@@ -1867,7 +1949,8 @@ class CombatExecutor:
             return True, "aggressive_marches"
         return True, "answers_the_guns"
 
-    def _posture_note(self, marshal, enemy_marshal, world) -> str:
+    def _posture_note(self, marshal, enemy_marshal, world,
+                      band_hurts: bool = True) -> str:
         """SR-4a (AAR-32): the standing modifiers the muster band weighs,
         named when they HURT the attack — the attacker's own posture (its
         stance named when it is the defensive one), the ground (public), and
@@ -1909,7 +1992,12 @@ class CombatExecutor:
                              f"(his stance, his character and his works)")
         if not parts:
             return ""
-        return "The band weighs more than the men: " + "; ".join(parts) + "."
+        # DDB-36 (Pre-Deploy S13b part 2): the header claims the band reads
+        # WORSE than the men only when it does — beside a favourable band it
+        # read as a contradiction (conquest #3).
+        lead = ("The band weighs more than the men: " if band_hurts
+                else "Standing modifiers, already in the band: ")
+        return lead + "; ".join(parts) + "."
 
     def muster_odds(self, marshal, enemy_marshal, world) -> dict:
         """VP-R1 (c): the odds band `_build_muster_preview` would print for
@@ -2236,6 +2324,16 @@ class CombatExecutor:
                          or AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL)):
                 row.update(self._arrival_odds_row(marshal, m, battle_region,
                                                   world, code))
+            # DDB-14 (Pre-Deploy S13b part 2): a corps that marches to the
+            # guns stands in the battle's province afterwards — said here
+            # (conquest #7: Bohemia left empty, unannounced). Where the
+            # province's works would halt the lead, he returns to his post.
+            if (will_join and m.location != battle_region
+                    and not getattr(m, "artillery", False)):
+                if works_halt_line(world, marshal, region):
+                    row["stands_after"] = f"— and returns to {m.location} if the works hold"
+                else:
+                    row["stands_after"] = f"— and will stand at {battle_region}"
             rows.append(row)
 
         # SF-CL-1 fix 1: the expected figure, the ceiling, the defender's
@@ -2350,7 +2448,10 @@ class CombatExecutor:
             "target": {"name": enemy_marshal.name,
                        "location": battle_region,
                        "strength_display": target_strength_display,
-                       "reinforcement_note": defender_note},
+                       "reinforcement_note": defender_note,
+                       # DDB-19: the defender's side as the band reads it
+                       # (the ratio's own ground truth; never printed).
+                       "committed_strength": int(enemy_marshal.strength + committed_defender)},
             "odds_band": odds_band,
             "odds_note": odds_note,
             "rows": rows,
@@ -2399,12 +2500,39 @@ class CombatExecutor:
             "but a feud does"
             if _apart else "that is the design"
         )
+        # DDB-40 (Pre-Deploy S13b part 2): fortify priced from the stance,
+        # as the counsel prices it — from NEUTRAL it shifts to DEFENSIVE
+        # first (1 AP more; conquest #16 spent both actions on "1 AP").
+        _adj_corps = [world.marshals.get(r.get("marshal")) for r in rows]
+        _adj_corps = [c for c in _adj_corps
+                      if c is not None and c.location != battle_region]
+        _neutral = [c.name for c in _adj_corps
+                    if getattr(getattr(c, "stance", None), "name", "") == "NEUTRAL"]
+        if _adj_corps and len(_neutral) == len(_adj_corps):
+            _fortify_price = "2 AP from a neutral stance — 1 to stand defensive, 1 to fortify"
+        elif _neutral:
+            _fortify_price = (f"1 AP; 2 for {', '.join(_neutral)}, who "
+                              f"{'stands' if len(_neutral) == 1 else 'stand'} neutral")
+        else:
+            _fortify_price = "1 AP"
         preview["province_fights_note"] = (
             f"Every corps in the province shares the field — "
             f"{_design_clause}. Only a corps still adjacent can be held "
-            f"out: fortify him (1 AP) and he stands apart until you move "
-            f"him."
+            f"out: fortify him ({_fortify_price}) and he stands apart until "
+            f"you move him."
         )
+        # DDB-13 (Pre-Deploy S13b part 2): the battle's materiel bill, quoted
+        # beside its supply cost — the Butcher's Bill (EC-W3) is charged at
+        # the battle, outside Net, at MATERIEL_RATE a man lost.
+        if getattr(world, "sovereign_map", "legacy") == "europe":
+            from backend.models.world_state import MATERIEL_RATE
+            _mustered = int(sum(standing_bodies))
+            _per_thousand = int(round(1000 * MATERIEL_RATE))
+            _hard_day = int(round(_mustered * 0.15 * MATERIEL_RATE))
+            preview["materiel_note"] = (
+                f"Materiel: every 1,000 men we lose costs {_per_thousand}g in "
+                f"guns, horses and stores, charged at the battle — a hard day "
+                f"(15% of the {_mustered:,} we muster) would cost ~{_hard_day:,}g.")
         if region is not None and hasattr(world, "region_econ_visible"):
             total_bodies = sum(standing_bodies)
             n_corps = len(standing_bodies)
@@ -2526,7 +2654,18 @@ class CombatExecutor:
         # SR-4a (AAR-32): the standing modifiers the band now weighs, named
         # when they hurt — ours always, the ground always (public), the
         # enemy's stack only at FULL visibility.
-        _posture = self._posture_note(marshal, enemy_marshal, world)
+        # DDB-36: the raw numbers' band (no modifiers folded) — the header
+        # names the modifiers as the band's burden only when the folded band
+        # reads worse than it.
+        from backend.commands.objection_v2 import inferred_attack_odds_reading as _reading
+        _raw_band = _reading(marshal, enemy_marshal, game_state,
+                             committed_attacker=committed_attacker,
+                             committed_defender=committed_defender,
+                             fold_modifiers=False)[0]
+        _rank = {"unfavorable": 0, "even": 1, "favorable": 2}
+        _band_hurts = _rank.get(odds_band, 1) < _rank.get(_raw_band, 1)
+        _posture = self._posture_note(marshal, enemy_marshal, world,
+                                      band_hurts=_band_hurts)
         if _posture:
             preview["posture_note"] = _posture
 
@@ -2699,6 +2838,9 @@ class CombatExecutor:
             # VP-R1 (a): and his odds of getting there at all.
             if row.get("arrival_note"):
                 line += f" {row['arrival_note']}"
+            # DDB-14: and where he stands when it is over.
+            if row.get("stands_after"):
+                line += f" {row['stands_after']}"
             lines.append(line)
         if preview["target"].get("reinforcement_note"):
             lines.append(f"  {preview['target']['reinforcement_note']}")
@@ -2718,6 +2860,8 @@ class CombatExecutor:
         # these keys, and older callers may too.
         if preview.get("supply_note"):
             lines.append(f"  {preview['supply_note']}")
+        if preview.get("materiel_note"):
+            lines.append(f"  {preview['materiel_note']}")
         if preview.get("province_fights_note"):
             lines.append(f"  {preview['province_fights_note']}")
         if preview.get("shared_casualty_note"):
@@ -4239,8 +4383,16 @@ class CombatExecutor:
                 getattr(world, "sovereign_map", "legacy") == "europe"
                 and france not in (attacker.nation, defender_nation)
             )
+            # DDB-42 (Pre-Deploy S13b part 2): a win in a province the victor
+            # owns — driving an invader from its own soil — is no conquest
+            # (EB-4.3's rule, applied to the province, not only the role): it
+            # adds no alarm. The war exhaustion and the coalition shock it
+            # deals stand (the ruling is "no threat", nothing more).
+            _own_soil = battle_win_on_own_soil(world, battle_region, attacker.nation,
+                                               conquered=bool(conquered))
             if attacker_won and attacker.nation:
-                add_threat(world, 3, "battle_win", target=attacker.nation)
+                if not _own_soil:
+                    add_threat(world, 3, "battle_win", target=attacker.nation)
                 # Decisive: ratio > 2:1 AND total > 10,000
                 if int(def_casualties) > 0 and int(atk_casualties) > 0:
                     ratio = int(def_casualties) / int(atk_casualties)
@@ -4249,7 +4401,8 @@ class CombatExecutor:
                 else:
                     ratio = 0
                 if ratio > 2 and total_cas > 10000:
-                    add_threat(world, 5, "decisive_victory", target=attacker.nation)
+                    if not _own_soil:
+                        add_threat(world, 5, "decisive_victory", target=attacker.nation)
                     if defender and attacker.nation == france:
                         add_coalition_shock(defender_nation, world)
                 if conquered:
@@ -4355,6 +4508,13 @@ class CombatExecutor:
                     pipeline_out['materiel_msg'] = (
                         "\n[Materiel] Guns, horses and stores lost with the "
                         "fallen: " + ", ".join(materiel_parts) + ".")
+                    # DDB-13: the player's own chest after the bill, said
+                    # where the bill is charged.
+                    _player = getattr(world, "player_nation", None)
+                    if _player in (attacker.nation, defender_nation):
+                        pipeline_out['materiel_msg'] += (
+                            f" Our treasury stands at "
+                            f"{int(getattr(world, 'gold', 0) or 0):,} gold.")
 
         # ── 14. Exhaustion tracking ──
         if not ctx.get('skip_exhaustion'):
@@ -5152,7 +5312,7 @@ class CombatExecutor:
                     f"{marshal.name} is cornered at {marshal.location} with "
                     f"{int(marshal.strength):,} men, Sire — capture looms. "
                     f"He asks leave to fight to the last, or he can attempt "
-                    f"a breakout."
+                    f"a breakout. {self.last_stand_odds_line()}"
                 ),
             }
             marshal.pending_interrupt = interrupt
@@ -5206,6 +5366,38 @@ class CombatExecutor:
             return None  # He slips the net — the normal retreat proceeds.
         return self._capture_marshal(marshal, captor_nation, world,
                                      context="overrun")
+
+    @staticmethod
+    def _alarm_line(world, rows_before) -> str:
+        """DDB-42: '\n[Alarm] Europe's alarm rises +5 — Won a battle +3,
+        Conquered territory +2.' for the player's own rows written since
+        `rows_before`; '' when none (or when the count is unknown)."""
+        if rows_before is None:
+            return ""
+        player = getattr(world, "player_nation", None)
+        rows = [r for r in (getattr(world, "threat_sources_this_turn", None) or [])[rows_before:]
+                if isinstance(r, dict) and r.get("target") == player
+                and int(r.get("amount", 0) or 0) > 0]
+        if not rows:
+            return ""
+        from backend.game_logic.diplomatic_ledger import _THREAT_SOURCE_LABELS
+        parts = [f"{_THREAT_SOURCE_LABELS.get(r.get('source'), str(r.get('source')))} "
+                 f"+{int(r.get('amount', 0))}" for r in rows]
+        total = sum(int(r.get("applied", r.get("amount", 0)) or 0) for r in rows)
+        return f"\n[Alarm] Europe's alarm rises +{total} — {', '.join(parts)}."
+
+    def last_stand_odds_line(self) -> str:
+        """DDB-16 (Pre-Deploy S13b part 2): each road's chance, named on the
+        card — the constants the answer rolls (`MARSHAL_FATE_ESCAPE_CHANCE`
+        less `LAST_STAND_BREAKOUT_PENALTY`; the last stand's +25% and its
+        certain capture)."""
+        breakout = int(round((self.MARSHAL_FATE_ESCAPE_CHANCE
+                              - self.LAST_STAND_BREAKOUT_PENALTY) * 100))
+        bonus = int(round(self.LAST_STAND_BONUS * 100))
+        return (f"Fight to the last: one final defense at +{bonus}% that bleeds "
+                f"the enemy and halts his pursuit — then the survivors are taken, "
+                f"certainly. Attempt a breakout: {breakout}% he cuts his way out, "
+                f"{100 - breakout}% he is taken.")
 
     @staticmethod
     def _standing_last_stand(marshal, world: 'WorldState'):
@@ -5486,6 +5678,12 @@ class CombatExecutor:
         Returns message describing what happened.
         """
         import random
+
+        # DDB-38 (Pre-Deploy S13b part 2): a corps driven from the field has
+        # no free strike to make — a forced retreat clears the counter-punch
+        # a stalemate earned (conquest #6: "free attack!" offered to a
+        # routed Bernadotte). Every road out of a lost field passes here.
+        forced_retreat_clears_counter_punch(marshal, world)
 
         if not skip_fate:
             fate_msg = self._check_marshal_fate(marshal, enemy, world)
@@ -6210,6 +6408,9 @@ class CombatExecutor:
         """Stage 1 of `_execute_attack`: Square break, the war-purpose stager, counter-punch, drill and moved-artillery gates."""
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(ctx.marshal, "attack")
+        # DDB-42: where this attack's alarm rows begin (the result names them).
+        ctx._threat_rows_before = len(
+            getattr(ctx.world, "threat_sources_this_turn", None) or [])
 
         # CA9-F6: set by the two PT-F1 pursuit-capture gates below, and
         # delivered on whichever result this call returns. Never None on a
@@ -7072,6 +7273,29 @@ class CombatExecutor:
                 dp = getattr(ctx.world, 'diplomatic_points', 0)
                 ctx.world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
             # War declared — continue with attack
+
+        # DDB-14 (Pre-Deploy S13b part 2): a field on soil we are at peace
+        # with is refused to the lead as it is to his supporters (the
+        # muster's `neutral_soil`, the reinforcement relocation guard) —
+        # conquest #15: Massena alone was let into Austrian Moravia while
+        # the corps beside him were turned back at the frontier. The
+        # player's lead (`field_on_peace_soil` says why); a gun firing
+        # from his own province does not march.
+        if ctx.enemy_marshal:
+            _peace_soil = field_on_peace_soil(
+                self, ctx.marshal, ctx.enemy_marshal.location, ctx.world,
+                enemy_nation=ctx.enemy_marshal.nation)
+            if _peace_soil is not None:
+                from backend.display_names import display_nation as _dn
+                return {
+                    "success": False,
+                    "message": (
+                        f"{ctx.marshal.name} cannot march on "
+                        f"{ctx.enemy_marshal.name}: {ctx.enemy_marshal.location} "
+                        f"is {_dn(_peace_soil['owner'])}'s soil, and we are "
+                        f"at peace with {_dn(_peace_soil['owner'])} — no corps "
+                        f"of ours may take the field there."),
+                }
 
         # ════════════════════════════════════════════════════════════
         # BOMBARDMENT: Region-name targeting selects strongest enemy (§4.4)
@@ -9214,6 +9438,7 @@ class CombatExecutor:
         # ARTILLERY: No advance on win — positional platform stays in place
         pursuit_halted = False
         ctx.advance_losses = 0  # LV-11: the advance's own toll, shown beside the locked figure
+        ctx.advanced_to = None  # DDB-37
         # RS-3: the works halt — read once, before the advance and again at
         # the capture (a co-located victor never moved, but takes nothing
         # from a province whose garrison still fights either).
@@ -9233,6 +9458,13 @@ class CombatExecutor:
                     pursuit_halted = True
                     movement_msg = works_line
                     print(f"[ATTACK MOVEMENT] RS-3 works halt: {ctx.marshal.name} stays at {ctx.marshal.location}")
+                    # DDB-14 (Pre-Deploy S13b part 2): the corps that marched
+                    # to his guns do not stand inside the works he halted
+                    # before — they return to their origins, as Gate 4
+                    # returns them on a non-win (conquest #19: Ney, Lannes,
+                    # Massena and the Emperor stood AT Posen beside the
+                    # unbroken garrison, Davout still outside).
+                    movement_msg += returns_reinforcers_from_works(ctx)
                 elif ctx.pursuit_block and ctx.pursuit_block["arm"] == "neutral":
                     # The frontier halt: no uninvited army on a peaceful
                     # court's soil — the movement rule this seam mirrors.
@@ -9260,6 +9492,7 @@ class CombatExecutor:
                 else:
                     print(f"[ATTACK MOVEMENT] MOVING {ctx.marshal.name}: {ctx.marshal.location} -> {ctx.target_location}")
                     ctx.marshal.move_to(ctx.target_location)
+                    ctx.advanced_to = ctx.target_location  # DDB-37
                     # Movement attrition on post-battle advance (Phase 6.2.F)
                     ctx.attrition_info = self._executor._calculate_movement_attrition(ctx.marshal, ctx.target_location, ctx.world)
                     # LV-11 (row EP F2): the report's strength line and the
@@ -9419,6 +9652,9 @@ class CombatExecutor:
         vindication_result = ctx.pipeline_out.get('vindication_result')
         # EC-W3: the materiel bill line (both sides' losses named)
         materiel_msg = ctx.pipeline_out.get('materiel_msg', '')
+        # DDB-42 (Pre-Deploy S13b part 2): the alarm this battle added to
+        # OUR slot, named with its reasons (the threat rows it wrote).
+        alarm_msg = self._alarm_line(ctx.world, getattr(ctx, "_threat_rows_before", None))
         # NP-V: the Emperor's own prestige, said out loud (review lens 7:
         # an emperor-led defeat moved authority silently and read exactly
         # like one of Ney's).
@@ -9440,7 +9676,11 @@ class CombatExecutor:
                 continue
             from backend.commands.strategic import kept_order_line
             kept_order_msg += "\n" + kept_order_line(_km, _ko)
-        battle_message = ctx.counter_punch_message + ctx.cavalry_charge_message + ctx.covering_message + flanking_prefix + auto_bombard_preamble + ctx.battle_result["description"] + ctx.destroyed_msg + movement_msg + ctx.conquest_msg + vindication_msg + materiel_msg + sovereign_prestige_msg + ctx.forced_retreat_msg + kept_order_msg
+        # DDB-13 (Pre-Deploy S13b part 2): the materiel bill rides directly
+        # under the battle's own lines, first among the riders (it was said
+        # last, below the conquest and the retreats — the sea #7 read the
+        # treasury fall from 169 to -256 only at turn end).
+        battle_message = ctx.counter_punch_message + ctx.cavalry_charge_message + ctx.covering_message + flanking_prefix + auto_bombard_preamble + ctx.battle_result["description"] + materiel_msg + ctx.destroyed_msg + movement_msg + ctx.conquest_msg + vindication_msg + alarm_msg + sovereign_prestige_msg + ctx.forced_retreat_msg + kept_order_msg
         if ctx.drill_cancelled_message:
             battle_message = ctx.drill_cancelled_message + battle_message
         # W6-4: the muster block rides every resolved player attack —
@@ -9489,6 +9729,8 @@ class CombatExecutor:
                 # "⚑ Ney captured! ⚑" when a PROVINCE fell. The comment at
                 # ~:5114 already warned against exactly this substitution.
                 "region_name": ctx.target_location if ctx.conquered else None,
+                # DDB-37: the victor's advance, as a field.
+                "advanced_to": getattr(ctx, "advanced_to", None),
                 "flanking_bonus": ctx.flanking_bonus,
                 "flanking_origins": list(ctx.flanking_info["unique_origins"]) if ctx.flanking_info["unique_origins"] else [],
                 "vindication": vindication_result,
@@ -10836,7 +11078,12 @@ class CombatExecutor:
         vindication_msg = pipeline_out.get('vindication_msg', '')
 
         # Build charge message - use "description" key from combat resolver
-        charge_message = f"[Cavalry][Combat] GLORIOUS CHARGE! {marshal.name} leads a devastating cavalry assault!\n\n"
+        # DDB-X22 (Pre-Deploy S13b part 2, DDB-17's sibling): the banner is
+        # chosen after the outcome — "a devastating cavalry assault" stood
+        # over a charge that was thrown back.
+        _charge_lead = ("leads a devastating cavalry assault!" if charge_atk_won
+                        else "leads the cavalry in!")
+        charge_message = f"[Cavalry][Combat] GLORIOUS CHARGE! {marshal.name} {_charge_lead}\n\n"
         charge_message += combat_result.get("description", "")
         charge_message += enemy_destroyed_msg + movement_msg
         if forced_retreat_msg:

@@ -83,7 +83,8 @@ func show_glorious_charge(data: Dictionary):
 	recklessness_label.text = "Recklessness: %s (%d/4)" % [reck_bars, current_recklessness]
 
 	# Set warning
-	warning_label.text = "Glorious Charge deals 2x damage but also TAKES 2x damage!\nTarget: %s" % current_target
+	# DDB-17 (Pre-Deploy S13b part 2): the charge goes in alone — no muster.
+	warning_label.text = "Glorious Charge deals 2x damage but also TAKES 2x damage!\n%s charges ALONE — no corps joins a charge.\nTarget: %s" % [current_marshal, current_target]
 
 	# Set button text
 	charge_button.text = "CHARGE! (2x damage dealt AND taken)"

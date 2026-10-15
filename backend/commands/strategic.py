@@ -34,6 +34,23 @@ from backend import errors as _errors
 A_SUPPORT_ORDER_IS_SINGULAR = True
 
 
+def _supply_warning(world, marshal) -> str:
+    """DDB-44: the march's step report says the supply it outruns where it
+    stops (`movement_executor.supply_warning_line`, the move's own line)."""
+    from backend.commands.movement_executor import supply_warning_line
+    return supply_warning_line(world, marshal)
+
+
+def support_stands_at_approach(order, ally, blocked_region) -> bool:
+    """DDB-20 (Pre-Deploy S13b part 2): a SUPPORT whose next step is the
+    supported marshal's own contested field stays standing at the approach
+    and joins his next attack as a reinforcement — never "reached the
+    approach" and cleared. The series attribution holds it down here."""
+    return bool(order is not None and ally is not None
+                and getattr(order, "command_type", "") == "SUPPORT"
+                and ally.location == blocked_region)
+
+
 def _strategic_command_flavor(cmd_type: str) -> str:
     """Convert internal command type to player-facing flavor text."""
     # SR-6b RS-29 (Score Finish Step 2, Oct 2 2026): "reinforcement orders
@@ -1957,9 +1974,14 @@ class StrategicOrderProcessor:
             dismiss_marshal_ask(world, marshal.name)
             enemy = world.get_marshal(pending.get("enemy", ""))
             combat = self.executor._combat
+            # DDB-16 (Pre-Deploy S13b part 2): every answer names its fate
+            # (`last_stand_fate`: fallen / escaped / captured) and the client
+            # prints it on its own line — the answer's result never reached
+            # the window for Lannes, Ney or Murat.
             if choice == "fight_to_the_last":
                 msg = combat._resolve_last_stand_fight(marshal, enemy, world)
                 return {"success": True, "no_action_cost": True,
+                        "last_stand_fate": "fallen",
                         "message": msg}
             # attempt_breakout — the escape roll at −10%.
             import random
@@ -2000,6 +2022,7 @@ class StrategicOrderProcessor:
                 # way out".
                 msg = combat.apply_successful_breakout(marshal, enemy, world)
                 return {"success": True, "no_action_cost": True,
+                        "last_stand_fate": "escaped",
                         "message": (f"{marshal.name} cuts his way out!"
                                     f"{toll_note} {msg}")}
             msg = combat._capture_marshal(
@@ -2007,6 +2030,7 @@ class StrategicOrderProcessor:
                 pending.get("enemy_nation", ""), world,
                 context="failed_breakout")
             return {"success": True, "no_action_cost": True,
+                    "last_stand_fate": "captured",
                     "message": (f"The breakout fails — {msg}")}
 
         order = marshal.strategic_order
@@ -2876,6 +2900,7 @@ class StrategicOrderProcessor:
                 "turns_remaining": int(turns_left),
                 "message": f"{marshal.name} marches to {moves_made[-1]}. "
                            f"{_plural_lv9(int(remaining), 'region')} to {destination}."
+                           + _supply_warning(world, marshal)  # DDB-44
             }
 
         # PF-8: a stall on a DIPLOMATIC block used to return a content-free
@@ -3087,6 +3112,7 @@ class StrategicOrderProcessor:
                            f"{order_target_display(order.target)} has moved on - now at {current}.")
         else:
             message = f"{marshal.name} arrives at {order_target_display(order.target)}."
+        message += _supply_warning(world, marshal)  # DDB-44
 
         return self._complete_order(marshal, world, message)
 
@@ -4060,6 +4086,23 @@ class StrategicOrderProcessor:
             enemies = world.get_enemies_in_region(next_region, marshal.nation)
 
             if enemies:
+                # DDB-20 (Pre-Deploy S13b part 2): the ally's own contested
+                # field — the supporter stands at its approach, his order
+                # standing, and joins the ally's next attack as a
+                # reinforcement (never "reached the approach" and cleared).
+                if support_stands_at_approach(order, ally, next_region):
+                    order.path = []
+                    return {
+                        "marshal": marshal.name,
+                        "command": "SUPPORT",
+                        "action": "supporting",
+                        "ally": ally.name,
+                        "location": marshal.location,
+                        "order_status": "continues",
+                        "message": (f"{marshal.name} stands at {marshal.location}, "
+                                    f"at the approach to {ally.location} — he joins "
+                                    f"{ally.name}'s next attack there."),
+                    }
                 if not moves_made:
                     return self._handle_blocked_path(
                         marshal, enemies, next_region, world, game_state)

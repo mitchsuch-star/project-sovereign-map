@@ -543,7 +543,11 @@ class CombatResolver:
                         # as "he attacked by himself", printed two lines above
                         # `Massed effective strength: … + 12,806 committed
                         # (Lannes)`. Measured on the same screen, same turn.
-                        _frame = (" on his own numbers"
+                        # DDB-36 (Pre-Deploy S13b part 2): the solo figures,
+                        # so the frame is readable beside the muster's band.
+                        _frame = ((f" on his own numbers — his own "
+                                   f"{int(round(attacker.strength / 1000))}k against "
+                                   f"{int(round(defender.strength / 1000))}k")
                                   if committed_attacker > 0 else "")
                         attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_frame}. (Cautious: -10% attack)"
                     if current_stance == Stance.AGGRESSIVE:
@@ -740,7 +744,10 @@ class CombatResolver:
         if glorious_charge:
             attacker_casualties = int(attacker_casualties * 2)
             defender_casualties = int(defender_casualties * 2)
-            glorious_charge_message = f"[Cavalry][Combat] GLORIOUS CHARGE! {attacker.name}'s cavalry deals devastating damage - but exposes themselves! (2x casualties both ways)"
+            # DDB-X22 (Pre-Deploy S13b part 2): the mechanic, said before the
+            # outcome in no outcome's register ("deals devastating damage"
+            # stood over a charge that was thrown back).
+            glorious_charge_message = f"[Cavalry][Combat] GLORIOUS CHARGE! {attacker.name}'s cavalry strikes at double weight — and takes double in return. (2x casualties both ways)"
 
         #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
 
@@ -1349,13 +1356,28 @@ class CombatResolver:
             attacker_roll: Dict
     ) -> str:
         """Generate narrative description of battle without exposing dice mechanics."""
-        # Get narrative based on roll quality (no numbers shown)
+        # Get narrative based on roll quality (no numbers shown).
+        # DDB-17 (Pre-Deploy S13b part 2): the line is chosen AFTER the
+        # outcome — "Murat executes a brilliant maneuver!" stood in the line
+        # before he was routed. A beaten attacker never reads a triumph, a
+        # victorious one never a collapse (the roll's quality chooses within
+        # the outcome's own register; one draw either way, so the dice that
+        # follow are untouched).
+        roll = int(attacker_roll['modified'])
+        crit_success = bool(attacker_roll['is_critical_success'])
+        crit_failure = bool(attacker_roll['is_critical_failure'])
+        if outcome in ("defender_victory", "defender_tactical_victory"):
+            crit_success = False
+            roll = min(roll, 5)
+        elif outcome in ("attacker_victory", "attacker_tactical_victory"):
+            crit_failure = False
+            roll = max(roll, 6)
+        elif outcome == "stalemate":
+            # A field not carried: never a triumph, but it may falter.
+            crit_success = False
+            roll = min(roll, 8)
         narrative = self._get_combat_narrative(
-            attacker.name,
-            attacker_roll['modified'],
-            attacker_roll['is_critical_success'],
-            attacker_roll['is_critical_failure']
-        )
+            attacker.name, roll, crit_success, crit_failure)
 
         # Build outcome description with narrative
         descriptions = {

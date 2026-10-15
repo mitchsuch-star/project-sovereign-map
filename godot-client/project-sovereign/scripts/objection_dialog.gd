@@ -43,11 +43,22 @@ const TONE_HEADERS = {
 	"defiant": "%s REFUSES",
 }
 
+# DDB-41 (Pre-Deploy S13b part 2): a plain Cancel — the order withdrawn at
+# no cost (every other answer spends trust or an order).
+var cancel_button: Button = null
+
 func _ready():
 	# Connect button signals
 	trust_button.pressed.connect(_on_trust_pressed)
 	insist_button.pressed.connect(_on_insist_pressed)
 	compromise_button.pressed.connect(_on_compromise_pressed)
+	cancel_button = Button.new()
+	cancel_button.name = "CancelButton"
+	cancel_button.text = "Cancel the Order (no cost)"
+	cancel_button.theme_type_variation = insist_button.theme_type_variation
+	cancel_button.custom_minimum_size = insist_button.custom_minimum_size
+	insist_button.get_parent().add_child(cancel_button)
+	cancel_button.pressed.connect(_on_cancel_pressed)
 
 	# Hide by default
 	hide()
@@ -341,3 +352,8 @@ func _on_compromise_pressed():
 	"""Player seeks middle ground."""
 	hide()
 	choice_made.emit("compromise")
+
+func _on_cancel_pressed():
+	"""DDB-41: the order withdrawn — no trust, no action spent."""
+	hide()
+	choice_made.emit("cancel")

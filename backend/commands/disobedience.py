@@ -1405,6 +1405,14 @@ class DisobedienceSystem:
         if enemy is None or enemy.strength == 0:
             return None
 
+        # DDB-X21 (Pre-Deploy S13b part 2, DDB-19's sibling): the
+        # alternative the objection offers reads the attack as the muster
+        # reckons it, as the objection itself now does.
+        from backend.commands.objection_v2 import muster_expected_totals
+        totals = muster_expected_totals(marshal, enemy, world)
+        if totals is not None:
+            return totals[0] / totals[1]
+
         return marshal.strength / enemy.strength
 
     def _generate_objection_message(

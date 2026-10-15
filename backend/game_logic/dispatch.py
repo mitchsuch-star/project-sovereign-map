@@ -6876,6 +6876,15 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "The compact with {nation} lies torn — {breaker} is named the "
         "breaker in every chancery of Europe."
     ),
+    # DDB-43 (Pre-Deploy S13b part 2): a province passing between two other
+    # courts, and our corps left standing on soil whose entry just closed.
+    "province_changed_hands": (
+        "{region} passes from {old_display} to {new_display}."
+    ),
+    "corps_on_closed_soil": (
+        "{marshals} {stand} on {region}, now {new_display}'s soil — {reason}: "
+        "{they} may march out, but no corps of ours may enter it again."
+    ),
     # AI-2d §12.6 — the allegiance auction's Courier beat.
     # DDB-34 (Pre-Deploy S13b part 2): the line names where to bid.
     "allegiance_in_play": (
@@ -7119,6 +7128,8 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "broken_bargain": "HIGH",
     "allegiance_in_play": "HIGH",
     "province_returned": "HIGH",
+    "province_changed_hands": "MEDIUM",  # DDB-43
+    "corps_on_closed_soil": "HIGH",      # DDB-43
     "paymaster_subsidy": "MEDIUM",
     # AI-3/AI-4b (Stage D): beats are EVENTS, exempt from the routine
     # cap (§4.6's v1.2 amendment) — a beat is never collapsed into the

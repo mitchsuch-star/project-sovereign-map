@@ -246,6 +246,9 @@ class TestThePressedAttackPrintsItsMuster:
         davout.location = "Lorraine"
         davout.strength = 12000
         davout.modify_trust(-30)
+        # DDB-19 (Pre-Deploy S13b part 2): the objection reads the muster's
+        # expected totals, so the odds must be bad at the muster's weight.
+        mack.strength = 300000
         world._build_marshal_index()
         world.calculate_visibility()
         r = post(client, "Davout, attack Mack")

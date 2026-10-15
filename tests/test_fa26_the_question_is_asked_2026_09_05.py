@@ -541,6 +541,10 @@ class TestTheReviewRound:
             monkeypatch.setattr(M, "world", world)
             monkeypatch.setattr(M, "parser", parser)
             monkeypatch.setitem(M.game_state, "world", world)
+            # DDB-19 (Pre-Deploy S13b part 2): the objection reads the
+            # muster's expected totals — every corps in reach — so the odds
+            # must be bad at that weight for the cautious Davout to object.
+            world.marshals["Mack"].strength = 300000
             r = post(client, "Davout, attack Mack")
             if r.get("pending_objection") or r.get("objection"):
                 objected = world
@@ -565,6 +569,10 @@ class TestTheReviewRound:
             monkeypatch.setattr(M, "world", world)
             monkeypatch.setattr(M, "parser", parser)
             monkeypatch.setitem(M.game_state, "world", world)
+            # DDB-19 (Pre-Deploy S13b part 2): the objection reads the
+            # muster's expected totals — every corps in reach — so the odds
+            # must be bad at that weight for the cautious Davout to object.
+            world.marshals["Mack"].strength = 300000
             r = post(client, "Davout, attack Mack")
             if r.get("pending_objection") or r.get("objection"):
                 objected = world

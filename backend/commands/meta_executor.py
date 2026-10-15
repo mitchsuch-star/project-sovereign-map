@@ -214,6 +214,10 @@ def _missions_help_block(world) -> str:
 THE_PRESSED_ATTACK_PRINTS_ITS_MUSTER = True
 
 
+# DDB-41: the words that withdraw an objected order at no cost.
+OBJECTION_CANCEL_WORDS = frozenset({"cancel", "withdraw"})
+
+
 class MetaExecutor:
     """Handles meta-game actions: end_turn, status, help, debug, cheat, objection responses."""
 
@@ -2125,6 +2129,23 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 and getattr(world, 'pending_strategic_objection', None) is not None):
             return self._executor._strategic._handle_strategic_objection_from_endpoint(choice, game_state)
 
+        # DDB-41 (Pre-Deploy S13b part 2): a plain Cancel — the order is
+        # withdrawn at no cost: no trust, no action, no authority (every
+        # other answer spends trust or an order).
+        if choice in OBJECTION_CANCEL_WORDS and world.pending_objection is not None:
+            _who = (world.pending_objection or {}).get("marshal", "")
+            _order = (world.pending_objection or {}).get("original_order") or {}
+            world.pending_objection = None
+            world.log_event({
+                "type": "objection", "marshal": _who,
+                "action": _order.get("action", ""), "target": _order.get("target", ""),
+                "resolution": "withdrawn",
+            })
+            return {"success": True, "objection_withdrawn": True,
+                    "no_action_cost": True,
+                    "message": (f"The order to {_who} is withdrawn, Sire — "
+                                f"nothing is spent.")}
+
         # Check if there's a pending tactical objection
         if world.pending_objection is None:
             return {
@@ -2143,6 +2164,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         valid_choices = ["trust", "insist"]
         if alternative or compromise:
             valid_choices.append("compromise")
+        valid_choices.append("cancel")  # DDB-41: handled above
 
         if choice not in valid_choices:
             # CA9-N5: one helper for every surface that names the words

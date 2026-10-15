@@ -408,6 +408,14 @@ def _get_strength_ratio(marshal, target, game_state) -> Optional[float]:
     if enemy.strength == 0:
         return float('inf')
 
+    # DDB-19 (Pre-Deploy S13b part 2): the muster's expected totals — the
+    # lead and every corps that will join against the enemy and his — the
+    # figures the band beside this objection reads.
+    from backend.commands.objection_v2 import muster_expected_totals
+    totals = muster_expected_totals(marshal, enemy, world)
+    if totals is not None:
+        return totals[0] / totals[1]
+
     return marshal.strength / enemy.strength
 
 

@@ -606,6 +606,16 @@ def _pending_notifications(world) -> list:
     return world.notifications.get_pending()
 
 
+def _gold_projected_net(world):
+    """DDB-13: the player's projected net for the coming turn, or None."""
+    try:
+        from backend.game_logic.ledger import chest_forecast
+        return int(chest_forecast(world, world.player_nation)["net"])
+    except Exception as exc:
+        _errors.report(exc, "main._gold_projected_net: chest_forecast")
+        return None
+
+
 def build_base_response(world, success: bool = True, message: str = "",
                         events: list = None,
                         include_popup_passthroughs: bool = True,
@@ -674,6 +684,11 @@ def build_base_response(world, success: bool = True, message: str = "",
         # PC15-10 B1: the antechamber — a marshal whose AUDIENCE-tier
         # petition waits (no modal); the client badges the Generals button.
         "marshal_audience": _marshal_audience(world),
+        # DDB-13 (Pre-Deploy S13b part 2): the Gold counter carries next
+        # turn's projected net ("432 (−486 next turn)") and the end-turn
+        # gate warns when the treasury will go negative — the ledger's own
+        # forecast (`ledger.chest_forecast`, the LAWS tab's and the banner's).
+        "gold_projected_net": _gold_projected_net(world),
     }
     response.update(extra)
     if _terminal_record is not None:
@@ -5183,6 +5198,8 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
             trust_change=result.get("trust_change", 0),
             authority_change=result.get("authority_change", 0),
             disobeyed=result.get("disobeyed", False),
+            # DDB-41: Cancel withdrew the order at no cost.
+            objection_withdrawn=bool(result.get("objection_withdrawn", False)),
             action_info=result.get("action_info", {}),
             strategic_reports=result.get("strategic_reports", []),
             include_popup_passthroughs=False,
@@ -5775,6 +5792,16 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         # (formation-latched: it never re-fires) delivered here was lost
         # FOREVER. Held in the queue instead; it rides the next /command.
         response = _build_result_response(result, world, drain_popups=False)
+        # DDB-16 (Pre-Deploy S13b part 2): a last stand's answer is its fate,
+        # said in words — a battle surface PEEKED from the queue (the
+        # earlier defeat's report or diorama, non-draining, still queued for
+        # the next /command) is not this answer's, and replayed the defeat
+        # in its place ("the battle diorama replayed the earlier defeat").
+        if result.get("last_stand_fate"):
+            for _stale in ("battle_report", "battle_diorama"):
+                if _stale not in result:
+                    response.pop(_stale, None)
+            response["last_stand_fate"] = result["last_stand_fate"]
         # Redemption event from strategic trust penalty (never after the
         # Fall — GE-1 verification round)
         if result.get("redemption_event") and not _war_is_over(world):

@@ -299,7 +299,8 @@ def _cap_side(contingents: List[dict]) -> dict:
     return side
 
 
-def derive_register(player_side: Optional[str], outcome: str) -> str:
+def derive_register(player_side: Optional[str], outcome: str,
+                    field: Optional[Dict[str, bool]] = None) -> str:
     """The framing register (eval §7 Q6 — Fable's call, recorded here):
     the player's line is always the near side, and a defeat must read as
     a gut-punch, not a mirrored enemy triumph.
@@ -317,6 +318,16 @@ def derive_register(player_side: Optional[str], outcome: str) -> str:
           (player_side == "defender" and outcome.startswith("defender"))
     if "victory" in outcome:
         return "triumph" if won else "defeat"
+    # DDB-38 (Pre-Deploy S13b part 2): a stalemate reads the FIELD — a side
+    # routed, a province changing hands — not the outcome string alone
+    # ("A BLOODY STALEMATE" over "Vienna changes hands", conquest #28).
+    if outcome == "stalemate" and field:
+        enemy_side = "defender" if player_side == "attacker" else "attacker"
+        taken = bool(field.get("province_taken"))
+        if field.get(f"{player_side}_routed") or (taken and player_side == "defender"):
+            return "defeat"
+        if field.get(f"{enemy_side}_routed") or (taken and player_side == "attacker"):
+            return "triumph"
     return "grim"
 
 
@@ -402,7 +413,11 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
     dramatic = (decisive or great_battle or any_broken
                 or bool(region_conquered) or multi_corps)
 
-    register = derive_register(player_side, outcome)
+    register = derive_register(player_side, outcome, field={
+        "attacker_routed": bool((battle_result.get("attacker") or {}).get("forced_retreat")),
+        "defender_routed": bool((battle_result.get("defender") or {}).get("forced_retreat")),
+        "province_taken": bool(region_conquered),
+    })
 
     report = battle_result.get("battle_report") or {}
     payload = {

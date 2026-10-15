@@ -347,8 +347,15 @@ def _answer_own_marshal(world, kind: str, marshal) -> str:
     from backend.display_names import marshal_honorific
     name = marshal_honorific(world, marshal.name)
     if getattr(marshal, "captured_by", ""):
-        return (f"{name} is a prisoner of {_court(world, marshal.captured_by)}, "
-                f"Sire — no order can reach him until his release.")
+        # DDB-16 (Pre-Deploy S13b part 2): where and since when — "held at
+        # Vilna since turn 16". (The roster now carries our prisoners, so
+        # the question reaches this line instead of the shrug.)
+        cell = f" at {marshal.location}" if getattr(marshal, "location", "") else ""
+        since = int(getattr(marshal, "captured_turn", -1))
+        when = f" since turn {since}" if since > 0 else ""
+        held = f", held{cell}{when}" if (cell or when) else ""
+        return (f"{name} is a prisoner of {_court(world, marshal.captured_by)}"
+                f"{held}, Sire — no order can reach him until his release.")
     where = (f"{name} stands at {marshal.location} with "
              f"{int(marshal.strength):,} men (morale {int(marshal.morale)}).")
     if kind == "how_many":
@@ -2289,6 +2296,18 @@ def own_fallen_names(world) -> List[str]:
     player = getattr(world, "player_nation", None)
     return [name for name, tomb in (getattr(world, "fallen_marshals", None) or {}).items()
             if (tomb or {}).get("nation") == player]
+
+
+def own_prisoner_names(world) -> List[str]:
+    """DDB-16 (Pre-Deploy S13b part 2): the player's own captured marshals,
+    askable at the desk — the roster held only marshals with men and the
+    tombstones, so a prisoner was in neither and got the shrug ("where is
+    Ney" → "I cannot answer that from the dispatches")."""
+    if world is None:
+        return []
+    player = getattr(world, "player_nation", None)
+    return [m.name for m in (getattr(world, "marshals", None) or {}).values()
+            if m.nation == player and getattr(m, "captured_by", "")]
 
 
 def _answer_own_fallen(world, name: str, tomb: Dict) -> str:

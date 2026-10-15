@@ -1799,7 +1799,12 @@ class EconomyExecutor:
         if new_morale < 25:
             morale_warning = f" [DANGER] Morale critically low at {new_morale}% — troops may break in combat!"
         elif new_morale < 40:
-            morale_warning = f" [WARNING] Morale dropped to {new_morale}% — consider drilling before battle."
+            # DDB-39 (Pre-Deploy S13b part 2): "dropped" only when it fell —
+            # "Morale dropped to 26%" followed "Morale: 21% -> 26%".
+            if new_morale < old_morale:
+                morale_warning = f" [WARNING] Morale dropped to {new_morale}% — consider drilling before battle."
+            else:
+                morale_warning = f" [WARNING] Morale is still low at {new_morale}% — consider drilling before battle."
 
         # Log recruitment event
         world.log_event({

@@ -186,6 +186,10 @@ class TestAQuestionNeverCarriesAPoppedPopup:
     def test_an_objection_leaves_the_queue_intact(self):
         world = _boot()
         _prime_sab(world)
+        # DDB-19 (Pre-Deploy S13b part 2): the objection reads the muster's
+        # expected totals, so the odds must be bad at that weight for the
+        # cautious Bernadotte to object rather than note the risk.
+        world.get_marshal("Brunswick").strength = 300000
         with _served(world) as client:
             reply = _cmd(client, "Bernadotte, attack Brunswick")
             assert reply.get("pending_objection"), reply.get("message")

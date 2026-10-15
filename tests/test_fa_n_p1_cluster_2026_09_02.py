@@ -346,14 +346,15 @@ def _standing_order_world():
     from backend.models.world_state import WorldState
     world = WorldState.from_scenario(SCENARIO)
     ney = world.get_marshal("Ney")
+    # DDB-14 (Pre-Deploy S13b part 2): the board moved from Hesse's Nassau/Frankfurt (peace soil, where the player's lead is now refused a field) to Bavarian Swabia (allied soil), so the pin keeps testing its own subject.
     ney.location = "Rhineland"
     ney.strategic_order = StrategicOrder(
-        command_type="MOVE_TO", target="Frankfurt", target_type="region",
+        command_type="MOVE_TO", target="Swabia", target_type="region",
         started_turn=world.current_turn - 1,
-        original_command="Ney, march to Frankfurt",
+        original_command="Ney, march to Swabia",
         issued_turn=world.current_turn - 1)
     mack = world.get_marshal("Mack")
-    mack.location = "Frankfurt"
+    mack.location = "Swabia"
     world.calculate_visibility()
     return world, ney, mack
 

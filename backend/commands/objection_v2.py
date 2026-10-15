@@ -897,6 +897,34 @@ def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
     return False
 
 
+def muster_expected_totals(marshal, enemy, world):
+    """DDB-19 (Pre-Deploy S13b part 2): the attack as the MUSTER reckons it —
+    (our lead plus every corps that will join, arrival-weighted; the enemy
+    plus his own joiners) — the totals the band the player reads beside the
+    objection is built on. None when no muster can be read. Pure (the
+    muster preview restores what it prices)."""
+    if marshal is None or enemy is None or world is None:
+        return None
+    if getattr(enemy, "location", None) is None:
+        return None
+    # The preview latches its once-per-campaign standing-orders hint when it
+    # is SHOWN; a read is not a showing, so the latch is put back.
+    _hint_shown = getattr(world, "muster_hint_shown", False)
+    try:
+        from backend.commands.executor import CommandExecutor
+        preview = CommandExecutor()._combat._build_muster_preview(
+            marshal, enemy, world, {"world": world})
+        world.muster_hint_shown = _hint_shown
+        atk = int(((preview or {}).get("attacker") or {}).get("committed_strength") or 0)
+        dfn = int(((preview or {}).get("target") or {}).get("committed_strength") or 0)
+        if atk <= 0 or dfn <= 0:
+            return None
+        return atk, dfn
+    except Exception as exc:
+        report(exc, "objection_v2.muster_expected_totals: _build_muster_preview")
+        return None
+
+
 def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
     """Get strength ratio for attack target (fog-aware).
 
@@ -944,6 +972,15 @@ def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
 
     # Fog check: visibility determines strength accuracy
     visibility = get_target_intel_level(target_name, marshal, world)
+
+    # DDB-19 (Pre-Deploy S13b part 2): a seen army is weighed as the muster
+    # weighs it — our whole committed force against his — so the objection
+    # and the band on the same attack agree (diplomacy-first #9: the
+    # objection read one corps against one marshal, the muster 102k vs 52k).
+    if visibility in (_FULL, _PARTIAL):
+        totals = muster_expected_totals(marshal, target_marshal, world)
+        if totals is not None:
+            return totals[1] / totals[0]
 
     if visibility == _FULL:
         return target_marshal.strength / marshal.strength
@@ -1420,6 +1457,19 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
         target_name = order.get('target')
         if target_name:
             world_obj = _get_world(game_state)
+            # DDB-15 (Pre-Deploy S13b part 2): an attack on an enemy's
+            # province where nothing fights — no army, a garrison that gives
+            # way — is a walk-in: no strength concern ("Sire, the enemy is
+            # too strong" against 375 men one action after "Vienna lies
+            # undefended — an attack takes it").
+            if world_obj:
+                _kind, _ = attack_engages(marshal, order, world_obj)
+                _region = (world_obj.get_region(target_name)
+                           if hasattr(world_obj, "get_region") else None)
+                if (_kind is None and _region is not None
+                        and _region.controller
+                        and _region.controller != getattr(marshal, "nation", None)):
+                    return ConcernLevel.NONE
             if world_obj:
                 visibility = get_target_intel_level(target_name, marshal, world_obj)
                 if visibility in (_UNKNOWN, ):

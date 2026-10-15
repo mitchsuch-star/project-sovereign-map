@@ -3188,8 +3188,11 @@ class LLMClient:
             # so "where is Ney" after his corps was destroyed fell to
             # the shrug. No fog on our own dead.
             try:
-                from .question_desk import own_fallen_names
+                from .question_desk import own_fallen_names, own_prisoner_names
                 _marshals += [n for n in own_fallen_names(
+                    (game_state or {}).get("world")) if n not in _marshals]
+                # DDB-16: and our own prisoners.
+                _marshals += [n for n in own_prisoner_names(
                     (game_state or {}).get("world")) if n not in _marshals]
             except Exception as exc:
                 report(exc, "llm_client.LLMClient._chain_question: import question_desk")

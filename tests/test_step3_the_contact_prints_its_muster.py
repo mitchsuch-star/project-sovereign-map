@@ -35,7 +35,9 @@ def _quiet():
 
 def _contact():
     """Davout at Rhineland under MOVE_TO Munich; Mack stands on the road at
-    Nassau; the contact question is on the desk."""
+    Swabia; the contact question is on the desk.
+
+    DDB-14 (Pre-Deploy S13b part 2): the board moved from Hesse's Nassau/Frankfurt (peace soil, where the player's lead is now refused a field) to Bavarian Swabia (allied soil), so the pin keeps testing its own subject."""
     with _quiet():
         world = WorldState.from_scenario(SCENARIO)
     davout = world.get_marshal("Davout")
@@ -44,14 +46,14 @@ def _contact():
     davout.strategic_order = StrategicOrder(
         command_type="MOVE_TO", target="Munich", target_type="region",
         started_turn=world.current_turn, original_command="Davout, march to Munich",
-        path=["Nassau", "Munich"])
-    mack.location = "Nassau"
+        path=["Swabia", "Munich"])
+    mack.location = "Swabia"
     mack.strength = 30000
     world.invalidate_active_nations_cache()
     world._build_marshal_index()
     world.calculate_visibility()
     pending = {"interrupt_type": "contact_bad_odds", "enemy": "Mack",
-               "location": "Nassau", "marshal": "Davout",
+               "location": "Swabia", "marshal": "Davout",
                "options": ["attack_anyway", "go_around", "hold_position", "cancel_order"]}
     davout.pending_interrupt = pending
     return world, davout, mack, pending

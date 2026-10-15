@@ -667,6 +667,9 @@ _OBSERVATIONS = {
 }
 
 
+_BY_RULE_NO_SHOWS = frozenset({"literal_personality", "neutral_soil"})
+
+
 def _join_names(names) -> str:
     """Render a marshal list as prose: "A", "A and B", "A, B and C".
 
@@ -921,7 +924,12 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
 
     # Priority 0.7: Reinforcement results (our side)
     arrived = [r for r in our_reinforcements if r.get("arrived")]
-    failed = [r for r in our_reinforcements if not r.get("arrived")]
+    # DDB-37 (Pre-Deploy S13b part 2): a corps that did not come BY RULE —
+    # a literal marshal with no support order, a field on soil we are at
+    # peace with — is not a failure to ask about ("Where was Soult?" of a
+    # corps obeying its written march order).
+    failed = [r for r in our_reinforcements if not r.get("arrived")
+              and str(r.get("reason") or "") not in _BY_RULE_NO_SHOWS]
 
     if arrived and failed:
         # Mixed: some arrived, some didn't — mention both

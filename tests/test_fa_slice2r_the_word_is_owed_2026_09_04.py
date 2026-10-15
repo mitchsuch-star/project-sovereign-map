@@ -570,7 +570,10 @@ class TestTheEndTurnSoftStop:
             encoding="utf-8")
         assert 'response.get(\n\t\t\t"pending_marshal_decisions", [])' in src
         assert "_set_pending_decisions(diplo_data.get(\"pending_marshal_decisions\", []))" in src
-        assert "if _current_lapsing_count > 0 or not _current_decision_names.is_empty():" in src
+        # DDB-13 (Pre-Deploy S13b part 2): the gate also stops once for a
+        # treasury about to go negative — the decision clause stands as it was.
+        assert ("if _current_lapsing_count > 0 or not _current_decision_names.is_empty() "
+                "or (_treasury_goes_negative() and not _treasury_warned):") in src
         assert "'fight to the last' or 'attempt a breakout'" in src
 
 

@@ -1285,6 +1285,79 @@ class RatifyTreatyContext:
     _clients_followed: Any = field(init=False)
 
 
+
+# ── Pre-Deploy S13b part 2: capture-side behaviour seams (the series
+#    attribution holds each down; see tools/_ddb_s13b_series_arms.py). ──
+
+def capture_recovers_title(prior_title: dict, capturing_nation: str) -> bool:
+    """DDB-42: a province the capturer holds title to — signed to it, or
+    taken FROM it and now retaken — is recovered, not conquered."""
+    from backend.game_logic import game_end as _game_end
+    prior_title = prior_title or {}
+    return bool(
+        (prior_title.get("kind") == _game_end.TITLE_TREATY
+         and capturing_nation in (prior_title.get("holder"), prior_title.get("house")))
+        or (prior_title.get("kind") == _game_end.TITLE_CONQUEST
+            and prior_title.get("from") == capturing_nation))
+
+
+def cession_recovers_province(prior_title: dict, starting_owner,
+                              to_nation: str) -> bool:
+    """DDB-X20 (DDB-42's sibling): a province a treaty cedes back to the
+    court that held it in 1805, or holds its title, is recovered — the
+    +8 `treaty_annex` alarm is for an annexation."""
+    return bool(to_nation) and (starting_owner == to_nation
+                                or capture_recovers_title(prior_title, to_nation))
+
+
+def announce_third_party_capture(self, region_name: str, old_controller,
+                                 capturing_nation: str) -> None:
+    """DDB-43: the dispatch lines of a province changing hands between
+    two courts that are not the player's. Diplomacy has no fog (the map
+    shows the owner); the line says what the colour does not."""
+    player = getattr(self, "player_nation", None)
+    if (not old_controller or not capturing_nation
+            or player in (old_controller, capturing_nation)
+            or old_controller == capturing_nation):
+        return
+    try:
+        from backend.game_logic.dispatch import queue_dispatch_event
+        from backend.game_logic.formations import formed_display_name
+        new_display = formed_display_name(self, capturing_nation)
+        queue_dispatch_event(self, "province_changed_hands", {
+            "region": region_name,
+            "old_display": formed_display_name(self, old_controller),
+            "new_display": new_display,
+        }, "always")
+        ours = [m.name for m in self.get_marshals_in_region(region_name)
+                if m.nation == player and m.strength > 0]
+        if not ours:
+            return
+        from backend.game_logic.diplomacy import can_enter_territory
+        # Asked as the peace left it — a corps standing there is not entering.
+        if can_enter_territory(self, player, capturing_nation, ignore_evacuation=True):
+            return
+        state = str(self.get_diplomatic_state(player, capturing_nation) or "PEACE")
+        reason = {"ARMISTICE": "an armistice stands between us",
+                  "PEACE": "we are at peace and hold no open borders",
+                  "NON_AGGRESSION": "a non-aggression pact, without open borders",
+                  }.get(state, f"our standing with {new_display} closes it")
+        from backend.display_names import humanize_entity_name
+        names = [humanize_entity_name(n) for n in ours]
+        shown = (names[0] if len(names) == 1
+                 else ", ".join(names[:-1]) + f" and {names[-1]}")
+        queue_dispatch_event(self, "corps_on_closed_soil", {
+            "marshals": shown,
+            "stand": "stands" if len(names) == 1 else "stand",
+            "they": "he" if len(names) == 1 else "they",
+            "region": region_name,
+            "new_display": new_display,
+            "reason": reason,
+        }, "always")
+    except Exception as exc:
+        report(exc, "world_state._announce_third_party_capture: queue_dispatch_event")
+
+
 class WorldState:
     """
     The complete game state.
@@ -4806,6 +4879,10 @@ class WorldState:
         self.record_campaign_capture(
             old_controller, capturing_nation, region_name)
 
+        # DDB-42 (Pre-Deploy S13b part 2): the title the province carried
+        # BEFORE this capture — read before the record below overwrites it.
+        _prior_title = dict(((getattr(self, "province_title", None) or {})
+                             .get(region_name)) or {})
         # GE-1: the province is HELD by force — titled only when the loser
         # signs for it or Europe stops contesting it (ENDGAME_PLAN §2.2).
         # Written for every nation (GR5); a return home clears the record.
@@ -4820,6 +4897,14 @@ class WorldState:
         _congress.note_capture(self, region_name, old_controller or "",
                                capturing_nation, was_titled=_was_titled)
 
+        # DDB-43 (Pre-Deploy S13b part 2): a province passing between two
+        # OTHER courts is a dispatch line (Franconia went from Bavaria to
+        # Prussia in a war the player could not see, and three French corps
+        # stood on it — the map's colour was the only notice), and our corps
+        # standing on it are told when its entry just closed to us.
+        announce_third_party_capture(self, region_name, old_controller,
+                                     capturing_nation)
+
         # R16: +2 threat per captured region (non-starting territory, France only)
         if capturing_nation:
             # AI-4a step 5: target is the ACTOR — any conqueror's capture of
@@ -4828,7 +4913,13 @@ class WorldState:
             # not the legacy module global — else every Europe-only province
             # name misses and recapturing own territory would accrue threat.
             starting = getattr(self, "_starting_controllers", None) or get_starting_controllers()
-            if starting.get(region_name) != capturing_nation:
+            # DDB-42 (Pre-Deploy S13b part 2): a province the capturer holds
+            # title to — signed to it, or taken FROM it and now retaken — is
+            # recovered, not conquered: Europe fears the conqueror (conquest
+            # #24: retaking ceded Vienna and Bohemia from Russia read as
+            # conquest, 77 -> 79 -> 81). Every court alike (GR5).
+            _recovered = capture_recovers_title(_prior_title, capturing_nation)
+            if starting.get(region_name) != capturing_nation and not _recovered:
                 from backend.game_logic.coalition import add_threat
                 add_threat(self, 2, "region_capture", target=capturing_nation)
 
@@ -7672,6 +7763,33 @@ class WorldState:
     @staticmethod
     def _dispersion_lever() -> bool:
         return bool(globals().get("DISPERSION_IS_NOT_PUNISHED", True))
+
+    def supply_forecast(self, region_name: str, nation: str) -> Optional[dict]:
+        """DDB-44 (Pre-Deploy S13b part 2): next tick's supply bill for
+        `nation`'s corps standing on `region_name` as they stand NOW — the
+        engine's own arithmetic (`process_supply_attrition`: the pooled
+        bodies, the crowding press, `get_effective_supply_cap`,
+        `supply_attrition_rate`), so a move's reply quotes what the turn
+        will bill. None when nothing of ours stands there or the province's
+        economy is not visible to `nation` (the muster's own fog gate)."""
+        region = self.get_region(region_name)
+        if region is None or not region.controller:
+            return None
+        if (nation == getattr(self, "player_nation", None)
+                and hasattr(self, "region_econ_visible")
+                and not self.region_econ_visible(region_name)):
+            return None
+        here = [m for m in self.get_marshals_in_region(region_name) if m.strength > 0]
+        ours = [m for m in here if m.nation == nation]
+        if not ours:
+            return None
+        total = sum(int(m.strength) for m in here)
+        num_marshals, free_corps = self.crowding_press(region, here)
+        cap = int(self.get_effective_supply_cap(nation, region))
+        rate = self.supply_attrition_rate(total, cap, num_marshals, free_corps=free_corps)
+        loss = sum(int(m.strength * rate) for m in ours)
+        return {"fed": cap, "standing": total, "loss": int(loss),
+                "shortage": total > cap}
 
     def crowding_press(self, region, marshals_here) -> tuple:
         """AAR-D4: `(press, free_corps)` — the corps the crowding tax counts
@@ -12672,6 +12790,12 @@ class WorldState:
                             continue  # Skip this clause — insufficient war score for elimination
                 transferred_count = 0
                 transferred_regions = []
+                # DDB-X20 (Pre-Deploy S13b part 2, DDB-42's sibling): a
+                # province ceded back to the court that holds its title, or
+                # held it in 1805, is recovered, not annexed — no alarm.
+                annexed_count = 0
+                _starting_ctl = (getattr(self, "_starting_controllers", None)
+                                 or get_starting_controllers())
                 for region_name in regions:
                     if region_name not in self.regions:
                         continue
@@ -12679,10 +12803,22 @@ class WorldState:
                     # Validate: from_nation must actually control the region
                     if from_nation and region.controller != from_nation:
                         continue
+                    _ceded_title = dict(((getattr(self, "province_title", None) or {})
+                                         .get(region_name)) or {})
+                    if not cession_recovers_province(
+                            _ceded_title, _starting_ctl.get(region_name), to_nation):
+                        annexed_count += 1
+                    _ceded_from = region.controller
                     region.controller = to_nation
                     region.stability = 50
                     transferred_count += 1
                     transferred_regions.append(region_name)
+                    # DDB-43 (Pre-Deploy S13b part 2), the sweep's sibling: a
+                    # cession between two OTHER courts is announced as a
+                    # capture between them is (and our corps standing there
+                    # are told when its entry closed to us).
+                    announce_third_party_capture(self, region_name,
+                                                 _ceded_from, to_nation)
                     # GE-1: ceded by treaty — title is immediate (§2.2).
                     from backend.game_logic import game_end as _ge
                     _ge.record_province_title(
@@ -12738,9 +12874,10 @@ class WorldState:
                     self.invalidate_active_nations_cache()
                 # Coalition threat: +8 per region ACTUALLY annexed (§2a) —
                 # AI-4a step 5: keyed to the annexing ACTOR, any nation.
-                if to_nation and transferred_count > 0:
+                # DDB-X20: a recovered province is not annexed.
+                if to_nation and annexed_count > 0:
                     from backend.game_logic.coalition import add_threat
-                    add_threat(self, 8 * transferred_count, "treaty_annex",
+                    add_threat(self, 8 * annexed_count, "treaty_annex",
                                target=to_nation)
                 # Threat reduction: -5 per region ACTUALLY returned (§2b)
                 if from_nation and transferred_count > 0:
@@ -15080,6 +15217,12 @@ class WorldState:
                                 self, auto_charge_battle_region)
                             cap_region.controller = marshal.nation
                             self.invalidate_active_nations_cache()
+                            # DDB-43 (Pre-Deploy S13b part 2), the sweep's
+                            # sibling: the mirrored conquest announces a
+                            # change between two other courts too.
+                            announce_third_party_capture(
+                                self, auto_charge_battle_region,
+                                _charge_from, marshal.nation)
                             # GE-1: the one conquest outside
                             # capture_region writes its title and its
                             # count here (mirrored arm).
@@ -15156,8 +15299,16 @@ class WorldState:
                     getattr(self, "sovereign_map", "legacy") == "europe"
                     and france not in (marshal.nation, enemy.nation)
                 )
+                # DDB-42 (Pre-Deploy S13b part 2), the mirror: a win on the
+                # victor's own soil adds no alarm (the sweep found this second
+                # combat copy — the reckless auto-charge — without the rule).
+                from backend.commands.combat_executor import battle_win_on_own_soil
+                _ac_own_soil = battle_win_on_own_soil(
+                    self, auto_charge_battle_region, marshal.nation,
+                    conquered=bool(conquered))
                 if combat_result.get("victor") == marshal.name and marshal.nation:
-                    add_threat(self, 3, "battle_win", target=marshal.nation)
+                    if not _ac_own_soil:
+                        add_threat(self, 3, "battle_win", target=marshal.nation)
                     if ac_def_cas > 0 and ac_atk_cas > 0:
                         ratio = ac_def_cas / ac_atk_cas
                     elif ac_def_cas > 0:
@@ -15165,7 +15316,8 @@ class WorldState:
                     else:
                         ratio = 0
                     if ratio > 2 and ac_total_cas > 10000:
-                        add_threat(self, 5, "decisive_victory", target=marshal.nation)
+                        if not _ac_own_soil:
+                            add_threat(self, 5, "decisive_victory", target=marshal.nation)
                         if marshal.nation == france:
                             add_coalition_shock(enemy.nation, self)
                     if conquered:

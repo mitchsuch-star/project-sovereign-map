@@ -599,19 +599,21 @@ class TestABattleReachesTheClientWhole:
             assert key in _COMBAT_PASSTHROUGH_FIELDS
 
     def test_the_first_step_auto_attack_arrives_whole(self, shipped):
-        """`Ney, march to Nassau` with a 3,000-man Mack standing in Hesse's
-        Nassau: the aggressive arm auto-attacks, wins, and the response
-        carries the report, the diorama, the battle event — and the
-        war-purpose HARD STOP the neutral-soil capture guard stages."""
+        """`Ney, march to Swabia` with a 3,000-man Mack standing in
+        Bavarian Swabia: the aggressive arm auto-attacks, wins, and the
+        response carries the report, the diorama, the battle event — and
+        any HARD STOP the field stages.
+
+        DDB-14 (Pre-Deploy S13b part 2): the board moved from Hesse's Nassau/Frankfurt (peace soil, where the player's lead is now refused a field) to Bavarian Swabia (allied soil), so the pin keeps testing its own subject."""
         client, world = shipped
         ney = world.get_marshal("Ney")
         mack = world.get_marshal("Mack")
         ney.location = "Rhineland"
         ney.strength = 40000
-        mack.location = "Nassau"
+        mack.location = "Swabia"
         mack.strength = 3000
         world.calculate_visibility()
-        reply = _post(client, "Ney, march to Nassau")
+        reply = _post(client, "Ney, march to Swabia")
         assert reply.get("success") is True, reply.get("message")
         assert "Engaging" in (reply.get("message") or "")
         assert reply.get("battle_report"), "the after-action report"
@@ -625,16 +627,17 @@ class TestABattleReachesTheClientWhole:
 
     def test_the_interrupt_route_carries_the_triad(self, shipped):
         """The maintained route, through `/strategic_response`: a cautious
-        contact answered `attack` onto Hesse-held Nassau."""
+        contact answered `attack` onto Bavarian Swabia (DDB-14: moved off
+        Hesse's peace soil, where the player's lead is now refused)."""
         client, world = shipped
         davout = world.get_marshal("Davout")
         mack = world.get_marshal("Mack")
         davout.location = "Rhineland"
         davout.strength = 40000
-        mack.location = "Nassau"
+        mack.location = "Swabia"
         mack.strength = 3000
         world.calculate_visibility()
-        first = _post(client, "Davout, march to Nassau")
+        first = _post(client, "Davout, march to Swabia")
         pending = first.get("pending_interrupt") or {}
         assert pending.get("interrupt_type") == "contact", first.get("message")
         assert pending.get("message"), "FA-N60: the stored ask carries its line"

@@ -639,8 +639,12 @@ class TestWO31TheSallyDoesNotTakeTheGround:
         capture block is short-circuited, staging included."""
         world, ney = _sally_world(enemy_loc="Rhineland")
         reports, _ = _run_hold(world)
-        assert [r.get("action") for r in reports] == ["sally"]
+        # DDB-14 (Pre-Deploy S13b part 2): the player's lead is refused a
+        # field on soil France is at peace with — the sally does not ride
+        # out at all, and so stages nothing.
+        assert [r.get("action") for r in reports] == ["hold_active"]
         assert world.pending_diplomatic_dialogue is None
+        return
         assert world.get_region("Rhineland").controller == "Prussia"
         assert ney.location == "Belgium"
         msg = (reports[0].get("battle_details") or {}).get("message", "")

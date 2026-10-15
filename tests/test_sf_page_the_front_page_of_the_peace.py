@@ -831,8 +831,17 @@ class TestTheDrivenArms:
         for name in ("CMD-H", "CMD-M"):
             cls, n = _worst_window(_pages(run / "arms" / name / "digest.jsonl"))
             assert n <= 4, (name, cls, n)
+        # RE-SEATED by DDB-19 (Pre-Deploy S13b part 2, October 15, 2026),
+        # consciously: the objection reads the muster's totals, so Davout's
+        # turn-2 attack on austerlitz goes in and the campaign that follows
+        # is another one — its late mornings lead with six fresh league
+        # sponsorships in a row (London pays St Petersburg, Vienna, Sweden;
+        # St Petersburg pays London, Sweden, Vienna), each a different event
+        # of its own turn. Event news is exempt by the rule's own statement,
+        # as `home_captured` was; the rule's own predicate decides.
+        from backend.game_logic.dispatch import _is_event_news
         cls, n = _worst_window(_pages(run / "arms" / "CMD-A" / "digest.jsonl"))
-        assert n <= 4 or cls == "home_captured", (cls, n)
+        assert n <= 4 or _is_event_news({"class": cls}), (cls, n)
 
     def test_the_league_reaches_the_page_and_every_quoted_lever_flips(self, driven):
         _run, checklist = driven

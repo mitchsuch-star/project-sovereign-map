@@ -14,6 +14,15 @@ the code-health ratchet forbids a new lever):
     H = game_end.homeland_returns         (DDB-12: an ally's retaken homeland goes home; down -> no returns)
     A = diplomacy.war_age_acceptance_mod  (DDB-X11, part 2: the curve's maximum 65; down -> the -30 curve)
     F = ai_diplomacy._send_floor          (DDB-X11, part 2: the send filter re-read at x0.65; down -> 20)
+  Part 2, slice 3 (the field):
+    P = combat_executor.field_on_peace_soil          (DDB-14: the lead refused a field on peace soil; down -> None)
+    W = combat_executor.returns_reinforcers_from_works (DDB-14: joiners return when the works hold; down -> '')
+    K = combat_executor.forced_retreat_clears_counter_punch (DDB-38; down -> no-op)
+    B = combat_executor.battle_win_on_own_soil        (DDB-42: no alarm for a win on own soil; down -> False)
+    G = world_state.capture_recovers_title            (DDB-42: no alarm for recovering titled soil; down -> False)
+    D = world_state.announce_third_party_capture      (DDB-43: the dispatch lines; down -> no-op)
+    U = strategic.support_stands_at_approach          (DDB-20: SUPPORT stands at the approach; down -> False)
+    Y = world_state.cession_recovers_province          (DDB-X20: no treaty_annex for a ceded-back province; down -> False)
 
 DDB-1, DDB-4, DDB-5, DDB-7 … 11 and DDB-X8 / X10 are the player's own roads
 (the passive France never proposes, counters or opens a table) or display
@@ -57,6 +66,14 @@ LEVERS = {
           "(0 if (not k.get('extracts_value') or a[0] is None or max(0, int(a[0])) >= 8)"
           " else -int(round(30 * (8 - max(0, int(a[0]))) / 8)))"),
     "F": ("backend.game_logic.ai_diplomacy", "_send_floor", "20.0"),
+    "P": ("backend.commands.combat_executor", "field_on_peace_soil", "None"),
+    "W": ("backend.commands.combat_executor", "returns_reinforcers_from_works", "''"),
+    "K": ("backend.commands.combat_executor", "forced_retreat_clears_counter_punch", "None"),
+    "B": ("backend.commands.combat_executor", "battle_win_on_own_soil", "False"),
+    "G": ("backend.models.world_state", "capture_recovers_title", "False"),
+    "D": ("backend.models.world_state", "announce_third_party_capture", "None"),
+    "U": ("backend.commands.strategic", "support_stands_at_approach", "False"),
+    "Y": ("backend.models.world_state", "cession_recovers_province", "False"),
 }
 ARMS = {"0": set(), **{k: {k} for k in LEVERS}, "ALL": set(LEVERS)}
 
@@ -126,6 +143,37 @@ def _age(turns_at_war, *, extracts_value):
         _c["war_age_charged|" + str(out)] += 1
     return out
 DP.war_age_acceptance_mod = _age
+import backend.commands.combat_executor as CEX
+_o_field = CEX.field_on_peace_soil
+def _field(executor, marshal, enemy_location, world, enemy_nation=None):
+    out = _o_field(executor, marshal, enemy_location, world, enemy_nation=enemy_nation)
+    if out is not None:
+        _c["peace_soil_refused|" + str(marshal.nation) + "|" + str(enemy_location)] += 1
+    return out
+CEX.field_on_peace_soil = _field
+_o_own = CEX.battle_win_on_own_soil
+def _own(world, region_name, nation, conquered=False):
+    out = _o_own(world, region_name, nation, conquered=conquered)
+    if out:
+        _c["own_soil_win|" + str(nation) + "|" + str(region_name)] += 1
+    return out
+CEX.battle_win_on_own_soil = _own
+import backend.models.world_state as WSM
+_o_cede = WSM.cession_recovers_province
+def _cede(prior_title, starting_owner, to_nation):
+    out = _o_cede(prior_title, starting_owner, to_nation)
+    if out:
+        _c["cession_recovered|" + str(to_nation)] += 1
+    return out
+WSM.cession_recovers_province = _cede
+_o_ann = WSM.announce_third_party_capture
+def _ann(self, region_name, old_controller, capturing_nation):
+    player = getattr(self, "player_nation", None)
+    third = player not in (old_controller, capturing_nation)
+    if old_controller and capturing_nation and old_controller != capturing_nation and third:
+        _c["third_party_change|" + str(old_controller) + ">" + str(capturing_nation)] += 1
+    return _o_ann(self, region_name, old_controller, capturing_nation)
+WSM.announce_third_party_capture = _ann
 
 def _dump():
     print("REACH=" + repr(dict(_c)))

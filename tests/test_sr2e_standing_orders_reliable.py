@@ -246,7 +246,10 @@ class TestTheVerdictIsBoundToItsOrder:
         """The positive control: the answered attack fights in the answering
         call, and its battle is its own."""
         client, world = shipped
-        world.marshals["Mack"].strength = 60000
+        # DDB-19 (Pre-Deploy S13b part 2): the objection reads the muster's
+        # expected totals (every corps likely to arrive, ~109k here), so the
+        # odds must be bad at THAT weight for the objection to fire.
+        world.marshals["Mack"].strength = 300000
         data = post(client, "Davout, attack Mack")
         assert data.get("objection") or data.get("pending_objection"), data.get("message")
         message = str(post(client, "insist").get("message") or "")

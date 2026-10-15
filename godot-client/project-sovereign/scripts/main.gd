@@ -394,6 +394,12 @@ const THE_DAY_SAYS_WHAT_WAITS := true
 const DAY_SPENT_BUTTON_TEXT := "End Turn (E) ▸"
 const END_TURN_BUTTON_TEXT := "End Turn (E)"
 var gold = 1200
+# DDB-13 (Pre-Deploy S13b part 2): next turn's projected net (the ledger's
+# own forecast, `gold_projected_net` on every response) — the Gold counter
+# carries it and the end-turn gate warns when the treasury will go negative.
+var gold_projected_net: int = 0
+var _has_gold_projected_net: bool = false
+var _treasury_warned: bool = false
 var infantry_pool = 80000
 var cavalry_pool = 15000
 var artillery_pool = 10000
@@ -2186,7 +2192,7 @@ func _execute_end_turn():
 
 	# Client-side confirmation gate — spec §5 (+ the cornered marshal's
 	# unanswered question, FA-16 review round)
-	if _current_lapsing_count > 0 or not _current_decision_names.is_empty():
+	if _current_lapsing_count > 0 or not _current_decision_names.is_empty() or (_treasury_goes_negative() and not _treasury_warned):
 		_show_lapse_confirmation()
 		return
 
@@ -2235,6 +2241,11 @@ func _send_end_turn():
 	# Send to backend
 	api_client.send_command("end turn", _on_command_result)
 
+func _treasury_goes_negative() -> bool:
+	"""DDB-13: the treasury after next turn's projected net is below zero."""
+	return _has_gold_projected_net and gold + gold_projected_net < 0
+
+
 func _show_lapse_confirmation():
 	"""Show confirmation before ending turn with pending envoys, or with a
 	cornered marshal's last stand unanswered (FA-16 review round, Sept 4 2026:
@@ -2267,13 +2278,19 @@ func _show_lapse_confirmation():
 		# LV-9: the verb agrees with the count of men, never "await(s)".
 		var awaits := "awaits" if _current_decision_names.size() == 1 else "await"
 		parts.append("%s %s your word — an unanswered last stand is decided for him when the enemy phase begins. Type 'fight to the last' or 'attempt a breakout'." % [names, awaits])
+	# DDB-13: the treasury's own line — once per gate, then the turn ends.
+	if _treasury_goes_negative():
+		_treasury_warned = true
+		parts.append("The treasury will stand at %s gold when the turn ends (%s now, %s next turn) — the Ledger's Economy tab shows what drains it." % [_format_number(gold + gold_projected_net), _format_number(gold), _signed_number(gold_projected_net)])
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
 	if _current_lapsing_count > 0:
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
-	else:
+	elif not _current_decision_names.is_empty():
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Answer him now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to let the field decide.[/color]")
+	else:
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  Press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to end the turn in deficit.[/color]")
 	_awaiting_end_turn_confirmation = true
 	_set_open_envoys_prompt_visible(_current_lapsing_count > 0)
 	end_turn_button.grab_focus()
@@ -5651,6 +5668,14 @@ func _set_open_envoys_prompt_visible(is_visible: bool):
 
 func _sync_response_hud(response: Dictionary):
 	"""Apply HUD updates before popup early-returns short-circuit the handler."""
+	# DDB-13: the projected net rides every response (null when unknown).
+	if response.get("gold_projected_net") != null:
+		var _net := int(response.get("gold_projected_net"))
+		if _net != gold_projected_net or not _has_gold_projected_net:
+			_treasury_warned = false
+		gold_projected_net = _net
+		_has_gold_projected_net = true
+		_update_gold_display()
 	if response.get("success", false):
 		if response.has("action_summary"):
 			_update_status(response.action_summary)
@@ -5666,9 +5691,17 @@ func _sync_response_hud(response: Dictionary):
 		notification_bar.update_notifications(response.notifications)
 
 
+func _signed_number(value: int) -> String:
+	return ("+" if value >= 0 else "−") + _format_number(absi(value))
+
+
 func _update_gold_display():
-	"""Update treasury display with formatting."""
-	gold_value.text = _format_number(gold)
+	"""Update treasury display with formatting. DDB-13: the projected net
+	rides beside it — "432 (−486 next turn)"."""
+	if _has_gold_projected_net:
+		gold_value.text = "%s (%s next turn)" % [_format_number(gold), _signed_number(gold_projected_net)]
+	else:
+		gold_value.text = _format_number(gold)
 
 func _apply_manpower(pools: Dictionary):
 	"""Extract manpower values from a dict and update display."""
@@ -5883,6 +5916,8 @@ func _on_objection_choice_made(choice: String):
 			choice_text = "You decide to trust your marshal's judgment."
 		"insist":
 			choice_text = "You insist the order be carried out as given."
+		"cancel":
+			choice_text = "You withdraw the order."
 		"compromise":
 			choice_text = "You seek a middle ground with your marshal."
 
@@ -7007,13 +7042,20 @@ func _on_interrupt_response(response):
 		if tutorial_overlay:
 			tutorial_overlay.observe(response)
 	if response.success:
+		# DDB-16 (Pre-Deploy S13b part 2): a last stand's answer prints its
+		# fate on its own line, first — escaped, captured or fallen.
+		if str(response.get("last_stand_fate", "")) != "":
+			var fate_color = Utils.COLOR_SUCCESS if str(response.get("last_stand_fate", "")) == "escaped" else Utils.COLOR_WARNING
+			add_output("[color=#" + fate_color + "]" + str(response.get("message", "")) + "[/color]")
 		# A muster "Attack Anyway" RESOLVES a battle — render it with the same
 		# battle / After-Action formatting a direct attack gets, not a flat
 		# one-liner (was: plain text, so the confirmed battle read as a shrug).
 		var events = response.get("events", [])
 		var is_battle = response.has("battle_report") or (
 			events.size() > 0 and str(events[0].get("type", "")) in ["battle", "bombardment", "conquest"])
-		if is_battle:
+		if str(response.get("last_stand_fate", "")) != "":
+			pass  # DDB-16: said above
+		elif is_battle:
 			_display_result(response)
 		else:
 			var msg = response.get("message", "Order acknowledged.")

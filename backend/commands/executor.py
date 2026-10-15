@@ -2678,6 +2678,18 @@ class CommandExecutor:
                     if (_captive is not None
                             and not _prisoners.prisoner_is_a_province(world, _captive)):
                         should_check_objection = False
+                # DDB-14 (Pre-Deploy S13b part 2, the same idiom): a field on
+                # soil we are at peace with is refused at zero cost inside
+                # `_execute_attack` (`field_on_peace_soil`) — the objection
+                # must not be raised, and Insist paid for, first.
+                if action == 'attack' and should_check_objection and command.get('target'):
+                    _peace_target = world.get_marshal(command.get('target'))
+                    if _peace_target is not None:
+                        from backend.commands.combat_executor import field_on_peace_soil
+                        if field_on_peace_soil(self._combat, marshal,
+                                               _peace_target.location, world,
+                                               enemy_nation=_peace_target.nation) is not None:
+                            should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
                 # TUT-F6: MOVE REFUSAL PRE-CHECK — Validation BEFORE objection

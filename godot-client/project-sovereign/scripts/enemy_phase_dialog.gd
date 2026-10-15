@@ -554,6 +554,10 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	result += "[color=#" + outcome_color + "]    Result: " + outcome_text
 	if victor:
 		result += " (" + victor + " victorious)"
+	# DDB-37 (Pre-Deploy S13b part 2): the victor's advance, from its field.
+	var advanced_to = str(event.get("advanced_to", "") if event.get("advanced_to", null) != null else "")
+	if advanced_to != "":
+		result += " — and advances into " + advanced_to
 	result += "[/color]\n"
 
 	# Check for enemy destroyed

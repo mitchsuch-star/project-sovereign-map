@@ -240,6 +240,25 @@ THE_MARCH_NAMES_THE_FORFEIT = True
 THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY = True
 
 
+def supply_warning_line(world, marshal) -> str:
+    """DDB-44 (Pre-Deploy S13b part 2): the supply warning a move or march
+    says where it stops — "Lorraine feeds 60,000; the 206,000 men standing
+    there would lose ~4,120 a turn to short supply." on a line of its own —
+    the turn's own bill
+    (`WorldState.supply_forecast`), '' when the province carries them. The
+    player's corps only (the forecast's fog gate is the muster's)."""
+    if marshal.nation != getattr(world, "player_nation", None) or marshal.strength <= 0:
+        return ""
+    forecast = world.supply_forecast(marshal.location, marshal.nation)
+    if not forecast or forecast["loss"] <= 0:
+        return ""
+    why = ("short supply" if forecast["shortage"]
+           else "crowding — too many corps on one province")
+    return (f"\n{marshal.location} feeds {forecast['fed']:,}; the "
+            f"{forecast['standing']:,} men standing there would lose "
+            f"~{forecast['loss']:,} a turn to {why}.")
+
+
 class MovementExecutor:
     """Handles movement and reconnaissance actions: move, scout, retreat."""
 
@@ -1122,9 +1141,14 @@ class MovementExecutor:
                 capture_hint_msg = (f"\n{', '.join(capture_hints)} lie undefended — "
                                     f"an attack takes any of them.")
 
+        # DDB-44 (Pre-Deploy S13b part 2): a march into a province whose
+        # supply the stack outruns says so, with the forecast loss — the
+        # shortage struck at turn start with no word (diplomacy-first #7).
+        supply_msg = supply_warning_line(world, marshal)
+
         result = {
             "success": True,
-            "message": move_message + capture_hint_msg,
+            "message": move_message + supply_msg + capture_hint_msg,
             "capture_note": capture_note,
             "drill_cancelled": bool(drill_cancelled_message),
             "events": events,

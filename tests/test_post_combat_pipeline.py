@@ -161,7 +161,11 @@ class TestGloriousChargeCoalition:
     """Charge should update coalition threat and war exhaustion."""
 
     def test_charge_win_adds_threat(self):
-        """French charge victory should add +3 coalition threat."""
+        """French charge victory should add +3 coalition threat.
+
+        DDB-42 (Pre-Deploy S13b part 2): a win in a province France owns
+        adds no alarm (EB-4.3 read on the province), so the field moved off
+        French Belgium to British Waterloo — a win on the enemy's soil."""
         world = WorldState()
         ney = world.get_marshal("Ney")
         wellington = world.get_marshal("Wellington")
@@ -169,7 +173,7 @@ class TestGloriousChargeCoalition:
         ney.recklessness = 1
         ney.strength = 80000
         wellington.strength = 5000
-        wellington.location = "Belgium"
+        wellington.location = "Waterloo"
 
         initial_threat = world.threat_level
 
@@ -435,7 +439,11 @@ class TestAutoChargeCoalition:
     """Auto-charge should update coalition threat and war exhaustion."""
 
     def test_auto_charge_win_adds_threat(self):
-        """French auto-charge win should add coalition threat."""
+        """French auto-charge win should add coalition threat.
+
+        DDB-X18 (Pre-Deploy S13b part 2): the auto-charge's own pipeline
+        adds no alarm for a win on France's own soil, so the field moved off
+        French Belgium to British Waterloo."""
         world = WorldState()
         ney = world.get_marshal("Ney")
         wellington = world.get_marshal("Wellington")
@@ -443,7 +451,7 @@ class TestAutoChargeCoalition:
         ney.recklessness = 4
         ney.strength = 80000
         wellington.strength = 5000
-        wellington.location = "Belgium"
+        wellington.location = "Waterloo"
 
         initial_threat = world.threat_level
 

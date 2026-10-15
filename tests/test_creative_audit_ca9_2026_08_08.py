@@ -107,8 +107,12 @@ class TestF6WarPurposeIsDelivered:
 
         result = _attack(world, executor, "Ney", "Mack")
 
-        assert result.get("success"), result.get("message")
-        self._assert_delivered(result, world, "main battle advance")
+        # DDB-14 (Pre-Deploy S13b part 2): the player's lead is refused a
+        # field on peace soil before any battle — no hard stop is staged,
+        # so nothing can be swallowed (this seam's whole concern).
+        assert result.get("success") is False
+        assert "we are at peace with Hesse" in str(result.get("message"))
+        assert world.pending_diplomatic_dialogue is None
 
     def test_glorious_charge_delivers_the_dialogue(self, world, executor):
         """combat_executor.py:6323 — the charge door."""

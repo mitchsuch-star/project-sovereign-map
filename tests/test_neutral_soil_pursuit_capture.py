@@ -92,26 +92,20 @@ class TestNeutralSoilPursuit:
 
     def test_nassau_never_transfers_and_the_war_purpose_is_staged(
             self, world, executor):
+        # DDB-14 (Pre-Deploy S13b part 2): the player's LEAD is refused a
+        # field on soil France is at peace with, as his supporters already
+        # were — the Nassau battle is never fought, so nothing transfers,
+        # nobody marches, no war is declared and no purpose is staged.
         self._nassau_board(world)
         result = _attack(world, executor, "Ney", "Mack")
 
-        assert result.get("success"), result.get("message")
-        assert world.get_region("Nassau").controller == "Hesse", (
-            "a pursuit battle annexed a neutral court's province with no "
-            "declaration — the live Nassau capture")
-        # The frontier halt: no uninvited army on peaceful soil.
+        assert result.get("success") is False
+        assert "Nassau is Hesse's soil, and we are at peace with Hesse" in str(result.get("message"))
+        assert world.get_region("Nassau").controller == "Hesse"
         assert world.marshals["Ney"].location == "Rhineland"
-        # No war was declared FOR the player...
         assert world.get_diplomatic_state("France", "Hesse") == "PEACE"
-        # ...but the choice is offered — the pin-15 dialogue, staged.
-        dlg = world.pending_diplomatic_dialogue
-        assert dlg is not None and dlg.get("type") == "war_purpose_selection"
-        assert dlg.get("target_nation") == "Hesse"
-        # And no plunder/secure prompt for a province that never fell.
+        assert world.pending_diplomatic_dialogue is None
         assert world.pending_capture_choice is None
-        msg = str(result.get("message", ""))
-        assert "halts at the frontier of Nassau" in msg
-        assert "make war on Hesse" in msg
 
     def test_no_capture_threat_accrues_for_the_untaken_province(
             self, world, executor):

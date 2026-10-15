@@ -626,7 +626,9 @@ class TestExecutorIntegration:
         assert "invalid_choice" in result["message"]
         assert "'trust'" in result["message"]
         assert "'insist'" in result["message"]
-        assert result["choices"] == ["trust", "insist"]
+        # DDB-41 (Pre-Deploy S13b part 2): the objection can be withdrawn —
+        # "cancel" is a legal answer, at no cost.
+        assert result["choices"] == ["trust", "insist", "cancel"]
 
     def test_world_state_has_pending_objection_field(self):
         """WorldState has pending_objection initialized to None."""

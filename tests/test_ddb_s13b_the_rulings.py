@@ -32,6 +32,19 @@ Part 2, slice 2's sweep (the table's P3s):
            outmatches whom.
   DDB-X16  (found by DDB-26) the armistice quote and the per-court chip promise
            a counter only when the generator can build one.
+
+Part 2, slice 3's sweep (the field):
+
+  DDB-X18  (found by DDB-42) the reckless auto-charge — the second combat
+           copy — adds no alarm for a win on the charger's own soil.
+  DDB-X19  (found by DDB-43) a treaty cession, and the auto-charge's mirrored
+           conquest, between two other courts are dispatch lines too.
+  DDB-X20  (found by DDB-42) a province a treaty cedes back to the court that
+           held it in 1805, or holds its title, adds no `treaty_annex` alarm.
+  DDB-X21  (found by DDB-19) the alternative a cautious objection offers reads
+           the attack as the muster reckons it, as the objection does.
+  DDB-X22  (found by DDB-17) the charge's banner follows the outcome; the
+           resolver's charge line states the mechanic in no outcome's register.
 """
 from __future__ import annotations
 
@@ -470,3 +483,155 @@ class TestDDBX16:
         assert '"band": counter_aware_likelihood(world, proposal, score)' in src
         dsrc = (REPO / "backend" / "game_logic" / "diplomacy.py").read_text(encoding="utf-8")
         assert "return counter_aware_likelihood(world, proposal, score), score" in dsrc
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Part 2, slice 3's sweep — the field
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _auto_charge_at(w, where: str):
+    import random
+    murat, mack = w.get_marshal("Murat"), w.get_marshal("Mack")
+    murat.recklessness = 4
+    mack.location, mack.strength = where, 3000
+    for name in ("Soult", "Napoleon"):
+        w.get_marshal(name).location = "Paris"
+    w._build_marshal_index()
+    w.invalidate_active_nations_cache()
+    w.calculate_visibility()
+    before = len(w.threat_sources_this_turn)
+    random.seed(1)
+    with contextlib.redirect_stdout(io.StringIO()):
+        out = w._process_reckless_cavalry_turn_start()
+    charge = next(r for r in out if r.get("type") == "auto_glorious_charge")
+    return charge, [r for r in w.threat_sources_this_turn[before:] if r.get("target") == "France"]
+
+
+class TestDDBX18:
+    """Found by DDB-42: the reckless auto-charge's mirrored pipeline still
+    alarmed Europe for a win on France's own soil."""
+
+    def test_a_charge_won_on_our_own_soil_adds_no_alarm(self, w):
+        charge, rows = _auto_charge_at(w, "Lorraine")
+        assert charge["attacker_won"] is True
+        assert w.get_region("Lorraine").controller == "France"
+        assert not [r for r in rows if r.get("source") in ("battle_win", "decisive_victory")], rows
+
+    def test_a_charge_won_on_an_allys_soil_still_alarms(self, w):
+        charge, rows = _auto_charge_at(w, "Swabia")
+        assert charge["attacker_won"] is True
+        assert [r for r in rows if r.get("source") == "battle_win"], rows
+
+
+def _war(w, a: str, b: str) -> None:
+    key = w._make_diplo_key(a, b)
+    w.diplomatic_states[key] = "WAR"
+    w.war_start_turns[key] = int(w.current_turn)
+    w.invalidate_bloc_members_cache()
+
+
+class TestDDBX19:
+    """Found by DDB-43: a province changing hands between two other courts by
+    TREATY (and by the auto-charge's mirrored conquest) went unannounced."""
+
+    def test_a_cession_between_other_courts_is_a_dispatch_line(self, w):
+        _war(w, "Prussia", "Austria")
+        before = len(w.pending_dispatch_events)
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = w._ratify_treaty({
+                "type": "peace", "proposer_nation": "Prussia", "target_nation": "Austria",
+                "sweeteners": [], "demands": [{"type": "territory_cede", "regions": ["Bohemia"]}],
+            })
+        assert result is not None
+        assert w.get_region("Bohemia").controller == "Prussia"
+        changed = [e for e in w.pending_dispatch_events[before:]
+                   if (e.get("event_type") or e.get("type")) == "province_changed_hands"]
+        assert changed, w.pending_dispatch_events[before:]
+        from backend.game_logic.dispatch import _DIPLOMATIC_EVENT_TEMPLATES as T
+        line = T["province_changed_hands"].format(
+            **changed[0].get("template_vars", changed[0].get("vars", {})))
+        assert line == "Bohemia passes from Austria to Prussia."
+
+    def test_the_mirrored_conquest_announces_too(self):
+        import inspect
+        from backend.models.world_state import WorldState
+        src = inspect.getsource(WorldState._process_reckless_cavalry_turn_start)
+        assert "announce_third_party_capture(" in src
+
+
+class TestDDBX20:
+    """Found by DDB-42: a treaty handing a court back its own 1805 or titled
+    province charged +8 `treaty_annex`, as for an annexation."""
+
+    def _cede(self, w, region: str):
+        _war(w, "France", "Prussia")
+        before = len(w.threat_sources_this_turn)
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = w._ratify_treaty({
+                "type": "peace", "proposer_nation": "France", "target_nation": "Prussia",
+                "sweeteners": [], "demands": [{"type": "territory_cede", "regions": [region]}],
+            })
+        assert result is not None
+        assert w.get_region(region).controller == "France"
+        return [r for r in w.threat_sources_this_turn[before:]
+                if r.get("target") == "France" and r.get("source") == "treaty_annex"]
+
+    def test_a_province_ceded_back_is_no_annexation(self, w):
+        w.get_region("Lorraine").controller = "Prussia"  # France's own in 1805
+        w.invalidate_active_nations_cache()
+        assert self._cede(w, "Lorraine") == []
+
+    def test_an_annexation_still_alarms(self, w):
+        rows = self._cede(w, "Silesia")
+        assert rows and int(rows[0]["amount"]) == 8, rows
+
+    def test_the_seam(self):
+        from backend.game_logic import game_end as GE
+        from backend.models.world_state import cession_recovers_province
+        assert cession_recovers_province({}, "France", "France")
+        assert cession_recovers_province({"kind": GE.TITLE_TREATY, "holder": "France"}, "Austria", "France")
+        assert not cession_recovers_province({}, "Austria", "France")
+
+
+class TestDDBX21:
+    """Found by DDB-19: the V1 objection's alternative (retreat / fortify /
+    defend) still read one corps against one marshal."""
+
+    def test_the_alternative_reads_the_musters_totals(self, w):
+        from backend.commands.disobedience import DisobedienceSystem
+        from backend.commands.objection_v2 import muster_expected_totals
+        davout, mack = w.get_marshal("Davout"), w.get_marshal("Mack")
+        totals = muster_expected_totals(davout, mack, w)
+        assert totals is not None and totals[0] > davout.strength
+        ratio = DisobedienceSystem()._get_strength_ratio_for_alternative(davout, "Mack", w)
+        assert ratio == pytest.approx(totals[0] / totals[1])
+
+
+class TestDDBX22:
+    """Found by DDB-17: "a devastating cavalry assault" stood over a charge
+    that was thrown back, and the resolver's charge line claimed
+    "devastating damage" before the outcome."""
+
+    def test_a_beaten_charge_is_not_called_devastating(self, client):
+        import random
+        c, w = client
+        murat = w.get_marshal("Murat")
+        murat.strength, murat.recklessness = 2000, 3
+        w.calculate_visibility()
+        random.seed(2)
+        r = _post(c, "/command", {"command": "Murat, charge Mack"})
+        assert r.get("success"), r.get("message")
+        assert "GLORIOUS CHARGE! Murat leads the cavalry in!" in r["message"], r["message"]
+        assert "devastating" not in r["message"].split("Murat's forces")[0], r["message"]
+
+    def test_a_won_charge_keeps_its_banner(self, client):
+        import random
+        c, w = client
+        murat, mack = w.get_marshal("Murat"), w.get_marshal("Mack")
+        murat.recklessness = 3
+        mack.strength = 3000
+        w.calculate_visibility()
+        random.seed(2)
+        r = _post(c, "/command", {"command": "Murat, charge Mack"})
+        assert "GLORIOUS CHARGE! Murat leads a devastating cavalry assault!" in r["message"], r["message"]
+

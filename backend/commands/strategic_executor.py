@@ -826,7 +826,15 @@ class StrategicExecutor:
                     any(e.name.lower() == ctx.target.lower() for e in enemies_here)
                 )
             )
-            if not holding_here and not pursuing_local:
+            # DDB-20 (Pre-Deploy S13b part 2): SUPPORT of a marshal on this
+            # same field is exempt — the muster advises it ("order him to
+            # support"), and the gate refused it outright.
+            _ally = (ctx.world.get_marshal(ctx.target)
+                     if ctx.strategic_type == "SUPPORT" and ctx.target else None)
+            supporting_local = (
+                _ally is not None and _ally.nation == ctx.marshal.nation
+                and _ally.location == ctx.marshal.location)
+            if not holding_here and not pursuing_local and not supporting_local:
                 # S5-2: humanize marshal keys so player copy never shows a raw
                 # camelCase name; the spaced form still resolves on re-issue
                 # (CR-5 _resolve_target handles spaced names).
@@ -1952,6 +1960,11 @@ class StrategicExecutor:
         grounding note (FA-54), the MOVE_TO lines."""
         # ── Build response ────────────────────────────────────────────
         ctx.first_step_msg = f"{ctx.first_step_msg}{ctx.capture_tail}"
+        # DDB-44 (Pre-Deploy S13b part 2): where the march's first step stops,
+        # the supply it outruns — as a move says it.
+        if ctx.first_step_msg.startswith((" Moves to ", " Cavalry charges through ")):
+            from backend.commands.movement_executor import supply_warning_line
+            ctx.first_step_msg += supply_warning_line(ctx.world, ctx.marshal)
         ctx.remaining = len(ctx.order.path) if ctx.order.path else 0
         route_str = " → ".join([ctx.marshal.location] + (ctx.order.path or []))  # LV-19: one arrow
 
@@ -2627,6 +2640,27 @@ class StrategicExecutor:
             return self._first_step_refusal(
                 marshal, verdict_as_refusal(_verdict), enemy.name, world)
 
+        # DDB-20 (Pre-Deploy S13b part 2): a SUPPORT whose next step is the
+        # supported marshal's own contested field stays standing at the
+        # approach and joins his next attack as a reinforcement (the
+        # muster's "marches under your written support order"). It was
+        # cleared at contact for 1 AP, so the next muster read him "awaits
+        # explicit orders" again (diplomacy-first #11).
+        from backend.commands import strategic as _strategic_seams
+        _ally = (world.get_marshal(order.target)
+                 if order is not None and order.command_type == "SUPPORT" else None)
+        if _strategic_seams.support_stands_at_approach(order, _ally, blocked_region):
+            order.path = []
+            return {
+                "success": True,
+                "message": (f"{marshal.name} stands at {marshal.location}, at the "
+                            f"approach to {blocked_region} — he joins "
+                            f"{_shown_name(_ally.name)}'s next attack there."),
+                "order_status": "continues",
+                "first_step_blocked": True,
+                "variable_action_cost": 1,
+            }
+
         if personality == "literal":
             # Silently reroute around ALL enemy regions.
             # NPC-5 companion (not in the filed row, found by the recon pass):
@@ -2951,6 +2985,16 @@ class StrategicExecutor:
         """
         world: WorldState = game_state.get("world")
         objection = world.pending_strategic_objection
+
+        # DDB-41 (Pre-Deploy S13b part 2): Cancel withdraws the order at no
+        # cost — no trust, no action.
+        if choice in ("cancel", "withdraw"):
+            _who = (objection or {}).get("marshal_name", "")
+            world.pending_strategic_objection = None
+            return {"success": True, "objection_withdrawn": True,
+                    "no_action_cost": True,
+                    "message": (f"The order to {_who} is withdrawn, Sire — "
+                                f"nothing is spent.")}
 
         # Map frontend choice to strategic response
         choice_mapping = {
