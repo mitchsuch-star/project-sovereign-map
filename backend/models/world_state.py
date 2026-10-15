@@ -806,6 +806,25 @@ def frontier_halt_owner(world, nation: str, region_name: str) -> Optional[str]:
     return owner
 
 
+def reckless_charge_peace_owner(world, marshal, enemy) -> Optional[str]:
+    """DDB-X17 (Pre-Deploy S13b part 3): the court on whose soil `enemy`
+    stands when the PLAYER's reckless auto-charge may not take that field —
+    the attack's lead rule (`combat_executor.field_on_peace_soil`) read
+    through this module's mirror of its neutral arm (`frontier_halt_owner`,
+    drift-pinned to the executor's guard). None for the AI (PT-F1 kept,
+    GR5's named difference), for a field in his own province, and for an
+    army on its own court's soil (a declaration of war, not a third
+    party's field)."""
+    if marshal.nation != getattr(world, "player_nation", None):
+        return None
+    if not enemy.location or enemy.location == marshal.location:
+        return None
+    owner = frontier_halt_owner(world, marshal.nation, enemy.location)
+    if owner is None or owner == enemy.nation:
+        return None
+    return owner
+
+
 def is_own_soil_recapture(world, region_name: str, nation: str) -> bool:
     """True when `nation` is retaking soil that opened the campaign as its own.
 
@@ -6448,7 +6467,8 @@ class WorldState:
 
         return (nearest_enemy, nearest_distance) if nearest_enemy else None
 
-    def _find_nearest_enemy_for_nation(self, from_region: str, nation: str) -> Optional[Tuple[Marshal, int]]:
+    def _find_nearest_enemy_for_nation(self, from_region: str, nation: str,
+                                       exclude=None) -> Optional[Tuple[Marshal, int]]:
         """
         Find the nearest enemy marshal for a given nation.
 
@@ -6459,6 +6479,8 @@ class WorldState:
         Args:
             from_region: Region to search from
             nation: Nation to find enemies OF (enemies of this nation)
+            exclude: optional predicate; a marshal it answers True for is
+                skipped (DDB-X17: the player's reckless charge skips peace soil)
 
         Returns:
             Tuple of (enemy_marshal, distance) or None
@@ -6478,6 +6500,8 @@ class WorldState:
                 continue
             # Skip nations not at war (Phase 8 diplomacy)
             if not self.is_at_war(nation, marshal.nation):
+                continue
+            if exclude is not None and exclude(marshal):
                 continue
 
             distance = self.get_distance(from_region, marshal.location)
@@ -14735,14 +14759,30 @@ class WorldState:
 
             # Find nearest enemy (based on marshal's nation)
             nearest = self._find_nearest_enemy_for_nation(marshal.location, marshal.nation)
+            # DDB-X17: the player's reckless cavalry picks no target on soil
+            # we are at peace with — the attack's lead rule. The AI keeps
+            # PT-F1 (the seam answers None for it).
+            _peace_held = None
+            if nearest and reckless_charge_peace_owner(self, marshal, nearest[0]):
+                _peace_held = (nearest[0], reckless_charge_peace_owner(self, marshal, nearest[0]))
+                nearest = self._find_nearest_enemy_for_nation(
+                    marshal.location, marshal.nation,
+                    exclude=lambda m, _c=marshal: reckless_charge_peace_owner(self, _c, m) is not None)
             if not nearest:
                 # No enemies - can't do anything
+                _why = ""
+                if _peace_held is not None:
+                    from backend.display_names import display_nation as _dn
+                    _held, _owner = _peace_held
+                    _why = (f" — {_shown_name(_held.name)} stands on {_held.location}, "
+                            f"{_dn(_owner)}'s soil, and we are at peace with {_dn(_owner)}.")
                 events.append({
                     "type": "reckless_no_target",
                     "marshal": marshal.name,
                     "nation": marshal.nation,
                     "recklessness": recklessness,
-                    "message": f"[Cavalry][!] {_shown_name(marshal.name)} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge!"
+                    "message": (f"[Cavalry][!] {_shown_name(marshal.name)} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge"
+                                + (_why or "!"))
                 })
                 continue
 

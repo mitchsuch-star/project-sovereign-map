@@ -45,6 +45,14 @@ Part 2, slice 3's sweep (the field):
            the attack as the muster reckons it, as the objection does.
   DDB-X22  (found by DDB-17) the charge's banner follows the outcome; the
            resolver's charge line states the mechanic in no outcome's register.
+
+Part 3 (October 15, 2026), its head:
+
+  DDB-X17  (found by DDB-14) the player's glorious charge — typed, answered,
+           or fired by an attack's reckless stage — reads the lead's rule
+           before it rides: onto peace soil it is refused at no cost in the
+           attack's own words, no popup first; the reckless auto-charge picks
+           no target there. The AI keeps PT-F1.
 """
 from __future__ import annotations
 
@@ -635,3 +643,140 @@ class TestDDBX22:
         r = _post(c, "/command", {"command": "Murat, charge Mack"})
         assert "GLORIOUS CHARGE! Murat leads a devastating cavalry assault!" in r["message"], r["message"]
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S13b part 3 — the head: DDB-X17
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _murat_before_nassau(w, recklessness: int):
+    """Murat on France's Rhineland; Mack across the frontier on Hesse's
+    Nassau — a court France is at peace with."""
+    murat, mack = w.get_marshal("Murat"), w.get_marshal("Mack")
+    murat.location, murat.recklessness = "Rhineland", recklessness
+    mack.location, mack.strength = "Nassau", 3000
+    w._build_marshal_index()
+    w.invalidate_active_nations_cache()
+    w.calculate_visibility()
+    return murat, mack
+
+
+class TestDDBX17:
+    """Found by DDB-14's sweep: the glorious charge, and the reckless
+    auto-charge, could still take the field on soil France is at peace
+    with. The player's charge now reads the lead's rule before it rides."""
+
+    _SAID = ("Murat cannot march on Mack: Nassau is Hesse's soil, and we are "
+             "at peace with Hesse — no corps of ours may take the field there.")
+
+    def test_a_typed_charge_onto_peace_soil_is_refused_at_no_cost(self, client):
+        c, w = client
+        murat, mack = _murat_before_nassau(w, 2)
+        ap, square = w.actions_remaining, murat.square_formation
+        r = _post(c, "/command", {"command": "Murat, charge Mack"})
+        assert r.get("success") is False
+        assert self._SAID in r["message"], r["message"]
+        assert w.actions_remaining == ap and murat.recklessness == 2
+        assert murat.location == "Rhineland" and mack.strength == 3000
+        assert murat.square_formation == square
+        assert w.pending_diplomatic_dialogue is None
+
+    def test_the_charge_and_the_attack_say_one_thing(self, client):
+        c, w = client
+        _murat_before_nassau(w, 1)
+        charge = _post(c, "/command", {"command": "Murat, charge Mack"})
+        attack = _post(c, "/command", {"command": "Murat, attack Mack"})
+        assert charge["message"] == attack["message"] == self._SAID
+
+    def test_no_popup_and_no_objection_comes_first(self, client):
+        """At recklessness 3 an ordered attack used to mount the CHARGE /
+        RESTRAIN popup — both answers then refused. Pre-validated: neither
+        the popup nor an objection is raised."""
+        c, w = client
+        murat, _ = _murat_before_nassau(w, 3)
+        r = _post(c, "/command", {"command": "Murat, attack Mack"})
+        assert r.get("success") is False and self._SAID in r["message"], r
+        assert not r.get("pending_glorious_charge")
+        assert murat.pending_glorious_charge is False
+        assert not r.get("objection") and not r.get("awaiting_objection_response")
+        assert w.pending_objection is None
+        assert murat.recklessness == 3
+
+    def test_no_redirect_offers_an_alternative_on_peace_soil(self):
+        """The redirect popup's list skips an alternative standing on soil
+        we are at peace with (the WO-25 board: Wellington on urban Paris,
+        the only alternative on Prussia's Rhineland, France at peace with
+        Prussia) — no popup; the attack goes in without the charge."""
+        from backend.commands.executor import CommandExecutor
+        from tests.conftest import MarshalFactory, WorldFactory
+        ney = MarshalFactory.cavalry(name="Ney", location="Belgium",
+                                     strength=40000, personality="aggressive")
+        ney.recklessness = 3
+        wel = MarshalFactory.enemy(name="Wellington", location="Paris",
+                                   nation="Britain", strength=3000)
+        alt = MarshalFactory.enemy(name="Uxbridge", location="Rhineland",
+                                   nation="Britain", strength=2000)
+        world = WorldFactory.with_marshals([ney, wel, alt])
+        for a, b, st in (("France", "Britain", "WAR"), ("France", "Prussia", "PEACE")):
+            world.diplomatic_states[world._make_diplo_key(a, b)] = st
+        with contextlib.redirect_stdout(io.StringIO()):
+            ex = CommandExecutor()
+            res = ex.execute({"command": {"marshal": "Ney", "action": "attack",
+                                          "target": "Wellington"}}, {"world": world})
+        assert res.get("charge_redirected") is None, res.get("message")
+        assert ney.pending_glorious_charge is False
+        assert alt.strength == 2000
+
+    def test_the_reckless_auto_charge_picks_no_target_on_peace_soil(self, w):
+        murat, mack = _murat_before_nassau(w, 4)
+        for m in w.marshals.values():
+            if m.name != "Mack" and m.nation != "France" and w.is_at_war("France", m.nation):
+                m.strength = 0
+        with contextlib.redirect_stdout(io.StringIO()):
+            out = w._process_reckless_cavalry_turn_start()
+        mine = [e for e in out if e.get("marshal") == "Murat"]
+        assert [e["type"] for e in mine] == ["reckless_no_target"], mine
+        assert ("Mack stands on Nassau, Hesse's soil, and we are at peace "
+                "with Hesse." in mine[0]["message"]), mine[0]["message"]
+        assert murat.location == "Rhineland" and mack.strength == 3000
+        assert w.get_region("Nassau").controller == "Hesse"
+
+    def test_the_reckless_auto_charge_rides_for_an_open_field_instead(self, w):
+        """The nearest foe on peace soil is passed over for the nearest on
+        an open field (Swabia is Bavaria's, our ally's)."""
+        import random
+        murat, mack = _murat_before_nassau(w, 4)
+        other = next(m for m in w.marshals.values()
+                     if m.nation == "Austria" and m.name != "Mack" and m.strength > 0)
+        other.location, other.strength = "Swabia", 2000
+        w._build_marshal_index()
+        random.seed(1)
+        with contextlib.redirect_stdout(io.StringIO()):
+            out = w._process_reckless_cavalry_turn_start()
+        mine = [e for e in out if e.get("marshal") == "Murat"]
+        assert [(e["type"], e.get("target")) for e in mine] == [
+            ("auto_glorious_charge", other.name)], mine
+        assert mack.strength == 3000
+
+    def test_the_ai_keeps_pt_f1(self, w):
+        """GR5's named difference: the AI's charge is never refused on a
+        third party's soil, and its auto-charge picks such a target."""
+        from backend.commands.combat_executor import charge_on_peace_soil
+        from backend.models.world_state import reckless_charge_peace_owner
+        mack = w.get_marshal("Mack")
+        murat = w.get_marshal("Murat")
+        murat.location = "Nassau"
+        mack.location = "Swabia"
+        w._build_marshal_index()
+        assert reckless_charge_peace_owner(w, mack, murat) is None
+        with contextlib.redirect_stdout(io.StringIO()):
+            from backend.commands.executor import CommandExecutor
+            ex = CommandExecutor()
+        assert charge_on_peace_soil(ex._combat, mack, murat, w) is None
+
+    def test_a_charge_on_his_own_field_is_no_march(self, w):
+        """A charge on a foe in the marshal's own province does not cross a
+        frontier: the lead's rule reads it as no march (DDB-14)."""
+        from backend.models.world_state import reckless_charge_peace_owner
+        murat, mack = _murat_before_nassau(w, 4)
+        murat.location = "Nassau"
+        assert reckless_charge_peace_owner(w, murat, mack) is None

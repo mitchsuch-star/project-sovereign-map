@@ -550,14 +550,17 @@ class TestAutoChargeAtFour:
 
         ney.recklessness = 4
         ney.location = "Paris"
-        # Move ALL enemies outside Ney's 2-tile range
-        wellington.location = "Vienna"  # 3 hops from Paris
-        blucher.location = "Vienna"     # Both far away
+        # Move ALL enemies outside Ney's 2-tile range — onto Britain's own
+        # Hanover, 3 hops off. DDB-X17 (Pre-Deploy S13b part 3): Vienna is
+        # Austria's soil and France is at peace with Austria, so the player's
+        # reckless cavalry no longer picks a target standing there.
+        wellington.location = "Hanover"  # 3 hops from Paris
+        blucher.location = "Hanover"     # Both far away
         # Also move Uxbridge and Gneisenau if they exist
         for name in ["Uxbridge", "Gneisenau"]:
             m = world.get_marshal(name)
             if m:
-                m.location = "Vienna"
+                m.location = "Hanover"
 
         initial_location = ney.location
 

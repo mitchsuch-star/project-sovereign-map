@@ -23,6 +23,11 @@ the code-health ratchet forbids a new lever):
     D = world_state.announce_third_party_capture      (DDB-43: the dispatch lines; down -> no-op)
     U = strategic.support_stands_at_approach          (DDB-20: SUPPORT stands at the approach; down -> False)
     Y = world_state.cession_recovers_province          (DDB-X20: no treaty_annex for a ceded-back province; down -> False)
+  Part 3, its head (DDB-X17 — the charge reads the lead's rule):
+    Q = combat_executor.charge_on_peace_soil          (the player's charge refused onto peace soil; down -> None)
+    V = world_state.reckless_charge_peace_owner       (the player's reckless auto-charge picks no target there; down -> None)
+    Q calls P's seam (the charge reads the lead's rule), so Q's attribution
+    is the arm X17OFF (every lever up but Q and V) against ALL.
 
 DDB-1, DDB-4, DDB-5, DDB-7 … 11 and DDB-X8 / X10 are the player's own roads
 (the passive France never proposes, counters or opens a table) or display
@@ -74,8 +79,11 @@ LEVERS = {
     "D": ("backend.models.world_state", "announce_third_party_capture", "None"),
     "U": ("backend.commands.strategic", "support_stands_at_approach", "False"),
     "Y": ("backend.models.world_state", "cession_recovers_province", "False"),
+    "Q": ("backend.commands.combat_executor", "charge_on_peace_soil", "None"),
+    "V": ("backend.models.world_state", "reckless_charge_peace_owner", "None"),
 }
-ARMS = {"0": set(), **{k: {k} for k in LEVERS}, "ALL": set(LEVERS)}
+ARMS = {"0": set(), **{k: {k} for k in LEVERS}, "ALL": set(LEVERS),
+        "X17OFF": set(LEVERS) - {"Q", "V"}}
 
 CHILD = r"""
 import sys, runpy, atexit, collections, importlib
@@ -174,6 +182,20 @@ def _ann(self, region_name, old_controller, capturing_nation):
         _c["third_party_change|" + str(old_controller) + ">" + str(capturing_nation)] += 1
     return _o_ann(self, region_name, old_controller, capturing_nation)
 WSM.announce_third_party_capture = _ann
+_o_chg = CEX.charge_on_peace_soil
+def _chg(executor, marshal, enemy_marshal, world):
+    out = _o_chg(executor, marshal, enemy_marshal, world)
+    if out is not None:
+        _c["charge_refused_peace_soil|" + str(marshal.nation) + "|" + str(enemy_marshal.location)] += 1
+    return out
+CEX.charge_on_peace_soil = _chg
+_o_rck = WSM.reckless_charge_peace_owner
+def _rck(world, marshal, enemy):
+    out = _o_rck(world, marshal, enemy)
+    if out is not None:
+        _c["reckless_skipped_peace_soil|" + str(marshal.nation) + "|" + str(out)] += 1
+    return out
+WSM.reckless_charge_peace_owner = _rck
 
 def _dump():
     print("REACH=" + repr(dict(_c)))

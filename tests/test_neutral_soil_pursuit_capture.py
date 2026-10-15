@@ -219,11 +219,19 @@ class TestAIPursuitRestraint:
 
 class TestGloriousChargeDoor:
     def test_charge_onto_neutral_soil_never_transfers(self, world, executor):
+        """Re-seated by DDB-X17 (Pre-Deploy S13b part 3): the player's charge
+        from Rhineland ONTO Hesse's Nassau is refused before it rides, so
+        the capture door is reached by a charge on Murat's own field."""
         mack = _weaken(world, "Mack")
         mack.location = "Nassau"
         murat = world.marshals["Murat"]
         murat.location = "Rhineland"
         world.actions_remaining = 4
+        refused = executor._combat._execute_glorious_charge(
+            murat, "Mack", world, {"world": world})
+        assert refused.get("success") is False
+        assert "we are at peace with Hesse" in refused["message"]
+        murat.location = "Nassau"
         random.seed(7)
 
         result = executor._combat._execute_glorious_charge(
@@ -244,10 +252,11 @@ class TestRecklessAutoChargeDoor:
         mack = _weaken(world, "Mack", 3000)
         mack.location = "Nassau"
         murat = world.marshals["Murat"]
-        murat.location = "Rhineland"
+        # DDB-X17 (Pre-Deploy S13b part 3): the player's reckless cavalry
+        # picks no target on peace soil, so the capture door is reached by
+        # an auto-charge on Murat's own field (Mack beside him in Nassau).
+        murat.location = "Nassau"
         murat.recklessness = 4
-        # Clear other adjacent temptations: the boot board leaves Mack the
-        # only enemy in reach of Rhineland once he stands in Nassau.
         random.seed(7)
 
         events = world._process_reckless_cavalry_turn_start()

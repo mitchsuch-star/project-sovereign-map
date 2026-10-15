@@ -115,12 +115,21 @@ class TestF6WarPurposeIsDelivered:
         assert world.pending_diplomatic_dialogue is None
 
     def test_glorious_charge_delivers_the_dialogue(self, world, executor):
-        """combat_executor.py:6323 — the charge door."""
+        """combat_executor.py:6323 — the charge door. Re-seated by DDB-X17
+        (Pre-Deploy S13b part 3): a charge from Rhineland ONTO Hesse's
+        Nassau is refused before it rides, as the attack is, so the door is
+        reached by a charge on Murat's own field."""
         mack = _weaken(world, "Mack")
         mack.location = "Nassau"
         murat = world.marshals["Murat"]
         murat.location = "Rhineland"
         world.actions_remaining = 4
+        refused = executor._combat._execute_glorious_charge(
+            murat, "Mack", world, {"world": world})
+        assert refused.get("success") is False
+        assert "we are at peace with Hesse" in str(refused.get("message"))
+        assert world.pending_diplomatic_dialogue is None
+        murat.location = "Nassau"
         random.seed(7)
 
         result = executor._combat._execute_glorious_charge(

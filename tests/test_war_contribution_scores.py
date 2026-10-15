@@ -1921,6 +1921,11 @@ def test_auto_dispatch_charge_emits_theater_data():
     # Austrian target in the Saxony theater (Bohemia <-> Saxony are adjacent).
     _seat_marshal(world, name="Charles", nation="Austria",
                   location="Saxony", strength=8000)
+    # DDB-X17 (Pre-Deploy S13b part 3): the player's reckless cavalry picks
+    # no target on soil France is at peace with, and the fixture's
+    # co-belligerent Saxony stood at OPEN_BORDERS — its soil a neutral's to
+    # the frontier guard. A co-belligerent fights beside us as an ally.
+    world.diplomatic_states[world._make_diplo_key("France", "Saxony")] = "ALLIANCE"
 
     world._process_reckless_cavalry_turn_start()
 

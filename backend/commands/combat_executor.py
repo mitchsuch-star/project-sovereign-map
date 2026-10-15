@@ -939,6 +939,30 @@ def field_on_peace_soil(executor, marshal, enemy_location, world, enemy_nation=N
     return None
 
 
+def peace_soil_refusal(marshal, enemy_marshal, block) -> dict:
+    """DDB-14 / DDB-X17: the refusal of a field on peace soil, in ONE set of
+    words for the attack and the charge — at no cost, naming the court."""
+    from backend.display_names import display_nation as _dn
+    owner = _dn(block["owner"])
+    return {
+        "success": False,
+        "peace_soil": block["owner"],
+        "message": (
+            f"{marshal.name} cannot march on {enemy_marshal.name}: "
+            f"{enemy_marshal.location} is {owner}'s soil, and we are at peace "
+            f"with {owner} — no corps of ours may take the field there."),
+    }
+
+
+def charge_on_peace_soil(executor, marshal, enemy_marshal, world):
+    """DDB-X17 (Pre-Deploy S13b part 3): the player's glorious charge reads
+    the lead's rule before it rides — typed, answered from the popup, or
+    fired by the reckless stage of an attack. The guard's dict, or None.
+    The AI keeps PT-F1 (`field_on_peace_soil` is the player's alone)."""
+    return field_on_peace_soil(executor, marshal, enemy_marshal.location, world,
+                               enemy_nation=enemy_marshal.nation)
+
+
 def returns_reinforcers_from_works(ctx) -> str:
     """DDB-14: when the lead halts before a province's works, the corps that
     marched to his guns return to their origins (Gate 4's return), and say
@@ -6557,6 +6581,14 @@ class CombatExecutor:
                             charge_target_marshal = ctx.m
                             break
                     if charge_target_marshal:
+                        # DDB-X17: a charge onto soil we are at peace with is
+                        # refused before either popup is mounted — "charge"
+                        # and "restrain" would both be refused after it.
+                        _peace_charge = charge_on_peace_soil(
+                            self, ctx.marshal, charge_target_marshal, ctx.world)
+                        if _peace_charge is not None:
+                            return peace_soil_refusal(
+                                ctx.marshal, charge_target_marshal, _peace_charge)
                         # Check terrain at DEFENDER's location (not attacker's)
                         charge_target_region = ctx.world.get_region(charge_target_marshal.location)
                         if charge_target_region and charge_target_region.terrain in CHARGE_BLOCKED_TERRAIN:
@@ -6576,6 +6608,9 @@ class CombatExecutor:
                                 continue
                             if ctx.m.name == (charge_target_marshal.name if charge_target_marshal else ""):
                                 continue  # Skip the blocked target
+                            # DDB-X17: no alternative on peace soil is offered.
+                            if charge_on_peace_soil(self, ctx.marshal, ctx.m, ctx.world) is not None:
+                                continue
                             dist = ctx.world.get_distance(ctx.marshal.location, ctx.m.location)
                             if dist <= ctx.marshal.movement_range:
                                 alt_region = ctx.world.get_region(ctx.m.location)
@@ -7286,16 +7321,7 @@ class CombatExecutor:
                 self, ctx.marshal, ctx.enemy_marshal.location, ctx.world,
                 enemy_nation=ctx.enemy_marshal.nation)
             if _peace_soil is not None:
-                from backend.display_names import display_nation as _dn
-                return {
-                    "success": False,
-                    "message": (
-                        f"{ctx.marshal.name} cannot march on "
-                        f"{ctx.enemy_marshal.name}: {ctx.enemy_marshal.location} "
-                        f"is {_dn(_peace_soil['owner'])}'s soil, and we are "
-                        f"at peace with {_dn(_peace_soil['owner'])} — no corps "
-                        f"of ours may take the field there."),
-                }
+                return peace_soil_refusal(ctx.marshal, ctx.enemy_marshal, _peace_soil)
 
         # ════════════════════════════════════════════════════════════
         # BOMBARDMENT: Region-name targeting selects strongest enemy (§4.4)
@@ -10659,6 +10685,20 @@ class CombatExecutor:
         return self._execute_glorious_charge(marshal, target, world, game_state,
                                              command=command)
 
+    @staticmethod
+    def _glorious_charge_target(marshal, target: str, world: WorldState):
+        """The charge's target: an enemy at war by exact name, else the first
+        enemy at war standing in the named province. None when neither."""
+        for m in world.marshals.values():
+            if m.name.lower() == target.lower() and m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
+                return m
+        target_region = world.get_region(target)
+        if target_region:
+            for m in world.marshals.values():
+                if m.location == target_region.name and m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
+                    return m
+        return None
+
     def _execute_glorious_charge(self, marshal, target: str, world: WorldState,
                                  game_state: Dict, command: Dict = None) -> Dict:
         """
@@ -10678,6 +10718,14 @@ class CombatExecutor:
         staging site (the third of the four PC15-D1 sites) from mounting a
         war decision the player never asked for.
         """
+        # Find target (a pure read — DDB-X17 refuses peace soil from it
+        # before the square is broken, so the refusal costs nothing)
+        target_marshal = self._glorious_charge_target(marshal, target, world)
+        if target_marshal is not None:
+            _peace_charge = charge_on_peace_soil(self, marshal, target_marshal, world)
+            if _peace_charge is not None:
+                return peace_soil_refusal(marshal, target_marshal, _peace_charge)
+
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(marshal, "attack")
 
@@ -10687,25 +10735,6 @@ class CombatExecutor:
                 "success": False,
                 "message": f"{marshal.name}'s artillery cannot execute a Glorious Charge. Guns don't charge."
             }
-
-        # Find target
-        target_marshal = None
-
-        # Try exact name match first
-        for m in world.marshals.values():
-            if m.name.lower() == target.lower() and m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
-                target_marshal = m
-                break
-
-        # Try fuzzy match
-        if not target_marshal:
-            target_region = world.get_region(target)
-            if target_region:
-                # Find enemy in that region
-                for m in world.marshals.values():
-                    if m.location == target_region.name and m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
-                        target_marshal = m
-                        break
 
         if not target_marshal:
             # FA-S17-13: the lookup above filters on `is_at_war`, so a court

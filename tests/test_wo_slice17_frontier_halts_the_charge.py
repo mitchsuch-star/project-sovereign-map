@@ -136,32 +136,64 @@ def _charge_world(reck, enemy_loc="Rhineland", host_state="PEACE",
 class TestWO24TheGloriousChargeHaltsAtTheFrontier:
 
     def test_the_charge_halts_at_a_peaceful_courts_frontier(self):
-        """Killed by deleting the neutral-arm halt in
-        `_execute_glorious_charge`."""
-        world, ney, _ = _charge_world(2)
+        """Re-read by DDB-X17 (Pre-Deploy S13b part 3): the PLAYER's charge
+        onto peace soil is now refused before it rides, at no cost, in the
+        attack's own words (`combat_executor.charge_on_peace_soil`) - no
+        battle, no halt. The frontier halt stands for the AI's charge
+        (`test_an_ai_charge_still_halts_at_the_frontier`). Killed by
+        deleting the DDB-X17 read in `_execute_glorious_charge`."""
+        world, ney, wel = _charge_world(2)
         ex = _executor()
         res = _quiet(ex._combat._execute_glorious_charge, ney, "Wellington",
                      world, {"world": world})
-        assert res["success"] is True
-        assert ney.location == "Belgium"
+        assert res["success"] is False
+        assert ney.location == "Belgium" and ney.recklessness == 2
+        assert wel.strength == 2000
+        assert world.get_region("Rhineland").controller == "Prussia"
+        assert ("Rhineland is Prussia's soil, and we are at peace with "
+                "Prussia" in res["message"]), res["message"]
+        assert "halts at the frontier" not in res["message"]
+
+    def test_an_ai_charge_still_halts_at_the_frontier(self):
+        """DDB-X17 is the player's alone (GR5's named difference): an AI
+        cavalryman's charge on a corps standing on a third party's soil is
+        fought and halts at that frontier (PT-F1). Killed by dropping the
+        player-nation guard from `field_on_peace_soil`. The review round's
+        pin stands here: the halt line is not doubled by the capture
+        block's own "halts at the edge of conquest"."""
+        world, ney, _ = _charge_world(2)
+        uxb = MarshalFactory.enemy(name="Uxbridge", location="Belgium",
+                                   nation="Britain", strength=40000)
+        uxb.cavalry, uxb.personality, uxb.recklessness = True, "aggressive", 2
+        world.marshals["Uxbridge"] = uxb
+        ney.location, ney.strength, ney.morale = "Rhineland", 2000, 26
+        world.marshals.pop("Wellington")
+        _pair(world, "Britain", "Prussia", "PEACE")
+        world._build_marshal_index()
+        ex = _executor()
+        res = _quiet(ex._combat._execute_glorious_charge, uxb, "Ney",
+                     world, {"world": world})
+        assert res["success"] is True, res["message"]
+        assert uxb.location == "Belgium"
         assert world.get_region("Rhineland").controller == "Prussia"
         assert "halts at the frontier of Rhineland" in res["message"]
-        assert "advances into Rhineland" not in res["message"]
-        # Review round: the halt line is not doubled by the capture block's
-        # own "halts at the edge of conquest" (killed by `if True:` there).
         assert "edge of conquest" not in res["message"]
 
     def test_the_halted_player_charge_still_stages_the_war_choice(self):
-        """Parity with `_execute_attack`: the halt is not a silence. Killed
-        by dropping `or charge_halted` from the capture block's gate."""
+        """Re-read by DDB-X17: parity with `_execute_attack` is now one
+        refusal - the attack's lead and the charge read the same rule and
+        say the same words, and neither stages a war decision. Killed by
+        a charge that fights where the attack is refused."""
         world, ney, _ = _charge_world(2)
         ex = _executor()
         res = _quiet(ex._combat._execute_glorious_charge, ney, "Wellington",
                      world, {"world": world})
-        assert (world.pending_diplomatic_dialogue or {}).get("type") \
-            == "war_purpose_selection"
-        assert "To seize it is to make war on Prussia" in res["message"]
-        assert res.get("awaiting_diplomatic_response") is True
+        world2, _ney2, _ = _charge_world(2, cavalry=False)
+        att = _quiet(ex.execute, _attack_cmd("Ney", "Wellington"), {"world": world2})
+        assert res["success"] is False and att["success"] is False
+        assert res["message"] == att["message"], (res["message"], att["message"])
+        assert world.pending_diplomatic_dialogue is None
+        assert not res.get("awaiting_diplomatic_response")
 
     def test_an_enemys_own_war_soil_is_still_taken_by_the_charge(self):
         """The halt is the NEUTRAL arm only. Killed by halting on `is not
@@ -188,14 +220,39 @@ class TestWO24TheGloriousChargeHaltsAtTheFrontier:
         assert world.pending_diplomatic_dialogue is None
 
     def test_the_reckless_auto_charge_halts_too(self):
-        """The second implementation. Killed by deleting the
-        `_halt_owner` arm in `_process_reckless_cavalry_turn_start`."""
-        world, ney, _ = _charge_world(4)
+        """The second implementation, re-read by DDB-X17: the PLAYER's
+        reckless cavalry picks no target on peace soil, and its "finds no
+        enemies to charge" line names why when that was the only target
+        (`world_state.reckless_charge_peace_owner`). The AI's auto-charge
+        keeps the `_halt_owner` arm (`test_an_ai_auto_charge_still_halts`).
+        Killed by dropping the DDB-X17 exclusion."""
+        world, ney, wel = _charge_world(4)
         events = _quiet(world._process_reckless_cavalry_turn_start)
-        assert [e["type"] for e in events] == ["auto_glorious_charge"]
-        assert ney.location == "Belgium"
+        assert [e["type"] for e in events] == ["reckless_no_target"]
+        assert ney.location == "Belgium" and wel.strength == 2000
         assert world.get_region("Rhineland").controller == "Prussia"
-        assert "halts at the frontier of Rhineland" in events[0]["message"]
+        assert ("Wellington stands on Rhineland, Prussia's soil, and we are "
+                "at peace with Prussia" in events[0]["message"]), events[0]["message"]
+
+    def test_an_ai_auto_charge_still_halts(self):
+        """The AI's reckless copy keeps PT-F1's frontier halt. Killed by
+        deleting the `_halt_owner` arm in
+        `_process_reckless_cavalry_turn_start`."""
+        world, ney, _ = _charge_world(2)
+        uxb = MarshalFactory.enemy(name="Uxbridge", location="Belgium",
+                                   nation="Britain", strength=40000)
+        uxb.cavalry, uxb.personality, uxb.recklessness = True, "aggressive", 4
+        world.marshals["Uxbridge"] = uxb
+        ney.location, ney.strength, ney.morale = "Rhineland", 2000, 26
+        ney.recklessness = 0
+        world.marshals.pop("Wellington")
+        _pair(world, "Britain", "Prussia", "PEACE")
+        world._build_marshal_index()
+        events = _quiet(world._process_reckless_cavalry_turn_start)
+        charge = [e for e in events if e["type"] == "auto_glorious_charge"]
+        assert charge and uxb.location == "Belgium"
+        assert world.get_region("Rhineland").controller == "Prussia"
+        assert "halts at the frontier of Rhineland" in charge[0]["message"]
 
     def test_the_reckless_auto_charge_still_takes_war_soil(self):
         """Killed by an inverted predicate (`is_at_war` -> `not`)."""
@@ -262,24 +319,36 @@ class TestWO25TheAutonomousAttackNeverAsks:
         assert "No pending Glorious Charge" in res["message"]
 
     def test_an_autonomous_charge_onto_neutral_soil_stages_no_war_decision(self):
-        """The third staging site, guarded. Killed by dropping the
-        `_jealousy_autonomous` read from the charge's staging condition, or
-        by not passing `command` into `_execute_glorious_charge`."""
+        """The third staging site, guarded. Re-seated by DDB-X17: a charge
+        ONTO peace soil is now refused before it rides, so the site is
+        reached only by a charge on the marshal's own field - Ney and
+        Wellington both standing on Prussia's Rhineland. Killed by dropping
+        the `_jealousy_autonomous` read from the charge's staging condition,
+        or by not passing `command` into `_execute_glorious_charge`."""
         world, ney, _ = _charge_world(3)
+        ney.location = "Rhineland"
         ex = _executor()
         res = _quiet(ex.execute, _attack_cmd("Ney", "Wellington", **AUTONOMOUS),
                      {"world": world})
-        assert res["success"] is True
+        assert res["success"] is True, res["message"]
         assert res.get("glorious_charge") is True
         assert world.pending_diplomatic_dialogue is None
         assert "choose our purpose" not in res["message"]
-        assert ney.location == "Belgium"
-        assert "halts at the frontier of Rhineland" in res["message"]
+        assert world.get_region("Rhineland").controller == "Prussia"
+        # ...and onto the same soil from Belgium it is refused (DDB-X17).
+        world2, ney2, _ = _charge_world(3)
+        res2 = _quiet(ex.execute, _attack_cmd("Ney", "Wellington", **AUTONOMOUS),
+                      {"world": world2})
+        assert res2["success"] is False and ney2.recklessness == 3
+        assert "we are at peace with Prussia" in res2["message"]
 
     def test_a_player_charge_onto_the_same_soil_still_asks(self):
         """The guard keys on the FLAG, not the path: the same charge typed
-        by the player stages the war choice as PT-F1 intends."""
+        by the player stages the war choice as PT-F1 intends. Re-seated by
+        DDB-X17 on the marshal's own field (a charge ONTO peace soil is
+        refused before it rides)."""
         world, ney, _ = _charge_world(3)
+        ney.location = "Rhineland"
         ex = _executor()
         res = _quiet(ex.execute, {"command": {"marshal": "Ney", "action": "charge",
                                               "target": "Wellington"}},
@@ -742,7 +811,11 @@ class TestTheReviewRound:
         HARD STOP from an attack nobody ordered. Killed by dropping
         `_defiance` from `_attack_is_unordered`, or the stamp from the
         objection defiance site."""
-        world, ney, _ = _charge_world(3)          # Wellington on PEACE soil
+        # Re-seated by DDB-X17: onto PEACE soil the charge is now refused
+        # before it rides, so the popup's door is tested on war soil, and
+        # the war decision can no longer be staged by a charge onto a
+        # neutral's province at all.
+        world, ney, _ = _charge_world(3, enemy_loc="Netherlands")
         world.actions_remaining = 3
         world.pending_objection = _objection_to_defend()
         _force_defiance(monkeypatch)
@@ -753,8 +826,7 @@ class TestTheReviewRound:
         # He DID go - the charge fired at once (recklessness spent)...
         assert ney.recklessness == 0
         assert "pending_glorious_charge" not in res
-        # ...halted at the frontier, and staged nothing.
-        assert ney.location == "Belgium"
+        # ...and staged nothing.
         assert world.pending_diplomatic_dialogue is None
         later = _quiet(ex._combat.respond_to_glorious_charge, "charge", world)
         assert later["success"] is False
@@ -840,8 +912,9 @@ class TestTheReviewRound:
         auto-charge stayed armed - serialized - and the next bare `charge`
         fired a 2x charge at recklessness 0 on a turn-old decision, staging
         the war-purpose HARD STOP with it. Killed by restoring
-        `reset_recklessness` to the bare `recklessness = 0`."""
-        world, ney, _ = _charge_world(3)
+        `reset_recklessness` to the bare `recklessness = 0`. Re-seated on
+        war soil by DDB-X17 (onto peace soil no popup is armed)."""
+        world, ney, _ = _charge_world(3, enemy_loc="Netherlands")
         ex = _executor()
         armed = _quiet(ex.execute, _attack_cmd("Ney", "Wellington"), {"world": world})
         assert armed.get("pending_glorious_charge") is True
