@@ -746,17 +746,20 @@ class TestExecutableArm:
         assert result["success"] is True, result.get("message")
 
     def test_commission_arm_mirrors_should_end_turn(self, europe):
-        """[P3-1] executor.py's admin deduct auto-ends the turn when
-        BOTH pools exhaust; the button mirrors the whole shape, not just
-        the price."""
+        """[P3-1] the button mirrored the typed road's whole shape. DDB-R4
+        (Pre-Deploy S13b part 3): no order ends the turn on either pool, so
+        the unread `should_end_turn` key is retired on both — the button
+        spends its admin action and the turn stands."""
         dialogue = self._bench_dialogue(europe)
         europe.dialogue_manager.replace(dialogue)
         europe.actions_remaining = 0
         europe.admin_actions_remaining = 1
+        turn = europe.current_turn
         result = CommandExecutor().handle_diplomatic_dialogue_response(
             1, {"world": europe})
         assert result["success"] is True, result.get("message")
-        assert result.get("should_end_turn") is True
+        assert "should_end_turn" not in result
+        assert europe.admin_actions_remaining == 0 and europe.current_turn == turn
 
 
 class TestCaptureBeatNote:

@@ -159,7 +159,8 @@ THE_FAMILIES = [
     ("Soult, march home to Franche-Comte", ("strategic", "province_named_after_relative")),
     ("where is Mack?", ("parser", "is_question")),
     ("scout Swabia", ("executor", "auto_assign_scout")),
-    ("Murat, recruit infantry", ("executor", "recruit_arm_substituted")),
+    # DDB-R5 (Pre-Deploy S13b part 3): the mismatch is refused, not substituted.
+    ("Murat, recruit infantry", ("executor", "recruit_arm_refused")),
     ("Lannes, if Mack is still in Swabia, attack him", ("premise", "split_premise")),
 ]
 
@@ -196,11 +197,12 @@ class TestTheTraceOnEveryResponse:
 
     def test_the_recruit_arm_substitution_is_disclosed(self, client):
         """SFR-D41's class: cavalry asked and infantry paid (or the reverse)
-        is now a row the player can ask for."""
+        is now a row the player can ask for. DDB-R5 (Pre-Deploy S13b part 3)
+        takes SFR-D41's "refused": the row is the refusal's."""
         _, M = client
         _fresh(M)
         trace = _post(client, "Murat, recruit infantry", trace=True)["parse_trace"]
-        row = next(r for r in trace if r["rule"] == "recruit_arm_substituted")
+        row = next(r for r in trace if r["rule"] == "recruit_arm_refused")
         assert row["before"] == "infantry" and row["after"] == "cavalry"
         assert row["marshal"] == "Murat"
 

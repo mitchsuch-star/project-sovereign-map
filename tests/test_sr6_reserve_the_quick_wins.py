@@ -207,9 +207,13 @@ class TestThePursuitStatesItsTermsAndTheLiteralQuotesYou:
         _see(world, "Tyrol", john)
 
     def test_the_upgrade_announces_itself(self, shipped):
+        """DDB-R1 (Pre-Deploy S13b part 3): the typed attack out of reach now
+        ASKS first; the answer pursues with NPC-D4's terms."""
         client, world = shipped
         self._arm(world)
-        msg = post(client, "Soult, attack Archduke John").get("message", "")
+        ask = post(client, "Soult, attack Archduke John")
+        assert ask.get("state") == "awaiting_clarification", ask.get("message")
+        msg = post(client, "yes").get("message", "")
         assert msg.startswith("Soult pursues Archduke John (at Tyrol)."), msg
         assert "A standing order, not a single attack: he closes 1 province a turn" in msg
         assert "attacks on arrival, may be diverted by an interrupt, and stands down if intelligence on him lapses" in msg
@@ -230,7 +234,8 @@ class TestThePursuitStatesItsTermsAndTheLiteralQuotesYou:
         monkeypatch.setattr(SE, "THE_PURSUIT_STATES_ITS_TERMS", False)
         monkeypatch.setattr(CE, "THE_LITERAL_QUOTES_THE_TYPED_ORDER", False)
         self._arm(world)
-        msg = post(client, "Soult, attack Archduke John").get("message", "")
+        post(client, "Soult, attack Archduke John")   # DDB-R1: the ask
+        msg = post(client, "yes").get("message", "")
         assert "A standing order" not in msg
         assert '"Soult attack ArchdukeJohn."' in msg, msg
 

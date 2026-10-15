@@ -253,11 +253,13 @@ _META_DELEGATED = {
 # the last ADMINISTRATIVE action used to auto-advance the turn the moment
 # both pools read zero — a keel laid or a levy raised with the military pool
 # already spent ended the day mid-thought, with no confirmation and none of
-# the envoy-lapse guard the typed `end turn` road carries (`main.gd`). The
-# military road keeps its auto-advance (a last-AP attack still ends the day,
-# WO-22's defer aside); an administrative spend never does. When it empties
-# the second pool the receipt SAYS so, and the turn ends when the player says
-# so.
+# the envoy-lapse guard the typed `end turn` road carries (`main.gd`). When
+# it empties the second pool the receipt SAYS so, and the turn ends when the
+# player says so. DDB-R4 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md`
+# DDB-D4 — NO AUTO-END ON EITHER POOL): the military road too — a last-AP
+# attack ended a turn by surprise despite the warning line (conquest #27),
+# so the ~245-line end-turn mirror, WO-22's defer and the client's warning
+# copy are retired and this notice rides every order that empties the day.
 LAST_ORDER_OF_THE_DAY_NOTICE = ("That was the last order the day could take, "
                                 "Sire — the turn ends when you say so.")
 
@@ -1162,57 +1164,6 @@ class CommandExecutor:
         region, _ = self._fuzzy_match_region(target, world)
         return region.name if region is not None else None
 
-    def _auto_end_turn_defer_notice(self, world) -> str:
-        """WO-22 — why the turn must NOT auto-advance, in the player's words.
-
-        AP exhaustion auto-calls end_turn so the enemy phase is never skipped.
-        That auto-advance used to defer for exactly one reason (unanswered
-        envoys) while the TYPED ``end turn`` refuses for several — and the
-        loudest of those, an unanswered plunder/secure question, was the one
-        it crossed. A last-AP attack that took a province auto-advanced
-        straight past the question; the enemy phase could retake the
-        province; and the answer then died on `handle_capture_choice`'s
-        holder re-validation ("the question has lapsed") with the plunder
-        gold — `income x 4` — forfeited in silence.
-
-        The capture question is named FIRST because it is the one with money
-        on it and the one the player is looking at. Both reasons are stated
-        when both apply: a notice that hides the second reason sends the
-        player to end the turn explicitly and be refused again.
-
-        LOAD-BEARING: after this defer the player has 0 AP in BOTH pools and
-        the pending-choice block at the head of ``execute`` refuses every
-        command, ``end turn`` included. The only exit is answering, and that
-        exit is safe solely because neither answer route runs through
-        ``execute``: the typed router in ``main.py`` fires before it, and
-        ``POST /capture_choice`` never touches it. Route a capture answer
-        through ``execute`` and this defer becomes a soft-lock with no way
-        out — pinned in test_wo_slice15_capture_question_holds.py.
-
-        Deliberately NOT carrying the typed block's ``_strategic_execution``
-        exemption: a strategic hop costs no AP, so it cannot reach this
-        branch, and importing the carve-out would be a condition that never
-        fires today and re-opens WO-22 the day that changes.
-
-        Returns "" when nothing defers the advance.
-        """
-        reasons = []
-        pending = getattr(world, "pending_capture_choice", None)
-        if pending:
-            # The stage-aware restatement, from the ONE source the refusal
-            # and stale-answer paths already speak through — no fourth copy
-            # of the question, and the price travels with it.
-            reasons.append(
-                "All actions are spent, but "
-                + self._capture._pending_prompt(pending)
-            )
-        if world.dialogue_manager.has_current_turn_offers():
-            reasons.append(
-                "All actions are spent, but unanswered envoys remain. "
-                "Review them or end the turn explicitly to let them lapse."
-            )
-        return " ".join(reasons)
-
     # FA-22. The marshal-LESS command types a dropped addressee degrades
     # into. Every one of them picks somebody, or acts army-wide, without the
     # player naming who — which is correct for a BARE order and wrong the
@@ -1608,7 +1559,7 @@ class CommandExecutor:
         return self._exec_finish(st)
 
     def _exec_head(self, st: "_ExecState") -> Optional[Dict]:
-        """The head: the world, the generic-target collapse, the auto-advance flag, the AI-execution context."""
+        """The head: the world, the generic-target collapse, the AI-execution context."""
         parsed_command, game_state = st.parsed_command, st.game_state
 
         world: WorldState = game_state.get("world")
@@ -1633,11 +1584,7 @@ class CommandExecutor:
                     and is_generic_target(_scope.get("target")):
                 _scope["target"] = None
 
-        # C3: Clear auto-advance flag when player takes any non-end-turn action.
-        # This allows "end turn" to work normally on subsequent turns after auto-advance.
         action = parsed_command.get("action", "")
-        if action != "end_turn" and hasattr(world, '_auto_advanced_to_turn'):
-            world._auto_advanced_to_turn = 0
 
         # ════════════════════════════════════════════════════════════
         # AI-EXECUTION CONTEXT (July 2026 AI audit): commands originating
@@ -2750,6 +2697,17 @@ class CommandExecutor:
                                 _atk_loc)["allowed"]:
                             should_check_objection = False
 
+                # DDB-R5 (Pre-Deploy S13b part 3, the PF-4 idiom): a named
+                # marshal asked for an arm he does not command is refused at
+                # zero cost inside `_execute_recruit` — no objection first.
+                if (action == 'recruit' and should_check_objection
+                        and command.get('requested_type')):
+                    from backend.commands.economy_executor import (
+                        RECRUIT_ARMS, recruit_arm_of)
+                    if (command.get('requested_type') in RECRUIT_ARMS
+                            and command.get('requested_type') != recruit_arm_of(marshal)):
+                        should_check_objection = False
+
                 # ═══════════════════════════════════════════════════════════
                 # RECKLESSNESS STANCE CHECK — Validation BEFORE objection
                 # High recklessness blocks defensive/neutral stance changes.
@@ -2796,6 +2754,13 @@ class CommandExecutor:
                             "actions_remaining": int(world.actions_remaining),
                             "action_summary": world.get_action_summary()
                         }
+
+                # DDB-R2 (Pre-Deploy S13b part 3): the muster's Commit
+                # re-issues an attack that already drew its objection — one
+                # decision, one draw (the seeded stream draws once). Every
+                # validation above still runs on the re-issue.
+                if command.get("_muster_confirmed"):
+                    should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
                 # SKIP OBJECTION if flag was cleared (e.g., by retreat state)
@@ -3487,18 +3452,7 @@ class CommandExecutor:
             if is_admin_action:
                 # Admin actions consume from admin AP pool, not CP
                 world.use_admin_action()
-                # Auto-end turn when BOTH pools are exhausted — unless the
-                # spend is administrative (AAR-12): then the day ends when
-                # the player says so, and the receipt says the pools are dry.
-                both_exhausted = (world.actions_remaining <= 0 and world.admin_actions_remaining <= 0)
-                if both_exhausted:
-                    result["last_order_of_the_day"] = True
-                    if result.get("message"):
-                        result["message"] = f"{result['message']} {LAST_ORDER_OF_THE_DAY_NOTICE}"
-                    else:
-                        result["message"] = LAST_ORDER_OF_THE_DAY_NOTICE
-                both_exhausted = False
-                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1, "should_end_turn": both_exhausted}
+                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1}
             else:
                 # Check for variable action cost (stance_change returns this)
                 variable_cost = result.get("variable_action_cost")
@@ -3521,9 +3475,21 @@ class CommandExecutor:
                 else:
                     # NOW consume the action (after validation passed)
                     action_result = world.use_action(action)
+            # DDB-R4 (Pre-Deploy S13b part 3): no auto-end on EITHER pool —
+            # the order that empties both says so (AAR-12's notice, now on
+            # the military road too) and the turn ends when the player says
+            # so, through the client's one end-turn gate.
+            if (int(action_result.get("action_cost", 0) or 0) > 0
+                    and world.actions_remaining <= 0
+                    and world.admin_actions_remaining <= 0):
+                result["last_order_of_the_day"] = True
+                if result.get("message"):
+                    result["message"] = f"{result['message']} {LAST_ORDER_OF_THE_DAY_NOTICE}"
+                else:
+                    result["message"] = LAST_ORDER_OF_THE_DAY_NOTICE
         elif is_free_action:
             # Free action (counter-punch) - don't consume action point
-            action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0, "should_end_turn": False}
+            action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
             print("  [FREE ACTION] Counter-punch or similar - no action consumed")
 
         st.result, st.action_result = result, action_result
@@ -3531,7 +3497,7 @@ class CommandExecutor:
         return None
 
     def _exec_finish(self, st: "_ExecState") -> Dict:
-        """The finish: the action info, the stand-down, the mild note, the disclosures, the auto end turn."""
+        """The finish: the action info, the stand-down, the mild note, the disclosures (DDB-R4: no auto end turn)."""
         world, parsed_command, game_state, command, action, result = st.world, st.parsed_command, st.game_state, st.command, st.action, st.result
         action_result, is_player_action, marshal_name, mild_message = st.action_result, st.is_player_action, st.marshal_name, st.mild_message
 
@@ -3628,275 +3594,10 @@ class CommandExecutor:
         # OUTERMOST frame and regardless of success. The emit used to sit
         # here, inside the body, where a nested call reached it first.
 
-        # ════════════════════════════════════════════════════════════
-        # AUTO-END TURN: When actions exhausted, call end_turn properly
-        # This ensures enemy AI processes its turn (was being skipped before!)
-        # Must mirror _execute_end_turn() data capture — see P0-1/2/3 audit.
-        # ════════════════════════════════════════════════════════════
-        should_auto_end_turn = action_result.get("should_end_turn", False) and is_player_action
-        # GE-1: the Emperor killed by the player's own last order ends the
-        # war here — the turn does not auto-advance past a fallen Empire.
-        if should_auto_end_turn:
-            from backend.game_logic.game_end import terminal_ending
-            if terminal_ending(world) is not None:
-                should_auto_end_turn = False
-        _defer_notice = self._auto_end_turn_defer_notice(world) if should_auto_end_turn else ""
-        if _defer_notice:
-            if result.get("message"):
-                result["message"] = f"{result['message']} {_defer_notice}"
-            else:
-                result["message"] = _defer_notice
-            should_auto_end_turn = False
-
-        if should_auto_end_turn:
-            from backend.game_logic.turn_manager import TurnManager
-
-            # Capture data BEFORE advance_turn() clears it (same as _execute_end_turn)
-            saved_mild_concerns = [c.copy() for c in world.mild_concerns_this_turn]
-            saved_gold_spent = world.gold_spent_this_turn.copy()
-
-            # Mirror _execute_end_turn's F6/PT-C4 measurement window (Aug 2026
-            # health-check audit): snapshot the treasury and open the materiel
-            # window BEFORE turn processing, so this banner's Net is the TRUE
-            # measured change with an `Other` residual — not a partial
-            # component sum that omitted trade/tribute/treaty/admin (it
-            # understated Net by 605g at the 1805 boot).
-            treasury_before_turn = world.nation_gold.get(world.player_nation, 0)
-            world.materiel_spent_this_turn = {}
-
-            turn_manager = TurnManager(world, executor=self)
-            turn_result = turn_manager.end_turn(game_state)
-
-            # C3: Stamp that auto-advance processed this turn.
-            # Blocks a subsequent "end turn" command from double-advancing.
-            # Cleared when any non-end-turn action is taken on the new turn.
-            world._auto_advanced_to_turn = world.current_turn
-
-            # Update result with turn end info
-            result["action_info"]["turn_advanced"] = True
-            result["action_info"]["new_turn"] = turn_result.get("next_turn")
-
-            # Add enemy phase results to the response (popup dialog, no terminal text)
-            if turn_result.get("enemy_phase"):
-                result["enemy_phase"] = turn_result["enemy_phase"]
-
-            # Tactical events — absorbed into Morning Dispatch's TURN EVENTS section
-            tactical_events = turn_result.get("tactical_events", [])
-            # FINAL-7: Filter by fog (auto-advance path)
-            tactical_events = _filter_tactical_events_by_fog(tactical_events, world)
-            if tactical_events:
-                result["tactical_events"] = tactical_events
-                # Hoist battle_report from tactical events (auto-charge) to result level
-                for te in tactical_events:
-                    if te.get("battle_report"):
-                        result["battle_report"] = te["battle_report"]
-                        break
-                # WO-41 §6b: this path hoisted battle_report and never the
-                # redemption, unlike its end-turn sibling — a last-AP turn
-                # advance that tripped a cavalry/fortify redemption latched
-                # the marshal and dropped the audience with no save involved.
-                # Same shared rule; main.py stamps `state` at the boundary.
-                from backend.commands.disobedience import hoist_tactical_redemption
-                _auto_redemption = hoist_tactical_redemption(tactical_events, world)
-                if _auto_redemption:
-                    result["redemption_event"] = _auto_redemption
-
-            # Add strategic reports — CRITICAL: without this, strategic popups
-            # (hold battles, movement progress) never appear in Godot when the
-            # turn auto-advances from actions being exhausted.
-            if turn_result.get("strategic_reports"):
-                result["strategic_reports"] = turn_result["strategic_reports"]
-            # PT-F1: the auto-advance mirror had the identical hole — it
-            # reads a fixed key set off `turn_result` and this was not in
-            # it, so a player whose last AP ends the turn would have lost
-            # the battle just as thoroughly.
-            if turn_result.get("jealousy_attacks"):
-                result["jealousy_attacks"] = turn_result["jealousy_attacks"]
-
-            # Add Independent Command Report (Phase 2.5) — was missing on auto-advance
-            if turn_result.get("show_independent_command_report"):
-                result["show_independent_command_report"] = True
-                result["independent_command_report"] = turn_result.get("independent_command_report", [])
-
-            # Include saved mild concerns (captured before advance_turn cleared them)
-            if saved_mild_concerns:
-                result["mild_concerns"] = saved_mild_concerns
-
-            # Build turn_end financial event (same as _execute_end_turn)
-            nation = world.player_nation
-            # EB review [1]: prefer the APPLIED income-phase result (the
-            # transient _advance_turn_internal cache) — recomputing here
-            # read the POST-income treasury, so the Charges of Empire
-            # figure shown was never the one charged.
-            income_data = (getattr(world, "_income_phase_results", None) or {}).get(nation) \
-                or world.calculate_turn_income(nation)
-            # Prefer the APPLIED upkeep breakdown (rides the phase result) —
-            # a recompute reads post-_update_bankruptcy state, off by half
-            # the upkeep on a bankruptcy-flip turn (Aug 2026 audit).
-            upkeep_data = income_data.get("upkeep_data") \
-                or world.calculate_turn_upkeep(nation)
-            treasury = world.nation_gold.get(nation, 0)
-            income_val = income_data["income"]
-            upkeep_val = upkeep_data["total"]
-            # ES-2 (S6): occupation is its own Net component (income is gross)
-            occupation_val = int(income_data.get("occupation", 0))
-            # EC-W1/EC-W2 (review finding #6a): the war-coupling components
-            # were missing from this auto-advance banner's net — it overstated
-            # Net on every wartime last-AP advance. Infrastructure had the
-            # same pre-existing gap; all three folded in.
-            contributions_val = int(income_data.get("contributions", 0))
-            # EB-1: the Charges of Empire (absorbs EC-W2's War Effort)
-            state_charges_val = int(income_data.get("state_charges", 0))
-            # EB-5a/EB-2: the positive components ride the banner too
-            requisitions_val = int(income_data.get("requisitions", 0))
-            overseas_val = int(income_data.get("overseas", 0))
-            infrastructure_val = int(income_data.get("infrastructure", 0))
-            # EB review [2]: the Admiralty bill was the one applied-net
-            # component this banner's formula omitted (its meta sibling
-            # reconciles it) — the banner overstated Net by 90g on every
-            # wartime auto-advance at the naval boot.
-            admiralty_val = int(income_data.get("admiralty", 0))
-            # ES-7 (S7): estate redirect is its own Net component too
-            dotation_val = int(income_data.get("dotation_skim", 0))
-            # ES-7 second pass (§0.6.8): the rente bill
-            rente_val = int(income_data.get("rente_cost", 0))
-            # SR-5r RF-1: the upkeep of the laws in force ("Laws")
-            laws_val = int(income_data.get("laws", 0))
-            spent_val = saved_gold_spent.get(nation, 0)
-            # DEF-5 naval: the blockade's trade suspension — its meta sibling
-            # carries it; this banner omitted it (Aug 2026 audit).
-            blockade_val = 0
-            if getattr(world, "fleets", None):
-                from backend.game_logic.naval import blockade_trade_loss
-                blockade_val = int(blockade_trade_loss(world).get(nation, 0))
-            # PT-C4: the Butcher's Bill charged inside this window.
-            materiel_val = int(getattr(world, "materiel_spent_this_turn", {})
-                               .get(nation, 0))
-            # F6 formula (Aug 2026 health-check audit — mirrors
-            # _execute_end_turn): Net is the MEASURED treasury change, and
-            # `Other` is the reconciling residual (trade, tribute, treaty
-            # clauses, admin bonus). The old partial component sum was
-            # neither the measured delta nor the ledger's Net.
-            net_val = treasury - treasury_before_turn
-            # EA-1: the recurring transfers, named and out of `Other`.
-            from backend.game_logic.instruments import subsidies_for
-            subsidies_val = int(subsidies_for(world, nation, applied=True)["net"])
-            cs_val = int(((getattr(world, "_applied_income_transfers", None) or {})
-                          .get("continental_system") or {}).get(nation, 0))
-            other_val = net_val - (income_val + requisitions_val + overseas_val
-                                   + subsidies_val - cs_val
-                                   - occupation_val - contributions_val
-                                   - state_charges_val - dotation_val
-                                   - rente_val - laws_val - infrastructure_val
-                                   - admiralty_val - blockade_val - upkeep_val
-                                   - materiel_val)
-            bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
-            turn_end_event = {
-                "type": "turn_end",
-                "old_turn": int(turn_result.get("turn_ended", world.current_turn - 1)),
-                "new_turn": int(turn_result.get("next_turn", world.current_turn)),
-                "income": int(income_val),
-                "occupation": int(occupation_val),
-                "contributions": int(contributions_val),
-                "requisitions": int(requisitions_val),
-                "overseas": int(overseas_val),
-                "subsidies": int(subsidies_val),
-                "continental_system": int(cs_val),
-                "state_charges": int(state_charges_val),
-                "dotation_skim": int(dotation_val),
-                "rente_cost": int(rente_val),
-                "laws": int(laws_val),
-                "admiralty": int(admiralty_val),
-                "blockade": int(blockade_val),
-                "materiel": int(materiel_val),
-                "infrastructure": int(infrastructure_val),
-                "upkeep": int(upkeep_val),
-                "other": int(other_val),
-                "spent": int(spent_val),
-                "net": int(net_val),
-                "treasury": int(treasury),
-                "bankruptcy_turns": bk_turns,
-            }
-            existing_events = result.get("events", [])
-            result["events"] = [turn_end_event] + existing_events + turn_result.get("events", [])
-
-            # Append financial summary to message
-            net_sign = "+" if net_val >= 0 else ""
-            spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
-            occupation_str = f" | Occupation: -{occupation_val}g" if occupation_val > 0 else ""
-            contributions_str = f" | Contributions: -{contributions_val}g" if contributions_val > 0 else ""
-            requisitions_str = f" | Requisitions: +{requisitions_val}g" if requisitions_val > 0 else ""
-            overseas_str = f" | Overseas: +{overseas_val}g" if overseas_val > 0 else ""
-            subsidies_str = (f" | Subsidies: {'+' if subsidies_val > 0 else ''}{subsidies_val}g"
-                             if subsidies_val != 0 else "")
-            if cs_val > 0:
-                subsidies_str += f" | Continental System: -{cs_val}g"
-            state_charges_str = f" | Charges of Empire: -{state_charges_val}g" if state_charges_val > 0 else ""
-            infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
-            admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
-            dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
-            rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
-            laws_str = f" | Laws: -{laws_val}g" if laws_val > 0 else ""
-            blockade_str = f" | Blockade: -{blockade_val}g" if blockade_val > 0 else ""
-            materiel_str = f" | Materiel: -{materiel_val}g" if materiel_val > 0 else ""
-            other_str = ""
-            if other_val != 0:
-                other_str = f" | Other: {'+' if other_val >= 0 else ''}{other_val}g"
-            # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
-            surcharge_val = int(upkeep_data.get("surcharge", 0))
-            surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{subsidies_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{laws_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str}{other_str} | Upkeep: -{upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
-            if bk_turns > 0:
-                result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
-            # IQ-2: the same collapse line + event keys as _execute_end_turn
-            # (one shared helper — the auto-advance banner must not diverge).
-            from backend.commands.meta_executor import collapse_turn_end_fields
-            _collapse_fields = collapse_turn_end_fields(world)
-            turn_end_event.update(_collapse_fields)
-            if _collapse_fields.get("collapse_line"):
-                result["message"] += f"\n{_collapse_fields['collapse_line']}"
-
-            # Phase 6.2.F: Occupation may complete during turn resolution
-            if world.pending_capture_choice:
-                result["pending_capture_choice"] = True
-                result["capture_data"] = world.pending_capture_choice
-
-            # Check victory/defeat
-            if turn_result.get("victory_check", {}).get("game_over"):
-                result["game_over"] = True
-                result["victory"] = turn_result["victory_check"].get("result")
-            # GE-1: the endings stamped this turn ride the result (the Fall,
-            # the Verdict, a Humbled Peace ratified in transit), and the
-            # message names them — the reason text was otherwise lost here.
-            if turn_result.get("ending"):
-                result["ending"] = turn_result["ending"]
-                result["endings_recorded"] = list(
-                    turn_result.get("endings_recorded") or [])
-                for _ending in result["endings_recorded"]:
-                    _line = f"{_ending.get('title')}: {_ending.get('cause_line')}"
-                    if _ending.get("tier_title"):
-                        _line += f" — {_ending.get('tier_title')}"
-                    result["message"] = f"{result.get('message') or ''}\n{_line}".strip()
-
-            # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5, auto-advance path)
-            from backend.game_logic.dispatch import build_morning_dispatch
-            lapsed_offers = turn_result.get("lapsed_offers", [])
-            if lapsed_offers:
-                result["lapsed_offers"] = lapsed_offers
-            result["morning_dispatch"] = build_morning_dispatch(
-                world, tactical_events, lapsed_offers=lapsed_offers
-            )
-
-            # Autosave at start of new turn (auto-advance path, mirrors _execute_end_turn)
-            from backend.save_manager import autosave
-            autosave(world)
-            # ⚠ FA-S15-2: the `print("Autosave warning: ...")` that stood here
-            # is DELETED, not moved beside a third copy. The failure is now
-            # announced inside `save_manager.autosave` itself, so this call site
-            # and every future one inherit the rail notice for free.
+        # DDB-R4 (Pre-Deploy S13b part 3): the auto-end mirror that stood
+        # here is retired — no order ends the turn; the player does.
 
         return result
-
 
     def _execute_specific(self, command: Dict, game_state: Dict) -> Dict:
         """Execute a specific order (marshal and action both specified)."""

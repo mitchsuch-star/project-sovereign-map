@@ -963,6 +963,133 @@ def charge_on_peace_soil(executor, marshal, enemy_marshal, world):
                                enemy_nation=enemy_marshal.nation)
 
 
+def player_muster_gate_arms(marshal, odds_band: str) -> bool:
+    """DDB-R2 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D2 — WIDEN
+    THE GATE TO "POTENTIAL DISASTER"): the PLAYER's attack pauses on its
+    muster at an unfavourable band whatever the lead's personality — the
+    user's own CA9-D2 test ("entering potential disaster") kept, its "and
+    cautious" clause dropped on its own stated condition (DD-B's play: three
+    non-cautious leads walked into unfavourable odds unwarned). A favourable
+    attack fires at once (CR-6 (b)/(d)); the sovereign never pauses
+    (NAPOLEON_SPEC §15.9a). `objection_v2.MUSTER_GATE_BAND` /
+    `MUSTER_GATE_PERSONALITIES` and `muster_gate_arms` are untouched — the
+    AI's gate and the glory hunt read them, so every series holds; that
+    predicate still decides whose voice halts (a cautious marshal's own, or
+    Berthier's)."""
+    from backend.commands.objection_v2 import MUSTER_GATE_BAND
+    if (getattr(marshal, "is_sovereign", False)
+            or getattr(marshal, "personality", None) == "sovereign"):
+        return False
+    return odds_band == MUSTER_GATE_BAND
+
+
+def what_if_line(marshal, enemy) -> str:
+    """DDB-R2 (2): the free preview, taught where the muster rides a result."""
+    from backend.display_names import humanize_entity_name
+    return (f"Ask 'what if {humanize_entity_name(marshal.name)} attacks "
+            f"{humanize_entity_name(enemy.name)}' to read the muster before you "
+            f"commit — it costs nothing.")
+
+
+_MARCH_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+                6: "six", 7: "seven", 8: "eight", 9: "nine"}
+
+
+def pursuit_ask(ctx, cost):
+    """DDB-R1 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D1 — ASK
+    FIRST): a typed attack on a marshal out of reach no longer becomes a
+    2-AP pursuit that marches at once. It asks, at no cost, naming the
+    pursuit's price and its first march; yes / pursue re-issue the attack
+    with `_pursuit_confirmed` (today's upgrade, NPC-D4's terms), no /
+    cancel spend nothing (CR-2's grammar, `clarification`).
+
+    Typed player orders only (the command carries the typed line,
+    `_raw_input`): the post-objection road, `take <foe>`, strategic
+    execution, an unordered attack and the answered ask keep today's
+    upgrade; the AI never reaches the range check's player arm. Asks only
+    an answer that can be carried out — a marshal the pursuit would refuse
+    (broken, recovering, fortified, drilling, engaged, already on that
+    pursuit, the quarry unseen, no road) falls through to the upgrade's own
+    free refusal. Returns the clarification response, or None."""
+    cmd = ctx.command
+    if not isinstance(cmd, dict) or "_raw_input" not in cmd:
+        return None
+    if (cmd.get("_pursuit_confirmed") or cmd.get("_muster_confirmed")
+            or cmd.get("_strategic_execution") or cmd.get("_autonomous_execution")
+            or _attack_is_unordered(cmd)):
+        return None
+    world, marshal, enemy = ctx.world, ctx.marshal, ctx.enemy_by_name
+    raw = str(cmd.get("_raw_input") or "")
+    from backend.commands.parser import rewrite_take_objective
+    if raw and rewrite_take_objective(raw, None, world)[0] != raw:
+        return None
+    if (marshal.in_retreat_recovery() or getattr(marshal, "broken", False)
+            or getattr(marshal, "fortified", False)
+            or getattr(marshal, "drilling", False)
+            or getattr(marshal, "drilling_locked", False)):
+        return None
+    order = getattr(marshal, "strategic_order", None)
+    if (order is not None and getattr(order, "command_type", "") == "PURSUE"
+            and str(getattr(order, "target", "")).lower() == enemy.name.lower()):
+        return None
+    if any(m.nation != marshal.nation and m.strength > 0
+           and world.is_at_war(marshal.nation, m.nation)
+           for m in world.get_marshals_in_region(marshal.location)):
+        return None
+    from backend.commands.strategic import march_road, pursue_known_location
+    where = pursue_known_location(world, marshal, enemy)
+    if not where:
+        return None
+    road, refusal, _kind = march_road(world, marshal, where, "PURSUE")
+    if refusal is not None or not road:
+        return None
+    from backend.commands.clarification import strategic_reissue_command
+    from backend.display_names import display_nation, humanize_entity_name
+    first = road[0]
+    owner = getattr(world.get_region(first), "controller", None)
+    soil = (f", {display_nation(owner)}'s soil"
+            if owner and owner != marshal.nation else "")
+    steps = len(road)
+    marches = f"{_MARCH_WORDS.get(steps, str(steps))} march{'es' if steps != 1 else ''}"
+    quarry = humanize_entity_name(enemy.name)
+    # A foe we can see across the first march is met there, not passed.
+    blocker = next((m for m in world.get_visible_enemies(marshal.nation)
+                    if m.location == first and m.strength > 0
+                    and m.name != enemy.name), None)
+    first_march = (f"the first march meets {humanize_entity_name(blocker.name)} "
+                   f"at {first}{soil}" if blocker is not None else
+                   f"the first march takes {marshal.name} to {first}{soil}")
+    question = (f"{quarry} stands at {where}, {marches} off. Pursue him "
+                f"({cost} AP — a standing order; {first_march}), or cancel?")
+    reissue = f"{marshal.name}, attack {enemy.name}"
+    return {
+        "success": True,
+        "free_action": True,
+        "state": "awaiting_clarification",
+        "type": "clarification",
+        "clarification_kind": "pursuit_ask",
+        "strategic_type": "PURSUE",
+        "marshal": marshal.name,
+        "message": question,
+        "original_command": raw,
+        "interpreted_target": enemy.name,
+        "interpretation_reason": "out_of_reach",
+        "options": [{
+            "label": f"Pursue {quarry} ({cost} AP)",
+            "value": "specify",
+            "target": enemy.name,
+            "command": reissue,
+            "aliases": ["pursue", "pursue him", f"pursue {enemy.name.lower()}",
+                        strategic_reissue_command(marshal.name, "PURSUE", enemy.name).lower()],
+            # The answer re-issues the attack as asked: the range check's
+            # upgrade runs, with the player's own words (NPC-11).
+            "flags": {"_pursuit_confirmed": True, "_raw_input": raw},
+        }],
+        "action_summary": world.get_action_summary(),
+        "game_state": world.get_filtered_game_state_summary(),
+    }
+
+
 def returns_reinforcers_from_works(ctx) -> str:
     """DDB-14: when the lead halts before a province's works, the corps that
     marched to his guns return to their origins (Gate 4's return), and say
@@ -6807,6 +6934,21 @@ class CombatExecutor:
                             "game_state": ctx.world.get_filtered_game_state_summary()
                         }
 
+                    # DDB-X24 (Pre-Deploy S13b part 3, found by DDB-R1's
+                    # sweep): the player's typed bare attack with nobody in
+                    # reach marched a step at once — R1's class. It asks
+                    # first, in R1's words, when the pursuit could be paid;
+                    # otherwise (and for every other road) the step below.
+                    if ctx.marshal.nation == ctx.world.player_nation:
+                        _cost = ctx.marshal.strategic_order_ap(
+                            auto_upgrade=False, order_type="PURSUE")
+                        if ctx.world.actions_remaining >= _cost:
+                            from types import SimpleNamespace
+                            _ask = pursuit_ask(SimpleNamespace(
+                                command=ctx.command, world=ctx.world,
+                                marshal=ctx.marshal, enemy_by_name=nearest_enemy), _cost)
+                            if _ask is not None:
+                                return _ask
                     # Non-literal marshals: move toward the enemy
                     ctx.current_region = ctx.world.get_region(ctx.marshal.location)
                     best_next = None
@@ -7093,6 +7235,10 @@ class CombatExecutor:
                             "actions_remaining": int(ctx.world.actions_remaining),
                             "action_summary": ctx.world.get_action_summary()
                         }
+                    # DDB-R1: a typed attack out of reach asks first.
+                    _ask = pursuit_ask(ctx, strategic_cost)
+                    if _ask is not None:
+                        return _ask
                     print(f"[ATTACK->PURSUE] {ctx.marshal.name}: {ctx.target} out of range (distance {ctx.distance}), auto-upgrading to PURSUE")
                     pursue_parsed = {
                         "success": True,
@@ -7703,8 +7849,12 @@ class CombatExecutor:
             # (objection_v2.muster_gate_arms) decides this and the copy
             # below; the band itself still rides every resolved attack, so
             # narrowing the gate removes the interruption, not the numbers.
+            # DDB-R2 (Pre-Deploy S13b part 3): the player's gate arms on the
+            # band alone (`player_muster_gate_arms`); the CA9 predicate still
+            # chooses the voice — a cautious marshal halts in his own words,
+            # any other lead is stayed by Berthier, who names the band.
             from backend.commands.objection_v2 import muster_gate_arms
-            if gate_armed and muster_gate_arms(
+            if gate_armed and player_muster_gate_arms(
                     ctx.marshal, ctx.muster_preview["odds_band"]):
                 # E-CA-4: the attack does NOT resolve on the first call —
                 # the muster block IS the odds warning. The interrupt
@@ -7725,6 +7875,13 @@ class CombatExecutor:
                 from backend.game_logic.marshal_voice import (
                     cautious_muster_halt,
                 )
+                _halt = (cautious_muster_halt(
+                            ctx.marshal.name, int(ctx.world.current_turn))
+                         if muster_gate_arms(ctx.marshal, ctx.muster_preview["odds_band"])
+                         else (f"Berthier stays the order a moment, Sire: before "
+                               f"{humanize_entity_name(ctx.marshal.name)} marches on "
+                               f"{humanize_entity_name(ctx.enemy_marshal.name)}, "
+                               f"read the muster."))
                 interrupt = {
                     "interrupt_type": "muster_confirm",
                     "marshal": ctx.marshal.name,
@@ -7732,8 +7889,7 @@ class CombatExecutor:
                     "options": ["attack_anyway", "cancel_order"],
                     "message": (
                         (f"{_disclosure}\n\n" if _disclosure else "")
-                        + cautious_muster_halt(
-                            ctx.marshal.name, int(ctx.world.current_turn))
+                        + _halt
                         + f"\n\nThe muster reads "
                         f"{ctx.muster_preview['odds_band']}. "
                         # WO slice 8 in-game pass [V-3]: this message is
@@ -9713,7 +9869,9 @@ class CombatExecutor:
         # prepended compact (favorable odds resolve straight through; a
         # confirmed re-issue still shows who mustered and why).
         if ctx.muster_preview is not None:
+            # DDB-R2 (2): the muster riding a result teaches the free preview.
             battle_message = (self._format_muster_lines(ctx.muster_preview)
+                              + "\n" + what_if_line(ctx.marshal, ctx.enemy_marshal)
                               + "\n\n" + battle_message)
 
         # W6-2 Dynamic Battle Naming: battle_name was composed once above

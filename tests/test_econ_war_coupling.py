@@ -535,18 +535,14 @@ class TestReviewRoundFixes:
         assert '"overseas"' in gd
 
     def test_auto_advance_banner_includes_new_components(self):
-        """Finding #6a: the executor auto-advance turn_end net must subtract
-        contributions/state_charges/infrastructure (source-level pin — the
-        banner previously overstated Net on every wartime last-AP advance).
-        EB-1 re-bless: war_effort_val became state_charges_val."""
+        """Finding #6a: the executor auto-advance turn_end net had to
+        subtract contributions/state_charges/infrastructure. DDB-R4
+        (Pre-Deploy S13b part 3) retired the auto-advance and its banner
+        twin: the ONE end-turn banner is meta_executor's (pinned above), and
+        executor.py writes no turn_end event at all."""
         src = (Path(__file__).resolve().parents[1] / "backend" / "commands"
                / "executor.py").read_text(encoding="utf-8")
-        anchor = src.index('"type": "turn_end"')
-        window = src[max(0, anchor - 3000):anchor]
-        assert "contributions_val" in window
-        assert "state_charges_val" in window
-        assert "infrastructure_val" in window
-        assert "war_effort_val" not in window
+        assert '"type": "turn_end"' not in src
 
 
 # ═══════════════════════ EC-W3: The Butcher's Bill ══════════════════════════

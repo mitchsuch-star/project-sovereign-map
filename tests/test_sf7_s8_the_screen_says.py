@@ -454,11 +454,14 @@ class TestTheClientHalf:
         assert 'elif visibility == "stale" and controller != _PLAYER_NATION:' in src
 
     def test_the_day_says_when_it_ends(self):
-        """The auto-end confirm's client half."""
+        """The auto-end confirm's client half. DDB-R4 (Pre-Deploy S13b part
+        3): no order ends the turn, so the warning copy is retired; the spent
+        day still turns the End Turn button gold."""
         src = _gd("main.gd")
         assert "_note_the_end_of_the_day()" in src
-        assert "var _auto_end_warned_turn := -1" in src
-        assert '"spends your last action ends the turn at once."' in src
+        assert "var _auto_end_warned_turn := -1" not in src
+        assert '"spends your last action ends the turn at once."' not in src
+        assert 'const DAY_SPENT_BUTTON_TEXT := "End Turn (E) \u25b8"' in src
 
     def test_the_screenshot_board_is_the_real_boot(self):
         """CX3-R9."""

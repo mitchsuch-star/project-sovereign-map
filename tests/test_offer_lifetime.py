@@ -377,7 +377,10 @@ class TestAutoEndTurnOfferGuard:
         assert result["action_info"]["turn_advanced"] is False
         assert world.current_turn == 5
         assert world.dialogue_manager.has_current_turn_offers() is True
-        assert "unanswered envoys remain" in result.get("message", "")
+        # DDB-R4 (Pre-Deploy S13b part 3): no order ends the turn, so WO-22's
+        # defer copy is retired — the receipt says the day is spent, and the
+        # client's one end-turn gate names the envoys.
+        assert "That was the last order the day could take" in result.get("message", "")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -728,7 +731,9 @@ class TestAskLaterLapse:
 class TestAutoEndTurnWithoutOffers:
 
     def test_last_action_auto_ends_without_pending_offer(self):
-        """AP exhaustion auto-advances when no offers are pending."""
+        """AP exhaustion auto-advanced when no offers were pending. DDB-R4
+        (Pre-Deploy S13b part 3): NO AUTO-END ON EITHER POOL — the turn waits
+        on the player's end turn, offers or none."""
         from backend.commands.executor import CommandExecutor
         from backend.commands.parser import CommandParser
 
@@ -742,8 +747,9 @@ class TestAutoEndTurnWithoutOffers:
         executor = CommandExecutor()
         result = executor.execute(parsed, {"world": world})
         assert result.get("success", False) is True
-        assert result["action_info"]["turn_advanced"] is True
-        assert world.current_turn == 6
+        assert result["action_info"]["turn_advanced"] is False
+        assert world.current_turn == 5
+        assert "That was the last order the day could take" in result.get("message", "")
 
 
 # ═══════════════════════════════════════════════════════════════

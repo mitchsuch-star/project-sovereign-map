@@ -362,10 +362,13 @@ class TestF1ActuallyReachesTheClient:
         assert "new_state" not in result["jealousy_attacks"][0]
 
     def test_the_auto_advance_mirror_forwards_it_too(self):
-        """A player whose last AP ends the turn takes the other path."""
+        """A player whose last AP ended the turn took the other path. DDB-R4
+        (Pre-Deploy S13b part 3): that path is retired — every turn ends by
+        the player's end turn, the one road that forwards it."""
         src = (REPO / "backend" / "commands" / "executor.py").read_text(
             encoding="utf-8")
-        assert 'result["jealousy_attacks"] = turn_result["jealousy_attacks"]' in src
+        assert 'result["jealousy_attacks"] = turn_result["jealousy_attacks"]' not in src
+        assert "turn_manager.end_turn(" not in src
 
 
 class TestTheVoidedOrderLineIsHumanized:

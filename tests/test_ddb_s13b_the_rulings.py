@@ -53,6 +53,27 @@ Part 3 (October 15, 2026), its head:
            before it rides: onto peace soil it is refused at no cost in the
            attack's own words, no popup first; the reckless auto-charge picks
            no target there. The AI keeps PT-F1.
+
+Part 3, slice 2 — the rulings' builds (`DESIGN_REFINEMENT.md` §DD-B):
+
+  DDB-R1   ASK FIRST: a typed attack on a marshal out of reach asks, at no
+           cost, naming the pursuit's price and first march.
+  DDB-R2   the muster gate arms on an unfavourable band for ANY lead (the
+           sovereign never); Berthier names it; the commit draws once; the
+           free preview is taught.
+  DDB-R4   NO AUTO-END ON EITHER POOL: the mirror, WO-22's defer, the C3
+           guard, the unread keys and the warning copy are retired.
+  DDB-R5   a named marshal's mismatched arm is refused at no cost, naming
+           both roads.
+  DDB-R7   at a rich peace, the counsel and the dispatch name the law the
+           chest can buy.
+
+Part 3, slice 2's sweep:
+
+  DDB-X23  (found by DDB-R2) the parked muster's live check reads the lead's
+           reach, not adjacency.
+  DDB-X24  (found by DDB-R1) the player's bare attack with nobody in reach
+           asks before it marches.
 """
 from __future__ import annotations
 
@@ -780,3 +801,390 @@ class TestDDBX17:
         murat, mack = _murat_before_nassau(w, 4)
         murat.location = "Nassau"
         assert reckless_charge_peace_owner(w, murat, mack) is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S13b part 3, slice 2 — the orders: DDB-R1, R2, R4, R5, R7
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _kutuzov_three_marches_off(w):
+    """Ney on Rhineland; Kutuzov seen at Bohemia, three marches off — the
+    road's first march is Swabia, Bavaria's soil."""
+    ney, kut = w.get_marshal("Ney"), w.get_marshal("Kutuzov")
+    kut.location = "Bohemia"
+    w.get_marshal("Mack").location = "Munich"
+    w._build_marshal_index()
+    w.calculate_visibility()
+    return ney, kut
+
+
+class TestDDBR1:
+    """DDB-D1 — ASK FIRST: a typed attack on a marshal out of reach asks, at
+    no cost, naming the pursuit's price and its first march."""
+
+    _ASK = ("Kutuzov stands at Bohemia, three marches off. Pursue him (2 AP — a "
+            "standing order; the first march takes Ney to Swabia, Bavaria's "
+            "soil), or cancel?")
+
+    def test_the_attack_asks_and_spends_nothing(self, client):
+        c, w = client
+        ney, _ = _kutuzov_three_marches_off(w)
+        r = _post(c, "/command", {"command": "Ney, attack Kutuzov in Bohemia"})
+        assert r.get("state") == "awaiting_clarification", r
+        assert r["message"] == self._ASK, r["message"]
+        assert w.actions_remaining == 4 and ney.strategic_order is None
+        assert ney.location == "Rhineland"
+
+    @pytest.mark.parametrize("answer", ["yes", "pursue", "Ney, attack Kutuzov"])
+    def test_yes_pursues_with_npc_d4s_terms(self, client, answer):
+        c, w = client
+        ney, _ = _kutuzov_three_marches_off(w)
+        _post(c, "/command", {"command": "Ney, attack Kutuzov in Bohemia"})
+        r = _post(c, "/command", {"command": answer})
+        assert r.get("success") is True, r.get("message")
+        assert getattr(ney.strategic_order, "command_type", None) == "PURSUE"
+        assert "A standing order, not a single attack" in r["message"], r["message"]
+        assert ney.location == "Swabia" and w.actions_remaining == 2
+        # The player's own words ride the order (NPC-11).
+        assert ney.strategic_order.original_command == "Ney, attack Kutuzov in Bohemia"
+
+    @pytest.mark.parametrize("answer", ["no", "cancel"])
+    def test_no_spends_nothing(self, client, answer):
+        c, w = client
+        ney, _ = _kutuzov_three_marches_off(w)
+        _post(c, "/command", {"command": "Ney, attack Kutuzov in Bohemia"})
+        r = _post(c, "/command", {"command": answer})
+        assert "the order is withdrawn" in r["message"]
+        assert w.actions_remaining == 4 and ney.strategic_order is None
+        assert ney.location == "Rhineland"
+
+    def test_take_keeps_todays_upgrade(self, client):
+        c, w = client
+        ney, _ = _kutuzov_three_marches_off(w)
+        r = _post(c, "/command", {"command": "Ney, take Kutuzov"})
+        assert r.get("state") != "awaiting_clarification"
+        assert getattr(ney.strategic_order, "command_type", None) == "PURSUE"
+
+    def test_a_foe_across_the_first_march_is_named(self, client):
+        c, w = client
+        _kutuzov_three_marches_off(w)
+        w.get_marshal("Mack").location = "Swabia"
+        w._build_marshal_index()
+        w.calculate_visibility()
+        r = _post(c, "/command", {"command": "Ney, attack Kutuzov"})
+        assert "the first march meets Mack at Swabia, Bavaria's soil" in r["message"], r
+
+    def test_strategic_and_unordered_roads_never_ask(self, w):
+        from types import SimpleNamespace
+        from backend.commands.combat_executor import pursuit_ask
+        ney, kut = _kutuzov_three_marches_off(w)
+        for cmd in (None, {}, {"_raw_input": "x", "_pursuit_confirmed": True},
+                    {"_raw_input": "x", "_strategic_execution": True},
+                    {"_raw_input": "x", "_jealousy_autonomous": True},
+                    {"_raw_input": "x", "_defiance": True},
+                    {"_raw_input": "x", "_muster_confirmed": True}):
+            ctx = SimpleNamespace(command=cmd, world=w, marshal=ney, enemy_by_name=kut)
+            assert pursuit_ask(ctx, 2) is None, cmd
+
+    def test_the_ai_never_reaches_it(self, w):
+        """The range check's upgrade arm is the player's; an AI marshal out
+        of reach is refused, never asked."""
+        from backend.commands.executor import CommandExecutor
+        with contextlib.redirect_stdout(io.StringIO()):
+            ex = CommandExecutor()
+            kut = w.get_marshal("Kutuzov")
+            r = ex._combat._execute_attack(kut, "Ney", w, {"world": w},
+                                           command={"_raw_input": "x"})
+        assert r.get("state") != "awaiting_clarification"
+
+
+def _ney_outmatched(w, personality="aggressive"):
+    ney = w.get_marshal("Ney")
+    for n in ("Davout", "Soult", "Lannes", "Murat", "Napoleon", "Massena", "Bernadotte"):
+        w.get_marshal(n).location = "Paris"
+    ney.location, ney.strength, ney.personality = "Rhineland", 8000, personality
+    w._build_marshal_index()
+    w.calculate_visibility()
+    return ney
+
+
+class TestDDBR2:
+    """DDB-D2 — the muster gate widened to "potential disaster" for any
+    personality; the free preview taught."""
+
+    def test_a_non_cautious_lead_pauses_on_an_unfavourable_band(self, client):
+        c, w = client
+        _ney_outmatched(w)
+        r = _post(c, "/command", {"command": "Ney, attack Mack"})
+        assert r.get("requires_input") is True, r.get("message")
+        assert (r.get("pending_interrupt") or {}).get("interrupt_type") == "muster_confirm"
+        assert r["message"].startswith("Berthier stays the order a moment, Sire: "
+                                       "before Ney marches on Mack, read the muster.")
+        assert "The muster reads unfavorable." in r["message"]
+        assert w.actions_remaining == 4
+
+    def test_cancel_spends_nothing(self, client):
+        c, w = client
+        ney = _ney_outmatched(w)
+        _post(c, "/command", {"command": "Ney, attack Mack"})
+        r = _post(c, "/strategic_response", {"marshal_name": "Ney", "response_type": "muster_confirm", "choice": "cancel_order"})
+        assert "stands down" in str(r.get("message")), r
+        assert w.actions_remaining == 4 and ney.pending_interrupt is None
+
+    def test_a_cautious_lead_still_halts_in_his_own_words(self, client, monkeypatch):
+        """(His objection, which comes first, is held down: the voice of the
+        pause is the subject.)"""
+        from backend.commands import executor as EX
+        monkeypatch.setattr(EX, "evaluate_situation",
+                            lambda *a, **k: EX.ConcernLevel.NONE)
+        c, w = client
+        _ney_outmatched(w, personality="cautious")
+        r = _post(c, "/command", {"command": "Ney, attack Mack"})
+        assert r.get("requires_input") is True
+        assert r["message"].startswith("Ney halts before the order is carried out.")
+
+    def test_the_sovereign_never_pauses(self):
+        from types import SimpleNamespace
+        from backend.commands.combat_executor import player_muster_gate_arms
+        assert player_muster_gate_arms(
+            SimpleNamespace(personality="sovereign", is_sovereign=True), "unfavorable") is False
+        assert player_muster_gate_arms(
+            SimpleNamespace(personality="aggressive", is_sovereign=False), "unfavorable") is True
+        assert player_muster_gate_arms(
+            SimpleNamespace(personality="cautious", is_sovereign=False), "favorable") is False
+
+    def test_the_ais_gate_constants_are_untouched(self):
+        from backend.commands import objection_v2 as O
+        assert O.MUSTER_GATE_BAND == "unfavorable"
+        assert O.MUSTER_GATE_PERSONALITIES == frozenset({"cautious"})
+
+    def test_a_committed_attack_draws_its_objection_once(self, client, monkeypatch):
+        """The muster's Commit re-issues the attack exempt from a second
+        objection draw (`_muster_confirmed`)."""
+        from backend.commands import executor as EX
+        c, w = client
+        _ney_outmatched(w)
+        _post(c, "/command", {"command": "Ney, attack Mack"})
+        calls = []
+        real = EX.evaluate_situation
+        monkeypatch.setattr(EX, "evaluate_situation",
+                            lambda *a, **k: calls.append(a[1]) or real(*a, **k))
+        r = _post(c, "/strategic_response", {"marshal_name": "Ney", "response_type": "muster_confirm", "choice": "attack_anyway"})
+        assert r.get("success") is True, r.get("message")
+        assert not r.get("objection") and w.pending_objection is None
+        assert not calls
+
+    def test_every_muster_riding_a_result_teaches_the_preview(self, client):
+        c, w = client
+        _ney_outmatched(w)
+        w.get_marshal("Ney").strength = 90000
+        w.get_marshal("Mack").strength = 3000
+        r = _post(c, "/command", {"command": "Ney, attack Mack"})
+        assert r.get("success") is True and not r.get("requires_input"), r.get("message")
+        assert ("Ask 'what if Ney attacks Mack' to read the muster before you "
+                "commit — it costs nothing." in r["message"]), r["message"]
+
+    def test_the_help_and_the_tutor_name_it(self, client):
+        c, _w = client
+        r = _post(c, "/command", {"command": "help"})
+        assert '"what if Ney attacks Mack" - the MUSTER before you commit' in r["message"]
+        card = (REPO / "godot-client" / "project-sovereign" / "scripts"
+                / "tutorial_overlay.gd").read_text(encoding="utf-8")
+        assert "what if Ney attacks Mack[/color] and Berthier reads it for nothing" in card
+
+
+class TestDDBR4:
+    """DDB-D4 — NO AUTO-END ON EITHER POOL."""
+
+    def test_the_last_military_action_leaves_the_turn(self, client):
+        c, w = client
+        w.actions_remaining, w.admin_actions_remaining = 1, 0
+        r = _post(c, "/command", {"command": "Davout, defend"})
+        assert r.get("success") is True
+        assert w.current_turn == 1
+        assert "the last order the day could take" in r["message"]
+        assert (r.get("action_info") or {}).get("turn_advanced") is False
+        r = _post(c, "/command", {"command": "end turn"})
+        assert w.current_turn == 2
+
+    def test_the_last_admin_action_leaves_the_turn_too(self, client):
+        c, w = client
+        w.actions_remaining, w.admin_actions_remaining = 0, 1
+        r = _post(c, "/command", {"command": "recruit for Davout"})
+        assert r.get("success") is True, r.get("message")
+        assert w.current_turn == 1
+        assert "the last order the day could take" in r["message"]
+
+    def test_the_retired_machinery_is_gone(self):
+        from backend.commands.executor import CommandExecutor
+        assert not hasattr(CommandExecutor, "_auto_end_turn_defer_notice")
+        src = (REPO / "backend" / "commands" / "executor.py").read_text(encoding="utf-8")
+        assert "should_end_turn" not in src
+        gd = (REPO / "godot-client" / "project-sovereign" / "scripts" / "main.gd").read_text(encoding="utf-8")
+        assert "const AUTO_END_WARNING" not in gd and "AUTO_END_WAITS_WARNING :=" not in gd
+        assert 'const DAY_SPENT_BUTTON_TEXT := "End Turn (E) ▸"' in gd
+
+    def test_old_saves_load(self, w):
+        data = json.loads(json.dumps(w.to_dict(), default=str))
+        data["auto_advanced_to_turn"] = 3
+        back = WorldState.from_dict(data)
+        assert back._auto_advanced_to_turn == 3
+        assert back.to_dict()["auto_advanced_to_turn"] == 3
+
+
+class TestDDBR5:
+    """DDB-D5 — REFUSE AT NO COST, NAMING BOTH ROADS."""
+
+    def test_a_mismatched_arm_spends_nothing_and_names_both_roads(self, client):
+        c, w = client
+        davout = w.get_marshal("Davout")
+        gold, admin = w.gold, w.admin_actions_remaining
+        pool = dict(getattr(w, "manpower_pools", {}) or {})
+        strength = davout.strength
+        r = _post(c, "/command", {"command": "recruit artillery for Davout"})
+        assert r.get("success") is False
+        assert r["message"] == (
+            "Davout commands infantry — 'Davout, recruit' raises foot for him; "
+            "guns are raised by an artillery corps — commission Marmont (4,500g). "
+            "Nothing was spent."), r["message"]
+        assert (w.gold, w.admin_actions_remaining, davout.strength) == (gold, admin, strength)
+        assert dict(getattr(w, "manpower_pools", {}) or {}) == pool
+
+    def test_the_nearest_commander_of_the_arm_is_named(self, client):
+        c, _w = client
+        r = _post(c, "/command", {"command": "recruit cavalry for Davout"})
+        assert r["message"] == (
+            "Davout commands infantry — 'Davout, recruit' raises foot for him; "
+            "horse are raised by a cavalry corps — 'Murat, recruit' raises them "
+            "at Franche-Comte. Nothing was spent."), r["message"]
+
+    def test_his_own_arm_still_levies(self, client):
+        c, w = client
+        gold = w.gold
+        r = _post(c, "/command", {"command": "recruit infantry for Davout"})
+        assert r.get("success") is True, r.get("message")
+        assert w.gold < gold
+
+
+def _at_peace(w, gold: int) -> None:
+    for key, state in list(w.diplomatic_states.items()):
+        if "France" in key.split("|") and state in ("WAR", "ARMISTICE"):
+            w.diplomatic_states[key] = "PEACE"
+    w.invalidate_active_nations_cache()
+    w.invalidate_bloc_members_cache()
+    w.gold = gold
+
+
+class TestDDBR7:
+    """DDB-D7 — KEEP THE RICH PEACE, SURFACE ITS SINK."""
+
+    def test_at_a_rich_peace_both_surfaces_name_the_law(self, client):
+        from backend.game_logic.dispatch import build_morning_dispatch
+        c, w = client
+        _at_peace(w, 31889)
+        with contextlib.redirect_stdout(io.StringIO()):
+            situation = build_morning_dispatch(w, []).get("situation") or {}
+        assert situation.get("law_sink") == (
+            "the chest could found the Grand Quartier Général — 9,000g")
+        r = _post(c, "/command", {"command": "what can I do"})
+        assert "enact the Staff — 9,000g" in r["message"], r["message"]
+
+    def test_the_counsel_names_it_where_the_purse_test_holds_back(self, w, monkeypatch):
+        from backend.ai import counsel
+        from backend.game_logic import reforms as R
+        _at_peace(w, 31889)
+        monkeypatch.setattr(R, "ai_purse_refusal", lambda *a, **k: "held back")
+        lines = counsel.economy_counsel(w, "France")
+        assert lines and lines[0].startswith("enact the Staff — 9,000g"), lines
+
+    def test_nothing_at_war_or_when_nothing_is_affordable(self, w):
+        from backend.ai import counsel
+        from backend.game_logic import reforms as R
+        w.gold = 31889
+        assert R.peace_sink_line(w, "France") == ""          # the 1805 boot is at war
+        assert counsel._peace_sink_terms(w, "France") is None
+        _at_peace(w, 2000)
+        assert R.peace_sink_line(w, "France") == ""
+        _at_peace(w, 31889)
+        key = w._make_diplo_key("France", "Austria")
+        w.diplomatic_states[key] = "ARMISTICE"
+        assert R.peace_sink_line(w, "France") == ""
+        assert R.peace_sink_law(w, "Austria") is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Part 3, slice 2's sweep — the orders
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestDDBX23:
+    """Found by DDB-R2's sweep: the parked muster's live check read
+    adjacency, not the lead's reach — a cavalryman's committed attack two
+    provinces off was retired as "marched away" from a muster that had not
+    moved, and the attack never went in."""
+
+    def test_a_committed_charge_two_provinces_off_goes_in(self, client):
+        c, w = client
+        murat, mack = w.get_marshal("Murat"), w.get_marshal("Mack")
+        for n in ("Davout", "Soult", "Lannes", "Ney", "Napoleon", "Massena", "Bernadotte"):
+            w.get_marshal(n).location = "Paris"
+        murat.location, murat.strength = "Lorraine", 6000
+        mack.location = "Franconia"
+        w._build_marshal_index()
+        w.calculate_visibility()
+        assert w.get_distance("Lorraine", "Franconia") == 2 == murat.movement_range
+        r = _post(c, "/command", {"command": "Murat, attack Mack"})
+        assert (r.get("pending_interrupt") or {}).get("interrupt_type") == "muster_confirm"
+        strength = mack.strength
+        r = _post(c, "/strategic_response", {"marshal_name": "Murat",
+                                             "response_type": "muster_confirm",
+                                             "choice": "attack_anyway"})
+        assert r.get("success") is True and not r.get("decision_retired"), r.get("message")
+        assert mack.strength < strength
+
+    def test_beyond_his_reach_it_is_still_retired(self, w):
+        from backend.commands.strategic import muster_is_live
+        murat, mack = w.get_marshal("Murat"), w.get_marshal("Mack")
+        murat.location, mack.location = "Lorraine", "Bohemia"
+        w._build_marshal_index()
+        w.calculate_visibility()
+        live, reason = muster_is_live(murat, w, {"interrupt_type": "muster_confirm",
+                                                 "target": "Mack"})
+        assert live is False and "Mack" in reason
+
+
+class TestDDBX24:
+    """Found by DDB-R1's sweep: the player's bare "attack" with nobody in
+    reach marched a non-literal marshal a step at once — R1's class. It
+    asks first, in R1's words."""
+
+    def test_a_bare_attack_out_of_reach_asks(self, client):
+        c, w = client
+        ney, kut = w.get_marshal("Ney"), w.get_marshal("Kutuzov")
+        for m in w.marshals.values():
+            if m.nation != "France" and w.is_at_war("France", m.nation) and m.name != "Kutuzov":
+                m.location = "Podolia"
+        kut.location = "Bohemia"
+        w._build_marshal_index()
+        w.calculate_visibility()
+        r = _post(c, "/command", {"command": "Ney, attack"})
+        assert r.get("state") == "awaiting_clarification", r.get("message")
+        assert r["message"].startswith("Kutuzov stands at Bohemia, three marches off.")
+        assert ney.location == "Rhineland" and w.actions_remaining == 4
+        r = _post(c, "/command", {"command": "yes"})
+        assert getattr(ney.strategic_order, "command_type", None) == "PURSUE", r.get("message")
+
+    def test_without_the_pursuits_price_the_step_stands(self, client):
+        """An ask whose every answer must fail is never asked: with one
+        action left the pursuit cannot be paid, and the step is taken."""
+        c, w = client
+        ney, kut = w.get_marshal("Ney"), w.get_marshal("Kutuzov")
+        for m in w.marshals.values():
+            if m.nation != "France" and w.is_at_war("France", m.nation) and m.name != "Kutuzov":
+                m.location = "Podolia"
+        kut.location = "Bohemia"
+        w._build_marshal_index()
+        w.calculate_visibility()
+        w.actions_remaining = 1
+        r = _post(c, "/command", {"command": "Ney, attack"})
+        assert r.get("state") != "awaiting_clarification"
+        assert "moving toward Kutuzov" in str(r.get("message")), r.get("message")

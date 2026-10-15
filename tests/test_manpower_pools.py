@@ -554,10 +554,11 @@ class TestPlayerParsing:
         give_gold(world, "France", 500)
 
         result = recruit_result(world, executor, marshal="Davout", requested_type="cavalry")
-        assert result["success"] is True
-        assert "Berthier notes" in result["message"]
-        assert "infantry" in result["message"]
-        assert result["events"][0]["recruit_type"] == "infantry"
+        # DDB-R5 (Pre-Deploy S13b part 3): refused at no cost, naming both
+        # roads — no longer raised and corrected after the spend.
+        assert result["success"] is False
+        assert "Davout commands infantry" in result["message"]
+        assert "Nothing was spent." in result["message"]
 
     def test_recruit_for_ney_auto_cavalry(self):
         """'recruit for Ney' -> auto-cavalry."""

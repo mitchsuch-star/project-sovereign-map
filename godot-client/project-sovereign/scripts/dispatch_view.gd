@@ -148,7 +148,11 @@ func _on_dispatch_received(response):
 	# on 10 of 18 turns — so it says which one it is.
 	var delta_label = str(situation.get("treasury_delta_label", ""))
 	var delta_suffix = "" if delta_label == "" else " " + delta_label
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]\n"
+	# DDB-R7 (Pre-Deploy S13b part 3): the law the chest could buy at a rich
+	# peace — the same `law_sink` the terminal's dispatch reads.
+	var law_sink := str(situation.get("law_sink", ""))
+	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8)[/color]"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix + "\n"
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named, and
 	# the forecast — the same source as the terminal's dispatch.
 	var staff_arrived = situation.get("staff_arrived", null)

@@ -377,20 +377,9 @@ var admin_actions_remaining = 2
 var max_admin_actions = 2
 var current_turn = 1
 var max_turns = 40
-# Chunk 9 — the auto-end's client half (Score Finish Step 7 slice 8):
-# the turn a warning was printed for, so it is said once a turn.
-var _auto_end_warned_turn := -1
-const AUTO_END_WARNING := ("▸ The administration is spent: the order that "
-	+ "spends your last action ends the turn at once.")
-# SF7-X19 (Score Finish Step 7, the frames, Oct 4 2026): the Mode C session
-# printed AUTO_END_WARNING, spent the last action — and the day did NOT end:
-# WO-22 defers the auto-advance while a current-turn envoy waits
-# (`executor._auto_end_deferral_reason`, `has_current_turn_offers`). When
-# letters wait, the line says the day waits on them instead.
-const AUTO_END_WAITS_WARNING := ("▸ The administration is spent: when your "
-	+ "last action is spent, the day waits on the envoys — answer them, or "
-	+ "end the turn and let them lapse.")
-const THE_DAY_SAYS_WHAT_WAITS := true
+# DDB-R4 (Pre-Deploy S13b part 3): no order ends the turn by itself, so the
+# auto-end warning copy (AUTO_END_WARNING / AUTO_END_WAITS_WARNING) is
+# retired; a spent day turns the End Turn button gold and waits on it.
 const DAY_SPENT_BUTTON_TEXT := "End Turn (E) ▸"
 const END_TURN_BUTTON_TEXT := "End Turn (E)"
 var gold = 1200
@@ -4986,7 +4975,11 @@ func _display_morning_dispatch(data: Dictionary):
 	# PT-C4: a component sum, not an observed delta — say so.
 	var delta_label = str(situation.get("treasury_delta_label", ""))
 	var delta_suffix = "" if delta_label == "" else " " + delta_label
-	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]")
+	# DDB-R7 (Pre-Deploy S13b part 3): at a rich peace the line names the law
+	# the chest could buy (`law_sink`, absent otherwise).
+	var law_sink := str(situation.get("law_sink", ""))
+	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8)[/color]"
+	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix)
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named ("the
 	# dispatch names why"), and the forecast — the same source as the
 	# end-turn banner and the LAWS tab.
@@ -5547,19 +5540,12 @@ func _update_status(action_summary: Dictionary):
 
 
 func _note_the_end_of_the_day() -> void:
-	"""Chunk 9 — the auto-end confirm's client half (Score Finish Step 7
-	slice 8, FOR USER CONFIRMATION). The backend keeps the military road's
-	auto-advance (the enemy phase must never be skipped) and, since AAR-12,
-	leaves an exhausted day to the player when its LAST order was
-	administrative. Two things the client never said:
-	  * before the day's last action — once a turn, when the administration
-		is spent and the actions are down to the last one or two — that the
-		order spending them ends the turn at once;
-	  * a day spent but waiting — the End Turn button is the next thing to
-		press, and it says so.
-	No modal before an order: the typed `end turn` keeps its envoy-lapse
-	confirm, and WO-22 defers the auto-advance for envoys and an unanswered
-	capture question."""
+	"""Chunk 9's client half, as DDB-R4 (Pre-Deploy S13b part 3) leaves it: no
+	order ends the turn by itself on either pool, so nothing warns before the
+	last action — the receipt of the order that empties the day says so
+	("the last order of the day"), and a spent day turns the End Turn button
+	gold: it is the next thing to press, and its own gate (envoys, last
+	stands) guards every end of a turn."""
 	if end_turn_button == null:
 		return
 	var spent := int(actions_remaining) <= 0 and int(admin_actions_remaining) <= 0
@@ -5568,31 +5554,6 @@ func _note_the_end_of_the_day() -> void:
 		end_turn_button.add_theme_color_override("font_color", Color.html("#" + Utils.COLOR_GOLD))
 	else:
 		end_turn_button.remove_theme_color_override("font_color")
-	var last_action := (int(admin_actions_remaining) <= 0
-		and int(actions_remaining) > 0 and int(actions_remaining) <= 2)
-	if last_action and _auto_end_warned_turn != int(current_turn):
-		_auto_end_warned_turn = int(current_turn)
-		if THE_DAY_SAYS_WHAT_WAITS:
-			call_deferred("_say_the_end_of_the_day")
-		else:
-			add_output("[color=#" + Utils.COLOR_INFO + "]" + AUTO_END_WARNING + "[/color]")
-
-
-func _say_the_end_of_the_day() -> void:
-	"""SF7-X19: the once-a-turn line, said at the end of the frame.
-
-	Two things the inline print got wrong, both measured in the Step 7 Mode C
-	session. ORDER: `_sync_response_hud` refreshes the status BEFORE
-	`_display_result` draws the order's result, so the line landed between
-	the echoed order and its own result. HONESTY: `pending_lapsing_count`
-	is read AFTER the status refresh (`_update_diplomatic_top_bar`), so the
-	inline print could not know a letter had arrived on the same response —
-	and with a current-turn envoy waiting, the backend defers the end of the
-	day (WO-22) and the line's "ends the turn at once" was false. The
-	client's `_current_lapsing_count` counts exactly the CURRENT_TURN_OFFER
-	_TYPES the deferral test (`has_current_turn_offers`) counts."""
-	var text := AUTO_END_WAITS_WARNING if _current_lapsing_count > 0 else AUTO_END_WARNING
-	add_output("[color=#" + Utils.COLOR_INFO + "]" + text + "[/color]")
 
 
 func _update_diplomatic_top_bar(response: Dictionary):

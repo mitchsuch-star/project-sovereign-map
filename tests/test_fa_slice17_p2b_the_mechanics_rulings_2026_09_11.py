@@ -442,6 +442,15 @@ class TestS2D1TheEnemyWaitsOneTurn:
             res = ex.execute({"command": {"type": "specific", "marshal": "Ney",
                                           "action": "attack", "target": "Mack"}},
                              {"world": world, "executor": ex})
+        # DDB-R2 (Pre-Deploy S13b part 3): the unfavourable band now pauses
+        # the player's attack on its muster; he commits, and the defeat that
+        # corners Ney follows.
+        if (res.get("pending_interrupt") or {}).get("interrupt_type") == "muster_confirm":
+            from backend.commands.strategic import StrategicOrderProcessor
+            with _quiet():
+                res = StrategicOrderProcessor(ex).handle_response(
+                    "Ney", "muster_confirm", "attack_anyway", world,
+                    {"world": world, "executor": ex})
         ask = ney.pending_interrupt
         assert ask and ask["interrupt_type"] == "last_stand", (res.get("message"), ask)
         assert ask["raised_by_ai"] is False

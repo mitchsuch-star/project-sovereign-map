@@ -304,37 +304,13 @@ class TurnManager:
         from backend.game_logic import congress as _congress
         _congress.take_the_signatures(self.world)
 
-        # C3 fix: Prevent double end_turn when auto-advance already processed this turn.
-        # Scenario: auto-advance fires on last AP (executor.py), ending turn N → N+1.
-        # Then player's "end turn" command arrives, calling end_turn() again on turn N+1.
-        # The _auto_advanced_to_turn flag is set by auto-advance and cleared by any
-        # non-end-turn player action, so it only blocks the immediate double-end.
-        # July 2026 AI audit: the guard also CONSUMES the flag — a turn-number
-        # check alone cannot distinguish the stale duplicate end-turn from a
-        # deliberate "pass the new turn" press, and the flag previously only
-        # cleared on non-end-turn commands, so End Turn soft-locked until the
-        # player issued some other command. Now the first press after an
-        # auto-advance is absorbed (the stale-duplicate case) and any further
-        # press genuinely ends the new turn.
-        if self.world._auto_advanced_to_turn >= old_turn:
-            self.world._auto_advanced_to_turn = 0
-            debug_print(f"[C3 GUARD] turn {old_turn} already auto-advanced, absorbing duplicate end-turn")
-            return {
-                "turn_ended": old_turn,
-                "next_turn": self.world.current_turn,
-                "victory_check": {"game_over": False, "result": None, "reason": ""},
-                "message": (
-                    f"The turn already advanced to {self.world.current_turn} when your last "
-                    f"action point was spent. Order 'end turn' again to pass turn "
-                    f"{self.world.current_turn}."
-                ),
-                "events": [],
-            }
+        # DDB-R4: no order auto-advances the turn, so C3's duplicate-end
+        # guard is retired (`auto_advanced_to_turn` stays in the save, unread).
 
         # GE-1: a campaign that has FALLEN does not keep turning. Keyed on a
         # recorded terminal ending (armed worlds only) — the legacy world's
         # game-over path is untouched. Reached when the Emperor dies in the
-        # player's own attack and the last action point auto-advances.
+        # player's own attack and the turn is then ended (DDB-R4).
         from backend.game_logic import game_end as _game_end
         if _game_end.terminal_ending(self.world) is not None:
             _vc = _game_end.victory_check(self.world)

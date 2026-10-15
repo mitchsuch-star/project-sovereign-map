@@ -725,6 +725,51 @@ def recruit_arm_remedy(world, nation: str, arm: str,
     return f"No commander of {noun} serves us, and none waits on the bench."
 
 
+def named_arm_refusal(world, marshal, arm: str) -> str:
+    """DDB-R5 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D5 — REFUSE
+    AT NO COST, NAMING BOTH ROADS, CN-2's own pre-stated branch): a named
+    marshal asked for an arm he does not command is refused before anything
+    is spent — "recruit artillery for Augereau" raised 10,000 foot for 518g
+    and the last admin action, noted after. Both roads are named: his own
+    order, and the nearest commander of the asked arm who serves (his order
+    where his ground levies) or the cheapest such candidate on the
+    commission bench. Player orders only (no AI recruit passes an arm)."""
+    his = recruit_arm_of(marshal)
+    his_noun, noun = _ARM_NOUN.get(his, his), _ARM_NOUN.get(arm, arm)
+    article = "an" if arm[:1] in "aeiou" else "a"
+    serving = [m for m in world.marshals.values()
+               if m.nation == marshal.nation and m.strength > 0
+               and not getattr(m, "captured_by", "")
+               and recruit_arm_of(m) == arm]
+    if serving:
+        def _near(m):
+            try:
+                d = world.get_distance(marshal.location, m.location)
+            except Exception as exc:
+                report(exc, "economy_executor.named_arm_refusal._near: world.get_distance")
+                d = None
+            return (d if d is not None and d >= 0 else 999, -int(m.strength), m.name)
+        man = min(serving, key=_near)
+        ground = world.get_region(man.location)
+        if ground is not None and recruit_location_gate(ground, marshal.nation) is None:
+            road = f"'{man.name}, recruit' raises them at {man.location}"
+        else:
+            road = (f"{man.name} commands ours at {man.location}, ground that "
+                    f"takes no levy — march him onto our own soil first")
+    else:
+        from backend.game_logic.recruitment import candidate_arm, get_marshal_pool
+        bench = sorted((c for c in get_marshal_pool(world, marshal.nation)
+                        if candidate_arm(c) == arm and c.get("name")
+                        and c.get("name") not in world.marshals),
+                       key=lambda c: (int(c.get("cost", 0) or 0), str(c.get("name"))))
+        road = (f"commission {bench[0]['name']} "
+                f"({int(bench[0].get('cost', 0) or 0):,}g)" if bench else
+                "none serves us, and none waits on the bench")
+    return (f"{marshal.name} commands {his} — '{marshal.name}, recruit' raises "
+            f"{his_noun} for him; {noun} are raised by {article} {arm} corps — "
+            f"{road}. Nothing was spent.")
+
+
 def _msg_no_arm_in_range(world, nation: str, arm: str,
                          location: Optional[str], ready) -> str:
     """CN-2: the requested arm has no recipient in range — say who IS in
@@ -1501,6 +1546,21 @@ class EconomyExecutor:
                         "variable_action_cost": 0,
                     }
 
+            # DDB-R5: an arm he does not command is refused before anything
+            # is spent (the square unbroken, the gold and the admin action
+            # kept), naming both roads.
+            if (requested_type in RECRUIT_ARMS
+                    and marshal.nation == world.player_nation
+                    and requested_type != recruit_arm_of(marshal)):
+                from backend.ai import parse_trace as _ptrace
+                _ptrace.note("executor", "recruit_arm_refused", requested_type,
+                             recruit_arm_of(marshal), marshal=marshal.name)
+                return {
+                    "success": False,
+                    "message": named_arm_refusal(world, marshal, requested_type),
+                    "variable_action_cost": 0,
+                }
+
             recipient = marshal.name
             recruitment_location = marshal.location
 
@@ -1971,8 +2031,6 @@ class EconomyExecutor:
                 f"{marshal.name} returns to field command at {destination} "
                 f"with {frozen:,} men. Maximum actions: "
                 f"{world.calculate_max_actions()}."),
-            "should_end_turn": (world.actions_remaining <= 0
-                                and world.admin_actions_remaining <= 1),
         }
 
     def _execute_purchase_levy(self, command: Dict, game_state: Dict) -> Dict:

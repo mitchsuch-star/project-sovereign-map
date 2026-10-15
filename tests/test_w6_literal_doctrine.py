@@ -70,15 +70,14 @@ class TestLiteralNeverObjects:
             {"world": world})
         assert world.pending_objection is None
         assert result.get("pending_objection") is None
-        # Nothing gated him: no muster confirm, on the result or the man.
-        # (A W6-7 last-stand interrupt may legitimately follow the battle,
-        # so this names the type rather than asserting the field is empty.)
+        # DDB-R2 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D2)
+        # re-opened CA9-D2 on its own stated condition: the muster gate arms
+        # on the unfavourable band for ANY personality. The literal marshal
+        # still raises NO objection of his own — Berthier stays the order
+        # and names the band; the player commits or cancels.
         assert (result.get("pending_interrupt") or {}).get(
-            "interrupt_type") != "muster_confirm"
-        assert (getattr(soult, "pending_interrupt", None) or {}).get(
-            "interrupt_type") != "muster_confirm"
-        # And the odds still reached him — as a report, not a checkpoint.
-        assert result.get("muster_preview") is not None
+            "interrupt_type") == "muster_confirm"
+        assert result["message"].startswith("Berthier stays the order a moment")
         assert result["muster_preview"]["odds_band"] == "unfavorable"
         assert "MUSTER" in result["message"]
 

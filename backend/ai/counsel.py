@@ -395,7 +395,10 @@ def economy_counsel(world, nation: str, limit: int = 3) -> List[str]:
     if (nation == getattr(world, "player_nation", None) and _admin_actions_left(world) <= 0):
         return []
     lines: List[str] = []
-    law = _law_terms(world, nation)
+    # DDB-R7 (Pre-Deploy S13b part 3): at a rich peace the purse's counsel
+    # names the law the chest can buy even where EA-14's purse test holds
+    # it back (`reforms.peace_sink_law`) — the peace road's sink, surfaced.
+    law = _law_terms(world, nation) or _peace_sink_terms(world, nation)
     if law:
         lines.append(law)
     levy = _levy_terms(world, nation)
@@ -448,6 +451,26 @@ def _law_terms(world, nation: str) -> Optional[str]:
                 line += f"; the Charges of Empire fall by {relief:,}g a turn"
         return line
     return None
+
+
+def _peace_sink_terms(world, nation: str) -> Optional[str]:
+    """DDB-R7: `enact the Staff — 9,000g, then 300g a turn (…)` at peace with
+    a chest that buys it (`reforms.peace_sink_law`), or None — at war, in a
+    truce, when no law is affordable, and for any court but the player's."""
+    try:
+        from backend.game_logic import reforms as R
+        sink = R.peace_sink_law(world, nation)
+    except Exception as exc:
+        report(exc, "counsel._peace_sink_terms: reforms.peace_sink_law")
+        return None
+    if sink is None:
+        return None
+    row = sink["row"]
+    upkeep = int(row.get("upkeep", 0) or 0)
+    effects = [e for e in (R.effect_line(c) for c in (row.get("effects") or [])) if e]
+    typed = "enact the Staff" if R.is_staff(row) else f"enact {R.display_name(row)}"
+    line = f"{typed} — {int(sink['need']):,}g, then {upkeep:,}g a turn"
+    return f"{line} ({'; '.join(effects)})" if effects else line
 
 
 def _levy_terms(world, nation: str) -> Optional[str]:

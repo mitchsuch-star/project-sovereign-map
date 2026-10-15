@@ -184,10 +184,14 @@ class TestTheAutosaveCarriesTheQuestion:
                         "action": "drill", "target": None}
         }, {"world": world})
         assert result.get("success"), result.get("message")
-        assert result.get("action_info", {}).get("turn_advanced") is True, (
-            "the fixture did not auto-advance; the test drives nothing")
+        # DDB-R4 (Pre-Deploy S13b part 3): the last order no longer advances
+        # the turn — the audience rides the player's end turn, the one road.
+        assert result.get("action_info", {}).get("turn_advanced") is False
+        result = CommandExecutor().execute({
+            "command": {"type": "specific", "action": "end_turn"}
+        }, {"world": world})
         assert result.get("redemption_event"), (
-            "the auto-advance path dropped the audience (WO-41 §6b)")
+            "the end-turn path dropped the audience (WO-41 §6b)")
         assert result["redemption_event"]["marshal"] == "Ney"
         assert ney.redemption_pending is True
         saved = self._autosave(sandboxed_saves)

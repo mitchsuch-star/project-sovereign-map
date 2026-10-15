@@ -110,7 +110,12 @@ class TestC3GuardAbsorbs:
 
     def test_second_end_turn_after_auto_advance_advances(self):
         """The guard swallowed EVERY end-turn after an auto-advance until
-        some other command cleared the flag — End Turn read as dead."""
+        some other command cleared the flag — End Turn read as dead.
+
+        DDB-R4 (Pre-Deploy S13b part 3): no order auto-advances the turn any
+        more, so C3's duplicate-end guard is retired with the mirror it
+        guarded. An old save still carrying the flag absorbs nothing: the
+        player's every end turn advances (the flag stays readable, unread)."""
         from backend.game_logic.turn_manager import TurnManager
         world = _fresh_1805()
         executor = CommandExecutor()
@@ -119,12 +124,11 @@ class TestC3GuardAbsorbs:
         turn_now = world.current_turn
 
         first = tm.end_turn(_game_state(world))
-        assert world.current_turn == turn_now, "first press should be absorbed"
-        assert "already advanced" in first.get("message", "")
+        assert world.current_turn == turn_now + 1, "the first press advances"
+        assert "already advanced" not in first.get("message", "")
 
         tm.end_turn(_game_state(world))
-        assert world.current_turn == turn_now + 1, (
-            "second deliberate end-turn must advance the new turn")
+        assert world.current_turn == turn_now + 2
 
 
 # ═══════════════════════════════════════════════════════════════════

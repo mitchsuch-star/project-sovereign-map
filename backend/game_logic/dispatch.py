@@ -4933,6 +4933,14 @@ def _build_situation(world, player_nation: str,
         "authority": int(authority),
         "authority_label": authority_label,
     }
+    # DDB-R7 (Pre-Deploy S13b part 3): at a rich peace the treasury line
+    # names the law the chest could buy — the peace road's sink — once a
+    # turn (`reforms.peace_sink_line`; absent at war or when none is
+    # affordable, so every older reader is byte-unchanged).
+    from backend.game_logic.reforms import peace_sink_line
+    _sink = peace_sink_line(world, player_nation)
+    if _sink:
+        situation["law_sink"] = _sink
     if grip_fields:
         # SR-6a NPC-27 / NPC-D1: the derived figures, int (GR2).
         situation["imperial_grip"] = int(grip_fields["grip"])

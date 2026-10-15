@@ -504,9 +504,19 @@ def muster_is_live(marshal, world, pending: Optional[Dict] = None) -> Tuple[bool
         return False, f"{label} no longer stands in the field"
     if not world.is_at_war(marshal.nation, target.nation):
         return False, f"we are no longer at war with {target.nation}"
-    region = world.get_region(marshal.location)
-    adjacent = set(getattr(region, "adjacent_regions", None) or []) if region else set()
-    if target.location != marshal.location and target.location not in adjacent:
+    # DDB-X23 (Pre-Deploy S13b part 3, found by DDB-R2's sweep): the parked
+    # attack is still live while the target stands within the LEAD's reach —
+    # the attack's own range check (`movement_range`), not adjacency: a
+    # cavalryman's committed charge two provinces off was retired as "marched
+    # away" from a muster that had not moved.
+    try:
+        _dist = world.get_distance(marshal.location, target.location)
+    except Exception as exc:
+        _errors.report(exc, "strategic.muster_is_live: world.get_distance")
+        _dist = None
+    _reach = int(getattr(marshal, "movement_range", 1) or 1)
+    if (target.location != marshal.location
+            and (_dist is None or _dist < 0 or _dist > _reach)):
         # Fog-honest: name the province only if the player can see it.
         if _province_seen(world, target.location):
             return False, f"{label} has marched to {target.location}"

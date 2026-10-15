@@ -346,6 +346,43 @@ def law_refusal(world, nation: str, law_id: str,
     return ""
 
 
+def peace_sink_law(world, nation: str) -> Optional[Dict]:
+    """DDB-R7 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D7 — KEEP THE
+    RICH PEACE, SURFACE ITS SINK): at peace — no war and no truce — the first
+    unenacted gold law of the court's deck the chest can buy, as
+    {"row", "name", "need"}; None at war, in a truce, when no law is
+    affordable, and for any court but the player's (the AI enacts through
+    its own rung). The verb's own predicate decides "can buy"
+    (`law_refusal`), its admin-action term set aside: the morning reads the
+    sink before the day's first order."""
+    if world is None or nation != getattr(world, "player_nation", None):
+        return None
+    for key, state in (getattr(world, "diplomatic_states", None) or {}).items():
+        if state in ("WAR", "ARMISTICE") and nation in str(key).split("|"):
+            return None
+    for row in deck(world, nation):
+        if (not isinstance(row, dict) or is_in_force(row)
+                or str(row.get("currency") or "gold") != "gold"):
+            continue
+        if law_refusal(world, nation, str(row.get("id") or ""),
+                       admin_actions=ADMIN_ACTIONS_PER_ACT):
+            continue
+        quote = restoration_price(world, nation, row)
+        return {"row": row, "name": display_name(row),
+                "need": int(quote["price"]) + int(quote["arrears"])}
+    return None
+
+
+def peace_sink_line(world, nation: str) -> str:
+    """DDB-R7: the morning dispatch's treasury note — "the chest could found
+    the Grand Quartier Général — 9,000g" — or "" (the predicate above)."""
+    sink = peace_sink_law(world, nation)
+    if sink is None:
+        return ""
+    verb = "found" if is_staff(sink["row"]) else "enact"
+    return f"the chest could {verb} {sink['name']} — {sink['need']:,}g"
+
+
 # ════════════════════════════ the words (RF-1) ════════════════════════════════
 # The typed road names a law by its id, its authored name (accents, case and a
 # leading "the" ignored — "enact the Grand Quartier General" is the Grand

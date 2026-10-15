@@ -119,12 +119,15 @@ class TestTheArmChoosesTheMan:
         assert "commission Marmont (4500g)" in res["message"], res["message"]
 
     def test_a_named_marshal_keeps_his_arm(self, board):
-        """Item 4: PF-7's surfaced correction, untouched — a marshal IS his
-        corps; the arm the player named for him is not an override."""
+        """Item 4: a marshal IS his corps; the arm the player named for him is
+        not an override. Flipped by DDB-R5 (Pre-Deploy S13b part 3, CN-2's
+        own pre-stated branch): the mismatch is REFUSED at no cost, naming
+        both roads, where PF-7 surfaced it after the spend."""
         res = _drive(board, "Davout, recruit cavalry")
-        assert res["ok"], res["message"]
-        assert res["pool"] == {"infantry": -3000}, res
-        assert "commands infantry" in res["message"], res["message"]
+        assert not res["ok"], res["message"]
+        assert res["pool"] == {} and res["gold"] == 0, res
+        assert "Davout commands infantry" in res["message"], res["message"]
+        assert "Nothing was spent." in res["message"], res["message"]
 
     def test_the_refusal_names_who_is_in_range_and_spends_nothing(self, board):
         _fund()

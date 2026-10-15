@@ -11279,11 +11279,10 @@ class WorldState:
         """
         Use action points for an action. ALL values are integers.
 
-        NOTE: This method NO LONGER auto-advances the turn when actions hit 0.
-        The executor is responsible for detecting actions_remaining == 0 and
-        calling turn_manager.end_turn() to properly process enemy AI turns.
-
-        Bug fix: Previously, auto-advance skipped enemy AI processing entirely.
+        DDB-R4 (Pre-Deploy S13b part 3): spending the last action never ends
+        the turn — on either pool. The player ends it (the client's one gate
+        guards every end turn); the `should_end_turn` flag and the executor's
+        auto-end mirror that read it are retired.
         """
 
         if self.actions_remaining <= 0:
@@ -11292,7 +11291,6 @@ class WorldState:
                 "message": "No actions remaining this turn",
                 "actions_remaining": 0,
                 "turn_advanced": False,
-                "should_end_turn": False
             }
 
         # Get cost and ensure it's an integer
@@ -11301,17 +11299,12 @@ class WorldState:
         # Update actions_remaining - ensure result is integer
         self.actions_remaining = int(max(0, self.actions_remaining - cost))
 
-        # Flag if turn should end (executor must call end_turn for proper enemy AI)
-        # Both command AP and admin AP must be exhausted before auto-ending
-        should_end_turn = (self.actions_remaining <= 0 and self.admin_actions_remaining <= 0)
-
         return {
             "success": True,
             "action_cost": int(cost),
             "actions_remaining": int(self.actions_remaining),
             "turn_advanced": False,  # Never auto-advance here
             "new_turn": None,
-            "should_end_turn": should_end_turn  # Executor should call end_turn()
         }
 
     def advance_turn(self) -> None:

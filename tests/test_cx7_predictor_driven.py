@@ -254,22 +254,21 @@ class TestTheDaySaysWhenItEnds:
     said so before the order that did it."""
 
     def test_the_warning_is_said_once_a_turn_before_the_last_action(self, driven):
-        assert driven["auto_end_warnings_turn_7"] == 1, driven["auto_end_warnings_turn_7"]
-        assert driven["auto_end_warnings_turn_8"] == 1, driven["auto_end_warnings_turn_8"]
+        """DDB-R4 (Pre-Deploy S13b part 3): NO AUTO-END ON EITHER POOL — no
+        order ends the turn, so no warning says one will."""
+        assert driven["auto_end_warnings_turn_7"] == 0, driven["auto_end_warnings_turn_7"]
+        assert driven["auto_end_warnings_turn_8"] == 0, driven["auto_end_warnings_turn_8"]
 
     def test_the_line_follows_the_orders_own_output(self, driven):
-        """SF7-X19 (Score Finish Step 7 slice 9, the frames): the line
-        printed BETWEEN the echoed order and its result (the live session's
-        turn 2) — it is said a frame later, after the command's output."""
+        """SF7-X19's line is retired with the auto-end (DDB-R4): nothing is
+        printed beside the order's own output."""
         assert driven["auto_end_warning_same_frame_turn_7"] == 0, driven
-        assert driven["auto_end_warnings_turn_7"] == 1
+        assert driven["auto_end_warnings_turn_7"] == 0
 
     def test_a_waiting_envoy_keeps_the_day_open_and_the_line_says_so(self, driven):
-        """SF7-X19: WO-22 defers the end of the day while a current-turn
-        envoy waits (`executor._auto_end_deferral_reason`), so the line that
-        promised "ends the turn at once" was false then — it names the
-        envoys instead."""
-        assert driven["auto_end_waits_turn_9"] == 1, driven
+        """DDB-R4: the day is always open until the player ends it; the
+        envoys are named by the client's end-turn gate, not a warning line."""
+        assert driven["auto_end_waits_turn_9"] == 0, driven
         assert driven["auto_end_promises_turn_9"] == 0, driven
 
     def test_the_button_says_a_spent_day_waits_on_it(self, driven):

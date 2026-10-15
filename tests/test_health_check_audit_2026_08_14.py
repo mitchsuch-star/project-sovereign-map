@@ -251,13 +251,13 @@ class TestTurnEndEventCarriesAllBannerComponents:
             assert f'"{key}": int(' in src, f"meta turn_end_event missing {key}"
 
     def test_auto_advance_event_keys(self):
+        """DDB-R4 (Pre-Deploy S13b part 3): the auto-advance twin is retired
+        — the meta executor's event (above) is the one turn_end event."""
         import inspect
         from backend.commands import executor as exec_mod
 
         src = inspect.getsource(exec_mod)
-        for key in self.REQUIRED:
-            assert f'"{key}": int(' in src, (
-                f"auto-advance turn_end_event missing {key}")
+        assert '"type": "turn_end"' not in src
 
     def test_main_gd_renders_the_new_keys(self):
         from pathlib import Path

@@ -192,6 +192,14 @@ def _payloads():
     john.retreated_this_turn = True
     random.seed(5)
     out["cover"] = _cmd(c, "Massena, attack Archduke John")
+    # DDB-R2 (Pre-Deploy S13b part 3): Charles beside John makes the band
+    # unfavourable, so the attack now pauses on its muster — the lines are
+    # read on the battle the player commits.
+    if (out["cover"].get("pending_interrupt") or {}).get("interrupt_type") == "muster_confirm":
+        with _quiet():
+            out["cover"] = c.post("/strategic_response", json={
+                "marshal_name": "Massena", "response_type": "muster_confirm",
+                "choice": "attack_anyway"}).json()
     return out
 
 

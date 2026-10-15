@@ -188,29 +188,32 @@ class TestGateThroughTheExecutor:
         assert world.actions_remaining == ap_before
 
     def test_aggressive_into_disaster_charges(self):
-        """The row-2 headline: an aggressive marshal is not asked, and the
-        battle happens. This is the behaviour change to watch in play.
-
-        Priced at SEVERE odds deliberately — `evaluate_aggressive` has no
-        attack trigger at all, so nothing else catches him either. He is
-        genuinely unescorted into a 2.5:1 fight, which is the point.
+        """The row-2 headline was: an aggressive marshal is not asked, and the
+        battle happens — "the behaviour change to watch in play". DD-B's play
+        watched it (three non-cautious leads walked into unfavourable odds
+        unwarned) and DDB-R2 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md`
+        DDB-D2) re-opened CA9-D2 on its own stated condition: the gate arms
+        on the unfavourable band for ANY personality — Berthier, not the
+        marshal, names it. Priced at SEVERE odds, as before.
         """
         world, executor = _world("aggressive", *_SEVERE, name="Ney")
         mack_before = world.get_marshal("Mack").strength
         result = _attack(executor, world, marshal="Ney")
-        assert result.get("requires_input") is None
-        assert (result.get("pending_interrupt") or {}).get(
-            "interrupt_type") != "muster_confirm"
-        assert world.get_marshal("Mack").strength < mack_before
+        assert result.get("requires_input") is True
+        assert result["pending_interrupt"]["interrupt_type"] == "muster_confirm"
+        assert result["message"].startswith("Berthier stays the order a moment")
+        assert world.get_marshal("Mack").strength == mack_before
 
     def test_literal_into_disaster_marches(self):
+        """DDB-R2: the literal marshal is stayed too — by Berthier; he raises
+        no objection of his own (W6's doctrine holds)."""
         world, executor = _world("literal", *_SEVERE, name="Soult")
         mack_before = world.get_marshal("Mack").strength
         result = _attack(executor, world, marshal="Soult")
-        assert result.get("requires_input") is None
-        assert (result.get("pending_interrupt") or {}).get(
-            "interrupt_type") != "muster_confirm"
-        assert world.get_marshal("Mack").strength < mack_before
+        assert result.get("requires_input") is True
+        assert result["pending_interrupt"]["interrupt_type"] == "muster_confirm"
+        assert result["message"].startswith("Berthier stays the order a moment")
+        assert world.get_marshal("Mack").strength == mack_before
 
     def test_cautious_at_even_odds_is_no_longer_stopped(self):
         """The other half of the narrowing. `even` blocked everyone before

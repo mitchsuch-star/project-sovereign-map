@@ -5646,12 +5646,9 @@ class DiplomaticExecutor:
                 if result.get("success"):
                     ctx.world.admin_actions_remaining = int(
                         ctx.world.admin_actions_remaining) - 1
-                    # executor.py:1806's mirror: spending the last admin
-                    # AP with 0 military AP auto-ends the turn on the
-                    # typed route; the button matches.
-                    result["should_end_turn"] = bool(
-                        ctx.world.actions_remaining <= 0
-                        and ctx.world.admin_actions_remaining <= 0)
+                    # DDB-R4 (Pre-Deploy S13b part 3): no order ends the
+                    # turn by itself — the unread `should_end_turn` key is
+                    # retired with the executor's auto-end mirror.
                 result.pop("new_state", None)
                 return result
             return {"success": False,

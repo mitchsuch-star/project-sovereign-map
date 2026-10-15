@@ -5,8 +5,8 @@ Extracted from executor.py: _execute_end_turn, _apply_grouchy_ambiguity_buff,
 _execute_status, _execute_help, _execute_debug, _execute_cheat,
 handle_objection_response, _execute_post_objection.
 
-Also includes _filter_tactical_events_by_fog (module-level, used by end_turn
-and the auto-end-turn block in executor.py's execute()).
+Also includes _filter_tactical_events_by_fog (module-level, used by end_turn;
+DDB-R4 retired the auto-end-turn block in executor.py that read it too).
 """
 import random
 from typing import Dict, Optional
@@ -44,9 +44,9 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
 
 
 def collapse_turn_end_fields(world) -> Dict:
-    """IQ-2: the collapse keys BOTH end-turn paths stamp on the `turn_end`
-    event (this one and the executor.py auto-advance twin) — one helper, so
-    the two banners cannot disagree. `collapse_line` is the one source's
+    """IQ-2: the collapse keys the end turn stamps on the `turn_end` event
+    — one helper (DDB-R4 retired the executor.py auto-advance twin that read
+    it too). `collapse_line` is the one source's
     summary ("" while the realm stands); `provinces_held` is the realm's
     count. Sandbox worlds only, so the legacy event dict stays
     byte-identical."""
@@ -63,7 +63,7 @@ def collapse_turn_end_fields(world) -> Dict:
 def _filter_tactical_events_by_fog(events: list, world) -> list:
     """Filter tactical events by fog of war (P3-2 consolidated).
 
-    Single source of truth — used by end_turn, auto-advance, and /command response.
+    Single source of truth — used by end_turn and the /command response.
 
     Keep events where:
     - The marshal belongs to the player nation, OR
@@ -892,6 +892,12 @@ class MetaExecutor:
 MILITARY COMMANDS:
   attack     - Engage enemy forces or capture region
                "Ney, attack Mack" / "attack" (nearest)
+               "what if Ney attacks Mack" - the MUSTER before you commit:
+               who will march, who will not and why, and the odds band.
+               It costs nothing. An attack at unfavourable odds pauses
+               on its muster - Commit, or Cancel at no cost. A foe out
+               of reach is asked about first: pursue him (a standing
+               order, 2 AP), or cancel.
 
   defend     - Take defensive position (+30% bonus)
                "Davout, defend" / "hold" (alias)

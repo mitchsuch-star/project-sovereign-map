@@ -156,7 +156,10 @@ class TestWO22TheAutoAdvanceDefers:
         gold = plunder_yield(world.regions["Lyon"])
         result = _attack(world, gs)
         msg = result.get("message", "")
-        assert "All actions are spent" in msg
+        # DDB-R4 (Pre-Deploy S13b part 3): no auto-advance, so no defer
+        # notice — the capture's own question states its terms, and the
+        # receipt says the day is spent.
+        assert "That was the last order the day could take" in msg
         assert "Lyon" in msg
         assert f"{gold:,}" in msg
         assert "'plunder'" in msg and "'secure'" in msg
@@ -181,7 +184,7 @@ class TestWO22TheAutoAdvanceDefers:
         assert world.regions["Lyon"].controller == "France"
         assert world.pending_capture_choice is not None
         assert world.current_turn == turn_before
-        assert "All actions are spent" in result.get("message", "")
+        assert "That was the last order the day could take" in result.get("message", "")
 
     def test_the_estate_stage_defers_in_its_own_words(self):
         """Stage-agnostic by construction — the defer reads the FIELD, not
@@ -195,7 +198,9 @@ class TestWO22TheAutoAdvanceDefers:
             "options": ["confiscate", "respect"],
         }
         executor = CommandExecutor()
-        notice = executor._auto_end_turn_defer_notice(world)
+        # DDB-R4 (Pre-Deploy S13b part 3): the defer is retired; the stage-
+        # aware restatement it read is the capture's own prompt.
+        notice = executor._capture._pending_prompt(world.pending_capture_choice)
         assert "Blucher" in notice
         assert "'confiscate'" in notice and "'respect'" in notice
 
@@ -206,10 +211,15 @@ class TestWO22TheAutoAdvanceDefers:
         world, gs = _world()
         _drain_ap(world)
         world.dialogue_manager.push(_offer_dialogue())
+        turn_before = world.current_turn
         result = _attack(world, gs)
         msg = result.get("message", "")
         assert "Lyon" in msg
-        assert "unanswered envoys remain" in msg
+        # DDB-R4 (Pre-Deploy S13b part 3): the turn waits on the player, so
+        # both questions stand — the capture's in the reply, the envoys' at
+        # the client's one end-turn gate.
+        assert world.current_turn == turn_before
+        assert world.dialogue_manager.has_current_turn_offers() is True
 
     def test_nothing_pending_still_auto_advances(self):
         """FALSIFIABLE NEGATIVE — the control arm. A truthiness slip that
@@ -225,7 +235,9 @@ class TestWO22TheAutoAdvanceDefers:
         with _suppress():
             executor.execute(parsed, gs)
         assert world.pending_capture_choice is None
-        assert world.current_turn == turn_before + 1
+        # DDB-R4 (Pre-Deploy S13b part 3): NO AUTO-END ON EITHER POOL — with
+        # nothing pending the turn still waits on the player's end turn.
+        assert world.current_turn == turn_before
 
     def test_no_capture_answer_route_runs_through_execute(self, swapped):
         """THE SOFT-LOCK PIN, and the reason the defer is safe at all.

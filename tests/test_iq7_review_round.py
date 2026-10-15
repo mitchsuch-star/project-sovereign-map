@@ -4017,7 +4017,17 @@ class TestR44TwoMoreShapesRepromptInPlace:
         r = _cmd(client, "Ney, accept - attack Mack")
         assert not r.get("petition_reprompt")
         assert len(w.command_history) == history + 1
-        assert w.dialogue_manager.peek() is pet and not _logged(w)
+        # DDB-R1 (Pre-Deploy S13b part 3): Mack stands out of Ney's reach, so
+        # the ordinary road ASKS first (the pursuit ask) — the question is
+        # current and the petition waits behind it, unanswered, until it is
+        # answered (`preempt`).
+        if r.get("state") == "awaiting_clarification":
+            assert pet in w.dialogue_manager.iter_queue() and not _logged(w)
+            _cmd(client, "cancel")
+            dm = w.dialogue_manager
+            assert (dm.peek() is pet or pet in dm.iter_queue()) and not _logged(w)
+        else:
+            assert w.dialogue_manager.peek() is pet and not _logged(w)
 
     def test_a_stray_address_with_no_answer_is_not_the_petitions(self, board):
         """Shape (d) needs an ANSWER after the comma — `hmm, march to Swabia`

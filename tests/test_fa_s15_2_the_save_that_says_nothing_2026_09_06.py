@@ -341,8 +341,12 @@ class TestOneDoorCoversBothRoads:
         before = world.current_turn
         tc = TestClient(M.app)
         body = tc.post("/command", json={"command": "Davout, defend"}).json()
-        assert world.current_turn > before, (
-            "the auto-advance never fired — this pin is vacuous, not passing")
+        # DDB-R4 (Pre-Deploy S13b part 3): the last order no longer ends the
+        # turn — the auto-advance road is retired, so the ONE door is the
+        # player's end turn, and it carries the notice.
+        assert world.current_turn == before, body.get("message")
+        body = tc.post("/command", json={"command": "end turn"}).json()
+        assert world.current_turn > before
         assert len(_rows(body)) == 1, body.get("notifications")
 
     def test_the_call_sites_no_longer_carry_their_own_handling(self):

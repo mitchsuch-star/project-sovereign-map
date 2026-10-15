@@ -67,10 +67,11 @@ def test_arm_mismatch_soft_correction_fires_for_artillery():
         res = executor._economy._execute_recruit(
             {"marshal": "Davout", "requested_type": "artillery",
              "raw_command": "recruit artillery for davout"}, gs)
-    assert res["success"], res.get("message")
-    # Mechanic unchanged: Davout is infantry, full batch.
-    assert res["events"][0]["troops_added"] == INFANTRY_RECRUIT_AMOUNT
-    assert "commands infantry" in res["message"]
+    # DDB-R5 (Pre-Deploy S13b part 3) flips PF-7's soft correction, as CN-2
+    # pre-stated: the mismatch is refused at no cost, naming both roads.
+    assert not res["success"], res.get("message")
+    assert "Davout commands infantry" in res["message"]
+    assert "Nothing was spent." in res["message"]
 
 
 def test_matching_arm_no_soft_correction():

@@ -3183,6 +3183,8 @@ class CommandContext:
     berthier_msg: Any = field(init=False)
     _relay_obj: Any = field(init=False)
     _stamp_relay: Any = field(init=False)
+    # DDB-R1: an answered clarification's option flags, merged into the parse
+    _reissue_flags: Any = field(init=False)
 
 
 @app.post("/command")
@@ -3390,6 +3392,7 @@ def _command_clarification_answer(ctx: CommandContext):
     )
 
     ctx.command_text = ctx.request.command
+    ctx._reissue_flags = None
     pending_clarification = world.dialogue_manager.peek()
     if (pending_clarification is not None
             and pending_clarification.get("type") == CLARIFICATION_DIALOGUE_TYPE
@@ -3414,6 +3417,7 @@ def _command_clarification_answer(ctx: CommandContext):
             print(f"[CLARIFICATION] Resolved answer '{ctx.request.command}' "
                   f"-> '{resolution['command']}'")
             ctx.command_text = resolution["command"]
+            ctx._reissue_flags = resolution.get("flags")
     return _NEXT_STAGE
 
 
@@ -3818,6 +3822,10 @@ def _command_parse(ctx: CommandContext):
             ctx.parsed["command"]["war_id"] = ctx.request.war_id
         if ctx.request.region:
             ctx.parsed["command"]["region"] = ctx.request.region
+        # DDB-R1: the answered ask's flags ride the re-parsed order (the
+        # pursuit ask's answer is the attack, confirmed).
+        for _flag, _value in (getattr(ctx, "_reissue_flags", None) or {}).items():
+            ctx.parsed["command"][_flag] = _value
         _ptrace.note("main", "request_fields_override", _before_fields,
                      _ptrace.command_summary(ctx.parsed["command"]))
     print(f"[OK] Parsed: {ctx.parsed.get('command', {}).get('action', 'unknown')}")

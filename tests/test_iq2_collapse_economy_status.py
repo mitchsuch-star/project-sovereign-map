@@ -428,17 +428,21 @@ class TestB6EndTurnBanner:
         assert "collapse_line" not in ev and "provinces_held" not in ev
 
     def test_the_auto_advance_twin_carries_the_same_line(self, europe):
+        """DDB-R4 (Pre-Deploy S13b part 3): the twin is retired — the last
+        order leaves the turn standing, and the end turn the player then
+        gives carries the line (`_end_turn`, the one path)."""
         _collapse(europe)
         europe.actions_remaining = 1
         europe.admin_actions_remaining = 0
         # Soult (literal) takes a defensive order without objecting — an
         # aggressive marshal's objection would return before the AP is spent.
         res = _execute(europe, {"action": "defend", "marshal": "Soult"})
-        assert res["action_info"].get("turn_advanced") is True, res.get("message")
-        ev = next(e for e in res["events"] if e.get("type") == "turn_end")
+        assert res["action_info"].get("turn_advanced") is False, res.get("message")
+        assert not [e for e in (res.get("events") or []) if e.get("type") == "turn_end"]
+        assert "That was the last order the day could take" in res["message"]
+        res, ev = _end_turn(europe)
         line = collapse.summary_line(europe, collapse.get_collapse_state(europe))
         assert ev["collapse_line"] == line
-        assert ev["provinces_held"] == 0
         assert line in res["message"].split("\n")
 
     def test_both_paths_read_the_one_helper(self, europe, monkeypatch):
@@ -447,14 +451,13 @@ class TestB6EndTurnBanner:
         res, ev = _end_turn(copy.deepcopy(europe))
         assert ev["collapse_line"] == "SPY-LINE" and ev["provinces_held"] == 42
         assert "SPY-LINE" in res["message"].split("\n")
+        # DDB-R4 (Pre-Deploy S13b part 3): the auto-advance path is retired,
+        # so the end turn above is the one path that reads the helper.
         europe.actions_remaining = 1
         europe.admin_actions_remaining = 0
-        # Soult (literal) takes a defensive order without objecting — an
-        # aggressive marshal's objection would return before the AP is spent.
         res = _execute(europe, {"action": "defend", "marshal": "Soult"})
-        assert res["action_info"].get("turn_advanced") is True
-        ev = next(e for e in res["events"] if e.get("type") == "turn_end")
-        assert ev["collapse_line"] == "SPY-LINE" and ev["provinces_held"] == 42
+        assert res["action_info"].get("turn_advanced") is False
+        assert not [e for e in (res.get("events") or []) if e.get("type") == "turn_end"]
 
     def test_the_banner_names_the_applied_phase_for_a_landless_france(self, europe):
         """The probe, pinned: with the roster fix the printed in-phase

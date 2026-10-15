@@ -575,12 +575,27 @@ def _resolve_option_command(dialogue: Dict, option: Dict) -> Optional[str]:
         marshal, str(dialogue.get("strategic_type") or ""), str(target))
 
 
+def _resolved(dialogue: Dict, option: Dict) -> Dict:
+    """An option resolved to its command — with the option's `flags` (DDB-R1:
+    the pursuit ask's answer re-issues the attack confirmed), merged by
+    main.py's parse stage into the re-parsed command. No flags, no key: every
+    older clarification resolves byte-identically."""
+    command = _resolve_option_command(dialogue, option)
+    if not command:
+        return {"kind": "pass"}
+    out = {"kind": "command", "command": command}
+    if isinstance(option.get("flags"), dict) and option["flags"]:
+        out["flags"] = dict(option["flags"])
+    return out
+
+
 def interpret_clarification_answer(dialogue: Dict, typed: str) -> Dict:
     """Deterministically interpret typed input as an answer to the pending
     clarification.
 
     Returns one of:
         {"kind": "command", "command": str}  — resolved; reissue this
+                                               (+ "flags" when the option has any)
         {"kind": "cancel"}                    — order withdrawn
         {"kind": "pass"}                      — not an answer; parse normally
     """
@@ -596,13 +611,18 @@ def interpret_clarification_answer(dialogue: Dict, typed: str) -> Dict:
     if not actionable:
         return {"kind": "pass"}
 
+    # DDB-R1: the popup re-sends an option's own command verbatim — that IS
+    # the answer (its flags ride with it). Before, it fell through as "pass"
+    # and was re-parsed to the same order; only a flagged option differs.
+    for option in actionable:
+        if option.get("flags") and str(option.get("command") or "").strip().lower().rstrip(".!?") == text:
+            return _resolved(dialogue, option)
+
     # Numeric answer ("2") — 1-based option index
     if text.isdigit():
         index = int(text) - 1
         if 0 <= index < len(actionable):
-            command = _resolve_option_command(dialogue, actionable[index])
-            if command:
-                return {"kind": "command", "command": command}
+            return _resolved(dialogue, actionable[index])
         return {"kind": "pass"}
 
     # Bare confirmation takes the option the QUESTION named (the
@@ -618,10 +638,7 @@ def interpret_clarification_answer(dialogue: Dict, typed: str) -> Dict:
                 if option.get("target") == interpreted:
                     confirm_option = option
                     break
-        command = _resolve_option_command(dialogue, confirm_option)
-        if command:
-            return {"kind": "command", "command": command}
-        return {"kind": "pass"}
+        return _resolved(dialogue, confirm_option)
 
     # Name answer — exact, honorific-stripped, or edit-distance-1 typo
     from backend.commands.parser import _closest_by_edit_distance
@@ -645,7 +662,5 @@ def interpret_clarification_answer(dialogue: Dict, typed: str) -> Dict:
         if near is not None:
             option = by_target[near]
     if option is not None:
-        command = _resolve_option_command(dialogue, option)
-        if command:
-            return {"kind": "command", "command": command}
+        return _resolved(dialogue, option)
     return {"kind": "pass"}
