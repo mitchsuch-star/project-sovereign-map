@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 15, 2026).** The three most recent landed rows:
-- **S13b part 2 (October 15, 2026) — DD-B X9/X11, table P3s, the field — LANDED.** X12–X22 found (X17 heads part 3). **NEXT = S13b part 3** (X17 first).
+- **S13b part 3 (October 15, 2026) — DD-B X17, the rulings' builds R1–R7, X1–X3 — LANDED.** X23–X25 found and fixed; BASELINE re-pinned by X3. **NEXT = S13b part 4** (the voice, the client, the sea; X6).
+- **S13b part 2 (October 15, 2026) — DD-B X9/X11, table P3s, the field — LANDED.** X12–X22 found (all fixed in parts 2–3).
 - **S13b part 1 (October 14, 2026) — DD-B P1s, table P2s, DW-2 — LANDED.** D8/D9 built.
-- **S13 (October 14, 2026) — DD-B the fresh-eyes campaign — LANDED; done-when NOT met.** 69 causes, 11.5 per 10 turns, 3 P1 → S13b; 9 design rows ruled; VP-1, events and the table lesson brought before the deploy (S14b–d; `docs/audits/DD_B_RULINGS_2026_10_14.md`).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15, with S12's 11 R2 marks) and a code-signing certificate before S15.
 

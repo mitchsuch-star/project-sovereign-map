@@ -10617,3 +10617,53 @@ The mailbox closes no screen (its panel rises above). A scene change leaves the 
 - Morale "dropped" only when it fell, else "Morale is still low at N%".
 - The province note prices fortify from the stance: "2 AP from a neutral stance — 1 to stand defensive, 1 to fortify".
 - `movement_executor.supply_warning_line(world, marshal)` — the turn's own bill (`WorldState.supply_forecast`: the pooled bodies, the crowding press, the effective cap, the attrition rate), behind the muster's fog gate — on a move, a march's first step and the march's turn reports: "Lorraine feeds 60,000; the 186,000 men standing there would lose ~9,300 a turn to short supply."
+
+## 118. DD-B FIXES, PART 3 — NO CHARGE ONTO PEACE SOIL; THE RULINGS' BUILDS (ASK FIRST, THE WIDENED MUSTER GATE, NO AUTO-END, THE ARM REFUSED, THE PEACE'S SINK, THE CAPITULATION, THE WITHDRAWAL) (Pre-Deploy S13b part 3, October 15, 2026)
+
+*`BUG_FIXES.md` §DD-B: DDB-X17, DDB-R1 … R7 (built from `DESIGN_REFINEMENT.md` DDB-D1 … D7), DDB-X1 … X3 and the sweep's DDB-X23 … X25. Commits `eba57ba4` (the head), `ab6314a9` (the orders), `89db8acc` (the garrison and the retreat). Pins `tests/test_ddb_s13b_the_rulings.py`. The series: `tools/_ddb_s13b_series_arms.py` — twenty-seven arms (`tools/_ddb_s13b_series_arms_final.json`); every lever byte-identical but DDB-X3's, which re-pins `BASELINE_SERIES` ([28]: 0 → 2).*
+
+### 118.1 No charge onto peace soil (DDB-X17)
+
+- `combat_executor.charge_on_peace_soil(executor, marshal, enemy, world)` — the lead's rule (`field_on_peace_soil`, §117.4) read by the player's glorious charge before it rides: typed, answered from the popup, or fired by an attack's reckless stage (ordered, sally, defiance, jealousy-autonomous). Refused at no cost (no AP, no square broken, the recklessness kept) in the attack's own words — ONE builder, `peace_soil_refusal`. The reckless stage refuses before either popup is mounted; the redirect popup offers no alternative on peace soil.
+- `world_state.reckless_charge_peace_owner(world, marshal, enemy)` (via `frontier_halt_owner`, the drift-pinned mirror of the guard): the player's reckless auto-charge picks no target on peace soil (`_find_nearest_enemy_for_nation(..., exclude=)`), and "finds no enemies to charge" names why when that was the only target.
+- A charge on a foe in the marshal's own province crosses no frontier (DDB-14's no-march rule). The AI keeps PT-F1: its charge is fought and halts at the frontier.
+
+### 118.2 Ask first (DDB-R1; DDB-X24)
+
+- `combat_executor.pursuit_ask(ctx, cost)`: a TYPED attack on a marshal out of reach asks, at no cost — "Kutuzov stands at Bohemia, three marches off. Pursue him (2 AP — a standing order; the first march takes Ney to Swabia, Bavaria's soil), or cancel?" (a visible foe across the first march: "the first march meets Mack at Swabia …"). The marches are the pursuit's own road (`strategic.march_road`), the quarry where our scouts saw him (`pursue_known_location`).
+- Answered by CR-2's grammar: yes / pursue / "1" / the popup's re-sent command re-issue the attack with the option's `flags` (`_pursuit_confirmed`, the typed line as `_raw_input`) — `clarification._resolved` carries them, `main.py`'s parse stage merges them — and the range check's upgrade runs with NPC-D4's terms; no / cancel withdraw it at no cost.
+- Asked only on the typed road (`_raw_input` on the command), and only an answer that can be carried out: `take <foe>`, strategic execution, an unordered attack, the post-objection and commit re-issues, a broken / recovering / fortified / drilling / engaged marshal, one already on that pursuit, an unseen quarry or no road all keep the upgrade (and its own free refusal). The AI never reaches it.
+- DDB-X24: the player's typed bare "attack" with nobody in reach asks the same question, when the pursuit can be paid; otherwise the step toward the nearest foe stands.
+
+### 118.3 The muster gate widened (DDB-R2; DDB-X23)
+
+- `combat_executor.player_muster_gate_arms(marshal, band)`: the player's attack pauses on its muster at an unfavourable band, any personality; the sovereign never pauses; a favourable attack fires at once. `objection_v2.muster_gate_arms` / `MUSTER_GATE_BAND` / `MUSTER_GATE_PERSONALITIES` are unchanged (the AI's gate, the glory hunt) and choose the voice: a cautious lead halts in his own words, any other is stayed by Berthier ("Berthier stays the order a moment, Sire: before Ney marches on Mack, read the muster.").
+- The Commit re-issue (`_muster_confirmed`) skips the objection DRAW only — every validation of the battery still runs (a fortified marshal is still refused).
+- Every muster riding a result ends with `what_if_line`: "Ask 'what if Ney attacks Mack' to read the muster before you commit — it costs nothing." The help's attack entry and the School's muster card teach it.
+- DDB-X23: `strategic.muster_is_live` reads the lead's reach (`movement_range`), not adjacency — a cavalryman's committed attack two provinces off goes in.
+
+### 118.4 No auto-end on either pool (DDB-R4)
+
+- Spending the last action never ends the turn. The order that empties both pools carries AAR-12's "That was the last order the day could take, Sire — the turn ends when you say so." (military or administrative); the End Turn button turns gold; the client's one end-turn gate guards every end of a turn.
+- Retired: the executor's end-turn mirror (`_exec_finish`), WO-22's `_auto_end_turn_defer_notice`, C3's duplicate-end guard in `TurnManager.end_turn`, `should_end_turn` (`WorldState.use_action`, the commission button, the return to field command), the client's `AUTO_END_WARNING` / `AUTO_END_WAITS_WARNING`. `auto_advanced_to_turn` stays in the save (read, written, unused).
+
+### 118.5 The arm refused (DDB-R5)
+
+- `economy_executor.named_arm_refusal(world, marshal, arm)`: a named marshal asked for an arm he does not command is refused before anything is spent (gold, the admin action, the pool, the square) and both roads are named — his own order, and the nearest serving commander of the arm (his order where his ground levies) or the cheapest candidate on the bench: "Davout commands infantry — 'Davout, recruit' raises foot for him; guns are raised by an artillery corps — commission Marmont (4,500g). Nothing was spent." Pre-validated (no objection first); the parse trace's row is `recruit_arm_refused`. Player-only (no AI recruit passes an arm).
+
+### 118.6 The rich peace's sink (DDB-R7)
+
+- `reforms.peace_sink_law(world, nation)` / `peace_sink_line`: at peace (no WAR and no ARMISTICE), the first unenacted GOLD law of the player's deck the chest can buy (`law_refusal`, its admin term set aside). The morning dispatch carries `situation.law_sink` ("the chest could found the Grand Quartier Général — 9,000g"), appended to the treasury line in both client renderers; the purse's counsel falls back to it (`counsel._peace_sink_terms`) where EA-14's purse test holds its own law line back. Nothing at war, in a truce, or when no law is affordable. EA-14's line itself is unchanged.
+
+### 118.7 The capitulation (DDB-R3; DDB-X1, X2, X25)
+
+- `garrison_report.detachment_capitulates(region, attacker_effective, garrison_effective)`: a DETACHMENT assaulted at ≥ `DETACHMENT_CAPITULATES_AT_ODDS` (4):1 effective odds is taken whole. `CombatExecutor.garrison_exchange(..., region=)` applies it — ONE arithmetic for the resolver (both boards) and the desk's forecast. Below 4:1 the capped exchange stands; a capital's garrison and an authored depot (DEF-6's Flanders) are not detachments and keep the 0.50 cap.
+- Every collapse exit emits its `garrison_destroyed` event (the capture exit carried only the conquest); a capitulation says "The detachment capitulates to odds of 4:1 or better (3,000 -> 0)." and its event carries `capitulated`.
+- DDB-X1: a naval landing reads the attack's ONE predicate (`naval_executor.landing_garrison_fights` → `garrison_report.garrison_fights`): a detachment under 500 lays down its arms to the landing, and the reply says so.
+- DDB-X2 / X25: the scout, assault-muster, works-halt and help lines name the thresholds — a detachment "lays down its arms below 500, and capitulates whole to a storm at 4:1"; a capital's garrison "breaks below 5,000". No line says "fights to the last man" or "Fights to destruction".
+
+### 118.8 The withdrawal (DDB-R6; DDB-X3)
+
+- The rule stands: an engaged marshal may `move` only onto his own nation's soil. The refusal's friendly list is the retreat's own (`retreat_soil_is_friendly`, no foe standing there): a move onto an ally's province says "Davout is engaged with Mack at Lorraine: a march cannot carry him off the field. He may withdraw onto Swabia — 'Davout, retreat to Swabia' (free, −45% effectiveness, once a turn) — or fight." An advance keeps "Cannot advance while engaged …" and names the withdrawal the same way; a marshal who has already fallen back this turn is told he must fight or stand.
+- `movement_executor.retreat_initial_penalty_pct` / `retreat_price_phrase`: the retreat's stage-0 penalty by stance — the figure `_execute_retreat` applies and prints (shown = applied); an aggressive stance adds "and 5% of his men".
+- DDB-X3: `enemy_ai.ai_retreat_soil_is_friendly` — the AI's retreat finder's first tier reads the same set (an ally's or a vassal's soil, as the player's; Golden Rule 5). This is the part's one series move: `BASELINE_SERIES` [28] 0 → 2, the WO-10 gated count 1 → 0 (`tools/_ddb_x3_wo_attribution.py`).
