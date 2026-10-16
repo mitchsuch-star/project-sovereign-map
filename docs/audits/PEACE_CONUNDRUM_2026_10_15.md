@@ -11,6 +11,9 @@ never written to. · **Status:** analysis + findings for the user's ruling. No c
 > — does peace work, is it reactive, is it varied, is Talleyrand's advice worth having, does
 > the war score climb too fast — and answers it from sixteen driven campaigns, per-turn and
 > per-lever probes, and three code reads. It adds findings F9 … F22 and rulings F … H.
+> **Part III** (§18 onward, October 16, 2026) tests the rulings as experiments, continues the
+> user's game, and measures the losing side, France's own settlement table and the wars between
+> AI courts; findings F23 … F33.
 
 ---
 
@@ -597,3 +600,186 @@ The scripts and data are scratch, not committed. To re-derive: drive the command
 folder), then load each save read-only and read `calculate_war_score`, `build_active_wars`,
 `_recommend_action`, `generate_suggested_terms(..., deterministic=True)` +
 `calculate_acceptance`, `effective_peace_threshold` and `coalition_break_ranks_reason`.
+
+---
+
+# Part III — Five more studies (October 16, 2026)
+
+Part II measured how peace works today. Part III tests the rulings before they are made,
+continues the user's own game, and looks at the three corners Part II did not reach: the
+losing side, France's own settlement table, and the wars between AI courts. Run on master at
+`a7e6fb3a` (which includes the CC-2 commit `4645de5f`). Nothing here changed the game.
+
+## 18. What was run
+
+| Study | What it is |
+|---|---|
+| **1. The rulings as experiments** | Each proposed ruling turned into a temporary switch, applied inside the driver's own process (never on master), then the commanded 40-turn campaign driven on the five seeds. 67 campaigns: every arm under **accept**, and the arms where France's own peace matters (BASE, F9, B, C) under **propose** as well. |
+| **2. Your game, continued** | The copy of the user's turn-6 save with Vienna put in French hands (Massena in the city, the garrison gone), driven 15 more turns with France holding what it has, under accept / propose / decline and the arms BASE, F9, B, C, D. |
+| **3. The losing side** | A passive France (no orders) that signs whatever it is offered, five seeds. |
+| **4. France's own table** | The joint settlement swept on 48 boards and the two live ones: 934 packages, every court scored; one staged and ratified on an in-memory copy. |
+| **5. Wars between AI courts** | Every AI–AI war in the per-turn saves of Part II: 193 saves, 39 pair-wars, plus the AI–AI peace code. |
+
+**The switches are approximations, not designs.** B makes the paradox a warning. C adds that a
+France–X peace also ends each French ally's war with X. D makes a truce end in peace when the
+loser's live score is −50 or worse. E weights each court by its material share of the war in
+the settlement scorer. F9 sends the armistice when a beaten court's peace would fail its send
+check. G raises the battle cap from 15 to 30 and lowers the war-purpose ticking cap from 25 to
+10. H stops the per-turn exhaustion tick, so exhaustion comes from losses only. Each is the
+smallest change that answers its ruling's question; a built ruling would be designed properly.
+
+The client study (what the screens show at the peace moments) was not run: it needs the
+Godot client driven against a spare backend, and is proposed as its own session.
+
+## 19. The rulings as experiments
+
+**Signing what is offered (accept)** — when Austria's war ended, and when the coalition's did,
+on austerlitz / historical / jena / marengo / ulm:
+
+| Arm | Austria's war ends | The coalition's war ends | France's provinces at t40 | Truces → war / peace |
+|---|---|---|---|---|
+| **As shipped** | 9, 11, 7, 10, 10 | 9, 11, 12, 12, 10 | 28, 24, 29, 26, 20 | 2 / 1 |
+| F9, B, C, D, E, G | **identical to shipped** | identical | identical | identical |
+| **H — no exhaustion clock** | 9, **33**, 8, 13, **25** | **16, 33, 28, 35, 25** | 26, 25, 24, 26, **13** | **11 / 3** |
+
+**Suing every turn (propose)** — Austria's war, and France at turn 40:
+
+| Seed | As shipped | B (the paradox warns) | C (B + the allies co-sign) |
+|---|---|---|---|
+| austerlitz | truce t5 · **at war with Austria, Britain, Russia at t40** · 29 provinces | truce t5 · at peace · 28 | truce t5 · at peace · 28 |
+| historical | settlement t11 · **at war with all three at t40** · 27 | settlement t11 · at peace · 28 | settlement t11 · at peace · 28 |
+| jena | truce t6 · at peace · 28 | **peace t7** · at peace · **16** | **peace t7** · at peace · 28 |
+| marengo | settlement t11 · **at war with Britain, Russia** · 27 | **peace t7** · at peace · 22 | **peace t7** · at peace · 28 |
+| ulm | truce t8 · at peace · 20 | settlement t10 · at peace · 16 | settlement t10 · at peace · 21 |
+
+What the experiments say:
+
+- **Nothing about the score decides when a war ends; the clock does.** F9, B, C, D, E and G change nothing in the accept campaigns. G changes the shape of the war score and E the scorer's weights, yet the wars ended on the same turns with the same letters, because the letters are driven by the exhaustion clock and the settlement schedule (§10). **H is the only arm that moves the accept campaigns**, and it moves them a lot: without the per-turn exhaustion tick the coalition's war runs to turns 16–35, eleven truces collapse back into war, and on ulm France falls to 13 provinces. The clock is load-bearing: remove it and nothing else ends the wars.
+- **B and C give France a peace that lasts.** When France sues, the shipped game leaves France at war with a major at turn 40 on three seeds of five (its truces collapse, and later wars resume); under B or C, on none. On jena and marengo Austria accepts France's own peace at turn 7.
+- **C keeps what B loses.** Under B France keeps 16–22 provinces on three seeds; under C, 28 on four and 21 on ulm. On jena, B's separate peace — Bavaria left fighting — was followed by a Fourth Coalition at turn 32 (Austria, Britain, Hanover, Russia, Sardinia, Sweden) that took French provinces before France made peace court by court; under C, with Bavaria's war ended in the same instrument, no new coalition formed in the campaign. One seed is a path, not a law; but every C run kept France at least as large as its B twin.
+- **D never fired.** In 40 commanded turns no truce reached its expiry with a loser at −50 or worse: France's truces were superseded by Britain's settlement first, or the score behind them was small. A victor's truce matters only for a France winning big, which the scripted France never is.
+- **E changes France's own table, not the AI's.** The coalition's settlement letters are white peace either way (they follow the side score's ±20 bands, not the scorer). On the user's boards E is decisive (§22): weighted by material share (Austria 99 %), France's white peace carries with every court — 56 / 51 / 51, and 63 / 70 / 70 with Vienna held.
+- **F9 is invisible here** because the scripted France never drives a court past −70; it matters on the user's board (§20).
+
+## 20. Your game, continued
+
+The copy of the user's turn-6 save, with Vienna put in French hands as it was after the
+assaults (Massena in the city, the garrison gone), driven 15 more turns with France holding
+what it has (no new orders), under each policy and the arms that bear on it.
+
+| Arm | What happened (signing what is offered) | When the war with Austria ended | When the whole war ended |
+|---|---|---|---|
+| **As shipped** | Austria silent at turn 6 (F9's band). Russia's truce t7, Austria's truce t9 (signed t10), Britain's settlement t10, ratified t11. | t10 (truce) | **t11** |
+| **F9 fallback** | Austria's truce arrives at once (t6, signed t7). Britain's settlement at t11 then covers only Britain and Russia — Austria, already in a truce, is left out of it. | **t7** (truce) | t11 — without Austria |
+| **B** (the paradox warns) — suing | France's own peace to Austria is **accepted at turn 6**. Russia counters at t7 (signed t8); Britain's settlement t8. | **t6** (peace) | **t8** |
+| **C** (B + the ally co-signs) — suing | As B; Bavaria's war with Austria ends in the same instrument. | **t6** (peace) | **t8** |
+| **D** (the victor's truce) | No change within 15 turns: the truce that expired (Russia's, t12) had no war score behind it. | t10 | t11 |
+
+- **What the status quo gives.** The settlement that ends the shipped line reads "Bohemia, Tyrol and **Vienna** stay ours by the treaty" — the coalition's "white peace" is *uti possidetis*: each side keeps what it holds. For a France standing in Vienna that is a conquest, not a white peace; the tier label hides it.
+- **Refusing everything** (decline, every arm): Russia's truce t7, Austria's t10, Britain's settlement t11 and t16, Russia's *peace* t19 — the letters keep coming on the clocks of §10.
+- **F9's trade-off.** The fallback ends the silent band — Austria's truce comes three turns sooner — but a court in a truce is not covered by the next settlement. The fix should be paired with the settlement covering a court whose truce it outlasts, or the player should be told that accepting the truce takes Austria off the table.
+- **Rulings B / C are the fast road**: the white peace France can already afford (106 with Vienna held, §11) goes through on the turn it is sent.
+
+## 21. The losing side
+
+A passive France (no orders) that signs whatever it is offered, on the five seeds:
+
+| Seed | Austria's war ends | The coalition settles | Terms | France's provinces t10 / 20 / 30 / 40 |
+|---|---|---|---|---|
+| austerlitz | t7 truce | t12 | white peace | 28 / 28 / 24 / 24 |
+| historical | t12 peace | t13 | white peace | 28 / 25 / 25 / 25 |
+| jena | t13 settlement | t13 | **France pays Britain 4,357 gold; Franche-Comté stays Austrian** | 27 / 27 / 27 / 26 |
+| marengo | t6 truce | t12 | white peace | 28 / 28 / 28 / 28 |
+| ulm | t7 truce | t12 | white peace | 28 / 19 / 13 / 13 |
+
+- **Losing is cheap and quick.** Courts that are *winning* still send truces and peaces from turn 6 (Austria at +25 offered peace on historical), and the coalition settles at turns 12–13. Four seeds of five end in a white peace; one charges France 4,357 gold and keeps a French home province.
+- **The trap is the truce, again.** On ulm France accepted four truces; two expired into war, and Austria's renewed wars took France from 28 provinces to 13 by turn 30 — the only seed where a losing France was hurt, and it was hurt *after* accepting peace terms.
+- **No harsh terms were imposed** on any seed: the winning AI's harsh-peace rung (P8, winning by more than 40) never sent a letter, and the snapshots never show a court ahead of the passive France by more than 26 before the clocks of §10 brought a settlement.
+
+## 22. Can France's own settlement carry?
+
+The joint table (Open Settlement) was swept on 48 boards from the five campaigns (turns 3–35)
+and on the two live boards: white peace, partial coverage, Talleyrand's baseline, France
+paying gold, France ceding a province, and the presets — 934 packages, every court scored.
+One package was staged and ratified on an in-memory copy of the live world.
+
+**A white peace never carries; a paid peace always does.**
+
+| Package | Result |
+|---|---|
+| White peace, all three courts | never carries — the best worst-court score on any board is 27 |
+| **France pays one court gold** | **carries on every board**. On the user's turn-6 board: 775 gold falls short (49), **800 gold carries** (Austria 55, Britain 50, Russia 50) and ratifies — the treasury goes 4,688 → 3,888 and the whole war ends. With Vienna held it takes about 1,000 (51 / 58 / 58). |
+| France cedes a province back | +35 to every court: returning Bohemia or Tyrol carries the user's board (78 / 53 / 53) |
+| **Austria alone** (the table can drop courts) | a white peace **carries on the user's boards** (62; 50 with Vienna held) and ratifies — France at peace with Austria, still at war with Britain and Russia |
+| Talleyrand's baseline | a bare peace wherever France is not losing — never carries |
+| **Courts weighted by their share of the war** (ruling E, re-scored) | a white peace **carries on the user's boards**: 56 / 51 / 51, and 63 / 70 / 70 with Vienna held (Austria carried 99 % of the coalition's material effort) |
+
+- **Why a white peace fails.** The scorer averages France's war across every covered court, and Britain and Russia sit at 0 all game. The user's +54 against Austria averages to 17 — the white-peace tier, a −10 on every court — and +79 with Vienna averages to 26, the best on any board. To carry unpaid, France would need about +58 *averaged*: beating Britain and Russia in the field.
+- **What a point costs.** The scorer credits one point per 25 gold France pays, up to 40 per clause (1,000 gold) and 120 in all. The price of the war is therefore **25 gold × (50 − the worst court's score)**: 575–1,300 gold across the boards, median 1,025 — 6–50 % of France's treasury, about 17 % typically.
+- **One payment buys every court (F23).** A payment to any one court lifts *every* court's score equally: 1,000 gold to Russia gives exactly the table that 1,000 to Britain gives. "Every court must reach 50" is bought by paying the cheapest court once.
+- **A separate peace through the table (F24).** Dropping Britain and Russia from coverage turns the joint table into a bilateral peace with Austria that the ratifier signs — the very treaty the alliance paradox forbids on the bilateral road (Part I F1–F2). It is a **fifth road with a fifth verdict**.
+- **Nobody tells the player.** Talleyrand's baseline prices a point at 100 gold (four times the scorer's 25), aims at 35 rather than 50 and pays up to 1,500 a clause, beyond the 1,000 the scorer credits: on jena t12–20 and ulm t15–20 his draft pays 1,500 to Austria and still does not carry (F25). A France-pays package that falls short is told "the terms claim a victory the field has not delivered" — the phrase SRX-6 and DDB-6 fixed for other shapes (F26). Ceding French home soil lowers *every* court's score (France's defense objective "contradicts" it, −20), which reads backwards (F27).
+
+## 23. Peace between AI courts
+
+Every AI–AI war in the five refuse-everything campaigns and the passive one (193 saves; 39 pair-wars):
+
+| Origin | How they ended | How long |
+|---|---|---|
+| **Declared by an AI during play** (Prussia → Hanover, "The Hanoverian Prize", on every seed) | negotiated at the first chance: Hanover pays 1,670–3,222 gold, Prussia keeps what it took | exactly 3 turns (the minimum) |
+| Britain–Spain (1805) | a white peace by exhaustion at turn 15, every seed | 15 |
+| **Austria–Bavaria (1805)** — the war behind France's paradox | the exhausted-pair exit at turns 14 (austerlitz, ulm), 16 (historical), 24 (jena); **Bavaria eliminated** at t27 on marengo (t14 for the passive France) | 14–27 |
+| Austria–Kingdom of Italy, Britain–Holland (France's clients) | elimination, a defection, or still running at turn 40 (31–40 turns, both at exhaustion 200) | to 40+ |
+| Cascades from Switzerland's rebellion | all ended by Switzerland's elimination | 1–10 |
+
+- **Two kinds of war, two rules.** A war an AI declares stands in its own war instance, and its loser sues through the same threshold P1 reads — it ends in three turns. The 1805 wars are all folded into France's own instance, and there a loser **never sues**: the only exits are the exhausted-pair white peace (both sides' exhaustion ≥ 120, ten turns of war, the pair score within ±15), elimination, or a client's defection (`settlement_third_party.py` 48–50, 365–370, 456–491). A decisive sub-war has no road out: marengo's Austria–Bavaria sat at +35 to +60 for eight turns until Bavaria was destroyed (F28).
+- **The paradox lifts by itself — sometimes.** Bavaria's war with Austria ended on its own at turns 14–24 on four seeds, which frees France's bilateral peace from then on. Nothing tells the player when that happens.
+- **Clients have no exit** (F29). A client's pair is excluded from the exhausted-pair exit, so Britain–Holland and Austria–Italy run at exhaustion 200 for 15+ turns. A client that defects keeps fighting its new lord's ally: on marengo Holland went over to Russia at t32 and Britain, Russia's ally, was still taking Holland's provinces at t38 (`vassal.py` 729–732 skips pairs whose instance either court leads; the 1805 boot made Britain the leader of France's instance) (F30).
+- **A latent silent band of their own** (F31). Between AI courts there is no −70 peace/armistice split and no send filter, so P1's band does not recur; but when the loser has crossed its threshold while the winner's score is still under 20, the package is a white peace the scorer rejects, it is not "surrender-shaped", the broker does not fire (it fires only *above* the threshold) and there is no AI–AI armistice: nothing is sent. Probed on the Prussia–Hanover war: Hanover at −12, −15, −19 — nothing; at −20 — peace with 1,899 gold. Not met in the runs (that war jumped from −3 to −40 in one turn).
+
+## 24. New findings
+
+| # | Kind | Finding | Evidence |
+|---|---|---|---|
+| **F23** | G | **One payment buys every court.** A gold payment or cession to any one court lifts every court's score equally (`settlement_scoring.py` 1528–1536 credits the whole accepting side), so "every court must reach 50" is met by paying the cheapest court once. | §22 |
+| **F24** | I | **A fifth road to the separate peace.** Dropping courts from the settlement table yields a bilateral peace with Austria that the ratifier signs, while the bilateral road calls the same treaty a paradox. Part I F2's four verdicts are now five. | §22 |
+| **F25** | D | **Talleyrand's settlement baseline is mis-priced**: 100 gold per point of gap (`settlement_baseline.py` 1609) against the scorer's 25, aimed at 35 not 50, up to 1,500 a clause beyond the 1,000 the scorer credits — it pays 1,500 and still does not carry. | §22 |
+| **F26** | L | **A France-pays package that falls short is told "the terms claim a victory the field has not delivered"** — the white-peace tier's −10, not a claim (`diplomatic_templates.py` 2589; the class SRX-6 and DDB-6 fixed for other shapes). | §22 |
+| **F27** | D | **Ceding French home soil lowers every court's score** (France's defense objective "contradicts" the cession, −20 on every court); the receiving court should not like the deal less. *Inference from the scorer; to verify.* | §22 |
+| **F28** | G | **A decisive war between AI courts inside France's war has no exit**: the 1805 wars are folded into France's instance, where a loser never sues; only a stagnant score, elimination or a defection ends them. | §23 |
+| **F29** | D | **A client's pairs have no exit at all**: excluded from the exhausted-pair exit, Britain–Holland and Austria–Italy ran 15+ turns at exhaustion 200. | §23 |
+| **F30** | D | **A client that defects keeps fighting its new lord's ally**: Holland, gone over to Russia, still at war with Britain (Russia's ally) eight turns later (`vassal.py` 729–732). | §23 |
+| **F31** | D | **A latent silent band between AI courts**: a loser past its threshold while the winner is under 20 sends nothing (a rejected white peace, no armistice, the broker not firing). | §23 |
+| **F32** | G | **F9's fallback takes the court out of the next settlement**: a court in a truce is not covered, so on the user's board the settlement no longer confirms Vienna. A fix to F9 should keep the court covered, or say so. | §20 |
+| **F33** | L | **The "white peace" is *uti possidetis***: it confirms every province each side holds — Vienna included — while the tier, the panel and the letter call it a white peace. | §20, §21 |
+
+## 25. The rulings, re-read with data
+
+| Ruling | What the experiments say | Recommendation |
+|---|---|---|
+| **B** one verdict for the separate peace | Lets France's own peace through: no major at war with France at t40 on any seed (shipped: 3 of 5). But a separate peace that leaves an ally fighting cost France provinces on three seeds and, on jena, a new coalition. | **Take C rather than B (b).** |
+| **C** the Pressburg road | Everything B gives, and France keeps its provinces (28 on four seeds, 21 on ulm); the ally's war ends in the same instrument; no new coalition on any seed. On the user's board, Austria accepts at turn 6 and the whole war ends at turn 8. | **Build C.** It is the one ruling that gave the player a peace that was both available and lasting. |
+| **D** the victor's truce | Never fired in 67 campaigns: the scripted France never held a truce with a loser past −50 at expiry. | **Defer.** It would matter for a France winning big, and C covers that case directly. |
+| **E** who prices the coalition's peace | No effect on the coalition's own offers; decisive on France's own table (the user's white peace carries at 56 / 51 / 51). F23 is the other half: today one payment carries every court. | **Rule E together with F23**: weight the courts by their share of the war, and make a payment count for the court it is paid to. |
+| **F** variance | Measured in Part II: seeds move the end of the war by at most three turns. | Unchanged: the user's call, and no peace outcome depends on it. |
+| **G** the shape of the war score | No effect on when or how wars end. | **Low priority** for peace; worth doing for the war score's own legibility (victories that count, a ticking that can fall). |
+| **H** what wears a court down | The exhaustion clock is what ends wars today; without it wars run 2–3 times longer and France bleeds. | **Keep the clock** unless something else ends wars. If exhaustion should come from losses, raise what losses cost before removing the time term. |
+
+**The recommended order, now with data:** the S13e defects (F9 first, live in the user's
+game), then **C**, then **E with F23**; D and G after; F and H stay the user's.
+
+## 26. Evidence for Part III
+
+| Claim | Source |
+|---|---|
+| The ruling arms | 67 driven campaigns (`run_rulings.py`: one switch per arm, applied in the driver's process); digests, saves at t10/20/30/40, reach counters |
+| Your game, continued | 15 runs from the Vienna-held copy of the turn-6 save |
+| The losing side | 5 passive campaigns, saves at t10/20/30/40 |
+| France's own table | 934 scored packages on 50 boards; one staged and ratified in memory; the user's boards re-checked (800 gold carries 55 / 50 / 50; Austria alone 62) |
+| E on the user's boards | the scorer re-run with the courts weighted by material share (Austria 0.99, Britain 0.01, Russia 0.00) |
+| AI–AI wars | 193 saves; `settlement_third_party.py` 48–50, 351–383, 456–491; `ai_diplomacy.py` 3781, 3968–4100; `vassal.py` 729–732 |
+
+The scripts and data are scratch, not committed. To re-derive a ruling arm: apply the switch in
+a bootstrap that then runs `tools/playtest_driver.py` through `runpy` in the same process, with
+`PYTHONHASHSEED=0` (so the driver does not re-launch itself) and the child's stdin closed (a
+batch with stdin inherited stalled mid-run once).
