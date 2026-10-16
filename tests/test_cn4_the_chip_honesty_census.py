@@ -1034,6 +1034,11 @@ REVIEWED = {
     ("region_panel.gd", '"do:build ships"'): "driven; nation-scoped, the yard disclosed (NV-12)",
     ("region_panel.gd", '"do:land " + who + " in " + _region'): "driven (the quote step)",
     ("region_panel.gd", '"do:" + m_name + ", attack " + enemy_shown'): "driven; at-war courts only",
+    # Row CC, CC-2 "March here" (October 2026): the march / support / attack
+    # chips send the backend QUOTE's own command — every quote drift-pinned
+    # against POST /command on a fresh board (tests/test_cc2_march_here.py),
+    # the panel driven against real quotes (tools/cc_client_harness.gd).
+    ("region_panel.gd", '"do:" + str(q.get("command", ""))'): "driven; the quote drift-pinned (CC-2)",
     ("region_panel.gd", '"order:unfortify:" + m_name'): "driven",
     ("region_panel.gd", '"order:fortify:" + m_name'): "driven",
     ("region_panel.gd", '"order:drill:" + m_name'): "driven; dimmed with the executor's reason",

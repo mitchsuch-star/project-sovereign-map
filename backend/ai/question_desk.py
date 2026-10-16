@@ -1481,21 +1481,12 @@ def _answer_reach_by_the_march(world, player: str, marshal, shown: str,
     else:
         when = f"in {plural(turns, 'turn')}"
     answer = f"Yes, Sire — {shown} can reach {place} from {marshal.location} {when}: {route}."
-    from backend.models.intel import FULL, PARTIAL
-    for region in road:
-        try:
-            seen = world.get_region_intel(region).visibility in (FULL, PARTIAL)
-        except Exception as exc:
-            report(exc, "question_desk._answer_reach_by_the_march: world.get_region_intel")
-            seen = False
-        if not seen:
-            continue
-        foes = [m for m in world.get_enemies_in_region(region, player)
-                if getattr(m, "strength", 0) > 0]
-        if foes:
-            answer += (f" {_display(foes[0].name)} stands on the road at "
-                       f"{region} — the march will meet him there.")
-            break
+    # CC-2: the same foe-on-road scan the March here quote reads.
+    from backend.commands.order_quotes import visible_foe_on_road
+    foe = visible_foe_on_road(world, player, road)
+    if foe is not None:
+        answer += (f" {_display(foe[0].name)} stands on the road at "
+                   f"{foe[1]} — the march will meet him there.")
     state = _road.march_state_refusal(world, marshal)
     if state:
         answer = (f"Not today, Sire — {state} "

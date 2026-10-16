@@ -6979,6 +6979,26 @@ def respond_to_mailbox_item(request: MailboxRespondRequest):
 # DIPLOMATIC LEDGER ENDPOINT (Session 8A)
 # ════════════════════════════════════════════════════════════
 
+@app.get("/march_quotes")
+def get_march_quotes_endpoint(region: str = ""):
+    """CC-2 "March here": every click order the province panel offers at
+    `region`, quoted from the order's own pure readers
+    (`backend/commands/order_quotes.py`). READ-ONLY — it runs no command,
+    touches no popup queue and records nothing, so the panel may ask it
+    whenever it opens."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    if not region or world.get_region(region) is None:
+        return {"success": False, "message": f"Unknown province: {region}", "region": region}
+    try:
+        from backend.commands.order_quotes import march_quotes_for_region
+        return march_quotes_for_region(world, region)
+    except Exception as e:
+        _errors.report(e, "main.get_march_quotes_endpoint: the quotes", every=True)
+        return {"success": False, "region": region, "error": str(e),
+                **_errors.debug_fields(e, "main.get_march_quotes_endpoint: the quotes", DEBUG_MODE)}
+
+
 @app.get("/diplomatic_preview")
 def get_diplomatic_preview_endpoint(
     nation: str = "",

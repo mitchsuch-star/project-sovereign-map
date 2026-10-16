@@ -28,6 +28,9 @@ signal negotiate_requested(nation: String)
 # NUI: THE SEA block's chip opens THE ADMIRALTY (main.gd → ledger book 7)
 signal admiralty_requested
 signal closed
+# CC-2 "March here": the panel wants the backend's quotes for this province
+# (main.gd fetches GET /march_quotes and hands them back to set_march_quotes).
+signal quotes_requested(region: String)
 
 @onready var panel_container = $PanelContainer
 @onready var title_label = $PanelContainer/VBoxContainer/HeaderRow/TitleLabel
@@ -85,6 +88,13 @@ var _region: String = ""
 # clamped fold. Folded by default; the choice holds for the session.
 var _build_open := false
 var _map_node = null
+# CC-2 "March here": the quotes the backend gave for `_quotes_region` — the
+# click orders rendered exactly as quoted, never re-derived here (the CN-3
+# rule: the chip says what the quote says).
+var _quotes: Dictionary = {}
+var _quotes_region := ""
+var _march_more := false
+const _MARCH_SHOWN := 5
 
 
 func _ready():
@@ -131,9 +141,14 @@ func show_region(region_name: String, map_node) -> void:
 	var retargeted = region_name != _region
 	_region = region_name
 	_map_node = map_node
+	if retargeted:
+		_quotes = {}
+		_quotes_region = ""
+		_march_more = false
 	_fit_width()
 	_render()
 	show()
+	quotes_requested.emit(_region)   # CC-2: the March here rows follow
 	if retargeted and scroll != null:
 		# A fresh province starts at the top; refresh_if_open (same province,
 		# post-chip re-render) keeps the player's scroll position.
@@ -145,10 +160,24 @@ func refresh_if_open() -> void:
 	(the map itself refreshes from every response's game_state.map_data)."""
 	if visible and _region != "" and _map_node != null:
 		_render()
+		quotes_requested.emit(_region)   # CC-2: an order landed — re-quote
 
 
 func current_region() -> String:
 	return _region
+
+
+func set_march_quotes(region: String, payload) -> void:
+	"""CC-2: the quotes for `region` arrived. Dropped when the player has
+	moved to another province or shut the panel — a stale answer must never
+	draw under the wrong title."""
+	if not visible or region != _region or not (payload is Dictionary):
+		return
+	if not bool(payload.get("success", false)) or str(payload.get("region", "")) != region:
+		return
+	_quotes = payload
+	_quotes_region = region
+	_render()
 
 
 func close_panel() -> void:
@@ -180,6 +209,9 @@ func _on_meta_clicked(meta):
 		admiralty_requested.emit()
 	elif meta_str == "toggle:build":
 		_build_open = not _build_open
+		_render()
+	elif meta_str == "toggle:march_more":
+		_march_more = not _march_more
 		_render()
 
 
@@ -317,6 +349,10 @@ func _render() -> void:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]FORCES PRESENT[/color]\n"
 		for m in marshals:
 			bbcode += _format_marshal_row(m, enemy_names)
+
+	# ── CC-2 "March here": the click orders, as the backend quoted them ──
+	if _quotes_region == _region and not _quotes.is_empty():
+		bbcode += _march_here_section()
 
 	# ── THE SEA (NUI "The Admiralty on the Map", September 23, 2026) ──
 	# A coastal province says what the water around it means: every sea
@@ -866,6 +902,109 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 					dimmed.append(["Drill", drill_why])
 				row += _dimmed_chips(dimmed)
 	return row + "\n"
+
+
+func _march_here_section() -> String:
+	"""CC-2 "March here": the backend's quotes as rows of chips — MARCH HERE
+	(every corps of ours standing elsewhere), SUPPORT <ally> (one row per
+	corps of ours standing here) and ATTACK <enemy> (one row per enemy corps
+	we see here). A chip sends its quoted command through the same road as a
+	typed one; a refused order is dimmed beside the quote's own reason."""
+	var out := ""
+	var march = _quotes.get("march", [])
+	if march is Array and not march.is_empty():
+		out += "\n[color=#" + Utils.COLOR_HEADER + "]MARCH HERE[/color]  [color=#" \
+			+ Utils.COLOR_INFO + "]a standing order — he marches on each turn[/color]\n"
+		out += _quote_rows(march)
+	var support = _quotes.get("support", [])
+	if support is Array:
+		for row in support:
+			if row is Dictionary:
+				out += "\n[color=#" + Utils.COLOR_HEADER + "]SUPPORT " \
+					+ str(row.get("ally_shown", "")).to_upper() + "[/color]  [color=#" \
+					+ Utils.COLOR_INFO + "]he follows, and marches to the guns[/color]\n"
+				out += _quote_rows(row.get("quotes", []))
+	var attack = _quotes.get("attack", [])
+	if attack is Array:
+		for row in attack:
+			if row is Dictionary:
+				out += "\n[color=#" + Utils.COLOR_HEADER + "]ATTACK " \
+					+ str(row.get("enemy_shown", "")).to_upper() + "[/color]\n"
+				out += _quote_rows(row.get("quotes", []))
+	return out
+
+
+func _quote_rows(quotes) -> String:
+	"""One chip per order the backend will take, nearest first (five, then
+	"+N more…"); the refused ones grouped under their reason."""
+	var out := ""
+	if not (quotes is Array):
+		return out
+	var shown := 0
+	var hidden := 0
+	var dimmed := []
+	for q in quotes:
+		if not (q is Dictionary):
+			continue
+		if not bool(q.get("ok", false)):
+			dimmed.append([str(q.get("shown", "")), str(q.get("refusal", ""))])
+			continue
+		if shown >= _MARCH_SHOWN and not _march_more:
+			hidden += 1
+			continue
+		shown += 1
+		out += "  " + Utils.bb_button_chip("do:" + str(q.get("command", "")), _quote_label(q),
+			Utils.COLOR_GOLD, _CHIP_BG)
+		var notes := _quote_notes(q)
+		if notes != "":
+			out += "  [color=#" + Utils.COLOR_INFO + "]" + notes + "[/color]"
+		out += "\n"
+	# The refused: all of them when nothing is open (the reason IS the
+	# answer), otherwise behind "+N more…" so the open orders lead.
+	if not dimmed.is_empty():
+		if shown == 0 or _march_more:
+			out += _dimmed_chips(dimmed) + "\n"
+		else:
+			hidden += dimmed.size()
+	if hidden > 0:
+		out += "  [url=toggle:march_more][color=#" + Utils.COLOR_INFO + "]+" + str(hidden) \
+			+ " more…[/color][/url]\n"
+	elif _march_more and (shown > _MARCH_SHOWN or (not dimmed.is_empty() and shown > 0)):
+		out += "  [url=toggle:march_more][color=#" + Utils.COLOR_INFO + "]fewer[/color][/url]\n"
+	return out
+
+
+func _quote_label(q: Dictionary) -> String:
+	"""`Soult · 2 AP · 3 turns` — the man, the price, the clock."""
+	var label := str(q.get("shown", ""))
+	if bool(q.get("already", false)):
+		return label + " · already ordered"
+	var kind := str(q.get("kind", ""))
+	if kind == "attack":
+		label += " · attack"
+	elif kind == "march_attack":
+		label += " · march & attack"
+	label += " · " + str(int(q.get("ap", 0))) + " AP"
+	if kind != "attack":
+		var turns := int(q.get("turns", 0))
+		label += " · " + ("this turn" if turns == 0 else Utils.plural(turns, "turn"))
+	return label
+
+
+func _quote_notes(q: Dictionary) -> String:
+	"""What the click would also do: the contact on the road, the standing
+	order it REPLACES (the executor cancels the old one without a word), and
+	whether he may object."""
+	var notes := []
+	var note := str(q.get("note", ""))
+	if note != "":
+		notes.append(note)
+	var replaces := str(q.get("replaces", ""))
+	if replaces != "" and not bool(q.get("already", false)):
+		notes.append("replaces " + replaces)
+	if str(q.get("objection", "none")) == "possible":
+		notes.append("he may object")
+	return " · ".join(PackedStringArray(notes))
 
 
 func _dimmed_chips(dimmed: Array) -> String:

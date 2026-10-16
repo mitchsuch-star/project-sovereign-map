@@ -31,6 +31,9 @@ class ApiStub extends Node:
 
 	func test_connection(cb = null): _answer("test_connection", cb)
 	func get_map_topology(_cb = null): calls.append("get_map_topology")
+	# CC-2: recorded, never answered — the scenario hands the panel the real
+	# backend quotes itself, so it controls when (and for which province).
+	func get_march_quotes(r, _cb = null): calls.append("march_quotes:" + str(r))
 	func get_ledger(cb = null): _answer("get_ledger", cb)
 	func get_diplomatic_ledger(cb = null): _answer("get_diplomatic_ledger", cb)
 	func get_marshal_overview(cb = null): _answer("get_marshal_overview", cb)
@@ -403,8 +406,72 @@ func _run():
 	_fresh("")
 	_out["c11_glow_cleared"] = str(map.get("selected_region")) if map != null else ""
 
+	# ══ CC-2 "March here" (only when the spec carries real quotes) ════════
+	if _spec.has("march_quotes"):
+		_run_march_here()
+
 	_out["api_calls"] = _api.calls
 	_phase = "done"
+
+
+func _calls_since(n: int, prefix: String) -> Array:
+	var out: Array = []
+	for i in range(n, _api.calls.size()):
+		if str(_api.calls[i]).begins_with(prefix):
+			out.append(str(_api.calls[i]))
+	return out
+
+
+func _run_march_here() -> void:
+	var panel = _panel()
+	var prov := str(_spec.get("quotes_province", ""))
+	var payload: Dictionary = _spec.get("march_quotes", {})
+	var other := str(_spec.get("refused_province", ""))
+	var refused: Dictionary = _spec.get("refused_quotes", {})
+
+	# p1 — a province click opens the panel, which asks for its quotes; the
+	# quotes render as they came.
+	_fresh("")
+	var n: int = _api.calls.size()
+	_click(prov)
+	_out["p1_panel_open"] = _panel_open_on(prov)
+	_out["p1_requested"] = _calls_since(n, "march_quotes:")
+	panel.call("set_march_quotes", prov, payload)
+	_out["p1_text"] = str(panel.content_area.text)
+
+	# p2 — a stale answer (another province) never draws under this title.
+	panel.call("set_march_quotes", other, refused)
+	_out["p2_text_unchanged"] = str(panel.content_area.text) == str(_out["p1_text"])
+
+	# p3 — a chip sends its quoted command through the chip road.
+	var first := ""
+	for q in payload.get("march", []):
+		if q is Dictionary and bool(q.get("ok", false)):
+			first = str(q.get("command", ""))
+			break
+	_out["p3_command"] = first
+	var before := _sends().size()
+	panel.call("_on_meta_clicked", "do:" + first)
+	_out["p3_sent"] = _sends().slice(before)
+
+	# p4 — the order's reply re-renders the panel, which asks again.
+	_main.set("_chip_command_in_flight", false)
+	_main.call("set_input_enabled", true)
+	n = _api.calls.size()
+	panel.call("refresh_if_open")
+	_out["p4_requested_again"] = _calls_since(n, "march_quotes:")
+
+	# p5 — "+N more…" opens every quote, the refused under their reason.
+	panel.call("_on_meta_clicked", "toggle:march_more")
+	_out["p5_text_more"] = str(panel.content_area.text)
+	panel.call("_on_meta_clicked", "toggle:march_more")
+
+	# p6 — a province no corps of ours can reach: the reasons ARE the answer.
+	panel.close_panel()
+	_click(other)
+	panel.call("set_march_quotes", other, refused)
+	_out["p6_text"] = str(panel.content_area.text)
+	panel.close_panel()
 
 
 func _finish():

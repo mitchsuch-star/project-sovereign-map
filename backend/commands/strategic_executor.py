@@ -663,8 +663,9 @@ class StrategicExecutor:
          1. `_strategic_open` — The world and the marshal found; the broken and
             the routed refuse (7A-1, FA-9); the state speaks first (CRT-9); an
             identical order already carried is a no-op (F10).
-         2. `_strategic_square_and_engagement` — The square breaks; guns cannot
-            chase; no order while engaged; a marshal never targets himself.
+         2. `_strategic_square_and_engagement` — The square's state noted (it
+            breaks at stage 7, CC-X8); guns cannot chase; no order while
+            engaged; a marshal never targets himself.
          3. `_strategic_generic_target` — A bare march asks where (CX3-R2); a
             generic target resolved.
          4. `_strategic_validate_target` — SUPPORT names a friendly marshal;
@@ -673,7 +674,8 @@ class StrategicExecutor:
             remembers the game placed it); a redundant HOLD refused.
          6. `_strategic_path` — The road for MOVE_TO, PURSUE, SUPPORT and HOLD,
             from where our scouts saw the quarry (FA-S17-9).
-         7. `_strategic_objection` — The V2a objection check, before any order
+         7. `_strategic_objection` — The square breaks (CC-X8: only once every
+            refusal has passed); the V2a objection check, before any order
             exists.
          8. `_strategic_create_order` — The condition, the `StrategicOrder`,
             the old order cancelled, the event logged.
@@ -792,14 +794,17 @@ class StrategicExecutor:
         return _NEXT_STAGE
 
     def _strategic_square_and_engagement(self, ctx: StrategicCommandContext):
-        """Stage 2 of `_execute_strategic_command`: The square breaks; guns
-        cannot chase; no order while engaged; a marshal never targets
-        himself."""
+        """Stage 2 of `_execute_strategic_command`: The square's state noted
+        (it breaks at stage 7, CC-X8); guns cannot chase; no order while
+        engaged; a marshal never targets himself."""
         # Auto-break square formation (Session 67: "any strategic command breaks square")
         # FA-N57: remember the PRE-break state — the SUPPORT advisory below
-        # reads it, because after this line the live attribute is always False.
+        # reads it, because after the break the live attribute is always False.
+        # CC-X8 (row CC, CC-2): the break itself waits for stage 7 — every
+        # refusal from here to the road (engaged, the target, the hold, no
+        # road) used to leave a squared corps OUT of square for an order the
+        # game then refused. Stages 3-6 read no square state.
         ctx.was_in_square = bool(getattr(ctx.marshal, 'square_formation', False))
-        self._executor._auto_break_square(ctx.marshal, ctx.strategic_type or "strategic order")
 
         print(f"[STRATEGIC] Creating {ctx.strategic_type} order for {ctx.marshal.name} -> {ctx.target}")
 
@@ -1297,6 +1302,9 @@ class StrategicExecutor:
     def _strategic_objection(self, ctx: StrategicCommandContext):
         """Stage 7 of `_execute_strategic_command`: The V2a objection check,
         before any order exists."""
+        # CC-X8: the square breaks HERE, once every refusal of stages 2-6 has
+        # passed — the objection reads the broken square exactly as before.
+        self._executor._auto_break_square(ctx.marshal, ctx.strategic_type or "strategic order")
         # ── Strategic objection check (V2a) ───────────────────────────
         # Check if marshal objects to this strategic command BEFORE creating order
         # Uses V2 evaluate_strategic_situation() (deterministic ConcernLevel triggers)

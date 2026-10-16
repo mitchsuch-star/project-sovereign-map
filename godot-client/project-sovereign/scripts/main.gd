@@ -593,6 +593,8 @@ func _ready():
 	region_panel = dialog_manager.register("region_panel", "res://scenes/region_panel.tscn", false)
 	if region_panel:
 		region_panel.region_command.connect(_on_region_panel_command)
+		if region_panel.has_signal("quotes_requested"):
+			region_panel.quotes_requested.connect(_fetch_march_quotes)   # CC-2
 		region_panel.negotiate_requested.connect(_on_region_negotiate_requested)
 		# NUI: THE SEA block's chip opens the ledger's naval book.
 		if region_panel.has_signal("admiralty_requested"):
@@ -8397,6 +8399,21 @@ func _on_region_panel_command(command: String):
 	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	api_client.send_command(command, _on_region_panel_command_result)
+
+
+func _fetch_march_quotes(region: String) -> void:
+	"""CC-2 "March here": ask the backend for the panel's click orders — a
+	read-only GET on the request queue (it runs no command and pops no
+	popup). The answer is handed back with the province it was asked for, so
+	the panel can drop one that arrives after the player moved on."""
+	if region == "" or api_client == null or not api_client.has_method("get_march_quotes"):
+		return
+	api_client.get_march_quotes(region, func(response): _on_march_quotes(region, response))
+
+
+func _on_march_quotes(region: String, response) -> void:
+	if region_panel != null and region_panel.has_method("set_march_quotes"):
+		region_panel.set_march_quotes(region, response)
 
 
 func _on_region_panel_command_result(response):

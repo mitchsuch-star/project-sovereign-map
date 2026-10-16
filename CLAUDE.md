@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 15, 2026).** The three most recent landed rows:
+- **S13c part 1 (October 15, 2026) — CC-2 "March here" — LANDED.** Quotes drift-pinned 1,000/1,000; CC-X8 fixed. **NEXT = S13c part 2 (CC-3)**, parts 3–4, S13b part 4.
 - **S13d (October 15, 2026) — PC "the peace conundrum's fixes" — LANDED.** PC-F1/F3/F5/F6 + X1–X4 fixed; BASELINE unmoved; B–E are the user's.
-- **S13c part 0 (October 15, 2026) — CC-0 + CC-1 "Click & Command" — LANDED.** CC-X1–X5, X10 fixed; X6–X9 homed. **NEXT = user review, then S13c part 1 (CC-2)**, parts 2–4, S13b part 4.
-- **S13b part 3 (October 15, 2026) — DD-B X17, the rulings' builds R1–R7, X1–X3 — LANDED.** X23–X25 found and fixed; BASELINE re-pinned by X3.
+- **S13c part 0 (October 15, 2026) — CC-0 + CC-1 "Click & Command" — LANDED.** CC-X1–X5, X10 fixed; X6–X9 homed.
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15, with S12's 11 R2 marks) and a code-signing certificate before S15.
 

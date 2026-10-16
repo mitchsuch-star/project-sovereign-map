@@ -155,6 +155,11 @@ func get_mailbox(callback: Callable):
 func get_map_topology(callback: Callable):
 	_send_get("/map_topology", callback)
 
+func get_march_quotes(region: String, callback: Callable):
+	"""CC-2 "March here": the province panel's click orders, quoted by the
+	backend from the orders' own readers (a read-only GET)."""
+	_send_get("/march_quotes?region=" + region.uri_encode(), callback)
+
 func activate_mailbox_item(mailbox_id: int, callback: Callable):
 	_send_post("/mailbox/activate", {"mailbox_id": mailbox_id}, callback)
 
