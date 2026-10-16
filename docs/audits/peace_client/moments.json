@@ -1,0 +1,2093 @@
+[
+ {
+  "id": "m1_war_card_tooltip",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m1_war_card_tooltip_5120x1440.jpg",
+  "what": "war card tooltip — the peace table (Vienna held)",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "hover Britain + Austria + Russia",
+  "surface": "",
+  "rect_logical": [
+   2370,
+   600,
+   1290,
+   430
+  ],
+  "scroll": null,
+  "lines": [],
+  "controls": []
+ },
+ {
+  "id": "m1_war_card_tooltip",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m1_war_card_tooltip_1920x1080.jpg",
+  "what": "war card tooltip — the peace table (Vienna held)",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "hover Britain + Austria + Russia",
+  "surface": "",
+  "rect_logical": [
+   700,
+   650,
+   1215,
+   430
+  ],
+  "scroll": null,
+  "lines": [],
+  "controls": []
+ },
+ {
+  "id": "m2_war_detail",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m2_war_detail_5120x1440.jpg",
+  "what": "war-detail popup — score breakdown and peace table",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Britain + Austria + Russia",
+  "surface": "WarDetailPopup",
+  "rect_logical": [
+   2570,
+   245,
+   600,
+   573
+  ],
+  "scroll": [
+   [
+    0.0,
+    442.0
+   ]
+  ],
+  "lines": [
+   "WAR WITH BRITAIN + AUSTRIA + RUSSIA",
+   "BR",
+   "+77",
+   "FR",
+   "The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.\n\nScore Breakdown\n  Territory:  +15\n  Battles:    +15\n  Decisive:   +10\n  Capital:    +20\n  Campaign:   +6\n  Blood:      +15\n  Blockade:   -2\n  Ticking:    -2\n\nSettlement Tier: White Peace\nThe peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria 11/50 · Britain 18/50 · Russia 18/50.\nThis turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26.\nObjective: Defense - the homeland — 28 of 28 provinces held (against Britain) (not ticking, +0) — +1/turn once it begins\nA defensive purpose only (hold the homeland) — 'set war purpose against Britain' names a purpose of your own.\nEnemy Objective: Defense\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (99%)\n  * France [France] — Seat at settlement (89%)\n    Bavaria [France] — Consulted ally (11%)\n  * Britain [The Third Coalition] — Seat at settlement (1%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants\nDuration: 5 turns (since Turn 1)\nEnemy War Exhaustion: Unknown\nTheir fleet: 100 sail of the line — readiness 100, on blockade\n\nRecent Battles\n  Victory at Bohemia (T:5)\n  Victory at Bohemia (T:5)\n  Victory at Vienna (T:5)\n  Victory at Tyrol (T:4)\n  Victory at Tyrol (T:4)"
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Negotiate Peace",
+    "disabled": false,
+    "tooltip": "Open bilateral peace options for this court only."
+   },
+   {
+    "text": "Open Settlement",
+    "disabled": false,
+    "tooltip": "Open a war-wide settlement review."
+   },
+   {
+    "text": "Request Terms",
+    "disabled": true,
+    "tooltip": "Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 45 of 80; at most 5 turns, sooner if the war turns against it)."
+   }
+  ]
+ },
+ {
+  "id": "m2_war_detail",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m2_war_detail_1920x1080.jpg",
+  "what": "war-detail popup — score breakdown and peace table",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Britain + Austria + Russia",
+  "surface": "WarDetailPopup",
+  "rect_logical": [
+   1180,
+   257,
+   384,
+   602
+  ],
+  "scroll": [
+   [
+    0.0,
+    661.0
+   ]
+  ],
+  "lines": [
+   "WAR WITH BRITAIN + AUSTRIA + RUSSIA",
+   "BR",
+   "+77",
+   "FR",
+   "The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.\n\nScore Breakdown\n  Territory:  +15\n  Battles:    +15\n  Decisive:   +10\n  Capital:    +20\n  Campaign:   +6\n  Blood:      +15\n  Blockade:   -2\n  Ticking:    -2\n\nSettlement Tier: White Peace\nThe peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria 11/50 · Britain 18/50 · Russia 18/50.\nThis turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26.\nObjective: Defense - the homeland — 28 of 28 provinces held (against Britain) (not ticking, +0) — +1/turn once it begins\nA defensive purpose only (hold the homeland) — 'set war purpose against Britain' names a purpose of your own.\nEnemy Objective: Defense\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (99%)\n  * France [France] — Seat at settlement (89%)\n    Bavaria [France] — Consulted ally (11%)\n  * Britain [The Third Coalition] — Seat at settlement (1%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants\nDuration: 5 turns (since Turn 1)\nEnemy War Exhaustion: Unknown\nTheir fleet: 100 sail of the line — readiness 100, on blockade\n\nRecent Battles\n  Victory at Bohemia (T:5)\n  Victory at Bohemia (T:5)\n  Victory at Vienna (T:5)\n  Victory at Tyrol (T:4)\n  Victory at Tyrol (T:4)"
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Negotiate Peace",
+    "disabled": false,
+    "tooltip": "Open bilateral peace options for this court only."
+   },
+   {
+    "text": "Open Settlement",
+    "disabled": false,
+    "tooltip": "Open a war-wide settlement review."
+   },
+   {
+    "text": "Request Terms",
+    "disabled": true,
+    "tooltip": "Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 45 of 80; at most 5 turns, sooner if the war turns against it)."
+   }
+  ]
+ },
+ {
+  "id": "m3_wizard_austria",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m3_wizard_austria_5120x1440.jpg",
+  "what": "wizard, Austria's page — Propose Peace refused by the paradox",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Austria  —  At War",
+  "surface": "DiplomacyWizard",
+  "rect_logical": [
+   1553,
+   254,
+   552,
+   520
+  ],
+  "scroll": [
+   [
+    0.0,
+    178.0
+   ],
+   [
+    0.0,
+    246.0
+   ]
+  ],
+  "lines": [
+   "DIPLOMACY — Austria",
+   "DP: 7",
+   "TALLEYRAND'S ASSESSMENT — AUSTRIA\nStatus: At War   Relation: -80 (Hostile)\n\n\"Austria falters, Your Excellency. Our armies press the advantage — we may dictate the terms, though a court not yet broken will be slow to sign them.\"\nRecommendation: Talleyrand recommends: Propose Armistice\n\nKEY FACTORS\n  + Our military dominance (+35)\n  + Base willingness (+20)\n  + Exhaustion from prolonged conflict (+10)\n  - Current relations (-10)\n  - Hegemon bloc pressure (-7)",
+   "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance",
+   "▼ more below"
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Propose Armistice (1 DP)  —  Favorable",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Open Settlement",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Propose White Peace",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Propose Peace (3 DP)",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance"
+   },
+   {
+    "text": "Back",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Cancel",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m3_wizard_austria",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m3_wizard_austria_1920x1080.jpg",
+  "what": "wizard, Austria's page — Propose Peace refused by the paradox",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Austria  —  At War",
+  "surface": "DiplomacyWizard",
+  "rect_logical": [
+   684,
+   280,
+   552,
+   520
+  ],
+  "scroll": [
+   [
+    0.0,
+    177.0
+   ],
+   [
+    0.0,
+    248.0
+   ]
+  ],
+  "lines": [
+   "DIPLOMACY — Austria",
+   "DP: 7",
+   "TALLEYRAND'S ASSESSMENT — AUSTRIA\nStatus: At War   Relation: -80 (Hostile)\n\n\"Austria falters, Your Excellency. Our armies press the advantage — we may dictate the terms, though a court not yet broken will be slow to sign them.\"\nRecommendation: Talleyrand recommends: Propose Armistice\n\nKEY FACTORS\n  + Our military dominance (+35)\n  + Base willingness (+20)\n  + Exhaustion from prolonged conflict (+10)\n  - Current relations (-10)\n  - Hegemon bloc pressure (-7)",
+   "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance",
+   "▼ more below"
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Propose Armistice (1 DP)  —  Favorable",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Open Settlement",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Propose White Peace",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Propose Peace (3 DP)",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance"
+   },
+   {
+    "text": "Back",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Cancel",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m4_white_peace_confirm",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m4_white_peace_confirm_5120x1440.jpg",
+  "what": "Propose White Peace from Austria's page — the whole-war table, refused",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Propose White Peace",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1257,
+   60,
+   1144,
+   916
+  ],
+  "scroll": [
+   [
+    0.0,
+    24.0
+   ],
+   [
+    0.0,
+    354.0
+   ]
+  ],
+  "lines": [
+   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nSTAGED FOR REVIEW — the terms are frozen. Ratify, revise, or return to shaping.\n▸ Blocked: Settlement legitimacy\n▸ Holding out: Austria, Britain, Russia\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 11/50, Britain 18/50, Russia 18/50.\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.",
+   "The table\n  * Austria - Holding out (11/50) White peace\n      Blocker: Leader's own losses\n      Metternich regrets that Austria must remain… unconvinced — their crown is asked to sign away too much of its own. He offers Vienna's compliments on Marshal Ney's laurels at Bohemia — compliments, he notes, are not a signature.\n  * Britain - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Castlereagh declines for Britain: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents, and arithmetic does not sign papers it cannot balance. He adds that London has read the bulletins from Bohemia — Marshal Ney's laurels do not alter the arithmetic.\n  * Russia - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Czartoryski holds Russia back from the table — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. The court marks that Marshal Ney stands crowned in glory at Bohemia.\n3 courts hold out.",
+   "This white peace settles the whole war — with Austria, Britain and Russia. To settle with Austria alone, choose 'Make peace with Austria only'. Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nWarnings\n  * Acceptance concern - Settlement legitimacy (-10)\n  * Acceptance concern - National design (-8)\n\nWhite Peace — no terms will be exchanged.\nNot available now\n  Make peace with Austria only — Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance.\n\"This white peace settles the whole war — with Austria, Britain and Russia. To settle with Austria alone, choose 'Make peace with Austria only'. Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Make peace with Austria only",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Armistice with Austria only",
+    "disabled": false,
+    "tooltip": "Leave the joint settlement for an armistice with Austria alone; the war continues elsewhere."
+   },
+   {
+    "text": "Open War Detail",
+    "disabled": false,
+    "tooltip": "Return to the live war detail for this selected court."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m4_white_peace_confirm",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m4_white_peace_confirm_1920x1080.jpg",
+  "what": "Propose White Peace from Austria's page — the whole-war table, refused",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Propose White Peace",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   388,
+   66,
+   1144,
+   956
+  ],
+  "scroll": [
+   [
+    0.0,
+    23.0
+   ],
+   [
+    0.0,
+    353.0
+   ]
+  ],
+  "lines": [
+   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nSTAGED FOR REVIEW — the terms are frozen. Ratify, revise, or return to shaping.\n▸ Blocked: Settlement legitimacy\n▸ Holding out: Austria, Britain, Russia\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 11/50, Britain 18/50, Russia 18/50.\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.",
+   "The table\n  * Austria - Holding out (11/50) White peace\n      Blocker: Leader's own losses\n      Metternich regrets that Austria must remain… unconvinced — their crown is asked to sign away too much of its own. He offers Vienna's compliments on Marshal Ney's laurels at Bohemia — compliments, he notes, are not a signature.\n  * Britain - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Castlereagh declines for Britain: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents, and arithmetic does not sign papers it cannot balance. He adds that London has read the bulletins from Bohemia — Marshal Ney's laurels do not alter the arithmetic.\n  * Russia - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Czartoryski holds Russia back from the table — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. The court marks that Marshal Ney stands crowned in glory at Bohemia.\n3 courts hold out.",
+   "This white peace settles the whole war — with Austria, Britain and Russia. To settle with Austria alone, choose 'Make peace with Austria only'. Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nWarnings\n  * Acceptance concern - Settlement legitimacy (-10)\n  * Acceptance concern - National design (-8)\n\nWhite Peace — no terms will be exchanged.\nNot available now\n  Make peace with Austria only — Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance.\n\"This white peace settles the whole war — with Austria, Britain and Russia. To settle with Austria alone, choose 'Make peace with Austria only'. Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Make peace with Austria only",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Armistice with Austria only",
+    "disabled": false,
+    "tooltip": "Leave the joint settlement for an armistice with Austria alone; the war continues elsewhere."
+   },
+   {
+    "text": "Open War Detail",
+    "disabled": false,
+    "tooltip": "Return to the live war detail for this selected court."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m5_counsel",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m5_counsel_5120x1440.jpg",
+  "what": "Talleyrand, what about Austria — the counsel card",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "type Talleyrand, what about Austria",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1477,
+   262,
+   704,
+   504
+  ],
+  "scroll": null,
+  "lines": [
+   "TALLEYRAND'S ASSESSMENT — Austria\n\n\"I am confident in this assessment, Sire. My sources are reliable. We are at war with Austria, Sire. War score stands at 79 from our perspective. In the field we outmatch them decisively. Metternich is calculating — skill 9. Embattled, but allied with Russia, Britain.\""
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "What terms would they accept?",
+    "disabled": false,
+    "tooltip": "The peace terms Austria would weigh, and how they would read them."
+   },
+   {
+    "text": "Thank you",
+    "disabled": false,
+    "tooltip": "Dismiss."
+   }
+  ]
+ },
+ {
+  "id": "m5_counsel_make_peace",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m5_counsel_make_peace_5120x1440.jpg",
+  "what": "'Talleyrand, how do we make peace with Austria' — the counsel with PC-F1's note",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "type Talleyrand, how do we make peace with Austria",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1477,
+   262,
+   704,
+   504
+  ],
+  "scroll": null,
+  "lines": [
+   "TALLEYRAND'S ASSESSMENT — Austria\n\n\"Sire, we hold the upper hand against Austria. War score: 79. I recommend pressing for peace on favorable terms. In the field we outmatch them decisively. They cannot sustain this war indefinitely.\n\nAlternatively, continue fighting to improve terms further — though I caution against overreach. Empires are lost to greed as often as to defeat.\n\nMark one thing, Sire: Bavaria is still at war with Austria, and a separate peace would break her war. Two ways out — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance.\""
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "What should we do?",
+    "disabled": false,
+    "tooltip": "Explore specific proposals for Austria."
+   },
+   {
+    "text": "Thank you",
+    "disabled": false,
+    "tooltip": "Dismiss."
+   }
+  ]
+ },
+ {
+  "id": "m5_counsel_paths",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m5_counsel_paths_5120x1440.jpg",
+  "what": "its 'What should we do?' — Generous peace / Firmer terms refused (tooltip), Continue fighting live",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "hover Generous peace",
+  "surface": "",
+  "rect_logical": [
+   0,
+   260,
+   3657,
+   560
+  ],
+  "scroll": null,
+  "lines": [],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Generous peace",
+    "disabled": true,
+    "tooltip": "I cannot deliver this, Sire — Bavaria is still at war with Austria, and a separate peace would break her war. Propose an armistice instead — the court reads it Favorable (65): a truce carries no contradiction, and at its expiry it becomes the peace if relations stand at -60 or better. Or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance — then the peace is ours to make. Or settle the war jointly at the settlement table."
+   },
+   {
+    "text": "Firmer terms",
+    "disabled": true,
+    "tooltip": "I cannot deliver this, Sire — Bavaria is still at war with Austria, and a separate peace would break her war. Propose an armistice instead — the court reads it Favorable (65): a truce carries no contradiction, and at its expiry it becomes the peace if relations stand at -60 or better. Or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance — then the peace is ours to make. Or settle the war jointly at the settlement table."
+   },
+   {
+    "text": "Continue fighting",
+    "disabled": false,
+    "tooltip": "We can extract more concessions on the battlefield."
+   }
+  ]
+ },
+ {
+  "id": "m5_counsel_paths",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m5_counsel_paths_1920x1080.jpg",
+  "what": "its 'What should we do?' at 1080p — the refusal's tooltip runs off the window",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "hover Generous peace",
+  "surface": "",
+  "rect_logical": [
+   0,
+   280,
+   1920,
+   600
+  ],
+  "scroll": null,
+  "lines": [],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Generous peace",
+    "disabled": true,
+    "tooltip": "I cannot deliver this, Sire — Bavaria is still at war with Austria, and a separate peace would break her war. Propose an armistice instead — the court reads it Favorable (65): a truce carries no contradiction, and at its expiry it becomes the peace if relations stand at -60 or better. Or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance — then the peace is ours to make. Or settle the war jointly at the settlement table."
+   },
+   {
+    "text": "Firmer terms",
+    "disabled": true,
+    "tooltip": "I cannot deliver this, Sire — Bavaria is still at war with Austria, and a separate peace would break her war. Propose an armistice instead — the court reads it Favorable (65): a truce carries no contradiction, and at its expiry it becomes the peace if relations stand at -60 or better. Or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance — then the peace is ours to make. Or settle the war jointly at the settlement table."
+   },
+   {
+    "text": "Continue fighting",
+    "disabled": false,
+    "tooltip": "We can extract more concessions on the battlefield."
+   }
+  ]
+ },
+ {
+  "id": "m5_feasibility",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m5_feasibility_5120x1440.jpg",
+  "what": "What terms would they accept? — the feasibility card",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click What terms would they accept?",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1477,
+   262,
+   704,
+   504
+  ],
+  "scroll": null,
+  "lines": [
+   "FEASIBILITY ASSESSMENT — Austria\n\n\"Sire, the terms I would draft: Peace Treaty (end state of war); Austria pays 130 gold/turn for as long as the treaty stands; Offer: Prisoner return. Peace Treaty with Austria is possible but uncertain. My assessment yields 45 — they might counter-offer. The sticking point appears to be deep-seated hostility. We would need 2 diplomatic steps to reach PEACE. The proposal itself would cost 2 DP.\""
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Propose these terms",
+    "disabled": false,
+    "tooltip": "Send the Peace Treaty proposal on these terms."
+   },
+   {
+    "text": "Dismiss",
+    "disabled": false,
+    "tooltip": "Thank you, Talleyrand."
+   }
+  ]
+ },
+ {
+  "id": "m5_feasibility",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m5_feasibility_1920x1080.jpg",
+  "what": "What terms would they accept? — the feasibility card",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click What terms would they accept?",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   608,
+   288,
+   704,
+   504
+  ],
+  "scroll": null,
+  "lines": [
+   "FEASIBILITY ASSESSMENT — Austria\n\n\"Sire, the terms I would draft: Peace Treaty (end state of war); Austria pays 130 gold/turn for as long as the treaty stands; Offer: Prisoner return. Peace Treaty with Austria is possible but uncertain. My assessment yields 45 — they might counter-offer. The sticking point appears to be deep-seated hostility. We would need 2 diplomatic steps to reach PEACE. The proposal itself would cost 2 DP.\""
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Propose these terms",
+    "disabled": false,
+    "tooltip": "Send the Peace Treaty proposal on these terms."
+   },
+   {
+    "text": "Dismiss",
+    "disabled": false,
+    "tooltip": "Thank you, Talleyrand."
+   }
+  ]
+ },
+ {
+  "id": "m5_feasibility_after_send",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m5_feasibility_after_send_5120x1440.jpg",
+  "what": "after 'Propose these terms': the card unchanged, the refusal shown nowhere",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Propose these terms",
+  "surface": "",
+  "rect_logical": [
+   0,
+   200,
+   3657,
+   828
+  ],
+  "scroll": null,
+  "lines": [],
+  "controls": []
+ },
+ {
+  "id": "m6_table_white",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m6_table_white_5120x1440.jpg",
+  "what": "Open Settlement — the white peace, every court holding out",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Open Settlement",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1257,
+   60,
+   1144,
+   916
+  ],
+  "scroll": [
+   [
+    0.0,
+    46.0
+   ],
+   [
+    0.0,
+    135.0
+   ],
+   [
+    0.0,
+    398.0
+   ]
+  ],
+  "lines": [
+   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 11/50, Britain 18/50, Russia 18/50.\nTreasury 4,688 gold: committed 0 / reserve 500 / remaining 4,188\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.\n\"I'd ease Austria, Britain, Russia, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Holding out (11/50) White peace\n      Blocker: Leader's own losses\n      Metternich regrets that Austria must remain… unconvinced — their crown is asked to sign away too much of its own. He offers Vienna's compliments on Marshal Ney's laurels at Bohemia — compliments, he notes, are not a signature.\n      + Add demand\n  * Britain ▸ - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Castlereagh declines for Britain: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents, and arithmetic does not sign papers it cannot balance. He adds that London has read the bulletins from Bohemia — Marshal Ney's laurels do not alter the arithmetic.\n      + Add demand\n  * Russia ▸ - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Czartoryski holds Russia back from the table — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. The court marks that Marshal Ney stands crowned in glory at Bohemia.\n      + Add demand\n3 courts hold out.\n▸ Austria, Britain, and Russia won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
+   "Austria:",
+   "Britain:",
+   "Russia:",
+   "Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nWarnings\n  * Acceptance concern - Settlement legitimacy (-10)\n  * Acceptance concern - National design (-8)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n\nWhite Peace — no terms will be exchanged.\n\"Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Britain ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Russia ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Soften terms toward Austria to bring them to the table."
+   },
+   {
+    "text": "Drop Austria",
+    "disabled": false,
+    "tooltip": "Drop Austria from the settlement; they remain at war."
+   },
+   {
+    "text": "Demand more of Britain",
+    "disabled": false,
+    "tooltip": "Demand more of Britain — applies to this court only."
+   },
+   {
+    "text": "Ease Britain",
+    "disabled": false,
+    "tooltip": "Soften terms toward Britain to bring them to the table."
+   },
+   {
+    "text": "Drop Britain",
+    "disabled": false,
+    "tooltip": "Drop Britain from the settlement; they remain at war."
+   },
+   {
+    "text": "Demand more of Russia",
+    "disabled": false,
+    "tooltip": "Demand more of Russia — applies to this court only."
+   },
+   {
+    "text": "Ease Russia",
+    "disabled": false,
+    "tooltip": "Soften terms toward Russia to bring them to the table."
+   },
+   {
+    "text": "Drop Russia",
+    "disabled": false,
+    "tooltip": "Drop Russia from the settlement; they remain at war."
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m6_table_white",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m6_table_white_1920x1080.jpg",
+  "what": "Open Settlement — the white peace, every court holding out",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Open Settlement",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   388,
+   66,
+   1144,
+   956
+  ],
+  "scroll": [
+   [
+    0.0,
+    23.0
+   ],
+   [
+    0.0,
+    134.0
+   ],
+   [
+    0.0,
+    375.0
+   ]
+  ],
+  "lines": [
+   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 11/50, Britain 18/50, Russia 18/50.\nTreasury 4,688 gold: committed 0 / reserve 500 / remaining 4,188\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.\n\"I'd ease Austria, Britain, Russia, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Holding out (11/50) White peace\n      Blocker: Leader's own losses\n      Metternich regrets that Austria must remain… unconvinced — their crown is asked to sign away too much of its own. He offers Vienna's compliments on Marshal Ney's laurels at Bohemia — compliments, he notes, are not a signature.\n      + Add demand\n  * Britain ▸ - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Castlereagh declines for Britain: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents, and arithmetic does not sign papers it cannot balance. He adds that London has read the bulletins from Bohemia — Marshal Ney's laurels do not alter the arithmetic.\n      + Add demand\n  * Russia ▸ - Holding out (18/50) White peace\n      Blocker: Settlement legitimacy\n      Czartoryski holds Russia back from the table — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. The court marks that Marshal Ney stands crowned in glory at Bohemia.\n      + Add demand\n3 courts hold out.\n▸ Austria, Britain, and Russia won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
+   "Austria:",
+   "Britain:",
+   "Russia:",
+   "Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nWarnings\n  * Acceptance concern - Settlement legitimacy (-10)\n  * Acceptance concern - National design (-8)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n\nWhite Peace — no terms will be exchanged.\n\"Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 11/50, Britain 18/50, Russia 18/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Britain ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Russia ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Soften terms toward Austria to bring them to the table."
+   },
+   {
+    "text": "Drop Austria",
+    "disabled": false,
+    "tooltip": "Drop Austria from the settlement; they remain at war."
+   },
+   {
+    "text": "Demand more of Britain",
+    "disabled": false,
+    "tooltip": "Demand more of Britain — applies to this court only."
+   },
+   {
+    "text": "Ease Britain",
+    "disabled": false,
+    "tooltip": "Soften terms toward Britain to bring them to the table."
+   },
+   {
+    "text": "Drop Britain",
+    "disabled": false,
+    "tooltip": "Drop Britain from the settlement; they remain at war."
+   },
+   {
+    "text": "Demand more of Russia",
+    "disabled": false,
+    "tooltip": "Demand more of Russia — applies to this court only."
+   },
+   {
+    "text": "Ease Russia",
+    "disabled": false,
+    "tooltip": "Soften terms toward Russia to bring them to the table."
+   },
+   {
+    "text": "Drop Russia",
+    "disabled": false,
+    "tooltip": "Drop Russia from the settlement; they remain at war."
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m6_table_gold_carries",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m6_table_gold_carries_5120x1440.jpg",
+  "what": "More generous x4 — France pays 400 to each court; the table carries",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click More generous",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1257,
+   60,
+   1144,
+   916
+  ],
+  "scroll": [
+   [
+    0.0,
+    24.0
+   ],
+   [
+    0.0,
+    46.0
+   ],
+   [
+    0.0,
+    310.0
+   ]
+  ],
+  "lines": [
+   "Settlement of France vs Austria + Britain + Russia — ready for ratification\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill carry as drafted — every court at or above 50.\nTreasury 4,688 gold: committed 1,200 / reserve 500 / remaining 2,988\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Every court at the table will sign; the settlement of France vs Austria + Britain + Russia carries.\n\"I'd press Austria, Britain, Russia, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Will sign (59/50) Conceded: 400g\n      Austria Holding out (close) → Will sign\n      Metternich signals that Austria will sign the settlement of France vs Austria + Britain + Russia.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\n  * Britain ▸ - Will sign (66/50) Conceded: 400g\n      Castlereagh signals that Britain will sign the settlement of France vs Austria + Britain + Russia.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\n  * Russia ▸ - Will sign (66/50) Conceded: 400g\n      Czartoryski signals that Russia will sign the settlement of France vs Austria + Britain + Russia.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\nThis peace carries.",
+   "Austria:",
+   "Britain:",
+   "Russia:",
+   "Sire, the settlement of France vs Austria + Britain + Russia stands ready for ratification. Acceptance reads as Will sign; what weighs heaviest: no single dominant pressure. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n  * Gold indemnity: 400 gold from France to Austria\n  * Gold indemnity: 400 gold from France to Britain\n  * Gold indemnity: 400 gold from France to Russia\n\n\"Sire, the settlement of France vs Austria + Britain + Russia stands ready for ratification. Acceptance reads as Will sign; what weighs heaviest: no single dominant pressure. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Britain ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Russia ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Ease Austria — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Austria",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Demand more of Britain",
+    "disabled": false,
+    "tooltip": "Demand more of Britain — applies to this court only."
+   },
+   {
+    "text": "Ease Britain",
+    "disabled": false,
+    "tooltip": "Ease Britain — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Britain",
+    "disabled": true,
+    "tooltip": "Spain is still at war with Britain — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Spain (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Demand more of Russia",
+    "disabled": false,
+    "tooltip": "Demand more of Russia — applies to this court only."
+   },
+   {
+    "text": "Ease Russia",
+    "disabled": false,
+    "tooltip": "Ease Russia — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Russia — alone: 35 (Doubtful — may counter)",
+    "disabled": false,
+    "tooltip": "Leave the joint settlement and make peace with Russia alone; the other courts stay at war. Alone, Talleyrand's bilateral table reads these terms 35 (Doubtful — may counter)."
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m6_table_gold_carries",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m6_table_gold_carries_1920x1080.jpg",
+  "what": "More generous x4 — France pays 400 to each court; the table carries",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click More generous",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   388,
+   66,
+   1144,
+   956
+  ],
+  "scroll": [
+   [
+    0.0,
+    45.0
+   ],
+   [
+    0.0,
+    287.0
+   ]
+  ],
+  "lines": [
+   "Settlement of France vs Austria + Britain + Russia — ready for ratification\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill carry as drafted — every court at or above 50.\nTreasury 4,688 gold: committed 1,200 / reserve 500 / remaining 2,988\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Every court at the table will sign; the settlement of France vs Austria + Britain + Russia carries.\n\"I'd press Austria, Britain, Russia, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Will sign (59/50) Conceded: 400g\n      Austria Holding out (close) → Will sign\n      Metternich signals that Austria will sign the settlement of France vs Austria + Britain + Russia.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\n  * Britain ▸ - Will sign (66/50) Conceded: 400g\n      Castlereagh signals that Britain will sign the settlement of France vs Austria + Britain + Russia.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\n  * Russia ▸ - Will sign (66/50) Conceded: 400g\n      Czartoryski signals that Russia will sign the settlement of France vs Austria + Britain + Russia.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\nThis peace carries.",
+   "Austria:",
+   "Britain:",
+   "Russia:",
+   "Sire, the settlement of France vs Austria + Britain + Russia stands ready for ratification. Acceptance reads as Will sign; what weighs heaviest: no single dominant pressure. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n  * Gold indemnity: 400 gold from France to Austria\n  * Gold indemnity: 400 gold from France to Britain\n  * Gold indemnity: 400 gold from France to Russia\n\n\"Sire, the settlement of France vs Austria + Britain + Russia stands ready for ratification. Acceptance reads as Will sign; what weighs heaviest: no single dominant pressure. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Britain ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Russia ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Ease Austria — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Austria",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Demand more of Britain",
+    "disabled": false,
+    "tooltip": "Demand more of Britain — applies to this court only."
+   },
+   {
+    "text": "Ease Britain",
+    "disabled": false,
+    "tooltip": "Ease Britain — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Britain",
+    "disabled": true,
+    "tooltip": "Spain is still at war with Britain — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Spain (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Demand more of Russia",
+    "disabled": false,
+    "tooltip": "Demand more of Russia — applies to this court only."
+   },
+   {
+    "text": "Ease Russia",
+    "disabled": false,
+    "tooltip": "Ease Russia — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Russia — alone: 35 (Doubtful — may counter)",
+    "disabled": false,
+    "tooltip": "Leave the joint settlement and make peace with Russia alone; the other courts stay at war. Alone, Talleyrand's bilateral table reads these terms 35 (Doubtful — may counter)."
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m6_table_britain_gold_removed",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m6_table_britain_gold_removed_5120x1440.jpg",
+  "what": "Britain's 400 removed — Austria falls 59 to 43, Britain signs a white peace",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click#2 Remove",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1257,
+   60,
+   1144,
+   916
+  ],
+  "scroll": [
+   [
+    0.0,
+    46.0
+   ],
+   [
+    0.0,
+    91.0
+   ],
+   [
+    0.0,
+    376.0
+   ]
+  ],
+  "lines": [
+   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 43/50.\nTreasury 4,688 gold: committed 800 / reserve 500 / remaining 3,388\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.\n\"I'd press Britain, Russia and ease Austria, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Holding out (close) (43/50) Conceded: 400g\n      Blocker: Leader's own losses\n      Austria Will sign → Holding out (close)\n      Metternich allows that Austria is… persuadable — though their crown is asked to sign away too much of its own.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\n  * Britain ▸ - Will sign (50/50) White peace\n      Castlereagh signals that Britain will sign the settlement of France vs Austria + Britain + Russia.\n      + Add demand\n  * Russia ▸ - Will sign (50/50) Conceded: 400g\n      Czartoryski signals that Russia will sign the settlement of France vs Austria + Britain + Russia.\n      Conceded · France pays 400 gold  [-][+]  Remove\n      + Add demand\nAustria is the holdout.\n▸ Austria won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
+   "Austria:",
+   "Britain:",
+   "Russia:",
+   "Sire, the settlement of France vs Austria + Britain + Russia cannot be ratified now: no single dominant pressure. Revise terms or stand down before pressing further. Every covered court has been beaten in the field — a whole-war peace still needs each one's consent (Austria 43/50, Britain 50/50, Russia 50/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. The others — Britain and Russia — can each be treated with alone, at 3 points apiece. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n  * Gold indemnity: 400 gold from France to Austria\n  * Gold indemnity: 400 gold from France to Russia\n\n\"Sire, the settlement of France vs Austria + Britain + Russia cannot be ratified now: no single dominant pressure. Revise terms or stand down before pressing further. Every covered court has been beaten in the field — a whole-war peace still needs each one's consent (Austria 43/50, Britain 50/50, Russia 50/50). Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7. The others — Britain and Russia — can each be treated with alone, at 3 points apiece. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Britain ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Russia ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Remove",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Soften terms toward Austria to bring them to the table."
+   },
+   {
+    "text": "Drop Austria",
+    "disabled": false,
+    "tooltip": "Drop Austria from the settlement; they remain at war."
+   },
+   {
+    "text": "Demand more of Britain",
+    "disabled": false,
+    "tooltip": "Demand more of Britain — applies to this court only."
+   },
+   {
+    "text": "Ease Britain",
+    "disabled": false,
+    "tooltip": "Ease Britain — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Britain",
+    "disabled": true,
+    "tooltip": "Spain is still at war with Britain — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Spain (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Demand more of Russia",
+    "disabled": false,
+    "tooltip": "Demand more of Russia — applies to this court only."
+   },
+   {
+    "text": "Ease Russia",
+    "disabled": false,
+    "tooltip": "Ease Russia — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Russia — alone: 35 (Doubtful — may counter)",
+    "disabled": false,
+    "tooltip": "Leave the joint settlement and make peace with Russia alone; the other courts stay at war. Alone, Talleyrand's bilateral table reads these terms 35 (Doubtful — may counter)."
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m6_table_austria_alone",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m6_table_austria_alone_5120x1440.jpg",
+  "what": "Britain and Russia dropped — Austria alone carries, beside a refused 'Separate peace'",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Drop Russia",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1257,
+   60,
+   1144,
+   916
+  ],
+  "scroll": [
+   [
+    0.0,
+    24.0
+   ],
+   [
+    0.0,
+    244.0
+   ]
+  ],
+  "lines": [
+   "Settlement of France vs Austria — ready for ratification\nFrance vs Austria - Separate settlement\nCovered enemies: Austria\nStill at war: Britain, Russia\nWill carry as drafted — every court at or above 50.\nTreasury 4,688 gold: committed 0 / reserve 500 / remaining 4,188\nSire, this settlement of France vs Austria seats 1 courts at the table. Every court at the table will sign; the settlement of France vs Austria carries.\n\"I'd press Austria, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Will sign (50/50) White peace\n      Austria Holding out → Will sign\n      Metternich signals that Austria will sign the settlement of France vs Austria.\n      + Add demand\nThis peace carries.",
+   "Austria:",
+   "Coverage:",
+   "Sire, the white peace for France vs Austria is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n\nWhite Peace — no terms will be exchanged.\n\"Sire, the white peace for France vs Austria is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Ease Austria — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Austria",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Bring Britain to the table",
+    "disabled": false,
+    "tooltip": "Add Britain to this settlement and re-draft for the new set."
+   },
+   {
+    "text": "Bring Russia to the table",
+    "disabled": false,
+    "tooltip": "Add Russia to this settlement and re-draft for the new set."
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m6_table_austria_alone",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m6_table_austria_alone_1920x1080.jpg",
+  "what": "Britain and Russia dropped — Austria alone carries, beside a refused 'Separate peace'",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "click Drop Russia",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   388,
+   66,
+   1144,
+   956
+  ],
+  "scroll": [
+   [
+    0.0,
+    221.0
+   ]
+  ],
+  "lines": [
+   "Settlement of France vs Austria — ready for ratification\nFrance vs Austria - Separate settlement\nCovered enemies: Austria\nStill at war: Britain, Russia\nWill carry as drafted — every court at or above 50.\nTreasury 4,688 gold: committed 0 / reserve 500 / remaining 4,188\nSire, this settlement of France vs Austria seats 1 courts at the table. Every court at the table will sign; the settlement of France vs Austria carries.\n\"I'd press Austria, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Will sign (50/50) White peace\n      Austria Holding out → Will sign\n      Metternich signals that Austria will sign the settlement of France vs Austria.\n      + Add demand\nThis peace carries.",
+   "Austria:",
+   "Coverage:",
+   "Sire, the white peace for France vs Austria is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\n\nWhat the treaty titles\n  * Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty — titled.\n\nAllies and Standing\n  * Austria - Seat at settlement (The Third Coalition)\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Holland - No settlement standing (France)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n\nWhite Peace — no terms will be exchanged.\n\"Sire, the white peace for France vs Austria is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet. Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty.\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Ease Austria — applies to this court only."
+   },
+   {
+    "text": "Separate peace with Austria",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — a separate peace would break her war. Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance."
+   },
+   {
+    "text": "Bring Britain to the table",
+    "disabled": false,
+    "tooltip": "Add Britain to this settlement and re-draft for the new set."
+   },
+   {
+    "text": "Bring Russia to the table",
+    "disabled": false,
+    "tooltip": "Add Russia to this settlement and re-draft for the new set."
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m7_armistice_letter",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m7_armistice_letter_5120x1440.jpg",
+  "what": "Austria's armistice letter — what shows without scrolling",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "click ACTIVE",
+  "surface": "IncomingProposalPopup",
+  "rect_logical": [
+   1488,
+   302,
+   682,
+   424
+  ],
+  "scroll": [
+   [
+    0.0,
+    640.0
+   ]
+  ],
+  "lines": [
+   "DIPLOMATIC ENVOY\nMetternich (Schemer) of Austria\n\nProposes: Armistice\nTerms:\nFrance demands:\n  - Austria pays 168 gold per turn to France for as long as the treaty stands\nMutual:\n  - Armistice (cease hostilities temporarily) — France and Austria\n\nAssessment: GENEROUS\n\nWar Summary\nWar score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking -4)\nSettlement: Dictated Terms\nObjective: Defense - the homeland — 28 of 28 provinces held (inactive)\nTicking: +0\nDuration: 6 turns   Battles: 8W / 3L\nCasualties: ours 29789 / theirs 78587\nWe hold: Bohemia, Tyrol\n\nArmistice Terms\n  A 5-turn ceasefire: fighting stops, and the battles fought so far are struck from the war score — if the war resumes, it resumes from nothing. The campaign ledger of provinces and dead still stands. No territory or gold changes hands at its end.\n  When it expires: peace if relations have healed to -60 or better — otherwise the war resumes.\n  Relations stand at -80 and will thaw to -65 by expiry — short of -60; the war resumes when the truce expires unless relations improve by other means, or a second truce follows.\n\nPolitical Consequences\n  - Bavaria stays at war with Austria under this truce — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.\n  - Our clients follow us out of the truce: Kingdom of Italy.\n  - Austria sits outside your bloc. Peace normalizes relations with a nation resisting your European influence.\n\nMetternich, with perfect politeness: \"Vienna observes, with some weariness, that the fighting no longer serves even its winners. Grant the armistice. We will not pretend Marshal Ney's laurels at Bohemia count for nothing in this.\"\n\nAn interesting proposal. I shall study the terms closely.\n\nThis offer will lapse at end of turn."
+  ],
+  "controls": [
+   {
+    "text": "Accept",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Let Talleyrand haggle (1 DP)",
+    "disabled": false,
+    "tooltip": "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands"
+   },
+   {
+    "text": "Reject",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Not Now",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m7_armistice_letter",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m7_armistice_letter_1920x1080.jpg",
+  "what": "Austria's armistice letter — what shows without scrolling",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "click ACTIVE",
+  "surface": "IncomingProposalPopup",
+  "rect_logical": [
+   619,
+   328,
+   682,
+   424
+  ],
+  "scroll": [
+   [
+    0.0,
+    639.0
+   ]
+  ],
+  "lines": [
+   "DIPLOMATIC ENVOY\nMetternich (Schemer) of Austria\n\nProposes: Armistice\nTerms:\nFrance demands:\n  - Austria pays 168 gold per turn to France for as long as the treaty stands\nMutual:\n  - Armistice (cease hostilities temporarily) — France and Austria\n\nAssessment: GENEROUS\n\nWar Summary\nWar score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking -4)\nSettlement: Dictated Terms\nObjective: Defense - the homeland — 28 of 28 provinces held (inactive)\nTicking: +0\nDuration: 6 turns   Battles: 8W / 3L\nCasualties: ours 29789 / theirs 78587\nWe hold: Bohemia, Tyrol\n\nArmistice Terms\n  A 5-turn ceasefire: fighting stops, and the battles fought so far are struck from the war score — if the war resumes, it resumes from nothing. The campaign ledger of provinces and dead still stands. No territory or gold changes hands at its end.\n  When it expires: peace if relations have healed to -60 or better — otherwise the war resumes.\n  Relations stand at -80 and will thaw to -65 by expiry — short of -60; the war resumes when the truce expires unless relations improve by other means, or a second truce follows.\n\nPolitical Consequences\n  - Bavaria stays at war with Austria under this truce — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.\n  - Our clients follow us out of the truce: Kingdom of Italy.\n  - Austria sits outside your bloc. Peace normalizes relations with a nation resisting your European influence.\n\nMetternich, with perfect politeness: \"Vienna observes, with some weariness, that the fighting no longer serves even its winners. Grant the armistice. We will not pretend Marshal Ney's laurels at Bohemia count for nothing in this.\"\n\nAn interesting proposal. I shall study the terms closely.\n\nThis offer will lapse at end of turn."
+  ],
+  "controls": [
+   {
+    "text": "Accept",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Let Talleyrand haggle (1 DP)",
+    "disabled": false,
+    "tooltip": "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands"
+   },
+   {
+    "text": "Reject",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Not Now",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m7_armistice_letter_scrolled",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m7_armistice_letter_scrolled_5120x1440.jpg",
+  "what": "the same letter scrolled — the truce's cost",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "scroll 1829 480 down 10",
+  "surface": "IncomingProposalPopup",
+  "rect_logical": [
+   1488,
+   302,
+   682,
+   424
+  ],
+  "scroll": [
+   [
+    440.0,
+    640.0
+   ]
+  ],
+  "lines": [
+   "DIPLOMATIC ENVOY\nMetternich (Schemer) of Austria\n\nProposes: Armistice\nTerms:\nFrance demands:\n  - Austria pays 168 gold per turn to France for as long as the treaty stands\nMutual:\n  - Armistice (cease hostilities temporarily) — France and Austria\n\nAssessment: GENEROUS\n\nWar Summary\nWar score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking -4)\nSettlement: Dictated Terms\nObjective: Defense - the homeland — 28 of 28 provinces held (inactive)\nTicking: +0\nDuration: 6 turns   Battles: 8W / 3L\nCasualties: ours 29789 / theirs 78587\nWe hold: Bohemia, Tyrol\n\nArmistice Terms\n  A 5-turn ceasefire: fighting stops, and the battles fought so far are struck from the war score — if the war resumes, it resumes from nothing. The campaign ledger of provinces and dead still stands. No territory or gold changes hands at its end.\n  When it expires: peace if relations have healed to -60 or better — otherwise the war resumes.\n  Relations stand at -80 and will thaw to -65 by expiry — short of -60; the war resumes when the truce expires unless relations improve by other means, or a second truce follows.\n\nPolitical Consequences\n  - Bavaria stays at war with Austria under this truce — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.\n  - Our clients follow us out of the truce: Kingdom of Italy.\n  - Austria sits outside your bloc. Peace normalizes relations with a nation resisting your European influence.\n\nMetternich, with perfect politeness: \"Vienna observes, with some weariness, that the fighting no longer serves even its winners. Grant the armistice. We will not pretend Marshal Ney's laurels at Bohemia count for nothing in this.\"\n\nAn interesting proposal. I shall study the terms closely.\n\nThis offer will lapse at end of turn."
+  ],
+  "controls": [
+   {
+    "text": "Accept",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Let Talleyrand haggle (1 DP)",
+    "disabled": false,
+    "tooltip": "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands"
+   },
+   {
+    "text": "Reject",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Not Now",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m8_truce_card",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m8_truce_card_5120x1440.jpg",
+  "what": "after accepting — the war card at -3 and the truce row's tooltip",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "hover Austria  5t",
+  "surface": "",
+  "rect_logical": [
+   2600,
+   820,
+   1057,
+   208
+  ],
+  "scroll": null,
+  "lines": [],
+  "controls": []
+ },
+ {
+  "id": "m8_truce_card",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m8_truce_card_1920x1080.jpg",
+  "what": "after accepting — the war card at -3 and the truce row's tooltip",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "hover Austria  5t",
+  "surface": "",
+  "rect_logical": [
+   1100,
+   880,
+   820,
+   200
+  ],
+  "scroll": null,
+  "lines": [],
+  "controls": []
+ },
+ {
+  "id": "m8_armistice_popup",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m8_armistice_popup_5120x1440.jpg",
+  "what": "the armistice's own popup",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "click Austria  5t",
+  "surface": "WarDetailPopup",
+  "rect_logical": [
+   2570,
+   245,
+   600,
+   573
+  ],
+  "scroll": null,
+  "lines": [
+   "ARMISTICE WITH AUSTRIA",
+   "Status: Armistice (5 turns remaining)\nRelations: -80 (Hostile)\nTrend: =\nOn course to collapse: unless relations heal to -60 or better, the war resumes at expiry."
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Diplomatic Options",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m8_armistice_popup",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m8_armistice_popup_1920x1080.jpg",
+  "what": "the armistice's own popup",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "click Austria  5t",
+  "surface": "WarDetailPopup",
+  "rect_logical": [
+   1225,
+   257,
+   384,
+   602
+  ],
+  "scroll": null,
+  "lines": [
+   "ARMISTICE WITH AUSTRIA",
+   "Status: Armistice (5 turns remaining)\nRelations: -80 (Hostile)\nTrend: =\nOn course to collapse: unless relations heal to -60 or better, the war resumes at expiry."
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Diplomatic Options",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m8_wizard_under_truce",
+  "resolution": "1920x1080",
+  "interface_scale": 1.0,
+  "file": "m8_wizard_under_truce_1920x1080.jpg",
+  "what": "Austria's wizard page under the truce (scrolled): Propose Peace refused, 'let the truce run its course'",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "scroll 956 560 down 10",
+  "surface": "DiplomacyWizard",
+  "rect_logical": [
+   684,
+   280,
+   552,
+   520
+  ],
+  "scroll": [
+   [
+    0.0,
+    67.0
+   ],
+   [
+    255.0,
+    299.0
+   ]
+  ],
+  "lines": [
+   "DIPLOMACY — Austria",
+   "DP: 7",
+   "TALLEYRAND'S ASSESSMENT — AUSTRIA\nStatus: Armistice   Relation: -80 (Hostile)\n\n\"The guns are silent, but the wound festers. Peace may be achievable with Austria, though they will demand terms.\"\nRecommendation: No proposal would find purchase now. Talleyrand recommends: Improve Relations mission to warm the diplomatic climate.",
+   "Bavaria is still at war with Austria — let the truce run its course (it becomes the peace if relations stand at -60 or better), or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance",
+   "▼ more below"
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Propose Peace (2 DP)",
+    "disabled": true,
+    "tooltip": "Bavaria is still at war with Austria — let the truce run its course (it becomes the peace if relations stand at -60 or better), or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance"
+   },
+   {
+    "text": "Court Nation (2 DP)  —  +8 relation/turn, proposals +2/turn courted (max +10), 20% blowback",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Gather Intel (1 DP)  —  3 turns, then full intel for 5",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Back",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Cancel",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m8_truce_next_morning",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m8_truce_next_morning_5120x1440.jpg",
+  "what": "turn 8's morning dispatch, its tail: the Austria tier struck to White Peace (+0); 'a truce is a clock'",
+  "turn": "Turn 8 — Early January 1806",
+  "action": "click Continue",
+  "surface": "BottomLeftUI",
+  "rect_logical": [
+   18,
+   683,
+   984,
+   327
+  ],
+  "scroll": [
+   [
+    2206.0,
+    2206.0
+   ]
+  ],
+  "lines": [
+   "⚔ IMPERIAL COMMAND ⚔",
+   "Scale",
+   "Turn:",
+   "8",
+   "Actions:",
+   "4/4",
+   "Admin:",
+   "2/2",
+   "Gold:",
+   "7,866 (+1,437 next turn)",
+   "Inf:",
+   "93,947",
+   "Cav:",
+   "27,250",
+   "Art:",
+   "14,200",
+   "(Type command...)"
+  ],
+  "controls": [
+   {
+    "text": "+",
+    "disabled": false,
+    "tooltip": "Larger interface (all screens)"
+   },
+   {
+    "text": "−",
+    "disabled": false,
+    "tooltip": "Smaller interface (all screens)"
+   },
+   {
+    "text": "—",
+    "disabled": false,
+    "tooltip": "Minimize terminal (Tab)"
+   },
+   {
+    "text": "Execute",
+    "disabled": true,
+    "tooltip": "Type an order first"
+   },
+   {
+    "text": "⚖ Diplomacy",
+    "disabled": false,
+    "tooltip": "Diplomacy (F1) — treat with ANY nation: allies, neutrals, or enemies"
+   },
+   {
+    "text": "End Turn (E)",
+    "disabled": false,
+    "tooltip": "End your turn and let enemies move"
+   }
+  ],
+  "dispatch_lines": [
+   "Sire — a truce with Austria is signed. The fighting stops for 5 turns; peace if relations heal to -60 or better, else the war resumes.",
+   "Deroy — Carniola — substantial force [partial]",
+   "A truce with Austria: the fighting stops for 5 turns — peace if relations heal to -60 or better, else the war resumes. Bavaria stays at war with Austria — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.",
+   "Carniola passes from Austria to Bavaria.",
+   "War Purpose: Defense vs Britain — the homeland — 28 of 28 provinces held  |  Settlement: White Peace (-3)",
+   "War Purpose: Defense vs Austria — the homeland — 28 of 28 provinces held  |  Settlement: White Peace (+0)",
+   "War Purpose: Defense vs Russia — the homeland — 28 of 28 provinces held  |  Settlement: White Peace (+0)",
+   "Berthier: \"A truce is a clock, Sire, not a treaty. Use its turns — the war is paused, not over.\""
+  ]
+ },
+ {
+  "id": "m8_armistice_popup_turn8",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m8_armistice_popup_turn8_5120x1440.jpg",
+  "what": "the armistice popup on turn 8: relations -77, trend up",
+  "turn": "Turn 8 — Early January 1806",
+  "action": "click Austria  4t",
+  "surface": "WarDetailPopup",
+  "rect_logical": [
+   2570,
+   245,
+   600,
+   573
+  ],
+  "scroll": null,
+  "lines": [
+   "ARMISTICE WITH AUSTRIA",
+   "Status: Armistice (4 turns remaining)\nRelations: -77 (Hostile)\nTrend: ^\nOn course to collapse: unless relations heal to -60 or better, the war resumes at expiry."
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Diplomatic Options",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ },
+ {
+  "id": "m8_table_under_truce",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m8_table_under_truce_5120x1440.jpg",
+  "what": "France's table after the truce — Austria 12/50, 'Vienna … unbeaten'",
+  "turn": "Turn 7 — Late December 1805",
+  "action": "click Open Settlement",
+  "surface": "ProposalConfirmPopup",
+  "rect_logical": [
+   1257,
+   60,
+   1144,
+   916
+  ],
+  "scroll": [
+   [
+    0.0,
+    46.0
+   ],
+   [
+    0.0,
+    135.0
+   ],
+   [
+    0.0,
+    464.0
+   ]
+  ],
+  "lines": [
+   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 12/50, Britain 9/50, Russia 9/50.\nTreasury 6,218 gold: committed 0 / reserve 500 / remaining 5,718\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.\n\"I'd ease Austria, Britain, Russia, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Holding out (12/50) White peace\n      Blocker: Settlement legitimacy\n      Metternich regrets that Austria must remain… unconvinced — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. He offers Vienna's compliments on Marshal Ney's laurels at Bohemia — compliments, he notes, are not a signature.\n      + Add demand\n  * Britain ▸ - Holding out (9/50) White peace\n      Blocker: Settlement legitimacy\n      Castlereagh declines for Britain: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents, and arithmetic does not sign papers it cannot balance. He adds that London has read the bulletins from Bohemia — Marshal Ney's laurels do not alter the arithmetic.\n      + Add demand\n  * Russia ▸ - Holding out (9/50) White peace\n      Blocker: Settlement legitimacy\n      Czartoryski holds Russia back from the table — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. The court marks that Marshal Ney stands crowned in glory at Bohemia.\n      + Add demand\n3 courts hold out.\n▸ Austria, Britain, and Russia won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
+   "Austria:",
+   "Britain:",
+   "Russia:",
+   "Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. Vienna, London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 12/50, Britain 9/50, Russia 9/50).\n\nWhat the treaty titles\n  * Status quo: Bohemia and Tyrol stay ours by the treaty — titled.\n  * Status quo: Leon stays British by the treaty.\n\nAllied petitions\n  * \"The chancery of Spain petitions for Leon in the settlement of France vs Austria + Britain + Russia. Britain occupies Leon — Spain's own soil.\"\n    Grant   Decline\n\nAllies and Standing\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Britain - Seat at settlement (The Third Coalition, war leader)\n  * Holland - No settlement standing (France)\n\nWarnings\n  * Acceptance concern - Settlement legitimacy (-10)\n  * Acceptance concern - National design (-8)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n\nWhite Peace — no terms will be exchanged.\n\"Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. Vienna, London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 12/50, Britain 9/50, Russia 9/50).\""
+  ],
+  "controls": [
+   {
+    "text": "Austria ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Britain ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Russia ▸",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "+ Add demand",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Demand more of Austria",
+    "disabled": false,
+    "tooltip": "Demand more of Austria — applies to this court only."
+   },
+   {
+    "text": "Ease Austria",
+    "disabled": false,
+    "tooltip": "Soften terms toward Austria to bring them to the table."
+   },
+   {
+    "text": "Drop Austria",
+    "disabled": false,
+    "tooltip": "Drop Austria from the settlement; they remain at war."
+   },
+   {
+    "text": "Demand more of Britain",
+    "disabled": false,
+    "tooltip": "Demand more of Britain — applies to this court only."
+   },
+   {
+    "text": "Ease Britain",
+    "disabled": false,
+    "tooltip": "Soften terms toward Britain to bring them to the table."
+   },
+   {
+    "text": "Drop Britain",
+    "disabled": false,
+    "tooltip": "Drop Britain from the settlement; they remain at war."
+   },
+   {
+    "text": "Demand more of Russia",
+    "disabled": false,
+    "tooltip": "Demand more of Russia — applies to this court only."
+   },
+   {
+    "text": "Ease Russia",
+    "disabled": false,
+    "tooltip": "Soften terms toward Russia to bring them to the table."
+   },
+   {
+    "text": "Drop Russia",
+    "disabled": false,
+    "tooltip": "Drop Russia from the settlement; they remain at war."
+   },
+   {
+    "text": "Grant",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Decline",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Harsher terms",
+    "disabled": false,
+    "tooltip": "Press every court harder and watch each react live."
+   },
+   {
+    "text": "More generous",
+    "disabled": false,
+    "tooltip": "Ease every court and watch each react live."
+   },
+   {
+    "text": "Submit for Review",
+    "disabled": false,
+    "tooltip": "Lock in this package and review it for ratification."
+   },
+   {
+    "text": "Back Out",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ]
+ }
+]

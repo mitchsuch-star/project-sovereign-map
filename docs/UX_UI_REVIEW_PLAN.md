@@ -732,6 +732,10 @@ fix slice. **Nothing deploys over an open UXR-4 no.**
 - A ✓ closes the row. A ✗ lands the row's own decided fix before the deploy, re-read on its frame.
 - UXR3-41's two boards are re-staged at S15's head before the walk (their payloads carry `paused: false`; the row says how).
 
+**What the peace report's client study homed here (October 16, 2026).** Two layout rows from `docs/audits/PEACE_CONUNDRUM_2026_10_15.md` Part IV (frames `docs/audits/peace_client/`), fixed at S15's head before the walk, each re-shot on its frames at 1920×1080 and 5120×1440:
+- **PC-F46** — the armistice letter shows 327 of 966 px; the truce's cost is below the fold under Accept (and the war popup's peace table sits at its fold at 1080p).
+- **PC-F47** — tooltips stand on Godot's default translucent panel and never wrap: a 452-character refusal runs off a 1920 window.
+
 ## What this plan does not do
 
 - No visual redesign. The theme, the palette, the fonts and the war-table

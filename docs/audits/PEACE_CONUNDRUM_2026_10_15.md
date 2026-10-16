@@ -13,7 +13,9 @@ never written to. · **Status:** analysis + findings for the user's ruling. No c
 > per-lever probes, and three code reads. It adds findings F9 … F22 and rulings F … H.
 > **Part III** (§18 onward, October 16, 2026) tests the rulings as experiments, continues the
 > user's game, and measures the losing side, France's own settlement table and the wars between
-> AI courts; findings F23 … F33.
+> AI courts; findings F23 … F33. **Part IV** (§27 onward, October 16, 2026) is the client study:
+> what the player sees at each peace moment in the real client, at 5120×1440 and 1920×1080;
+> findings F34 … F48.
 
 ---
 
@@ -628,8 +630,8 @@ check. G raises the battle cap from 15 to 30 and lowers the war-purpose ticking 
 10. H stops the per-turn exhaustion tick, so exhaustion comes from losses only. Each is the
 smallest change that answers its ruling's question; a built ruling would be designed properly.
 
-The client study (what the screens show at the peace moments) was not run: it needs the
-Godot client driven against a spare backend, and is proposed as its own session.
+The client study (what the screens show at the peace moments) was not run here: it needs the
+Godot client driven against a spare backend. It ran the same day as Part IV (§27 onward).
 
 ## 19. The rulings as experiments
 
@@ -783,3 +785,243 @@ The scripts and data are scratch, not committed. To re-derive a ruling arm: appl
 a bootstrap that then runs `tools/playtest_driver.py` through `runpy` in the same process, with
 `PYTHONHASHSEED=0` (so the driver does not re-launch itself) and the child's stdin closed (a
 batch with stdin inherited stalled mid-run once).
+
+---
+
+# Part IV — What the player sees (October 16, 2026)
+
+Parts I–III read the peace math in code and in campaigns. Part IV asks whether the screens
+carry it: at each peace moment, does the client answer *"why won't they make peace, and what
+can I do?"* without a report? Run on master at `06b24faa`. Nothing here changed the game.
+
+## 27. What was captured
+
+| | |
+|---|---|
+| **The client** | The real Godot client — the title screen, then `main.tscn` — driven one player action at a time by DD-B's hands (`tools/dd_b_client.gd` through `tools/dd_b_play.py`; `docs/PLAYTESTING.md` Mode C): real clicks and keys, a frame and a state record per action. A scratch copy of the client added two things and changed nothing else: the window size, and a `hover` action that rests the pointer and waits for the engine's own tooltip, so the tooltips are drawn as a player sees them. |
+| **The backend** | A sandboxed `-m backend.main` on port 8017, saves in a scratch folder, the mock parser, the historical seed. 8005 and 8006 were never touched. |
+| **The boards** | The two copies of the user's turn-6 save that Parts II–III used. **Vienna held**: France in the city; France against Austria +79 live, +54 stored. **The turn-6 copy**: Vienna still Austrian, +54. Both were loaded through the menu's Continue and Load, as a player would. |
+| **The sizes** | **5120×1440** at the Interface Scale the game derives for it (140 %), the user's monitor. **1920×1080** at 100 %, which is what that screen derives. The window was set to 100 % with Ctrl+−, because the menu derives its scale from the physical monitor, not from the window. |
+| **The runs** | Six runs, 147 actions, 0 SCRIPT ERRORs. 33 frames are kept in `docs/audits/peace_client/`, one crop per moment per size. `moments.json` beside them holds each frame's own record of the lines and controls it shows. |
+| **The math** | For the "what the math is" column: Parts II–III, and one read-only probe on the same saves. It read the per-court pair scores, the feasibility card's draft and its acceptance components, a plain white peace's acceptance, and the send verdict. |
+
+## 28. The short answer
+
+**No.** No peace screen says why the peace is not made, or what the player can do about it.
+The numbers on the screens are right: PC-F3's peace table is on the HUD tooltip and the war
+popup, the paradox names Bavaria and both ways out, and the armistice letter states the
+truce's cost honestly. But:
+
+1. **The averaging is never shown.** The war card says +77. The table says 17, and "the
+   field stands at 26". No screen says that these are the mean of three courts' scores
+   (Austria +79, Britain −2, Russia 0). That one fact is why a crushed Austria reads 11/50.
+2. **The screens blame the wrong court.** The table says "Austria will not sign … until that
+   court is eased toward terms"; Talleyrand says "I'd ease Austria, Britain, Russia". The
+   lever that works is the opposite one: drop the two courts France has not fought, and
+   Austria signs a white peace at 50/50.
+3. **The roads that work are hidden; the roads offered are traps or dead ends.** On the
+   user's board two roads end the Austrian war today: Austria alone through the table (a
+   white peace that also ends Bavaria's war), or gold.
+   - The wizard recommends neither. It recommends the armistice, which strikes France's
+     score. The war card read +52 the turn before; it is hidden while Austria's letter
+     waits (F48), and comes back at −3 the moment the truce is signed.
+   - The one peace Talleyrand offers ("Propose these terms") is refused by the paradox, and
+     the refusal is drawn nowhere: the click does nothing.
+4. **Talleyrand's words contradict the buttons beside them.**
+   - "Press Austria alone: the separate peace. It costs 3 diplomatic points" stands beside a
+     disabled "Make peace with Austria only".
+   - "The others — Britain and Russia — can each be treated with alone" stands beside a
+     disabled "Separate peace with Britain".
+   - "Every covered court has been beaten in the field" is said of two courts France has
+     never met.
+5. **The truce's cost is below the fold.** The letter's honest paragraph sits 640 px under a
+   box that shows "Assessment: GENEROUS" and the gold, with Accept one click away.
+
+What a player concludes from the screens alone: *Austria is the obstacle; it wants more than
+France can give; the armistice is the sensible step.* What the math says: *Austria is ready;
+Britain and Russia hold the table because they average in at 0; the armistice is the one step
+that makes it worse.*
+
+## 29. Moment by moment
+
+Frames are named in brackets (`docs/audits/peace_client/<name>_5120x1440.jpg` and
+`_1920x1080.jpg`). The words are the same at both sizes; §31 gives the differences.
+
+**M1 — The war card and its tooltip** (`m1_war_card_tooltip`; Vienna held)
+
+| | |
+|---|---|
+| **The screen** | "Britain + Austria + Russia **+77**". Tooltip: "Settlement: White Peace / The peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria 11/50 · Britain 18/50 · Russia 18/50. / This turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26." |
+| **The player concludes** | France is winning big (+77), yet the peace is a White Peace, and Austria — the beaten court — is the lowest of all. Three numbers for one war, and nothing on the screen relates them. |
+| **The math** | +77 is France's pairs summed: Austria +79 live, Britain −2, Russia 0. 26 is their mean, live; 17 is the mean of the stored scores (+54, −2, 0). The tier reads the mean, and every court's base is 0.65 × that mean (F4). Austria is lowest because its own row also charges −15 for Vienna kept. |
+| **The gap** | The mean is never named, and the per-court scores are never shown (**F37**). The lag note is right and readable. |
+
+**M2 — The war-detail popup** (`m2_war_detail`)
+
+| | |
+|---|---|
+| **The screen** | "WAR WITH BRITAIN + AUSTRIA + RUSSIA +77" under Britain's flag. A Score Breakdown (Territory +15, Battles +15, Decisive +10, Capital +20, Campaign +6, Blood +15, Blockade −2, Ticking −2), then the peace table's lines and "Enemy War Exhaustion: Unknown". Buttons: **Negotiate Peace** ("Open bilateral peace options for this court only"), **Open Settlement**, and **Request Terms**, disabled with "… exhaustion 45 of 80 …". |
+| **The player concludes** | The breakdown is the war's. Negotiate Peace talks to "this court", and the court France is winning against is Austria. |
+| **The math** | The breakdown is France–Austria's pair plus Britain's blockade. Negotiate Peace opens **Britain's** page: the coalition's leader, which carried 1 % of its effort. |
+| **The gap** | No per-court breakdown (**F37**). The button does not say whom it addresses (**F41**). Exhaustion reads "Unknown" in the same popup whose button states it (**F42**). At 1080p the popup's text column is 352 px wide: the peace table's first sentence sits at the fold and the lag note is below it (§31). |
+
+**M3 — The diplomacy wizard, Austria's page** (`m3_wizard_austria`)
+
+| | |
+|---|---|
+| **The screen** | Talleyrand: "Austria falters, Your Excellency. Our armies press the advantage — we may dictate the terms, though a court not yet broken will be slow to sign them." "Recommendation: Talleyrand recommends: Propose Armistice." Rows: **Propose Armistice (1 DP) — Favorable**, **Open Settlement**, **Propose White Peace**, and **Propose Peace (3 DP)**, disabled with "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance". |
+| **The player concludes** | Peace is barred by Bavaria. The armistice is the recommended and favorable road. "Propose White Peace", which is enabled, must be a white peace with Austria that somehow escapes the bar. |
+| **The math** | PC-F1's words are exact. But the armistice strikes the score (§14, F17). "Propose White Peace" stages the whole-war table, which cannot carry at 17. The road that carries, Open Settlement with Austria alone, is not named. |
+| **The gap** | The paradox is legible; the alternatives are not. Propose White Peace on Austria's page does not say it addresses all three courts (**F41**). The recommendation is the trap (**F43**). |
+
+**M4 — Propose White Peace: the whole-war confirm** (`m4_white_peace_confirm`)
+
+| | |
+|---|---|
+| **The screen** | "This settlement cannot be ratified now … Holding out: Austria 11/50, Britain 18/50, Russia 18/50."<br>• Austria — "Blocker: Leader's own losses" ("their crown is asked to sign away too much of its own").<br>• Britain and Russia — "Blocker: Settlement legitimacy" ("it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents").<br>• Talleyrand: "… London and Vilna are unbeaten … Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 7."<br>• "What the treaty titles: Status quo: Bohemia, Tyrol and Vienna stay ours by the treaty", over "White Peace — no terms will be exchanged."<br>• Buttons: **Make peace with Austria only** (disabled — the paradox), **Armistice with Austria only**, **Open War Detail**, **Back Out**. |
+| **The player concludes** | Britain and Russia refuse because the others refuse. Talleyrand says to press Austria alone, and the button for it is dead. |
+| **The math** | The blocker the screen calls "legitimacy" is the white-peace tier's −10, on a base diluted by Britain's and Russia's own zeros. Austria's −15 is Vienna, which France keeps. |
+| **The gap** | The advice is refused by its own popup (**F35**). The legitimacy sentence is circular (**F37**). "White Peace — no terms" sits over "Vienna stays ours" (PC-F33, confirmed on screen). |
+
+**M5 — Talleyrand's counsel, and "What terms would they accept?"** (`m5_counsel`, `m5_counsel_make_peace`, `m5_counsel_paths`, `m5_feasibility`, `m5_feasibility_after_send`)
+
+| | |
+|---|---|
+| **The screen** | **"Talleyrand, what about Austria"** gives: "I am confident in this assessment, Sire … War score stands at 79 from our perspective. In the field we outmatch them decisively. Metternich is calculating — skill 9." Options: [What terms would they accept?] [Thank you]. No recommendation, no paradox note.<br><br>**"…how do we make peace with Austria"** reaches the counsel that carries PC-F1's note: "I recommend pressing for peace on favorable terms … Mark one thing, Sire: Bavaria is still at war with Austria … Two ways out — propose an armistice, or first Downgrade …". Its [What should we do?] offers **Generous peace** and **Firmer terms**, both disabled, and **Continue fighting** ("We can extract more concessions on the battlefield"). The refusal (452 characters) lives only in the disabled buttons' tooltip: "… Propose an armistice instead — the court reads it Favorable (65) … Or settle the war jointly at the settlement table." It is drawn as one unwrapped line that runs off a 1920×1080 window at "…the alliance with Bavar".<br><br>**The card**: "the terms I would draft: Peace Treaty; Austria pays 130 gold/turn for as long as the treaty stands; Offer: Prisoner return … My assessment yields 45 — they might counter-offer. The sticking point appears to be deep-seated hostility. We would need 2 diplomatic steps to reach PEACE. The proposal itself would cost 2 DP." [Propose these terms] [Dismiss].<br><br>**Propose these terms** changes nothing on screen. The terminal prints "Directing Talleyrand: execute proposal". The backend's answer ("Bavaria is still at war with Austria: a separate peace would break her war. Two ways out …") is drawn nowhere. |
+| **The player concludes** | A war score of 79 and yet only 45: the problem is hatred. Peace takes two steps, so an armistice first. The button is broken. Fighting on will extract more. |
+| **The math** | 79 is the live pair: a fourth number for the war. The draft scores 45 because of its own gold demand: the war-age penalty on a demand in a six-turn war is −24, the largest term; relations are −10, the second (clamped at war). A plain white peace scores **75** on this board today, and 106 once the turn's victories count (§11). The paradox refuses both. A peace is signed straight from war, one step, and the send costs 3. Another victory adds 0 (§11). The joint table cannot carry a white peace (17); Austria alone can. |
+| **The gap** | Part II's F10 is live as filed. The silent refusal is new (**F34**). The card names the second obstacle, miscounts the road, shows no estimate line and never says that a white peace would be accepted (**F40**). The counsel's "settle jointly" names the table road that fails, not the one that carries (**F43**). The unwrapped tooltip is **F47**. |
+
+**M6 — Open Settlement** (`m6_table_white`, `m6_table_gold_carries`, `m6_table_britain_gold_removed`, `m6_table_austria_alone`)
+
+| | |
+|---|---|
+| **(a) A white peace** | "Will NOT carry … Austria will not sign; the settlement … cannot be ratified until that court is eased toward terms or dropped to fight on." Talleyrand: "I'd ease Austria, Britain, Russia." Each court has Demand more / Ease / Drop. |
+| **(b) More generous, four clicks** | Each click pays **every** court 100 gold. The table goes 11 / 18 / 18 → 23 / 30 / 30 → 35 / 42 / 42 → 47 / 54 / 54 → **59 / 66 / 66, "This peace carries"**: 1,200 gold of 4,688. |
+| **(c) Britain's 400 removed** | Austria falls 59 → 43 ("Austria Will sign → Holding out (close)"), and Britain "Will sign (50/50) **White peace**". Talleyrand: "Every covered court has been beaten in the field … Press Austria alone … The others — Britain and Russia — can each be treated with alone, at 3 points apiece." Beside it, "Separate peace with Britain" is disabled ("Spain is still at war with Britain …"). |
+| **(d) Britain and Russia dropped** | "France vs Austria — **Separate settlement** … Will carry as drafted … Austria Will sign (50/50) White peace … This peace carries." Beside it: **Separate peace with Austria**, disabled with "Bavaria is still at war with Austria — a separate peace would break her war …", and "Allies and Standing: Bavaria — Consulted ally". Submit, then **Ratify White Peace**: "Austria has signed a separate peace and left Third Coalition"; "Settlement Ratified: France vs Austria (3 pairs resolved)". The ledger: France–Austria, **Bavaria–Austria** and Kingdom of Italy–Austria at peace, turn 6. |
+| **The player concludes** | (a) Austria is the problem. (b) Peace costs 1,200, 400 a court. (c) Austria's price somehow depends on Britain's gold: visible, inexplicable. (d) A separate settlement carries, but it "would break Bavaria's war". |
+| **The math** | One payment lifts every court (F23): about 975 gold to any single court carries, and the dial pays all three. Ratifying (d) ended Bavaria's war in the same instrument: the table road already does what ruling C asks of the bilateral road. |
+| **The gap** | The wrong court is blamed (**F37**). The counsel is refused by its own buttons (**F35**) and calls unfought courts beaten (**F36**). The separate settlement ends the ally's war and the screen says the opposite (**F43**). F23 can be seen working, but nothing explains it; the dial spends about 225 gold more than one payment would. |
+
+**M7 — Austria's armistice letter** (`m7_armistice_letter`, `m7_armistice_letter_scrolled`; the turn-6 copy, one end turn)
+
+| | |
+|---|---|
+| **Above the fold** (327 of 966 px, at both sizes) | "DIPLOMATIC ENVOY / Metternich (Schemer) of Austria / Proposes: Armistice / France demands: Austria pays 168 gold per turn to France for as long as the treaty stands / Mutual: Armistice / Assessment: **GENEROUS** / War score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking −4)" — and **Accept** · Let Talleyrand haggle (1 DP) · Reject · Not Now. |
+| **Below the fold** | "Settlement: Dictated Terms" …<br>"A 5-turn ceasefire: fighting stops, and the battles fought so far are struck from the war score — if the war resumes, it resumes from nothing … When it expires: peace if relations have healed to −60 or better — otherwise the war resumes. Relations stand at −80 and will thaw to −65 by expiry — short of −60; the war resumes when the truce expires unless relations improve by other means, or a second truce follows."<br>"Bavaria stays at war with Austria … Our clients follow us out of the truce: Kingdom of Italy." |
+| **The turn's envoy list** | "ENVOYS AWAITING RESPONSE … Austria — **Armistice Losing**". |
+| **The HUD** | The war card is not on screen on this turn. The turn opened with a standing-order report (Napoleon's pursuit ended), and that path never refreshes the war HUD. The card comes back only with the truce's reply, at −3. |
+| **The player concludes** | From what shows without scrolling: a generous truce that pays France 168 a turn, at a war score of 52. Accept. ("Armistice Losing": whose loss?) |
+| **The math** | Below the fold the letter is honest and complete about F7 and F17. The breakdown "52 (…)" leaves out Campaign +6 and Blood +15, so it adds up to 31. "Dictated Terms" is the pair's own tier; the table reads White Peace. |
+| **The gap** | The cost is below the fold (**F46**). The breakdown does not add up (**F39**). The tier is the pair's (**F38**). "Armistice Losing" is a raw key (**F45**). The war card, which would show the score the truce strikes, is hidden (**F48**). Not stated anywhere: that a court in a truce leaves the next coalition settlement (F32). |
+
+**M8 — After accepting** (`m8_truce_card`, `m8_armistice_popup`, `m8_wizard_under_truce`, `m8_truce_next_morning`, `m8_armistice_popup_turn8`, `m8_table_under_truce`)
+
+| | |
+|---|---|
+| **The screen** | The war card reads "Britain + Russia **−3**" (it was +52).<br>The truce row "Austria 5t": "Armistice with Austria — 5 turns left, on course to collapse back to war unless relations heal." The rail: "Austria and France have signed an Armistice."<br>The armistice popup: "Relations: −80 (Hostile) · Trend: = · On course to collapse: unless relations heal to −60 or better, the war resumes at expiry."<br>Austria's wizard page: "No proposal would find purchase now. Talleyrand recommends: Improve Relations mission …", with the rows **Improve Relations (1 DP) — +8 relation/turn** and, below the fold, **Propose Peace (2 DP)** disabled ("… let the truce run its course (it becomes the peace if relations stand at −60 or better) …").<br>Next morning: "A truce with Austria: the fighting stops for 5 turns — peace if relations heal to −60 or better, else the war resumes"; "War Purpose: … vs Austria … Settlement: White Peace (+0)"; "Carniola passes from Austria to Bavaria"; Berthier: "A truce is a clock, Sire, not a treaty. Use its turns — the war is paused, not over." Relations −77, trend up.<br>France's own table: "Vienna, London and Vilna are unbeaten … (Austria 12/50, Britain 9/50, Russia 9/50)". |
+| **The player concludes** | The truce cost the war score (now plain: −3) and leads back to war unless relations heal. Talleyrand says to improve them. |
+| **The math** | Relations thaw −80 → −65 by expiry. One turn of Improve Relations (+8) puts them at about −57, so the truce ends in peace: by the screens' own numbers, one action point of diplomacy. The truce struck Austria's score to 0, so the table now calls Austria — whose army and capital France beat — "unbeaten". |
+| **The gap** | The −60 rule is on five surfaces, and the cure is two rows away on the same wizard page; no surface joins them (**F44**). "Unbeaten" reads the struck score. That is F17's effect in words, and it rides ruling D. |
+
+## 30. What the screens hide
+
+1. **Austria alone, through the table.**
+   - On the user's board, dropping Britain and Russia from France's own settlement makes a
+     white peace with Austria that carries at 50/50 and ratifies.
+   - It ended Bavaria's and the Kingdom of Italy's wars with Austria in the same instrument
+     ("3 pairs resolved"). That is the Pressburg behaviour ruling C asks for, already built,
+     on the settlement road.
+   - Nothing points to it. The wizard recommends the armistice; the counsel says "settle
+     jointly"; the table blames Austria; and the disabled "Separate peace with Austria" says
+     the opposite of what the table then does.
+   - This is Part III's F24 (a fifth road with a fifth verdict). The screen half is **F43**.
+2. **Gold, paid once.**
+   - The dial buys the carry for 1,200 by paying every court; about 975 to any one court
+     would do.
+   - The table shows the coupling — remove Britain's gold and Austria falls — and never
+     says it. This is F23's legibility half, and it rides ruling E.
+3. **The truce's cure.** One turn of Improve Relations inside the truce turns it into peace
+   at expiry (**F44**). The game prices the mission (+8 a turn) and the gap (−65 against
+   −60), and leaves the sum to the player.
+
+## 31. 1920×1080 against 5120×1440
+
+- **The fixed-size popups are the same logical size at both resolutions.** The envoy
+  letter's box is 650×327, so the same 640 px of 966 is hidden. At 5120×1440 (logical
+  3657×1028 at 140 %) that box is a third of the screen's height, and there is room for the
+  whole letter.
+- **The war-detail popup's text column is 568 px at 5120 and 352 px at 1080p.** At 1080p
+  the peace table's first sentence sits at the fold, its lag note is below it, and the three
+  buttons wrap onto two rows.
+- **Tooltips at both sizes** are drawn on Godot's default translucent tooltip panel (the
+  theme styles no TooltipPanel), so the map's place names show through the HUD's peace
+  table. At 1080p "Kingdom of Italy", "Papal States" and "Sardinia" sit under its first
+  lines. A tooltip is one unwrapped line: the 452-character refusal under Generous peace fits
+  5120's width with nothing to spare and runs off a 1920 window.
+- **The settlement table and the wizard read the same at both sizes.** The table's
+  Talleyrand paragraph (the "Press Austria alone" one) is in a scroll pane with its top lines
+  showing; "What the treaty titles" (the *uti possidetis* line) is below the fold at both.
+- **Not a peace matter:** a 1920×1080 window on this monitor boots at 140 % (logical
+  1371×771), because the menu reads the physical screen. It is noted because it governs any
+  1080p capture made on this machine; this study set 100 % by hand.
+
+## 32. New findings
+
+| # | Kind | Finding | Evidence |
+|---|---|---|---|
+| **F34** | D | **A refused send from the feasibility card is silent.** The backend refuses "Propose these terms" in PC-F1's words, and the client re-mounts the unchanged card. `proposal_confirm_popup._build_feasibility_content` never renders `transient_error_display`: DDB-9 gave that line to `_build_content` and PF-1 to the settlement builder. The sibling sweep: **12 of the 14 dtype builders** drop a refusal (mission, advisory, war purpose, war confirm, conflict alert, ultimatum, scope-replace, pair-substitute, incoming settlement offer, ally petition, peace preview, feasibility). | M5; `proposal_confirm_popup.gd` 160, 405, 505, 1791; `main.gd` 3842–3857 |
+| **F35** | D | **The table's counsel recommends separate peaces the table refuses.** `settlement_staging.legitimacy_sentence` says "Press Austria alone: the separate peace. It costs 3 diplomatic points", and "The others — Britain and Russia — can each be treated with alone". The same popup's "Make peace with Austria only" / "Separate peace with Austria" / "Separate peace with Britain" are closed by the paradox: the sentence is not stamped by `can_sign(at_send)`. This is the class of PC-F1, F10 and X1. | M4, M6c; `settlement_staging.py` 2422–2487 |
+| **F36** | D | **"Every covered court has been beaten in the field" is said of courts France never fought.** The same function counts "unbeaten" among the holdouts only. When Austria is the sole holdout, Britain (−2) and Russia (0), both signing because they are paid, become "beaten". | M6c; `settlement_staging.py` 2438–2461 |
+| **F37** | L | **The peace screens never show the averaging, and they blame the wrong court.** The card's +77, the field's 26 and the table's 17 are never related, and no screen shows a court's own score. The table names the lowest court as the obstacle ("Austria will not sign … until that court is eased"), and its legitimacy blocker is circular ("… needs every covered court's consent, and not every court consents"). Dropping the two unfought courts carries. | M1, M2, M4, M6a |
+| **F38** | I | **Two surfaces still print each pair's own tier.** The morning dispatch says "Settlement: Dictated Terms (+54)" against Austria, and the envoy's War Summary says "Settlement: Dictated Terms". The table reads White Peace. PC-F3's sibling, missed by S13d's sweep. | M7; `dispatch.py` 6594–6602; `incoming_proposal_popup.gd` 311–319 |
+| **F39** | L | **The envoy's War Summary breakdown does not add up to its score.** The client lists only territory, battle, decisive, capital and ticking, and drops Campaign, Blood, Blockade and Captive: "52 (Territory +10, Battle +15, Decisive Battle +10, Ticking −4)". | M7; `incoming_proposal_popup.gd` 298–305 |
+| **F40** | L | **The feasibility card names the wrong obstacle and miscounts the road.** On a counter-offer it names the *second* negative ("deep-seated hostility", −10) and not the largest (its own gold demand's war-age penalty, −24). It says "2 diplomatic steps to reach PEACE" for a peace signed straight from war (`_UPGRADE_ORDER` index distance). It renders no estimate line (the payload carries no `acceptance_estimate`). It never says that a white peace would be accepted (75 on the same board). | M5; `diplomacy.py` 8561–8569; `diplomatic_dialogue.py` 2008–2054 |
+| **F41** | L | **The peace buttons do not say whom they address.** The war popup's "Negotiate Peace" ("for this court only") opens Britain, the leader. "Propose White Peace" on Austria's page stages the whole-war table with Britain and Russia, and the terminal echoes it as "propose white peace with Austria". | M2, M3, M4 |
+| **F42** | I | **War exhaustion is "Unknown" beside a button that states it.** The war row fog-gates the opponent's exhaustion on its visibility (`war_status.py` 352–359), and the same popup's Request Terms tooltip says "exhaustion 45 of 80". Diplomacy carries no fog (the standing rule). | M2 |
+| **F43** | L | **The separate settlement ends the ally's war, and the screens say the opposite.** Ratifying the Austria-only table signed France–, Bavaria– and Italy–Austria peace ("3 pairs resolved"). The same popup lists Bavaria as "Consulted ally", and its "Separate peace with Austria" says the separate peace "would break her war". The wizard recommends the armistice, and the counsel's way out is "settle the war jointly", the table road that cannot carry. | M3, M5, M6d |
+| **F44** | L | **The truce's cure is never priced.** Five surfaces state the −60 rule, and the letter projects −65. The wizard sells Improve Relations at +8 a turn two rows away. No surface says that one turn of it makes this truce a peace. | M7, M8 |
+| **F45** | L | **A raw proposal key in the envoy list.** "Austria — Armistice Losing", "Client Petition", "Open Borders" come from `str(proposal_type).capitalize()` in the dispatch view and the terminal (`dispatch_view.gd` 386, `main.gd` 5263). It is an R7 leak, and it reads as France losing. | M7 |
+| **F46** | L (layout) | **The armistice letter's cost sits below the fold, under Accept.** The envoy popup shows 327 of 966 px at both 1920×1080 and 5120×1440. "GENEROUS" and the gold are on screen; the struck score, the −60 rule and its projection are 640 px down. On the 1080p war popup the peace table sits at the fold. | M7, §31 |
+| **F47** | L (layout) | **Hover text is on the default tooltip panel.** It is translucent over the map, and a tooltip is one unwrapped line: the 452-character refusal under Generous peace runs off a 1920 window. The HUD tooltip is the only place PC-F3's peace table reaches the HUD. | M1, M5, §31; `ui/main_theme.tres` (no TooltipPanel) |
+| **F48** | D | **The HUD war card vanishes on a turn that opens with a standing-order report.** The enemy phase hides the war panel (it is modal). `_on_enemy_phase_dismissed` re-shows it through `_process_active_wars`, but returns before that call when the response carries `strategic_reports`, and `_on_strategic_report_dismissed` never makes it. The panel stays hidden until the next backend reply, against N4i's own rule ("ALWAYS refreshes panel visibility"). The two `redemption_event` branches return the same way. Seen on turn 7 in three runs (Napoleon's pursuit ended), with Austria's letter waiting; on turn 8, with no report, the card was back. | M7; `main.gd` 6296–6346, 6944–6987, 8677 |
+
+## 33. What this means for the rulings
+
+- **C (the Pressburg road)** gets the strongest evidence yet: it is already built, on the
+  settlement road. Ratifying the Austria-only table brings Bavaria to the table and ends the
+  war the bilateral road says it would break. Ruling C can be one verdict, read by the
+  bilateral road from the settlement road's carry-in. Until it is ruled, **F43** is the only
+  way a player finds it.
+- **D (the victor's truce).** The letter is honest; its trap is layout (F46) and an unpriced
+  cure (F44). If D stays deferred, as Part III recommends, those two rows make today's truce
+  legible.
+- **E with F23.** The table's "More generous" dial is where F23 costs the player real gold,
+  and where it reads as nonsense (one court's gold moves another court's answer). Ruling E
+  with F23 ("a payment counts for the court it is paid to") would make the dial's per-court
+  look true.
+- **Order for S13e.** F48 and F34 first: the two client defects, one a hidden HUD and one a
+  silent refusal, both at the peace moment. F34 goes with F10 (same card). F35, F36 and F43 with the paradox class. F37,
+  F38, F39, F41 and F42 (one per surface). F40, F44, F45. F46 and F47 go to UXR-4 at S15's
+  head with the re-homed marks.
+
+## 34. Evidence for Part IV
+
+| Claim | Source |
+|---|---|
+| Every quoted line, button and tooltip | the client's own state records, kept beside the frames in `docs/audits/peace_client/moments.json` (lines and controls per frame) |
+| The fold measurements, the popup sizes, the tooltip widths | the state records' rects and scroll extents at both sizes |
+| +77 / 26 / 17 decomposed; the card's 45 and its components; a white peace at 75; the send verdict | the read-only probe on the two saves (`calculate_war_score`, `get_war_score_for`, `generate_feasibility_dialogue`, `calculate_acceptance`, `treaty.can_sign(at_send=True)`) |
+| The Austria-only ratification ended Bavaria's war | `GET /diplomatic_ledger` on the sandbox after the ratification (France–, Bavaria–, Kingdom of Italy–Austria peace, turn 6) and the rail's "3 pairs resolved" |
+| The silent refusal's cause | `proposal_confirm_popup.gd` (the builders that render `transient_error_display`: `_build_content`, `_build_settlement_content`) |
+
+The run scripts and states are scratch, not committed; the frames and their index are. To
+re-derive, copy `tools/dd_b_client.gd` with two edits:
+- read the window size from an environment variable;
+- add a `hover <words>` action: notify the root viewport that the pointer entered
+  (`Node.NOTIFICATION_VP_MOUSE_ENTER`), push a mouse motion to the control's centre, and wait
+  1.6 s of real time.
+
+Then run `tools/dd_b_play.py start --road diplomacy --out <run> --port 8017` with that client
+and the save copied into `<run>/saves`. Click Continue, and `act` the moments in §29's order.
