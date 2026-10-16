@@ -1548,3 +1548,12 @@ files.
 levers, functions over 500 lines, silent handlers, `CLAUDE.md` bytes. Each cap
 is the current reading and may only be lowered. This is what keeps the plan's
 gains from leaking back.
+
+**The byte readings fold CRLF to LF (CODE-X1, October 15, 2026).**
+`core.autocrlf=true` writes CRLF in any fresh Windows checkout or worktree, so
+`st_size` made `CLAUDE.md` ~430 B heavier there than the same commit in the LF
+main checkout (62,329 B CRLF against 61,904 B LF at `4645de5f`), and the cap
+failed in a fresh worktree at HEAD. `_code_health_census.text_bytes` reads the
+LF-normalised size of both capped docs (`doc_bytes`); the cap values and the
+"cap near its reading" pin are unchanged, because the LF reading is the one
+they were set at.

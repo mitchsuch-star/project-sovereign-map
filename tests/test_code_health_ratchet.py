@@ -12,7 +12,9 @@ The caps are the plan's gains; this is what keeps them from leaking back.
     silent handlers      CODE-3 made every broad except speak (October 12,
                          2026): 367 -> 6, the residue named file by file
                          in TestEveryBroadExceptSpeaks
-    CLAUDE.md bytes      CODE-4's diet; the cap is the dieted size
+    CLAUDE.md bytes      CODE-4's diet; the cap is the dieted size, read
+                         with CRLF folded to LF (CODE-X1, October 15,
+                         2026: a fresh Windows worktree is CRLF on disk)
 """
 from __future__ import annotations
 
@@ -121,6 +123,36 @@ class TestTheInstrumentSeesWhatItCaps:
         assert not census_tool.is_site_string(census_tool.site_of(call))
         call = ast.parse("report(exc, f'{a}.b: c')").body[0].value
         assert census_tool.is_site_string(census_tool.site_of(call))
+
+
+class TestTheByteCapsReadNoLineEndings:
+    """CODE-X1 (October 15, 2026): the repo runs with `core.autocrlf=true`,
+    so a fresh Windows checkout or worktree writes CRLF and CLAUDE.md weighed
+    ~430 B more there than the same commit LF on disk — 62,383 B against the
+    62,000 cap at a HEAD the main checkout read at 61,958. The caps read the
+    LF-normalised bytes (`census_tool.text_bytes`)."""
+
+    DOCS = ("CLAUDE.md", "docs/STATUS.md")
+
+    def _copy(self, root: Path, eol: bytes) -> Path:
+        (root / "docs").mkdir(parents=True)
+        for rel in self.DOCS:
+            lf = (REPO / rel).read_bytes().replace(b"\r\n", b"\n")
+            (root / rel).write_bytes(lf.replace(b"\n", eol))
+        return root
+
+    def test_a_crlf_copy_reads_what_an_lf_copy_reads(self, tmp_path):
+        lf = self._copy(tmp_path / "lf", b"\n")
+        crlf = self._copy(tmp_path / "crlf", b"\r\n")
+        for rel in self.DOCS:     # the copies really differ: a raw reading would move
+            assert (crlf / rel).stat().st_size > (lf / rel).stat().st_size, rel
+        assert census_tool.doc_bytes(crlf) == census_tool.doc_bytes(lf)
+
+    def test_the_census_reading_is_unchanged_on_a_crlf_copy(self, reading, tmp_path):
+        crlf = census_tool.doc_bytes(self._copy(tmp_path / "crlf", b"\r\n"))
+        assert crlf == {k: reading[k] for k in ("claude_md_bytes", "status_md_bytes")}
+        assert crlf["claude_md_bytes"] <= CLAUDE_MD_BYTES_CAP
+        assert crlf["status_md_bytes"] <= STATUS_MD_BYTES_CAP
 
 
 class TestEveryBroadExceptSpeaks:

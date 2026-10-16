@@ -106,6 +106,24 @@ def is_site_string(node: ast.AST | None) -> bool:
     return isinstance(node, ast.Constant) and isinstance(node.value, str) and bool(node.value.strip())
 
 
+def text_bytes(path: Path) -> int:
+    """A checked-in text file's size with CRLF folded to LF — what a byte cap
+    must read, because `core.autocrlf` decides the working-tree endings, not
+    the commit (CODE-X1, October 15, 2026: one HEAD's CLAUDE.md read 61,958 B
+    LF in the main checkout and 62,383 B CRLF in a fresh worktree, so the
+    62,000 cap failed there and passed here). The driver revision's
+    `lf_bytes` (IQ-8) is the same rule."""
+    return len(path.read_bytes().replace(b"\r\n", b"\n"))
+
+
+def doc_bytes(root: Path = ROOT) -> dict:
+    """The two docs the diet caps, read line-ending-blind (`text_bytes`)."""
+    return {
+        "claude_md_bytes": text_bytes(root / "CLAUDE.md"),
+        "status_md_bytes": text_bytes(root / "docs" / "STATUS.md"),
+    }
+
+
 def census() -> dict:
     """The reading as data (the ratchet pin reads this; `main` prints it).
 
@@ -114,7 +132,8 @@ def census() -> dict:
     silent / reports / logs / reraise; `silent_by_file` Counter;
     `silent_sites` [(file, line, function)]; `report_calls` [(file, line,
     site literal or None, site node kind)] for every reporter call anywhere
-    in backend/; `claude_md_bytes`; `status_md_bytes`."""
+    in backend/; `claude_md_bytes`; `status_md_bytes` (both LF-normalised,
+    `text_bytes`)."""
     funcs = []
     levers: dict[str, tuple[str, str]] = {}
     exc = Counter()
@@ -171,8 +190,7 @@ def census() -> dict:
         "silent_by_file": exc_by_file,
         "silent_sites": sorted(silent_sites),
         "report_calls": sorted(calls_seen, key=lambda r: (r[0], r[1])),
-        "claude_md_bytes": (ROOT / "CLAUDE.md").stat().st_size,
-        "status_md_bytes": (ROOT / "docs" / "STATUS.md").stat().st_size,
+        **doc_bytes(),
     }
 
 
@@ -191,7 +209,8 @@ def main() -> int:
     for f, n in exc_by_file.most_common(12):
         print(f"     {n:3d}  {f}")
     print(f"== report() calls: {len(reading['report_calls'])}")
-    print(f"== CLAUDE.md bytes: {reading['claude_md_bytes']}   STATUS.md bytes: {reading['status_md_bytes']}")
+    print(f"== CLAUDE.md bytes: {reading['claude_md_bytes']}   STATUS.md bytes: {reading['status_md_bytes']}"
+          "   (LF-normalised)")
     return 0
 
 

@@ -25,6 +25,7 @@ ARCHIVE = DOCS / "archive"
 sys.path.insert(0, str(REPO))
 from tools import defect_census as census  # noqa: E402
 from tools import fa_row_tally as tally  # noqa: E402
+from tools._code_health_census import text_bytes  # noqa: E402
 from tests._ledgers import doc_paths, doc_text  # noqa: E402
 
 LEDGER_ARCHIVE = re.compile(r"^(BUG_FIXES|DESIGN_REFINEMENT)_\d{4}_Q[1-4]\.md$")
@@ -95,7 +96,8 @@ class TestTheDietHolds:
         assert "## ▶ NEXT UP" in text and "## Archives" in text
 
     def test_status_under_the_cap(self):
-        assert (DOCS / "STATUS.md").stat().st_size <= 200_000
+        # line-ending-blind: a fresh Windows worktree is CRLF on disk (CODE-X1)
+        assert text_bytes(DOCS / "STATUS.md") <= 200_000
 
     def test_claude_md_names_the_routing_authority_on_one_screen(self):
         text = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
