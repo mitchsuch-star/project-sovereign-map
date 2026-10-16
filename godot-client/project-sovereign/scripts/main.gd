@@ -344,6 +344,13 @@ var pending_relay_command := ""
 # The line the last fill put on the command line, so `_execute_command` can
 # tell the backend the tail was sent UNCHANGED (the CR-7-8 re-open instrument).
 var _last_relay_fill := ""
+# CC-0 "The line is the player's" (October 15, 2026). An order OFFERED to the
+# line — a dispatch TODAY chip, the tutor, a relay arriving over a draft —
+# never overwrites what the player is typing. It waits at the head of the
+# suggestion row, and taking it (Tab, a click) parks the draft there instead,
+# one Tab away; a parked draft comes back to the line when control returns.
+var _offered_command := ""
+var _parked_draft := ""
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 var _pre_hud_response_routes: Array = []
@@ -780,6 +787,12 @@ func _ready():
 
 	if not command_input.text_submitted.is_connected(_on_command_submitted):
 		command_input.text_submitted.connect(_on_command_submitted)
+	# CC-X10: Godot 4.4's LineEdit leaves EDITING on Enter and keeps focus, so
+	# the control-return `grab_focus()` was a no-op and the next order's keys
+	# were dropped until the player clicked the line. A command line is
+	# submitted constantly: it stays in editing mode.
+	if "keep_editing_on_text_submit" in command_input:
+		command_input.keep_editing_on_text_submit = true
 
 	if not end_turn_button.pressed.is_connected(_on_end_turn_pressed):
 		end_turn_button.pressed.connect(_on_end_turn_pressed)
@@ -1182,6 +1195,7 @@ func _on_command_text_changed(_text: String) -> void:
 		_history_walk_text = ""
 	if history_index == -1:
 		_refresh_suggestions()
+	_refresh_draft_glow()   # CC-1: the map answers the draft
 
 
 func _on_command_submitted(_text: String):
@@ -1209,6 +1223,13 @@ const _SCREEN_HOTKEYS := {
 func _on_command_input_gui_input(event):
 	"""Handle special keys in command input."""
 	if event is InputEventKey and event.pressed:
+		# CC-X10: the safety net. A text key reaching the FOCUSED line while it
+		# is not editing (Godot 4.4 drops editing on submit, and on paths that
+		# never let focus go) switches editing back on first — the signal runs
+		# before the LineEdit's own handler, so the key then lands.
+		if _is_text_key(event) and command_input.editable \
+				and command_input.has_method("is_editing") and not command_input.is_editing():
+			command_input.edit()
 		if event.keycode == KEY_F1:
 			_open_diplomacy_wizard()
 			command_input.accept_event()
@@ -2318,6 +2339,9 @@ func _execute_command():
 	# later "end turn" starts the warning afresh rather than skipping it.
 	_awaiting_end_turn_confirmation = false
 	_set_open_envoys_prompt_visible(false)
+	# CC-0: so has an order offered beside the line. A parked draft is NOT
+	# dropped here: it is the player's own, and comes back at control return.
+	_offered_command = ""
 
 	# Add to history before clearing
 	_add_to_history(command)
@@ -2330,6 +2354,7 @@ func _execute_command():
 
 	# Clear input
 	command_input.text = ""
+	_refresh_draft_glow()   # CC-1: a programmatic clear emits no text_changed
 
 	# ════════════════════════════════════════════════════════════
 	# CHECK FOR REDEMPTION COMMAND: Handle redemption choices
@@ -3674,6 +3699,12 @@ func _fill_pending_relay() -> void:
 	if _chip_command_in_flight or command_input == null or not command_input.editable:
 		return
 	if command_input.text.strip_edges() != "":
+		# CC-0: over the player's own typing the tail is not lost either —
+		# it waits beside the line, one Tab away, still the unchanged tail.
+		var held := pending_relay_command
+		pending_relay_command = ""
+		_last_relay_fill = held
+		_offer_beside_line(held, false)
 		return
 	var cmd := pending_relay_command
 	pending_relay_command = ""
@@ -5839,10 +5870,13 @@ func set_input_enabled(enabled: bool):
 		# re-enables input, so this is the scribble loop's single stop seam.)
 		AudioManager.stop_scribble()
 		command_input.grab_focus()
+		_resume_editing()   # CC-X10: focus never left, so grab_focus alone re-armed nothing
 		# CR-7-3: the same chokepoint hands a relayed tail back to the line —
 		# every control-return arm (success, objection answer, interrupt
 		# answer, clarification reissue) passes through here.
 		_fill_pending_relay()
+		# CC-0: and a draft the player parked to send an offered order.
+		_restore_parked_draft()
 
 func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
@@ -6540,6 +6574,8 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	command_history.clear()
 	history_index = -1
 	command_input.text = ""
+	_offered_command = ""
+	_parked_draft = ""
 
 	if clear_output:
 		output_display.clear()
@@ -7144,6 +7180,7 @@ func _on_clarification_choice_made(marshal_name: String, chosen_target: String, 
 	}
 	var keyword = keyword_map.get(strategic_type, "pursue")
 	var clarified_command = marshal_name + " " + keyword + " " + chosen_target
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	api_client.send_command(clarified_command, _on_command_result)
 
@@ -7154,6 +7191,7 @@ func _on_clarification_command(command: String):
 	popup and typed answers resolve through the same deterministic parse."""
 	_clarification_backend_pending = false
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]> " + command + "[/color]")
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	api_client.send_command(command, _on_clarification_command_result)
 
@@ -7176,6 +7214,7 @@ func _on_clarification_cancelled():
 		# cannot linger in the dialogue slot (it would block mailbox
 		# activation until the next typed command consumed it)
 		_clarification_backend_pending = false
+		_retire_line_latches()   # CC-0: any send means the player moved on
 		api_client.send_command("never mind", _on_command_result)
 	else:
 		set_input_enabled(true)
@@ -7774,6 +7813,7 @@ func _on_wizard_command_selected(command: String):
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
 
 	# Disable input while processing
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 
 	if tutorial_overlay:
@@ -7864,6 +7904,7 @@ func _on_reward_command(command: String):
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	api_client.send_command(command, _on_reward_command_result)
 
@@ -7908,6 +7949,7 @@ func _on_vassal_command(command: String):
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	api_client.send_command(command, _on_vassal_command_result)
 
@@ -7932,6 +7974,7 @@ func _on_naval_command(command: String):
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	api_client.send_command(command, _on_naval_command_result)
 
@@ -7976,6 +8019,10 @@ func _on_map_region_clicked(region_name: String):
 		return
 	if _is_screen_open() or _is_modal_dialog_open():
 		return
+	# CC-1: a click while the line waits for a name writes the name there
+	# (the province, or the piece clicked) instead of opening the panel.
+	if _click_writes_a_name(region_name):
+		return
 	if region_panel.visible and region_panel.current_region() == region_name:
 		region_panel.close_panel()
 		return
@@ -7988,6 +8035,302 @@ func _on_region_panel_closed():
 	"""The panel closed (X, ESC, right-click, toggle) — clear the glow."""
 	if map_area and map_area.has_method("set_selected_region"):
 		map_area.set_selected_region("")
+	# CC-1: the glow goes back to whatever the draft names.
+	_draft_glow_region = ""
+	_refresh_draft_glow()
+
+
+# ═══════ CC — "CLICK & COMMAND" (October 15, 2026) ═══════
+#
+# CC-0 "The line is the player's": nothing the client does destroys what the
+# player is typing. Offers wait beside the line (`_offer_beside_line`); keys
+# typed after a click on the map go to the draft (`_input`, type-through);
+# every sender retires the end-turn latch (`_retire_line_latches`).
+# CC-1 "Click names into the line": a map click while the caret waits for a
+# name writes the province's (or the clicked piece's) name there.
+
+# The words after which the line waits for a NAME (a province or a marshal).
+const _NAME_SLOT_WORDS := {
+	"to": true, "attack": true, "support": true, "pursue": true, "hold": true,
+	"at": true, "on": true, "in": true, "into": true, "toward": true,
+	"towards": true, "from": true, "via": true, "reach": true, "scout": true,
+	"defend": true, "garrison": true, "follow": true, "join": true,
+	"intercept": true, "engage": true, "relieve": true, "until": true,
+	"besiege": true, "bombard": true, "cover": true, "guard": true,
+	"near": true, "against": true, "and": true, "with": true, "behind": true,
+}
+
+var _draft_glow_region := ""
+
+
+func _is_text_key(event: InputEventKey) -> bool:
+	"""A key that edits text: a printable character (no Ctrl/Alt/Meta),
+	Backspace or Delete."""
+	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
+		return false
+	var code: int = event.unicode
+	return (code >= 32 and code != 127) or event.keycode in [KEY_BACKSPACE, KEY_DELETE]
+
+
+func _resume_editing() -> void:
+	"""CC-X10: put the focused command line back in EDITING mode. Godot 4.4's
+	LineEdit drops editing on submit and keeps focus, and `grab_focus()` on a
+	control that already holds it does nothing — so the line looked live and
+	ate the next order's keys."""
+	if command_input == null or not command_input.editable:
+		return
+	if command_input.has_method("is_editing") and not command_input.is_editing():
+		command_input.edit()
+
+
+func _retire_line_latches() -> void:
+	"""CC-0: a chip or a dialogue answer is a SEND, and a send means the player
+	moved on — the end-turn confirmation is disarmed (else: warning, a chip,
+	then a bare Enter on the empty line ended the turn), a pending relay is
+	retired, and an offer held beside the line is dropped. `_execute_command`
+	keeps its own pinned clears; every other sender calls this."""
+	_awaiting_end_turn_confirmation = false
+	_set_open_envoys_prompt_visible(false)
+	pending_relay_command = ""
+	_last_relay_fill = ""
+	_offered_command = ""
+
+
+func _offer_beside_line(cmd: String, announce: bool) -> void:
+	"""CC-0: hold `cmd` at the head of the suggestion row instead of writing
+	it over the player's draft. Tab (or a click) takes it, parking the draft."""
+	if cmd == "":
+		return
+	_offered_command = cmd
+	if command_input != null and command_input.editable:
+		command_input.grab_focus()
+		_resume_editing()
+	_refresh_suggestions()
+	if announce:
+		add_output("[color=#" + Utils.COLOR_INFO + "]Your line is kept — the order waits beside it: Tab takes it, Tab again brings yours back.[/color]")
+
+
+func _restore_parked_draft() -> void:
+	"""CC-0: when control returns, a draft parked to send an offered order
+	comes back — onto an empty line, or beside a line that has text again."""
+	if _parked_draft == "" or command_input == null or not command_input.editable:
+		return
+	var draft := _parked_draft
+	_parked_draft = ""
+	if command_input.text.strip_edges() == "":
+		command_input.text = draft
+		command_input.caret_column = draft.length()
+		_refresh_suggestions()
+		_refresh_draft_glow()
+	else:
+		_offer_beside_line(draft, false)
+
+
+func _type_through_ready() -> bool:
+	"""CC-0: a key pressed while the line has lost focus belongs to the draft
+	when there IS a draft — and to nothing else that takes text."""
+	if command_input == null or not command_input.editable:
+		return false
+	if command_input.has_focus() or not command_input.is_visible_in_tree():
+		return false
+	if command_input.text.strip_edges() == "":
+		return false
+	var owner = get_viewport().gui_get_focus_owner()
+	if owner is LineEdit or owner is TextEdit:
+		return false
+	if pause_menu and pause_menu.visible:
+		return false
+	return not _is_modal_dialog_open() and not _is_screen_open()
+
+
+func _input(event: InputEvent) -> void:
+	"""CC-0 TYPE-THROUGH. A map press releases the line's focus (pinned in
+	`map_renderer_base.gd`), after which the next bare key was a HOTKEY — so
+	`Soult, march to `, a click on the map, then `e…` ENDED THE TURN, and
+	L/T/G/D/R/N/Tab/M/+/- did their own things. With a draft on the line, a
+	printable key, Backspace, Delete or Enter goes to the draft instead. The
+	arrow keys still pan; an empty line keeps every hotkey."""
+	if not (event is InputEventKey) or not event.pressed:
+		return
+	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
+		return
+	if not _type_through_ready():
+		return
+	var key: int = event.keycode
+	var code: int = event.unicode
+	var printable := code >= 32 and code != 127
+	if not (printable or key in [KEY_ENTER, KEY_KP_ENTER, KEY_BACKSPACE, KEY_DELETE]):
+		return   # not text (an arrow pans, Tab toggles, Esc…): focus stays put
+	var caret: int = clampi(command_input.caret_column, 0, command_input.text.length())
+	command_input.grab_focus()
+	_resume_editing()
+	command_input.caret_column = caret
+	if key == KEY_ENTER or key == KEY_KP_ENTER:
+		get_viewport().set_input_as_handled()
+		_execute_command()
+		return
+	if key == KEY_BACKSPACE:
+		if caret > 0:
+			command_input.delete_text(caret - 1, caret)
+			command_input.caret_column = caret - 1
+		get_viewport().set_input_as_handled()
+		_on_command_text_changed(command_input.text)
+		return
+	if key == KEY_DELETE:
+		if caret < command_input.text.length():
+			command_input.delete_text(caret, caret + 1)
+			command_input.caret_column = caret
+		get_viewport().set_input_as_handled()
+		_on_command_text_changed(command_input.text)
+		return
+	command_input.insert_text_at_caret(char(code))
+	get_viewport().set_input_as_handled()
+	_on_command_text_changed(command_input.text)
+
+
+func _click_name_plan(name: String) -> int:
+	"""CC-1: how many characters before the caret the clicked `name` replaces,
+	or -1 when the line is not waiting for a name.
+
+	Two shapes wait: the caret just after a word that takes a name (`march
+	to `, `attack `, `until `), or mid-word on a prefix of THIS name
+	(`march to Mor` + Moravia; also across a space, `White Ru` + White
+	Russia). `ho` + Moravia does not — that is a verb being typed."""
+	var text: String = command_input.text
+	if text.strip_edges() == "":
+		return -1
+	var caret: int = clampi(command_input.caret_column, 0, text.length())
+	var head := text.substr(0, caret)
+	if head.strip_edges() == "":
+		return -1
+	if head.ends_with(" ") or head.ends_with(","):
+		var words := head.strip_edges().trim_suffix(",").split(" ", false)
+		if words.is_empty():
+			return -1
+		var last := str(words[words.size() - 1]).to_lower().trim_suffix(",")
+		return 0 if _NAME_SLOT_WORDS.has(last) else -1
+	# Mid-word: the longest tail of the head (up to three words) that the
+	# clicked name begins with, as typed.
+	var lower_name := name.to_lower()
+	var best := -1
+	var words_in := head.split(" ")
+	for n in range(1, mini(3, words_in.size()) + 1):
+		var tail := " ".join(words_in.slice(words_in.size() - n))
+		if tail.strip_edges() == "" or tail.begins_with(" "):
+			continue
+		if lower_name.begins_with(tail.to_lower()):
+			best = tail.length()
+	return best
+
+
+func _click_writes_a_name(region_name: String) -> bool:
+	"""CC-1: the map click as a pen. With the caret waiting for a name — or
+	Shift held — the province's name (or the clicked piece's) is written at
+	the caret, and the panel stays shut. Returns whether it wrote."""
+	if command_input == null or not command_input.editable or map_area == null:
+		return false
+	var mk = map_area.get("last_click_marshal")
+	var marshal_key := str(mk) if mk != null else ""
+	var shift_held := bool(map_area.get("last_click_shift")) if map_area.get("last_click_shift") != null else false
+	var name := Utils.humanize_entity_name(marshal_key) if marshal_key != "" else _canonical_region(region_name)
+	if name == "":
+		name = region_name
+	var replace := _click_name_plan(name)
+	if replace < 0 and not shift_held:
+		return false
+	# An own marshal clicked onto an EMPTY line is the order's addressee.
+	var addressee: bool = (marshal_key != "" and command_input.text.strip_edges() == ""
+		and name in _own_marshal_names())
+	_line_insert_name(name, maxi(replace, 0), addressee)
+	return true
+
+
+func _line_insert_name(name: String, replace_len: int, addressee: bool) -> void:
+	"""CC-1: write `name` at the caret, replacing the `replace_len` characters
+	before it (a typed prefix of the name), with one space either side as the
+	line needs — and never touching any other character of the draft."""
+	var text: String = command_input.text
+	var caret: int = clampi(command_input.caret_column, 0, text.length())
+	var cut: int = clampi(caret - replace_len, 0, caret)
+	var head := text.substr(0, cut)
+	var tail := text.substr(caret)
+	var piece := name + (", " if addressee else "")
+	if head != "" and not head.ends_with(" "):
+		head += " "
+	var after_piece := ""
+	if tail != "" and not (tail.begins_with(" ") or tail.begins_with(",") or tail.begins_with(".")):
+		after_piece = " "
+	command_input.text = head + piece + after_piece + tail
+	command_input.grab_focus()
+	_resume_editing()
+	command_input.caret_column = (head + piece).length()
+	_on_command_text_changed(command_input.text)
+
+
+func _region_lookup() -> Dictionary:
+	"""Lower-cased province name → its own spelling, built once per call."""
+	var out := {}
+	for region in _region_names():
+		out[str(region).to_lower()] = str(region)
+	return out
+
+
+func _draft_region(text: String) -> String:
+	"""CC-1: the province the draft is about — the LAST province it names
+	(windows of up to three words, so "East Prussia" counts), else the
+	location of the own marshal it addresses, else ""."""
+	var words := text.replace(",", " ").split(" ", false)
+	if words.is_empty():
+		return ""
+	var lookup := _region_lookup()
+	var found := ""
+	for i in range(words.size()):
+		for n in range(3, 0, -1):
+			if i + n > words.size():
+				continue
+			var window := " ".join(words.slice(i, i + n)).to_lower()
+			if lookup.has(window):
+				found = str(lookup[window])
+				break
+	if found != "":
+		return found
+	var comma := text.find(",")
+	if comma > 0:
+		var who := text.substr(0, comma).strip_edges()
+		for shown in _own_marshal_names():
+			if str(shown).to_lower() == who.to_lower():
+				return str(_marshal_entry(_marshal_key_for(str(shown))).get("location", ""))
+	return ""
+
+
+func _refresh_draft_glow() -> void:
+	"""CC-1 "The map answers the draft": the province the draft names glows
+	(the panel's own glow, while no panel is open), so a misspelt or
+	mistaken target shows on the map before Enter."""
+	if map_area == null or not map_area.has_method("set_selected_region"):
+		return
+	if region_panel != null and region_panel.visible:
+		return
+	var region := _draft_region(command_input.text) if command_input != null else ""
+	if region == _draft_glow_region:
+		return
+	_draft_glow_region = region
+	map_area.set_selected_region(region)
+
+
+func _on_suggestion_meta_clicked(meta) -> void:
+	"""CC-1: a click on an offer takes exactly that offer — as Tab does, it
+	fills the line and never sends."""
+	var m := str(meta)
+	if not m.begins_with("sugg:") or command_input == null or not command_input.editable:
+		return
+	var i := int(m.substr(5))
+	if i < 0 or i >= _suggestions.size():
+		return
+	_take_suggestion(i)
+	command_input.grab_focus()
+	_resume_editing()
+	command_input.caret_column = command_input.text.length()
 
 
 func _on_map_dismiss_requested():
@@ -8040,10 +8383,18 @@ func _on_region_panel_command(command: String):
 	panel from the refreshed map data."""
 	if command.is_empty() or _chip_command_in_flight:
 		return
+	if not command_input.editable:
+		# CC-0: a typed command is still on the wire. The panel stays clickable
+		# under it (it is not a modal), so without this guard the chip queued a
+		# second POST behind it — the rail's UX23-A guard, applied here too.
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+		return
 	_chip_command_in_flight = true
 	_add_to_history(command)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	api_client.send_command(command, _on_region_panel_command_result)
 
@@ -8125,6 +8476,7 @@ func _on_wizard_structured_command_selected(command: String, data: Dictionary):
 		echo_line += "  [color=#" + Utils.COLOR_INFO + "](" + echo_note + ")[/color]"
 	add_output(echo_line)
 
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	if tutorial_overlay:
 		tutorial_overlay.note_sent(command)
@@ -8239,6 +8591,7 @@ func _on_war_settlement_clicked(war_id: String, nation: String):
 		return
 	var command = "propose common peace with " + nation
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Opening settlement review for %s[/color]" % nation)
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	if api_client.has_method("send_structured_command"):
 		api_client.send_structured_command(command, {
@@ -8258,6 +8611,7 @@ func _on_war_request_terms_clicked(war_id: String, nation: String):
 	refusal arrives as a voiced notification."""
 	var command = "request terms from " + nation
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Requesting terms from %s[/color]" % Utils.display_nation_name(nation))
+	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	if api_client.has_method("send_structured_command"):
 		api_client.send_structured_command(command, {
@@ -8412,6 +8766,12 @@ func _on_tutorial_suggest_command(cmd: String) -> void:
 	sends. Respects the shared chip latch: filling cannot double-send, but it
 	must not clobber the line while a chip command is mid-flight."""
 	if cmd.is_empty() or _chip_command_in_flight or not command_input.editable:
+		return
+	# CC-0: never over what the player is typing — the order waits beside
+	# the line instead (a dispatch TODAY chip used to wipe a half-typed order).
+	var typed: String = command_input.text.strip_edges()
+	if typed != "" and typed != cmd:
+		_offer_beside_line(cmd, true)
 		return
 	command_input.text = cmd
 	command_input.caret_column = cmd.length()
@@ -8609,7 +8969,11 @@ func _install_suggestion_row() -> void:
 	_suggestion_row.bbcode_enabled = true
 	_suggestion_row.fit_content = true
 	_suggestion_row.scroll_active = false
-	_suggestion_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# CC-1: each offer is a link — a click takes it exactly as Tab does
+	# (fills the line, never sends).
+	_suggestion_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_suggestion_row.meta_underlined = false
+	_suggestion_row.meta_clicked.connect(_on_suggestion_meta_clicked)
 	# CX3-R8. The row took no font override, so it inherited the theme's
 	# RichTextLabel 16 while the terminal's own prose is 11 and the line it
 	# completes is 12 — measured off the live nodes, capitals 21px against
@@ -8937,10 +9301,18 @@ func _build_completions(typed: String) -> Array:
 	if not COMPLETIONS_ACTIVE:
 		return []
 	var prefix := typed
-	if prefix.strip_edges() == "":
-		return []
 	var out := []
 	var seen := {}
+	# CC-0: an order offered beside the line, and a draft parked for it, head
+	# the row whatever is typed — the row is rebuilt every keystroke, and an
+	# offer that vanished on the next key would be an overwrite by delay.
+	for held in [_offered_command, _parked_draft]:
+		var h := str(held)
+		if h != "" and h != typed and not seen.has(h.to_lower()):
+			seen[h.to_lower()] = true
+			out.append(h)
+	if prefix.strip_edges() == "":
+		return out
 
 	# 1. What this player has already sent — 86% of the archive is exact
 	#    repeats, so a past command is the likeliest next one, and it costs
@@ -9164,10 +9536,19 @@ func _render_suggestions() -> void:
 	var parts := []
 	for i in range(_suggestions.size()):
 		var line := str(_suggestions[i]).strip_edges()
+		# CC-0: mark what is held beside the line — the offer (↳) and the
+		# player's own parked draft (↩) — so neither reads as a guess.
+		var raw := str(_suggestions[i])
+		if raw == _offered_command:
+			line = "↳ " + line
+		elif raw == _parked_draft:
+			line = "↩ " + line
+		var shown: String
 		if i == _suggestion_index:
-			parts.append(Utils.bbcode_color("[" + line + "]", Utils.COLOR_GOLD))
+			shown = Utils.bbcode_color("[" + line + "]", Utils.COLOR_GOLD)
 		else:
-			parts.append(Utils.bbcode_color(line, Utils.COLOR_INFO))
+			shown = Utils.bbcode_color(line, Utils.COLOR_INFO)
+		parts.append("[url=sugg:%d]%s[/url]" % [i, shown])   # CC-1: clickable
 	var hint := "(Tab)" if _suggestions.size() < 2 else "(Tab · ↓)"
 	_suggestion_row.text = ("  " + "   ".join(parts) + "  "
 		+ Utils.bbcode_color(hint, Utils.COLOR_INFO))
@@ -9204,10 +9585,30 @@ func _accept_suggestion() -> bool:
 		return false
 	if command_input.text == str(_suggestions[_suggestion_index]):
 		_suggestion_index = (_suggestion_index + 1) % _suggestions.size()
-	command_input.text = str(_suggestions[_suggestion_index])
+	_take_suggestion(_suggestion_index)
+	return true
+
+
+func _take_suggestion(i: int) -> void:
+	"""Put offer `i` on the line (Tab, Down-then-Tab, or a click — CC-1).
+
+	CC-0: taking the order held beside the line PARKS the player's draft in
+	its place, and taking the parked draft puts the order back beside it — a
+	swap, never a loss."""
+	var chosen := str(_suggestions[i])
+	var before: String = command_input.text
+	if before.strip_edges() != "" and before != chosen:
+		if chosen == _offered_command:
+			_parked_draft = before
+			_offered_command = ""
+		elif chosen == _parked_draft:
+			_offered_command = before
+			_parked_draft = ""
+	_suggestion_index = i
+	command_input.text = chosen
 	command_input.caret_column = command_input.text.length()
 	_refresh_after_accept()
-	return true
+	_refresh_draft_glow()
 
 
 func _refresh_after_accept() -> void:

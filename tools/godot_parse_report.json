@@ -520,6 +520,12 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://../../tools/cc_client_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://../../tools/cx3_completer_screenshot.gd"
     },
     {
@@ -541,5 +547,5 @@
       "path": "res://../../tools/uxr3_action_probe.gd"
     }
   ],
-  "timestamp": "2026-10-15T19:29:00Z"
+  "timestamp": "2026-10-16T01:48:26Z"
 }

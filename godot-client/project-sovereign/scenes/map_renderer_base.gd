@@ -254,6 +254,13 @@ var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal := {}
 var hovered_fogged_force := {}
 var hovered_region: String = ""
+# CC-1 "Click names into the line" (October 15, 2026): what the last left
+# click carried besides its province. `region_clicked(name)` keeps its one
+# argument (pinned), so the owner reads the rest here — the piece under the
+# cursor (its roster key, "" for none) and the modifiers held.
+var last_click_marshal: String = ""
+var last_click_shift := false
+var last_click_ctrl := false
 var pan_keys_pressed := {
 	"left": false,
 	"right": false,
@@ -2376,6 +2383,10 @@ func _input(event):
 			# through the panel or terminal under the drifting cursor.
 			if is_panning:
 				return
+			# CC-1: record what this click carried before any branch emits.
+			last_click_shift = event.shift_pressed
+			last_click_ctrl = event.ctrl_pressed
+			last_click_marshal = str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
 			# NUI: a fleet piece or a hovered crossing (open water only — a
 			# province always wins the hover) opens THE ADMIRALTY.
 			if hovered_fleet.size() > 0:
@@ -2559,11 +2570,21 @@ func _refresh_hover_state():
 	var map_mouse = _get_map_mouse_position()
 	var positions = _get_active_region_positions()
 
+	# CC-1: the piece the eye sees wins. Pieces are y-sorted (the lower one is
+	# drawn in front) and the boxes of two ranks overlap, so the FIRST box
+	# hit used to name the man standing behind the one under the cursor —
+	# the tooltip, and now the click, named the wrong marshal.
+	var front := {}
+	var front_bottom := -INF
 	for hitbox in marshal_hitboxes:
-		if hitbox["rect"].has_point(map_mouse):
-			hovered_marshal = hitbox["marshal"]
-			_set_hovered_region("")
-			return
+		var rect: Rect2 = hitbox["rect"]
+		if rect.has_point(map_mouse) and rect.end.y >= front_bottom:
+			front = hitbox["marshal"]
+			front_bottom = rect.end.y
+	if front.size() > 0:
+		hovered_marshal = front
+		_set_hovered_region("")
+		return
 
 	for hitbox in fogged_force_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
