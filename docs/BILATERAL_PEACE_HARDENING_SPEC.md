@@ -373,6 +373,8 @@ def get_peace_commitment_conflicts(
 
 HARD_STOP conflicts block the proposal until the player resolves the underlying contradiction (e.g., via the existing `commitment_paradox` popup). WARNING conflicts are surfaced but do not block. INFO conflicts provide political context.
 
+> **Retired for peace-making (October 16, 2026, the peace report's rulings B + C, `PEACE_CONUNDRUM_2026_10_15.md` §46; built S13e part 1).** The paradox conflict is no longer a HARD_STOP on the player's own peace: an ally still at war with the court is either **carried in** by the leader's peace (an INFO row, `conflict_type: "carried_in"` — her pair ends in the same instrument) or **left fighting** at the §9.3 price (a WARNING). The owning spec for the separate peace is `COALITION_SPEC.md` §6a.1. The `commitment_paradox` condition itself stays for the alliance it was written for; the interface shape above is unchanged, and the HARD_STOP severity remains available to §10.2's future conflict types.
+
 ### 10.3 Integration with existing warnings
 
 Peace commitment conflicts merge with Memory and Pressure's `structured warnings[]` payload. The peace preview panel (§8) renders them in Section 3 alongside ally fallout and order cancellation warnings.

@@ -2,10 +2,11 @@
 (October 15, 2026; `docs/audits/PEACE_CONUNDRUM_2026_10_15.md` §4 A;
 `docs/BUG_FIXES.md` §PC; `SYSTEMS_REFERENCE.md` §120).
 
-  PC-F1  every refusal of a separate peace under the alliance paradox names
-         the ally ("Bavaria is still at war with Austria") and both ways
-         out: the armistice, and the Downgrade below a defensive alliance —
-         the wizard rows, the typed refusal, the counsel, the Congress lever.
+  PC-F1  every refusal of a separate peace under the alliance paradox named
+         the ally and both ways out; PC-R1 (S13e part 1) retired the stop —
+         the pins now read the one verdict ("Bavaria's war with Austria
+         ends in this instrument; she takes nothing by it") on the wizard
+         rows, the draft's note, the chip, the counsel, the Congress lever.
   PC-F3  the War Status rows show what the peace math reads: the scorer's
          tier (the side pressure on the stored scores, not the live
          aggregate), each court's settlement total out of 50, and the note
@@ -33,12 +34,9 @@ REPO = Path(__file__).resolve().parents[1]
 SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
 SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 
-BAVARIA_CHIP = ("Bavaria is still at war with Austria — propose an armistice, or first "
-                "Downgrade the alliance with Bavaria (2 steps) below a defensive alliance")
-# In a truce the first way out is the truce itself (no "propose an armistice").
-TRUCE_CHIP = ("Bavaria is still at war with Austria — let the truce run its course (it "
-              "becomes the peace if relations stand at -60 or better), or first Downgrade "
-              "the alliance with Bavaria (2 steps) below a defensive alliance")
+# PC-R1 (S13e part 1): the one verdict's note on the 1805 boot — the leader's
+# peace carries Bavaria's pair (she is on France's side of war_1).
+BAVARIA_NOTE = "Bavaria's war with Austria ends in this instrument; she takes nothing by it."
 
 
 @pytest.fixture(scope="module")
@@ -62,94 +60,108 @@ def _rows(world, nation):
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestPCF1:
-    def test_the_war_page_row_names_bavaria_and_both_ways_out(self, w):
-        row = next(a for a in _rows(w, "Austria") if a["action"] == "propose_peace")
-        assert row["available"] is False and row["closed_clause"] == "paradox"
-        assert row["disabled_reason"] == BAVARIA_CHIP
-        assert row["disabled_reason_display"] == BAVARIA_CHIP
+    """PC-F1 named the ally whose war stopped the separate peace, with both
+    ways out. PC-R1 (S13e part 1, October 16, 2026; §46 B + C) retired the
+    stop: the paradox is ONE verdict — a peace the leader signs CARRIES the
+    ally's pair ("Bavaria's war with Austria ends in this instrument; she
+    takes nothing by it"), a peace France does not lead leaves the ally
+    fighting at a named price. These pins are re-seated to that wording;
+    every surface reads `diplomacy.separate_peace_words`."""
 
-    def test_the_armistice_page_row_names_the_truce_as_the_first_way(self, w):
+    def test_the_war_page_row_is_open_and_carries_the_note(self, w):
+        row = next(a for a in _rows(w, "Austria") if a["action"] == "propose_peace")
+        assert row["available"] is True and "closed_clause" not in row
+        assert row["separate_peace_display"] == BAVARIA_NOTE
+
+    def test_the_armistice_page_row_is_open_too(self, w):
         with contextlib.redirect_stdout(io.StringIO()):
             D.set_diplomatic_state(w, "France", "Austria", "ARMISTICE", "test_fixture")
         row = next(a for a in _rows(w, "Austria") if a["action"] == "propose_peace")
-        assert row["available"] is False
-        assert row["disabled_reason"] == TRUCE_CHIP
-        assert str(D.ARMISTICE_AUTO_PEACE_RELATION) in TRUCE_CHIP
+        assert row["available"] is True
+        assert row["separate_peace_display"] == BAVARIA_NOTE
 
-    def test_the_send_roads_verdict_carries_the_whole_sentence(self, w):
+    def test_the_send_roads_verdict_signs(self, w):
         from backend.game_logic.treaty import can_sign
         v = can_sign(w, {"type": "peace", "proposer_nation": "France",
                          "target_nation": "Austria", "sweeteners": [], "demands": [],
                          "clauses": []}, at_send=True)
-        assert v.clause == "paradox"
-        assert v.message == (
-            "Bavaria is still at war with Austria: a separate peace would break her war. "
-            "Two ways out — propose an armistice (a truce carries no contradiction), or "
-            "first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance.")
+        assert v.ok and v.clause == ""
+        conflicts = D.get_peace_commitment_conflicts(w, "France", "Austria", [])
+        carried = [c for c in conflicts if c["conflict_type"] == "carried_in"]
+        assert [c["affected_entity"] for c in carried] == ["Bavaria"]
+        assert carried[0]["severity"] == "INFO" and carried[0]["display"] == BAVARIA_NOTE
+        assert not any(c["severity"] == "HARD_STOP" for c in conflicts)
 
-    def test_a_defensive_alliance_needs_one_step(self, w):
-        w.diplomatic_states[w._make_diplo_key("France", "Bavaria")] = "DEFENSIVE_ALLIANCE"
-        assert D.paradox_chip(w, "France", "Austria").endswith(
-            "Downgrade the alliance with Bavaria (1 step) below a defensive alliance")
+    def test_the_one_wording_reads_the_carry_in(self, w):
+        words = D.separate_peace_words(w, "France", "Austria")
+        assert words["carried"] == ["Bavaria"] and words["left"] == []
+        assert words["leader"] is True and words["war_id"] == "war_1"
+        assert words["display"] == BAVARIA_NOTE == words["chip"]
 
-    def test_two_allies_are_both_named(self, w):
+    def test_two_allies_take_their_own_fates(self, w):
+        """Spain at war with Austria OUTSIDE war_1 is left fighting at a price;
+        attached to the instance France leads, she is carried in too."""
+        from backend.game_logic.settlement_helpers import attach_pair_to_war_instance
         w.diplomatic_states[w._make_diplo_key("Spain", "Austria")] = "WAR"
-        words = D.paradox_words_for(w, "France", "Austria")
+        words = D.separate_peace_words(w, "France", "Austria")
         assert sorted(words["allies"]) == ["Bavaria", "Spain"]
-        assert " and " in words["reason"] and "are still at war with Austria" in words["reason"]
-        assert words["downgrade"].startswith("Downgrade the alliances with ")
-        assert "their war" in words["display"]
+        assert words["carried"] == ["Bavaria"] and words["left"] == ["Spain"]
+        assert words["display"] == (
+            f"{BAVARIA_NOTE} Spain stays at war with Austria after this separate peace — "
+            f"she fights on alone; it costs {words['price']['Spain']} relation with her.")
+        with contextlib.redirect_stdout(io.StringIO()):
+            assert attach_pair_to_war_instance(w, "war_1", "Austria", "Spain",
+                                               entry_path="test")["ok"]
+        words = D.separate_peace_words(w, "France", "Austria")
+        assert words["carried"] == ["Bavaria", "Spain"] and words["left"] == []
+        assert words["display"] == ("The wars of Bavaria and Spain with Austria end in this "
+                                    "instrument; they take nothing by it.")
 
-    def test_the_named_downgrade_is_a_true_way_out(self, w):
-        """The second way out is real: two Downgrades lift the paradox."""
+    def test_a_downgrade_no_longer_decides_anything(self, w):
+        """The old second way out: the row is open with or without it."""
         with contextlib.redirect_stdout(io.StringIO()):
             assert D.execute_downgrade(w, "France", "Bavaria")["success"]
-            assert D.paradox_chip(w, "France", "Austria")  # still a defensive alliance
             assert D.execute_downgrade(w, "France", "Bavaria")["success"]
-        assert D.paradox_chip(w, "France", "Austria") == ""
+        row = next(a for a in _rows(w, "Austria") if a["action"] == "propose_peace")
+        assert row["available"] is True
+        assert D.separate_peace_words(w, "France", "Austria") == {}   # no ally at war
 
-    def test_the_named_armistice_is_a_true_way_out(self, w):
+    def test_the_armistice_signs_as_before(self, w):
         from backend.game_logic.treaty import can_sign
         v = can_sign(w, {"type": D.armistice_variant_for(w, "France", "Austria"),
                          "proposer_nation": "France", "target_nation": "Austria",
                          "sweeteners": [], "demands": [], "clauses": []}, at_send=True)
-        assert v.clause != "paradox"
+        assert v.ok
 
-    def test_the_typed_refusal_names_both_ways_and_the_truce_honestly(self, w):
-        from backend.game_logic.diplomatic_dialogue import peace_paradox_block_text
-        text = peace_paradox_block_text(w, "France", "Austria")
-        assert text.startswith("I cannot deliver this, Sire — Bavaria is still at war with Austria")
-        assert "Propose an armistice instead" in text
-        assert f"if relations stand at {D.ARMISTICE_AUTO_PEACE_RELATION} or better" in text
-        assert "its expiry makes the peace" not in text
-        assert "Downgrade the alliance with Bavaria (2 steps) below a defensive alliance" in text
+    def test_the_drafts_note_says_what_the_peace_does(self, w):
+        from backend.game_logic.diplomatic_dialogue import separate_peace_note_text
+        text = separate_peace_note_text(w, "France", "Austria")
+        assert text == f"Mark one thing, Sire: {BAVARIA_NOTE}"
+        assert "I cannot deliver this" not in text
 
-    def test_the_per_court_chip_names_both_ways(self, w):
+    def test_the_per_court_chip_is_open_with_the_note(self, w):
+        from backend.game_logic import settlement_staging as SS
         from backend.game_logic import settlement_validation as SV
         war_id = next(iter(w.get_war_instances_by_participant("Austria")))
         elig = SV.evaluate_pair_peace_substitute_eligibility(
             w, war_id=war_id, actor_nation="France", target_nation="Austria",
             action="seek_bilateral_peace")
-        assert elig["refusal_code"] == "commitment_paradox"
-        assert "Propose an armistice, or first Downgrade the alliance with Bavaria" in (
-            elig["disabled_reason_display"])
+        assert elig["eligible"] is True
+        chip = SS.separate_peace_chip(w, "Austria", war_id=war_id, staged_terms=[], actor="France")
+        assert chip.get("available", True) is not False
+        assert chip["separate_peace_display"] == BAVARIA_NOTE
+        assert chip["carried_in"] == ["Bavaria"] and BAVARIA_NOTE in chip["description"]
 
-    def test_the_counsel_never_recommends_the_refused_peace_silently(self, w):
+    def test_the_counsel_says_what_the_peace_does(self, w):
         from backend.game_logic.diplomatic_advisory import _recommend_action
         dlg = _recommend_action("Austria", w)
-        assert ("Mark one thing, Sire: Bavaria is still at war with Austria, and a "
-                "separate peace would break her war. Two ways out — propose an "
-                "armistice, or first Downgrade the alliance with Bavaria (2 steps) "
-                "below a defensive alliance.") in dlg["talleyrand_text"]
-        hints = dlg["context"]["action_hints"]
-        assert not any(h.startswith("Propose peace with") for h in hints if h)
+        assert f"Mark one thing, Sire: {BAVARIA_NOTE}" in dlg["talleyrand_text"]
+        assert "would break her war" not in dlg["talleyrand_text"]
 
     def test_the_congress_peace_lever_reads_the_send_road(self, w):
         from backend.game_logic import congress
         v = congress._lever_verdict(w, "Austria", "PEACE")
-        assert v.clause == "paradox"
-        assert v.message.startswith("Bavaria is still at war with Austria")
-        # a non-peace lever is not asked the send road's paradox
+        assert v.ok
         assert congress._lever_verdict(w, "Austria", "OPEN_BORDERS").clause != "paradox"
 
     def test_no_client_copy_hardcodes_the_refusal(self):
@@ -157,6 +169,7 @@ class TestPCF1:
             src = path.read_text(encoding="utf-8")
             assert "an ally's war" not in src, path.name
             assert "diplomatic contradiction" not in src, path.name
+            assert "would break her war" not in src, path.name
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -277,7 +290,11 @@ class TestPCF3:
             f"The peace table reads the war at {table['pressure']} — {table['tier_display']}.")
         assert "A settlement carries only when every court reaches 50 — with no terms:" in (
             table["lines"][0])
-        assert table["lag_note"] == "" and len(table["lines"]) == 1
+        # PC-F37 / PC-F88 (S13e part 1): the averaging and each beaten
+        # court's own readiness ride as further lines; no lag note at boot.
+        assert table["lag_note"] == "" and len(table["lines"]) >= 1
+        assert any(ln.startswith("Court by court: ") and "the table reads their mean" in ln
+                   for ln in table["lines"])
 
     def test_the_court_totals_are_the_settlement_previews_own(self, w):
         from backend.game_logic.settlement_staging import build_settlement_preview

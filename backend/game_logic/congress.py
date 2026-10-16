@@ -2159,7 +2159,11 @@ def march_blocker(world, court: str) -> str:
     cooldown = int((getattr(world, "armistice_cooldowns", {}) or {}).get(
         world._make_diplo_key(court, player), 0) or 0)
     if cooldown > 0:
-        return f"a truce's cooldown binds it ({cooldown} more turns)"
+        # PC-F73: the store holds a fresh peace's floor as well as a truce's
+        from backend.game_logic.diplomacy import pair_cooldown_words
+        _kind = pair_cooldown_words(world, court, player)["kind"]
+        return (f"its peace with us is fresh ({cooldown} more turns)" if _kind == "fresh_peace"
+                else f"a truce's cooldown binds it ({cooldown} more turns)")
     if not refuser_qualifies(world, court, player):
         return "it does not refuse at peace"
     return ""

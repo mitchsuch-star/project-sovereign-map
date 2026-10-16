@@ -3818,6 +3818,44 @@ def recalculate_war_scores(world) -> None:
     world.war_scores = war_scores
 
 
+def pair_cooldown_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
+    """PC-F73 (S13e part 1, October 16, 2026): the ONE reading of the pair
+    cooldown store (`armistice_cooldowns`) in words. The store holds two
+    things: a truce's own cooldown while the pair is in ARMISTICE, and the
+    fresh-peace floor a settlement writes when it moves a pair to PEACE
+    (RS-1, `settlement_ratify.write_settlement_peace_floors`). The declare-
+    war refusal worded both as "the armistice holds" two turns after a
+    ratified PEACE. {turns, kind ('truce' | 'fresh_peace' | ''), noun,
+    display} — `display` is the sentence every reader prints."""
+    key = world._make_diplo_key(nation_a, nation_b)
+    turns = int((getattr(world, "armistice_cooldowns", {}) or {}).get(key, 0) or 0)
+    if turns <= 0:
+        return {"turns": 0, "kind": "", "noun": "", "display": ""}
+    from backend.game_logic.formations import formed_display_name as _fdn
+    player = getattr(world, "player_nation", "France")
+    other = nation_b if nation_a == player else nation_a
+    state = world.diplomatic_states.get(key, "PEACE")
+    if state == "ARMISTICE":
+        return {
+            "turns": turns, "kind": "truce", "noun": "the armistice",
+            "display": (f"The armistice with {_fdn(world, other)} holds for {turns} more "
+                        f"turn{'' if turns == 1 else 's'}. We cannot declare war until it expires."),
+        }
+    if state == "WAR":
+        # a cooldown on a pair back at war is the LAST truce's — no new truce
+        # inside it (U2's rule on the wizard's armistice row)
+        return {
+            "turns": turns, "kind": "truce", "noun": "the last armistice",
+            "display": (f"The last armistice with {_fdn(world, other)} binds us for {turns} more "
+                        f"turn{'' if turns == 1 else 's'}: no new truce inside it."),
+        }
+    return {
+        "turns": turns, "kind": "fresh_peace", "noun": "the fresh peace",
+        "display": (f"Our peace with {_fdn(world, other)} is fresh: no war may be declared "
+                    f"on her for {turns} more turn{'' if turns == 1 else 's'}."),
+    }
+
+
 def armistice_variant_for(world, proposer: str, target: str) -> str:
     """Which armistice a war score buys — ONE rule (GR1).
 
@@ -5052,8 +5090,16 @@ def get_separate_peace_fallout_warnings(
     """
     warnings: List[Dict] = []
     all_nations = world.get_active_nations()
+    # PC-R1 (ii): an ally the proposer leads on the instance is CARRIED IN —
+    # her pair ends in the same instrument — so she is not left fighting and
+    # pays no fallout. (At the ratification the carried pairs are already
+    # PEACE and skip below on their own; the preview needs the read.)
+    from backend.game_logic.settlement_ratify import carried_in_allies as _carried
+    _carried_set = set(_carried(world, proposer, target))
     for nation in all_nations:
         if nation == proposer or nation == target:
+            continue
+        if nation in _carried_set:
             continue
         ally_key = world._make_diplo_key(proposer, nation)
         ally_state = world.diplomatic_states.get(ally_key, "PEACE")
@@ -5338,109 +5384,107 @@ def armistice_likelihood(world, proposer: str, target: str) -> Tuple[str, int]:
     return counter_aware_likelihood(world, proposal, score), score
 
 
-def separate_peace_paradox(world, proposer: str, target: str) -> Dict:
-    """DDB-8 / DDB-9 (Pre-Deploy S13b): the alliance paradox that stops a
-    separate peace with `target`, in words — {} when none. ONE read for the
-    per-court peace chip (disabled with `reason`), the bilateral draft's
-    block text and the generic menu's Propose peace: "Bavaria is still at
-    war with Austria", with the armistice's own likelihood beside it.
+def separate_peace_words(world, proposer: str, target: str,
+                         terms: Optional[List[Any]] = None) -> Dict[str, Any]:
+    """PC-R1 (iv) — rulings B + C (the peace report §46, October 16, 2026):
+    ONE wording for what a separate peace with `target` does to the
+    proposer's allies still at war with that court — {} when none is.
 
-    PC-F1 (the Peace Conundrum F1, October 15, 2026): it also carries the
-    two ways out the refusal names — `downgrade` (the clause that loosens
-    every such alliance below a defensive one) and `chip` (the short form
-    the wizard rows show)."""
-    hard = [c for c in get_peace_commitment_conflicts(world, proposer, target, [])
-            if c.get("severity") == "HARD_STOP"]
-    if not hard:
+    Two fates, never a refusal (BPH §10.1's HARD_STOP is retired for
+    peace-making; the owning spec is COALITION_SPEC §6a):
+
+    * an ally the proposer LEADS on the war instance is CARRIED IN — her
+      pair with the court ends in this very instrument (the table's plan
+      rule, `settlement_ratify.carried_in_allies`): "Bavaria's war with
+      Austria ends in this instrument; she takes nothing by it" — or "she is
+      named for Tyrol" when `terms` cede her a province (Pressburg Art. 6);
+    * an ally the proposer does not lead (her own separate war; a war
+      France was carried into) is LEFT FIGHTING, and the peace is PRICED by
+      the separate-peace penalty, said in the sentence: "Bavaria stays at
+      war with Austria after this separate peace — she fights on alone; it
+      costs -10 relation with her."
+
+    Every surface — the wizard rows, the per-court chip, the counsel, the
+    confirm's note, the commitment-conflict rows — reads this one dict:
+    `allies` (every ally at war with the court), `carried`, `left`, `price`
+    ({ally: relation change}), `named` ({ally: [regions]}), `per_ally`
+    ({ally: its own sentence}), `leader` (the proposer leads its side),
+    `display` (the long form) and `chip` (the row's)."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    from backend.game_logic.settlement_ratify import carried_in_allies, carry_in_instance
+    if not proposer or not target:
         return {}
-    allies = [str(c.get("affected_entity") or "") for c in hard]
-    words = paradox_refusal_words(world, proposer, target, allies)
-    descriptor, score = armistice_likelihood(world, proposer, target)
+    allies = [
+        n for n in sorted(world.get_active_nations())
+        if n not in (proposer, target)
+        and world.diplomatic_states.get(world._make_diplo_key(proposer, n), "PEACE")
+        in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+        and world.diplomatic_states.get(world._make_diplo_key(n, target), "PEACE") == "WAR"
+    ]
+    if not allies:
+        return {}
+    found = carry_in_instance(world, proposer, target)
+    carried = [a for a in carried_in_allies(world, proposer, target) if a in allies]
+    left = [a for a in allies if a not in carried]
+    dict_terms = [t for t in (terms or []) if isinstance(t, Mapping)]
+    harshness = 0.0
+    if dict_terms:
+        from backend.game_logic.diplomatic_templates import burden_on_nation
+        harshness = float(burden_on_nation(dict_terms, target) or 0.0)
+    price = {
+        str(w.get("ally") or ""): int(w.get("predicted_relation_change") or 0)
+        for w in get_separate_peace_fallout_warnings(world, proposer, target, harshness)
+        if str(w.get("ally") or "") in left
+    }
+    named: Dict[str, List[str]] = {}
+    for t in dict_terms:
+        if str(t.get("type") or "") == "territory_cede" and str(t.get("to") or "") in carried:
+            region = str(t.get("region") or "")
+            if region:
+                named.setdefault(str(t.get("to")), []).append(region)
+    court = _fdn(world, target)
+
+    def _join(names: List[str]) -> str:
+        return (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else (names[0] if names else "")
+
+    per_ally: Dict[str, str] = {}
+    for a in carried:
+        regions = named.get(a)
+        tail = (f"she is named for {_join(regions)}." if regions
+                else "she takes nothing by it.")
+        per_ally[a] = f"{_fdn(world, a)}'s war with {court} ends in this instrument; {tail}"
+    for a in left:
+        per_ally[a] = (f"{_fdn(world, a)} stays at war with {court} after this separate "
+                       f"peace — she fights on alone; it costs {price.get(a, 0)} relation with her.")
+
+    parts: List[str] = []
+    if len(carried) == 1:
+        parts.append(per_ally[carried[0]])
+    elif carried:
+        each = [f"{_fdn(world, a)} for {_join(named[a])}" for a in carried if named.get(a)]
+        tail = (f"{_join(each)} named; the rest take nothing by it." if each
+                else "they take nothing by it.")
+        parts.append(f"The wars of {_join([_fdn(world, a) for a in carried])} with {court} "
+                     f"end in this instrument; {tail}")
+    if len(left) == 1:
+        parts.append(per_ally[left[0]])
+    elif left:
+        costs = [f"{price.get(a, 0)} with {_fdn(world, a)}" for a in left]
+        parts.append(f"{_join([_fdn(world, a) for a in left])} stay at war with {court} after "
+                     f"this separate peace — they fight on alone; it costs {_join(costs)} relation.")
+    display = " ".join(parts)
     return {
-        "ally": allies[0],
-        "allies": allies,
-        "reason": words["reason"],
-        "downgrade": words["downgrade"],
-        "chip": words["chip"],
-        "display": str(hard[0].get("display") or ""),
-        "armistice_likelihood": descriptor,
-        "armistice_score": int(score),
+        "allies": allies, "carried": carried, "left": left, "price": price,
+        "named": named, "per_ally": per_ally, "leader": found is not None,
+        "war_id": str(found[0]) if found else "",
+        "display": display, "chip": display,
     }
 
 
-def paradox_words_for(world, proposer: str, target: str) -> Dict[str, Any]:
-    """PC-F1: `paradox_refusal_words` for the paradox that stops a separate
-    peace today, plus `allies` — {} when none. Cheaper than
-    `separate_peace_paradox` (no armistice dry run), for the row builders
-    and the counsel."""
-    hard = [c for c in get_peace_commitment_conflicts(world, proposer, target, [])
-            if c.get("severity") == "HARD_STOP"]
-    if not hard:
-        return {}
-    allies = [str(c.get("affected_entity") or "") for c in hard]
-    return dict(paradox_refusal_words(world, proposer, target, allies), allies=allies)
-
-
-def paradox_chip(world, proposer: str, target: str) -> str:
-    """PC-F1: the wizard row's short paradox refusal — the ally named, both
-    ways out — '' when no paradox stops the peace."""
-    return str(paradox_words_for(world, proposer, target).get("chip") or "")
-
-
-def _downgrades_below_defensive(world, proposer: str, ally: str) -> int:
-    """How many one-step Downgrades take the proposer's bond with `ally`
-    below DEFENSIVE_ALLIANCE — where the paradox stops reading it."""
-    state = world.diplomatic_states.get(world._make_diplo_key(proposer, ally), "PEACE")
-    if state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-        return 0
-    return _DOWNGRADE_ORDER.index("NON_AGGRESSION") - _DOWNGRADE_ORDER.index(state)
-
-
-def paradox_refusal_words(world, proposer: str, target: str, allies: List[str]) -> Dict[str, str]:
-    """PC-F1 (the Peace Conundrum F1, October 15, 2026): the ONE wording of
-    the alliance paradox that stops a player's separate peace. Every refusal
-    names the ally (the live case: "Bavaria is still at war with Austria" —
-    the chip said only "an ally's war") and BOTH ways out: the armistice the
-    send road exempts, and the Downgrade that loosens the alliance below a
-    defensive one (the predicate reads ALLIANCE and DEFENSIVE_ALLIANCE only).
-
-    Returns `reason` (who fights on), `downgrade` (the second way out as an
-    imperative clause), `display` (the long refusal: the send road, the
-    ratifier's verdict, the Congress lever) and `chip` (the wizard row)."""
-    from backend.game_logic.formations import formed_display_name as _fdn
-    allies = [a for a in allies if a]
-    names = [_fdn(world, a) for a in allies]
-    if len(names) > 1:
-        who = ", ".join(names[:-1]) + " and " + names[-1]
-        reason = f"{who} are still at war with {_fdn(world, target)}"
-        whose = "their"
-    else:
-        reason = f"{names[0] if names else 'An ally'} is still at war with {_fdn(world, target)}"
-        whose = "her"
-    bonds = []
-    for ally, name in zip(allies, names):
-        steps = _downgrades_below_defensive(world, proposer, ally)
-        bonds.append(f"{name} ({steps} step{'' if steps == 1 else 's'})")
-    if len(bonds) > 1:
-        bond_text = "the alliances with " + ", ".join(bonds[:-1]) + " and " + bonds[-1]
-    else:
-        bond_text = "the alliance with " + (bonds[0] if bonds else "her")
-    # "Downgrade" keeps its capital: it names the wizard's own button.
-    downgrade = f"Downgrade {bond_text} below a defensive alliance"
-    if world.diplomatic_states.get(world._make_diplo_key(proposer, target)) == "ARMISTICE":
-        # In a truce the first way out is the truce itself — its expiry is
-        # a peace the paradox does not read, at relations of −60 or better.
-        truce = (f"let the truce run its course (it becomes the peace if relations "
-                 f"stand at {ARMISTICE_AUTO_PEACE_RELATION} or better)")
-        display = (f"{reason}: a separate peace would break {whose} war. Two ways out — "
-                   f"{truce}, or first {downgrade}.")
-        chip = f"{reason} — {truce}, or first {downgrade}"
-    else:
-        display = (f"{reason}: a separate peace would break {whose} war. Two ways out — "
-                   f"propose an armistice (a truce carries no contradiction), or first "
-                   f"{downgrade}.")
-        chip = f"{reason} — propose an armistice, or first {downgrade}"
-    return {"reason": reason, "downgrade": downgrade, "display": display, "chip": chip}
+def separate_peace_note(world, proposer: str, target: str) -> str:
+    """The wizard row's / chip's one-line note on a separate peace — ''
+    when no ally is at war with the court (PC-R1 iv)."""
+    return str(separate_peace_words(world, proposer, target).get("chip") or "")
 
 
 def get_peace_commitment_conflicts(
@@ -5480,7 +5524,7 @@ def get_peace_commitment_conflicts(
     all_nations = world.get_active_nations()
     _runs_on = ({row["ally"]: row for row in allies_whose_war_runs_on(world, proposer, target)}
                 if truce else {})
-    _hard_allies: Optional[List[str]] = None
+    _words: Optional[Dict[str, Any]] = None
     for nation in all_nations:
         if nation == proposer or nation == target:
             continue
@@ -5511,7 +5555,15 @@ def get_peace_commitment_conflicts(
                            "corps": list(row["corps"])},
             })
             continue
-        if incoming:
+        if incoming and _words is None:
+            # read from the player's chair: `proposer` IS the player, and
+            # the carry-in is the player's (the leader's peace is common to
+            # its side whoever wrote the letter)
+            _words = separate_peace_words(world, proposer, target, clauses)
+        if incoming and nation in (_words.get("carried") or []):
+            _display = str((_words.get("per_ally") or {}).get(nation) or "")
+            _severity = "INFO"
+        elif incoming:
             from backend.game_logic.formations import formed_display_name as _fdn
             _display = (
                 f"{_fdn(world, nation)} stays at war with {_fdn(world, target)} "
@@ -5533,21 +5585,32 @@ def get_peace_commitment_conflicts(
             )
             _severity = "WARNING"
         else:
-            # PC-F1 (the Peace Conundrum F1): the refusal names the ally in
-            # display words (it printed the raw keys) and both ways out —
-            # the armistice and the Downgrade below a defensive alliance.
-            # Every HARD_STOP row carries the whole sentence, every ally
-            # named, so `hard[0]` alone is never half the story.
-            if _hard_allies is None:
-                _hard_allies = [
-                    n for n in all_nations
-                    if n not in (proposer, target)
-                    and world.diplomatic_states.get(world._make_diplo_key(proposer, n), "PEACE")
-                    in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
-                    and world.diplomatic_states.get(world._make_diplo_key(n, target), "PEACE") == "WAR"
-                ]
-            _display = paradox_refusal_words(world, proposer, target, _hard_allies)["display"]
-            _severity = "HARD_STOP"
+            # PC-R1 (i) — rulings B + C (§46, October 16, 2026): the paradox
+            # is no longer a stop (PC-F1's refusal retired; the owner is
+            # COALITION_SPEC §6a). ONE verdict on every road: a peace with
+            # the court is allowed and PRICED where it leaves an ally
+            # fighting (the WARNING its two siblings above already are,
+            # priced by `apply_separate_peace_penalties`), and it is COMMON
+            # TO THE SIDE where the proposer leads it — the ally's pair ends
+            # in the same instrument (an INFO row, `carried_in`, below).
+            if _words is None:
+                _words = separate_peace_words(world, proposer, target, clauses)
+            _display = str((_words.get("per_ally") or {}).get(nation) or "")
+            _severity = "WARNING"
+        if _words is not None and nation in (_words.get("carried") or []):
+            conflicts.append({
+                "conflict_type": "carried_in",
+                "severity": "INFO",
+                "affected_entity": nation,
+                "display": _display,
+                "detail": {
+                    "ally": nation,
+                    "ally_state_vs_target": "WAR",
+                    "war_id": str(_words.get("war_id") or ""),
+                    "named_for": list((_words.get("named") or {}).get(nation) or []),
+                },
+            })
+            continue
         conflicts.append({
             "conflict_type": "paradox",
             "severity": _severity,
@@ -5556,6 +5619,7 @@ def get_peace_commitment_conflicts(
             "detail": {
                 "ally": nation,
                 "ally_state_vs_target": "WAR",
+                "relation_change": int(((_words or {}).get("price") or {}).get(nation, 0)),
             },
         })
 
@@ -8406,6 +8470,22 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     )
 
     score = int(round(raw_score))
+
+    # PC-R1 (iii) — COALITION_SPEC §6a's coalition-loyalty penalty, finally
+    # built (the peace report §46, ruling C item 2, October 16, 2026): a
+    # league member that has NO reason of its own to break ranks (P1's own
+    # clause, read for this court — `court_own_readiness`) is reluctant to
+    # sign a separate peace with the player: -15, easing with its war
+    # exhaustion (`min(-15 + we // 10, 0)`: -11 at 45, 0 at 150). A court
+    # that would sue on its own account pays nothing. Peace only (a truce
+    # leaves the league intact); the player's proposals only.
+    coalition_loyalty = 0
+    if (proposal_type == "peace"
+            and proposer == getattr(world, "player_nation", "France") and target):
+        from backend.game_logic.ai_diplomacy import coalition_loyalty_penalty
+        coalition_loyalty = int(coalition_loyalty_penalty(world, target, proposer))
+        score += coalition_loyalty
+
     hard_reject_posture = 0
     if proposal_type in _DEEP_TREATY_TYPES and has_hard_reject_posture(world, proposer, target):
         if _shared_enemy_exists(world, proposer, target) and not world.is_at_war(proposer, target):
@@ -8503,6 +8583,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "anti_renewal_turns_remaining": int(anti_renewal_turns_remaining),
     }
     components["court_favour_mod"] = int(court_favour_value)
+    components["coalition_loyalty"] = int(coalition_loyalty)
 
     # ── Feedback (§6f) ──
     feedback = _generate_feedback(outcome, components)
@@ -8518,6 +8599,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         # whole number, so this is exact — the counsel's forecast adds back a
         # projected relation term and rounds ONCE, as the formula does.
         **({"relation_free_score": int(round(raw_score - relation_mod))
+                                    + int(coalition_loyalty)
                                     + (hard_reject_posture
                                        if hard_reject_posture > -100 else 0)}),
     }
@@ -8529,6 +8611,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
     trackable = {
         "base_disposition", "war_score_modifier", "relation_modifier",
         "war_weariness", "war_age_penalty", "stalemate_duration",
+        "coalition_loyalty",
         "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
         "hegemony_target_mod", "bilateral_betrayal_mod",
@@ -12815,14 +12898,12 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         verdict_display = ""
         if not verdict.ok:
             available = False
-            if verdict.clause == "paradox":
-                # PC-F1: the ally named and both ways out (FA-D17's
-                # "Would break an ally's war" named neither).
-                reason = (paradox_chip(world, player, target_nation)
-                          or str(verdict.message or ""))
-                verdict_display = reason
-            else:
-                verdict_display = str(verdict.message or "")
+            verdict_display = str(verdict.message or "")
+        # PC-R1 (iv): a peace row carries the one note on the allies at war
+        # with this court — carried in, or left fighting at a price — on an
+        # OPEN row (the paradox refused it before; §46 B + C).
+        separate_peace_display = (separate_peace_note(world, player, target_nation)
+                                  if target_state == "PEACE" else "")
 
         # Cooldown check
         if target_nation in cooldowns and cooldowns[target_nation] > 0:
@@ -12844,7 +12925,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if arm_cd > 0 and target_state not in ("PEACE", "OPEN_BORDERS", "NON_AGGRESSION",
                                                  "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"):
             available = False
-            reason = f"Armistice: {arm_cd} turns remaining"
+            # PC-F73: a fresh peace's floor is worded as a peace, a truce's as a truce
+            _cd = pair_cooldown_words(world, player, target_nation)
+            reason = (f"Fresh peace: {arm_cd} turns remaining" if _cd["kind"] == "fresh_peace"
+                      else f"Armistice: {arm_cd} turns remaining")
 
         # Relation requirement
         req = STATE_RELATION_REQUIREMENTS.get(target_state)
@@ -12951,6 +13035,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if verdict_display:
             row["disabled_reason_display"] = verdict_display
             row["closed_clause"] = verdict.clause
+        if separate_peace_display:
+            row["separate_peace_display"] = separate_peace_display
         return row
 
     # ── MISSION HELPERS ──
@@ -13137,15 +13223,9 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
 
     elif state == "ARMISTICE":
         _peace_row = _proposal_action("propose_peace", "Propose Peace", "PEACE")
-        # FA-D17 (slice 17, Phase 2): the same predicate the send gate refuses
-        # on — a bilateral peace that breaks an ally's war is a HARD_STOP at
-        # the confirm; the row said so only after the draft was written.
-        if _peace_row.get("available"):
-            _chip = paradox_chip(world, player, target_nation)
-            if _chip:
-                _peace_row["available"] = False
-                _peace_row["disabled_reason"] = _chip
-                _peace_row["disabled_reason_display"] = _peace_row["disabled_reason"]
+        # FA-D17 shut this row under the alliance paradox; PC-R1 (§46 B + C)
+        # retired the stop — the row stays open and carries the one note
+        # (`separate_peace_display`) `_proposal_action` stamps.
         actions.append(_peace_row)
         actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
         actions.append(_mission_action("mission_court", "Court Nation", "COURT_NATION"))
@@ -13159,7 +13239,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         arm_cd = armistice_cooldowns.get(diplo_key, 0)
         if arm_cd > 0:
             war_available = False
-            war_reason = f"Armistice: {arm_cd} turns remaining"
+            # PC-F73: the store holds a settlement's fresh-peace floor too
+            _cd = pair_cooldown_words(world, player, target_nation)
+            war_reason = (f"Fresh peace: {arm_cd} turns remaining" if _cd["kind"] == "fresh_peace"
+                          else f"Armistice: {arm_cd} turns remaining")
         elif dp < 1:
             war_available = False
             war_reason = "Insufficient DP"
@@ -13627,13 +13710,39 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     response["assessment"] = get_assessment_text(world, target_nation)
     actions = get_available_diplomatic_actions(world, target_nation)
     response["actions"] = actions
+    # PC-R8 (ruling K): at war or in a truce the ONE reading — the wizard
+    # open writes the court's line memory (`remember`); the structured set
+    # rides the response for the client (`counsel`, `counsel_roads_display`).
+    from backend.game_logic.diplomatic_templates import generate_suggested_terms
+    _suggested_terms_memo: Dict[str, Dict] = {}
+
+    def _suggested_terms_for(ptype: str) -> Dict:
+        if ptype not in _suggested_terms_memo:
+            _suggested_terms_memo[ptype] = generate_suggested_terms(
+                target_nation, ptype, world)
+        return _suggested_terms_memo[ptype]
+
+    _counsel = None
+    if state in ("WAR", "ARMISTICE") and not is_vassal and dp > 0:
+        from backend.game_logic.counsel import counsel_for_wizard
+        # K item 6: the ONE draft per proposal type this open prices — the
+        # same memo the snapshots below score and the confirm pre-fills.
+        _priced = {"peace": _suggested_terms_for("peace")}
+        if state == "WAR":
+            _priced["armistice"] = _suggested_terms_for(armistice_variant_for(world, player, target_nation))
+        _counsel = counsel_for_wizard(world, target_nation, remember=True, priced_terms=_priced)
+        response["counsel"] = {k: v for k, v in _counsel.items() if k != "roads"}
+        response["counsel_roads"] = list(_counsel.get("roads") or [])
+        response["counsel_roads_display"] = list(_counsel.get("roads_display") or [])
     _rec_text, _rec_mission = _recommendation_and_mission(
-        world, target_nation, actions, dp, is_vassal, vassals)
+        world, target_nation, actions, dp, is_vassal, vassals, counsel=_counsel)
     response["recommendation"] = _rec_text
     # DDB-7 (Pre-Deploy S13b): the counsel's recommended action and a
     # running mission's Cancel stand FIRST in the court's list (conquest
     # #22: Improve Relations was below the fold under five rows).
-    actions = counsel_first(actions, _rec_text, _rec_mission)
+    actions = counsel_first(actions, _rec_text, _rec_mission,
+                            rec_action=str((_counsel or {}).get("best_action") or ""),
+                            rec_coverage=list((_counsel or {}).get("best_coverage") or []))
     response["actions"] = actions
     # IQ-4: the machine key the counsel names (display-only, GR6) — the
     # playtest driver's advisor arm reads it; absent when nothing is named.
@@ -13648,15 +13757,6 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     # block and the BPH-B snapshot loop below: the terms pipeline jitters
     # gold ±20% per call, and the preview row must not disagree with the
     # snapshot the same response carries.
-    from backend.game_logic.diplomatic_templates import generate_suggested_terms
-    _suggested_terms_memo: Dict[str, Dict] = {}
-
-    def _suggested_terms_for(ptype: str) -> Dict:
-        if ptype not in _suggested_terms_memo:
-            _suggested_terms_memo[ptype] = generate_suggested_terms(
-                target_nation, ptype, world)
-        return _suggested_terms_memo[ptype]
-
     acceptance_preview = None
     best_proposal_action = None
     best_score = -999
@@ -14051,12 +14151,14 @@ _MISSION_ACTION_KEYS = {
 }
 
 
-def counsel_first(actions: List[Dict], rec_text: str, rec_mission: str) -> List[Dict]:
+def counsel_first(actions: List[Dict], rec_text: str, rec_mission: str,
+                  rec_action: str = "", rec_coverage: Optional[List[str]] = None) -> List[Dict]:
     """DDB-7: a running mission's Cancel, then the action the counsel
     recommends (its mission, or the proposal it names), lead the court's
     list — each marked `counsel_first` so the client keeps them on top;
-    every other row keeps its order. A pure reorder (display only, GR6)."""
-    key = _MISSION_ACTION_KEYS.get(str(rec_mission or ""), "")
+    every other row keeps its order. A pure reorder (display only, GR6).
+    PC-R8: `rec_action` is the machine key the counsel's best road names."""
+    key = str(rec_action or "") or _MISSION_ACTION_KEYS.get(str(rec_mission or ""), "")
     if not key:
         named = str(rec_text or "").split("recommends: ", 1)
         if len(named) == 2:
@@ -14071,11 +14173,15 @@ def counsel_first(actions: List[Dict], rec_text: str, rec_mission: str) -> List[
         return actions
     for row in lead:
         row["counsel_first"] = True
+        if row.get("action") in ("open_settlement", "propose_white_peace") and rec_coverage:
+            # K item 6: the table opens with the coverage the counsel priced
+            row["counsel_coverage"] = list(rec_coverage)
     return lead + [r for r in actions if r not in lead]
 
 
 def _recommendation_and_mission(world, target_nation: str, actions: List[Dict],
-                                dp: int, is_vassal: bool, vassals: dict) -> tuple:
+                                dp: int, is_vassal: bool, vassals: dict,
+                                counsel: Optional[Dict] = None) -> tuple:
     """Talleyrand's recommendation and the mission it names ("" for none).
 
     IQ-6 V4 "It speaks its mind": when the court is a beaten great power
@@ -14086,7 +14192,7 @@ def _recommendation_and_mission(world, target_nation: str, actions: List[Dict],
     the counsel is the pre-IQ-6 one byte-for-byte.
     """
     text, mission = _base_recommendation_and_mission(
-        world, target_nation, actions, dp, is_vassal, vassals)
+        world, target_nation, actions, dp, is_vassal, vassals, counsel=counsel)
     from backend.game_logic.emergent_designs import volte_face_counsel_line
     line = volte_face_counsel_line(
         world, target_nation, getattr(world, "player_nation", "France"))
@@ -14096,8 +14202,15 @@ def _recommendation_and_mission(world, target_nation: str, actions: List[Dict],
 
 
 def _base_recommendation_and_mission(world, target_nation: str, actions: List[Dict],
-                                     dp: int, is_vassal: bool, vassals: dict) -> tuple:
-    """The counsel's own recommendation and mission (pre-IQ-6 body)."""
+                                     dp: int, is_vassal: bool, vassals: dict,
+                                     counsel: Optional[Dict] = None) -> tuple:
+    """The counsel's own recommendation and mission (pre-IQ-6 body).
+
+    PC-R8 — ruling K (the peace report §46, October 16, 2026): at WAR or in
+    a truce the counsel is a READING, not a lookup — `counsel.counsel_for_
+    wizard` ranks every road the page opens by its own dry-run and composes
+    the line from the authored pools (GR6). The peacetime arms below (the
+    IQ-4 mission counsel, the hard-reject posture) are unchanged."""
     if dp <= 0:
         return ("Our diplomatic reserves are spent. We must wait.", "")
 
@@ -14107,6 +14220,16 @@ def _base_recommendation_and_mission(world, target_nation: str, actions: List[Di
         if loyalty < 25:
             return ("Talleyrand recommends: Invest to strengthen loyalty", "")
         return ("No urgent action needed", "")
+
+    _player = getattr(world, "player_nation", "France")
+    if world.get_diplomatic_state(_player, target_nation) in ("WAR", "ARMISTICE"):
+        if counsel is None:
+            from backend.game_logic.counsel import counsel_for_wizard
+            counsel = counsel_for_wizard(world, target_nation)
+        _road_mission = {"mission_improve_relations": "IMPROVE_RELATIONS",
+                         "mission_court": "COURT_NATION"}
+        return (str(counsel.get("line") or ""),
+                _road_mission.get(str(counsel.get("best_action") or ""), ""))
 
     best_proposal = None
     best_score = -999

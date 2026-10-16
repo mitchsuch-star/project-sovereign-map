@@ -252,6 +252,73 @@ def _build_pair_ratification_plan(
     return plan
 
 
+# PC-R1 (ii) — rulings B + C (the peace report §46, October 16, 2026): the
+# leader's peace is COMMON TO ITS SIDE. The table's plan rule above (every
+# co-belligerent on the leader's side at WAR or ARMISTICE with a covered
+# court settles with it) is lifted into ONE helper read by the bilateral
+# ratifier too, so a peace France signs alone with Austria from the wizard
+# ends Bavaria's war in the same instrument — as the Austria-only table
+# already did (Part IV M4: "3 pairs resolved") and as Pressburg's Art. 6
+# stipulated for Bavaria, Baden and Württemberg. The helper is a pure read.
+build_pair_ratification_plan = _build_pair_ratification_plan
+
+
+def carry_in_instance(world: Any, leader: str, court: str) -> Optional[Tuple[str, Dict[str, Any], str]]:
+    """The active war instance on which `leader` LEADS its side and `court`
+    stands on the other side at war (or in a truce) with that side —
+    (war_id, instance, leader_side) — or None: no such instance, or the
+    leader is not its side's leader (a court carried into an ally's war
+    makes a separate peace of its own, priced, never a common one)."""
+    if not leader or not court:
+        return None
+    from backend.game_logic.settlement_helpers import (
+        _iter_active_war_instances, _make_pair_key,
+    )
+    for war_id, instance in _iter_active_war_instances(world):
+        sides = instance.get("side_by_nation") or {}
+        side = sides.get(leader)
+        if side not in ("attackers", "defenders"):
+            continue
+        other = "defenders" if side == "attackers" else "attackers"
+        if sides.get(court) != other:
+            continue
+        leader_key = "attacker_leader" if side == "attackers" else "defender_leader"
+        if str(instance.get(leader_key) or "") != leader:
+            continue
+        pair = _make_pair_key(leader, court)
+        meta = (instance.get("diplo_key_meta") or {}).get(pair) or {}
+        if meta.get("pair_status") not in ("war", "armistice"):
+            continue
+        return str(war_id), instance, side
+    return None
+
+
+def carried_in_allies(world: Any, leader: str, court: str) -> List[str]:
+    """The co-belligerents on `leader`'s side whose pair with `court` ENDS
+    in the leader's bilateral peace — the instance's members at WAR or
+    ARMISTICE with the court (the table's plan rule), minus the leader and
+    minus its own clients (a client follows the lord by `follow_the_lord`,
+    the SR-1b road, and is not named twice). [] when the leader does not
+    lead the side. Sorted, for stable words."""
+    found = carry_in_instance(world, leader, court)
+    if found is None:
+        return []
+    _war_id, instance, side = found
+    plan = _build_pair_ratification_plan(
+        world, instance, proposer_side=side, covered=[court], settlement_terms=[],
+    )
+    overlord = getattr(world, "_top_overlord", None)
+    out: List[str] = []
+    for entry in plan:
+        member = str(entry.get("proposer_member") or "")
+        if not member or member == leader:
+            continue
+        if callable(overlord) and overlord(member) == leader:
+            continue
+        out.append(member)
+    return sorted(set(out))
+
+
 def _capture_pair_pre_cleanup_war_data(
     world: Any,
     proposer_member: str,

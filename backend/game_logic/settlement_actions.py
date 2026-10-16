@@ -1212,6 +1212,17 @@ def _handle_settlement_demand_action(
         str(n) for n in (war_instance.get(proposer_side) or []) if n
     ]
     clause: Dict[str, Any]
+    # PC-F53 (PC-R1 iv, §46 C): a DEMAND may name an allied beneficiary —
+    # `to` — so "Tyrol to Bavaria" is authorable from the rows (Pressburg
+    # Art. 6; the validator V2 and the ratifier already accept and execute
+    # an Austria → Bavaria cession). The payee must stand on OUR side of
+    # this table; absent, France takes as before.
+    beneficiary = str(action_params.get("to") or "").strip() or proposer_leader
+    if group == "demand" and beneficiary not in proposer_participants:
+        return _fail(
+            "invalid_beneficiary",
+            f"{beneficiary} does not stand on our side of this table, Sire.",
+        )
     if clause_type == "territory_cede":
         region = str(action_params.get("region") or "").strip()
         if group == "demand":
@@ -1237,7 +1248,7 @@ def _handle_settlement_demand_action(
                     if not region
                     else f"{court} does not hold {region}, Sire.",
                 )
-            payer, payee = court, proposer_leader
+            payer, payee = court, beneficiary
         else:
             if not region:
                 region = _guided_region_offer_candidate(
@@ -1312,7 +1323,7 @@ def _handle_settlement_demand_action(
                     "The sum must be at least 1 gold, Sire.",
                 )
         payer, payee = (
-            (court, proposer_leader) if group == "demand"
+            (court, beneficiary) if group == "demand"
             else (proposer_leader, court)
         )
         clause = {
@@ -1343,7 +1354,7 @@ def _handle_settlement_demand_action(
                 f"{GOLD_PER_TURN_MAX_TURNS} turns, Sire.",
             )
         payer, payee = (
-            (court, proposer_leader) if group == "demand"
+            (court, beneficiary) if group == "demand"
             else (proposer_leader, court)
         )
         clause = {

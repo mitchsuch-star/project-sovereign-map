@@ -2646,9 +2646,13 @@ class TestGate4SmokeParadoxSurfacesAtMount:
         dialogue = _enrich_proposal_summary(
             {"options": []}, "Britain", "peace", world
         )
-        block = str(dialogue.get("commitment_block_warning") or "")
-        assert "Prussia" in block
-        assert "settlement table" in block
+        # PC-R1 (S13e part 1): the block is retired; the mount's NOTE names
+        # the ally the peace leaves fighting and its price (France leads no
+        # instance here, so Prussia is left fighting, priced).
+        assert not dialogue.get("commitment_block_warning")
+        note = str(dialogue.get("separate_peace_note") or "")
+        assert note.startswith("Mark one thing, Sire: Prussia stays at war with Britain")
+        assert "relation with her" in note
         warning_texts = " ".join(
             str(w.get("text") or "") for w in dialogue.get("warnings") or []
         )

@@ -434,9 +434,13 @@ def _treaty_verdict(world, proposal: Dict[str, Any], *, at_send: bool) -> Verdic
         if why:
             return refuse("vassal_gate", why, named=other)
 
-    # 9. The send road's own gate (SFR-D34): a player's outgoing PEACE under
-    # an alliance paradox is a HARD_STOP there — read here so the chips,
-    # the counsel and the Congress's levers never offer it.
+    # 9. The send road's own gate (SFR-D34): a player's outgoing PEACE with a
+    # HARD_STOP commitment conflict is refused here, so the chips, the
+    # counsel and the Congress's levers never offer it. PC-R1 (§46 B + C,
+    # October 16, 2026): the alliance PARADOX is no longer one — a peace
+    # that leaves an ally fighting is a priced WARNING, and one the leader
+    # signs carries the ally's pair with it (`carried_in`); only a future
+    # HARD_STOP type (BPH §10.2) would refuse here.
     if at_send and proposer == player and proposal_type == "peace":
         from backend.game_logic.diplomacy import get_peace_commitment_conflicts
         conflicts = get_peace_commitment_conflicts(

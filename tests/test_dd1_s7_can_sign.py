@@ -147,10 +147,12 @@ class TestTheTreatyVerdict:
         peace = _proposal("France", "Britain", "peace")
         assert can_sign(w, peace).ok                       # the ratifier's view
         v = can_sign(w, peace, at_send=True)               # the send road's
-        assert v.clause == "paradox"
-        # PC-F1: the ally named in display words, both ways out.
-        assert "is still at war with Britain: a separate peace would break" in v.message
-        assert "propose an armistice" in v.message and "Downgrade the alliance with" in v.message
+        # PC-R1 (S13e part 1): the paradox is no longer a HARD_STOP — the
+        # send road signs, and the conflicts carry Spain's pair as CARRIED
+        # IN (France leads its side of war_1).
+        assert v.ok and v.clause == ""
+        rows = D.get_peace_commitment_conflicts(w, "France", "Britain", [])
+        assert [c["conflict_type"] for c in rows if c["affected_entity"] == "Spain"] == ["carried_in"]
 
 
 # ── (b) the settlement offer ───────────────────────────────────────────────
@@ -363,11 +365,10 @@ class TestTheOtherReaders:
         assert row["closed_clause"] == "relation_floor"
         britain = {r["action"]: r for r in D.get_available_diplomatic_actions(w, "Britain")}
         peace = britain.get("propose_peace")
-        if peace is not None:                                  # a WAR row, under the paradox
-            assert peace["available"] is False and peace["closed_clause"] == "paradox"
-            assert peace["disabled_reason"] == D.paradox_chip(w, "France", "Britain")
-            assert "is still at war with Britain — propose an armistice, or first Downgrade" in (
-                peace["disabled_reason"])
+        if peace is not None:                                  # a WAR row (PC-R1: open, with the note)
+            assert peace["available"] is True
+            assert peace["separate_peace_display"] == D.separate_peace_note(w, "France", "Britain")
+            assert "Spain's war with Britain ends in this instrument" in peace["separate_peace_display"]
 
     def test_the_congress_peace_lever_is_closed_in_words(self, w, monkeypatch):
         monkeypatch.setattr(congress, "_lever_verdict",
@@ -389,9 +390,12 @@ class TestTheOtherReaders:
         w.nation_relations[key] = 45
         hints = ADV._recommend_action("Prussia", w)["context"]["action_hints"]
         assert hints[0] == "Propose alliance with Prussia", hints
-        # At war under the paradox: the armistice, never the peace.
+        # At war (PC-R1: the paradox no longer shuts the peace): every hint
+        # names a road the table signs.
         hints = ADV._recommend_action("Britain", w)["context"]["action_hints"]
-        assert "Propose peace with Britain" not in hints, hints
+        for hint in hints:
+            if hint.startswith("Propose peace with "):
+                assert can_sign(w, _proposal("France", "Britain", "peace"), at_send=True).ok
 
     def test_sfr_b5_the_stale_return_names_the_clause(self, w):
         D.set_diplomatic_state(w, "France", "Prussia", "NON_AGGRESSION", "test")
@@ -414,7 +418,6 @@ class TestTheOtherReaders:
             _proposal("France", "Prussia", "vassalage"),
             _proposal("Prussia", "France", "armistice"),
             _proposal("Prussia", "France", "defensive_alliance"),
-            _proposal("France", "Britain", "peace"),
         ]
         for letter in letters:
             v = can_sign(w, letter, at_send=True)

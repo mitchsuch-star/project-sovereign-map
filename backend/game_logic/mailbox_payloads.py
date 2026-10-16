@@ -366,10 +366,18 @@ def build_pending_envoy_popup_from_terms(
     acceptance: Optional[Dict] = None,
     acceptance_score: Optional[int] = None,
     decision_reason: str = "",
+    label_type: str = "",
 ) -> Dict:
-    """Build the popup payload shape incoming_proposal_popup.gd expects."""
+    """Build the popup payload shape incoming_proposal_popup.gd expects.
+
+    PC-F76 (S13e part 1, October 16, 2026): `label_type` is the envelope's
+    stable P-rule label (`proposal["proposal_type"]`, e.g. `harsh_peace`)
+    — the terms' `type` is rewritten for the acceptance formula
+    (`harsh_peace` → `peace`), so a dictated peace reached the mailbox as a
+    "Peace Treaty"; the display name reads the label when the map knows it."""
     from backend.display_names import (
         PERSONALITY_DISPLAY,
+        PROPOSAL_TYPE_DISPLAY,
         diplomatic_decision_reason_display,
         proposal_display_name,
     )
@@ -435,7 +443,11 @@ def build_pending_envoy_popup_from_terms(
         "diplomat_name": diplomat_name,
         "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
         "proposal_type": terms.get("type", "unknown"),
-        "proposal_type_display": proposal_display_name(terms.get("type", "unknown")),
+        # PC-F76: only the dictated peace's label is read from the envelope —
+        # every other letter is titled by its lead clause (IGR-F's rule).
+        "proposal_type_display": proposal_display_name(
+            label_type if (label_type == "harsh_peace" and label_type in PROPOSAL_TYPE_DISPLAY)
+            else terms.get("type", "unknown")),
         "clauses": build_proposal_popup_clauses(
             terms, include_base=not is_counter_offer
         ),

@@ -307,16 +307,17 @@ class TestAlgorithm:
                 near_acceptance_floor=35,
             )
         # peace_only_score=10 → gap to the 35 floor = 25 → gap_candidate
-        # = 2500. Treasury share per concede court = (5000-500)//2 = 2250.
-        # Hard cap = 1500. Positive candidates = [2250, 1500, 2500].
-        # min = 1500 for each court's slice.
+        # = 25 × CONCESSION_GOLD_DIVISOR (25) = 625 (PC-F25, S13e part 1: the
+        # scorer's own rate; it was 100 a point). Treasury share per concede
+        # court = (5000-500)//2 = 2250. Hard cap = 1,000 (what the scorer can
+        # credit). Positive candidates = [2250, 1000, 625]. min = 625.
         if result["concession_baseline_visible"]:
             gold_terms = [
                 t for t in result["concession_baseline"]["terms"]
                 if t.get("type") == "gold_indemnity"
             ]
             if gold_terms:
-                assert gold_terms[0]["amount"] == 1500
+                assert gold_terms[0]["amount"] == 625
 
     def test_concession_baseline_hidden_when_only_peace_clause_can_be_generated(self):
         """When the proposer has no positive payable gold and no

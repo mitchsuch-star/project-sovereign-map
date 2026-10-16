@@ -186,14 +186,27 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
             preview = {}
         body = preview.get("settlement_preview") if preview.get("success") else None
         if isinstance(body, dict):
+            from backend.game_logic.ai_diplomacy import court_own_readiness
+            from backend.game_logic.diplomacy import live_war_score_for
             for court in body.get("per_court_acceptance") or []:
                 total = court.get("total")
                 threshold = int(court.get("threshold", 50) or 50)
+                nation = str(court.get("nation", ""))
+                # PC-F37 / PC-F88 (S13e part 1): each court's OWN pair score
+                # from France's chair, and what the court itself would do
+                # (its threshold, its break-ranks reason, the letter it sends).
+                own = court_own_readiness(world, nation, france) if nation else {}
                 out["courts"].append({
-                    "nation": str(court.get("nation", "")),
+                    "nation": nation,
                     "total": None if total is None else int(total),
                     "threshold": threshold,
                     "ready": total is not None and int(total) >= threshold,
+                    "pair_score": int(live_war_score_for(world, france, nation)) if nation else 0,
+                    "own_score": int(own.get("score", 0)),
+                    "own_threshold": int(own.get("threshold", 0)),
+                    "sues": bool(own.get("sues")),
+                    "break_ranks": str(own.get("break_ranks") or ""),
+                    "letter": str(own.get("letter") or ""),
                 })
             out["carries"] = bool((body.get("overall_acceptance") or {}).get("carries"))
     line = f"The peace table reads the war at {int(pressure)} — {out['tier_display']}"
@@ -206,6 +219,23 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
         line += (f". A settlement carries only when every court reaches "
                  f"{out['courts'][0]['threshold']} — with no terms: {tally}")
     out["lines"].append(line + ".")
+    if len(out["courts"]) > 1:
+        # PC-F37: the averaging, shown — each court's own score and the mean
+        # the table reads.
+        pairs = " · ".join(f"{formed_display_name(world, c['nation'])} {c['pair_score']:+d}"
+                           for c in out["courts"])
+        out["lines"].append(f"Court by court: {pairs}; the table reads their mean ({int(pressure)}).")
+    for c in out["courts"]:
+        # PC-F88: what the beaten court itself would do.
+        if c["sues"]:
+            letter = {"peace": "her peace letter comes", "truce": "her letter asks a truce"}.get(
+                c["letter"], "her letter comes")
+            why = {"score": "beaten", "exhaustion": "spent", "long_war": "worn down",
+                   "pressburg": "satisfied"}.get(c["break_ranks"], "")
+            out["lines"].append(
+                f"{formed_display_name(world, c['nation'])}'s own court would sue at "
+                f"{c['own_threshold']} (she reads {c['own_score']}"
+                f"{', ' + why if why else ''}): {letter}.")
     if int(field) != int(pressure):
         out["lag_note"] = (
             f"This turn's battles and captures count from next turn: the table "

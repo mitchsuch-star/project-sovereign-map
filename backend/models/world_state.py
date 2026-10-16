@@ -1302,6 +1302,7 @@ class RatifyTreatyContext:
     applied_treaty_clauses: Any = field(init=False)
     _forced_alliance_clauses: Any = field(init=False)
     _clients_followed: Any = field(init=False)
+    _carried_in: Any = field(init=False)
 
 
 
@@ -2146,6 +2147,13 @@ class WorldState:
         # talleyrand_defiance_cooldown now managed by _cooldown_manager (R6)
         self.pending_talleyrand_sabotage: Optional[Dict] = None  # Active sabotage record
         self.talleyrand_override_history: List[Dict] = []  # Last 5 overrides (proposal_type, result)
+        # PC-R8 (ruling K, S13e part 1, October 16, 2026): the running count
+        # of overrides judged right / wrong (the history keeps five), and the
+        # per-court memory of the counsel's last line ({court: {situation,
+        # index, line, turn}}) — a repeat is forbidden while the situation
+        # is unchanged.
+        self.talleyrand_override_tally: Dict[str, int] = {"good": 0, "bad": 0}
+        self.talleyrand_counsel_memory: Dict[str, Dict] = {}
         # PL-23: last_redemption_turn removed (trust system deleted)
 
         # ============================================================
@@ -8790,6 +8798,9 @@ class WorldState:
             "talleyrand_defiance_cooldown": int(self.talleyrand_defiance_cooldown),
             "pending_talleyrand_sabotage": self.pending_talleyrand_sabotage.copy() if self.pending_talleyrand_sabotage else None,
             "talleyrand_override_history": [h.copy() for h in self.talleyrand_override_history],
+            "talleyrand_override_tally": {k: int(v) for k, v in (self.talleyrand_override_tally or {}).items()},
+            "talleyrand_counsel_memory": {k: dict(v) for k, v in (self.talleyrand_counsel_memory or {}).items()
+                                          if isinstance(v, dict)},
             # PL-23: last_redemption_turn removed
 
             # ═══════ COALITION SYSTEM (Session 7) ═══════
@@ -9610,6 +9621,12 @@ class WorldState:
         if world.pending_talleyrand_sabotage and isinstance(world.pending_talleyrand_sabotage, dict):
             world.pending_talleyrand_sabotage = world.pending_talleyrand_sabotage.copy()
         world.talleyrand_override_history = [h.copy() for h in data.get("talleyrand_override_history", [])]
+        _tally = data.get("talleyrand_override_tally") or {}
+        world.talleyrand_override_tally = {"good": int(_tally.get("good", 0) or 0),
+                                           "bad": int(_tally.get("bad", 0) or 0)}
+        world.talleyrand_counsel_memory = {
+            str(k): dict(v) for k, v in (data.get("talleyrand_counsel_memory") or {}).items()
+            if isinstance(v, dict)}
         # PL-23: last_redemption_turn removed (silently ignored from old saves)
 
         # ═══════ COALITION SYSTEM (Session 7) ═══════
@@ -13198,6 +13215,27 @@ class WorldState:
                 detect_bargain_breach_on_peace(self, ctx.proposer, ctx.target_nation)
             )
 
+        # PC-R1 (ii) — rulings B + C (the peace report §46, October 16, 2026):
+        # the leader's PEACE is common to its side. Read BEFORE this pair is
+        # cleaned up (the carry-in reads the instance while the pair still
+        # stands): every co-belligerent the player LEADS on the instance at
+        # WAR or ARMISTICE with the court — `settlement_ratify.carried_in_
+        # allies`, the table's own plan rule — has its pair resolved below by
+        # the same road the table walks (the setter, then `cleanup_war_end`),
+        # so a peace France signs alone with Austria ends Bavaria's war in
+        # the same instrument (Pressburg Art. 6). A truce carries nothing
+        # (its own WARNING says the ally's war runs on); a court France was
+        # carried into an ally's war beside is not its side's leader and
+        # makes its separate peace alone, priced. Clients are not here —
+        # they follow the lord (SR-1b, below).
+        ctx._carried_in: List[Dict] = []
+        _carry: List[str] = []
+        if (ctx.is_player_treaty and ctx.target_state == "PEACE"
+                and ctx.current_state in ("WAR", "ARMISTICE")):
+            from backend.game_logic.settlement_ratify import carried_in_allies
+            _carry = carried_in_allies(
+                self, self.player_nation, ctx.player_counterpart or ctx.target_nation)
+
         if ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
             cleanup_war_end(
@@ -13205,6 +13243,24 @@ class WorldState:
                 ctx.diplo_key,
                 conclude_objectives=(ctx.target_state != "ARMISTICE"),
             )
+
+        if _carry:
+            from backend.game_logic.diplomacy import cleanup_war_end as _cwe
+            from backend.game_logic.diplomacy import set_diplomatic_state as _set_ds
+            _court = ctx.player_counterpart or ctx.target_nation
+            for _ally in _carry:
+                _key = self._make_diplo_key(_ally, _court)
+                _before = self.diplomatic_states.get(_key, "PEACE")
+                if _before not in ("WAR", "ARMISTICE"):
+                    continue
+                _set_ds(self, _ally, _court, "PEACE", "treaty_ratification")
+                _cwe(self, _key, conclude_objectives=True)
+                ctx._carried_in.append({
+                    "pair": _key, "ally": _ally, "court": _court,
+                    "from": _before, "to": "PEACE",
+                })
+            if ctx._carried_in and hasattr(self, "invalidate_active_nations_cache"):
+                self.invalidate_active_nations_cache()
 
         # SR-1b: the client's war is the lord's war — every client pair
         # that follows this treaty (the lord's satellites against the court,
@@ -13531,6 +13587,14 @@ class WorldState:
                 # lie; naming the loss is what lets the player understand
                 # why the nation they drafted is not on the map.
                 applied_penalties = list(applied_penalties)
+                # PC-R1 (ii): the allies whose wars this instrument ended —
+                # named on the aftermath in the one wording (§46 B + C).
+                for _row in (getattr(ctx, "_carried_in", None) or []):
+                    from backend.game_logic.formations import formed_display_name as _fdn_c
+                    applied_penalties.append({"display": (
+                        f"{_fdn_c(self, _row['ally'])}'s war with "
+                        f"{_fdn_c(self, _row['court'])} ends in this instrument; "
+                        f"she takes nothing by it.")})
                 # SR-1b: the clients that followed the lord out of the war
                 # — named on the aftermath so the table says who fights on
                 # (an ally, by its own fallout line) and who does not.

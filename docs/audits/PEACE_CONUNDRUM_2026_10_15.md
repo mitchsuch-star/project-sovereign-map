@@ -1643,6 +1643,12 @@ after it (`:14077-14097`). The counsel is set in stone because it is a lookup, n
    text from deterministic numbers; `SOVEREIGN_SEED=historical` reproduces it byte for byte.
 5. **One builder, every surface.** The wizard's recommendation, the feasibility card's verdict and
    the table's counsel ("Press Austria alone", F35) read one ranked set, so they cannot disagree.
+6. **The road he names opens filled with the terms he priced** (the user's question, October 16,
+   2026: "it would fill peace out based on his rec right"). The wizard's proposal is pre-filled with
+   the suggested-terms memo the snapshot scored (`_suggested_terms_for` in `get_diplomatic_preview`,
+   `generate_suggested_terms`'s pipeline); the table's Austria-alone draft is applied as DDB-1 applies
+   Talleyrand's draft. A different bargain is a different number, so the figure he quoted is the
+   figure the send is judged on — the F10 / F25 class closed at its root.
 
 **Done when** (`tests/test_pc_rulings.py::TestPCR8`): (a) on the two turn-6 boards the recommended
 road's button is enabled and its dry-run carries, or the line says none carries and names the flip
@@ -1650,7 +1656,9 @@ term; (b) where the paradox is priced the line names the price and never "propos
 the way out when the truce itself is refused (F67); (c) variety — across the boot's courts and 20
 driven turns the same situation never yields the same line twice in a row, and every line carries at
 least one figure from the dry-run; (d) GR6 — the line is a pure function of the dry-run dict (a
-property test over shuffled inputs); (e) the Part IV M3 and M5 frames re-shot read the new counsel.
+property test over shuffled inputs); (e) the Part IV M3 and M5 frames re-shot read the new counsel;
+(f) choosing the recommended road opens it with the terms the dry-run priced, and the send is judged
+on those terms (the quoted figure and the acceptance at send agree on the two turn-6 boards).
 
 ### S13e, re-sized: four parts, one session each, in this order
 

@@ -225,7 +225,10 @@ class TestTheCounselNamesItsPrice:
                 {"nation": "Britain", "total": 24, "threshold": 50}]
         sentence = legitimacy_sentence(w, rows, ["Britain", "Austria"], 50)
         assert "Press Austria alone: the separate peace." in sentence
-        assert sentence.endswith("Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 2.")
+        # PC-R1 (S13e part 1): the price, then the one wording of what the
+        # peace does to our allies (Bavaria carried in).
+        assert "Press Austria alone: the separate peace. It costs 3 diplomatic points; you have 2." in sentence
+        assert sentence.endswith("Bavaria's war with Austria ends in this instrument; she takes nothing by it.")
 
     def test_the_request_terms_counsel_names_the_players_points(self, monkeypatch):
         w = _boot()

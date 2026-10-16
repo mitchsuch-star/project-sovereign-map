@@ -542,7 +542,9 @@ class TestActionFilters:
         actions = get_available_diplomatic_actions(world, "Prussia")
         war = [a for a in actions if a["action"] == "declare_war"][0]
         assert war["available"] is False
-        assert "Armistice" in war["disabled_reason"]
+        # PC-F73 (S13e part 1): a cooldown on a PEACE pair is a fresh peace's
+        # floor, worded as one (the store held it under the truce's name).
+        assert war["disabled_reason"] == "Fresh peace: 3 turns remaining"
 
     def test_insufficient_gold_grays_invest(self):
         world = _make_world()
@@ -679,7 +681,8 @@ class TestValidationHardening:
             {"target_nation": "Prussia"}, world)
         assert result["success"] is False
         assert "3 more turns" in result["message"]
-        assert "armistice" in result["message"].lower()
+        # PC-F73: the pair is at PEACE — the floor is a fresh peace's
+        assert "peace with prussia is fresh" in result["message"].lower()
 
 
 # ═══════════════════════════════════════════════════════════════════════════

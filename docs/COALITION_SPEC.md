@@ -431,6 +431,15 @@ Individual coalition members can be peaced out through standard DIPLOMACY_SPEC b
 3. **If accepted:** Nation leaves coalition. Relation with remaining coalition members: -15 ("betrayal").
 4. **Coalition persistence check:** If < 2 members remain, coalition dissolves (§7).
 
+#### §6a.1 The one verdict (rulings B + C of the peace report, October 16, 2026 — `PEACE_CONUNDRUM_2026_10_15.md` §46; built S13e part 1, `SYSTEMS_REFERENCE.md` §122.1–§122.3)
+
+This section OWNS France's separate peace with a coalition member. One verdict on every road (the send, the per-court chip, the table's counsel, the Congress lever, the incoming letter): the separate peace is **allowed, priced, and the leader's peace is common to its side**.
+
+- **Never a stop.** An ally still at war with the court is never a reason to refuse the peace. `BILATERAL_PEACE_HARDENING_SPEC.md` §10.1's `commitment_paradox` HARD_STOP is retired for peace-making (it stays for the alliance it was written for); `diplomacy.get_peace_commitment_conflicts` carries the ally as a WARNING or an INFO row, never a HARD_STOP.
+- **Priced.** A peace that leaves an ally fighting is charged by `apply_separate_peace_penalties` (§9.3 of the BPH spec: −5 / −10 / −15 relation, doubled below harshness 0.2), and the words say the price before the click: "Bavaria stays at war with Austria after this separate peace — she fights on alone; it costs -20 relation with her."
+- **Common to the side.** Where France LEADS her side of the war instance, every co-belligerent on it at war (or in a truce) with the court has its pair ended in the same instrument — the table's own plan rule, `settlement_ratify.carried_in_allies`, read by the bilateral ratifier too (Pressburg's Art. 6: Bavaria, Baden and Württemberg beneficiaries of Austria's peace with France). The words: "Bavaria's war with Austria ends in this instrument; she takes nothing by it" — or "she is named for Tyrol" when the instrument cedes her a province (the ally's bill, PC-R1 (v), S13e part 2). A court France was carried into an ally's war beside does not lead the side and makes her separate peace alone, priced.
+- **The consent read is the court's own.** Whether a member will LEAVE the league for France's peace is judged by its own readiness — P1's break-ranks clause and its own peace threshold (`ai_diplomacy.court_own_readiness`) — never by the side mean. The loyalty penalty above is built from it (`coalition_loyalty_penalty`: `min(-15 + war_exhaustion // 10, 0)` while the member has no reason of its own to break ranks; 0 once it would sue on its own account) and read by the bilateral acceptance formula as the `coalition_loyalty` component on France's PEACE proposals. The §6c halving is not built.
+
 ### §6b. Decisive Victory Impact
 
 When France wins a **decisive battle** (casualty ratio > 2:1, total casualties > 10000) against a coalition member:

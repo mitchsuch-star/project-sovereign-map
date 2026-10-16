@@ -1072,6 +1072,11 @@ class TestAcceptanceWiring:
         from backend.game_logic.diplomacy import build_war_context_snapshot
         key = world._make_diplo_key("France", "Austria")
         world.nation_relations[key] = 0
+        # PC-R1 (iii): COALITION_SPEC §6a's loyalty term (-15 at 0
+        # exhaustion) would outrank the agenda term on a fresh league
+        # member; a spent court (WE 150) pays none, and the agenda stays
+        # the largest obstacle this pin is about.
+        world.war_exhaustion["Austria"] = 150
         terms = {"type": "peace", "sweeteners": [], "demands": [],
                  "clauses": []}
         snapshot = build_war_context_snapshot(

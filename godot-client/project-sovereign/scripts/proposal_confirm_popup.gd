@@ -191,6 +191,17 @@ func show_dialogue(data: Dictionary):
 				bbcode = _build_peace_preview_content(data)
 			else:
 				bbcode = _build_content(data)
+	# PC-F34 (S13e part 1, October 16, 2026): ONE read of the refusal for
+	# every builder — a refused action re-mounts its dialogue with
+	# `transient_error_display` (main.gd), and twelve of the fourteen
+	# builders above dropped it, so the click read as a silent no-op. The
+	# two builders that already print it (`_build_content`, the settlement
+	# builder) are left alone; every other dtype gets the line here.
+	var _prints_its_own_refusal: bool = (dtype == "settlement_confirm") or (bbcode != "" and _is_default_builder(dtype, data))
+	if not _prints_its_own_refusal:
+		var _refusal = _safe_str(data.get("transient_error_display"))
+		if _refusal != "":
+			bbcode = "[color=#e0a040]⚠ %s[/color]\n\n" % _refusal + bbcode
 	# Backend prose (Voice Bible lines, clause strings) can embed raw
 	# multi-word nation keys — humanize once at the render chokepoint.
 	# UXR3-38 (Pre-Deploy S12): written through `text`, never `append_text`,
@@ -391,6 +402,18 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			cap = maxf(96.0, vp.get_visible_rect().size.y * 0.30)
 		tier2_scroll.custom_minimum_size.y = clampf(
 			float(court_rows.size()) * 42.0 + 10.0, 96.0, cap)
+
+func _is_default_builder(dtype: String, data: Dictionary) -> bool:
+	"""PC-F34: true when `show_dialogue`'s match fell to `_build_content`
+	(the one builder besides the settlement's that prints the refusal)."""
+	if data.has("war_context_snapshot"):
+		return false
+	return dtype not in ["mission", "feasibility", "advisory", "advisory_threat",
+		"advisory_recommendation", "war_purpose_selection", "force_declare_war_confirmation",
+		"conflict_alert", "ultimatum_confirm", "ultimatum_demand_wizard", "settlement_confirm",
+		"settlement_scope_replace_confirm", "settlement_pair_substitute_confirm",
+		"incoming_settlement_offer", "ally_settlement_petition"]
+
 
 func _build_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
@@ -1899,6 +1922,27 @@ func _build_advisory_content(data: Dictionary) -> String:
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
 		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+	# PC-F12 (S13e part 1): the counsel's recommendation, its confidence and
+	# its hints reach the screen (they rode `context` unread).
+	var context = data.get("context", {})
+	if context is Dictionary:
+		var rec = context.get("recommendation", "")
+		if rec is Dictionary:
+			rec = rec.get("label", "")
+		var confidence = str(context.get("confidence_level", ""))
+		if str(rec) != "":
+			bbcode += "\n[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + str(rec)
+			if confidence != "":
+				bbcode += " (" + confidence + " confidence)"
+			bbcode += "[/color]\n"
+		var hints = context.get("action_hints", [])
+		if hints is Array and hints.size() > 0:
+			bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]Roads: "
+			var shown: Array = []
+			for h in hints:
+				if str(h) != "":
+					shown.append(str(h))
+			bbcode += " · ".join(shown) + "[/color]\n"
 	return bbcode
 
 func _build_war_confirm_content(data: Dictionary) -> String:

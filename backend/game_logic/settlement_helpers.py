@@ -833,8 +833,24 @@ def attach_pair_to_war_instance(
     active_participants = instance.setdefault("active_participants", [])
     participant_meta = instance.setdefault("participant_meta", {})
 
-    a_side = side_by_nation.get(attacker, "attackers")
-    d_side = side_by_nation.get(defender, "defenders")
+    # PC-R1 (ii) sibling (S13e part 1): a court that LEFT this war — every
+    # pair of hers resolved, as the leader's common peace now does for a
+    # carried ally — and comes back on a reopened pair rejoins the SIDE she
+    # fought on (`participant_meta`'s row keeps it), not the aggressor's
+    # default; Austria, a defender who re-declared on France, read
+    # "attackers" beside France and the attach refused a side conflict.
+    def _former_side(nation: str) -> Optional[str]:
+        row = participant_meta.get(nation)
+        side = str((row or {}).get("side") or "") if isinstance(row, dict) else ""
+        return side if side in ("attackers", "defenders") else None
+
+    a_side = side_by_nation.get(attacker) or _former_side(attacker) or "attackers"
+    d_side = side_by_nation.get(defender) or _former_side(defender) or "defenders"
+    if a_side == d_side and attacker not in side_by_nation and defender in side_by_nation:
+        # the newcomer takes the side opposite the member she declared on
+        a_side = "defenders" if d_side == "attackers" else "attackers"
+    elif a_side == d_side and defender not in side_by_nation and attacker in side_by_nation:
+        d_side = "defenders" if a_side == "attackers" else "attackers"
     if a_side == d_side:
         return {
             "ok": False,
@@ -1141,10 +1157,35 @@ def resolve_pair_to_resolved(
                     exit_path=exit_path,
                 )
 
+            # PC-F51 (the peace report Part V, M6): a side whose LEADER left
+            # by a separate peace re-seats its leader at once, as the
+            # elimination path below already does — Britain exited war_1 at
+            # t13 and `defender_leader` stayed "Britain" for twelve turns,
+            # so the settlement producer refused the war
+            # (`opposing_leader_side_mismatch`) while Austria and Russia
+            # fought on, and the table had no leader to open to.
+            if participants_to_exit and not war_just_ended:
+                reseat_leaders_after_exit(world, instance)
+
             if hasattr(world, "invalidate_war_instance_indexes"):
                 world.invalidate_war_instance_indexes()
             return {"ok": True, "war_id": war_id}
     return {"ok": False, "war_id": None, "error": "pair_not_owned"}
+
+
+def reseat_leaders_after_exit(world: Any, instance: Dict[str, Any]) -> List[str]:
+    """PC-F51: a side whose seated leader is no longer on it re-seats its
+    leader at once (`_choose_leader_for_side`, the elimination path's own
+    pick). Returns the sides re-seated. A seam the series attribution holds
+    down (`--seam backend.game_logic.settlement_helpers:reseat_leaders_after_exit=lambda w, i: []`)."""
+    reseated: List[str] = []
+    for leader_key, side in (("attacker_leader", "attackers"),
+                             ("defender_leader", "defenders")):
+        seated = str(instance.get(leader_key) or "")
+        if seated and seated not in (instance.get(side) or []):
+            instance[leader_key] = _choose_leader_for_side(world, instance, side)
+            reseated.append(side)
+    return reseated
 
 
 def mark_pair_armistice(

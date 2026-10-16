@@ -223,21 +223,30 @@ class TestCommentaryMatchesTerms:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestHonestPeaceOption:
-    def test_execute_proposal_is_disabled_under_the_paradox(self):
-        from backend.game_logic import diplomatic_dialogue as dd
-        source = __import__("inspect").getsource(dd)
-        assert '_blocked_actions = {"execute_proposal"}' in source
-        assert '_opt["enabled"] = False' in source
+    """WIN-1 disabled the Send arm under the paradox; PC-R1 (S13e part 1,
+    October 16, 2026) retired the paradox's block — the arm stays live and
+    the mount says what the peace does to the ally (the one note)."""
+
+    def test_execute_proposal_stays_live_with_the_note(self):
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        set_diplomatic_state(world, "France", "Britain", "WAR", "test")
+        set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "test")
+        set_diplomatic_state(world, "Prussia", "Britain", "WAR", "test")
+        dialogue = _enrich_proposal_summary(
+            {"options": [{"label": "Send", "action": "execute_proposal", "terms": {}}]},
+            "Britain", "peace", world)
+        send = next(o for o in dialogue["options"] if o["action"] == "execute_proposal")
+        assert send.get("available", True) is not False and send.get("enabled", True) is not False
+        assert "Prussia stays at war with Britain after this separate peace" in dialogue["separate_peace_note"]
 
     def test_the_other_arms_stay_live(self):
-        """Disabling everything would dead-end the player: only the arm
-        that cannot succeed is gated."""
+        """No arm of the draft is gated by the retired block."""
         from backend.game_logic import diplomatic_dialogue as dd
         source = __import__("inspect").getsource(dd)
-        for action in ("modify_harsh", "modify_generous", "adjust_terms",
-                       "reconsider"):
-            assert f'"{action}"' not in source.split(
-                "_blocked_actions")[1][:400]
+        assert "_blocked_actions" not in source
 
 
 # ═══════════════════════════════════════════════════════════════════

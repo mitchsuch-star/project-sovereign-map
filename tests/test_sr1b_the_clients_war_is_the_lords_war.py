@@ -92,7 +92,9 @@ class TestTheAARReproduction:
         assert _state(w, "France", "Austria") == "PEACE"
         assert _state(w, KOI, "Austria") == "PEACE"
         assert _state(w, "Holland", "Britain") == "WAR"      # a different court
-        assert _state(w, "Bavaria", "Austria") == "WAR"      # an ally, not a client
+        # PC-R1 (S13e part 1): an ally France LEADS is carried in by the
+        # leader's peace — Bavaria's pair ends in the same instrument.
+        assert _state(w, "Bavaria", "Austria") == "PEACE"
         war, meta = _pair_meta(w, KOI, "Austria")
         assert meta["pair_status"] == "resolved"
         assert meta["resolved_turn"] == w.current_turn
@@ -105,8 +107,11 @@ class TestTheAARReproduction:
         aftermath = w.peace_ratification_log[-1]["political_aftermath"]
         assert any(a.startswith("Our clients follow us into the peace: ")
                    and "Kingdom of Italy" in a for a in aftermath), aftermath
-        assert any("Bavaria views this separate peace unfavorably" in a
+        # PC-R1: Bavaria is carried in, named on the aftermath — not aggrieved.
+        assert any("Bavaria's war with Austria ends in this instrument" in a
                    for a in aftermath), aftermath
+        assert not any("Bavaria views this separate peace unfavorably" in a
+                       for a in aftermath), aftermath
 
     def test_austria_can_no_longer_find_the_client_on_its_board(self):
         w = _boot()
@@ -308,33 +313,34 @@ class TestTheSurface:
         assert follow[0]["display"].startswith("Our clients follow us out of the war: ")
         assert "Kingdom of Italy" in follow[0]["display"]
         assert "Bavaria" not in follow[0]["display"]
+        # PC-R1 (S13e part 1): Bavaria is CARRIED IN by France's peace —
+        # no fallout line of hers, the carried-in row instead.
         ally = [f for f in payload["fallout_warnings"]
                 if f.get("warning_type") == "separate_peace_ally"]
-        assert any(f["ally"] == "Bavaria" for f in ally)
+        assert not any(f["ally"] == "Bavaria" for f in ally)
 
     def test_the_paradox_on_an_incoming_offer_says_what_it_does(self):
-        """AAR-28: the HARD_STOP stopped nothing on the accept road. It is a
-        WARNING there now, naming the ally that fights on alone."""
+        """AAR-28 made the accept road's paradox a WARNING; PC-R1 (S13e part
+        1) reads the carry-in there too — France leads its side, so Bavaria's
+        pair ends in the letter's instrument (an INFO row)."""
         w = _boot()
         payload = self._incoming(w)
-        paradox = [c for c in payload["commitment_conflicts"]
-                   if c.get("conflict_type") == "paradox" and c.get("affected_entity") == "Bavaria"]
-        assert len(paradox) == 1
-        assert paradox[0]["severity"] == "WARNING"
-        assert paradox[0]["display"] == (
-            "Bavaria stays at war with Austria after this peace — an ally, "
-            "not a client: she fights on alone and views the separate peace "
-            "unfavorably.")
+        rows = [c for c in payload["commitment_conflicts"]
+                if c.get("affected_entity") == "Bavaria"]
+        assert len(rows) == 1
+        assert rows[0]["conflict_type"] == "carried_in" and rows[0]["severity"] == "INFO"
+        assert rows[0]["display"] == (
+            "Bavaria's war with Austria ends in this instrument; she takes nothing by it.")
 
-    def test_the_players_own_outgoing_peace_keeps_its_hard_stop(self):
+    def test_the_players_own_outgoing_peace_carries_the_ally(self):
+        # PC-R1 (S13e part 1): the outgoing peace's HARD_STOP is retired —
+        # the snapshot carries Bavaria as carried in.
         w = _boot()
         snapshot = D.build_war_context_snapshot(w, "France", "Austria", "peace", terms={})
-        paradox = [c for c in snapshot["commitment_conflicts"]
-                   if c.get("conflict_type") == "paradox" and c.get("affected_entity") == "Bavaria"]
-        assert len(paradox) == 1
-        assert paradox[0]["severity"] == "HARD_STOP"
-        assert paradox[0]["display"].startswith(  # PC-F1: the ally named
-            "Bavaria is still at war with Austria: a separate peace would break her war.")
+        rows = [c for c in snapshot["commitment_conflicts"] if c.get("affected_entity") == "Bavaria"]
+        assert len(rows) == 1 and rows[0]["conflict_type"] == "carried_in"
+        assert rows[0]["severity"] == "INFO"
+        assert not any(c.get("severity") == "HARD_STOP" for c in snapshot["commitment_conflicts"])
         assert snapshot.get("clients_following", "").startswith("Our clients follow us out of the war")
 
     def test_a_truce_offer_says_the_truce(self):

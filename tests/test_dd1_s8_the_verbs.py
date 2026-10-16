@@ -400,10 +400,13 @@ class TestTheTrucesFollowers:
                                             incoming=True)
         assert any(c["conflict_type"] == "war_runs_on" for c in snap["commitment_conflicts"])
 
-    def test_a_peace_keeps_its_hard_stop(self, w):
+    def test_a_peace_carries_the_ally_a_truce_leaves_running(self, w):
+        # PC-R1 (S13e part 1): the peace's conflicts name Bavaria CARRIED IN
+        # (never a HARD_STOP); only the truce names her war running on.
         conflicts = D.get_peace_commitment_conflicts(w, "France", "Austria", [])
-        assert any(c["severity"] == "HARD_STOP" and c["conflict_type"] == "paradox"
+        assert any(c["severity"] == "INFO" and c["conflict_type"] == "carried_in"
                    for c in conflicts)
+        assert not any(c["severity"] == "HARD_STOP" for c in conflicts)
         assert not any(c["conflict_type"] == "war_runs_on" for c in conflicts)
 
     def test_the_client_is_bound_and_the_ally_runs_on(self, w):

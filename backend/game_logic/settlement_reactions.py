@@ -681,9 +681,14 @@ def _evaluate_enemy_side_reactions(
     covered_enemy_participants: Iterable[str],
     settlement_terms: List[Mapping[str, Any]],
     episode_id: str,
+    enemy_leader: str = "",
 ) -> List[Dict[str, Any]]:
     reactions: List[Dict[str, Any]] = []
-    enemy_leader = _side_leader(war_instance, accepting_side) or ""
+    # PC-F51 sibling: the leader AS IT STOOD when the table was signed —
+    # the exit now re-seats a side's leader at once, so the live instance
+    # may already name the court that fought on, and the leader who signed
+    # would read as "sold out by the war leader" by her own settlement.
+    enemy_leader = str(enemy_leader or _side_leader(war_instance, accepting_side) or "")
     player_nation = str(getattr(world, "player_nation", "France"))
 
     for participant in covered_enemy_participants:
@@ -1310,6 +1315,9 @@ def route_settlement_reactions(
         covered_enemy_participants=list(covered_enemy_participants or []),
         settlement_terms=list(settlement_terms or []),
         episode_id=episode_id,
+        enemy_leader=str(
+            (pre_cleanup_attacker_leader if accepting_side == "attackers"
+             else pre_cleanup_defender_leader) or ""),
     )
     bargain_reactions = _evaluate_bargain_outcomes(
         world,

@@ -246,7 +246,10 @@ class TestCommitmentConflicts:
         paradox = [c for c in conflicts if c["conflict_type"] == "paradox"]
         assert len(paradox) == 1
         assert paradox[0]["affected_entity"] == "Austria"
-        assert paradox[0]["severity"] == "HARD_STOP"
+        # PC-R1 (S13e part 1, §46 B): a WARNING, priced — never a stop.
+        assert paradox[0]["severity"] == "WARNING"
+        assert paradox[0]["display"].startswith("Austria stays at war with Prussia after this separate peace")
+        assert paradox[0]["detail"]["relation_change"] < 0
 
     def test_paradox_blocks_player_send_before_dp_spend(self):
         """HARD_STOP paradox conflicts block proposal send instead of only warning."""
@@ -267,13 +270,11 @@ class TestCommitmentConflicts:
             "send", {"world": world},
         )
 
-        assert result["success"] is False
-        # PC-F1: the refusal names the ally and both ways out.
-        assert "a separate peace would break" in result["message"]
-        assert "propose an armistice" in result["message"]
-        assert "Downgrade the alliance with" in result["message"]
-        assert world.proposal_in_transit is None
-        assert world.diplomatic_points == 10
+        # PC-R1 (S13e part 1): the paradox no longer stops the send — the
+        # peace departs, priced at the ratification (Austria left fighting).
+        assert result["success"] is True, result
+        assert world.proposal_in_transit is not None
+        assert world.diplomatic_points < 10
 
     def test_no_paradox_when_ally_not_at_war(self):
         """Allied with Austria, Austria NOT at war with Prussia → no paradox."""

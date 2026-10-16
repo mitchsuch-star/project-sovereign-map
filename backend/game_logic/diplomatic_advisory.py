@@ -1262,15 +1262,26 @@ def _assess_nation(nation: str, world) -> Dict:
             f"{diplomat_desc}"
             f"{summary}"
         )
-        if player_war_score > 20:
-            recommendation = "We hold the advantage. Press for favorable terms or continue fighting."
-            hints = [f"Propose peace with {nation}", "Continue military pressure"]
-        elif player_war_score < -20:
-            recommendation = "The war goes poorly. Consider armistice before it worsens."
-            hints = [f"Propose armistice with {nation}", "Reinforce the front"]
-        else:
-            recommendation = "The war is balanced. A decisive battle could tip the scales either way."
-            hints = ["Seek a decisive engagement", "Propose peace on equal terms"]
+        # PC-R8 (ruling K item 5, S13e part 1): "Talleyrand, what about
+        # Austria" reads the ONE counsel — the reading over the roads that
+        # carry, its figures said — never the three fixed strings this arm
+        # printed (the Part IV M5 frame: "We hold the advantage. Press for
+        # favorable terms or continue fighting."). A dry-run; the court's
+        # line memory is the wizard's to write.
+        from backend.game_logic.counsel import counsel_for_wizard
+        _counsel = counsel_for_wizard(world, nation, remember=False)
+        recommendation = str(_counsel.get("line") or "")
+        hints = list(_counsel.get("roads_display") or [])
+        if not recommendation:
+            if player_war_score > 20:
+                recommendation = "We hold the advantage. Press for favorable terms or continue fighting."
+                hints = [f"Propose peace with {nation}", "Continue military pressure"]
+            elif player_war_score < -20:
+                recommendation = "The war goes poorly. Consider armistice before it worsens."
+                hints = [f"Propose armistice with {nation}", "Reinforce the front"]
+            else:
+                recommendation = "The war is balanced. A decisive battle could tip the scales either way."
+                hints = ["Seek a decisive engagement", "Propose peace on equal terms"]
     else:
         situation = (
             f"{confidence_preamble}"
@@ -1653,20 +1664,31 @@ def _recommend_action(target_nation: str, world) -> Dict:
                 _treaty_hint(world, target_nation, "peace", "armistice"),
             ]
             confidence = "medium"
-        # PC-F1 (the Peace Conundrum F1, October 15, 2026): every arm above
-        # counsels a peace; when an ally's war makes that separate peace a
-        # hard stop, the counsel says so — the ally by name and both ways
-        # out — instead of recommending a peace the send road refuses.
-        from backend.game_logic.diplomacy import paradox_words_for
-        _paradox = paradox_words_for(world, player_nation, target_nation)
-        if _paradox:
-            _whose = "their" if len(_paradox.get("allies") or []) > 1 else "her"
-            text += (f"\n\nMark one thing, Sire: {_paradox['reason']}, and a separate "
-                     f"peace would break {_whose} war. Two ways out — propose an "
-                     f"armistice, or first {_paradox['downgrade']}.")
-            if recommendation == "Propose peace with strong terms.":
-                recommendation = (f"Propose an armistice — {_paradox['reason']}, "
-                                  f"so a separate peace would break {_whose} war.")
+        # PC-F1 made the counsel name the ally whose war stopped the peace;
+        # PC-R1 (§46 B + C, October 16, 2026) retired the stop. The counsel
+        # now says what the peace DOES to that ally — carried in by the
+        # leader's instrument, or left fighting at a price — in the one
+        # wording every surface reads, and keeps recommending the peace.
+        from backend.game_logic.diplomacy import separate_peace_words
+        _words = separate_peace_words(world, player_nation, target_nation)
+        if _words:
+            text += f"\n\nMark one thing, Sire: {_words['display']}"
+        # PC-R8 (ruling K item 5, S13e part 1): the advisory card's
+        # recommendation and its hints are the ONE counsel's — the reading
+        # over the roads that carry — never the fixed strings above (the
+        # Part IV M5 frame: "We hold the advantage. Press for favorable
+        # terms or continue fighting."). A dry-run: the court's line memory
+        # is the wizard's to write.
+        # Under the collapse the collapse IS the reading (IQ-2: "Seek terms
+        # now." — the fact stated, no score quoted); the counsel's roads
+        # there read a court that took nothing, so the arm above stands.
+        from backend.game_logic.counsel import counsel_for_wizard
+        _counsel = (counsel_for_wizard(world, target_nation, remember=False)
+                    if collapse is None else {})
+        if _counsel.get("line"):
+            recommendation = str(_counsel["line"])
+            hints = list(_counsel.get("roads_display") or hints)
+            confidence = "high" if _counsel.get("carrying") else "low"
     else:
         # At peace — recommend next diplomatic step
         if relation > 30 and state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):

@@ -2625,10 +2625,12 @@ class DiplomaticExecutor:
         diplo_key_war = world._make_diplo_key(player, target_nation)
         arm_cd = getattr(world, 'armistice_cooldowns', {}).get(diplo_key_war, 0)
         if arm_cd > 0:
+            # PC-F73 (S13e part 1): the one wording — a settlement's fresh
+            # peace is said as a peace, a truce's cooldown as a truce.
+            from backend.game_logic.diplomacy import pair_cooldown_words
             return {
                 "success": False,
-                "message": f"The armistice with {target_nation} holds for {arm_cd} more turns. "
-                           f"We cannot declare war until it expires.",
+                "message": pair_cooldown_words(world, player, target_nation)["display"],
             }
 
         # WPS-A: War Purpose popup — must choose objective before proceeding
@@ -3406,13 +3408,18 @@ class DiplomaticExecutor:
         # Re-front Slice 1 §3a: the landing for opening a settlement is the
         # conversational PROPOSE surface (Talleyrand baseline + per-court
         # acceptance + dials + the guided demand rows).
+        # K item 6 (PC-R8, §46): a table road the counsel named opens with
+        # the coverage it priced ("Open Settlement with Austria alone") —
+        # the wizard's structured field; absent, the whole table as before.
+        _counsel_coverage = [
+            str(n) for n in (cmd.get("covered_enemy_participants") or []) if n]
         result = stage_settlement_confirm(
             world,
             war_id=war_id,
             actor_nation=player,
             settlement_terms=settlement_terms,
             selected_target_nation=target_nation,
-            covered_enemy_participants=None,
+            covered_enemy_participants=_counsel_coverage or None,
             density="medium",
             caller_kind="player_editor",
             white_peace=False,

@@ -968,7 +968,15 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
             # Generate terms for execute options
             ptype = opt.get("proposal_type", proposal_type)
             if ptype:
-                _terms = generate_suggested_terms(target_nation, ptype, world)
+                # K item 6 (PC-R8): the plain send opens with the draft the
+                # wizard open priced this turn (the memo), so the figure the
+                # counsel quoted is the figure the send is judged on; the
+                # harsh variant and the un-priced typed road draft afresh.
+                from backend.game_logic.counsel import priced_terms_for_confirm
+                _terms = (priced_terms_for_confirm(world, target_nation, ptype)
+                          if opt.get("variant") != "harsh" else None)
+                if not _terms:
+                    _terms = generate_suggested_terms(target_nation, ptype, world)
                 if opt.get("variant") == "harsh":
                     # SR-2a (AAR-7): "Harsh demands" HARDENS the package —
                     # the executor's own transform — then takes the same
@@ -1259,7 +1267,7 @@ def _settlement_offer_on_the_desk(world, player: str, target: str) -> str:
 def _stamp_menu_sends(world, options: list, player: str, target: str) -> list:
     """DDB-9: each `execute_proposal` of the generic menu stamped from
     `treaty.can_sign(at_send=True)` — refused, it arrives disabled with the
-    verdict's words (the paradox in `peace_paradox_block_text`'s)."""
+    verdict's words."""
     from backend.game_logic.treaty import can_sign
     out = []
     for opt in options:
@@ -1276,8 +1284,7 @@ def _stamp_menu_sends(world, options: list, player: str, target: str) -> list:
             "clauses": list(terms.get("clauses") or []),
         }, at_send=True)
         if not verdict.ok:
-            reason = (peace_paradox_block_text(world, player, target)
-                      if verdict.clause == "paradox" else "") or verdict.message
+            reason = verdict.message
             opt = dict(opt)
             opt["available"] = False
             opt["enabled"] = False
@@ -1287,33 +1294,19 @@ def _stamp_menu_sends(world, options: list, player: str, target: str) -> list:
     return out
 
 
-def peace_paradox_block_text(world, proposer: str, target: str) -> str:
-    """The sentence that stops a separate peace under an alliance paradox —
-    "" when none stands. FA-D17 named the one road the executor exempts (the
-    armistice); DDB-8 (Pre-Deploy S13b) quotes that armistice's OWN
-    likelihood, so the player is not sent to a truce blind. ONE source for
-    the bilateral draft's block and the generic menu's Propose peace
-    (DDB-9)."""
-    from backend.game_logic.diplomacy import (
-        ARMISTICE_AUTO_PEACE_RELATION, separate_peace_paradox)
-    paradox = separate_peace_paradox(world, proposer, target)
-    if not paradox:
+def separate_peace_note_text(world, proposer: str, target: str) -> str:
+    """PC-R1 (iv): Talleyrand's note on the bilateral peace draft — what the
+    peace does to the allies at war with the court, in the one wording
+    (`diplomacy.separate_peace_words`): "Mark one thing, Sire: Bavaria's war
+    with Austria ends in this instrument; she takes nothing by it." — ""
+    when no ally is at war with the court. It replaced the paradox's block
+    (FA-D17 / DDB-8 / PC-F1), which §46 B + C retired: the Send arm stays
+    live and the price, where there is one, is said here."""
+    from backend.game_logic.diplomacy import separate_peace_words
+    words = separate_peace_words(world, proposer, target)
+    if not words:
         return ""
-    likely = paradox.get("armistice_likelihood") or ""
-    odds = (f" — the court reads it {likely} ({int(paradox.get('armistice_score', 0))})"
-            if likely else "")
-    # PC-F1 (the Peace Conundrum F1, October 15, 2026): the ally named, then
-    # BOTH ways out — the armistice and the Downgrade — and the truce's
-    # expiry stated as the game runs it (peace only at relations of −60 or
-    # better; "its expiry makes the peace" promised more than it does).
-    whose = "their" if len(paradox.get("allies") or []) > 1 else "her"
-    return (f"I cannot deliver this, Sire — {paradox.get('reason', '')}, and a "
-            f"separate peace would break {whose} war. Propose an armistice "
-            f"instead{odds}: a truce carries no contradiction, and at its expiry "
-            f"it becomes the peace if relations stand at "
-            f"{ARMISTICE_AUTO_PEACE_RELATION} or better. Or first "
-            f"{paradox.get('downgrade', '')} — then the peace is ours to make. "
-            f"Or settle the war jointly at the settlement table.")
+    return f"Mark one thing, Sire: {words['display']}"
 
 
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
@@ -1339,7 +1332,13 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
             terms = opt["terms"]
             break
     if not terms:
-        terms = generate_suggested_terms(target_nation, proposal_type, world)
+        # K item 6 (PC-R8, §46): the draft the wizard open PRICED this turn
+        # pre-fills the confirm — the figure the counsel quoted is the figure
+        # the send is judged on. The typed road, un-priced, drafts afresh.
+        from backend.game_logic.counsel import priced_terms_for_confirm
+        terms = priced_terms_for_confirm(world, target_nation, proposal_type)
+        if not terms:
+            terms = generate_suggested_terms(target_nation, proposal_type, world)
         terms["proposal_type"] = proposal_type
 
     # PL-13-B: Always ensure both keys are present (covers dialogue option round-trip)
@@ -1606,36 +1605,17 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # work on a shared coalition war. Slice G1 / D-G1-1 (user-approved):
     # the paradox gates bilateral PEACE only — armistice variants are
     # exempt at the send gate, so the mount warning matches.
+    # PC-R1 (§46 B + C, October 16, 2026): the block is retired. The mount
+    # says what the peace DOES to the allies at war with this court — carried
+    # in by the leader's instrument, or left fighting at a price — as a note
+    # (`separate_peace_note`, a medium warning) and the Send arm stays live.
     if proposal_type == "peace":
-        _paradox_block = peace_paradox_block_text(world, player_nation, target_nation)
-        if _paradox_block:
-            block_text = _paradox_block
-            dialogue["commitment_block_warning"] = block_text
+        _note = separate_peace_note_text(world, player_nation, target_nation)
+        if _note:
+            dialogue["separate_peace_note"] = _note
             dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
-                {"severity": "high", "text": block_text}
+                {"severity": "medium", "text": _note}
             ]
-            # WIN-1: warning the player was only half the job — "Send as
-            # suggested" stayed ENABLED and FIRST, the send was refused at
-            # execution, and the refusal re-attached the same dialogue, so
-            # the option could be pressed forever and never succeed
-            # (measured 6/6 in probe; organically against two courts).
-            # Honest availability: the arm that cannot work arrives
-            # DISABLED and says why, exactly as the vassal-wizard gate rows
-            # and the NV-6 naval chips do. The other arms — modify, adjust,
-            # Reconsider — stay live, so the player is never dead-ended.
-            _blocked_actions = {"execute_proposal"}
-            _options = []
-            for _opt in dialogue.get("options") or []:
-                if (isinstance(_opt, dict)
-                        and _opt.get("action") in _blocked_actions):
-                    _opt = dict(_opt)
-                    _opt["enabled"] = False
-                    _opt["available"] = False
-                    _opt["unavailable_reason"] = block_text
-                    _opt["description"] = block_text
-                _options.append(_opt)
-            if _options:
-                dialogue["options"] = _options
 
     # FA-D7 (slice 17, Phase 2): `propose peace with X` drafted, estimated and
     # charged 3 DP while the coalition's settlement offer covering X sat on
@@ -1979,8 +1959,12 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
     # terms at their centre, the Cabinet's own band source) and its score.
     suggested_lines: list = []
     if parsed_command.get("with_suggested_terms"):
+        from backend.game_logic.counsel import priced_terms_for_confirm
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
-        draft = generate_suggested_terms(target_nation, proposal_type, world, deterministic=True)
+        # K item 6: the draft the wizard open priced this turn, when there is
+        # one — the card and the counsel then quote one figure.
+        draft = (priced_terms_for_confirm(world, target_nation, proposal_type)
+                 or generate_suggested_terms(target_nation, proposal_type, world, deterministic=True))
         hypothetical["sweeteners"] = list(draft.get("sweeteners") or [])
         hypothetical["demands"] = list(draft.get("demands") or [])
         hypothetical["clauses"] = list(draft.get("clauses") or [])
@@ -1993,13 +1977,21 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
     components = result["components"]
     feedback = result["feedback"]
 
-    # Find largest obstacle
-    largest_obstacle = ""
-    worst_val = 0
-    for key, val in components.items():
-        if val < worst_val:
-            worst_val = val
-            largest_obstacle = key
+    # PC-F40 (S13e part 1): the largest obstacle is the formula's own
+    # largest negative term, labelled in its feedback words (the old scan
+    # named the second negative — "deep-seated hostility" over the draft's
+    # own war-age penalty), and the plain peace is scored beside the draft.
+    from backend.game_logic.counsel import _flip_from_components
+    _flip = _flip_from_components(components) or {}
+    largest_obstacle = str(_flip.get("component") or "")
+    plain_sentence = ""
+    if hypothetical["demands"] or hypothetical["sweeteners"] or hypothetical["clauses"]:
+        _plain = dict(hypothetical, sweeteners=[], demands=[], clauses=[])
+        _plain_score = int(calculate_acceptance(_plain, world).get("score", 0))
+        if _plain_score != int(score):
+            plain_sentence = (
+                f" A peace without demands would be "
+                f"{'accepted' if _plain_score >= 50 else 'refused'} ({_plain_score}).")
 
     # Calculate steps to goal
     current_state = world.get_diplomatic_state(player_nation, target_nation)
@@ -2017,6 +2009,10 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         curr_idx = _UPGRADE_ORDER.index(current_state)
         goal_idx = _UPGRADE_ORDER.index(goal_state)
         steps = max(0, goal_idx - curr_idx)
+    if current_state in ("WAR", "ARMISTICE") and goal_state == "PEACE":
+        # PC-F40: a peace is signed straight from war — one step, not the
+        # ladder's two (war → armistice → peace).
+        steps = 1
 
     # Build assessment text
     display_type = _display_proposal_type(proposal_type)
@@ -2027,10 +2023,14 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             f"{feedback}"
         )
     elif score >= 30:
+        # PC-F40: the largest obstacle named by the formula's own term, not
+        # the feedback's second negative.
+        _obstacle = (f"The largest obstacle is {_flip.get('label')} ({int(_flip.get('value', 0)):+d}). "
+                     if _flip.get("label") else "")
         assessment = (
             f"Sire, {display_type} with {target_nation} is possible but uncertain. "
             f"My assessment yields {int(score)} — they might counter-offer. "
-            f"{feedback}"
+            f"{_obstacle}{feedback}"
         )
     else:
         obstacle_names = {
@@ -2043,30 +2043,36 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             "personality_modifier": "their diplomat's disposition",
             "base_disposition": "fundamental resistance to this type of agreement",
         }
-        obstacle_text = obstacle_names.get(largest_obstacle, "several factors")
+        obstacle_text = (str(_flip.get("label") or "")
+                         or obstacle_names.get(largest_obstacle, "several factors"))
         assessment = (
             f"Sire, I must be frank — {display_type} with {target_nation} faces serious obstacles. "
-            f"My assessment is only {int(score)}. The largest obstacle is {obstacle_text}. "
+            f"My assessment is only {int(score)}. The largest obstacle is {obstacle_text} "
+            f"({int(_flip.get('value', 0)):+d}). "
             f"{feedback}"
         )
+    if plain_sentence:
+        assessment += plain_sentence
 
     if steps > 0:
-        assessment += f" We would need {steps} diplomatic steps to reach {goal_state}."
+        assessment += (f" We would need {steps} diplomatic step{'' if steps == 1 else 's'} "
+                       f"to reach {goal_state}.")
 
     if suggested_lines:
         rest = assessment[len("Sire, "):] if assessment.startswith("Sire, ") else assessment
         assessment = (f"Sire, the terms I would draft: {'; '.join(suggested_lines)}. "
                       f"{rest[:1].upper()}{rest[1:]}")
 
-    # DP cost info
-    dp_cost = get_dp_cost(f"propose_{proposal_type}", 10)
-    assessment += f" The proposal itself would cost {int(dp_cost)} DP."
+    # DP cost info — PC-F10: the send's OWN price (the executor's quote over
+    # the live state and the diplomat's skill), not a 10-skill constant.
+    from backend.game_logic.diplomacy import diplomatic_price_quote
+    _quote = diplomatic_price_quote(world, proposal_type, target_nation)
+    dp_cost = int(_quote["cost"])
+    assessment += f" The proposal itself would cost {int(dp_cost)} DP; you have {int(_quote['have'])}."
 
-    return {
-        "type": "feasibility",
-        "target_nation": target_nation,
-        "talleyrand_text": assessment,
-        "options": [
+    # PC-F10: the card's send option is stamped by the ONE verdict
+    # (`_stamp_menu_sends`), so it never offers a peace the send refuses.
+    _options = _stamp_menu_sends(world, [
             {
                 "label": ("Propose these terms" if suggested_lines else "Proceed anyway"),
                 "description": (f"Send the {display_type} proposal on these terms."
@@ -2082,7 +2088,27 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
                 },
             },
             {"label": "Dismiss", "description": "Thank you, Talleyrand.", "action": "dismiss"},
-        ],
+        ], player_nation, target_nation)
+    if int(_quote["have"]) < int(dp_cost):
+        # PC-F10: the purse is the send road's own gate too (the wizard row's
+        # "Insufficient DP") — the card's send arrives disabled with the price.
+        _short = f"It costs {int(dp_cost)} DP; you have {int(_quote['have'])}."
+        _options = [
+            (dict(o, available=False, enabled=False, disabled_reason_display=_short,
+                  unavailable_reason=_short)
+             if isinstance(o, dict) and o.get("action") == "execute_proposal" else o)
+            for o in _options
+        ]
+    return {
+        "type": "feasibility",
+        "target_nation": target_nation,
+        "talleyrand_text": assessment,
+        "options": _options,
+        # PC-F40: the estimate line the client already renders
+        "acceptance_estimate": int(score),
+        "acceptance_outcome": outcome,
+        "acceptance_outcome_display": str(outcome).replace("_", " ").title(),
+        "dp_cost": int(dp_cost),
         "context": {
             "war_score": int(get_war_score_for(world, player_nation, target_nation)),
             "relation": int(world.nation_relations.get(world._make_diplo_key(player_nation, target_nation), 0)),
@@ -2090,8 +2116,12 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             "acceptance_score": int(score),
             "acceptance_outcome": outcome,
             "largest_obstacle": largest_obstacle,
+            "largest_obstacle_display": str(_flip.get("label") or ""),
+            "largest_obstacle_value": int(_flip.get("value", 0)),
             "steps_to_goal": int(steps),
             "suggested_terms": list(suggested_lines),
+            "plain_peace_score": (int(calculate_acceptance(
+                dict(hypothetical, sweeteners=[], demands=[], clauses=[]), world).get("score", 0))),
         },
         "turn_created": int(world.current_turn),
         "blocking": False,

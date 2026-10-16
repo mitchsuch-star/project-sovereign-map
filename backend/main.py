@@ -2968,6 +2968,10 @@ class CommandRequest(BaseModel):
     # province; without this field pydantic silently DROPS it (pre-build
     # seam verification, July 16, 2026).
     region: str | None = None
+    # PC-R8 K item 6 (S13e part 1): the wizard's Open Settlement / white
+    # peace row opens the table with the coverage the counsel priced (its own
+    # name — the retired editor's `covered_enemy_participants` stays retired).
+    counsel_coverage: list[str] | None = None
     # GT-Slice-4: the SC-5R editor's structured Submit-for-Review fields
     # (`settlement_terms` / `selected_target_nation` /
     # `covered_enemy_participants`) are removed with the freeform editor
@@ -3822,6 +3826,9 @@ def _command_parse(ctx: CommandContext):
             ctx.parsed["command"]["war_id"] = ctx.request.war_id
         if ctx.request.region:
             ctx.parsed["command"]["region"] = ctx.request.region
+        if ctx.request.counsel_coverage:
+            ctx.parsed["command"]["covered_enemy_participants"] = list(
+                ctx.request.counsel_coverage)
         # DDB-R1: the answered ask's flags ride the re-parsed order (the
         # pursuit ask's answer is the attack, confirmed).
         for _flag, _value in (getattr(ctx, "_reissue_flags", None) or {}).items():

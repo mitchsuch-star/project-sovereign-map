@@ -727,8 +727,19 @@ def resolve_pending_override(world, verdict: str) -> bool:
     current = str(latest.get("override_result") or "")
     if current in _UNRESOLVED_OVERRIDE_RESULTS or (verdict == "bad" and current == "good"
                                                     and int(latest.get("turn", -1)) >= int(getattr(world, "current_turn", 0)) - 1):
-        latest["override_result"] = "good" if verdict == "good" else "bad"
+        stamped = "good" if verdict == "good" else "bad"
+        latest["override_result"] = stamped
         world.talleyrand_override_history = history
+        # PC-R8 (ruling K item 4): the running count across the campaign —
+        # "good" = the Emperor was right to overrule him, "bad" = Talleyrand
+        # was. A re-stamp from good to bad moves the count across.
+        tally = getattr(world, "talleyrand_override_tally", None)
+        if not isinstance(tally, dict):
+            tally = {"good": 0, "bad": 0}
+            world.talleyrand_override_tally = tally
+        if current == "good" and stamped == "bad":
+            tally["good"] = max(0, int(tally.get("good", 0)) - 1)
+        tally[stamped] = int(tally.get(stamped, 0)) + 1
         return True
     return False
 
@@ -771,17 +782,35 @@ def get_override_dispatch_note(world) -> Optional[str]:
         return None  # Only report recent overrides
 
     if latest.get("override_result") == "good":
-        return (
+        note = (
             "Talleyrand's assessment appears to have been... pessimistic. "
             "The proposal succeeded despite his warnings."
         )
     elif latest.get("override_result") == "bad":
-        return (
+        note = (
             "Talleyrand's warnings prove prescient. "
             "The diplomatic outcome was not as we hoped."
         )
+    else:
+        return None
+    return note + override_tally_sentence(world)
 
-    return None
+
+def override_tally_sentence(world) -> str:
+    """PC-R8 (ruling K item 4): the running count the player learns to trust
+    him by — " Overruled, he has been right twice and wrong once this
+    campaign." — '' until an override has resolved."""
+    tally = getattr(world, "talleyrand_override_tally", None) or {}
+    good, bad = int(tally.get("good", 0) or 0), int(tally.get("bad", 0) or 0)
+    if not (good or bad):
+        return ""
+
+    def _times(n: int) -> str:
+        return {0: "never", 1: "once", 2: "twice"}.get(n, f"{n} times")
+
+    # "good" = the Emperor was right to overrule him; "bad" = Talleyrand was.
+    return (f" Overruled, he has been right {_times(bad)} and wrong {_times(good)} "
+            f"this campaign.")
 
 
 # ════════════════════════════════════════════════════════════════════════════

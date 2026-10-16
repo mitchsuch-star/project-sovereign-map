@@ -346,7 +346,14 @@ class TestDDB2:
         _prussia_declares(w)
         assert not CTA.entered_by_call(w, "France", "Hanover")
         conflicts = D.get_peace_commitment_conflicts(w, "France", "Hanover", [])
-        assert any(x["severity"] == "HARD_STOP" for x in conflicts)
+        # PC-R1 (S13e part 1, §46 B): never a stop — Prussia's pair is either
+        # carried in by France's peace (France leads the instance) or left
+        # fighting at a named price; DDB-2's own "joined at a call" words do
+        # not apply to a war France declared herself.
+        prussia = [x for x in conflicts if x["affected_entity"] == "Prussia"]
+        assert prussia and prussia[0]["severity"] in ("WARNING", "INFO")
+        assert not any(x["severity"] == "HARD_STOP" for x in conflicts)
+        assert "joined at an ally's call" not in prussia[0]["display"]
 
     def test_the_counter_is_refused(self, called):
         c, w, _result = called

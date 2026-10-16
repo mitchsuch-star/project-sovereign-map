@@ -309,44 +309,51 @@ class TestDDB7:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestDDB8:
-    def test_the_per_court_peace_is_shut_with_the_ally_named(self, w):
+    def test_the_per_court_peace_is_open_with_the_ally_named(self, w):
+        # PC-R1 (S13e part 1, §46 B + C): the paradox no longer shuts the
+        # chip — the leader's peace carries Bavaria's pair, and the chip
+        # says so in the one wording.
         war_id = next(iter(w.get_war_instances_by_participant("Austria")))
         chip = SS.separate_peace_chip(w, "Austria", war_id=war_id, staged_terms=[], actor="France")
-        assert chip["available"] is False
-        assert chip["disabled_reason_display"] == (
-            "Bavaria is still at war with Austria — a separate peace would break her war. "
-            "Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) "
-            "below a defensive alliance.")  # PC-F1: both ways out
+        assert chip.get("available", True) is not False
+        assert chip["separate_peace_display"] == (
+            "Bavaria's war with Austria ends in this instrument; she takes nothing by it.")
         elig = SV.evaluate_pair_peace_substitute_eligibility(
             w, war_id=war_id, actor_nation="France", target_nation="Austria",
             action="seek_bilateral_peace")
-        assert elig["refusal_code"] == "commitment_paradox"
+        assert elig["eligible"] is True
         src = (SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
         assert "Utils.set_available(btn, aff_available" in src
 
-    def test_the_block_text_quotes_the_armistices_own_likelihood(self, client):
+    def test_the_drafts_note_says_the_peace_carries_bavaria(self, client):
+        # PC-R1: the block (and the armistice it sold) is retired; the Send
+        # arm stays live and the draft carries the one note.
         c, w = client
         w.diplomatic_points = 9
         r = _post(c, "/command", {"command": "Talleyrand, propose peace to Austria"})
-        send = next(o for o in r["diplomatic_dialogue"]["options"] if o["action"] == "execute_proposal")
-        likely, score = D.armistice_likelihood(w, "France", "Austria")
-        assert send["available"] is False
-        assert f"the court reads it {likely} ({score})" in send["unavailable_reason"]
+        d = r["diplomatic_dialogue"]
+        send = next(o for o in d["options"] if o["action"] == "execute_proposal")
+        assert send.get("available", True) is not False
+        assert d["separate_peace_note"] == (
+            "Mark one thing, Sire: Bavaria's war with Austria ends in this instrument; "
+            "she takes nothing by it.")
+        assert "commitment_block_warning" not in d
 
 
 class TestDDB9:
-    def test_the_generic_menus_peace_is_disabled_with_its_reason(self, client):
+    def test_the_generic_menus_peace_is_stamped_by_the_one_verdict(self, client):
+        # PC-R1: the paradox no longer refuses, so the menu's Propose peace
+        # is open on the boot; the stamp (`_stamp_menu_sends`) still closes
+        # a send the verdict refuses — here, a peace the purse cannot pay.
         c, w = client
         w.diplomatic_points = 9
         r = _post(c, "/command", {"command": "Talleyrand, propose to Austria"})
         d = r["diplomatic_dialogue"]
         assert d["type"] == "proposal_options"
         peace = next(o for o in d["options"] if o["action"] == "execute_proposal")
-        assert peace["available"] is False
-        assert "Bavaria is still at war with Austria" in peace["disabled_reason_display"]
-        assert "Propose an armistice instead" in peace["disabled_reason_display"]
-        # PC-F1: the second way out beside the first.
-        assert "Downgrade the alliance with Bavaria (2 steps)" in peace["disabled_reason_display"]
+        assert peace.get("available", True) is not False
+        from backend.game_logic import diplomatic_dialogue as DD
+        assert "_stamp_menu_sends" in __import__("inspect").getsource(DD)
 
     def test_the_popup_renders_the_transient_error(self):
         src = (SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
@@ -716,12 +723,14 @@ class TestDDB35:
         row = next(a for a in acts if a["action"] == "propose_peace")
         assert row["display_name"] == "Propose Peace" and row["available"] is True, row
 
-    def test_an_ally_still_at_war_shuts_it_with_the_paradox(self, w):
+    def test_an_ally_still_at_war_rides_the_row_as_a_note(self, w):
+        # PC-R1 (S13e part 1): the row stays open; the one verdict's note
+        # says the leader's peace carries Bavaria's pair.
         acts = D.get_available_diplomatic_actions(w, "Austria")
         acts = acts.get("actions") if isinstance(acts, dict) else acts
         row = next(a for a in acts if a["action"] == "propose_peace")
-        assert row["available"] is False
-        assert row["disabled_reason"] == (  # PC-F1: the ally named, both ways out
-            "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance")
+        assert row["available"] is True
+        assert row["separate_peace_display"] == (
+            "Bavaria's war with Austria ends in this instrument; she takes nothing by it.")
         from backend.display_names import settlement_disabled_reason_display
         assert "Propose Peace or Propose Armistice" in settlement_disabled_reason_display("one_to_one_war")

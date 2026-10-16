@@ -592,6 +592,10 @@ class TestTheCounterOfferKeepsTheClause:
         world.war_scores[pair] = 21 if first == "France" else -21
         world.war_start_turns[pair] = int(world.current_turn) - 10
         world.nation_dp = {"Austria": 5}
+        # PC-R1 (iii): a loyal league member pays §6a's -15 on a separate
+        # peace; this pin is about the counter's choice, so the court is
+        # spent (WE 150: no loyalty term) and the staged band holds.
+        world.war_exhaustion["Austria"] = 150
         score = calculate_acceptance(self._proposal(), world)["score"]
         assert 30 <= score < 50, f"precondition: not in the counter band ({score})"
         cs_struck = calculate_acceptance(

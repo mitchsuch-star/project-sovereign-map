@@ -1561,6 +1561,82 @@ def coalition_break_ranks_reason(world, nation: str, *, war_score: int,
     return None
 
 
+# PC-R1 (iii) — ruling C item 2 (the peace report §46, October 16, 2026):
+# ONE consent read. Whether a court will LEAVE the league for a peace with
+# France is judged by the court's OWN readiness — P1's break-ranks clause
+# and its own peace threshold, read for the recipient of France's letter —
+# never by the side mean (the table's old read) nor by the bare bilateral
+# arithmetic. The same predicate the AI uses to decide whether to sue, so
+# the wizard, the chip, the war card, the counsel and the bilateral
+# formula's league term (`calculate_acceptance`'s `coalition_loyalty`,
+# COALITION_SPEC §6a — finally built) all describe the same court.
+P1_PEACE_SPLIT = -70   # P1 sends a PEACE below this, a truce above it (the split stays, §46 D)
+COALITION_LOYALTY_BASE = -15          # COALITION_SPEC §6a: the loyalty penalty at 0 exhaustion
+COALITION_LOYALTY_EASE_PER = 10       # … easing one point per this much war exhaustion
+
+
+def honest_peace_never_silent(proposal: Dict) -> None:
+    """PC-F9 (the peace report Part II §10, §46 D): the silent band. A court
+    beaten past the split in a young war chose a PEACE whose honest letter
+    (no demands) fell under the send filter — the war-age penalty on the
+    player's reading — and no letter went at all: on the user's board
+    Austria at -73 sent nothing until war age 8. The honest peace is
+    FORCE-SENT (the captor's and the Congress's idiom): the beaten court
+    sues, the player reads the letter at its honest score and decides; the
+    court stays COVERED by the next settlement (a truce fallback would have
+    truced her out of coverage, F32). A seam the series attribution holds
+    down (`--seam backend.game_logic.ai_diplomacy:honest_peace_never_silent=lambda p: None`)."""
+    proposal["_force_send"] = True
+    proposal["honest_peace_fallback"] = True
+
+
+def coalition_loyalty_penalty(world, court: str, opponent: str) -> int:
+    """COALITION_SPEC §6a's coalition-loyalty penalty on a separate peace
+    with `court` (PC-R1 iii): `min(-15 + we // 10, 0)` while the court is
+    a league member with NO reason of its own to break ranks
+    (`court_own_readiness` — P1's own clause); 0 once it would sue on its
+    own account, and 0 outside a league. The ONE source the bilateral
+    formula (`calculate_acceptance`) reads; the table's per-court scorer
+    reads the court's own consent in PC-R4 (S13e part 3)."""
+    ready = court_own_readiness(world, court, opponent)
+    if not ready["loyal"]:
+        return 0
+    return int(min(COALITION_LOYALTY_BASE
+                   + int(ready["exhaustion"]) // COALITION_LOYALTY_EASE_PER, 0))
+
+
+def court_own_readiness(world, court: str, opponent: str) -> Dict:
+    """What `court` itself would do about its war with `opponent`, as its own
+    AI reads it: `score` (the pair war score from the court's side), its
+    `threshold` (`effective_peace_threshold`), `sues` (score under the
+    threshold), `in_league` (a member of the active coalition against the
+    opponent), `break_ranks` (P1's reason — 'score' / 'exhaustion' /
+    'long_war' / 'pressburg' — or None while it stays loyal), `loyal` (in
+    the league and no reason to break ranks: the §6a penalty applies),
+    `letter` ('peace' below the P1 split, 'truce' while it sues above it, ''
+    otherwise) and `exhaustion`. Pure read; every field an int/bool/str."""
+    from backend.game_logic.coalition import is_coalition_member
+    key = world._make_diplo_key(court, opponent)
+    at_war = bool(world.is_at_war(court, opponent))
+    score = int(get_war_score_for(world, court, opponent)) if at_war else 0
+    threshold = int(effective_peace_threshold(court, opponent, world))
+    player = getattr(world, "player_nation", "France")
+    in_league = bool(opponent == player and is_coalition_member(court, world))
+    reason = (coalition_break_ranks_reason(world, court, war_score=score, diplo_key=key)
+              if at_war and in_league else None)
+    sues = bool(at_war and score < threshold)
+    exhaustion = int(world.war_exhaustion.get(court, 0) or 0)
+    return {
+        "court": court, "opponent": opponent, "at_war": at_war,
+        "score": int(score), "threshold": int(threshold), "sues": sues,
+        "in_league": in_league, "break_ranks": reason or "",
+        "loyal": bool(in_league and at_war and reason is None),
+        "letter": ("peace" if (sues and score < P1_PEACE_SPLIT)
+                   else "truce" if sues else ""),
+        "exhaustion": exhaustion,
+    }
+
+
 # PR-D1d (SR-2c, September 26, 2026): "a new war is not a spent league". The
 # SR-1d gate was scoped to the active league's war, so a war France RE-
 # DECLARES after the league's peace drew an offer at war-age 2 (measured on
@@ -1859,7 +1935,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
 
         if not coalition_blocked:
             # Decide: armistice if war_score > -70, peace if truly desperate
-            if war_score < -70:
+            if war_score < P1_PEACE_SPLIT:
                 ptype = "peace"
             else:
                 ptype = "armistice_losing"
@@ -1867,6 +1943,8 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             if not _is_on_cooldown(nation, ptype, world, war_score):
                 terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
                 proposal = _make_proposal(nation, ptype, 1, terms, world)
+                if ptype == "peace":
+                    honest_peace_never_silent(proposal)
 
     # ── P2: Stalemate (war_score -10..+10 for N+ turns, R149: fire when not clearly winning) ──
     # AUD-b: gate the stalemate exit on ACTUAL combat. A pair that has recorded
@@ -2532,6 +2610,8 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
         assessment=assessment,
         acceptance=acceptance,
         decision_reason=decision_reason,
+        # PC-F76: the envelope's stable label — a harsh peace is labelled as one
+        label_type=str(proposal.get("proposal_type") or ""),
     )
 
     # W6-10 (E-CA-6): the diplomat's own spoken line rides both surfaces —
@@ -4625,6 +4705,29 @@ def _letter_would_carry(world, war_id: str, war: Dict, *, player: str,
     return bool((view.get("overall_acceptance") or {}).get("carries"))
 
 
+def leave_a_winning_court_its_war(world, player: str, covered: List[str]) -> List[str]:
+    """PC-F50 (the peace report Part V, M6; §46 E's coverage half): the
+    league leader's letter never signs away a court that is WINNING its own
+    pair with the player — Britain's letter covered a Prussia at +37 and
+    ended her war for gold paid to Britain. A court at or past the decisive
+    band from its own side keeps its war and is not on the letter — UNLESS
+    the side as a whole dictates (the player decisively losing to the side,
+    `sum_stored_side_score` at or past the band against him): a dictated
+    peace is the winners' instrument (ruling I) and every court at war is
+    on it. Pure read."""
+    from backend.game_logic.diplomacy import get_war_score_for, sum_stored_side_score
+    covered = [str(n) for n in covered if n]
+    if len(covered) < 2:
+        return covered
+    side = int(sum_stored_side_score(world, player, covered))
+    if side <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
+        return covered
+    return [
+        n for n in covered
+        if int(get_war_score_for(world, n, player) or 0) < SETTLEMENT_OFFER_DECISIVE_WAR_SCORE
+    ]
+
+
 def _emit_settlement_offer_for_war(
     world,
     war_id: str,
@@ -4659,6 +4762,7 @@ def _emit_settlement_offer_for_war(
     # writes it when the leader itself stands in a truce.
     at_war = set(_covered_at_war(world, war, player=player))
     covered_enemies = [n for n in covered_enemies if n in at_war]
+    covered_enemies = leave_a_winning_court_its_war(world, player, covered_enemies)
     if not covered_enemies:
         return None
     if proposer_nation not in covered_enemies:

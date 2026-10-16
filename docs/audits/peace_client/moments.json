@@ -4,7 +4,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m1_war_card_tooltip_5120x1440.jpg",
-  "what": "war card tooltip — the peace table (Vienna held)",
+  "what": "war card tooltip — the peace table (Vienna held), re-shot S13e part 1: the averaging and what Austria's own court would do",
   "turn": "Turn 6 — Early December 1805",
   "action": "hover Britain + Austria + Russia",
   "surface": "",
@@ -16,7 +16,8 @@
   ],
   "scroll": null,
   "lines": [],
-  "controls": []
+  "controls": [],
+  "reshot": "S13e part 1, October 16, 2026"
  },
  {
   "id": "m1_war_card_tooltip",
@@ -144,9 +145,9 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m3_wizard_austria_5120x1440.jpg",
-  "what": "wizard, Austria's page — Propose Peace refused by the paradox",
+  "what": "wizard, Austria's page, re-shot S13e part 1 — Propose Peace open with the carry-in note; Talleyrand's reading and the ranked roads; the white peace with Austria alone first",
   "turn": "Turn 6 — Early December 1805",
-  "action": "click Austria  —  At War",
+  "action": "scroll 1829 368 down 4",
   "surface": "DiplomacyWizard",
   "rect_logical": [
    1553,
@@ -156,19 +157,18 @@
   ],
   "scroll": [
    [
-    0.0,
-    178.0
+    88.0,
+    420.0
    ],
    [
     0.0,
-    246.0
+    202.0
    ]
   ],
   "lines": [
    "DIPLOMACY — Austria",
    "DP: 7",
-   "TALLEYRAND'S ASSESSMENT — AUSTRIA\nStatus: At War   Relation: -80 (Hostile)\n\n\"Austria falters, Your Excellency. Our armies press the advantage — we may dictate the terms, though a court not yet broken will be slow to sign them.\"\nRecommendation: Talleyrand recommends: Propose Armistice\n\nKEY FACTORS\n  + Our military dominance (+35)\n  + Base willingness (+20)\n  + Exhaustion from prolonged conflict (+10)\n  - Current relations (-10)\n  - Hegemon bloc pressure (-7)",
-   "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance",
+   "TALLEYRAND'S ASSESSMENT — AUSTRIA\nStatus: At War   Relation: -80 (Hostile)\n\n\"Austria falters, Your Excellency. Our armies press the advantage — we may dictate the terms, though a court not yet broken will be slow to sign them.\"\nRecommendation: Permit me to observe, Sire, that the arithmetic favours one road: Open Settlement with Austria alone, at 50 of 50. It costs 3 DP. Bavaria's war with Austria ends in this instrument; she takes nothing by it. The whole table reads their mean (18) and asks each court for 50: Austria 11 · Britain 18 · Russia 18. If you ask my own mind, Sire: the plain peace. A province taken from a beaten court is a war bought back at interest.\n  Open Settlement with Austria alone — 50 of 50 ✓ (3 DP)\n  Propose Armistice — 65 of 50 ✓ (1 DP)\n  Propose Peace — 32 of 50 ✗ (3 DP)\n  the whole table — 11 of 50 ✗ (3 DP)\n  a battle — shut: the battle score is full (15/15); only Vienna or time moves this court\n\nKEY FACTORS\n  + Our military dominance (+35)\n  + Base willingness (+20)\n  + Exhaustion from prolonged conflict (+10)\n  - Current relations (-10)\n  - Hegemon bloc pressure (-7)",
    "▼ more below"
   ],
   "controls": [
@@ -176,6 +176,11 @@
     "text": "",
     "disabled": false,
     "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Propose White Peace",
+    "disabled": false,
+    "tooltip": ""
    },
    {
     "text": "Propose Armistice (1 DP)  —  Favorable",
@@ -188,14 +193,14 @@
     "tooltip": ""
    },
    {
-    "text": "Propose White Peace",
+    "text": "Propose Peace (3 DP)  —  Uncertain — a counter is likely",
     "disabled": false,
     "tooltip": ""
    },
    {
-    "text": "Propose Peace (3 DP)",
-    "disabled": true,
-    "tooltip": "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance"
+    "text": "Gather Intel (1 DP)  —  3 turns, then full intel for 5",
+    "disabled": false,
+    "tooltip": ""
    },
    {
     "text": "Back",
@@ -207,7 +212,8 @@
     "disabled": false,
     "tooltip": ""
    }
-  ]
+  ],
+  "reshot": "S13e part 1, October 16, 2026"
  },
  {
   "id": "m3_wizard_austria",
@@ -390,7 +396,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m5_counsel_5120x1440.jpg",
-  "what": "Talleyrand, what about Austria — the counsel card",
+  "what": "Talleyrand, what about Austria — the counsel card, re-shot S13e part 1 (the one counsel's reading, its roads as hints, the carried-in note)",
   "turn": "Turn 6 — Early December 1805",
   "action": "type Talleyrand, what about Austria",
   "surface": "ProposalConfirmPopup",
@@ -402,7 +408,7 @@
   ],
   "scroll": null,
   "lines": [
-   "TALLEYRAND'S ASSESSMENT — Austria\n\n\"I am confident in this assessment, Sire. My sources are reliable. We are at war with Austria, Sire. War score stands at 79 from our perspective. In the field we outmatch them decisively. Metternich is calculating — skill 9. Embattled, but allied with Russia, Britain.\""
+   "TALLEYRAND'S ASSESSMENT — Austria\n\n\"I am confident in this assessment, Sire. My sources are reliable. We are at war with Austria, Sire. War score stands at 79 from our perspective. In the field we outmatch them decisively. Metternich is calculating — skill 9. Embattled, but allied with Russia, Britain.\"\n\nRecommendation: Permit me to observe, Sire, that the arithmetic favours one road: Open Settlement with Austria alone, at 50 of 50. It costs 3 DP. Bavaria's war with Austria ends in this instrument; she takes nothing by it. The whole table reads their mean (18) and asks each court for 50: Austria 11 · Britain 18 · Russia 18. If you ask my own mind, Sire: the plain peace. A province taken from a beaten court is a war bought back at interest. (high confidence)\nRoads: Open Settlement with Austria alone — 50 of 50 ✓ (3 DP) · Propose Armistice — 65 of 50 ✓ (1 DP) · Propose Peace — 45 of 50 ✗ (3 DP) · the whole table — 11 of 50 ✗ (3 DP) · a battle — shut: the battle score is full (15/15); only Vienna or time moves this court"
   ],
   "controls": [
    {
@@ -420,7 +426,8 @@
     "disabled": false,
     "tooltip": "Dismiss."
    }
-  ]
+  ],
+  "reshot": "S13e part 1, October 16, 2026"
  },
  {
   "id": "m5_counsel_make_peace",
@@ -544,7 +551,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m5_feasibility_5120x1440.jpg",
-  "what": "What terms would they accept? — the feasibility card",
+  "what": "What terms would they accept? — the feasibility card, re-shot S13e part 1 (the obstacle named with its value, the plain peace beside the draft, the send's own price)",
   "turn": "Turn 6 — Early December 1805",
   "action": "click What terms would they accept?",
   "surface": "ProposalConfirmPopup",
@@ -556,7 +563,7 @@
   ],
   "scroll": null,
   "lines": [
-   "FEASIBILITY ASSESSMENT — Austria\n\n\"Sire, the terms I would draft: Peace Treaty (end state of war); Austria pays 130 gold/turn for as long as the treaty stands; Offer: Prisoner return. Peace Treaty with Austria is possible but uncertain. My assessment yields 45 — they might counter-offer. The sticking point appears to be deep-seated hostility. We would need 2 diplomatic steps to reach PEACE. The proposal itself would cost 2 DP.\""
+   "FEASIBILITY ASSESSMENT — Austria\n\n\"Sire, the terms I would draft: Peace Treaty (end state of war); Austria pays 130 gold/turn for as long as the treaty stands; Offer: Prisoner return. Peace Treaty with Austria is possible but uncertain. My assessment yields 45 — they might counter-offer. The largest obstacle is the war is barely begun — no court signs away a province over one skirmish (-24). The sticking point appears to be deep-seated hostility. A peace without demands would be accepted (75). We would need 1 diplomatic step to reach PEACE. The proposal itself would cost 3 DP; you have 7.\"\n\nEstimated acceptance: ~45% (Counter Offer)"
   ],
   "controls": [
    {
@@ -574,7 +581,8 @@
     "disabled": false,
     "tooltip": "Thank you, Talleyrand."
    }
-  ]
+  ],
+  "reshot": "S13e part 1, October 16, 2026"
  },
  {
   "id": "m5_feasibility",

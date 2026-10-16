@@ -303,7 +303,10 @@ class TestTheLegitimacySentence:
         assert "London and Vilna are unbeaten — a whole-war peace needs their consent (" in text, text
         for court in ("Austria", "Britain", "Russia"):
             assert f"{court} {rows[court]['total']}/{rows[court]['threshold']}" in text, text
-        assert "Press Austria alone: the separate peace." in text, text
+        # PC-F35 / F37 (S13e part 1): the road pressed is the one the table's
+        # own dry-run says carries, with its number; the mean is said.
+        assert "Austria alone the table reads" in text, text   # carries, or the payment that would
+        assert "The table reads their mean: Austria" in text, text
         assert "Vienna" not in text.split("unbeaten")[0].split("shifts.")[-1], text
 
     def test_the_predicate_is_unchanged(self, table):
@@ -363,17 +366,11 @@ class TestTheSeparatePeaceChip:
         params = {"action": "seek_bilateral_peace", "scope": "selected_pair",
                   "nation": "Britain", "selected_target_nation": "Britain",
                   "war_id": dialogue["war_id"]}
-        # DDB-8 (S13b): judged FOR BRITAIN, the separate peace is first refused
-        # by Britain's own paradox (our ally Spain is at war with her) ...
+        # DDB-8 (S13b) refused it first by Britain's paradox (our ally Spain at
+        # war with her); PC-R1 (S13e part 1) retired that stop — judged FOR
+        # BRITAIN, the chip reaches Britain's pair tier at once, Spain's war
+        # carried in by the leader's peace.
         with _quiet():
-            r = client.post("/respond_to_diplomatic_dialogue",
-                            json={"choice": "seek_bilateral_peace", "action_params": params,
-                                  "dialogue_id": dialogue.get("dialogue_id")}).json()
-        assert r.get("success") is False and "Spain is still at war with Britain" in str(r.get("message"))
-        # ... and with that war ended, it reaches Britain's pair tier.
-        from backend.game_logic.diplomacy import set_diplomatic_state
-        with _quiet():
-            set_diplomatic_state(world, "Spain", "Britain", "PEACE", "test_fixture")
             r = client.post("/respond_to_diplomatic_dialogue",
                             json={"choice": "seek_bilateral_peace", "action_params": params,
                                   "dialogue_id": dialogue.get("dialogue_id")}).json()
@@ -426,7 +423,8 @@ class TestTheSeparatePeaceChip:
         assert chips[0]["selected_target_nation"] == "Austria"
         for court in ("Britain", "Russia"):
             assert not [a for a in rows[court]["dial_actions"] if a.get("action") == "seek_bilateral_peace"], court
-        assert "Press Austria alone: the separate peace." in str(dialogue.get("talleyrand_text", ""))
+        # PC-F35 (S13e part 1): the pressed road carries its own dry-run number.
+        assert "Press Austria alone: with her alone the table reads" in str(dialogue.get("talleyrand_text", ""))
 
     def test_the_tier2_renderer_honours_availability(self):
         src = (C.SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")

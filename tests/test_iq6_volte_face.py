@@ -332,9 +332,10 @@ class TestV1bASeparatePeaceEndsTheWar:
     def test_the_pair_resolution_answers(self, world, monkeypatch):
         peace_turn = _pressburg(world)
         instance = world.war_instances["war_1"]
-        assert "Austria|Bavaria" in instance["active_diplo_keys"], (
-            "Austria still fights France's allies — the geometry that hid it")
-        assert instance["participant_meta"]["Austria"].get("exited_turn") is None
+        # PC-R1 (S13e part 1): the leader's peace is common to its side —
+        # Bavaria's pair ends in the same instrument and Austria LEAVES war_1.
+        assert "Austria|Bavaria" not in instance["active_diplo_keys"]
+        assert instance["participant_meta"]["Austria"].get("exited_turn") == peace_turn
         window = ED.volte_face_window()
         assert ED._war_with_ended_recently(world, "Austria", PLAYER, window)
         assert ED._latest_war_end_turn(world, "Austria", PLAYER) == peace_turn

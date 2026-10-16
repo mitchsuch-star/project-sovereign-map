@@ -372,32 +372,37 @@ class TestD16LiftCounselNamesTheMarshalate:
 # FA-D17 — the paradox block names the truce; the wizard row tells the truth
 # ═══════════════════════════════════════════════════════════════════════
 class TestD17ParadoxBlockNamesTheTruce:
+    """FA-D17 surfaced the paradox's block at the mount; PC-R1 (S13e part 1,
+    October 16, 2026; §46 B + C) retired the block — the mount carries the
+    one verdict's NOTE and the row stays open."""
+
     def _paradox_world(self):
         from backend.game_logic.diplomacy import get_peace_commitment_conflicts
         w = _boot()
-        hard = [c for c in get_peace_commitment_conflicts(w, "France", "Austria", [])
-                if c.get("severity") == "HARD_STOP"]
-        assert hard, "the 1805 boot carries the Bavaria paradox against Austria"
+        rows = [c for c in get_peace_commitment_conflicts(w, "France", "Austria", [])
+                if c.get("affected_entity") == "Bavaria"]
+        assert rows and rows[0]["conflict_type"] == "carried_in", "the boot's Bavaria is carried in"
         return w
 
-    def test_the_block_names_the_armistice_route(self):
+    def test_the_mount_carries_the_note_not_a_block(self):
         from backend.game_logic.diplomatic_dialogue import generate_dialogue
         w = self._paradox_world()
         dlg = generate_dialogue("proposal_confirm", {"target_nation": "Austria", "proposal_type": "peace"}, w)
-        block = dlg.get("commitment_block_warning") or ""
-        assert block.startswith("I cannot deliver this, Sire — ")
-        assert "Propose an armistice instead" in block
-        assert "resolve Bavaria's war first" not in block
+        assert not dlg.get("commitment_block_warning")
+        assert dlg.get("separate_peace_note") == (
+            "Mark one thing, Sire: Bavaria's war with Austria ends in this instrument; "
+            "she takes nothing by it.")
+        send = next(o for o in dlg["options"] if o.get("action") == "execute_proposal")
+        assert send.get("available", True) is not False
 
-    def test_the_wizard_row_is_greyed_with_the_reason(self):
+    def test_the_wizard_row_is_open_with_the_note(self):
         from backend.game_logic.diplomacy import get_available_diplomatic_actions, set_diplomatic_state
         w = self._paradox_world()
         set_diplomatic_state(w, "France", "Austria", "ARMISTICE")
         row = next(a for a in get_available_diplomatic_actions(w, "Austria") if a.get("action") == "propose_peace")
-        assert row["available"] is False
-        assert row["disabled_reason"] == (  # PC-F1: the ally named, both ways out (a truce's own)
-            "Bavaria is still at war with Austria — let the truce run its course (it becomes the peace if relations stand at -60 or better), or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance")
-        assert row["disabled_reason_display"] == row["disabled_reason"]
+        assert row["available"] is True
+        assert row["separate_peace_display"] == (
+            "Bavaria's war with Austria ends in this instrument; she takes nothing by it.")
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-D18 — the truce projection counts the thaw

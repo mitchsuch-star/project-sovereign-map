@@ -1368,8 +1368,11 @@ def _redial_settlement_terms(
                     # DDB-33: an Ease stops where the scorer stops crediting
                     # (a stream's whole projected obligation counts).
                     _per_unit_cap = _credit_gold_ceiling // max(1, per_unit)
-                    if grown > _per_unit_cap:
-                        grown = max(amount, _per_unit_cap)
+                    # PC-F25: the baseline's hard cap now IS the scorer's
+                    # ceiling, so the step is read before the clamp — an Ease
+                    # that would pass the ceiling says so, as before.
+                    if amount + SETTLEMENT_DIAL_GOLD_STEP > _per_unit_cap:
+                        grown = max(amount, min(grown, _per_unit_cap))
                         credit_ceiling.add(court)
                 # G4F-2 / DC-1 (+ G4S-2 delta accounting): bound the grow at
                 # the payer's remaining EXTRA capacity — the whole package is
@@ -2420,11 +2423,24 @@ def _warnings_after_consent(warnings, consenting_courts, covered):
 
 
 def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
-                        accept_threshold: int) -> str:
+                        accept_threshold: int, *, war_id: str = "",
+                        war_instance=None, proposer_side: str = "",
+                        accepting_side: str = "", proposer_leader: str = "",
+                        terms=None) -> str:
     """"London and St Petersburg are unbeaten — a whole-war peace needs
     their consent (Austria 32/50, Britain 24/50, Russia 24/50). Press Austria
-    alone: the separate peace." — "" when nobody holds out."""
-    from backend.game_logic.diplomacy import get_war_score_for
+    alone: the separate peace." — "" when nobody holds out.
+
+    PC-F35 / F36 / F37 (S13e part 1, October 16, 2026): "beaten" and
+    "unbeaten" are read over EVERY covered court (never the holdouts
+    alone — Britain and Russia at 0, signing because they were paid, read
+    as "beaten"); the road pressed is the one the table's own dry-run says
+    carries — the court alone, with its number ("with her alone the table
+    reads 50 of 50 and carries") and the one wording of what that peace
+    does to our allies — or, where it does not, the payment that would; the
+    sentence says the mean the whole table reads and which courts sit at 0
+    because France has not fought them."""
+    from backend.game_logic.diplomacy import get_war_score_for, live_war_score_for
     from backend.game_logic.formations import formed_display_name
     rows = [r for r in (per_court_acceptance or []) if isinstance(r, Mapping)]
     holdouts = [str(n) for n in (holdout_courts or []) if n]
@@ -2432,13 +2448,12 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
         return ""
     player = str(getattr(world, "player_nation", "France") or "France")
     threshold = int(accept_threshold or 50)
+    covered = [str(r.get("nation") or "") for r in rows if r.get("nation")]
     # "Unbeaten" is the WAR's word, not the table's: a court the fortunes of
     # war have not yet turned against (the pair war score from our side is
-    # not positive). A court we hold the capital of and have beaten in the
-    # field is a holdout by the arithmetic and still not "unbeaten" — it is
-    # the court to press alone.
-    unbeaten = [n for n in holdouts if get_war_score_for(world, player, n) <= 0]
-    beaten = [n for n in holdouts if n not in unbeaten]
+    # not positive) — read over every covered court (PC-F36).
+    unbeaten = [n for n in covered if get_war_score_for(world, player, n) <= 0]
+    beaten = [n for n in covered if n not in unbeaten]
     scores: List[str] = []
     ready: List[str] = []
     for row in rows:
@@ -2450,8 +2465,6 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
         scores.append(f"{formed_display_name(world, court)} {int(total)}/{row_threshold}")
         if int(total) >= row_threshold and not row.get("hard_stops") and court not in holdouts:
             ready.append(court)
-    press_courts = beaten + [c for c in ready if c not in beaten]
-    press = [formed_display_name(world, n) for n in press_courts]
     if unbeaten:
         seats = _join_names([_court_seat(world, n) for n in unbeaten])
         verb = "is" if len(unbeaten) == 1 else "are"
@@ -2462,29 +2475,105 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
     if scores:
         sentence += f" ({', '.join(scores)})"
     sentence += "."
-    if press:
-        # SR-1c (AAR-D5): the counsel names the DP price of the road it
-        # recommends — the executor's own quote for a peace with the first
-        # court to press, beside what the player has today.
+    # PC-F37: the averaging, said — each court's own score and the mean.
+    if len(covered) > 1:
+        pairs = " · ".join(f"{formed_display_name(world, n)} {int(live_war_score_for(world, player, n)):+d}"
+                           for n in covered)
+        unfought = [formed_display_name(world, n) for n in covered
+                    if int(live_war_score_for(world, player, n)) == 0]
+        sentence += f" The table reads their mean: {pairs}."
+        if unfought:
+            sentence += (f" {_join_names(unfought)} {'sits' if len(unfought) == 1 else 'sit'} at 0 "
+                         f"because France has not fought {'her' if len(unfought) == 1 else 'them'}.")
+    # The road that carries: the beaten court whose table ALONE carries, by
+    # the scorer's own dry-run (PC-F35) — never a road the send refuses.
+    # the court to press alone: a beaten holdout first (the court we hold the
+    # capital of), then every court already at its threshold (SR-6b).
+    press_courts = [n for n in beaten if n in holdouts]
+    press_courts += [c for c in ready if c not in press_courts]
+    if press_courts and not THE_HINT_PRESSES_ONE_COURT:
+        # the pre-RS-22 joined form, kept for its lever
         from backend.game_logic.diplomacy import diplomatic_price_quote
+        quote = diplomatic_price_quote(world, "peace", press_courts[0])
+        points = f"{quote['cost']} diplomatic {'point' if quote['cost'] == 1 else 'points'}"
+        sentence += (f" Press {_join_names([formed_display_name(world, n) for n in press_courts])} "
+                     f"alone: the separate peace. It costs {points}; you have {quote['have']}.")
+        return sentence
+    if press_courts:
+        from backend.game_logic.diplomacy import diplomatic_price_quote, separate_peace_words
         first = press_courts[0]
         quote = diplomatic_price_quote(world, "peace", first)
         points = f"{quote['cost']} diplomatic {'point' if quote['cost'] == 1 else 'points'}"
-        if THE_HINT_PRESSES_ONE_COURT:
-            # SR-6b RS-22 (Oct 2, 2026): "Press Austria, Naples, Ottoman
-            # Empire, Papal States, Portugal and Sweden alone" quoted ONE
-            # price for six courts. One court is named; the others can
-            # each be treated with alone, at the same price apiece.
-            sentence += f" Press {press[0]} alone: the separate peace."
-            sentence += f" It costs {points}; you have {quote['have']}."
-            if len(press) > 1:
-                sentence += (f" The others — {_join_names(press[1:])} — can each "
-                             f"be treated with alone, at {quote['cost']} "
-                             f"{'point' if quote['cost'] == 1 else 'points'} apiece.")
+        alone = _alone_table_verdict(world, first, war_id=war_id, war_instance=war_instance,
+                                     proposer_side=proposer_side, accepting_side=accepting_side,
+                                     proposer_leader=proposer_leader, terms=terms)
+        shown = formed_display_name(world, first)
+        if alone is None:
+            sentence += f" Press {shown} alone: the separate peace."
+        elif alone["carries"]:
+            sentence += (f" Press {shown} alone: with her alone the table reads "
+                         f"{alone['total']} of {alone['threshold']} and carries.")
+        elif alone.get("gold_to_carry"):
+            sentence += (f" With {shown} alone the table reads {alone['total']} of "
+                         f"{alone['threshold']}; a payment of {int(alone['gold_to_carry'])} gold "
+                         f"to her would carry it.")
         else:
-            sentence += f" Press {_join_names(press)} alone: the separate peace."
-            sentence += f" It costs {points}; you have {quote['have']}."
+            sentence += (f" With {shown} alone the table reads {alone['total']} of "
+                         f"{alone['threshold']} and does not carry.")
+        sentence += f" It costs {points}; you have {quote['have']}."
+        words = separate_peace_words(world, player, first, list(terms or []))
+        if words:
+            sentence += f" {words['display']}"
+        others = [formed_display_name(world, n) for n in press_courts[1:]]
+        if others and THE_HINT_PRESSES_ONE_COURT:
+            sentence += (f" The others — {_join_names(others)} — can each "
+                         f"be treated with alone, at {quote['cost']} "
+                         f"{'point' if quote['cost'] == 1 else 'points'} apiece.")
     return sentence
+
+
+def _alone_table_verdict(world, court: str, *, war_id: str = "", war_instance=None,
+                         proposer_side: str = "", accepting_side: str = "",
+                         proposer_leader: str = "", terms=None):
+    """PC-F35: the table with `court` alone, by the per-court scorer the
+    table itself uses — {total, threshold, carries, gold_to_carry} or None
+    when the instance is not in hand."""
+    if not (war_id and war_instance and proposer_side and accepting_side and proposer_leader):
+        return None
+    from backend.game_logic.settlement_baseline import compute_per_court_acceptance
+    from backend.game_logic.settlement_scoring import (
+        CONCESSION_GOLD_CAP, CONCESSION_GOLD_DIVISOR,
+    )
+    clean = [dict(t) for t in (terms or []) if isinstance(t, Mapping)]
+
+    def _run(package):
+        block = compute_per_court_acceptance(
+            world, war_id=war_id, war_instance=war_instance,
+            proposer_side=proposer_side, accepting_side=accepting_side,
+            proposer_side_leader=proposer_leader, covered_enemy_participants=[court],
+            settlement_terms=package)
+        row = next((r for r in (block.get("per_court_acceptance") or [])
+                    if str(r.get("nation")) == court), None)
+        carries = bool((block.get("overall_acceptance") or {}).get("carries"))
+        return row, carries
+
+    row, carries = _run(clean)
+    if row is None or row.get("total") is None:
+        return None
+    out = {"total": int(row["total"]), "threshold": int(row.get("threshold") or 50),
+           "carries": carries, "gold_to_carry": None}
+    if not carries:
+        need = out["threshold"] - out["total"]
+        if 0 < need <= CONCESSION_GOLD_CAP:
+            amount = need * CONCESSION_GOLD_DIVISOR
+            paid = [t for t in clean if not (t.get("type") == "gold_indemnity"
+                                             and t.get("to") == court)]
+            player = str(getattr(world, "player_nation", "France") or "France")
+            paid.append({"type": "gold_indemnity", "from": player, "to": court, "amount": amount})
+            _row2, carries2 = _run(paid)
+            if carries2:
+                out["gold_to_carry"] = int(amount)
+    return out
 
 
 def _pair_substitute_seed_terms(
@@ -2640,6 +2729,17 @@ def separate_peace_chip(world, court: str, *, war_id: str, staged_terms,
     chip["description"] = (f"{chip['description']} Alone, Talleyrand's bilateral "
                            f"table reads these terms {estimate['score']} "
                            f"({estimate['band']}).")
+    # PC-R1 (iv) — §46 B + C: the chip says what the separate peace does to
+    # our allies at war with this court — "Bavaria's war with Austria ends in
+    # this instrument; she takes nothing by it" (carried in by the leader's
+    # peace), or left fighting at the named price — from the ONE wording.
+    from backend.game_logic.diplomacy import separate_peace_words
+    words = separate_peace_words(world, actor, court, list(staged_terms or []))
+    if words:
+        chip["separate_peace_display"] = words["display"]
+        chip["carried_in"] = list(words["carried"])
+        chip["left_fighting"] = list(words["left"])
+        chip["description"] = f"{chip['description']} {words['display']}"
     return chip
 
 
@@ -3089,8 +3189,12 @@ def build_settlement_confirm_dialogue(
         )
         # F5 (row EP, LV-14(a)): the blocker names the unbeaten courts and
         # the one that can sign alone.
-        _named = legitimacy_sentence(world, per_court_acceptance,
-                                     holdout_courts, acceptance_threshold)
+        _named = legitimacy_sentence(
+            world, per_court_acceptance, holdout_courts, acceptance_threshold,
+            war_id=war_id, war_instance=war_instance, proposer_side=proposer_side,
+            accepting_side=accepting_side,
+            proposer_leader=str(leaders.get(proposer_side) or ""),
+            terms=list(preview.get("settlement_terms") or []))
         if _named:
             text = f"{text} {_named}"
     elif can_ratify and leader_consents:
@@ -3121,8 +3225,12 @@ def build_settlement_confirm_dialogue(
         ) or f"This settlement of {war_label} cannot be ratified now."
         # F5 (row EP, LV-14(a)): the same named sentence on the blocked
         # authored-terms review.
-        _named = legitimacy_sentence(world, per_court_acceptance,
-                                     holdout_courts, acceptance_threshold)
+        _named = legitimacy_sentence(
+            world, per_court_acceptance, holdout_courts, acceptance_threshold,
+            war_id=war_id, war_instance=war_instance, proposer_side=proposer_side,
+            accepting_side=accepting_side,
+            proposer_leader=str(leaders.get(proposer_side) or ""),
+            terms=list(preview.get("settlement_terms") or []))
         if _named:
             text = f"{text} {_named}"
     covered = list(preview.get("covered_enemy_participants") or [])

@@ -965,18 +965,27 @@ class TurnManager:
             from backend.game_logic.settlement_offers import good_offices_clause
             mediator = str(offer.get("mediator") or popup_payload.get("mediator") or "")
             _offices = good_offices_clause(mediator)
+            # PC-F78 / PC-F65 (S13e part 1): the rail names the courts the
+            # letter covers ("Britain, for Britain and Prussia, …") and every
+            # substantive clause beside the gold ("… and erects the Duchy
+            # of Normandy out of France") — it announced a carve as
+            # "Asking N gold" and nothing else.
+            _coverage = str(popup_payload.get("coverage_label") or "")
+            _substance = str(popup_payload.get("substance_clause") or "")
+            _for = f", {_coverage}," if _coverage else ""
+            _subst = f" It also {_substance}." if _substance else ""
             if _offices:
                 from backend.display_names import humanize_entity_name
                 title = f"{humanize_entity_name(mediator)} offers good offices"
                 message = (
-                    f"{proposer}'s terms to settle {war_label}, {_offices}."
-                    + _gold_clause
+                    f"{proposer}'s terms{_for} to settle {war_label}, {_offices}."
+                    + _gold_clause + _subst
                 )
             else:
                 title = f"Settlement offer from {proposer}"
                 message = (
-                    f"{proposer} has offered terms to settle {war_label}."
-                    + _gold_clause
+                    f"{proposer}{_for} has offered terms to settle {war_label}."
+                    + _gold_clause + _subst
                 )
             _details = {
                 "war_id": str(offer.get("war_id") or ""),

@@ -91,7 +91,11 @@ def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
 CONCESSION_BASELINE_TREASURY_RESERVE = 500
 
 
-CONCESSION_BASELINE_GOLD_HARD_CAP = 1500
+# PC-F25 (S13e part 1, October 16, 2026): the baseline drafted up to 1,500
+# a clause where the scorer credits at most CONCESSION_GOLD_CAP points at
+# CONCESSION_GOLD_DIVISOR gold a point (1,000) — the surplus bought nothing.
+CONCESSION_BASELINE_GOLD_HARD_CAP = (
+    settlement_scoring.CONCESSION_GOLD_CAP * settlement_scoring.CONCESSION_GOLD_DIVISOR)
 
 
 CONCESSION_BASELINE_GOLD_FLOOR = 300
@@ -1606,8 +1610,12 @@ def _concession_terms_for_court(
     treasury_candidate = payer_balance - CONCESSION_BASELINE_TREASURY_RESERVE
     if gold_budget_cap is not None:
         treasury_candidate = min(treasury_candidate, int(gold_budget_cap))
+    # PC-F25: the gap is priced at the scorer's own rate — one point per
+    # CONCESSION_GOLD_DIVISOR gold (it paid 100 a point, four times the
+    # credit) — and aimed at the threshold every court must reach.
     acceptance_gap = max(0, int(near_acceptance_floor) - int(peace_score or 0))
-    gap_candidate = max(CONCESSION_BASELINE_GOLD_FLOOR, acceptance_gap * 100)
+    gap_candidate = max(CONCESSION_BASELINE_GOLD_FLOOR,
+                        acceptance_gap * settlement_scoring.CONCESSION_GOLD_DIVISOR)
     if treasury_candidate > 0:
         positive = [
             c for c in (treasury_candidate, CONCESSION_BASELINE_GOLD_HARD_CAP, gap_candidate)

@@ -515,7 +515,10 @@ class TestTheMediatorIsNamedOnEverySurface:
         row = rows[0]
         assert row["title"] == "Russia offers good offices"
         assert "under Russia's good offices" in row["message"]
-        assert row["message"].startswith(f"{offer['proposer_nation']}'s terms to settle")
+        # PC-F78 (S13e part 1): the courts the letter covers ride between
+        # the proposer and "to settle".
+        assert row["message"].startswith(f"{offer['proposer_nation']}'s terms")
+        assert "to settle" in row["message"]
         assert row["details"]["mediator"] == "Russia"
 
     def test_the_dispatch_event_carries_the_mediator(self, world):
@@ -563,7 +566,10 @@ class TestTheMediatorIsNamedOnEverySurface:
         row = [r for r in _rail(world, INCOMING_SETTLEMENT_OFFER)
                if (r.get("details") or {}).get("offer_id") == offer["offer_id"]][0]
         assert row["title"].startswith("Settlement offer from Britain")
-        assert row["message"].startswith("Britain has offered terms to settle")
+        # PC-F78 (S13e part 1): the coverage clause rides the belligerent's
+        # own letter too; still no mediator anywhere.
+        assert row["message"].startswith("Britain, for Britain")
+        assert "has offered terms to settle" in row["message"]
         assert "mediator" not in row["details"]
         event = next(e for e in world.pending_dispatch_events
                      if e.get("offer_id") == offer["offer_id"])

@@ -3864,6 +3864,15 @@ func _show_confirm_dialogue_from_response(response: Dictionary, missing_message:
 	var dialogue = response.get("diplomatic_dialogue", {})
 	if proposal_confirm_popup and dialogue is Dictionary and dialogue.size() > 0:
 		set_input_enabled(false)
+		# PC-F34 (S13e part 1): a refused action that re-mounts its dialogue
+		# carries the refusal onto the re-mount on THIS road too (the
+		# pending-envoy re-open) — the feasibility card's "Propose these
+		# terms" was refused and the unchanged card came back in silence.
+		if not bool(response.get("success", true)):
+			var err_text = str(response.get("error_display", response.get("message", "")))
+			if err_text != "":
+				dialogue = dialogue.duplicate(true)
+				dialogue["transient_error_display"] = err_text
 		proposal_confirm_popup.show_dialogue(dialogue)
 	else:
 		add_output("[color=#" + Utils.COLOR_GOLD + "]" + missing_message + "[/color]")
@@ -6314,6 +6323,11 @@ func _on_enemy_phase_dismissed():
 
 		# Check for strategic reports (show after enemy phase)
 		if response.has("strategic_reports") and not response.strategic_reports.is_empty():
+			# PC-F48 (S13e part 1): the war HUD is re-shown on EVERY branch —
+			# this early return skipped `_process_active_wars` below, and the
+			# card stayed hidden on a turn that opened with a standing-order
+			# report (the turn Austria's letter arrived).
+			_process_active_wars(response)
 			# Keep pending_enemy_phase_response for post-report game over check
 			pending_strategic_response = response
 			_show_strategic_reports(response)
@@ -6326,6 +6340,7 @@ func _on_enemy_phase_dismissed():
 		# `_return_control_to_player()`, which raises the stash once the
 		# capture is answered.
 		if response.has("redemption_event"):
+			_process_active_wars(response)  # PC-F48: the HUD on every branch
 			pending_enemy_phase_response = null
 			pending_redemption_data = response.redemption_event
 			_show_pending_dispatch()
@@ -6974,12 +6989,18 @@ func _on_strategic_report_dismissed():
 		# FA slice-9 review (R1-5): stash, dispatch, shared tail — see
 		# `_on_enemy_phase_dismissed`.
 		if response.has("redemption_event"):
+			_process_active_wars(response)  # PC-F48: the HUD on every branch
 			pending_strategic_response = null
 			pending_enemy_phase_response = null
 			pending_redemption_data = response.redemption_event
 			_show_pending_dispatch()
 			_return_control_to_player()
 			return
+
+		# PC-F48 (S13e part 1): the reports' road never re-showed the war
+		# HUD (`_on_enemy_phase_dismissed` returned before its call) — the
+		# card re-appears here, as N4i's "ALWAYS refreshes" promises.
+		_process_active_wars(response)
 
 	pending_strategic_response = null
 	pending_enemy_phase_response = null

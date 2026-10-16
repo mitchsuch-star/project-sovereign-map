@@ -144,12 +144,19 @@ class TestDDBX5:
     def test_the_weight_is_the_tables_own(self):
         assert D.bilateral_war_score_weight() == SC.BASE_SIDE_PRESSURE_SCALE == 0.65
 
-    def test_the_two_scorers_agree_on_one_package(self, w):
+    def test_the_two_scorers_agree_on_one_package(self, w, monkeypatch):
+        # PC-R1 (iii): the bilateral reads §6a's loyalty term (-15 on a
+        # league member with no reason to break ranks); this pin is about
+        # the two scorers' WAR-SCORE credit, so the term is held at 0.
+        from backend.game_logic import ai_diplomacy as AI
+        monkeypatch.setattr(AI, "coalition_loyalty_penalty", lambda *a, **k: 0)
         table, bilateral = self._both(w, 50)
         assert (table["score"], table["verdict"]) == (56, "accept")
         assert (bilateral["score"], bilateral["outcome"]) == (54, "ACCEPT")
 
     def test_at_the_old_weight_they_disagreed(self, w, monkeypatch):
+        from backend.game_logic import ai_diplomacy as AI
+        monkeypatch.setattr(AI, "coalition_loyalty_penalty", lambda *a, **k: 0)
         monkeypatch.setattr(D, "bilateral_war_score_weight", lambda: 0.3)
         table, bilateral = self._both(w, 50)
         assert table["verdict"] == "accept"

@@ -765,6 +765,14 @@ func _render_preview(data: Dictionary):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
 	if recommendation:
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
+	# PC-R8 / PC-F12 (S13e part 1): the counsel's ranked roads — each with
+	# its dry-run number, whether it carries and its price — under the line.
+	var roads = data.get("counsel_roads_display", [])
+	if roads is Array and roads.size() > 0:
+		bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]"
+		for road in roads:
+			bbcode += "  " + Utils.humanize_nation_keys_in_text(str(road)) + "\n"
+		bbcode += "[/color]"
 
 	# W3: Acceptance preview — key factors
 	var acceptance_preview = data.get("acceptance_preview")
@@ -1005,6 +1013,11 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 		}
 		if war_id != "":
 			data["war_id"] = war_id
+		# PC-R8 K item 6: the table road the counsel named opens with the
+		# coverage it priced ("Open Settlement with Austria alone").
+		var coverage = action_payload.get("counsel_coverage", [])
+		if coverage is Array and coverage.size() > 0:
+			data["counsel_coverage"] = coverage
 		return data
 	if action_id == "propose_white_peace":
 		var war_id = str(action_payload.get("war_id", ""))
@@ -1014,6 +1027,11 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 		}
 		if war_id != "":
 			data["war_id"] = war_id
+		# PC-R8 K item 6: the white peace the counsel priced with the court
+		# alone opens with that coverage.
+		var wp_coverage = action_payload.get("counsel_coverage", [])
+		if wp_coverage is Array and wp_coverage.size() > 0:
+			data["counsel_coverage"] = wp_coverage
 		return data
 	if action_id == "grant_region_to_vassal":
 		# VS-3: the sub-picker's chosen province rides the structured

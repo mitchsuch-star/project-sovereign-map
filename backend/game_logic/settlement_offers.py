@@ -2687,6 +2687,47 @@ def _derive_status_quo_lines(
 # good offices.
 
 
+def offer_coverage_label(world: Any, covered: Iterable[str]) -> str:
+    """PC-F78 (S13e part 1): the courts a settlement letter covers, said —
+    "for Britain and Prussia" (the leader stipulates for its side). '' for
+    a one-court letter."""
+    from backend.game_logic.formations import formed_display_name
+    names = [formed_display_name(world, str(n)) for n in (covered or []) if n]
+    if len(names) < 2:
+        return ""
+    return "for " + ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def offer_substance_clause(world: Any, settlement_terms: Iterable[Mapping[str, Any]]) -> str:
+    """PC-F65 (S13e part 1): every substantive clause of a settlement letter
+    in one clause for the rail and the dispatch line — "erects the Duchy of
+    Normandy out of France; France cedes Flanders to Britain" — '' when the
+    letter carries gold or a bare peace only. Gold is the rail's own clause."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    parts: List[str] = []
+    for term in settlement_terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        ttype = str(term.get("type") or "")
+        frm = str(term.get("from") or "")
+        to = str(term.get("to") or "")
+        if ttype == "create_client":
+            name = str(term.get("client_display_name") or term.get("tag") or "a client state")
+            parts.append(f"erects {name} out of {_fdn(world, frm) if frm else 'the loser'}")
+        elif ttype == "territory_cede":
+            region = str(term.get("region") or "")
+            parts.append(f"{_fdn(world, frm)} cedes {region}" + (f" to {_fdn(world, to)}" if to else ""))
+        elif ttype == "continental_system_join":
+            parts.append(f"{_fdn(world, frm)} enters the Continental System")
+        elif ttype == "forced_alliance":
+            parts.append(f"{_fdn(world, frm)} is bound in alliance to {_fdn(world, to)}")
+        elif ttype in ("vassalage", "subjugation"):
+            parts.append(f"{_fdn(world, frm)} becomes a client of {_fdn(world, to)}")
+        elif ttype == "vassal_transfer":
+            parts.append(f"a client state changes hands")
+    return "; ".join(parts)
+
+
 def good_offices_clause(mediator: Any) -> str:
     """"under Russia's good offices" — the ONE phrase the rail row, the
     mailbox row, the dispatch line and the review header share for a
@@ -2961,6 +3002,10 @@ def build_incoming_settlement_offer_popup(
         "proposer_nation": proposer_nation,
         "accepting_side": accepting_side,
         "covered_enemy_participants": list(covered),
+        # PC-F78 / PC-F65: the courts the letter covers and its substance,
+        # said once here for the rail, the mailbox row and the dispatch.
+        "coverage_label": offer_coverage_label(world, covered),
+        "substance_clause": offer_substance_clause(world, settlement_terms),
         "settlement_terms": settlement_terms,
         "terms_summary": terms_summary,
         # FA-N16: `amount` is what FRANCE is asked to pay — 0 when the offer

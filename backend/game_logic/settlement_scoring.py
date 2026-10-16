@@ -548,6 +548,20 @@ CONCESSION_TERRITORY_PER_REGION = 35
 CONCESSION_DEPENDENCY_CREDIT = 100
 CONCESSION_FORCED_ALLIANCE_CREDIT = 45
 CONCESSION_CREDIT_CLAMP = (0, 120)
+# PC-F50 (the peace report Part V, M6; §46 E's credit half, October 16,
+# 2026): GOLD credits the court PAID in full and the rest of its side at
+# this share — Prussia's row read 59/50 through the full credit of 2,980
+# gold paid to Britain. A cession, a client, a dependency or a forced
+# alliance still credits the whole side (it moves the balance of Europe
+# for every court; PC-R4 may refine the rate).
+SIDE_GOLD_CREDIT_SHARE = 0.5
+_SIDE_SHARED_CREDIT_TYPES = frozenset({"gold_indemnity", "gold_lump", "gold_per_turn"})
+
+
+def side_gold_credit_share() -> float:
+    """PC-F50's rate as ONE seam (the series attribution holds it at 1.0:
+    `--seam backend.game_logic.settlement_scoring:side_gold_credit_share=lambda: 1.0`)."""
+    return float(SIDE_GOLD_CREDIT_SHARE)
 
 # War-exhaustion (spec line 1120 — intentional floor division).
 WAR_EXHAUSTION_DIVISOR = 3
@@ -1543,6 +1557,17 @@ def calculate_concession_credit(
         )
         if credit <= 0:
             continue
+        # PC-F50: the court this row scores (`accepting_leader`, the per-
+        # court loop's court) is credited in full for what is paid or
+        # ceded TO IT; a concession to another court of its side credits
+        # it at the side share.
+        shared = False
+        if (accepting_leader and str(term.get("type") or "") in _SIDE_SHARED_CREDIT_TYPES
+                and _term_to_nation(term) != str(accepting_leader)):
+            credit = int(credit * side_gold_credit_share())
+            shared = True
+        if credit <= 0:
+            continue
         raw_score += credit
         credited_terms.append({
             "index": idx,
@@ -1550,6 +1575,7 @@ def calculate_concession_credit(
             "from": _term_from_nation(term),
             "to": _term_to_nation(term),
             "score": int(credit),
+            "side_share": shared,
         })
     score = _clamp(raw_score, CONCESSION_CREDIT_CLAMP)
     return {

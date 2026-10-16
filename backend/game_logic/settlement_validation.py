@@ -521,21 +521,11 @@ def evaluate_pair_peace_substitute_eligibility(
                     f"you have {int(getattr(world, 'diplomatic_points', 0) or 0)}.")
             return refusal
 
-    # DDB-8 (Pre-Deploy S13b, October 14, 2026): the per-court peace runs the
-    # send road's own paradox read — an ally still at war with the court is a
-    # HARD_STOP there, so the separate peace arrives shut with the ally named
-    # (the sea #15 / #16: offered on the table, refused two screens later).
-    if action_str == "seek_bilateral_peace":
-        from backend.game_logic.diplomacy import separate_peace_paradox
-        paradox = separate_peace_paradox(world, actor, target)
-        if paradox:
-            refusal = _refused("commitment_paradox")
-            # PC-F1: both ways out beside the ally's name.
-            whose = "their" if len(paradox.get("allies") or []) > 1 else "her"
-            refusal["disabled_reason_display"] = (
-                f"{paradox['reason']} — a separate peace would break {whose} war. "
-                f"Propose an armistice, or first {paradox['downgrade']}.")
-            return refusal
+    # DDB-8 (Pre-Deploy S13b) shut the per-court peace under the alliance
+    # paradox; PC-R1 (§46 B + C, October 16, 2026) retired that stop — the
+    # chip stays open and `separate_peace_chip` says what the peace does to
+    # the allies at war with the court (carried in, or left fighting at a
+    # price), from the ONE wording `diplomacy.separate_peace_words`.
 
     return {
         "eligible": True,

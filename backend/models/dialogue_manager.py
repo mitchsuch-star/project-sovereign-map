@@ -558,9 +558,13 @@ class DialogueManager:
                 # Gate-4 1805 smoke (E-5): the row is player-facing — use the
                 # humanized war label, never the raw internal war id (R7).
                 war_label = d.get("war_label", "") or d.get("war_id", "")
+                # PC-F78 (S13e part 1): the row names the courts the letter
+                # covers beside the war's label.
+                _coverage = str(d.get("coverage_label") or "")
                 summary = (
                     f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Settlement offer')}"
                     + (f": {war_label}" if war_label else "")
+                    + (f" ({_coverage})" if _coverage else "")
                 )
                 # SR-2d (SR-2-X5): the Arbiter's Offer names its mediator on
                 # the mailbox row too — "Settlement offer: France vs Britain,

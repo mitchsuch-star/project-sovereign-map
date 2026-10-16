@@ -681,6 +681,14 @@ FEEDBACK_STRINGS = {
                     "province over one skirmish",
         "positive": "the war has run long enough to be worth ending",
     },
+    # PC-R1 (iii): COALITION_SPEC §6a's loyalty penalty — only ever 0 or
+    # below; the positive key is authored so a sign flip never falls to
+    # "unknown factors".
+    "coalition_loyalty": {
+        "negative": "her loyalty to the league — she has no reason of her "
+                    "own to break ranks yet",
+        "positive": "she is ready to leave the league",
+    },
     "stalemate_duration": {
         "negative": "the deadlock shows no sign of breaking",
         "positive": "neither side can gain the upper hand",
@@ -1041,6 +1049,8 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "submitted_terms_failed_revalidation": "The submitted terms failed validation; review and correct them.",
     # Re-front Slice 3 §12 cross-court validity codes (V1-V3).
     "region_double_promised": "The same region cannot be promised to two different courts.",
+    # PC-F53: the guided demand's `to` must stand on the proposer's side.
+    "invalid_beneficiary": "The court named to receive this demand does not stand on our side of the table.",
     "clause_target_uncovered": "A clause names a court that is not part of this settlement.",
     "clause_side_mismatch": "A clause's giving and receiving courts must be on opposite sides of the war.",
     # SC-3/SC-4 ratification gate codes

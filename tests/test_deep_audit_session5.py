@@ -493,9 +493,13 @@ class TestFix11ProposalMetadata:
         world.war_start_turns = {diplo_key: 1}
         world.ai_proposal_metadata = {}
 
-        # Set war score very negative (Austria losing badly)
+        # Set war score negative (Austria losing: P1's TRUCE band). PC-F9
+        # (S13e part 1, October 16, 2026): below the -70 split P1's honest
+        # PEACE is force-sent past the filter — the beaten court's letter is
+        # never silent — so the "rejected letter" this pin is about is the
+        # armistice, which still reads the floor.
         war_scores = getattr(world, 'war_scores', {})
-        war_scores[diplo_key] = -80
+        war_scores[diplo_key] = -60
         world.war_scores = war_scores
 
         # Give Austria gold so it tries to build a proposal
