@@ -1053,6 +1053,8 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "invalid_beneficiary": "The court named to receive this demand does not stand on our side of the table.",
     "clause_target_uncovered": "A clause names a court that is not part of this settlement.",
     "clause_side_mismatch": "A clause's giving and receiving courts must be on opposite sides of the war.",
+    # PC-F52: a cession the ceder no longer holds, and no court of the receiving side holds either.
+    "ceder_does_not_hold": "The ceding court no longer holds that province, and no court on the receiving side holds it — the cession cannot carry.",
     # SC-3/SC-4 ratification gate codes
     "acceptance_rejected": "The accepting side has rejected these terms.",
     "acceptance_blocked": "A hard stop prevents ratification of these terms.",

@@ -460,6 +460,7 @@ def _concession_baseline_transferable_candidates(
     proposer_side_participants: Iterable[str],
     accepting_leader: str,
     excluded_regions: Optional[Iterable[str]] = None,
+    include_capitals: bool = False,
 ) -> List[str]:
     """Ranked list of concession-region candidates per the spec algorithm.
 
@@ -535,7 +536,10 @@ def _concession_baseline_transferable_candidates(
         region = regions.get(name)
         if region is None:
             continue
-        if bool(getattr(region, "is_capital", False)):
+        # PC-F54 (S13e part 2): the baseline's auto-pick never returns a
+        # capital, but the OFFER ROWS the player authors from list it
+        # ("Offer Vienna" — the largest lever on the board).
+        if bool(getattr(region, "is_capital", False)) and not include_capitals:
             continue
         starting = str(starting_controllers.get(name, "") or "")
         if starting in proposer_set:

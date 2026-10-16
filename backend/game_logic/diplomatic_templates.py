@@ -3795,25 +3795,74 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world,
         world.marshals.values(),
         key=lambda m: (0 if getattr(m, "is_sovereign", False) else 1,
                        -int(getattr(m, "strength", 0) or 0), m.name))
-    for _held in _held_rows:
-        _captor = getattr(_held, "captured_by", "")
-        if _held.nation == player_nation and _captor == target_nation:
-            _demands = terms.setdefault("demands", [])
-            if not any(d.get("type") == "prisoner_return" and d.get("marshal") == _held.name
-                       for d in _demands):
-                _at = sum(1 for d in _demands if d.get("type") == "prisoner_return")
-                _demands.insert(_at, {"type": "prisoner_return",
-                                      "marshal": _held.name})
-        elif _held.nation == target_nation and _captor == player_nation:
-            _sweets = terms.setdefault("sweeteners", [])
-            if not any(s.get("type") == "prisoner_return" and s.get("marshal") == _held.name
-                       for s in _sweets):
-                _at = sum(1 for s in _sweets if s.get("type") == "prisoner_return")
-                _sweets.insert(_at, {"type": "prisoner_return",
-                                     "marshal": _held.name})
+    # PC-F13 (S13e part 2, October 16, 2026): the prisoners ride as ONE
+    # term per direction (`marshals`, the sovereign first; `marshal` keeps
+    # the first name for every older reader) — seven French marshals held
+    # on ulm at turn 24 were seven demands.
+    _ours = [m.name for m in _held_rows
+             if m.nation == player_nation and getattr(m, "captured_by", "") == target_nation]
+    _theirs = [m.name for m in _held_rows
+               if m.nation == target_nation and getattr(m, "captured_by", "") == player_nation]
+    if _ours:
+        _demands = terms.setdefault("demands", [])
+        _demands[:] = [d for d in _demands if d.get("type") != "prisoner_return"]
+        _demands.insert(0, {"type": "prisoner_return", "marshal": _ours[0],
+                            "marshals": list(_ours)})
+    if _theirs:
+        _sweets = terms.setdefault("sweeteners", [])
+        _sweets[:] = [s for s in _sweets if s.get("type") != "prisoner_return"]
+        _sweets.insert(0, {"type": "prisoner_return", "marshal": _theirs[0],
+                           "marshals": list(_theirs)})
+    # PC-F13: a LOSING draft with prisoners to ask back never stacks every
+    # concession on an offer the court still refuses — the prisoners are
+    # the point; the other demands ease until the estimator stops refusing
+    # (the easing before the prisoner stage could not see them).
+    if _ours and war_score < 0 and proposal_type in PEACE_FAMILY_FOR_EASING:
+        terms = _ease_losing_draft_keeping_prisoners(
+            terms, target_nation=target_nation, player_nation=player_nation, world=world)
 
     # --- Stage 5: Return ---
     return terms
+
+
+def _ease_losing_draft_keeping_prisoners(terms: Dict, *, target_nation: str,
+                                         player_nation: str, world) -> Dict:
+    """PC-F13: ease a losing draft's OTHER demands with the prisoner term
+    held fixed — drop territory, halve gold, then every non-prisoner
+    demand — stopping at the first package the estimator does not REJECT."""
+    from backend.game_logic.diplomacy import calculate_acceptance
+
+    def _verdict(candidate: Dict) -> str:
+        try:
+            result = calculate_acceptance({
+                "type": candidate.get("type", "peace"), "proposer_nation": player_nation,
+                "target_nation": target_nation, "demands": candidate.get("demands", []),
+                "sweeteners": candidate.get("sweeteners", []),
+                "clauses": candidate.get("clauses", [])}, world)
+        except Exception as exc:
+            report(exc, "diplomatic_templates._ease_losing_draft_keeping_prisoners: calculate_acceptance")
+            return ""
+        return str(result.get("verdict") or result.get("outcome") or "") if isinstance(result, dict) else ""
+
+    if _verdict(terms) != "REJECT":
+        return terms
+    eased = {**terms, "demands": [dict(d) for d in terms.get("demands", [])],
+             "sweeteners": [dict(s) for s in terms.get("sweeteners", [])]}
+    eased["suggestion_eased_to_estimate"] = True
+    prisoners = [d for d in eased["demands"] if d.get("type") == "prisoner_return"]
+    others = [d for d in eased["demands"] if d.get("type") != "prisoner_return"]
+    others = [d for d in others if d.get("type") not in ("territory_cede", "territory")]
+    eased["demands"] = prisoners + others
+    if _verdict(eased) != "REJECT":
+        return eased
+    for d in others:
+        if d.get("type") in ("gold_per_turn", "gold_lump") and int(d.get("value", 0) or 0) > 50:
+            d["value"] = max(50, int(d.get("value", 0) or 0) // 2)
+    eased["demands"] = prisoners + others
+    if _verdict(eased) != "REJECT":
+        return eased
+    eased["demands"] = prisoners
+    return eased
 
 
 def _ease_suggestion_until_not_rejected(
@@ -4766,7 +4815,7 @@ _TERM_DISPLAY_LABELS = {
     "continental_system_join": "{from_nation} joins the Continental System and closes its ports to British trade",
     # W6-7 Marshal Fates: ransom clause summary. Marshal-name-free — the
     # shared label formatter only carries nation/detail/value kwargs.
-    "prisoner_return": "{from_nation} releases a captured marshal to {to_nation}",
+    "prisoner_return": "{from_nation} releases {detail} to {to_nation}",
 }
 
 
@@ -4851,6 +4900,11 @@ def _build_display_label(clause_type: str, from_nation: str, to_nation: str,
     term_phrase = stream_term_phrase({"type": clause_type, "turns": turns})
 
     detail = ", ".join(regions) if regions else "territory"
+    if clause_type == "prisoner_return":
+        # PC-F13: the consolidated term names its men
+        names = [str(r) for r in (regions or []) if r]
+        detail = (", ".join(names[:-1]) + f" and {names[-1]}" if len(names) > 1
+                  else names[0] if names else "a captured marshal")
     if vassal_nation and clause_type in ("territory_cede", "territory", "territory_return"):
         detail = f"{detail} ({_vassal_territory_label(vassal_nation)})"
     elif vassal_nation and clause_type == "vassal_transfer":
@@ -4912,12 +4966,19 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
             continue
         dtype = demand.get("type", "")
         regions = _coerce_display_regions(demand)
+        dtype = demand.get("type", "")
+        # PC-F13: a consolidated prisoner demand names its men
+        if dtype == "prisoner_return":
+            regions = [str(m) for m in (demand.get("marshals") or
+                                       ([demand.get("marshal")] if demand.get("marshal") else []))]
+        # PC-F70: a demand carried for an ally names its beneficiary
+        _to_display = str(demand.get("to_nation") or demand.get("to") or proposer_nation)
         value = _safe_int(demand.get("value", 0))
         vassal_nation = _get_vassal_nation(demand)
         annotated.append({
             "clause_type": dtype,
             "from_nation": target_nation,
-            "to_nation": proposer_nation,
+            "to_nation": _to_display,
             "regions": regions,
             "term_direction": "demand",
             "sweetener_value": -value if value else 0,
@@ -4926,7 +4987,7 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                  if dtype == "forced_alliance"
                  and demand.get("includes_continental_system") is False
                  else dtype),
-                target_nation, proposer_nation, regions, value, vassal_nation,
+                target_nation, _to_display, regions, value, vassal_nation,
                 turns=_safe_int(demand.get("turns", 0))),
         })
 

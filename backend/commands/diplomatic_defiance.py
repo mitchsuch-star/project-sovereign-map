@@ -213,6 +213,26 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
     return max(0.0, min(1.0, harshness))
 
 
+def _estimate_verdict(proposal: Dict, world) -> str:
+    """PC-F22: the bilateral estimator's verdict on a proposal ('' when it
+    cannot be read)."""
+    try:
+        from backend.game_logic.diplomacy import calculate_acceptance
+        result = calculate_acceptance({
+            "type": proposal.get("type", "peace"),
+            "proposer_nation": proposal.get("proposer_nation") or getattr(world, "player_nation", "France"),
+            "target_nation": proposal.get("target_nation", ""),
+            "demands": proposal.get("demands", []),
+            "sweeteners": proposal.get("sweeteners", []),
+            "clauses": proposal.get("clauses", []),
+        }, world)
+        return str(result.get("verdict") or result.get("outcome") or "") if isinstance(result, dict) else ""
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "diplomatic_defiance._estimate_verdict: calculate_acceptance")
+        return ""
+
+
 def apply_diplomatic_sabotage(original_proposal: Dict, talleyrand, world) -> Dict:
     """Modify proposal based on Talleyrand's judgment (§3b).
 
@@ -293,10 +313,37 @@ def apply_diplomatic_sabotage(original_proposal: Dict, talleyrand, world) -> Dic
         # Middle harshness → stall (delivery delay +1)
         defiance_type = "stalled"
 
+    # PC-F22 (S13e part 2, October 16, 2026): the sabotage NEVER turns an
+    # estimated acceptance into a refusal unseen — the modified letter is
+    # re-estimated before it goes, and a change that flips the verdict is
+    # walked back (the hardening's added gold first; then the whole change,
+    # which becomes a stall) so the figure the player saw is the figure
+    # the court judges.
+    estimate_before, estimate_after = _estimate_verdict(original_proposal, world), _estimate_verdict(modified, world)
+    hardening_withheld = False
+    if estimate_before != "REJECT" and estimate_after == "REJECT":
+        if defiance_type == "hardened":
+            for demand in modified.get("demands", []):
+                if demand.get("type") == "gold_per_turn":
+                    _orig = next((int(d.get("value", 0) or 0) for d in original_proposal.get("demands", [])
+                                  if d.get("type") == "gold_per_turn"), 0)
+                    demand["value"] = _orig
+            modified["demands"] = [d for d in modified.get("demands", [])
+                                   if not (d.get("type") == "gold_per_turn" and int(d.get("value", 0) or 0) == 0)]
+            estimate_after = _estimate_verdict(modified, world)
+        if estimate_after == "REJECT":
+            modified = _deep_copy_proposal(original_proposal)
+            defiance_type = "stalled"
+            estimate_after = estimate_before
+        hardening_withheld = True
+
     sabotage_record = {
         "original_proposal": original_proposal,
         "modified_proposal": modified,
         "defiance_type": defiance_type,
+        "estimate_before": estimate_before,
+        "estimate_after": estimate_after,
+        "hardening_withheld": hardening_withheld,
         "discovery_chance": 0.40,  # 40% base
         "turns_hidden": 0,
         "discovered": False,

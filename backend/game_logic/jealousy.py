@@ -3196,6 +3196,12 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> str:
     })
 
 
+def _refused_peace_clause(world) -> str:
+    """PC-R3: the refused dictated peace, one sentence (the petitions)."""
+    from backend.game_logic.ai_diplomacy import refused_peace_clause
+    return refused_peace_clause(world, world.player_nation)
+
+
 def queue_fontainebleau_petition(world, eroding: List, reason: str = "") -> str:
     """ESP-1: the collective petition — the moment the parallel silent
     trust bleeds find one voice.
@@ -3231,6 +3237,11 @@ def queue_fontainebleau_petition(world, eroding: List, reason: str = "") -> str:
                 f"estates, rentes, or peace — {total_shortfall}g/turn of "
                 f"expectation stands unmet. The army does not march on "
                 f"glory alone.")
+    # PC-R3 (ruling I item 4): the marshals' petition carries the refused
+    # peace — the terms the Emperor refused and what the next letter asks.
+    _refused = _refused_peace_clause(world)
+    if _refused:
+        body = f"{body} {_refused}"
     status = _push_petition(world, {
         "kind": "fontainebleau",
         "title": title,
@@ -3539,7 +3550,9 @@ def queue_war_weary_petition(world, marshal, target_nation: str,
         "title": f"{marshal_title(world, marshal.name, start=True)} counsels peace",
         "body": (f"Sire, {marshal.name} — {title} secured, his household "
                  f"provided for — begs you reconsider this war with "
-                 f"{target_nation}."),
+                 f"{target_nation}."
+                 + ((" " + _refused_peace_clause(world))
+                    if _refused_peace_clause(world) else "")),
         "speaker": marshal.name,
         # A14: this petition was ALREADY the only one that read as drama,
         # and the reason was this clause. Lifted out of the staff prose

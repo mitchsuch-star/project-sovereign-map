@@ -114,6 +114,15 @@ SIGNED_PEACE_REASONS = frozenset({
     "treaty_vassalization",         # a court submitting by signed clause
     "conquest_vassalization",       # a beaten court subjugated (GEV-1's gate)
     "vassalage_entry",              # DD1-8: a new client's wars follow its lord's peace
+    # PC-R2 — ruling D item 3 (the peace report §46, October 16, 2026): a
+    # peace signed under a truce IS signed. The truce's two signed exits
+    # (`diplomacy._process_armistice_expiration`) title what each side holds
+    # on the held line — the DICTATED peace (the loser beaten, its hope dead;
+    # the sureties filed at the truce its terms) and the courted peace (the
+    # −60 line). Before: "a truce that runs out into peace writes nothing",
+    # so Vienna stayed "held, unsettled" after the peace and no surface said so.
+    "armistice_expired_peace",
+    "armistice_dictated_peace",
 })
 
 # ── Defaults (the scenario's block overrides; `cfg`) ──────────────────────
@@ -298,6 +307,19 @@ def record_ending(world, kind: str, cause: str,
         "nation": str(getattr(world, "player_nation", "") or ""),
         "detail": copy.deepcopy(detail or {}),
     }
+    # PC-R3 (ruling I item 5, GE-2's owner): a Fall ends in a peace the
+    # SUCCESSOR government signs — recognition of the successor the term
+    # that buys one tier's leniency (Paris 1814). Stamped on the record at
+    # the moment; the exile story prints it.
+    if record["terminal"]:
+        try:
+            from backend.game_logic.ai_diplomacy import successor_peace
+            _succ = successor_peace(world, str(getattr(world, "player_nation", "") or ""))
+        except Exception as exc:
+            report(exc, "game_end.record_ending: successor_peace")
+            _succ = None
+        if _succ:
+            record["detail"]["successor_peace"] = _succ
     # Appended BEFORE its summary is built, so the summary grades the world
     # WITH this ending in it (review round: a Humbled Peace's own stamped
     # Verdict read "ascendant", because `verdict_inputs` could not yet see
@@ -2590,6 +2612,16 @@ def build_exile_story(world, ending: Dict[str, Any],
     if record:
         paragraphs.append(" ".join(record))
         facts["sources"]["record"] = "campaign_totals (written at the moment of each event)"
+
+    # ── 3b. the regime arm (PC-R3, ruling I item 5): the peace the
+    #        successor government signs ─────────────────────────────────
+    _succ = detail.get("successor_peace") if isinstance(detail, dict) else None
+    if isinstance(_succ, dict) and _succ.get("line"):
+        paragraphs.append(str(_succ["line"]))
+        facts["courts"].append(str(_succ.get("court") or ""))
+        facts["sources"]["successor_peace"] = (
+            "ai_diplomacy.successor_peace at the moment of the ending — the dictating "
+            "court's tier, one tier gentler for the recognition")
 
     # ── 4. the verdict, and one voice ─────────────────────────────────
     closing = verdict.get("closing") or ""

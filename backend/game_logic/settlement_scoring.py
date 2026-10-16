@@ -101,7 +101,9 @@ CANONICAL_CLAUSE_TYPES = {
     "peace": {"required": {"type"}, "optional": {"authored_by"}},
     "territory_cede": {"required": {"type", "from", "to", "region"}, "optional": {"authored_by"}},
     "gold_indemnity": {"required": {"type", "from", "to", "amount"}, "optional": {"authored_by"}},
-    "gold_per_turn": {"required": {"type", "from", "to", "amount", "turns"}, "optional": {"authored_by"}},
+    # PC-R3: a dictated stream names the provinces held until it is paid.
+    "gold_per_turn": {"required": {"type", "from", "to", "amount", "turns"},
+                      "optional": {"authored_by", "surety_regions"}},
     "forced_alliance": {"required": {"type", "from", "to"}, "optional": {"includes_continental_system", "authored_by"}},
     "vassalage": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
     "subjugation": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
@@ -1549,12 +1551,40 @@ def calculate_concession_credit(
         accepting_set.add(str(accepting_leader))
     credited_terms: List[Dict[str, Any]] = []
     raw_score = 0
-    for idx, term in enumerate(_iter_terms(settlement_terms)):
-        credit = _concession_credit_for_term(
-            term,
-            proposer_set=proposer_set,
-            accepting_set=accepting_set,
-        )
+    # PC-F62 (S13e part 2, October 16, 2026): the GOLD credit is summed per
+    # payer -> payee BEFORE its cap, so a split payment buys exactly what one
+    # line buys (1,000 + 100 in two lines ratified where 1,100 in one never
+    # carried; three lines of 1,000 read 100). The first line of a pair
+    # carries the pair's credit; the rest read 0.
+    _gold_types = ("gold_indemnity", "gold_lump", "gold_per_turn")
+    _gold_total: Dict[tuple, int] = {}
+    _gold_first: Dict[tuple, int] = {}
+    _terms_list = list(_iter_terms(settlement_terms))
+    for idx, term in enumerate(_terms_list):
+        ttype = str(term.get("type") or "")
+        if ttype not in _gold_types:
+            continue
+        pair = (_term_from_nation(term), _term_to_nation(term))
+        if pair[0] not in proposer_set or pair[1] not in accepting_set:
+            continue
+        amount = max(0, int(term.get("amount", 0) or 0))
+        if ttype == "gold_per_turn":
+            amount = amount * max(0, int(term.get("turns", 0) or 0))
+        _gold_total[pair] = _gold_total.get(pair, 0) + amount
+        _gold_first.setdefault(pair, idx)
+    for idx, term in enumerate(_terms_list):
+        ttype = str(term.get("type") or "")
+        if ttype in _gold_types:
+            pair = (_term_from_nation(term), _term_to_nation(term))
+            if pair not in _gold_first or _gold_first[pair] != idx:
+                continue
+            credit = min(CONCESSION_GOLD_CAP, _gold_total[pair] // CONCESSION_GOLD_DIVISOR)
+        else:
+            credit = _concession_credit_for_term(
+                term,
+                proposer_set=proposer_set,
+                accepting_set=accepting_set,
+            )
         if credit <= 0:
             continue
         # PC-F50: the court this row scores (`accepting_leader`, the per-
@@ -1922,8 +1952,13 @@ def project_balance_after_settlement(
         if not regions or not to_n:
             continue
         for r in regions:
-            if from_n and from_n in nation_regions:
-                nation_regions[from_n].discard(r)
+            # PC-X10 (S13e part 2, found by PC-R1 v's rate pin): the province
+            # moves from whoever HOLDS it now, not only from the ceder — a
+            # cession of occupied Tyrol to Bavaria left it in France's set
+            # too, so the ally's draft projected bloc growth (−5) the same
+            # cession to France did not.
+            for _holder_regions in nation_regions.values():
+                _holder_regions.discard(r)
             nation_regions.setdefault(str(to_n), set()).add(r)
 
     # Step 4: vassalage / subjugation.

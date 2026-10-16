@@ -152,7 +152,8 @@ class TestD3EveryPrisonerIsOnTheTable:
         w = _boot()
         self._capture(w, "Mack", "France")
         terms = generate_suggested_terms("Austria", "peace", w)
-        assert {"type": "prisoner_return", "marshal": "Mack"} in terms["sweeteners"]
+        # PC-F13 (S13e part 2): ONE term, naming its men
+        assert {"type": "prisoner_return", "marshal": "Mack", "marshals": ["Mack"]} in terms["sweeteners"]
 
     def test_our_captured_men_ride_the_demands_sovereign_first(self):
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
@@ -160,8 +161,10 @@ class TestD3EveryPrisonerIsOnTheTable:
         self._capture(w, "Davout", "Austria")
         self._capture(w, "Napoleon", "Austria")
         terms = generate_suggested_terms("Austria", "peace", w)
-        rows = [d["marshal"] for d in terms["demands"] if d.get("type") == "prisoner_return"]
-        assert rows == ["Napoleon", "Davout"]  # the Brétigny ordering: the Emperor first
+        rows = [d for d in terms["demands"] if d.get("type") == "prisoner_return"]
+        # PC-F13: one term; the Brétigny ordering inside it: the Emperor first
+        assert len(rows) == 1 and rows[0]["marshals"] == ["Napoleon", "Davout"]
+        assert rows[0]["marshal"] == "Napoleon"
 
     def test_no_row_is_duplicated(self):
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
@@ -446,7 +449,7 @@ class TestD18TruceProjectionCountsTheThaw:
         w = self._truce(-90, 3)
         snap = build_war_context_snapshot(w, "France", "Britain", "armistice")
         blob = repr(snap)
-        assert "will thaw to -84 by expiry" in blob
+        assert "will thaw to -84" in blob     # PC-F44's heading line carries the figure
         assert "projected_relation" in blob
 
 

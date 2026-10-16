@@ -452,33 +452,38 @@ class TestOneArmisticeRule:
 
 
 class TestTheTruceDoesNotFreezeTheScore:
-    """Ratifying WAR->ARMISTICE runs `cleanup_war_end`, which POPS
+    """Ratifying WAR->ARMISTICE used to run `cleanup_war_end`, which POPPED
     war_scores / battle_records / decisive_battles for the pair — every battle
-    won before the truce is amnestied, permanently. The decision surface said
-    the score "freezes": the opposite of the mechanic, at the moment of
-    deciding."""
+    won before the truce was amnestied, permanently — while the decision
+    surface said the score "freezes". RE-SEATED by PC-R2 (S13e part 2,
+    October 16, 2026, ruling D): the truce now KEEPS the ledger
+    (`truce_keeps_the_ledger`), and the surface says so through the one
+    wording (`truce_words`). The old false promise stays banned; the pop is
+    still real when the war ENDS."""
 
     def _block(self):
         src = _read("backend/game_logic/diplomacy.py")
-        block = src[src.index('snapshot["armistice_mechanics"]'):]
+        block = src[src.index('words = truce_words(world, player_nation, target_nation)'):]
         return block[:block.index("return snapshot")]
 
     def test_the_false_promise_is_gone(self):
         assert "war score freezes" not in _code_only(self._block())
 
-    def test_and_what_replaces_it_is_true(self):
+    def test_and_what_replaces_it_is_true(self, board):
         block = _code_only(self._block())
-        assert "struck from the war" in block
-        assert "campaign ledger" in block, (
-            "PT-J2's ledger genuinely survives the truce, so the sentence "
-            "must name both halves or it trades one falsehood for another")
+        assert "truce_words" in block, "the block reads the ONE wording"
+        from backend.game_logic.diplomacy import truce_words
+        words = truce_words(board, "France", "Austria")
+        assert words["display_lines"][0].startswith("A 5-turn ceasefire: fighting stops. The ledger stands")
 
     def test_the_mechanic_it_describes_is_real(self, board):
-        """Falsifiable: the score really is popped, so the new copy is not
-        describing a bug that has since been fixed."""
+        """Falsifiable: the score is popped when the war ENDS and kept by a
+        truce (PC-R2), so the new copy describes the live mechanic."""
         from backend.game_logic.diplomacy import cleanup_war_end
         key = board._make_diplo_key("France", "Austria")
         board.war_scores = {key: 42}
+        cleanup_war_end(board, key, conclude_objectives=False)
+        assert board.war_scores[key] == 42
         cleanup_war_end(board, key)
         assert key not in board.war_scores
 

@@ -1601,10 +1601,19 @@ def _armistice_expiry_candidates(world, player_nation: str, _add) -> None:
         if etype.endswith("_war"):
             _add("war_touches_us", identity=f"war_touches_us:truce:{other}",
                  line=(f"the truce with {name} has collapsed — the war resumes "
-                       f"where it stood."))
+                       f"where it stood, at its age, with its ledger."))
         else:
+            # PC-R2: which signed exit it was, and what the signature titled.
+            _exit = str(tv.get("exit") or "peace")
+            _titled = str(tv.get("titled") or "").strip()
+            if _exit == "dictated":
+                _line = "The truce has concluded in a dictated peace on the held line."
+            else:
+                _line = "The truce has ripened into peace, signed on the held line."
+            if _titled:
+                _line = f"{_line} {_titled}"
             _add("peace_signed", identity=f"peace_signed:{other}",
-                 other=name, line="The truce has ripened into peace.")
+                 other=name, line=_line)
 
 
 def _league_candidates(world, player_nation: str, window, _add,
@@ -7093,9 +7102,13 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # DD-1 S8 Step 3 (SFR-D28's announce half): `{followers}` is the truce's
     # own sentence — the clients it binds, the allies whose wars run on and
     # our corps on their soil (`diplomacy.truce_followers_line`), or "".
+    # PC-R2 / PC-F44 (S13e part 2): what the truce keeps and where it heads
+    # ride the line (`{keeps}`, `{heading}` from `diplomacy.truce_words`).
     "armistice_ratified": ("A truce with {other}: the fighting stops for {turns} "
-                           "turns — peace if relations heal to {thaw} or better, "
-                           "else the war resumes.{followers}"),
+                           "turns.{keeps}{heading}{followers}"),
+    # PC-R3: the stream's last payment sends its sureties home.
+    "surety_returned": ("The indemnity is paid: {regions} — held by {payee} until paid — "
+                        "return to {ceder}."),
     # WB-B — war bargain lifecycle
     "bargain_ratified": "{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}.",
     "bargain_triggered": "{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active.",
@@ -7247,6 +7260,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "status_quo_titled": "MEDIUM",
     "status_quo_conceded": "HIGH",
     "armistice_ratified": "HIGH",
+    "surety_returned": "HIGH",
     # WB-B — war bargain lifecycle
     "bargain_ratified": "MEDIUM",
     "bargain_triggered": "HIGH",

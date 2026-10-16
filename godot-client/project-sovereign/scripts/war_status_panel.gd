@@ -392,8 +392,19 @@ func _add_armistice_card(war_data: Dictionary):
 	Utils.apply_flag_icon(btn, opponent)
 	# G4F-17: the HUD card whispers the expiry fork — tooltip names where
 	# the truce is heading (peace vs collapse) without growing the card.
+	# PC-R2 / PC-F44 (S13e part 2): the tooltip reads the one wording — what
+	# the truce keeps, where it heads, the cure priced.
+	var keeps = str(war_data.get("armistice_keeps_line", ""))
+	var heading = str(war_data.get("armistice_heading_line", ""))
+	var cure = str(war_data.get("armistice_cure_line", ""))
 	var projected = str(war_data.get("armistice_projected_outcome", ""))
-	if projected == "peace":
+	if keeps != "" or heading != "":
+		# PC-X11: one part a line, wrapped — a tooltip never wraps itself
+		var tip = "Armistice with %s — %d turns left.\n%s\n%s" % [opponent_display, remaining, keeps, heading]
+		if cure != "":
+			tip += "\n" + cure
+		btn.tooltip_text = Utils.wrap_text(tip.strip_edges(), 100)
+	elif projected == "peace":
 		btn.tooltip_text = "Armistice with %s — %d turns left, on course for peace." % [opponent_display, remaining]
 	elif projected == "war":
 		btn.tooltip_text = "Armistice with %s — %d turns left, on course to collapse back to war unless relations heal." % [opponent_display, remaining]

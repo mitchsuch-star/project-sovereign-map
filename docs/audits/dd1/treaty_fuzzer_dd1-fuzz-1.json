@@ -1,38 +1,38 @@
 {
  "seed": "dd1-fuzz-1",
  "steps": 1000,
- "seconds": 54.3,
- "final_turn": 40,
+ "seconds": 57.9,
+ "final_turn": 49,
  "verbs": {
-  "white_peace": 81,
-  "make_vassal": 42,
+  "white_peace": 82,
+  "make_vassal": 43,
   "propose": 137,
   "common_peace": 52,
-  "answer": 165,
-  "end_turn": 332,
+  "answer": 159,
+  "end_turn": 336,
   "declare_war": 88,
   "break": 50,
-  "summon": 28,
-  "release_vassal": 25
+  "summon": 27,
+  "release_vassal": 26
  },
  "refusals": {
-  "propose: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 113,
+  "propose: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 111,
   "declare_war: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 72,
-  "summon: The campaign has ended — no Congress will sit.": 25,
+  "summon: The campaign has ended — no Congress will sit.": 24,
+  "propose: Insufficient Diplomatic Points. This proposal costs N DP, but we only have N.": 5,
+  "make_vassal: Portugal submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 5,
   "make_vassal: Naples still stands — Naples is its own and N of its corps are in the field (its war score +N; it submits at -N). Take ": 4,
   "make_vassal: Russia still stands — Vilna is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 4,
-  "make_vassal: Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 4,
+  "make_vassal: Cannot vassalize Saxony: recently released (N turns remaining).": 4,
   "make_vassal: Spain still stands — Madrid is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 4,
-  "make_vassal: Portugal submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 4,
-  "propose: Insufficient Diplomatic Points. This proposal costs N DP, but we only have N.": 3,
   "summon: The Congress cannot be summoned on N titled provinces — N are needed (N more to win and settle).": 3,
-  "make_vassal: Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 3,
   "make_vassal: Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: N% of France).": 3,
   "declare_war: Prussia fights beside us in the war with Britain — end that war first.": 2,
   "make_vassal: Sardinia submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 2,
   "make_vassal: Denmark still stands — Copenhagen is its own and N of its corps are in the field (its war score +N; it submits at -N). ": 2,
   "make_vassal: The Papal States submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table inste": 2,
   "make_vassal: Austria still stands — Vienna is its own and N of its corps are in the field (its war score +N; it submits at -N). Take": 2,
+  "make_vassal: Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 2,
   "make_vassal: Britain still stands — London is its own and N of its corps are in the field (its war score +N; it submits at -N). Take": 1,
   "propose: We already have Peace with Hesse. Talleyrand sees no purpose in proposing what we already possess.": 1,
   "propose: We already have Peace with Prussia. Talleyrand sees no purpose in proposing what we already possess.": 1,
@@ -50,33 +50,37 @@
   "propose: Relations with Portugal stand at -N; a Defensive Alliance needs N.": 1,
   "make_vassal: Austria still stands — Vienna is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 1,
   "make_vassal: Cannot vassalize PapalStates: PapalStates is too powerful to vassalize (power: N% of France).": 1,
+  "answer: Talleyrand finds no counter Britain could take — the offer stands.": 1,
   "propose: Cannot vassalize Russia: Russia is too powerful to vassalize (power: N% of France).": 1,
   "propose: Relations with the Papal States stand at -N; a Non-Aggression needs N.": 1,
   "propose: Relations with Switzerland stand at -N; a Non-Aggression needs N.": 1,
   "propose: We already have Peace with Britain. Talleyrand sees no purpose in proposing what we already possess.": 1,
   "make_vassal: Cannot vassalize Russia: Russia is too powerful to vassalize (power: N% of France).": 1,
-  "declare_war: Our peace with Denmark is fresh: no war may be declared on her for N more turns.": 1,
   "propose: Relations with Sardinia stand at -N; an Open Borders needs -N.": 1,
-  "propose: Relations with the Duchy of Normandy stand at -N; a Non-Aggression needs N.": 1,
-  "propose: We already have Peace with PapalStates. Talleyrand sees no purpose in proposing what we already possess.": 1,
-  "propose: We already have Peace with Holland. Talleyrand sees no purpose in proposing what we already possess.": 1,
-  "propose: Relations with Austria stand at -N; a Non-Aggression needs N.": 1,
+  "common_peace: A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.": 1,
+  "propose: Relations with Sweden stand at -N; a Non-Aggression needs N.": 1,
+  "propose: Relations with Spain stand at -N; a Defensive Alliance needs N.": 1,
+  "white_peace: Resolve the active settlement review before opening another war's settlement.": 1,
+  "propose: We already have Open Borders with Normandy. Talleyrand sees no purpose in proposing what we already possess.": 1,
+  "propose: Relations with Sardinia stand at -N; a Non-Aggression needs N.": 1,
+  "answer: Relations with Sardinia stand at -N; a Non-Aggression needs N.": 1,
   "make_vassal: Britain still stands — London is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 1,
   "make_vassal: Prussia still stands — Berlin is its own and N of its corps are in the field (its war score +N; it submits at -N). Take": 1
  },
  "transitions": {
   "WAR→PEACE": 20,
   "None→WAR": 17,
-  "PEACE→WAR": 9,
-  "OPEN_BORDERS→PEACE": 5,
+  "PEACE→WAR": 10,
+  "OPEN_BORDERS→PEACE": 6,
+  "None→OPEN_BORDERS": 4,
+  "VASSAL→PEACE": 4,
   "ALLIANCE→DEFENSIVE_ALLIANCE": 4,
-  "None→OPEN_BORDERS": 3,
-  "VASSAL→PEACE": 3,
   "DEFENSIVE_ALLIANCE→NON_AGGRESSION": 3,
   "None→VASSAL": 2,
   "NON_AGGRESSION→OPEN_BORDERS": 2,
   "ALLIANCE→PEACE": 1,
-  "NON_AGGRESSION→WAR": 1
+  "NON_AGGRESSION→WAR": 1,
+  "WAR→VASSAL": 1
  },
  "invalid_transitions": {
   "ALLIANCE→PEACE (nation_eliminated)": 1
@@ -594,7 +598,8 @@
    "i": 81,
    "verb": "answer",
    "detail": "incoming_proposal → counter_ai_proposal",
-   "ok": true
+   "ok": false,
+   "refused": "Talleyrand finds no counter Britain could take — the offer stands."
   },
   {
    "i": 82,
@@ -688,351 +693,348 @@
   {
    "i": 96,
    "verb": "common_peace",
-   "detail": "common peace Sweden (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "detail": "",
+   "ok": false,
+   "skipped": "no war"
   },
   {
    "i": 97,
-   "verb": "answer",
-   "detail": "incoming_proposal → reject_ai_proposal",
-   "ok": true
-  },
-  {
-   "i": 98,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 99,
-   "verb": "make_vassal",
-   "detail": "Russia",
-   "ok": false,
-   "refused": "Cannot vassalize Russia: Russia is too powerful to vassalize (power: 520% of France)."
-  },
-  {
-   "i": 100,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 101,
    "verb": "end_turn",
    "detail": "turn 28",
    "ok": true
   },
   {
-   "i": 102,
-   "verb": "propose",
-   "detail": "armistice → Switzerland (execute_proposal)",
-   "ok": true
-  },
-  {
-   "i": 103,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 104,
+   "i": 98,
    "verb": "end_turn",
    "detail": "turn 29",
    "ok": true
   },
   {
-   "i": 105,
-   "verb": "white_peace",
-   "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 106,
-   "verb": "declare_war",
-   "detail": "Denmark (conquest)",
+   "i": 99,
+   "verb": "answer",
+   "detail": "",
    "ok": false,
-   "refused": "Our peace with Denmark is fresh: no war may be declared on her for 2 more turns."
+   "skipped": "no dialogue"
   },
   {
-   "i": 107,
+   "i": 100,
+   "verb": "make_vassal",
+   "detail": "Russia",
+   "ok": false,
+   "refused": "Cannot vassalize Russia: Russia is too powerful to vassalize (power: 875% of France)."
+  },
+  {
+   "i": 101,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 102,
    "verb": "end_turn",
    "detail": "turn 30",
    "ok": true
   },
   {
-   "i": 108,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The Congress cannot be summoned on 3 titled provinces — 45 are needed (42 more to win and settle)."
+   "i": 103,
+   "verb": "propose",
+   "detail": "armistice → Switzerland (execute_proposal)",
+   "ok": true
   },
   {
-   "i": 109,
+   "i": 104,
+   "verb": "answer",
+   "detail": "incoming_proposal → accept_ai_proposal",
+   "ok": true
+  },
+  {
+   "i": 105,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 106,
    "verb": "end_turn",
    "detail": "turn 31",
    "ok": true
   },
   {
-   "i": 110,
-   "verb": "propose",
-   "detail": "open_borders → Sardinia (execute_proposal)",
-   "ok": false,
-   "refused": "Relations with Sardinia stand at -96; an Open Borders needs -20."
-  },
-  {
-   "i": 111,
-   "verb": "common_peace",
-   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 112,
-   "verb": "common_peace",
-   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 113,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The Congress cannot be summoned on 3 titled provinces — 45 are needed (42 more to win and settle)."
-  },
-  {
-   "i": 114,
-   "verb": "white_peace",
-   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 115,
-   "verb": "end_turn",
-   "detail": "turn 32",
-   "ok": true
-  },
-  {
-   "i": 116,
-   "verb": "make_vassal",
-   "detail": "Switzerland",
-   "ok": false,
-   "refused": "Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 117,
-   "verb": "end_turn",
-   "detail": "turn 33",
-   "ok": true
-  },
-  {
-   "i": 118,
-   "verb": "declare_war",
-   "detail": "Russia (conquest)",
-   "ok": true
-  },
-  {
-   "i": 119,
-   "verb": "white_peace",
-   "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 120,
-   "verb": "end_turn",
-   "detail": "turn 34",
-   "ok": true
-  },
-  {
-   "i": 121,
-   "verb": "end_turn",
-   "detail": "turn 35",
-   "ok": true
-  },
-  {
-   "i": 122,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The Congress cannot be summoned on 3 titled provinces — 45 are needed (42 more to win and settle)."
-  },
-  {
-   "i": 123,
-   "verb": "end_turn",
-   "detail": "turn 36",
-   "ok": true
-  },
-  {
-   "i": 124,
-   "verb": "break",
-   "detail": "Ottoman",
-   "ok": true
-  },
-  {
-   "i": 125,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 126,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 127,
-   "verb": "break",
-   "detail": "PapalStates",
-   "ok": true
-  },
-  {
-   "i": 128,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 129,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 130,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 131,
-   "verb": "break",
-   "detail": "Spain",
-   "ok": true
-  },
-  {
-   "i": 132,
-   "verb": "end_turn",
-   "detail": "turn 37",
-   "ok": true
-  },
-  {
-   "i": 133,
-   "verb": "answer",
-   "detail": "incoming_proposal → reject_ai_proposal",
-   "ok": true
-  },
-  {
-   "i": 134,
-   "verb": "end_turn",
-   "detail": "turn 38",
-   "ok": true
-  },
-  {
-   "i": 135,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 136,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 137,
+   "i": 107,
    "verb": "declare_war",
    "detail": "Denmark (conquest)",
    "ok": true
   },
   {
-   "i": 138,
-   "verb": "common_peace",
-   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
+   "i": 108,
+   "verb": "end_turn",
+   "detail": "turn 32",
    "ok": true
   },
   {
-   "i": 139,
+   "i": 109,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 2 titled provinces — 45 are needed (43 more to win and settle)."
+  },
+  {
+   "i": 110,
+   "verb": "end_turn",
+   "detail": "turn 33",
+   "ok": true
+  },
+  {
+   "i": 111,
+   "verb": "propose",
+   "detail": "open_borders → Sardinia (execute_proposal)",
+   "ok": false,
+   "refused": "Relations with Sardinia stand at -98; an Open Borders needs -20."
+  },
+  {
+   "i": 112,
+   "verb": "common_peace",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice."
+  },
+  {
+   "i": 113,
+   "verb": "common_peace",
+   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 114,
+   "verb": "white_peace",
+   "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 115,
+   "verb": "white_peace",
+   "detail": "white peace Portugal (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 116,
+   "verb": "answer",
+   "detail": "proposal_confirm → reconsider",
+   "ok": true
+  },
+  {
+   "i": 117,
+   "verb": "end_turn",
+   "detail": "turn 34",
+   "ok": true
+  },
+  {
+   "i": 118,
+   "verb": "white_peace",
+   "detail": "white peace Sweden (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 119,
+   "verb": "end_turn",
+   "detail": "turn 35",
+   "ok": true
+  },
+  {
+   "i": 120,
+   "verb": "end_turn",
+   "detail": "turn 36",
+   "ok": true
+  },
+  {
+   "i": 121,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The Congress cannot be summoned on 5 titled provinces — 45 are needed (40 more to win and settle)."
+  },
+  {
+   "i": 122,
+   "verb": "end_turn",
+   "detail": "turn 37",
+   "ok": true
+  },
+  {
+   "i": 123,
+   "verb": "break",
+   "detail": "Spain",
+   "ok": true
+  },
+  {
+   "i": 124,
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "ok": true
+  },
+  {
+   "i": 125,
+   "verb": "answer",
+   "detail": "settlement_confirm → settlement_dial_harsher",
+   "ok": true
+  },
+  {
+   "i": 126,
+   "verb": "propose",
+   "detail": "non_aggression → Sweden (execute_proposal)",
+   "ok": false,
+   "refused": "Relations with Sweden stand at -100; a Non-Aggression needs 0."
+  },
+  {
+   "i": 127,
+   "verb": "end_turn",
+   "detail": "turn 38",
+   "ok": true
+  },
+  {
+   "i": 128,
    "verb": "end_turn",
    "detail": "turn 39",
    "ok": true
   },
   {
-   "i": 140,
+   "i": 129,
    "verb": "end_turn",
    "detail": "turn 40",
+   "ok": true
+  },
+  {
+   "i": 130,
+   "verb": "end_turn",
+   "detail": "turn 41",
+   "ok": true
+  },
+  {
+   "i": 131,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 132,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 133,
+   "verb": "white_peace",
+   "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 134,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 135,
+   "verb": "end_turn",
+   "detail": "turn 42",
+   "ok": true
+  },
+  {
+   "i": 136,
+   "verb": "propose",
+   "detail": "defensive_alliance → Spain (execute_proposal)",
+   "ok": false,
+   "refused": "Relations with Spain stand at -95; a Defensive Alliance needs 20."
+  },
+  {
+   "i": 137,
+   "verb": "end_turn",
+   "detail": "turn 43",
+   "ok": true
+  },
+  {
+   "i": 138,
+   "verb": "end_turn",
+   "detail": "turn 44",
+   "ok": true
+  },
+  {
+   "i": 139,
+   "verb": "end_turn",
+   "detail": "turn 45",
+   "ok": true
+  },
+  {
+   "i": 140,
+   "verb": "end_turn",
+   "detail": "turn 46",
    "ok": true
   },
   {
    "i": 141,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 47",
    "ok": true
   },
   {
    "i": 142,
-   "verb": "end_turn",
-   "detail": "turn 40",
+   "verb": "declare_war",
+   "detail": "Russia (conquest)",
    "ok": true
   },
   {
    "i": 143,
-   "verb": "end_turn",
-   "detail": "turn 40",
+   "verb": "answer",
+   "detail": "incoming_settlement_offer → request_settlement_revision",
    "ok": true
   },
   {
    "i": 144,
-   "verb": "declare_war",
-   "detail": "Spain (conquest)",
-   "ok": true
+   "verb": "white_peace",
+   "detail": "Russia",
+   "ok": false,
+   "refused": "Resolve the active settlement review before opening another war's settlement."
   },
   {
    "i": 145,
-   "verb": "answer",
-   "detail": "",
+   "verb": "propose",
+   "detail": "defensive_alliance → Britain",
    "ok": false,
-   "skipped": "no dialogue"
+   "refused": "Insufficient Diplomatic Points. This proposal costs 7 DP, but we only have 6."
   },
   {
    "i": 146,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "make_vassal",
+   "detail": "Saxony",
+   "ok": true
   },
   {
    "i": 147,
-   "verb": "propose",
-   "detail": "non_aggression → Normandy (execute_proposal)",
+   "verb": "summon",
+   "detail": "",
    "ok": false,
-   "refused": "Relations with the Duchy of Normandy stand at -78; a Non-Aggression needs 0."
+   "refused": "The Congress cannot be summoned on 5 titled provinces — 45 are needed (40 more to win and settle)."
   },
   {
    "i": 148,
-   "verb": "declare_war",
-   "detail": "Austria (conquest)",
+   "verb": "release_vassal",
+   "detail": "Saxony",
    "ok": true
   },
   {
    "i": 149,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 48",
    "ok": true
   },
   {
    "i": 150,
    "verb": "white_peace",
-   "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
+   "detail": "white peace Denmark (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
@@ -1058,262 +1060,258 @@
   {
    "i": 154,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 155,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 156,
    "verb": "answer",
-   "detail": "proposal_confirm → modify_generous",
-   "ok": true
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 157,
-   "verb": "end_turn",
-   "detail": "turn 40",
+   "verb": "break",
+   "detail": "Ottoman",
    "ok": true
   },
   {
    "i": 158,
-   "verb": "white_peace",
-   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 159,
-   "verb": "propose",
-   "detail": "armistice → PapalStates",
-   "ok": false,
-   "refused": "We already have Peace with PapalStates. Talleyrand sees no purpose in proposing what we already possess."
+   "verb": "white_peace",
+   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 160,
-   "verb": "answer",
-   "detail": "proposal_confirm → modify_generous",
+   "verb": "white_peace",
+   "detail": "white peace Denmark (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 161,
-   "verb": "declare_war",
-   "detail": "PapalStates (conquest)",
+   "verb": "end_turn",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 162,
    "verb": "answer",
-   "detail": "proposal_confirm → reconsider",
-   "ok": true
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 163,
-   "verb": "end_turn",
-   "detail": "turn 40",
-   "ok": true
+   "verb": "propose",
+   "detail": "armistice → Normandy",
+   "ok": false,
+   "refused": "We already have Open Borders with Normandy. Talleyrand sees no purpose in proposing what we already possess."
   },
   {
    "i": 164,
-   "verb": "end_turn",
-   "detail": "turn 40",
+   "verb": "declare_war",
+   "detail": "Saxony (conquest)",
    "ok": true
   },
   {
    "i": 165,
-   "verb": "white_peace",
-   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 166,
-   "verb": "propose",
-   "detail": "alliance → Russia",
-   "ok": false,
-   "refused": "Insufficient Diplomatic Points. This proposal costs 9 DP, but we only have 6."
+   "verb": "declare_war",
+   "detail": "PapalStates (conquest)",
+   "ok": true
   },
   {
    "i": 167,
-   "verb": "end_turn",
-   "detail": "turn 40",
+   "verb": "common_peace",
+   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 168,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 169,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 170,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 171,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 172,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 173,
+   "verb": "break",
+   "detail": "Normandy",
+   "ok": true
+  },
+  {
+   "i": 174,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 175,
+   "verb": "declare_war",
+   "detail": "Sardinia (conquest)",
+   "ok": true
+  },
+  {
+   "i": 176,
+   "verb": "make_vassal",
+   "detail": "Portugal",
+   "ok": false,
+   "refused": "Portugal submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 177,
+   "verb": "propose",
+   "detail": "non_aggression → Sardinia (execute_proposal)",
+   "ok": false,
+   "refused": "Relations with Sardinia stand at -100; a Non-Aggression needs 0."
+  },
+  {
+   "i": 178,
+   "verb": "white_peace",
+   "detail": "white peace Sardinia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 179,
+   "verb": "answer",
+   "detail": "proposal_confirm → modify_generous",
+   "ok": true
+  },
+  {
+   "i": 180,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 181,
+   "verb": "declare_war",
+   "detail": "Spain (conquest)",
+   "ok": true
+  },
+  {
+   "i": 182,
+   "verb": "answer",
+   "detail": "proposal_confirm → less_generous",
+   "ok": true
+  },
+  {
+   "i": 183,
+   "verb": "answer",
+   "detail": "proposal_confirm → modify_generous",
+   "ok": true
+  },
+  {
+   "i": 184,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 185,
+   "verb": "answer",
+   "detail": "proposal_confirm → execute_proposal",
+   "ok": false,
+   "refused": "Relations with Sardinia stand at -100; a Non-Aggression needs 0."
+  },
+  {
+   "i": 186,
+   "verb": "propose",
+   "detail": "defensive_alliance → Prussia",
+   "ok": false,
+   "refused": "Insufficient Diplomatic Points. This proposal costs 7 DP, but we only have 6."
+  },
+  {
+   "i": 187,
+   "verb": "answer",
+   "detail": "proposal_confirm → reconsider",
+   "ok": true
+  },
+  {
+   "i": 188,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 189,
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
+  },
+  {
+   "i": 190,
    "verb": "break",
    "detail": "",
    "ok": false,
    "skipped": "no treaty of ours"
   },
   {
-   "i": 170,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 171,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 172,
-   "verb": "end_turn",
-   "detail": "turn 40",
-   "ok": true
-  },
-  {
-   "i": 173,
-   "verb": "end_turn",
-   "detail": "turn 40",
-   "ok": true
-  },
-  {
-   "i": 174,
-   "verb": "declare_war",
-   "detail": "Sardinia (forced_alliance)",
-   "ok": true
-  },
-  {
-   "i": 175,
-   "verb": "white_peace",
-   "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 176,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 177,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 178,
-   "verb": "propose",
-   "detail": "peace → Holland",
-   "ok": false,
-   "refused": "We already have Peace with Holland. Talleyrand sees no purpose in proposing what we already possess."
-  },
-  {
-   "i": 179,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 180,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 181,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 182,
-   "verb": "white_peace",
-   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 183,
-   "verb": "end_turn",
-   "detail": "turn 40",
-   "ok": true
-  },
-  {
-   "i": 184,
-   "verb": "propose",
-   "detail": "non_aggression → Austria (execute_proposal)",
-   "ok": false,
-   "refused": "Relations with Austria stand at -100; a Non-Aggression needs 0."
-  },
-  {
-   "i": 185,
-   "verb": "answer",
-   "detail": "proposal_confirm → reconsider",
-   "ok": true
-  },
-  {
-   "i": 186,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 187,
-   "verb": "propose",
-   "detail": "peace → Prussia (execute_proposal)",
-   "ok": true
-  },
-  {
-   "i": 188,
-   "verb": "end_turn",
-   "detail": "turn 40",
-   "ok": true
-  },
-  {
-   "i": 189,
-   "verb": "propose",
-   "detail": "peace → Sardinia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 190,
-   "verb": "end_turn",
-   "detail": "turn 40",
-   "ok": true
-  },
-  {
    "i": 191,
-   "verb": "end_turn",
-   "detail": "turn 40",
+   "verb": "declare_war",
+   "detail": "Austria (forced_alliance)",
    "ok": true
   },
   {
    "i": 192,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 49",
+   "ok": true
   },
   {
    "i": 193,
-   "verb": "end_turn",
-   "detail": "turn 40",
-   "ok": true
+   "verb": "propose",
+   "detail": "alliance → Austria",
+   "ok": false,
+   "refused": "Insufficient Diplomatic Points. This proposal costs 9 DP, but we only have 6."
   },
   {
    "i": 194,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1334,7 +1332,7 @@
    "verb": "make_vassal",
    "detail": "Britain",
    "ok": false,
-   "refused": "Britain still stands — London is its own and 3 of its corps are in the field (its war score +64; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Britain still stands — London is its own and 3 of its corps are in the field (its war score +31; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 198,
@@ -1360,7 +1358,7 @@
   {
    "i": 201,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1373,9 +1371,8 @@
   {
    "i": 203,
    "verb": "propose",
-   "detail": "peace → Russia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "detail": "peace → Russia (execute_proposal)",
+   "ok": true
   },
   {
    "i": 204,
@@ -1399,7 +1396,7 @@
   {
    "i": 207,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1433,7 +1430,7 @@
   {
    "i": 212,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1460,7 +1457,7 @@
   {
    "i": 216,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1473,7 +1470,7 @@
   {
    "i": 218,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1542,7 +1539,7 @@
   {
    "i": 228,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1582,7 +1579,7 @@
   {
    "i": 234,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1601,7 +1598,7 @@
   {
    "i": 237,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1613,13 +1610,13 @@
   {
    "i": 239,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 240,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1632,7 +1629,7 @@
   {
    "i": 242,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1645,7 +1642,7 @@
   {
    "i": 244,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1658,7 +1655,7 @@
   {
    "i": 246,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1711,7 +1708,7 @@
   {
    "i": 254,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1740,7 +1737,7 @@
    "verb": "make_vassal",
    "detail": "Saxony",
    "ok": false,
-   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+   "refused": "Cannot vassalize Saxony: recently released (3 turns remaining)."
   },
   {
    "i": 259,
@@ -1759,7 +1756,7 @@
   {
    "i": 261,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1807,7 +1804,7 @@
   {
    "i": 268,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1848,19 +1845,19 @@
   {
    "i": 274,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 275,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 276,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1880,13 +1877,13 @@
   {
    "i": 279,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 280,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1899,13 +1896,13 @@
   {
    "i": 282,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 283,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1945,7 +1942,7 @@
   {
    "i": 289,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -1979,13 +1976,13 @@
   {
    "i": 294,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 295,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2025,7 +2022,7 @@
   {
    "i": 301,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2044,7 +2041,7 @@
   {
    "i": 304,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2077,7 +2074,7 @@
   {
    "i": 309,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2185,7 +2182,7 @@
   {
    "i": 325,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2193,7 +2190,7 @@
    "verb": "make_vassal",
    "detail": "Ottoman",
    "ok": false,
-   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 1333% of France)."
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 416% of France)."
   },
   {
    "i": 327,
@@ -2205,13 +2202,13 @@
   {
    "i": 328,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 329,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2224,7 +2221,7 @@
   {
    "i": 331,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2237,7 +2234,7 @@
   {
    "i": 333,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2261,7 +2258,7 @@
   {
    "i": 337,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2280,7 +2277,7 @@
   {
    "i": 340,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2328,13 +2325,13 @@
   {
    "i": 347,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 348,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2375,7 +2372,7 @@
   {
    "i": 354,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2388,7 +2385,7 @@
   {
    "i": 356,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2401,19 +2398,19 @@
   {
    "i": 358,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 359,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 360,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2426,7 +2423,7 @@
   {
    "i": 362,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2438,13 +2435,13 @@
   {
    "i": 364,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 365,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2457,7 +2454,7 @@
   {
    "i": 367,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2469,7 +2466,7 @@
   {
    "i": 369,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2524,13 +2521,13 @@
   {
    "i": 377,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 378,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2556,7 +2553,7 @@
   {
    "i": 382,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2575,13 +2572,13 @@
   {
    "i": 385,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 386,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2607,7 +2604,7 @@
   {
    "i": 390,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2627,7 +2624,7 @@
   {
    "i": 393,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2653,7 +2650,7 @@
   {
    "i": 397,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2665,7 +2662,7 @@
   {
    "i": 399,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2679,7 +2676,7 @@
    "verb": "make_vassal",
    "detail": "Saxony",
    "ok": false,
-   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+   "refused": "Cannot vassalize Saxony: recently released (3 turns remaining)."
   },
   {
    "i": 402,
@@ -2697,7 +2694,7 @@
   {
    "i": 404,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2709,19 +2706,19 @@
   {
    "i": 406,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 407,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 408,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2741,7 +2738,7 @@
   {
    "i": 411,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2754,19 +2751,19 @@
   {
    "i": 413,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 414,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 415,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2786,7 +2783,7 @@
   {
    "i": 418,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2806,19 +2803,19 @@
   {
    "i": 421,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 422,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 423,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2831,19 +2828,19 @@
   {
    "i": 425,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 426,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 427,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2890,7 +2887,7 @@
   {
    "i": 434,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2902,25 +2899,25 @@
   {
    "i": 436,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 437,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 438,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 439,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2940,7 +2937,7 @@
   {
    "i": 442,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2960,7 +2957,7 @@
   {
    "i": 445,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -2979,7 +2976,7 @@
   {
    "i": 448,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3029,13 +3026,13 @@
   {
    "i": 456,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 457,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3048,19 +3045,19 @@
   {
    "i": 459,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 460,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 461,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3073,7 +3070,7 @@
   {
    "i": 463,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3113,7 +3110,7 @@
   {
    "i": 469,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3133,19 +3130,19 @@
   {
    "i": 472,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 473,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 474,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3172,7 +3169,7 @@
   {
    "i": 478,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3184,13 +3181,13 @@
   {
    "i": 480,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 481,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3210,13 +3207,13 @@
   {
    "i": 484,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 485,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3236,13 +3233,13 @@
   {
    "i": 488,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 489,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3268,7 +3265,7 @@
   {
    "i": 493,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3334,7 +3331,7 @@
   {
    "i": 503,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3368,7 +3365,7 @@
   {
    "i": 508,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3408,7 +3405,7 @@
   {
    "i": 514,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3435,7 +3432,7 @@
   {
    "i": 518,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3455,7 +3452,7 @@
   {
    "i": 521,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3467,7 +3464,7 @@
   {
    "i": 523,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3480,7 +3477,7 @@
   {
    "i": 525,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3500,7 +3497,7 @@
   {
    "i": 528,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3512,19 +3509,19 @@
   {
    "i": 530,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 531,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 532,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3551,7 +3548,7 @@
   {
    "i": 536,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3582,7 +3579,7 @@
   {
    "i": 541,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3602,7 +3599,7 @@
   {
    "i": 544,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3615,7 +3612,7 @@
   {
    "i": 546,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3642,7 +3639,7 @@
   {
    "i": 550,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3702,7 +3699,7 @@
   {
    "i": 559,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3715,7 +3712,7 @@
   {
    "i": 561,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3735,7 +3732,7 @@
   {
    "i": 564,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3760,7 +3757,7 @@
   {
    "i": 568,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3773,7 +3770,7 @@
   {
    "i": 570,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3792,7 +3789,7 @@
   {
    "i": 573,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3805,7 +3802,7 @@
   {
    "i": 575,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3818,7 +3815,7 @@
   {
    "i": 577,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3872,19 +3869,19 @@
   {
    "i": 585,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 586,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 587,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3911,19 +3908,19 @@
   {
    "i": 591,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 592,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 593,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3943,25 +3940,25 @@
   {
    "i": 596,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 597,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 598,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 599,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3981,7 +3978,7 @@
   {
    "i": 602,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -3994,7 +3991,7 @@
   {
    "i": 604,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4034,13 +4031,13 @@
   {
    "i": 610,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 611,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4086,13 +4083,13 @@
   {
    "i": 618,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 619,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4133,19 +4130,19 @@
   {
    "i": 625,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 626,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 627,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4178,13 +4175,13 @@
   {
    "i": 632,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 633,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4197,7 +4194,7 @@
   {
    "i": 635,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4210,7 +4207,7 @@
   {
    "i": 637,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4223,7 +4220,7 @@
   {
    "i": 639,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4271,7 +4268,7 @@
   {
    "i": 646,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4332,7 +4329,7 @@
   {
    "i": 655,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4345,13 +4342,13 @@
   {
    "i": 657,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 658,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4371,7 +4368,7 @@
   {
    "i": 661,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4384,7 +4381,7 @@
   {
    "i": 663,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4397,7 +4394,7 @@
   {
    "i": 665,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4410,13 +4407,13 @@
   {
    "i": 667,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 668,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4456,7 +4453,7 @@
   {
    "i": 674,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4495,7 +4492,7 @@
   {
    "i": 680,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4515,7 +4512,7 @@
   {
    "i": 683,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4535,13 +4532,13 @@
   {
    "i": 686,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 687,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4556,7 +4553,7 @@
    "verb": "make_vassal",
    "detail": "Ottoman",
    "ok": false,
-   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 1333% of France)."
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 416% of France)."
   },
   {
    "i": 690,
@@ -4589,13 +4586,13 @@
   {
    "i": 694,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 695,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4647,7 +4644,7 @@
   {
    "i": 703,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4681,7 +4678,7 @@
   {
    "i": 708,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4694,7 +4691,7 @@
   {
    "i": 710,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4714,13 +4711,13 @@
   {
    "i": 713,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 714,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4733,7 +4730,7 @@
   {
    "i": 716,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4752,7 +4749,7 @@
   {
    "i": 719,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4765,19 +4762,19 @@
   {
    "i": 721,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 722,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 723,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4824,7 +4821,7 @@
   {
    "i": 730,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4837,13 +4834,13 @@
   {
    "i": 732,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 733,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4890,7 +4887,7 @@
   {
    "i": 740,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4902,13 +4899,13 @@
   {
    "i": 742,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 743,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4921,31 +4918,31 @@
   {
    "i": 745,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 746,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 747,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 748,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 749,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -4991,7 +4988,7 @@
   {
    "i": 756,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5016,7 +5013,7 @@
   {
    "i": 760,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5061,7 +5058,7 @@
   {
    "i": 767,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5074,13 +5071,13 @@
   {
    "i": 769,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 770,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5093,7 +5090,7 @@
   {
    "i": 772,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5113,19 +5110,19 @@
   {
    "i": 775,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 776,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 777,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5152,13 +5149,13 @@
   {
    "i": 781,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 782,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5178,7 +5175,7 @@
   {
    "i": 785,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5204,7 +5201,7 @@
   {
    "i": 789,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5238,13 +5235,13 @@
   {
    "i": 794,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 795,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5270,13 +5267,13 @@
   {
    "i": 799,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 800,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5289,7 +5286,7 @@
   {
    "i": 802,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5315,13 +5312,13 @@
   {
    "i": 806,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 807,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5348,7 +5345,7 @@
   {
    "i": 811,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5369,12 +5366,12 @@
    "verb": "make_vassal",
    "detail": "Saxony",
    "ok": false,
-   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+   "refused": "Cannot vassalize Saxony: recently released (3 turns remaining)."
   },
   {
    "i": 815,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5387,7 +5384,7 @@
   {
    "i": 817,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5395,12 +5392,12 @@
    "verb": "make_vassal",
    "detail": "Saxony",
    "ok": false,
-   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+   "refused": "Cannot vassalize Saxony: recently released (3 turns remaining)."
   },
   {
    "i": 819,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5413,13 +5410,13 @@
   {
    "i": 821,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 822,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5438,7 +5435,7 @@
   {
    "i": 825,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5458,7 +5455,7 @@
   {
    "i": 828,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5471,7 +5468,7 @@
   {
    "i": 830,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5484,13 +5481,13 @@
   {
    "i": 832,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 833,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5503,19 +5500,19 @@
   {
    "i": 835,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 836,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 837,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5541,7 +5538,7 @@
   {
    "i": 841,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5581,7 +5578,7 @@
   {
    "i": 847,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5600,25 +5597,25 @@
   {
    "i": 850,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 851,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 852,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 853,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5659,7 +5656,7 @@
   {
    "i": 859,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5672,13 +5669,13 @@
   {
    "i": 861,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 862,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5691,7 +5688,7 @@
   {
    "i": 864,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5718,31 +5715,31 @@
   {
    "i": 868,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 869,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 870,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 871,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 872,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5783,7 +5780,7 @@
   {
    "i": 878,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5809,13 +5806,13 @@
   {
    "i": 882,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 883,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5828,13 +5825,13 @@
   {
    "i": 885,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 886,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5868,7 +5865,7 @@
   {
    "i": 891,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5876,7 +5873,7 @@
    "verb": "make_vassal",
    "detail": "Ottoman",
    "ok": false,
-   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 1333% of France)."
+   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 416% of France)."
   },
   {
    "i": 893,
@@ -5894,7 +5891,7 @@
   {
    "i": 895,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5921,13 +5918,13 @@
   {
    "i": 899,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 900,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5946,7 +5943,7 @@
   {
    "i": 903,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -5958,7 +5955,7 @@
   {
    "i": 905,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6023,7 +6020,7 @@
   {
    "i": 915,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6056,7 +6053,7 @@
   {
    "i": 920,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6090,7 +6087,7 @@
   {
    "i": 925,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6135,7 +6132,7 @@
   {
    "i": 932,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6155,7 +6152,7 @@
   {
    "i": 935,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6202,19 +6199,19 @@
   {
    "i": 942,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 943,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 944,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6227,7 +6224,7 @@
   {
    "i": 946,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6240,13 +6237,13 @@
   {
    "i": 948,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 949,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6259,7 +6256,7 @@
   {
    "i": 951,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6272,13 +6269,13 @@
   {
    "i": 953,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 954,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6291,13 +6288,13 @@
   {
    "i": 956,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 957,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6316,7 +6313,7 @@
   {
    "i": 960,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6329,7 +6326,7 @@
   {
    "i": 962,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6356,13 +6353,13 @@
   {
    "i": 966,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 967,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6402,7 +6399,7 @@
   {
    "i": 973,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6415,13 +6412,13 @@
   {
    "i": 975,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 976,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6447,7 +6444,7 @@
   {
    "i": 980,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6486,7 +6483,7 @@
   {
    "i": 986,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6511,13 +6508,13 @@
   {
    "i": 990,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 991,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6537,7 +6534,7 @@
   {
    "i": 994,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6556,7 +6553,7 @@
   {
    "i": 997,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
@@ -6569,13 +6566,13 @@
   {
    "i": 999,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   },
   {
    "i": 1000,
    "verb": "end_turn",
-   "detail": "turn 40",
+   "detail": "turn 49",
    "ok": true
   }
  ]

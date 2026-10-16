@@ -2036,9 +2036,12 @@ class TestArmisticeMechanicsExplained:
         assert block["current_relation"] == -80
         assert block["projected_outcome"] == "war"
         lines = block["display_lines"]
-        assert len(lines) == 3
-        assert "5-turn ceasefire" in lines[0]
-        assert "-60" in lines[1]
+        # PC-R2 / PC-F44 (S13e part 2): the one wording — the ledger kept,
+        # the two signed exits and the collapse, the heading, then the hope
+        # and the cure where they apply.
+        assert len(lines) >= 3
+        assert "5-turn ceasefire" in lines[0] and "The ledger stands" in lines[0]
+        assert "-60" in lines[1] and "dictated peace" in lines[1]
         assert "war resumes" in lines[2]
         for key in (
             "duration_turns", "auto_peace_relation_threshold",

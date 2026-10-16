@@ -734,6 +734,54 @@ def _find_request_open_settlement_petition_context(
     return None
 
 
+def _desire_profile_claims_for_ally(
+    world: Any,
+    ally_nation: str,
+    *,
+    target_enemy: str,
+    war_id: str,
+) -> List[Dict[str, Any]]:
+    """PC-R1 (v) item 3 — the ally's BILL (ruling C item 3, the peace report
+    §46): the Slice H petition fires at the stipulation reading the ally's
+    DESIRE PROFILE where its objective carries no material claim (every
+    boot objective is `defense`, so Bavaria never asked for Tyrol on the
+    1805 board). A claim per coveted province of the enemy's homeland
+    (`NATION_DESIRE_PROFILES[...]["covets_regions"]`) that the enemy still
+    holds or our side has taken — the reward the leader may stipulate."""
+    from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
+    profile = NATION_DESIRE_PROFILES.get(str(ally_nation or "")) or {}
+    coveted = [str(r) for r in (profile.get("covets_regions") or []) if r]
+    if not coveted or not target_enemy:
+        return []
+    enemy_home = set((getattr(world, "nation_starting_regions", {}) or {}).get(target_enemy, []) or [])
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or "")) or {}
+    side_of = war.get("side_by_nation") or {}
+    ally_side = side_of.get(ally_nation)
+    claims: List[Dict[str, Any]] = []
+    for region_name in coveted:
+        if region_name not in enemy_home:
+            continue
+        region = (getattr(world, "regions", {}) or {}).get(region_name)
+        if region is None:
+            continue
+        holder = str(getattr(region, "controller", "") or "")
+        if holder == ally_nation:
+            continue
+        if holder != target_enemy and not (ally_side and side_of.get(holder) == ally_side):
+            continue
+        claims.append({
+            "ally_nation": ally_nation,
+            "claim_war_id": str(war_id or ""),
+            "claim_war_label": _war_label_for_id(world, str(war_id or "")),
+            "objective_type": "desire",
+            "target_enemy": target_enemy,
+            "claim_region": region_name,
+            "objective": {"type": "desire", "target_regions": [region_name],
+                          "target_nation": target_enemy},
+        })
+    return claims
+
+
 def _find_warn_sellout_petition_context(
     world: Any,
     *,
@@ -763,6 +811,11 @@ def _find_warn_sellout_petition_context(
                 target_enemy=str(enemy),
                 required_war_id=str(war_id or ""),
             )
+            # PC-R1 (v) item 3: a `defense` objective carries no claim —
+            # the ally's desire profile is its bill.
+            if not claims:
+                claims = _desire_profile_claims_for_ally(
+                    world, ally, target_enemy=str(enemy), war_id=str(war_id or ""))
             for claim in claims:
                 if _settlement_terms_satisfy_ally_claim(settlement_terms, claim):
                     continue
@@ -1164,6 +1217,36 @@ def _find_reward_or_restoration_petition_contexts(
                         covered_enemy_participants=covered,
                     ):
                         clause = None
+        if clause is None and not basis:
+            # PC-R1 (v) item 3 — the ally's BILL (ruling C item 3): an ally
+            # whose objective carries no material claim asks for the
+            # province her DESIRE PROFILE covets — the leader stipulates it
+            # (Pressburg Art. 6: Tyrol to Bavaria). The clause is the same
+            # valid-by-construction cession Grant injects.
+            for enemy in covered:
+                for claim in _desire_profile_claims_for_ally(
+                        world, ally, target_enemy=str(enemy), war_id=str(war_id or "")):
+                    region_obj = (getattr(world, "regions", {}) or {}).get(str(claim["claim_region"]))
+                    holder = str(getattr(region_obj, "controller", "") or "") if region_obj else ""
+                    cand = {
+                        "type": "territory_cede",
+                        "from": str(enemy),
+                        "to": ally,
+                        "region": str(claim["claim_region"]),
+                    }
+                    if holder != str(enemy) and not _petition_clause_prevalidates(
+                            world, cand, settlement_terms=terms,
+                            covered_enemy_participants=covered):
+                        continue
+                    if _petition_clause_prevalidates(
+                            world, cand, settlement_terms=terms,
+                            covered_enemy_participants=covered):
+                        clause = cand
+                        region = str(claim["claim_region"])
+                        basis = "desire"
+                        break
+                if clause is not None:
+                    break
         if clause is None or not basis:
             continue
         target_enemy = str(clause.get("from") or "")
@@ -1172,7 +1255,12 @@ def _find_reward_or_restoration_petition_contexts(
             if clause.get("type") == "territory_cede"
             else str(region or "")
         )
-        if basis == "restoration":
+        if basis == "desire":
+            basis_display = (
+                f"{ally} covets {claim_region} — {target_enemy}'s soil; "
+                f"she asks the leader to stipulate it in the peace."
+            )
+        elif basis == "restoration":
             basis_display = (
                 f"{target_enemy} occupies {claim_region} — "
                 f"{ally}'s own soil."
@@ -1774,14 +1862,21 @@ def queue_ally_settlement_petitions_for_player_action(
             covered_enemy_participants=covered_enemy_participants or [],
             settlement_terms=settlement_terms or [],
         )
-        petition = _queue_ally_settlement_petition(
-            world,
-            petition_type=ALLY_SETTLEMENT_PETITION_WARN_SELLOUT,
-            context=context,
-            trigger_action=trigger_action,
-        )
-        if petition is not None:
-            queued.append(petition)
+        # PC-R1 (v): a sellout warning backed by the ally's DESIRE profile
+        # (no objective of her own) yields to her own lost province and a
+        # promise at risk — it is queued after the bargain-honor and the
+        # reward / restoration candidates (one petition per ally per
+        # trigger, so the stronger claim wins the slot).
+        _desire_backed = bool(context and str(context.get("objective_type") or "") == "desire")
+        if not _desire_backed:
+            petition = _queue_ally_settlement_petition(
+                world,
+                petition_type=ALLY_SETTLEMENT_PETITION_WARN_SELLOUT,
+                context=context,
+                trigger_action=trigger_action,
+            )
+            if petition is not None:
+                queued.append(petition)
         if trigger_action == "stage_settlement":
             # Slice H §6 salience: a promise at risk beats a new ask —
             # bargain-honor candidates queue before reward/restoration.
@@ -1805,6 +1900,17 @@ def queue_ally_settlement_petitions_for_player_action(
                     settlement_terms=settlement_terms or [],
                 )
             )
+        if _desire_backed and context:
+            _ally = str(context.get("ally_nation") or "")
+            if _ally and _ally not in {str(p.get("ally_nation") or "") for p in queued}:
+                petition = _queue_ally_settlement_petition(
+                    world,
+                    petition_type=ALLY_SETTLEMENT_PETITION_WARN_SELLOUT,
+                    context=context,
+                    trigger_action=trigger_action,
+                )
+                if petition is not None:
+                    queued.append(petition)
         return queued
     return []
 
@@ -3164,6 +3270,12 @@ def handle_incoming_settlement_offer_action(
         if _is_offer_active_dialogue(world, dialogue):
             world.dialogue_manager.pop()
         _dismiss_offer_rail_row(world, offer_id)  # SR-2d (SR-2-X3 rider)
+        # PC-R3 (ruling I item 2): a refused dictated settlement letter
+        # ratchets the next (the offer history on the war instance).
+        if dialogue.get("dictated_tier") is not None:
+            from backend.game_logic.ai_diplomacy import note_dictated_refusal
+            note_dictated_refusal(world, str(dialogue.get("proposer_nation") or ""), actor,
+                                  channel="settlement")
         # AI-5c (§12.5): refusing a MEDIATED offer scorns the arbiter, not
         # only the belligerent — derived consequence ONLY: the pin-8
         # refusal record (which the mediator's own intent weight reads,
@@ -4041,6 +4153,12 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
                 "total_amount": int(total_amount),
                 "war_label": _war_label_for(entry),
             })
+            # PC-R3 (ruling I item 3): the last payment sends the sureties
+            # home — the same return the bilateral stream makes.
+            _sureties = [str(r) for r in (record.get("surety_regions") or []) if r]
+            if _sureties and hasattr(world, "_return_surety_regions"):
+                world._return_surety_regions(
+                    {"from": payer, "to": recipient, "surety_regions": _sureties}, "")
             # Drop the record on natural completion.
             continue
 

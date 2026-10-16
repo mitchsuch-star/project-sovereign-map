@@ -988,27 +988,22 @@ def _build_proposal_terms(
         terms["clauses"].append("neutrality_compact")
 
     elif proposal_type == "harsh_peace":
-        # R116: AI is winning badly — demand harsh terms
+        # R116: AI is winning badly — demand harsh terms.
+        # PC-R3 (ruling I, S13e part 2, October 16, 2026): the letter is
+        # DICTATED — the player's clause types by tier (`dictated_tier`:
+        # the capital held or the score past the step, plus the ratchet of
+        # refused letters), the indemnity priced to the WAR (a lump and a
+        # stream with sureties; `war_priced_indemnity`), and never a gold
+        # lump alone once the court holds the line. FA-21's purse floor
+        # survives in the tier-0 reducer only (`_reduce_p8_demands`).
         terms["type"] = "peace"  # Map to peace for acceptance formula
-        gold_demand = max(200, int(war_score * 5 * gold_mult))
-        # FA-21: the purse term is a FLOOR under the legacy formula, never a
-        # replacement. Replacing it destroys monotonicity in war score on a
-        # poor payer (the 0.40 cap eats the whole signal: measured, a demand
-        # at war score 80 stops exceeding one at 50) and it is what the
-        # row's own `fix_shape` prescribes. `max()` keeps the war-score
-        # ladder wherever the payer is too poor for the purse term to bind.
-        #
-        # ⚠ The LOW end stays purse-blind and that is a stated limit, not an
-        # oversight: at treasury 0 the legacy 200-floor still demands 270
-        # (405 for a hawk), so the row's proposed negative control — "empty
-        # chest, therefore no lump" — is unsatisfiable under this shape.
-        # EC-W4's bankrupt-payer rule lives on the multilateral channel; the
-        # bilateral one has always had a floor, and `_apply_demands` clamps
-        # the transfer to what the payer actually holds.
-        gold_demand = max(gold_demand, purse_scaled_indemnity(
-            world, recipient, war_score,
-            pair_war_age(world, nation, recipient), gold_mult))
-        terms["demands"].append({"type": "gold_lump", "value": int(gold_demand)})
+        _tier = dictated_tier(world, nation, recipient, int(war_score))
+        terms["demands"].extend(dictated_demands(
+            world, nation, recipient, int(_tier["tier"]), int(war_score), gold_mult))
+        terms["dictated_tier"] = int(_tier["tier"])
+        terms["dictated_label"] = str(_tier["label"])
+        terms["dictated_ratchet"] = int(_tier["ratchet"])
+        terms["dictated_capital_held"] = bool(_tier["capital_held"])
         diplo_key = world._make_diplo_key(nation, recipient)
         obj = getattr(world, 'war_objectives', {}).get(diplo_key, {}).get(nation, {})
         if obj and obj.get("type") == "liberation" and obj.get("concluded_turn") is None:
@@ -1023,6 +1018,449 @@ def _build_proposal_terms(
 
     return terms
 
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PC-R3 — ruling I, WHAT THE AI MAY DICTATE (the 1814 mirror; the peace
+# report §46, October 16, 2026; `docs/COALITION_SPEC.md` §6a.3 is the rule's
+# home). Golden Rule 5 is the whole ruling: the AI's harsh peace (P8, the
+# captor, the Congress rung) and its settlement letter may demand what the
+# PLAYER may — a province, a client state, a forced alliance, the System
+# where the court is its lord — priced by the player's own scorers
+# (`calculate_acceptance` on the bilateral, the per-court table on the
+# settlement). Measured before: eighteen harsh letters on three seeds, all
+# one gold lump, falling as France fell (2,543 → 363) because both channels
+# priced to the payer's PURSE.
+#   * the TIER: the letter's shape is a ladder — Reichenbach (an indemnity),
+#     Frankfurt (a province), Châtillon (a province and a client), the 1792
+#     frontiers (provinces, a client, a forced alliance) — read from the
+#     court's leverage (the recipient's capital held, or the score past
+#     `DICTATED_SCORE_STEP`) plus the RATCHET: every refused or lapsed
+#     dictated letter raises the next by a tier (an offer history on the war
+#     instance — `instance["offer_history"]`, serialized with it).
+#   * the INDEMNITY is priced to the WAR, never the purse
+#     (`war_priced_indemnity`): a lump plus a stream, with provinces held
+#     until paid (Tilsit's fortresses) — the stream's `surety_regions` return
+#     to the ceder when the last payment lands.
+#   * REFUSAL COSTS FRANCE: the Charges of Empire name the refused peace,
+#     the marshals' petitions carry it, the war panel shows the next tier.
+#   * the REGIME ARM: a Fall ends in a peace the successor government signs
+#     — recognition of the successor the term that buys one tier's leniency.
+# Seams the series holds down: `dictated_tier` (→ tier 0, the old one-lump
+# letter), `war_priced_indemnity` (→ the purse-scaled lump, no stream).
+# ═══════════════════════════════════════════════════════════════════════════
+P8_DOMINANCE_SCORE = 40        # P8's own gate (`war_score > 40` in the ladder)
+DICTATED_SCORE_STEP = 70       # without the capital, a score at or past this is Frankfurt's tier
+DICTATED_RATCHET_CAP = 2
+DICTATED_TIER_CAP = 3
+DICTATED_STREAM_TURNS = 10
+DICTATED_STREAM_DIVISOR = 10   # the stream pays a tenth of the lump a turn for ten turns
+DICTATED_SURETY_MAX = 3
+REFUSED_PEACE_MEMORY_TURNS = 10
+DICTATED_TIER_LABELS = {0: "Reichenbach", 1: "Frankfurt", 2: "Châtillon", 3: "the 1792 frontiers"}
+DICTATED_TIER_ASKS = {
+    0: "an indemnity priced to the war",
+    1: "a province, and an indemnity with a stream",
+    2: "a province and a client state, with the indemnity",
+    3: "provinces, a client state and a forced alliance, with the indemnity",
+}
+
+
+def war_priced_indemnity(world, payer: str, payee: str, war_score: int,
+                         war_age_turns: int, gold_mult: float = 1.0) -> Dict:
+    """Ruling I item 3: the indemnity priced to the WAR — base + the war's
+    age + the score — never to the payer's chest (no treasury term, no
+    purse cap): {lump, stream, turns}. The stream is a tenth of the lump a
+    turn for `DICTATED_STREAM_TURNS` turns. ONE source for both channels
+    (the bilateral harsh arm and the settlement letter), as FA-21 asked.
+    The series holds it down to the purse-scaled lump."""
+    duration_bonus = max(0, int(war_age_turns)) * SETTLEMENT_OFFER_PER_DURATION_BONUS
+    lump = int((SETTLEMENT_OFFER_BASE_GOLD_AMOUNT + duration_bonus
+                + abs(int(war_score)) * SETTLEMENT_OFFER_PER_WAR_SCORE) * float(gold_mult))
+    lump = max(0, lump)
+    return {"lump": lump, "stream": max(0, lump // DICTATED_STREAM_DIVISOR),
+            "turns": int(DICTATED_STREAM_TURNS)}
+
+
+def dictating_side(world, nation: str, recipient: str) -> set:
+    """The dictating court and every court on its side of the live instance
+    against `recipient` (the bloc that HOLDS the line)."""
+    side = {nation}
+    instance = _find_war_instance_for_pair(world, nation, recipient)
+    if instance is not None:
+        s = (instance.get("side_by_nation") or {}).get(nation)
+        side.update(str(n) for n in (instance.get(s) or []) if n)
+    return side
+
+
+def capital_held_by_dictator(world, nation: str, recipient: str) -> bool:
+    capital = world.get_nation_capital(recipient)
+    region = world.regions.get(capital) if capital else None
+    if region is None:
+        return False
+    return str(getattr(region, "controller", "") or "") in dictating_side(world, nation, recipient)
+
+
+def dictated_offer_history(world, nation: str, recipient: str) -> List[Dict]:
+    """The offer history on the live instance for the ordered pair."""
+    instance = _find_war_instance_for_pair(world, nation, recipient)
+    if instance is None:
+        return []
+    return [dict(e) for e in (instance.get("offer_history") or [])
+            if isinstance(e, dict) and e.get("proposer") == nation and e.get("recipient") == recipient]
+
+
+def dictated_ratchet(world, nation: str, recipient: str) -> int:
+    """Ruling I item 2: refused (or lapsed) dictated letters by `nation` to
+    `recipient` on the live instance, capped — Reichenbach → Frankfurt →
+    Châtillon. Before: a refusal bought a 3-turn silence and the next letter
+    was identical."""
+    refused = [e for e in dictated_offer_history(world, nation, recipient)
+               if e.get("outcome") in ("refused", "lapsed")]
+    return min(int(DICTATED_RATCHET_CAP), len(refused))
+
+
+def dictated_tier(world, nation: str, recipient: str, war_score: int) -> Dict:
+    """The letter's tier: the base from the court's leverage (the recipient's
+    capital held by the dictating side, or the score at or past
+    `DICTATED_SCORE_STEP`) plus the ratchet. {tier, base, ratchet,
+    capital_held, label, asks, next_tier, next_label}. The series holds it
+    down to tier 0 (the shipped one-lump letter)."""
+    capital_held = capital_held_by_dictator(world, nation, recipient)
+    base = 1 if (capital_held or int(war_score) >= DICTATED_SCORE_STEP) else 0
+    ratchet = dictated_ratchet(world, nation, recipient)
+    tier = min(int(DICTATED_TIER_CAP), base + ratchet)
+    nxt = min(int(DICTATED_TIER_CAP), tier + 1)
+    return {"tier": tier, "base": base, "ratchet": ratchet, "capital_held": capital_held,
+            "label": DICTATED_TIER_LABELS[tier], "asks": DICTATED_TIER_ASKS[tier],
+            "next_tier": nxt, "next_label": DICTATED_TIER_LABELS[nxt],
+            "next_asks": DICTATED_TIER_ASKS[nxt]}
+
+
+def _income_of(world, region_name: str) -> int:
+    region = world.regions.get(region_name)
+    return int(getattr(region, "income_value", 100) or 100) if region is not None else 0
+
+
+def dictated_province(world, nation: str, recipient: str,
+                      exclude: Optional[List[str]] = None) -> str:
+    """The province a dictated letter asks `recipient` to CEDE — one it
+    still holds (a cession the ratifier can carry; what the dictating side
+    already holds is the status quo the signature titles, and the stream's
+    surety): the dictating court's design target the recipient holds first;
+    else the recipient's homeland province adjacent to the dictating side's
+    holdings with the highest income; else its richest homeland province.
+    Never the capital. '' when nothing is cedeable."""
+    player = getattr(world, "player_nation", "France")
+    capital = world.get_nation_capital(recipient)
+    skip = set(exclude or []) | {capital}
+    held = [r for r in (world.get_nation_regions(recipient) or []) if r not in skip]
+    if not held:
+        return ""
+    if recipient == player:
+        for r in _ultimatum_demandable_regions(nation, world):
+            if r in held:
+                return str(r)
+    homeland = set(world.nation_starting_regions.get(recipient, []) or [])
+    side = dictating_side(world, nation, recipient)
+    side_holdings = set()
+    for member in side:
+        side_holdings.update(world.get_nation_regions(member) or [])
+    frontier = []
+    for r in held:
+        if r not in homeland:
+            continue
+        region = world.regions.get(r)
+        adjacent = getattr(region, "adjacent_regions", None) or [] if region is not None else []
+        if any(a in side_holdings for a in adjacent):
+            frontier.append(r)
+    pool = frontier or [r for r in held if r in homeland] or held
+    pool.sort(key=lambda r: (-_income_of(world, r), r))
+    return str(pool[0])
+
+
+def held_sureties(world, nation: str, recipient: str,
+                  exclude: Optional[List[str]] = None) -> List[str]:
+    """The recipient's homeland provinces the dictating side HOLDS — the
+    line the signature titles and the stream's sureties (held until paid),
+    richest first."""
+    skip = set(exclude or [])
+    side = dictating_side(world, nation, recipient)
+    out = []
+    for r in sorted(world.nation_starting_regions.get(recipient, []) or []):
+        if r in skip:
+            continue
+        region = world.regions.get(r)
+        if region is not None and str(getattr(region, "controller", "") or "") in side:
+            out.append(r)
+    out.sort(key=lambda r: (-_income_of(world, r), r))
+    return out
+
+
+def dictated_demands(world, nation: str, recipient: str, tier: int, war_score: int,
+                     gold_mult: float = 1.0, war_age: Optional[int] = None) -> List[Dict]:
+    """The dictated letter's DEMANDS in the bilateral dialect, by tier — the
+    player's clause types, priced by `calculate_acceptance` (the player's
+    scorer) when the letter is read. Never every clause stacked (F13's AI
+    half): tier 0 one lump; 1 + a province and the stream (with sureties);
+    2 + a client (or a second province); 3 + a forced alliance (and the
+    System where the court is its lord)."""
+    from backend.game_logic.diplomacy import continental_system_lord
+    player = getattr(world, "player_nation", "France")
+    age = int(war_age) if war_age is not None else pair_war_age(world, nation, recipient)
+    price = war_priced_indemnity(world, recipient, nation, war_score, age, gold_mult)
+    demands: List[Dict] = [{"type": "gold_lump", "value": int(price["lump"])}]
+    first = ""
+    if tier >= 1:
+        first = dictated_province(world, nation, recipient)
+        if first:
+            demands.append({"type": "territory_cede", "value": 1, "regions": [first]})
+        if int(price["stream"]) > 0 and int(price["turns"]) > 0:
+            sureties = held_sureties(world, nation, recipient, exclude=[first])[:DICTATED_SURETY_MAX]
+            demands.append({"type": "gold_per_turn", "value": int(price["stream"]),
+                            "turns": int(price["turns"]), "surety_regions": sureties})
+    if tier >= 2:
+        carve = (_settlement_offer_carve_clause(world, player=recipient, proposer_nation=nation)
+                 if recipient == player else None)
+        if carve is not None:
+            provinces = [str(p) for p in (carve.get("provinces") or []) if p]
+            demands.append({"type": "create_client", "value": max(1, len(provinces)),
+                            "tag": str(carve.get("tag") or ""), "provinces": provinces,
+                            "client_display_name": str(carve.get("client_display_name") or "")})
+        else:
+            second = dictated_province(world, nation, recipient, exclude=[first])
+            if second:
+                demands.append({"type": "territory_cede", "value": 1, "regions": [second]})
+    if tier >= 3:
+        demands.append({"type": "forced_alliance", "value": 1,
+                        "from_nation": recipient, "to_nation": nation})
+        if continental_system_lord(world) == nation:
+            demands.append({"type": "continental_system_join", "value": 1})
+    return demands
+
+
+def dictated_settlement_clauses(world, nation: str, recipient: str, tier: int,
+                                war_score: int, war_age: Optional[int] = None) -> List[Dict]:
+    """The same letter in the TABLE's dialect (from / to / amount / region),
+    for the settlement channel — one producer, two dialects. Every clause is
+    stamped `authored_by` the dictating court: the player's solvency rule
+    does not refuse a court's own ask (the transfer clamps to the purse)."""
+    out: List[Dict] = []
+    for d in dictated_demands(world, nation, recipient, tier, war_score, war_age=war_age):
+        t = str(d.get("type") or "")
+        if t == "gold_lump":
+            out.append({"type": "gold_indemnity", "from": recipient, "to": nation,
+                        "amount": int(d.get("value", 0) or 0)})
+        elif t == "gold_per_turn":
+            out.append({"type": "gold_per_turn", "from": recipient, "to": nation,
+                        "amount": int(d.get("value", 0) or 0), "turns": int(d.get("turns", 0) or 0),
+                        "surety_regions": list(d.get("surety_regions") or [])})
+        elif t == "territory_cede":
+            for r in d.get("regions") or []:
+                out.append({"type": "territory_cede", "from": recipient, "to": nation, "region": str(r)})
+        elif t == "create_client":
+            out.append({"type": "create_client", "from": recipient, "to": nation,
+                        "tag": d.get("tag"), "provinces": list(d.get("provinces") or []),
+                        "client_display_name": d.get("client_display_name")})
+        elif t == "forced_alliance":
+            out.append({"type": "forced_alliance", "from": recipient, "to": nation})
+        elif t == "continental_system_join":
+            out.append({"type": "continental_system_join", "from": recipient, "to": nation})
+    for clause in out:
+        clause["authored_by"] = nation
+    return out
+
+
+def dictated_letter_words(world, demands: List[Dict]) -> str:
+    """The letter's substance in one clause for the rail, the panel and the
+    petitions: 'Flanders ceded; 1,620 gold and 162 a turn for 10 turns
+    (Artois and Picardy held until paid); the Duchy of Normandy erected'."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    bits: List[str] = []
+    lump = sum(int(d.get("value", 0) or 0) for d in demands if d.get("type") == "gold_lump")
+    stream = next((d for d in demands if d.get("type") == "gold_per_turn"), None)
+    ceded = [r for d in demands if d.get("type") == "territory_cede" for r in (d.get("regions") or [])]
+    if ceded:
+        bits.append(f"{', '.join(ceded)} ceded")
+    if lump or stream:
+        money = f"{lump:,} gold" if lump else ""
+        if stream:
+            s = (f"{int(stream.get('value', 0) or 0):,} a turn for {int(stream.get('turns', 0) or 0)} turns")
+            money = f"{money} and {s}" if money else s
+            held = list(stream.get("surety_regions") or [])
+            if held:
+                money += f" ({', '.join(held)} held until paid)"
+        bits.append(money)
+    for d in demands:
+        if d.get("type") == "create_client":
+            bits.append(f"{d.get('client_display_name') or d.get('tag')} erected")
+    for d in demands:
+        if d.get("type") == "forced_alliance":
+            bits.append(f"an alliance imposed by {_fdn(world, str(d.get('to_nation') or ''))}")
+        elif d.get("type") == "continental_system_join":
+            bits.append("the Continental System kept")
+    return "; ".join(bits)
+
+
+def settlement_terms_words(world, terms: List[Dict]) -> str:
+    """`dictated_letter_words` for the table's dialect."""
+    demands: List[Dict] = []
+    for t in terms or []:
+        tt = str(t.get("type") or "")
+        if tt == "gold_indemnity":
+            demands.append({"type": "gold_lump", "value": int(t.get("amount", 0) or 0)})
+        elif tt == "gold_per_turn":
+            demands.append({"type": "gold_per_turn", "value": int(t.get("amount", 0) or 0),
+                            "turns": int(t.get("turns", 0) or 0),
+                            "surety_regions": list(t.get("surety_regions") or [])})
+        elif tt == "territory_cede":
+            regions = list(t.get("regions") or ([t.get("region")] if t.get("region") else []))
+            demands.append({"type": "territory_cede", "value": len(regions), "regions": regions})
+        elif tt == "create_client":
+            demands.append(dict(t))
+        elif tt == "forced_alliance":
+            demands.append({"type": "forced_alliance", "value": 1, "to_nation": str(t.get("to") or "")})
+        elif tt == "continental_system_join":
+            demands.append({"type": "continental_system_join", "value": 1})
+    return dictated_letter_words(world, demands)
+
+
+def record_dictated_offer(world, nation: str, recipient: str, *, channel: str,
+                          tier: int, summary: str, ask_gold: int) -> Optional[Dict]:
+    """Ruling I item 2: the offer history on the war instance — one entry
+    per dictated letter sent ({turn, proposer, recipient, channel, tier,
+    label, summary, ask_gold, outcome}); `note_dictated_refusal` closes it."""
+    instance = _find_war_instance_for_pair(world, nation, recipient)
+    if instance is None:
+        return None
+    entry = {"turn": int(getattr(world, "current_turn", 0) or 0), "proposer": nation,
+             "recipient": recipient, "channel": str(channel), "tier": int(tier),
+             "label": DICTATED_TIER_LABELS.get(int(tier), ""), "summary": str(summary or ""),
+             "ask_gold": int(ask_gold), "outcome": "sent"}
+    instance.setdefault("offer_history", []).append(entry)
+    return entry
+
+
+def note_dictated_refusal(world, nation: str, recipient: str, *, channel: str,
+                          outcome: str = "refused") -> Optional[Dict]:
+    """The latest dictated letter `nation` sent `recipient` on `channel` is
+    REFUSED (or LAPSED unanswered) — the ratchet reads the count."""
+    instance = _find_war_instance_for_pair(world, nation, recipient)
+    if instance is None:
+        return None
+    for entry in reversed(instance.get("offer_history") or []):
+        if (isinstance(entry, dict) and entry.get("proposer") == nation
+                and entry.get("recipient") == recipient and entry.get("channel") == channel
+                and entry.get("outcome") == "sent"):
+            entry["outcome"] = str(outcome)
+            entry["answered_turn"] = int(getattr(world, "current_turn", 0) or 0)
+            return entry
+    return None
+
+
+def refused_peace_standing(world, recipient: str) -> Optional[Dict]:
+    """Ruling I item 4: the refused dictated peace that STANDS against
+    `recipient` — the latest refused / lapsed entry on a live instance within
+    `REFUSED_PEACE_MEMORY_TURNS`, with the tier the next letter will carry.
+    None when nothing stands. Read by the Charges of Empire, the marshals'
+    petitions and the war panel."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    best = None
+    for instance in (getattr(world, "war_instances", {}) or {}).values():
+        if not isinstance(instance, dict) or instance.get("ended_turn") is not None:
+            continue
+        for entry in instance.get("offer_history") or []:
+            if not isinstance(entry, dict) or entry.get("recipient") != recipient:
+                continue
+            if entry.get("outcome") not in ("refused", "lapsed"):
+                continue
+            when = int(entry.get("answered_turn", entry.get("turn", 0)) or 0)
+            if turn - when >= int(REFUSED_PEACE_MEMORY_TURNS):
+                continue
+            if not world.is_at_war(str(entry.get("proposer") or ""), recipient):
+                continue
+            if best is None or when > int(best.get("answered_turn", best.get("turn", 0)) or 0):
+                best = dict(entry)
+    if best is None:
+        return None
+    tier = int(best.get("tier", 0) or 0)
+    nxt = min(int(DICTATED_TIER_CAP), tier + 1)
+    best["next_tier"] = nxt
+    best["next_label"] = DICTATED_TIER_LABELS[nxt]
+    best["next_asks"] = DICTATED_TIER_ASKS[nxt]
+    return best
+
+
+def refused_peace_clause(world, recipient: str) -> str:
+    """One sentence the petitions and the panel carry: Britain's terms -
+    Flanders ceded; 1,620 gold (Frankfurt) - were refused at turn 19; her
+    next letter will ask Châtillon's: a province and a client state."""
+    standing = refused_peace_standing(world, recipient)
+    if not standing:
+        return ""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    court = _fdn(world, str(standing.get("proposer") or ""))
+    when = int(standing.get("answered_turn", standing.get("turn", 0)) or 0)
+    verb = "lapsed unanswered" if standing.get("outcome") == "lapsed" else "were refused"
+    summary = str(standing.get("summary") or "")
+    return (f"{court}'s terms — {summary} ({standing.get('label')}) — {verb} at turn {when}; "
+            f"her next letter will ask {standing['next_label']}'s: {standing['next_asks']}.")
+
+
+def next_dictated_letter(world, nation: str, recipient: str) -> Optional[Dict]:
+    """The war panel's read: what `nation`'s next letter would dictate to
+    `recipient` — None unless the court is winning past P8's gate."""
+    if not world.is_at_war(nation, recipient):
+        return None
+    score = int(get_war_score_for(world, nation, recipient))
+    if score <= int(P8_DOMINANCE_SCORE):
+        return None
+    tier = dictated_tier(world, nation, recipient, score)
+    # the figure the letter will carry: the court's diplomat's own multiplier
+    gold_mult = float(_get_personality_modifiers(nation, world)["gold_demand_mult"])
+    demands = dictated_demands(world, nation, recipient, tier["tier"], score, gold_mult)
+    from backend.game_logic.formations import formed_display_name as _fdn
+    words = dictated_letter_words(world, demands)
+    return {"tier": int(tier["tier"]), "label": tier["label"], "asks": tier["asks"],
+            "ratchet": int(tier["ratchet"]), "capital_held": bool(tier["capital_held"]),
+            "words": words,
+            "display": (f"{_fdn(world, nation)}'s next letter would dictate {tier['label']}'s "
+                        f"terms: {words}.")}
+
+
+def successor_peace(world, player: str) -> Optional[Dict]:
+    """Ruling I item 5 — the regime arm (GE-2's owner): a Fall ends in a
+    peace the SUCCESSOR government signs with the court that holds the
+    line — recognition of the successor the term that buys one tier's
+    leniency (Paris 1814: Talleyrand for Louis XVIII after the Senate's
+    déchéance). {court, tier, label, terms, words, line} or None."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    best, best_score = "", None
+    capital = world.get_nation_capital(player)
+    holder = str(getattr(world.regions.get(capital), "controller", "") or "") if capital else ""
+    for court in sorted(world.get_nations_at_war_with(player)):
+        score = int(get_war_score_for(world, court, player))
+        if court == holder:
+            score += 1000
+        if best_score is None or score > best_score:
+            best, best_score = court, score
+    if not best:
+        return None
+    score = int(get_war_score_for(world, best, player))
+    full = dictated_tier(world, best, player, max(score, int(DICTATED_SCORE_STEP)))
+    tier = max(0, int(full["tier"]) - 1)
+    gold_mult = float(_get_personality_modifiers(best, world)["gold_demand_mult"])
+    demands = dictated_demands(world, best, player, tier,
+                               max(score, int(P8_DOMINANCE_SCORE) + 1), gold_mult)
+    words = dictated_letter_words(world, demands)
+    court = _fdn(world, best)
+    line = (f"The successor government signs the peace with {court} at "
+            f"{DICTATED_TIER_LABELS[tier]}'s terms — {words} — recognition of the new "
+            f"government the term that bought the leniency ({full['label']}'s terms were "
+            f"the Emperor's to refuse).")
+    return {"court": best, "tier": tier, "label": DICTATED_TIER_LABELS[tier],
+            "refused_label": full["label"], "terms": demands, "words": words,
+            "recognition": True, "line": line}
 
 def _p8_purse_floor(proposal: Dict, world) -> int:
     """The smallest indemnity a P8 peace will settle for, in the payer's coin.
@@ -1934,11 +2372,18 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                     coalition_blocked = True
 
         if not coalition_blocked:
-            # Decide: armistice if war_score > -70, peace if truly desperate
+            # Decide: peace below the split (−70); between the threshold and
+            # the split a TRUCE only while the court's HOPE is alive (PC-R2,
+            # ruling D: another league member unspent, a subsidy flowing,
+            # the victor's exhaustion past its own — `truce_hope_alive`, the
+            # same function the truce's expiry reads), otherwise the peace
+            # letter. The split itself does not move (§46 D).
             if war_score < P1_PEACE_SPLIT:
                 ptype = "peace"
             else:
-                ptype = "armistice_losing"
+                from backend.game_logic.diplomacy import truce_hope_alive
+                hope = truce_hope_alive(world, nation, player)
+                ptype = "armistice_losing" if hope.get("alive") else "peace"
 
             if not _is_on_cooldown(nation, ptype, world, war_score):
                 terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
@@ -2287,9 +2732,16 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if proposal is None:
         return None
 
-    # A1: Iterative demand reduction for P8 harsh peace proposals
+    # A1: Iterative demand reduction for P8 harsh peace proposals — the
+    # tier-0 letter only. PC-R3: a DICTATED letter (tier 1+: the capital
+    # held, the score past the step, or a refused letter behind it) is a
+    # statement of terms the payer may refuse (the captor's idiom) — never
+    # reduced to the purse, never dropped by the send filter.
     if proposal.get("proposal_type") == "harsh_peace":
-        proposal = _reduce_p8_demands(proposal, nation, war_score, world)
+        if int((proposal.get("terms") or {}).get("dictated_tier", 0) or 0) >= 1:
+            proposal["_force_send"] = True
+        else:
+            proposal = _reduce_p8_demands(proposal, nation, war_score, world)
 
     # ── Verify proposal is reasonable via calculate_acceptance ──
     acceptance = calculate_acceptance(proposal["terms"], world)
@@ -2309,6 +2761,16 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         "turn": int(world.current_turn),
     }
     world.ai_proposal_metadata = metadata
+    # PC-R3: the dictated letter goes on the instance's offer history (the
+    # ratchet reads its refusal).
+    if proposal.get("proposal_type") == "harsh_peace":
+        _dt = proposal.get("terms") or {}
+        record_dictated_offer(
+            world, nation, player, channel="bilateral",
+            tier=int(_dt.get("dictated_tier", 0) or 0),
+            summary=dictated_letter_words(world, list(_dt.get("demands") or [])),
+            ask_gold=sum(int(d.get("value", 0) or 0) for d in (_dt.get("demands") or [])
+                         if d.get("type") == "gold_lump"))
 
     # Session 2 follow-up: All proposals delivered immediately through
     # dialogue_manager.push() — no separate queue needed. The dialogue
@@ -2877,6 +3339,19 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
             NotificationPriority.HIGH,
             f"Call to Arms from {sender}",
             letter_lines(world, proposal.get("terms") or {})[0],
+            int(world.current_turn),
+        ))
+    elif proposal.get("proposal_type") == "harsh_peace":
+        # PC-R3 / PC-F65: a dictated letter announces its tier and its
+        # substance on the rail (it read "has arrived with a proposal").
+        _dt = proposal.get("terms") or {}
+        _words = dictated_letter_words(world, list(_dt.get("demands") or []))
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            f"{sender} dictates terms ({_dt.get('dictated_label') or 'Reichenbach'})",
+            f"An envoy from {sender} has arrived with dictated terms "
+            f"({_dt.get('dictated_label') or 'Reichenbach'}): {_words}.",
             int(world.current_turn),
         ))
     else:
@@ -4509,16 +4984,37 @@ def _settlement_offer_build_terms(
         # An even war settles as a clean white peace (no indemnity clause).
         return [{"type": "peace"}]
 
-    # FA-21: the body that used to live here is now `purse_scaled_indemnity`,
-    # so the bilateral P8 arm reads the SAME formula and the two channels
-    # cannot price the same peace two different ways again. Byte-identical
-    # to the extracted body at `gold_mult == 1.0`, which is what this caller
-    # passes (and the only value it may pass — the multilateral offer has no
-    # diplomat personality term).
-    amount = purse_scaled_indemnity(
-        world, payer, accepter_war_score, war_age_turns)
+    # PC-R3 (ruling I item 3): the indemnity is priced to the WAR, not the
+    # purse — one source with the bilateral harsh arm (`war_priced_indemnity`;
+    # FA-21's two-channel rule kept). Measured before: the ask on the rail
+    # fell 2,543 → 363 as France fell 26 → 1 provinces.
+    amount = int(war_priced_indemnity(
+        world, payer, payee, accepter_war_score, war_age_turns)["lump"]) if world is not None \
+        else int(purse_scaled_indemnity(world, payer, accepter_war_score, war_age_turns))
 
     terms: List[Dict] = [{"type": "peace"}]
+    # PC-R3 (ruling I items 1–2): when the AI DICTATES (the player pays), the
+    # letter carries the player's clause types by tier — the same producer
+    # as the bilateral letter, in the table's dialect — priced by the
+    # per-court scorer the player's drafts go through.
+    if (world is not None and payer == accepter
+            and accepter == getattr(world, "player_nation", None)):
+        _score = -int(accepter_war_score)
+        _tier = dictated_tier(world, proposer_nation, accepter, _score)
+        # (the dictated clauses carry the lump, at this channel's war age)
+        terms.extend(dictated_settlement_clauses(
+            world, proposer_nation, accepter, int(_tier["tier"]), _score,
+            war_age=int(war_age_turns)))
+        # NA-6c §11.6-6 (the Normandy mirror) stands at EVERY tier of the
+        # settlement letter: the decisive victor may erect a client out of
+        # the player's soil (the tier adds the province and the stream
+        # beside it; at Châtillon the carve is the tier's own).
+        if not any(t.get("type") == "create_client" for t in terms):
+            carve = _settlement_offer_carve_clause(
+                world, player=accepter, proposer_nation=proposer_nation)
+            if carve is not None:
+                terms.append(carve)
+        return terms
     # A payer with an empty (or negative) chest cannot be squeezed, so the
     # INDEMNITY is dropped — but control must fall through to the carve gate
     # below rather than returning. Returning here coupled a TERRITORIAL
@@ -4526,7 +5022,7 @@ def _settlement_offer_build_terms(
     # exactly the state §11.4 models with the Duchy of Normandy, was the one
     # state immune to being carved, and was offered gentler terms than a
     # solvent loser.
-    if amount > 0:
+    if amount > 0 and not any(t.get("type") == "gold_indemnity" for t in terms):
         terms.append({
             "type": "gold_indemnity",
             "from": payer,
@@ -4844,6 +5340,18 @@ def _emit_settlement_offer_for_war(
         "settlement_terms": terms,
         "turn_created": current_turn,
     }
+    # PC-R3: a letter that dictates (the player pays) rides the instance's
+    # offer history with its tier; its refusal ratchets the next.
+    if player_war_score <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
+        _tier = dictated_tier(world, proposer_nation, player, -int(player_war_score))
+        offer["dictated_tier"] = int(_tier["tier"])
+        offer["dictated_label"] = str(_tier["label"])
+        _bits = [t for t in terms if t.get("type") != "peace"]
+        record_dictated_offer(
+            world, proposer_nation, player, channel="settlement",
+            tier=int(_tier["tier"]), summary=settlement_terms_words(world, _bits),
+            ask_gold=sum(int(t.get("amount", 0) or 0) for t in terms
+                         if t.get("type") == "gold_indemnity" and t.get("from") == player))
     if requested_by_player:
         offer["requested_by_player"] = True
     if mediator:

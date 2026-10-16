@@ -229,6 +229,80 @@ def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]]) 
     return written
 
 
+def _cession_victims(world, terms) -> Dict[str, List[str]]:
+    """victim -> the HOMELAND provinces a package strips from it (the
+    punitive bar's own filter), from either dialect."""
+    out: Dict[str, List[str]] = {}
+    for t in terms or []:
+        if not isinstance(t, dict):
+            continue
+        ttype = str(t.get("type") or "")
+        victim = str(t.get("from") or t.get("from_nation") or "")
+        if ttype in ("territory_cede", "territory"):
+            regions = list(t.get("regions") or ([t.get("region")] if t.get("region") else []))
+        elif ttype == "create_client":
+            regions = list(t.get("provinces") or [])
+        else:
+            continue
+        if not victim:
+            continue
+        homeland = set((getattr(world, "nation_starting_regions", {}) or {}).get(victim, []) or [])
+        kept = [str(r) for r in regions if str(r) in homeland]
+        if kept:
+            out.setdefault(victim, []).extend(kept)
+    return out
+
+
+def revanche_line_for_terms(world, terms) -> str:
+    """PC-R1 (v) item 5 — ruling C's two Pressburgs (the peace report §46):
+    BEFORE the signature, which draft this is, read from the seam the AI
+    reads. A cession of two homeland provinces or the capital writes the
+    PUNITIVE record that forecloses the volte-face and promotes Revanche:
+    "Revanche stands". A smaller confirmed cession RECONCILES the Revanche
+    while the treaty holds: "Revanche lapses". '' with no cession."""
+    from backend.display_names import humanize_entity_name as _h
+    lines: List[str] = []
+    for victim, provinces in sorted(_cession_victims(world, terms).items()):
+        capital = world.get_nation_capital(victim)
+        punitive = (len(set(provinces)) >= PUNITIVE_SETTLEMENT_MIN_PROVINCES
+                    or (capital and capital in provinces))
+        if punitive:
+            lines.append(
+                f"Revanche stands: this peace strips {_h(victim)} of "
+                f"{', '.join(sorted(set(provinces)))} — a punitive record; her volte-face "
+                f"is foreclosed and her Revanche is promoted.")
+        else:
+            lines.append(
+                f"Revanche lapses: {_h(victim)}'s cession of {', '.join(sorted(set(provinces)))} "
+                f"reconciles her Revanche while the treaty holds.")
+    return " ".join(lines)
+
+
+def revanche_line_after(world, written: List[Dict], applied_clauses) -> str:
+    """The same line AFTER the signature, from what was actually written:
+    the punitive records `record_punitive_cessions` returned, else the
+    applied cessions (reconciled while the treaty holds)."""
+    from backend.display_names import humanize_entity_name as _h
+    lines: List[str] = []
+    punished = set()
+    for rec in written or []:
+        victim = str(rec.get("subject") or "")
+        provinces = list((rec.get("payload") or {}).get("provinces") or [])
+        if victim:
+            punished.add(victim)
+            lines.append(
+                f"Revanche stands: the peace stripped {_h(victim)} of "
+                f"{', '.join(provinces)} — a punitive record; her volte-face is "
+                f"foreclosed and her Revanche is promoted.")
+    for victim, provinces in sorted(_cession_victims(world, applied_clauses).items()):
+        if victim in punished:
+            continue
+        lines.append(
+            f"Revanche lapses: {_h(victim)}'s cession of {', '.join(sorted(set(provinces)))} "
+            f"reconciles her Revanche while the treaty holds.")
+    return " ".join(lines)
+
+
 def collect_cessions_from_clauses(clauses) -> Dict[str, List[Tuple[str, str]]]:
     """Aggregate applied territory clauses into the `record_punitive_cessions`
     shape — victim -> ordered (province, receiver) pairs, the first

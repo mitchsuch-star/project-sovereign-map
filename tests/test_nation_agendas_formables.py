@@ -2428,8 +2428,10 @@ class TestCarveReviewFixes:
                 accepter_war_score=-80, world=world)
             types = [t["type"] for t in terms]
             assert "create_client" in types, treasury
-            # ...and an empty chest still owes no indemnity.
-            assert "gold_indemnity" not in types, treasury
+            # PC-R3 (S13e part 2, ruling I item 3): the indemnity is priced
+            # to the war, never the purse — an empty chest is asked the
+            # war's figure (the transfer clamps to what the payer holds).
+            assert "gold_indemnity" in types, treasury
 
     def test_the_add_verb_actually_builds_a_carve_clause(self):
         """Review #8 (P2). Every ratification test hand-built the clause

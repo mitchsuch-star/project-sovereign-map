@@ -1129,12 +1129,18 @@ def _court_demand_suggestions(
                 "gold_indemnity", int(gold_offer_default), None
             ),
         ))
+    # PC-F54: the court's occupied capital leads the offer rows ("Offer
+    # Vienna to Austria — her capital"), with its credit; the rest follow.
     offer_regions = _concession_baseline_transferable_candidates(
         world,
         proposer_side_participants=proposer_side_participants,
         accepting_leader=court,
         excluded_regions=promised_regions,
+        include_capitals=True,
     )
+    _court_capital = str(world.get_nation_capital(court) or "")
+    if _court_capital in offer_regions:
+        offer_regions = [_court_capital] + [r for r in offer_regions if r != _court_capital]
     if offer_regions:
         region = offer_regions[0]
         # ES-7 second pass (§0.6.8 item 3): flag an estate at authoring
@@ -1151,6 +1157,7 @@ def _court_demand_suggestions(
             _reason = f"{_reason} WARNING: {_estate_warn}"
         offer_group.append(_guided_suggestion(
             label=(f"Offer {region} to {court}"
+                   + (" — her capital" if region == _court_capital else "")
                    + (" — a marshal's estate!" if _estate_warn else "")),
             group="offer",
             clause_type="territory_cede",
@@ -1923,12 +1930,22 @@ def _restage_settlement_after_redraw(
         if isinstance(r, Mapping) and r.get("nation") and r.get("band")
     }
     war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    # SR-2a (AAR-3): consent rides the redraw only while the package is
+    # still the one the courts offered; the moment it changes the draft is a
+    # counter, scored normally, and the letter it answered is consumed.
+    consent = consent_kwargs_for_restage(dialogue, terms, covered)
     revalidation = validate_settlement_terms(
         terms,
         proposer_side=proposer_side,
         covered_enemy_participants=covered,
         world=world,
         war_instance=war_instance,
+        # PC-R3 (S13e part 2): a consented package is the court's own ask,
+        # priced to the war — the player's solvency rule does not refuse it
+        # (the transfer clamps); the dial that touched it re-stamps the
+        # clause `authored_by: player`, so the exemption reads the CONSENT,
+        # not the provenance.
+        enforce_solvency=not bool(consent),
     )
     if not revalidation.get("valid"):
         # G4F-2 residual (UX-6): this bounce should now be unreachable from
@@ -1950,10 +1967,6 @@ def _restage_settlement_after_redraw(
             "mutated": False,
             "suppress_proposal_result_popup": True,
         }
-    # SR-2a (AAR-3): consent rides the redraw only while the package is
-    # still the one the courts offered; the moment it changes the draft is a
-    # counter, scored normally, and the letter it answered is consumed.
-    consent = consent_kwargs_for_restage(dialogue, terms, covered)
     preview = build_settlement_preview(
         world,
         war_id=war_id,
@@ -2033,6 +2046,48 @@ def _restage_settlement_after_redraw(
         if extra and key in extra:
             result[key] = extra[key]
     return result
+
+
+def _preview_validation(world, terms, *, actor_nation, proposer_side, war_instance,
+                        covered) -> Dict[str, Any]:
+    """PC-F56: the validator and the carve's eligibility, read for the
+    preview. {valid, error, disabled_reason_display, ...}; `valid` True on
+    an empty draft."""
+    from backend.game_logic.settlement_validation import (
+        evaluate_create_client_eligibility, validate_settlement_terms,
+    )
+    player = str(getattr(world, "player_nation", "France") or "France")
+    checked = [dict(t) for t in (terms or []) if isinstance(t, Mapping)
+               and str(t.get("type") or "") != "peace"]
+    if not checked:
+        return {"valid": True}
+    try:
+        verdict = validate_settlement_terms(
+            checked, actor_nation=str(actor_nation or player), player_nation=player,
+            proposer_side=proposer_side, world=world, war_instance=war_instance,
+            covered_enemy_participants=list(covered or []), enforce_solvency=False)
+    except Exception as exc:
+        report(exc, "settlement_staging._preview_validation: validate_settlement_terms")
+        return {"valid": True}
+    if not verdict.get("valid", True):
+        return dict(verdict)
+    for idx, t in enumerate(checked):
+        if str(t.get("type") or "") != "create_client":
+            continue
+        try:
+            elig = evaluate_create_client_eligibility(
+                world, war_instance=war_instance, template_id=str(t.get("tag") or ""),
+                from_court=str(t.get("from") or ""), carver=str(t.get("to") or ""))
+        except Exception as exc:
+            report(exc, "settlement_staging._preview_validation: evaluate_create_client_eligibility")
+            continue
+        if not elig.get("eligible"):
+            return {"valid": False, "error": str(elig.get("error") or "carve_ineligible"),
+                    "error_index": idx,
+                    "disabled_reason_display": str(
+                        elig.get("disabled_reason_display") or elig.get("error_display")
+                        or "The client state cannot be erected from that soil.")}
+    return {"valid": True}
 
 
 def build_settlement_preview(
@@ -2176,6 +2231,29 @@ def build_settlement_preview(
         ),
         "density": density if density in ("compact", "medium", "verbose") else "medium",
     }
+    # PC-F56 (S13e part 2, October 16, 2026): the preview VALIDATES what it
+    # scores — the validator's side rule, PC-F52's controller rule and the
+    # carve's eligibility — so nothing previews "Will carry" that submit
+    # refuses or ratification drops. A failed check blocks the verdict
+    # beside the button and names the reason.
+    preview["validation"] = _preview_validation(
+        world, terms, actor_nation=actor_nation, proposer_side=side,
+        war_instance=instance, covered=covered)
+    if not preview["validation"].get("valid", True):
+        _why = str(preview["validation"].get("disabled_reason_display") or "")
+        _overall = dict(preview.get("overall_acceptance") or {})
+        _overall["carries"] = False
+        _overall["blocked_by_validation"] = True
+        _overall["carry_verdict_display"] = f"Blocked — {_why}" if _why else "Blocked"
+        preview["overall_acceptance"] = _overall
+        for _row in preview.get("per_court_acceptance") or []:
+            if isinstance(_row, dict):
+                _row["band_display"] = "Blocked"
+                _row["blocked_reason_display"] = _why
+    # PC-R1 (v) item 5 — the two Pressburgs: which draft this is, from the
+    # seam the AI reads (`emergent_designs.revanche_line_for_terms`).
+    from backend.game_logic.emergent_designs import revanche_line_for_terms
+    preview["revanche_line"] = revanche_line_for_terms(world, terms)
     contribution = build_contribution_share_rows(
         world, war_id, settlement_terms=terms,
     )
@@ -2613,6 +2691,13 @@ def _pair_substitute_seed_terms(
     demands: List[Dict[str, Any]] = []
     sweeteners: List[Dict[str, Any]] = []
     demanded_regions: List[str] = []
+    # PC-F70 (S13e part 2): a clause whose beneficiary is an ALLY keeps its
+    # beneficiary on the bilateral road (`to_nation` — the ratifier credits
+    # and transfers to it), and the hand-off NAMES what it carried and what
+    # it could not (`carried`, `dropped`).
+    carried: List[str] = []
+    dropped: List[str] = []
+    ally_regions: Dict[str, List[str]] = {}
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
@@ -2621,7 +2706,10 @@ def _pair_substitute_seed_terms(
         to = str(term.get("to") or "")
         amount = int(term.get("amount", 0) or 0)
         if ttype == "gold_indemnity" and amount > 0:
-            if frm == target:
+            if frm == target and to and to != proposer_leader:
+                demands.append({"type": "gold_lump", "value": amount, "to": to, "to_nation": to})
+                carried.append(f"{amount} gold to {to}")
+            elif frm == target:
                 demands.append({"type": "gold_lump", "value": amount})
             elif frm == proposer_leader and to == target:
                 sweeteners.append({"type": "gold_lump", "value": amount})
@@ -2635,7 +2723,10 @@ def _pair_substitute_seed_terms(
                 sweeteners.append({"type": "gold_lump", "value": total})
         elif ttype == "territory_cede" and frm == target:
             region = str(term.get("region") or "")
-            if region:
+            if region and to and to != proposer_leader:
+                ally_regions.setdefault(to, []).append(region)
+                carried.append(f"{region} to {to}")
+            elif region:
                 demanded_regions.append(region)
         elif ttype == "create_client" and frm == target and to == proposer_leader:
             # BOTH directions are checked, unlike the money arms: a joint
@@ -2670,13 +2761,28 @@ def _pair_substitute_seed_terms(
             # carries `value: 1`: the bilateral walk multiplies the rate by
             # it, and a value-less demand would price at nothing.
             demands.append({"type": "continental_system_join", "value": 1})
+        elif ttype in ("forced_alliance", "vassalage", "subjugation", "liberation",
+                       "vassal_transfer"):
+            dropped.append(f"the {ttype.replace('_', ' ')} (settlement-tier)")
+        elif ttype == "create_client" and frm == target and to and to != proposer_leader:
+            dropped.append(f"{term.get('client_display_name') or term.get('tag')} "
+                           f"(erected by {to}, not by us)")
     if demanded_regions:
         demands.append({
             "type": "territory_cede",
             "value": len(demanded_regions),
             "regions": demanded_regions,
         })
-    return {"demands": demands, "sweeteners": sweeteners}
+    for ally, regions in ally_regions.items():
+        demands.append({
+            "type": "territory_cede",
+            "value": len(regions),
+            "regions": list(regions),
+            "to": ally,
+            "to_nation": ally,
+        })
+    return {"demands": demands, "sweeteners": sweeteners,
+            "carried": carried, "dropped": dropped}
 
 
 def separate_peace_chip(world, court: str, *, war_id: str, staged_terms,

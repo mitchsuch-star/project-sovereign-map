@@ -1532,7 +1532,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m7_armistice_letter_5120x1440.jpg",
-  "what": "Austria's armistice letter — what shows without scrolling",
+  "what": "Austria's armistice letter — what shows without scrolling, re-shot S13e part 2 (F44: the truce's own words — what it keeps, where it heads)",
   "turn": "Turn 7 — Late December 1805",
   "action": "click ACTIVE",
   "surface": "IncomingProposalPopup",
@@ -1545,11 +1545,11 @@
   "scroll": [
    [
     0.0,
-    640.0
+    706.0
    ]
   ],
   "lines": [
-   "DIPLOMATIC ENVOY\nMetternich (Schemer) of Austria\n\nProposes: Armistice\nTerms:\nFrance demands:\n  - Austria pays 168 gold per turn to France for as long as the treaty stands\nMutual:\n  - Armistice (cease hostilities temporarily) — France and Austria\n\nAssessment: GENEROUS\n\nWar Summary\nWar score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking -4)\nSettlement: Dictated Terms\nObjective: Defense - the homeland — 28 of 28 provinces held (inactive)\nTicking: +0\nDuration: 6 turns   Battles: 8W / 3L\nCasualties: ours 29789 / theirs 78587\nWe hold: Bohemia, Tyrol\n\nArmistice Terms\n  A 5-turn ceasefire: fighting stops, and the battles fought so far are struck from the war score — if the war resumes, it resumes from nothing. The campaign ledger of provinces and dead still stands. No territory or gold changes hands at its end.\n  When it expires: peace if relations have healed to -60 or better — otherwise the war resumes.\n  Relations stand at -80 and will thaw to -65 by expiry — short of -60; the war resumes when the truce expires unless relations improve by other means, or a second truce follows.\n\nPolitical Consequences\n  - Bavaria stays at war with Austria under this truce — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.\n  - Our clients follow us out of the truce: Kingdom of Italy.\n  - Austria sits outside your bloc. Peace normalizes relations with a nation resisting your European influence.\n\nMetternich, with perfect politeness: \"Vienna observes, with some weariness, that the fighting no longer serves even its winners. Grant the armistice. We will not pretend Marshal Ney's laurels at Bohemia count for nothing in this.\"\n\nAn interesting proposal. I shall study the terms closely.\n\nThis offer will lapse at end of turn."
+   "DIPLOMATIC ENVOY\nMetternich (Schemer) of Austria\n\nProposes: Armistice\nTerms:\nFrance demands:\n  - Austria pays 168 gold per turn to France for as long as the treaty stands\nMutual:\n  - Armistice (cease hostilities temporarily) — France and Austria\n\nAssessment: GENEROUS\n\nWar Summary\nWar score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking -4)\nSettlement: Dictated Terms\nObjective: Defense - the homeland — 28 of 28 provinces held (inactive)\nTicking: +0\nDuration: 6 turns   Battles: 8W / 3L\nCasualties: ours 29789 / theirs 78587\nWe hold: Bohemia, Tyrol\n\nArmistice Terms\n  A 5-turn ceasefire: fighting stops. The ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 6 turns old and stays so; exhaustion holds. No territory or gold changes hands until it ends.\n  When it expires: a dictated peace on the held line if the loser reads -50 or worse with no hope left; otherwise peace if relations have healed to -60 or better; otherwise the war resumes at its age.\n  At expiry: the war resumes where it stood — relations stand at -80 and will thaw to -65, short of -60; the ledger and the war's age come back with it.\n  Austria's hope lives: Britain, Russia fight on, unspent.\n  The cure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into peace.\n\nPolitical Consequences\n  - Bavaria stays at war with Austria under this truce — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.\n  - Our clients follow us out of the truce: Kingdom of Italy.\n  - Austria sits outside your bloc. Peace normalizes relations with a nation resisting your European influence.\n\nMetternich, with perfect politeness: \"Vienna observes, with some weariness, that the fighting no longer serves even its winners. Grant the armistice. We will not pretend Marshal Ney's laurels at Bohemia count for nothing in this.\"\n\nAn interesting proposal. I shall study the terms closely.\n\nThis offer will lapse at end of turn."
   ],
   "controls": [
    {
@@ -1572,7 +1572,8 @@
     "disabled": false,
     "tooltip": ""
    }
-  ]
+  ],
+  "reshot": "S13e part 2, October 16, 2026"
  },
  {
   "id": "m7_armistice_letter",
@@ -1626,7 +1627,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m7_armistice_letter_scrolled_5120x1440.jpg",
-  "what": "the same letter scrolled — the truce's cost",
+  "what": "the same letter scrolled — the truce's cost and its exit, re-shot S13e part 2",
   "turn": "Turn 7 — Late December 1805",
   "action": "scroll 1829 480 down 10",
   "surface": "IncomingProposalPopup",
@@ -1639,11 +1640,11 @@
   "scroll": [
    [
     440.0,
-    640.0
+    706.0
    ]
   ],
   "lines": [
-   "DIPLOMATIC ENVOY\nMetternich (Schemer) of Austria\n\nProposes: Armistice\nTerms:\nFrance demands:\n  - Austria pays 168 gold per turn to France for as long as the treaty stands\nMutual:\n  - Armistice (cease hostilities temporarily) — France and Austria\n\nAssessment: GENEROUS\n\nWar Summary\nWar score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking -4)\nSettlement: Dictated Terms\nObjective: Defense - the homeland — 28 of 28 provinces held (inactive)\nTicking: +0\nDuration: 6 turns   Battles: 8W / 3L\nCasualties: ours 29789 / theirs 78587\nWe hold: Bohemia, Tyrol\n\nArmistice Terms\n  A 5-turn ceasefire: fighting stops, and the battles fought so far are struck from the war score — if the war resumes, it resumes from nothing. The campaign ledger of provinces and dead still stands. No territory or gold changes hands at its end.\n  When it expires: peace if relations have healed to -60 or better — otherwise the war resumes.\n  Relations stand at -80 and will thaw to -65 by expiry — short of -60; the war resumes when the truce expires unless relations improve by other means, or a second truce follows.\n\nPolitical Consequences\n  - Bavaria stays at war with Austria under this truce — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.\n  - Our clients follow us out of the truce: Kingdom of Italy.\n  - Austria sits outside your bloc. Peace normalizes relations with a nation resisting your European influence.\n\nMetternich, with perfect politeness: \"Vienna observes, with some weariness, that the fighting no longer serves even its winners. Grant the armistice. We will not pretend Marshal Ney's laurels at Bohemia count for nothing in this.\"\n\nAn interesting proposal. I shall study the terms closely.\n\nThis offer will lapse at end of turn."
+   "DIPLOMATIC ENVOY\nMetternich (Schemer) of Austria\n\nProposes: Armistice\nTerms:\nFrance demands:\n  - Austria pays 168 gold per turn to France for as long as the treaty stands\nMutual:\n  - Armistice (cease hostilities temporarily) — France and Austria\n\nAssessment: GENEROUS\n\nWar Summary\nWar score: 52 ^ (Territory +10, Battle +15, Decisive Battle +10, Ticking -4)\nSettlement: Dictated Terms\nObjective: Defense - the homeland — 28 of 28 provinces held (inactive)\nTicking: +0\nDuration: 6 turns   Battles: 8W / 3L\nCasualties: ours 29789 / theirs 78587\nWe hold: Bohemia, Tyrol\n\nArmistice Terms\n  A 5-turn ceasefire: fighting stops. The ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 6 turns old and stays so; exhaustion holds. No territory or gold changes hands until it ends.\n  When it expires: a dictated peace on the held line if the loser reads -50 or worse with no hope left; otherwise peace if relations have healed to -60 or better; otherwise the war resumes at its age.\n  At expiry: the war resumes where it stood — relations stand at -80 and will thaw to -65, short of -60; the ledger and the war's age come back with it.\n  Austria's hope lives: Britain, Russia fight on, unspent.\n  The cure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into peace.\n\nPolitical Consequences\n  - Bavaria stays at war with Austria under this truce — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.\n  - Our clients follow us out of the truce: Kingdom of Italy.\n  - Austria sits outside your bloc. Peace normalizes relations with a nation resisting your European influence.\n\nMetternich, with perfect politeness: \"Vienna observes, with some weariness, that the fighting no longer serves even its winners. Grant the armistice. We will not pretend Marshal Ney's laurels at Bohemia count for nothing in this.\"\n\nAn interesting proposal. I shall study the terms closely.\n\nThis offer will lapse at end of turn."
   ],
   "controls": [
    {
@@ -1666,26 +1667,36 @@
     "disabled": false,
     "tooltip": ""
    }
-  ]
+  ],
+  "reshot": "S13e part 2, October 16, 2026"
  },
  {
   "id": "m8_truce_card",
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m8_truce_card_5120x1440.jpg",
-  "what": "after accepting — the war card at -3 and the truce row's tooltip",
-  "turn": "Turn 7 — Late December 1805",
-  "action": "hover Austria  5t",
+  "what": "after accepting — the war card and the truce row's tooltip, re-shot S13e part 2: the ledger kept, the exit named, the cure priced (PC-X11: wrapped)",
+  "turn": "Turn 8 — Early January 1806",
+  "action": "hover Austria  4t",
   "surface": "",
   "rect_logical": [
-   2600,
-   820,
-   1057,
-   208
+   2300,
+   560,
+   1700,
+   480
   ],
   "scroll": null,
-  "lines": [],
-  "controls": []
+  "lines": [
+   "Armistice with Austria — 4 turns left.\nThe ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 7\nturns old and stays so; exhaustion holds.\nAt expiry: the war resumes where it stood — relations stand at -77 and will thaw to -65, short of\n-60; the ledger and the war's age come back with it.\nThe cure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into\npeace."
+  ],
+  "controls": [
+   {
+    "text": "Austria  4t",
+    "disabled": false,
+    "tooltip": "Armistice with Austria — 4 turns left.\nThe ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 7\nturns old and stays so; exhaustion holds.\nAt expiry: the war resumes where it stood — relations stand at -77 and will thaw to -65, short of\n-60; the ledger and the war's age come back with it.\nThe cure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into\npeace."
+   }
+  ],
+  "reshot": "S13e part 2, October 16, 2026"
  },
  {
   "id": "m8_truce_card",
@@ -1711,7 +1722,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m8_armistice_popup_5120x1440.jpg",
-  "what": "the armistice's own popup",
+  "what": "the armistice's own popup, re-shot S13e part 2 — the one wording: what the truce keeps, at expiry which exit, the hope terms, the cure",
   "turn": "Turn 7 — Late December 1805",
   "action": "click Austria  5t",
   "surface": "WarDetailPopup",
@@ -1724,7 +1735,7 @@
   "scroll": null,
   "lines": [
    "ARMISTICE WITH AUSTRIA",
-   "Status: Armistice (5 turns remaining)\nRelations: -80 (Hostile)\nTrend: =\nOn course to collapse: unless relations heal to -60 or better, the war resumes at expiry."
+   "Status: Armistice (5 turns remaining)\nRelations: -80 (Hostile)\nTrend: =\nA 5-turn ceasefire: fighting stops. The ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 6 turns old and stays so; exhaustion holds. No territory or gold changes hands until it ends.\nWhen it expires: a dictated peace on the held line if the loser reads -50 or worse with no hope left; otherwise peace if relations have healed to -60 or better; otherwise the war resumes at its age.\nAt expiry: the war resumes where it stood — relations stand at -80 and will thaw to -65, short of -60; the ledger and the war's age come back with it.\nAustria's hope lives: Britain, Russia fight on, unspent.\nSureties filed at the truce: Austria pays 168 gold a turn for the pause; Bohemia, Tyrol held by France.\nThe cure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into peace."
   ],
   "controls": [
    {
@@ -1737,7 +1748,8 @@
     "disabled": false,
     "tooltip": ""
    }
-  ]
+  ],
+  "reshot": "S13e part 2, October 16, 2026"
  },
  {
   "id": "m8_armistice_popup",
@@ -1842,7 +1854,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m8_truce_next_morning_5120x1440.jpg",
-  "what": "turn 8's morning dispatch, its tail: the Austria tier struck to White Peace (+0); 'a truce is a clock'",
+  "what": "turn 8's morning dispatch, its tail, re-shot S13e part 2: the truce holds its ledger",
   "turn": "Turn 8 — Early January 1806",
   "action": "click Continue",
   "surface": "BottomLeftUI",
@@ -1854,8 +1866,8 @@
   ],
   "scroll": [
    [
-    2206.0,
-    2206.0
+    1894.0,
+    1894.0
    ]
   ],
   "lines": [
@@ -1875,6 +1887,7 @@
    "27,250",
    "Art:",
    "14,200",
+   "[end turn]  (Tab)",
    "(Type command...)"
   ],
   "controls": [
@@ -1909,23 +1922,14 @@
     "tooltip": "End your turn and let enemies move"
    }
   ],
-  "dispatch_lines": [
-   "Sire — a truce with Austria is signed. The fighting stops for 5 turns; peace if relations heal to -60 or better, else the war resumes.",
-   "Deroy — Carniola — substantial force [partial]",
-   "A truce with Austria: the fighting stops for 5 turns — peace if relations heal to -60 or better, else the war resumes. Bavaria stays at war with Austria — an ally, not a client: her war runs on, and 3 French corps stand on Bavarian soil under the truce.",
-   "Carniola passes from Austria to Bavaria.",
-   "War Purpose: Defense vs Britain — the homeland — 28 of 28 provinces held  |  Settlement: White Peace (-3)",
-   "War Purpose: Defense vs Austria — the homeland — 28 of 28 provinces held  |  Settlement: White Peace (+0)",
-   "War Purpose: Defense vs Russia — the homeland — 28 of 28 provinces held  |  Settlement: White Peace (+0)",
-   "Berthier: \"A truce is a clock, Sire, not a treaty. Use its turns — the war is paused, not over.\""
-  ]
+  "reshot": "S13e part 2, October 16, 2026"
  },
  {
   "id": "m8_armistice_popup_turn8",
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m8_armistice_popup_turn8_5120x1440.jpg",
-  "what": "the armistice popup on turn 8: relations -77, trend up",
+  "what": "the armistice popup on turn 8, re-shot S13e part 2: 4 turns left, relations −77 and thawing, the exit re-read",
   "turn": "Turn 8 — Early January 1806",
   "action": "click Austria  4t",
   "surface": "WarDetailPopup",
@@ -1938,7 +1942,7 @@
   "scroll": null,
   "lines": [
    "ARMISTICE WITH AUSTRIA",
-   "Status: Armistice (4 turns remaining)\nRelations: -77 (Hostile)\nTrend: ^\nOn course to collapse: unless relations heal to -60 or better, the war resumes at expiry."
+   "Status: Armistice (4 turns remaining)\nRelations: -77 (Hostile)\nTrend: ^\nA 5-turn ceasefire: fighting stops. The ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 7 turns old and stays so; exhaustion holds. No territory or gold changes hands until it ends.\nWhen it expires: a dictated peace on the held line if the loser reads -50 or worse with no hope left; otherwise peace if relations have healed to -60 or better; otherwise the war resumes at its age.\nAt expiry: the war resumes where it stood — relations stand at -77 and will thaw to -65, short of -60; the ledger and the war's age come back with it.\nAustria's hope lives: Britain, Russia fight on, unspent; Britain's subsidy (300 a turn) flows to her.\nSureties filed at the truce: Austria pays 168 gold a turn for the pause; Bohemia, Tyrol held by France.\nThe cure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into peace."
   ],
   "controls": [
    {
@@ -1951,15 +1955,16 @@
     "disabled": false,
     "tooltip": ""
    }
-  ]
+  ],
+  "reshot": "S13e part 2, October 16, 2026"
  },
  {
   "id": "m8_table_under_truce",
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m8_table_under_truce_5120x1440.jpg",
-  "what": "France's table after the truce — Austria 12/50, 'Vienna … unbeaten'",
-  "turn": "Turn 7 — Late December 1805",
+  "what": "France's table under the truce, re-shot S13e part 2 — Austria's row with the truce standing",
+  "turn": "Turn 8 — Early January 1806",
   "action": "click Open Settlement",
   "surface": "ProposalConfirmPopup",
   "rect_logical": [
@@ -1979,16 +1984,16 @@
    ],
    [
     0.0,
-    464.0
+    618.0
    ]
   ],
   "lines": [
-   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 12/50, Britain 9/50, Russia 9/50.\nTreasury 6,218 gold: committed 0 / reserve 500 / remaining 5,718\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.\n\"I'd ease Austria, Britain, Russia, Sire — the table is yours to shape.\"",
-   "The table\n  * Austria ▸ - Holding out (12/50) White peace\n      Blocker: Settlement legitimacy\n      Metternich regrets that Austria must remain… unconvinced — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. He offers Vienna's compliments on Marshal Ney's laurels at Bohemia — compliments, he notes, are not a signature.\n      + Add demand\n  * Britain ▸ - Holding out (9/50) White peace\n      Blocker: Settlement legitimacy\n      Castlereagh declines for Britain: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents, and arithmetic does not sign papers it cannot balance. He adds that London has read the bulletins from Bohemia — Marshal Ney's laurels do not alter the arithmetic.\n      + Add demand\n  * Russia ▸ - Holding out (9/50) White peace\n      Blocker: Settlement legitimacy\n      Czartoryski holds Russia back from the table — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. The court marks that Marshal Ney stands crowned in glory at Bohemia.\n      + Add demand\n3 courts hold out.\n▸ Austria, Britain, and Russia won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
+   "This settlement cannot be ratified now.\nFrance vs Austria + Britain + Russia - Whole-war settlement\nCovered enemies: Austria, Britain, Russia\nWill NOT carry as drafted — every court must reach 50. Holding out: Austria 13/50, Britain 13/50, Russia 13/50.\nTreasury 7,866 gold: committed 0 / reserve 500 / remaining 7,366\nSire, this settlement of France vs Austria + Britain + Russia seats 3 courts at the table. Austria will not sign; the settlement of France vs Austria + Britain + Russia cannot be ratified until that court is eased toward terms or dropped to fight on.\n\"I'd ease Austria, Britain, Russia, Sire — the table is yours to shape.\"",
+   "The table\n  * Austria ▸ - Holding out (13/50) White peace\n      Blocker: Settlement legitimacy\n      Metternich regrets that Austria must remain… unconvinced — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. He offers Vienna's compliments on Marshal Ney's laurels at Bohemia — compliments, he notes, are not a signature.\n      + Add demand\n  * Britain ▸ - Holding out (13/50) White peace\n      Blocker: Settlement legitimacy\n      Castlereagh declines for Britain: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents, and arithmetic does not sign papers it cannot balance. He adds that London has read the bulletins from Bohemia — Marshal Ney's laurels do not alter the arithmetic.\n      + Add demand\n  * Russia ▸ - Holding out (13/50) White peace\n      Blocker: Settlement legitimacy\n      Czartoryski holds Russia back from the table — it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. The court marks that Marshal Ney stands crowned in glory at Bohemia.\n      + Add demand\n3 courts hold out.\n▸ Austria, Britain, and Russia won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts, then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify.",
    "Austria:",
    "Britain:",
    "Russia:",
-   "Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. Vienna, London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 12/50, Britain 9/50, Russia 9/50).\n\nWhat the treaty titles\n  * Status quo: Bohemia and Tyrol stay ours by the treaty — titled.\n  * Status quo: Leon stays British by the treaty.\n\nAllied petitions\n  * \"The chancery of Spain petitions for Leon in the settlement of France vs Austria + Britain + Russia. Britain occupies Leon — Spain's own soil.\"\n    Grant   Decline\n\nAllies and Standing\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Britain - Seat at settlement (The Third Coalition, war leader)\n  * Holland - No settlement standing (France)\n\nWarnings\n  * Acceptance concern - Settlement legitimacy (-10)\n  * Acceptance concern - National design (-8)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n\nWhite Peace — no terms will be exchanged.\n\"Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. Vienna, London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 12/50, Britain 9/50, Russia 9/50).\""
+   "Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 13/50, Britain 13/50, Russia 13/50). The table reads their mean: Austria +50 · Britain -3 · Russia +0. Russia sits at 0 because France has not fought her. With Austria alone the table reads 17 of 50; a payment of 825 gold to her would carry it. It costs 2 diplomatic points; you have 7. Bavaria's war with Austria ends in this instrument; she takes nothing by it.\n\nWhat the treaty titles\n  * Status quo: Carniola stays Bavarian by the treaty.\n  * Status quo: Bohemia and Tyrol stay ours by the treaty — titled.\n  * Status quo: Leon stays British by the treaty.\n\nAllied petitions\n  * \"The chancery of Spain petitions for Leon in the settlement of France vs Austria + Britain + Russia. Britain occupies Leon — Spain's own soil.\"\n    Grant   Decline\n  * \"The chancery of Bavaria warns that its claim to Tyrol against Austria is absent from France vs Britain.\"\n    Grant   Decline\n\nAllies and Standing\n  * France - Seat at settlement (France, war leader)\n  * Bavaria - Consulted ally (France)\n  * Britain - Seat at settlement (The Third Coalition, war leader)\n  * Holland - No settlement standing (France)\n\nWarnings\n  * Acceptance concern - Settlement legitimacy (-10)\n  * Acceptance concern - National design (-8)\n\nTerms\n  * End hostilities — each side keeps what it holds, now by treaty\n\nWhite Peace — no terms will be exchanged.\n\"Sire, a white peace for France vs Austria + Britain + Russia cannot be sealed as it stands: it claims no victory, but a whole-war peace still needs every covered court's consent, and not every court consents. Author terms or hold until the field shifts. London and Vilna are unbeaten — a whole-war peace needs their consent (Austria 13/50, Britain 13/50, Russia 13/50). The table reads their mean: Austria +50 · Britain -3 · Russia +0. Russia sits at 0 because France has not fought her. With Austria alone the table reads 17 of 50; a payment of 825 gold to her would carry it. It costs 2 diplomatic points; you have 7. Bavaria's war with Austria ends in this instrument; she takes nothing by it.\""
   ],
   "controls": [
    {
@@ -2077,6 +2082,16 @@
     "tooltip": ""
    },
    {
+    "text": "Grant",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Decline",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
     "text": "Harsher terms",
     "disabled": false,
     "tooltip": "Press every court harder and watch each react live."
@@ -2096,6 +2111,78 @@
     "disabled": false,
     "tooltip": ""
    }
-  ]
+  ],
+  "reshot": "S13e part 2, October 16, 2026"
+ },
+ {
+  "id": "m8_wizard_under_truce",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m8_wizard_under_truce_5120x1440.jpg",
+  "what": "Austria's wizard page under the truce, re-shot S13e part 2 — Talleyrand reads the truce (the ledger stands, where it heads, the cure priced); the truce row's tooltip",
+  "turn": "Turn 8 — Early January 1806",
+  "action": "hover Propose Peace (2 DP)",
+  "surface": "DiplomacyWizard",
+  "rect_logical": [
+   -8,
+   -14,
+   2113,
+   787
+  ],
+  "scroll": [
+   [
+    219.0,
+    441.0
+   ],
+   [
+    154.0,
+    242.0
+   ]
+  ],
+  "lines": [
+   "The ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 7\nturns old and stays so; exhaustion holds. At expiry: the war resumes where it stood — relations\nstand at -77 and will thaw to -65, short of -60; the ledger and the war's age come back with it. The\ncure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into peace.",
+   "DIPLOMACY — Austria",
+   "DP: 7",
+   "TALLEYRAND'S ASSESSMENT — AUSTRIA\nStatus: Armistice   Relation: -77 (Hostile)\n\n\"The guns are silent, but the wound festers. Peace may be achievable with Austria, though they will demand terms.\"\nRecommendation: Permit me to observe, Sire, that a truce is a clock, not a treaty: 4 turns, relations -77, and the ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 7 turns old and stays so; exhaustion holds. It heads for the collapse: relations stand at -77 and will thaw to -65, short of the line; the war resumes where it stood. The cure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into peace. Propose Peace reads 31 of 50. It costs 2 DP. Bavaria's war with Austria ends in this instrument; she takes nothing by it.\n  Propose Peace — 31 of 50 ✗ (2 DP)\n  Open Settlement with Austria alone — 17 of 50 ✗ (2 DP)\n  the whole table — 13 of 50 ✗ (2 DP)\n\nKEY FACTORS\n  + Our military dominance (+34)\n  + Base willingness (+30)\n  + Battlefield diplomacy (+10)\n  - Current relations (-30)\n  - Entrenches their denial (-8)\n  - Hegemon bloc pressure (-6)",
+   "▼ more below"
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": "Close (Esc)"
+   },
+   {
+    "text": "Guarantee Their Borders (1 DP)  —  Raises every coveter's bar for war (-8 weight) — and stakes French credibility on the",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Propose Peace (2 DP)  —  Doubtful — may counter",
+    "disabled": false,
+    "tooltip": "The ledger stands: the war score reads +52 for France (11 battles, 1 decisive kept); the war is 7\nturns old and stays so; exhaustion holds. At expiry: the war resumes where it stood — relations\nstand at -77 and will thaw to -65, short of -60; the ledger and the war's age come back with it. The\ncure is in reach: 1 turn of Improve Relations (+8 a turn, 1 DP) would carry this truce into peace."
+   },
+   {
+    "text": "Improve Relations (1 DP)  —  +8 relation/turn",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Court Nation (2 DP)  —  +8 relation/turn, proposals +2/turn courted (max +10), 20% blowback",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Back",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Cancel",
+    "disabled": false,
+    "tooltip": ""
+   }
+  ],
+  "reshot": "S13e part 2, October 16, 2026"
  }
 ]

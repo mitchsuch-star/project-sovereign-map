@@ -7925,6 +7925,12 @@ class DiplomaticExecutor:
 
         if source_nation:
             apply_rejection_cooldowns(source_nation, proposal_type, world)
+            # PC-R3 (ruling I item 2): a refused dictated letter ratchets the
+            # next (the offer history on the war instance).
+            if proposal_type == "harsh_peace":
+                from backend.game_logic.ai_diplomacy import note_dictated_refusal
+                note_dictated_refusal(world, source_nation, world.player_nation,
+                                      channel="bilateral")
             # DD8 (DWL-DIP-METTERNICH): a scorned Schemer turns a rejected peace
             # overture into war pressure — plant an expiring coalition-threat
             # marker (no-op unless the proposer is a Schemer and it was a

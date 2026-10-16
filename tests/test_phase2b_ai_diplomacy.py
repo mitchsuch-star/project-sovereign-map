@@ -207,7 +207,9 @@ class TestR108ActiveTreatiesEntry:
         assert world.active_treaties[diplo_key]["clauses"] == []
 
     def test_war_end_cleanup_on_ai_ai_armistice(self):
-        """AI-AI WAR→ARMISTICE triggers cleanup_war_end."""
+        """AI-AI WAR→ARMISTICE runs cleanup_war_end as a TRUCE: the ledger is
+        KEPT (PC-R2, S13e part 2, October 16, 2026 — ruling D) and the
+        cooldown is set."""
         world = make_world()
         _set_diplo_state(world, "Britain", "Prussia", "WAR")
         diplo_key = world._make_diplo_key("Britain", "Prussia")
@@ -216,9 +218,9 @@ class TestR108ActiveTreatiesEntry:
         proposal = {"type": "armistice", "proposer": "Britain", "target": "Prussia"}
         result = _ratify_via_world("Britain", "Prussia", proposal, world)
         assert result is not None
-        # War data should be cleaned up
-        assert diplo_key not in world.war_scores
-        assert diplo_key not in world.battle_records
+        # War data is kept by the truce (popped when the war ENDS)
+        assert world.war_scores[diplo_key] == 30
+        assert world.battle_records[diplo_key] == [{"winner": "Britain"}]
         # Armistice cooldown should be set
         assert world.armistice_cooldowns.get(diplo_key, 0) == 5
 

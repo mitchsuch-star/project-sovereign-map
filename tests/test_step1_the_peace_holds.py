@@ -140,12 +140,16 @@ class TestTheCascadeKeepsAFreshPeace:
         w.current_turn = 10
         _peace_with_the_coalition(w)
         assert D.offensive_call_bar(w, "Britain", "France") == "fresh peace with France"
-        # the floor lapses; a pair cooldown still binds
+        # the floor lapses; a pair cooldown still binds. PC-F69 (S13e part
+        # 2): the bilateral peace writes the floor into `armistice_cooldowns`
+        # too, so the turn bump stands in for five advances (the pop).
         w.current_turn = 10 + coalition.FRESH_PEACE_FLOOR_TURNS
+        w.armistice_cooldowns.pop(w._make_diplo_key("Britain", "France"), None)
         assert D.offensive_call_bar(w, "Britain", "France") == ""
         w.armistice_cooldowns[w._make_diplo_key("Britain", "France")] = 3
+        # PC-X8: at PEACE the store holds a peace's floor — worded as one
         assert D.offensive_call_bar(w, "Britain", "France") == (
-            "a truce's cooldown binds it to France (3 more turns)")
+            "fresh peace with France (3 more turns)")
         w.armistice_cooldowns.pop(w._make_diplo_key("Britain", "France"))
         # while the Congress sits, a court that answers it is not called
         _sit(w)
@@ -160,13 +164,16 @@ class TestTheCascadeKeepsAFreshPeace:
         _peace_with_the_coalition(w)
         w.current_turn = 10 + coalition.FRESH_PEACE_FLOOR_TURNS + 1
         w.armistice_cooldowns[w._make_diplo_key("Britain", "France")] = 4
+        # PC-F69: the bilateral floors lapse with the turns (the pops stand
+        # in for the advances); Britain's is the one that still binds.
         w.armistice_cooldowns.pop(w._make_diplo_key("Austria", "France"), None)
+        w.armistice_cooldowns.pop(w._make_diplo_key("France", "Russia"), None)
         result = _declare(w, "Austria", "France")
         assert w.get_diplomatic_state("Britain", "France") == "PEACE"
         assert w.get_diplomatic_state("Russia", "France") == "WAR"
         barred = {e["nation"]: e["reason"] for e in result["war_entry_ledger"]
                   if e["path"] == "hard_illegal"}
-        assert barred == {"Britain": "a truce's cooldown binds it to France (4 more turns)"}
+        assert barred == {"Britain": "fresh peace with France (4 more turns)"}
 
     def test_the_league_that_forms_the_turn_after_keeps_the_peace(self):
         """The retest's headline, at the coalition's own seam: the league
@@ -177,6 +184,12 @@ class TestTheCascadeKeepsAFreshPeace:
         w.current_turn = 10
         _peace_with_the_coalition(w)
         w.current_turn = 11
+        # PC-F69: the bilateral peace writes the floor the table writes, so
+        # the league's own declaration would wait it out — Austria's and
+        # Russia's lapsed here (the pops stand in for the advances); Britain,
+        # fresh from the table, keeps hers.
+        w.armistice_cooldowns.pop(w._make_diplo_key("Austria", "France"), None)
+        w.armistice_cooldowns.pop(w._make_diplo_key("France", "Russia"), None)
         with _quiet():
             result = coalition.form_coalition(["Austria", "Russia"], w)
         assert result.get("success"), result
@@ -214,9 +227,13 @@ class TestTheWarPreviewNamesTheBarredAlly:
 
     def test_a_barred_ally_is_named_apart_with_the_cascades_reason(self):
         w = self._spain_bound()
+        # PC-F69: France's own fresh peace with Austria binds France too;
+        # the pop stands in for the five advances (Spain's cooldown is the
+        # one under test).
+        w.armistice_cooldowns.pop(w._make_diplo_key("Austria", "France"), None)
         preview = D.preview_war_declaration(w, "France", "Austria")
         assert {"nation": "Spain",
-                "reason": "a truce's cooldown binds it to Austria (3 more turns)"} in preview["offensive_barred"]
+                "reason": "fresh peace with Austria (3 more turns)"} in preview["offensive_barred"]
         assert "Spain" not in preview["offensive_joiners"]
         # the cascade agrees with the review
         w.diplomatic_points = 9
@@ -426,9 +443,10 @@ class TestAWarWhileTheCongressSitsContests:
         # the per-turn lapse reads the truce as the war still on
         assert game_end.lapse_contested_titles(w) == []
         assert all("contested" in w.province_title[r] for r in THE_FIVE)
-        # the truce runs out into peace: the unsigned end
+        # an unsigned end (PC-R2 signs the truce's own expiry — ruling D
+        # item 3 — so the unsigned road here is a bare state write)
         with _quiet():
-            D.set_diplomatic_state(w, "Austria", "France", "PEACE", "armistice_expired_peace")
+            D.set_diplomatic_state(w, "Austria", "France", "PEACE", "")
         for region in THE_FIVE:
             rec = w.province_title[region]
             assert rec["kind"] == game_end.TITLE_CONQUEST

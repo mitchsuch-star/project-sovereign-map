@@ -373,6 +373,25 @@ const _PLURAL_IRREGULAR = {
 	"petition": "petitions",
 }
 
+## PC-X11 (S13e part 2): word-wrap `text` at `width` characters a line.
+## A tooltip never wraps a line of its own, so a long reading (the truce's
+## one wording) ran wider than the screen; paragraphs ("\n") are kept.
+static func wrap_text(text: String, width: int = 96) -> String:
+	var out: Array = []
+	for para in text.split("\n"):
+		var line: String = ""
+		for word in para.split(" "):
+			if line == "":
+				line = word
+			elif line.length() + 1 + word.length() > width:
+				out.append(line)
+				line = word
+			else:
+				line += " " + word
+		out.append(line)
+	return "\n".join(out)
+
+
 static func plural(n: int, noun: String) -> String:
 	if n == 1:
 		return str(n) + " " + noun

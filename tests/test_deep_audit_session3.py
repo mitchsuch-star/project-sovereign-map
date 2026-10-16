@@ -199,8 +199,10 @@ class TestFix3BreakTreatyWarCleanup:
         # War scores should be cleaned up
         assert diplo_key not in world.war_scores
 
-    def test_break_from_armistice_clears_data(self):
-        """Breaking treaty during ARMISTICE should clear war data."""
+    def test_break_from_armistice_resumes_the_war_with_its_ledger(self):
+        """PC-F82 (S13e part 2, October 16, 2026): breaking a TRUCE resumes
+        the war — the ledger stands (PC-R2); it no longer ends the war as an
+        unsigned peace."""
         world = _make_world()
         diplo_key = world._make_diplo_key("France", "Austria")
         world.diplomatic_states[diplo_key] = "ARMISTICE"
@@ -210,7 +212,9 @@ class TestFix3BreakTreatyWarCleanup:
         }
         result = break_treaty(diplo_key, "France", world)
         assert result["success"]
-        assert diplo_key not in world.war_scores
+        assert world.diplomatic_states[diplo_key] == "WAR"
+        assert world.war_scores[diplo_key] == 10
+        assert diplo_key not in world.active_treaties
 
 
 # ════════════════════════════════════════════════════════════════

@@ -1,140 +1,69 @@
-# NEXT SESSION PROMPT — Pre-Deploy S13b part 4: DD-B fixes — the voice, the client and the sea (DDB-45 … 62, DDB-21) and the naval rail alerts (DDB-X6)
+# NEXT SESSION PROMPT — Pre-Deploy S13e part 3: the scores and the clock (PC-R4, PC-R5, PC-R6 and part 3's F-rows)
 
-> Overwritten each time a session hands off. Current hand-off: **October 15,
-> 2026, after S13b part 3 landed.**
+> Overwritten each time a session hands off. Current hand-off: **October 16,
+> 2026, after S13e part 2 landed** (one commit on master through the hook).
 >
-> **What part 3 delivered** (three commits on master, run straight through):
-> - `eba57ba4` the head — DDB-X17: the player's glorious charge (typed, answered, or fired by an attack's
->   reckless stage) is refused onto peace soil in the attack's own words, and the reckless auto-charge picks
->   no target there; the AI keeps PT-F1.
-> - `ab6314a9` the orders — DDB-R1 ask first (a typed attack out of reach asks, naming the pursuit's price
->   and first march); R2 the muster gate widened to "potential disaster" for any lead, the free preview
->   taught; R4 no auto-end on either pool (the end-turn mirror, WO-22's defer, C3's guard and the warning
->   copy retired); R5 a named marshal's mismatched arm refused at no cost; R7 the rich peace's sink named.
->   The sweep's X23 (the parked muster reads the lead's reach) and X24 (the bare attack asks too).
-> - `89db8acc` the garrison and the retreat — DDB-R3 a detachment at ≥ 4:1 capitulates whole (one
->   arithmetic, both boards); X1 the landing reads the one garrison predicate; X2 / X25 the copy names the
->   thresholds; R6 the engaged move names the withdrawal and its price; X3 the AI's retreat reads AAR-D4's
->   friendly set — the part's one series move (`BASELINE_SERIES` [28] 0 → 2, re-pinned with the row named).
-> - the close: rows, docs, this prompt.
-> - Rules `SYSTEMS_REFERENCE.md` §118; pins `tests/test_ddb_s13b_the_rulings.py` (86 by the end of part 3).
-> - The series: `tools/_ddb_s13b_series_arms.py`, twenty-seven arms (`tools/_ddb_s13b_series_arms_final.json`);
->   every lever byte-identical but DDB-X3's. `tools/playtest_driver.py` gained `--seam MODULE:NAME=EXPR`
->   (hold a function seam down for a run; `docs/PLAYTESTING.md`).
+> **What part 2 delivered** (`SYSTEMS_REFERENCE.md` §123; owners `COALITION_SPEC.md` §6a.2 / §6a.3; pins
+> `tests/test_pc_rulings.py`):
+> - **PC-R2 the victor's truce** — the ledger and the war's age survive the truce and the collapse
+>   (`diplomacy.truce_keeps_the_ledger`, `set_diplomatic_state`'s stamp rule), exhaustion holds in a truce
+>   (`coalition.truce_holds_exhaustion`; PC-X9), the two signed exits and the collapse from ONE predicate
+>   (`armistice_expiry_exit`; `truce_hope_alive` read by the expiry and by P1's ask; the sureties filed at the
+>   truce on the war instance), the one wording (`truce_words`; the client prints it), F69 / F82 / F87 / PC-X8.
+> - **PC-R3 what the AI may dictate** — `dictated_tier` / `dictated_demands` / `dictated_settlement_clauses`,
+>   `war_priced_indemnity` (a lump plus a stream with `surety_regions` held until paid — both channels), the offer
+>   history on the war instance (`record_dictated_offer`, `note_dictated_refusal`, `dictated_ratchet`),
+>   `refused_peace_standing` (the Charges, the petitions, the war panel's `next_letter` / `refused_peace`),
+>   `successor_peace` (the regime arm on the exile story), F65 / F76's harsh register.
+> - **PC-R1 (v)** — the ally's bill from the desire profile (`_desire_profile_claims_for_ally`), F81's
+>   `pre_cleanup_standings`, the two Pressburgs' line (`emergent_designs.revanche_line_for_terms` /
+>   `revanche_line_after`), F70's beneficiary on the hand-off; PC-X10 (the balance projection's double count);
+>   PC-X11 (the HUD card's truce tooltip ran wider than the 5120 screen — `Utils.wrap_text`, one part a
+>   line) and PC-X12 (the counsel's "1 turns" — `{clock_turns}`).
+> - **The table's holes** F54 (the capital leads the offer rows), F56 (the preview validates), F52
+>   (`settlement_validation.occupied_homeland_cession_ok`, the ONE rule; the ratifier's `take_dropped_clauses`),
+>   F62 (the gold credit summed per pair); **the drafts** F13 (prisoners as one term; the losing draft eased
+>   around them), F22 (the sabotage re-estimated, the flip walked back).
+> - The series: `tools/_pc_s13e2_series_arms.py` (seams L / E / H / T / I; byte-identical on seven arms; the
+>   exhaustion-hold seam unreached in the ambient sim). The austerlitz window: `tools/_pc_s13e2_austerlitz_drive.py`.
+>   The ulm turn-18 board: `tests/fixtures/pc_boards/ulm_t18_paris_fallen.json` (Paris fallen at 15; Britain +39).
+>   The Part IV M7 / M8 frames re-shot at 5120×1440 on the turn-6 board (`docs/audits/peace_client/`;
+>   `TestPCR2::test_k` reads them: the letter, the card's tooltip, the popup on both turns, the wizard, the table).
+>   The DD-1 sweep A = 0 / B = 0 on ten arms (3,118 promises); the fuzzer ten seeds × 1,000 steps, 0.
 >
-> **The sibling sweeps found three rows** (DDB-X23 … X25), all FIXED in the part. Nothing heads part 4
-> but its own rows.
+> **The seams part 3 builds on (and must not re-pin blind):** `truce_hope_alive` (the AI's ask between the
+> threshold and −70 reads it — H's subsidy term and E's per-court read both touch its inputs); `dictated_tier`'s
+> `DICTATED_SCORE_STEP` (70) and P8's 40 are ±100 literals G re-reads; `coalition.next_war_exhaustion` now has
+> three arms (war / truce / peace) — H's occupation / subsidy / finance terms go into the WAR arm, the truce arm
+> HOLDS; `calculate_concession_credit` sums gold per pair — E's "payee credited in full" stacks on it;
+> `project_balance_after_settlement` moves a province from its holder (PC-X10) — the Balance of Europe reads it.
+>
+> **Traps part 2 paid for:**
+> - The harness's backend is a code SNAPSHOT: an edit after `pc4_play.py start` is not in the running game
+>   (the wizard read "1 turns" from stale code). To re-shoot after an edit: `POST /save` on the run's port
+>   (lands in `<run>/saves`), `stop`, `start --seed-save <file>` on a fresh `--out` / port, "click Looks right",
+>   "click Continue". A save is a wrapper — read it with `save_manager.load_game(path)["world"]`.
+> - A Godot tooltip never wraps a line of its own — a long reading goes through `Utils.wrap_text` (PC-X11).
+> - A new campaign-log type (`surety_returned`) moves FIFTEEN count pins (`assert len(CAMPAIGN_LOG_TYPES) == N`
+>   in fourteen files + `test_iq7`'s census of them) and the SR-6c tier census (`LOG_TIER_*`): re-seat every
+>   one with the flip note, in the same commit.
+> - A Bash heredoc with apostrophes or `\n` breaks silently: write edit scripts with the Write tool and run them;
+>   GDScript is tab-indented — splice by markers, never by a typed pattern.
+> - `edit()` lists assert before writing: a stale pair aborts the whole file — keep one file per list.
+> - A clause key the table's validator does not know (`surety_regions`) is an `invalid_clause_schema` refusal:
+>   `settlement_scoring.CANONICAL_CLAUSE_TYPES` is where a new optional key goes.
+> - `_apply_settlement_terms` never sees the war instance by object — it reads `world.war_instances[war_id]`.
+> - The HTTP idiom on a board: swap `M.world`, `M.game_state["world"]` and `M.parser` together
+>   (`_swap_in` in `tests/test_pc_rulings.py`); `board_env` boots the default world.
+> - A pending envoy on the turn-6 saves returns no wizard rows: `_board` pops the dialogue manager.
+> - The reaction summary's keys are `proposer_side_reactions` / `enemy_side_reactions`.
+> - The Godot harness (`pc4_play.py`) refuses to start while any Godot runs — the suite's engine group included;
+>   run Mode C after the suite.
+> - The austerlitz window is seed-specific: report truce counts per seed, never as a law (both arms signed two).
 >
 > **Nothing waits on the user** (a code-signing certificate and the UXR-4 review are theirs before S15,
 > not before this part). Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-**Pre-Deploy S13b part 4 — DD-B fixes: the voice, the client and the sea (DDB-45 … 62 and DDB-21) and the naval rail alerts (DDB-X6).**
-
-Routing authority is `docs/PRE_DEPLOY_PLAN.md` §2, row S13b (four parts):
-- **parts 1, 2 and 3** — LANDED October 14 and 15, 2026;
-- **part 4** — this prompt; it closes S13b.
-
-After S13b: S14 (SF-RR7 + the Score Finish residue, with DDB-X4 / SFR-B3 at its head), S14b VP-1, S14c the events, S14d the table lesson, S14e DD-B's re-measure (S14f its rows), S15 UXR-4 + code signing + the deploy.
-
-Each row in `docs/BUG_FIXES.md` §DD-B carries its cause (file:line) and its **decided fix**: that is the spec, so implement it as written. Line numbers were read on `0e2002e8`; parts 1 – 3 moved `combat_executor.py`, `executor.py`, `strategic.py`, `strategic_executor.py`, `objection_v2.py`, `world_state.py`, `movement_executor.py`, `economy_executor.py`, `naval_executor.py`, `garrison_report.py`, `meta_executor.py`, `main.py` and `main.gd`, so navigate by the symbol.
-
-**How to work:**
-- Work directly on master per `CLAUDE.md`. Commit and push each slice.
-- Run `git fetch origin` first and read `git log -8 --stat` before touching anything.
-- **Every decision is already made.** The user's rulings ("make all decisions … nothing hanging", October 13; "make design calls …", October 14) make this prompt the approved plan.
-  - Do not stop for Plan Mode approval, and do not pause between slices.
-  - The rules below settle every fork; ask the user nothing.
-- **The head:** a CODE-1 lever batch runs only if the session starts on or after November 1, 2026 (the November batch). Before then there is none.
-
-**The sibling sweep (the user's ruling, October 14 — it holds for every row):**
-- Every fix ends with a search for its class: the same mechanism on the other courts, dialogues, popups and roads, both combat copies (the executor's pipeline and the reckless auto-charge in `world_state._process_reckless_cavalry_turn_start`), and the AI's side of the same executor.
-- Each sibling found is filed in §DD-B's second table as `DDB-X<n>` (the next is **DDB-X26**), with its tag `⟨SF step=pre-deploy S13 · DD-B · pillar=…⟩`.
-- It is fixed in the same slice with its own test (`tests/test_ddb_s13b_the_rulings.py::TestDDBX<n>`).
-- A sibling too large for the slice heads the next session's work (S14's head). Nothing found is homed after the deploy.
-- Each commit message names its sweep: what was searched, and what was found.
-
-**Read first:**
-- `BUG_FIXES.md` §DD-B: its preamble, the rows DDB-21 and DDB-45 … 62, and DDB-X6 in the second table;
-- `SYSTEMS_REFERENCE.md` §116 – §118 (parts 1 – 3's rules — §118.4 no auto-end, §118.7 the capitulation, §118.8 the withdrawal);
-- `NAVAL_SPEC.md` §14 (the landing record), §17.3 and §18.4 (the rail alerts DDB-X6 builds);
-- `CLAUDE.md` "Before Modifying": the naval row, the popup recipe, the question desk (`question_desk.py`), the notice rail (`notifications.py`, `notification_bar.gd`).
-
-**Tests** — each slice's rows in `tests/test_ddb_s13b_<slice>.py::TestDDB<n>` as the row names it (`the_voice`, `the_client`, `the_sea`), and DDB-X6 in `tests/test_ddb_s13b_the_rulings.py::TestDDBX6`. Drive the real endpoints (the in-process TestClient on the 1805 boot or the board the row was seen on), never a mocked executor. When a row lands, mark it FIXED in its Status cell with the commit and the test, keep its tag, and say that the sighting's re-play is S14e's.
-
-### Slice 1 — the voice: DDB-45 … 53 (one commit)
-
-The question desk, the notice rail, the command reference and the dispatch's lines: the two-part question (45), stale rail cards (46), "to join Ney and Davout" (47), "How do I …?" (48), the reference's developer note and Congress count (49), a released marshal announced (50), a war purpose against an eliminated court (51), the alarm that "holds" (52), one siege's three contradicting lines (53). Each row's decided fix is the spec.
-
-### Slice 2 — the client: DDB-54 … 57 (one commit)
-
-Escape after a typed order (54), the title caption (55), an ally's lost province in good news's colour (56), the command window's four lines and the wheel (57). `.gd` edits: regenerate `tools/godot_parse_report.json` (the Start-Process harness, `EXIT=0`), and drive what can be driven headlessly (`tools/cx7_predictor_harness.gd`'s idiom). The UXR-4 marks are the user's at S15 — do not pre-empt them.
-
-### Slice 3 — the sea: DDB-21, 58 … 62 and DDB-X6 (one commit)
-
-The stranded corps on titled soil (21, P2), the Admiralty's ports (58), its automatic states (59), the postures (60), the readiness rot and the blockade's price (61), the named yard (62), and the rail alerts for a blockade's start / end and a diversion window's opening / shutting (X6). Run `tools/gen_port_anchors.py --audit` and `--check` if anything touches a coast. Re-measure `BASELINE_SERIES` with an attribution arm for any rule the AI also reads (a seam in `tools/_ddb_s13b_series_arms.py`; re-pin with the row named if it moves).
-
-### The close (S13b struck)
-
-**Rows:**
-- DDB-21, DDB-45 … 62 and DDB-X6 FIXED in `BUG_FIXES.md` §DD-B (commits and tests); any found rows FIXED, or heading S14.
-- §DD-B's preamble: S13b STRUCK — every row of DDB-1 … 62, R1 … R7 and X1 … X25 closed but DDB-X4 (S14's head with SFR-B3).
-
-**Docs:**
-- `PRE_DEPLOY_PLAN.md` §2: S13b part 4 landed, S13b STRUCK; **NEXT = S14**.
-- `STATUS.md` ▶ NEXT UP: a new block (seven kept; the oldest to the top of `docs/archive/STATUS_2026_Q4.md`).
-- `CLAUDE.md` LIVE STATE: the cap is ≤ 62,000 B, so trim the oldest line as you add one.
-- `SYSTEMS_REFERENCE.md` §119: the new rules.
-- This file, rewritten for **S14** (SF-RR7 + the Score Finish residue, DDB-X4 / SFR-B3 at its head; read `docs/SCORE_FINISH_SPEC.md` §3 Step 9 and the S14 row of `PRE_DEPLOY_PLAN.md` §2 first).
-
-**Traps — earlier sessions paid for each of these:**
-- **Never run two Godot engines at once.** Check `tasklist | grep -ci godot` before any engine start. The user may have the game open ("Ink & Iron (DEBUG)") — never touch that window or its process. The hook drives Godot (the engine group), so start no engine during a commit. After any `.gd` edit, regenerate `tools/godot_parse_report.json`.
-- **Never touch the user's live 8005 backend.** A driven check runs on `SOVEREIGN_PORT=8006` or above with `INK_IRON_SAVE_DIR` set.
-- **The hook tests the working tree, not the index.**
-  - Park a later slice's test edits outside `tests/` before committing an earlier slice. An untracked test in `tests/` runs in the hook.
-  - Do not edit files the tests read while a commit's hook (or your own full-suite run) is running — the backend and the docs included (the census and the plan pins read `BUG_FIXES.md`). Draft in the scratchpad, apply after.
-- **`PYTHONDONTWRITEBYTECODE=1`** fails two stale-bytecode pins. Run pytest and `git commit` with `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING`.
-- **The hook** runs ruff and the full parallel suite (about 7 minutes; 31,2xx tests at part 3's end).
-  - Commit with `run_in_background: true` from Bash, with a message file, and never `--no-verify`.
-  - Read the log's `[pre-commit]` and `EXIT=` lines before believing a commit.
-  - Run the full suite yourself once (in the background) before the commit to find a slice's fallout; the hook is then a confirmation.
-  - `test_fa_slice12_the_road_home …::test_the_offer_is_reported_before_the_warning_it_answers` failed once under the hook in part 3 and passed alone and under every seed: a flake — re-run it alone, then re-commit unchanged.
-  - The G4 timing pin can fail under load. Re-run it alone; if it passes, re-commit unchanged.
-- **A byte-pinned series.** If a decided fix moves one (`BASELINE_SERIES`, the M-pins, a seeded digest), re-pin it in the same slice, naming the row as the reason, with its attribution arm recorded. A move no row explains is a bug in the slice. **No new module lever:** the code-health ratchet (`LEVERS_CAP`) forbids one, so an attribution arm patches a function seam in the child; run the arms with `--prior <the HEAD series>`. A re-pin adds a link to the series chain pins (`test_ai_drill_fix`, `test_dp1`, `test_rf3`, `test_vp_r1`, `test_economy_audit`): the last record's ALL arm is the new record's prior.
-- **Paid for in part 3:**
-  - **A pause can strand a commit.** R2 pauses non-cautious leads, and the parked muster's live check read adjacency — a cavalryman's committed attack was retired (DDB-X23). When a change makes a path common, read the path's own re-validation.
-  - **An exemption on the objection battery skips its validations too.** The `if should_check_objection:` block also refuses (fortified, AP …): exempt the DRAW only, at the evaluation, never the whole block.
-  - **A driven arm re-routes by a decided fix.** Diff HEAD and the tree (a `git worktree` at HEAD in the scratchpad) on the world stream with message text stripped; re-seat only on the row's own decided effect. A function seam can be held down for a driven arm with the driver's `--seam MODULE:NAME=EXPR`.
-  - **Raw keys in new copy.** Every marshal name in a new line goes through `humanize_entity_name` ("ArchdukeJohn" failed the display census).
-  - **Copy changes move pins in files you would not guess** (the scout, the works halt, the help, the engaged refusal each had pins in three or four files): run the suite before the commit.
-- **The function at 500 lines.** `turn_manager.end_turn` is under 500 again (C3's guard retired); `FUNCTIONS_OVER_500_CAP` still holds — a line added to a function near 500 goes in a helper.
-- **The judge is shared.** `tools/_score_probes.py` is read by the census records and the score archive. Check any edit against every committed census record (`docs/audits/unrehearsed/`) and the HOLD arms first.
-- **The census reads closing words.** In a Status cell, an uppercase FIXED / RULED / BUILT / RE-HOMED closes a row. Write them only when the row is truly closed, and keep them lowercase in an OPEN row's prose.
-- **Dialogue and popup wiring** (`CLAUDE.md` "Adding a new popup/dialog"): every POST handler goes through `build_base_response`; a new dtype goes on the `main.gd` whitelist; a popup that must arrive with its dialogue carries the dialogue's id.
-- **Monkeypatch the type, never a method on `M.executor` / `M.parser`.** In a TestClient world swap, swap `M.world`, `M.game_state` and `M.parser` together.
-- **Shell:**
-  - Bash heredocs mangle backslashes and quotes: write scripts with the Write tool and run them with `-X utf8`; an exact-substring helper with a `PAIRS` spec file keeps each file's line endings.
-  - A redirect into a directory that does not exist fails the command before it runs; write logs to the absolute scratchpad path.
-  - GDScript `:=` cannot infer from an untyped value; type such locals explicitly.
-- **Git:** never `git add -A`; stage by name. **Line endings:** the tree is mixed CRLF / LF; keep each file's own.
-- **Docs caps:** `CLAUDE.md` ≤ 62,000 B; `STATUS.md` keeps seven ▶ blocks.
-
-**Code-health rules in force:**
-- A new font size is a theme step, not an override (`RAW_RATCHET` 1).
-- A grey is a named palette token.
-- A control that cannot act is disabled with its reason (`Utils.set_available`).
-- A fix lands in the stage that owns it.
-- Golden Rule 1: combat modifiers live in `marshal.py` alone.
-- Golden Rule 5: player and AI share systems; the rulings name where they differ.
-- Golden Rule 6: the LLM never affects mechanics.
-- Golden Rule 8: no per-region scan in a hot path.
-- Golden Rule 9: nothing deferred without a home.
-
-**Open with the user:** UXR-4 at S15 (S12's eleven R2 marks, and S12b's and DD-B's frames), and a code-signing certificate before S15. Nothing in part 4 waits on either.
-
-**Do not:**
-- edit `docs/UX_CHECKLIST_V1.json`;
-- re-score, add a lever, or weaken a gate or a ratchet;
-- change a rule no row or ruling names;
-- touch the Score Finish residue or start S14.
+> - **The next prompt (S13e part 3), pre-decided:** read this block, `PEACE_CONUNDRUM_2026_10_15.md` §46 (E, H, G) and §40 E / H / G, `SYSTEMS_REFERENCE.md` §122 and §123 (what parts 1–2 built: `carried_in_allies`, `court_own_readiness`, `truce_words` / `truce_hope_alive` / `armistice_expiry_exit`, `dictated_tier` / `dictated_demands` / `war_priced_indemnity`, the offer history on the instance, `occupied_homeland_cession_ok`), and `BUG_FIXES.md` §PC rows PC-R4, PC-R5, PC-R6 and part 3's F-rows (F23, F63, F71, F60, F55, F61, F20; F42, F31; F27, F26, F38, F39, F84; the coalition's shape F58, F66, F77, F79, F80; the sea F64, F68). Build **PC-R4** first (E: each court on its OWN pair at the table — the per-court base reads the court's pair score, not the side mean (`settlement_baseline.compute_per_court_acceptance`, `settlement_scoring.calculate_base_side_pressure`'s per-court read); the stake floor is `CONSULT_MATERIAL_SHARE_THRESHOLD` (0.10) — one ladder for both sides; the payee credited in full and the side at `side_gold_credit_share()` (built in part 1); the tier legitimacy reads the court's OWN tier so the −10 white-peace charge stops biting a victor in Vienna; the AI's settlement letter dry-run reads the same per-court scorer as the player's — pinned on the Vienna-held board: Britain alone reads 6/50 beside Austria's 79 on one table), then **PC-R5** (H: the +8 clock kept; occupation +1 a turn per own home province the enemy holds, subsidy −2 to the recipient / +2 to the paymaster while it flows, finance +2 while the chest is under one turn of upkeep — `coalition.next_war_exhaustion`'s terms, named, and the truce's hold from part 2 kept; the league gate reads the live rate, not the constant (`ai_diplomacy.py`'s `BREAK_RANKS_EXHAUSTION` read against the rate); the components ride the war popup — F42), then **PC-R6** (G: the caps kept, decay then cap in `calculate_war_score`; the `defense` ticking STOPS accruing for a court whose capital the enemy holds and resumes when it is regained — the shield down with Vienna held; the fill shown per component ("Battle 15/15 — full") on the war popup and the HUD; every ±100 literal re-read — P1 −40/−70, P8 40, break-ranks −50, the Congress −40, the exhausted-pair band 15), then part 3's F-rows: the two scores F63, F71, F60, F55, F61, F23, F20; the clocks F42, F31; the AI's reads F27, F26, F38, F39, F84; the coalition's shape F58 (the welded instance's leader vs the league's), F66, F77, F79, F80; the sea F64 (the blockade credits France), F68. Sibling sweep after each (file PC-X11 onward); a series attribution where a fix reaches the AI (`tools/_pc_s13e2_series_arms.py` is the pattern — copy to `_pc_s13e3_series_arms.py`; seams, never module levers; the ratchet caps them at 231); the DD-1 sweep and fuzzer re-run where a predicate moves. Mode A drives on COPIES of the turn-6 boards and the ulm turn-18 board (`tests/fixtures/pc_boards/`); never ports 8005/8006; `SOVEREIGN_PORT` 8010+ and `INK_IRON_SAVE_DIR` in the scratchpad. Commit through the hook; close with the Part IV frames that show the war popup's components (M1's tooltip, M8's popup) re-shot and read, STATUS naming part 4 next with its prompt pre-decided, and a hand-over note. Done when: Britain alone reads 6/50 beside Austria's 79 on one table; the clock's components on the war popup; the shield down with Vienna held; the blockade credits France; `tests/test_pc_rulings.py` green with `TestPCR4` / `TestPCR5` / `TestPCR6`.

@@ -263,13 +263,46 @@ def next_war_exhaustion(world, nation: str) -> int:
         if not europe:
             return current
         at_war = bool(world.get_nations_at_war_with(player))
+        in_truce = bool(nations_in_truce_with(world, player))
     elif europe:
         at_war = bool(world.get_nations_at_war_with(nation))
+        in_truce = bool(nations_in_truce_with(world, nation))
     else:
-        at_war = _get_diplo_state(world, player, nation) == "WAR"
+        _state = _get_diplo_state(world, player, nation)
+        at_war = _state == "WAR"
+        in_truce = _state == "ARMISTICE"
     if at_war:
         return min(current + 8, WAR_EXHAUSTION_MAX)
+    if in_truce and truce_holds_exhaustion(world, nation):
+        return current
     return max(current - 5, 0)
+
+
+def nations_in_truce_with(world, nation: str) -> list:
+    """Every court `nation` stands in ARMISTICE with (the WAR mirror is
+    `WorldState.get_nations_at_war_with`)."""
+    out = []
+    for key, state in (getattr(world, "diplomatic_states", {}) or {}).items():
+        if state != "ARMISTICE":
+            continue
+        parts = str(key).split("|")
+        if len(parts) == 2 and nation in parts:
+            out.append(parts[1] if parts[0] == nation else parts[0])
+    return out
+
+
+def truce_holds_exhaustion(world, nation: str) -> bool:
+    """PC-R2 — ruling D with ruling H's clause "never reset it by a truce"
+    (the peace report §46, October 16, 2026): a court whose only wars are
+    TRUCES holds its war exhaustion flat — the truce neither wears it (+8:
+    nobody is fighting) nor rests it (−5: the war is not over; its clocks
+    stand). Measured before: Austria 54 → 16 across one truce on
+    austerlitz (M3), so every truce bought the loser a fresh league. The
+    exhaustion POP at the truce (`cleanup_war_end`'s R49 arm) is held by
+    `diplomacy.truce_keeps_the_ledger`; this seam holds the TICK. The
+    series attribution holds it down
+    (`--seam backend.game_logic.coalition:truce_holds_exhaustion=lambda *a: False`)."""
+    return True
 
 
 def _get_diplo_state(world, a: str, b: str) -> str:

@@ -880,6 +880,11 @@ func _add_action_button(action: Dictionary):
 
 	var btn = Button.new()
 	btn.text = text
+	# PC-R2 / PC-F44 (S13e part 2): a truce's row carries the one wording
+	# (what it keeps, where it heads, the cure priced) in its tooltip.
+	var truce_display = str(action.get("truce_display", ""))
+	if truce_display != "" and truce_display != "null":
+		btn.tooltip_text = Utils.wrap_text(truce_display, 100)  # PC-X11
 	btn.custom_minimum_size = Vector2(0, 40)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.disabled = not available

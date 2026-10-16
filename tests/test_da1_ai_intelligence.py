@@ -104,8 +104,22 @@ def _boost_past_the_filter(world):
 # A4: GOLD DEMAND FORMULA
 # ═══════════════════════════════════════════════════════
 
+def _war_lump(world, ws, mult=1.0):
+    """PC-R3 (S13e part 2, October 16, 2026 — ruling I item 3): the harsh
+    letter's lump is priced to the WAR (base + the war's age + the score),
+    never to the purse: `war_priced_indemnity`, one source for both
+    channels. Every pin below reads it."""
+    from backend.game_logic.ai_diplomacy import pair_war_age, war_priced_indemnity
+    return war_priced_indemnity(world, "France", "Prussia", ws,
+                                pair_war_age(world, "Prussia", "France"), mult)["lump"]
+
+
 class TestA4GoldFormula:
-    """⚠ RE-BLESSED by FA-21 (FA slice 14 part 2b, September 6, 2026).
+    """⚠ RE-BLESSED twice: by FA-21 (FA slice 14 part 2b, September 6, 2026)
+    and by PC-R3 (S13e part 2, October 16, 2026): the lump is the war's
+    figure — `_war_lump` — and the purse no longer prices it.
+
+    (The FA-21 record below is history.)
 
     `make_world()` gives France a treasury of **800**, so the EC-W4 purse
     term contributes `min(500 + ws×40 + 120, 0.40×800) = 320` — the cap
@@ -130,28 +144,28 @@ class TestA4GoldFormula:
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 30, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        assert gold == 320
+        assert gold == _war_lump(world, 30)
 
     def test_scaling_at_50(self):
         """war_score=50 → the ladder says 250, the purse says 320."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        assert gold == 320
+        assert gold == _war_lump(world, 50)
 
     def test_scaling_at_80(self):
         """war_score=80 → 80*5=400. UNCHANGED: the ladder beats the purse."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 80, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        assert gold == 400
+        assert gold == _war_lump(world, 80)
 
     def test_scaling_at_100(self):
         """war_score=100 → 100*5=500. UNCHANGED: the ladder beats the purse."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 100, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        assert gold == 500
+        assert gold == _war_lump(world, 100)
 
     def test_hawk_multiplier(self):
         """Hawk gold_mult=1.5. Was 375 (`50 × 5 × 1.5`).
@@ -166,7 +180,7 @@ class TestA4GoldFormula:
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.5)
         gold = terms["demands"][0]["value"]
-        assert gold == 480
+        assert gold == _war_lump(world, 50, 1.5) > _war_lump(world, 50)
 
     def test_dove_multiplier(self):
         """Dove gold_mult=0.75: 80*5*0.75=300. UNCHANGED — the dove's purse
@@ -174,7 +188,7 @@ class TestA4GoldFormula:
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 80, world, gold_mult=0.75)
         gold = terms["demands"][0]["value"]
-        assert gold == 300
+        assert gold == _war_lump(world, 80, 0.75) < _war_lump(world, 80)
 
     def test_floor_with_low_war_score(self):
         """war_score=10. Was 200 (`10 × 5 = 50`, floored); now the purse's 320.
@@ -186,16 +200,16 @@ class TestA4GoldFormula:
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 10, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        assert gold == 320
+        assert gold == _war_lump(world, 10)
 
     def test_old_formula_would_give_different_values(self):
         """Verify the new formula gives different results than the old one."""
         world = make_world()
         terms = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.0)
         gold = terms["demands"][0]["value"]
-        old_gold = max(500, int(50 * 8))  # Old formula
+        old_gold = max(200, int(50 * 5))  # the pre-PC-R3 ladder (FA-21's legacy arm)
         assert gold != old_gold
-        assert gold < old_gold
+        assert gold == _war_lump(world, 50) > old_gold
 
 
 # ═══════════════════════════════════════════════════════
@@ -1074,8 +1088,8 @@ class TestIntegration:
         world = make_world()
         set_war(world, "France", "Prussia")
         terms = _build_proposal_terms("Prussia", "harsh_peace", 50, world, gold_mult=1.0)
-        # FA-21: max(ladder 250, purse 0.40 x 800) = 320
-        assert terms["demands"][0]["value"] == 320
+        # PC-R3: the war's figure
+        assert terms["demands"][0]["value"] == _war_lump(world, 50)
 
     def test_full_p8_flow(self):
         """Full P8 flow: build terms → reduce → filter."""

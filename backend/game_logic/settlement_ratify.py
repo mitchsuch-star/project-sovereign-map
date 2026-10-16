@@ -375,6 +375,14 @@ def _capture_pair_pre_cleanup_war_data(
     return result
 
 
+def take_dropped_clauses(world: Any) -> List[Dict[str, Any]]:
+    """PC-F52: the clauses the last `_apply_settlement_terms` could not
+    carry (read once, then cleared — state clearing after reading)."""
+    out = list(getattr(world, "_settlement_dropped_clauses", None) or [])
+    world._settlement_dropped_clauses = []
+    return out
+
+
 def _apply_settlement_terms(
     world: Any,
     *,
@@ -394,6 +402,11 @@ def _apply_settlement_terms(
     diplomatic ledger can attribute each tick to the originating war.
     """
     applied: List[Dict[str, Any]] = []
+    # PC-F52: nothing priced is dropped SILENTLY — what cannot carry is
+    # recorded here and named on the result (`take_dropped_clauses`).
+    _dropped: List[Dict[str, Any]] = []
+    _instance = (getattr(world, "war_instances", {}) or {}).get(str(war_id or "")) or {}
+    from backend.game_logic.settlement_validation import occupied_homeland_cession_ok
     for idx, term in enumerate(settlement_terms or []):
         if not isinstance(term, Mapping):
             continue
@@ -410,14 +423,31 @@ def _apply_settlement_terms(
                     ws_key = world._make_diplo_key(from_nation, to_nation)
                     ws = abs(int(getattr(world, "war_scores", {}).get(ws_key, 0) or 0))
                     if ws < TOTAL_ANNEXATION_WAR_SCORE:
+                        _dropped.append({"type": "territory_cede", "regions": list(regions),
+                                         "from": from_nation, "to": to_nation,
+                                         "reason": "total_annexation_needs_war_score",
+                                         "display": (f"{', '.join(regions)} not carried — a cession "
+                                                     f"of {from_nation}'s whole territory needs a war "
+                                                     f"score of {int(TOTAL_ANNEXATION_WAR_SCORE)}")})
                         continue
             transferred: List[str] = []
             for region_name in regions:
                 if region_name not in getattr(world, "regions", {}):
                     continue
                 region = world.regions[region_name]
-                if from_nation and getattr(region, "controller", None) != from_nation:
-                    continue
+                _holder = str(getattr(region, "controller", "") or "")
+                if from_nation and _holder != from_nation:
+                    # PC-F52: the ceder's homeland held by the receiving side
+                    # carries (Tyrol at Pressburg); anything else is named.
+                    if not occupied_homeland_cession_ok(
+                            world, _instance, region_name, from_nation, to_nation, _holder):
+                        _dropped.append({"type": "territory_cede", "regions": [region_name],
+                                         "from": from_nation, "to": to_nation, "holder": _holder,
+                                         "reason": "ceder_does_not_hold",
+                                         "display": (f"{region_name} not carried — {from_nation} no "
+                                                     f"longer holds it and {_holder or 'nobody'} "
+                                                     f"stands on the other side")})
+                        continue
                 region.controller = to_nation
                 region.stability = 50
                 transferred.append(region_name)
@@ -560,6 +590,8 @@ def _apply_settlement_terms(
                     "ratified_turn": int(ratified_turn),
                     "settlement_route_id": str(settlement_route_id or ""),
                     "source_clause_index": int(idx),
+                    # PC-R3: held until paid — returned on the last payment
+                    "surety_regions": [str(r) for r in (term.get("surety_regions") or []) if r],
                 })
                 clause = dict(term)
                 clause["amount"] = amount
@@ -745,6 +777,7 @@ def _apply_settlement_terms(
                             "liberator_nation": lib_liberator,
                             "turn": int(getattr(world, "current_turn", 0) or 0),
                         })
+    world._settlement_dropped_clauses = list(_dropped)
     return applied
 
 
@@ -1611,6 +1644,17 @@ def ratify_settlement_confirm(
     )
     pre_cleanup_attacker_leader = str(war_instance.get("attacker_leader") or "")
     pre_cleanup_defender_leader = str(war_instance.get("defender_leader") or "")
+    # PC-F81 (S13e part 2, October 16, 2026): a carried ally's STANDING is
+    # read BEFORE the pair transitions close its contribution episode —
+    # `cleanup_war_end` -> `resolve_pair_to_resolved` closed it, so the
+    # gratitude / shut-out pass read `no_standing` and reached nobody.
+    from backend.game_logic.settlement_reactions import (
+        _classify_proposer_ally_standing as _standing_of,
+    )
+    pre_cleanup_standings = {
+        str(ally): _standing_of(world, war_id, proposer_side, str(ally), settlement_terms)
+        for ally in pre_cleanup_proposer_members if ally
+    }
     # IQ-3 review: the courts signing in this ratification, so a league it
     # dissolves does not report them as still at war (coalition.treaty_in_flight).
     from backend.game_logic.coalition import treaty_in_flight
@@ -1652,9 +1696,15 @@ def ratify_settlement_confirm(
     # APPLIED clauses only — what actually transferred, never the ask.
     from backend.game_logic.emergent_designs import (
         collect_cessions_from_clauses, record_punitive_cessions,
+        revanche_line_after,
     )
-    record_punitive_cessions(
+    _punitive_written = record_punitive_cessions(
         world, collect_cessions_from_clauses(applied_clauses))
+    # PC-R1 (v) item 5: "Revanche stands" / "Revanche lapses" — one line on
+    # the aftermath, read from the seam the AI reads.
+    _revanche_line = revanche_line_after(world, _punitive_written, applied_clauses)
+    # PC-F52: what the ratifier could not carry is named, never silent.
+    _dropped_clauses = take_dropped_clauses(world)
 
     # GE-1: once per ratification (never inside `_apply_settlement_terms`,
     # which the headless paths share) — titles for every SIGNED cession,
@@ -1757,6 +1807,7 @@ def ratify_settlement_confirm(
         pre_cleanup_accepting_members=pre_cleanup_accepting_members,
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
+        pre_cleanup_standings=pre_cleanup_standings,
         staged_route_id=staged_route_id,
         acceptance_snapshot=acceptance_snapshot,
         acceptance_at_staging=acceptance_at_staging,
@@ -1780,6 +1831,11 @@ def ratify_settlement_confirm(
     )
     if _sq_lines:
         result_message = result_message + " " + " ".join(_sq_lines)
+    if _dropped_clauses:
+        result_message = result_message + " Not carried: " + "; ".join(
+            str(d.get("display") or "") for d in _dropped_clauses) + "."
+    if _revanche_line:
+        result_message = result_message + " " + _revanche_line
     # RS-D1: the recognition a capital-keeping peace just bought, on the
     # same summary line the status quo rides.
     _rec_lines = _ge.take_recognition_lines(world)
@@ -1834,6 +1890,8 @@ def ratify_settlement_confirm(
             ),
         },
         "status_quo_titled": _sq_titled,
+        "dropped_clauses": _dropped_clauses,
+        "revanche_line": _revanche_line,
         "mutated": True,
         "message": result_message,
     }

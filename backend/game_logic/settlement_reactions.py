@@ -484,12 +484,17 @@ def _evaluate_proposer_side_reactions(
     settlement_terms: List[Mapping[str, Any]],
     applied_clauses: List[Mapping[str, Any]],
     episode_id: str,
+    pre_cleanup_standings: Optional[Mapping[str, str]] = None,
+    pre_cleanup_members: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     from backend.game_logic.diplomacy import _add_grievance_flag
 
     reactions: List[Dict[str, Any]] = []
     player_nation = str(getattr(world, "player_nation", "France"))
-    proposer_members = _participants_on_side(war_instance, proposer_side)
+    # PC-F81: the members and their standing as they stood BEFORE the pair
+    # transitions (a carried ally has already left the live instance).
+    proposer_members = (list(pre_cleanup_members) if pre_cleanup_members
+                        else _participants_on_side(war_instance, proposer_side))
     proposer_leader = _side_leader(war_instance, proposer_side) or player_nation
 
     # France is the actor on settlement memories. If the proposer leader
@@ -500,8 +505,12 @@ def _evaluate_proposer_side_reactions(
     for ally in proposer_members:
         if ally == actor:
             continue
-        standing = _classify_proposer_ally_standing(
-            world, war_id, proposer_side, ally, settlement_terms,
+        standing = (
+            str(pre_cleanup_standings.get(ally))
+            if pre_cleanup_standings and pre_cleanup_standings.get(ally)
+            else _classify_proposer_ally_standing(
+                world, war_id, proposer_side, ally, settlement_terms,
+            )
         )
         if standing == "no_standing":
             # Spec §14.4: minor / no-standing participants only react when
@@ -1234,6 +1243,7 @@ def route_settlement_reactions(
     pre_cleanup_accepting_members: Optional[List[str]] = None,
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
+    pre_cleanup_standings: Optional[Mapping[str, str]] = None,
     staged_route_id: str = "",
     route_id: str = "",
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
@@ -1306,6 +1316,8 @@ def route_settlement_reactions(
         settlement_terms=list(settlement_terms or []),
         applied_clauses=list(applied_clauses or []),
         episode_id=episode_id,
+        pre_cleanup_standings=pre_cleanup_standings,
+        pre_cleanup_members=list(pre_cleanup_proposer_members or []),
     )
     enemy_reactions = _evaluate_enemy_side_reactions(
         world,

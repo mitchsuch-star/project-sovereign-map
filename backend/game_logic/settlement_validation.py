@@ -116,12 +116,21 @@ def _check_gold_payment_budget_conflict(
     nation_gold = getattr(world, "nation_gold", None) or {}
     payer_obligations: Dict[str, Dict[str, Any]] = {}
     max_turns = 0
+    _player = str(getattr(world, "player_nation", "France") or "France")
     for idx, clause in enumerate(terms):
         ctype = clause.get("type")
         if ctype not in ("gold_indemnity", "gold_lump", "gold_per_turn"):
             continue
         payer = str(clause.get("from") or "")
         if not payer:
+            continue
+        # PC-R3 (S13e part 2): a clause a COURT dictated (`authored_by` the
+        # court — the settlement letter's own terms, laid back verbatim for
+        # consent) is the court's ask, not the player's drafting; the
+        # player's solvency rule does not refuse it (the transfer clamps to
+        # what the payer holds).
+        _author = str(clause.get("authored_by") or "")
+        if _author and _author not in (_player, "player") and payer == _player:
             continue
         amount = int(clause.get("amount", 0) or 0)
         record = payer_obligations.setdefault(
@@ -1165,6 +1174,34 @@ def _clause_role_nations(clause: Mapping[str, Any]) -> List[str]:
     ]
 
 
+def occupied_homeland_cession_ok(world, war_instance, region_name: str,
+                                 ceder: str, receiver: str, holder: str) -> bool:
+    """PC-F52: the ONE rule the validator, the preview and the ratifier read
+    — a province the ceder does not hold may still be ceded when it is the
+    ceder's own homeland and the court that holds it stands on the
+    receiver's side (an occupier handing the conquest to the beneficiary
+    under the ceder's signature: Tyrol at Pressburg). False otherwise."""
+    if not region_name or not ceder or not holder or holder == ceder:
+        return False
+    homeland = set((getattr(world, "nation_starting_regions", {}) or {}).get(ceder, []) or [])
+    if region_name not in homeland:
+        return False
+    if holder == receiver:
+        return True
+    if isinstance(war_instance, Mapping) and war_instance:
+        side_of = war_instance.get("side_by_nation") or {}
+        if receiver and side_of.get(holder) and side_of.get(holder) == side_of.get(receiver):
+            return True
+    try:
+        top = world._top_overlord
+        if receiver and (top(holder) == receiver or top(receiver) == holder
+                         or (top(holder) and top(holder) == top(receiver))):
+            return True
+    except Exception as exc:
+        report(exc, "settlement_validation.occupied_homeland_cession_ok: _top_overlord")
+    return False
+
+
 def validate_settlement_terms(
     terms: Any,
     *,
@@ -1399,6 +1436,35 @@ def validate_settlement_terms(
                     "error_index": idx,
                     "disabled_reason_display": _error_display("clause_side_mismatch"),
                 }
+
+    # PC-F52 (S13e part 2, October 16, 2026): a cession the ceder no longer
+    # HOLDS carries only when the province is the ceder's homeland and a
+    # court on the receiving side holds it (Pressburg: France held Tyrol and
+    # Austria ceded it to Bavaria) — otherwise it is refused HERE, never
+    # dropped silently at ratification.
+    if world is not None and getattr(world, "regions", None):
+        for idx, clause in enumerate(terms):
+            if clause.get("type") != "territory_cede":
+                continue
+            region_name = str(clause.get("region") or "")
+            frm = str(clause.get("from") or "")
+            to = str(clause.get("to") or "")
+            region = (getattr(world, "regions", {}) or {}).get(region_name)
+            if region is None or not frm:
+                continue
+            holder = str(getattr(region, "controller", "") or "")
+            if holder == frm:
+                continue
+            if occupied_homeland_cession_ok(world, war_instance, region_name, frm, to, holder):
+                continue
+            return {
+                "valid": False,
+                "error": "ceder_does_not_hold",
+                "error_index": idx,
+                "region": region_name,
+                "holder": holder,
+                "disabled_reason_display": _error_display("ceder_does_not_hold"),
+            }
 
     # SC-33 / G2-Slice-9: per-clause amount + duration bounds for
     # `gold_per_turn` clauses (no silent clamping — submitted values are

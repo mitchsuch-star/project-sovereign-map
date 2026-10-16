@@ -491,7 +491,14 @@ def build_active_wars(world) -> Dict[str, Any]:
             world, contribution.get("war_id", ""),
         )
 
+        # PC-R3 (ruling I item 4): the war panel shows the tier the court's
+        # NEXT letter would dictate, and the refused peace that stands.
+        from backend.game_logic.ai_diplomacy import (
+            next_dictated_letter as _next_letter, refused_peace_clause as _refused_clause,
+        )
         row = {
+            "next_letter": _next_letter(world, opponent, france),
+            "refused_peace": _refused_clause(world, france),
             "opponent": opponent,
             "war_score": score,
             "breakdown": breakdown,
@@ -660,6 +667,15 @@ def build_active_wars(world) -> Dict[str, Any]:
         else:
             rel_trend = "stable"
 
+        # PC-R2 / PC-F44 (S13e part 2): the truce KEEPS the ledger, and the
+        # card says so — the kept score, the war's age, the exit it heads
+        # for (dictated / peace / war) with the hope terms, and the cure
+        # priced. One wording (`diplomacy.truce_words`), read here, on the
+        # popup, the wizard row, the counsel and the dispatch.
+        from backend.game_logic.diplomacy import get_war_score_for, truce_words
+        _words = truce_words(world, france, opponent)
+        _kept_score = int(get_war_score_for(world, france, opponent))
+        _war_start = int((getattr(world, "war_start_turns", {}) or {}).get(diplo_key, world.current_turn))
         wars.append({
             "opponent": opponent,
             # PT-B2 drive-by, same screen: the war row renders the backend's
@@ -668,13 +684,13 @@ def build_active_wars(world) -> Dict[str, Any]:
             # NA-6 appeared under its NEW name two rows above its DEAD one.
             # One producer for both.
             "opponent_display": formed_display_name(world, opponent),
-            "war_score": 0,
+            "war_score": _kept_score,
             "breakdown": None,
-            "duration": 0,
-            "started_turn": 0,
+            "duration": int(max(0, int(world.current_turn) - _war_start)),
+            "started_turn": _war_start,
             "trend": "stable",
-            "battles_fought": 0,
-            "decisive_won": 0,
+            "battles_fought": int(_words["keeps"]["battles"]),
+            "decisive_won": int(_words["keeps"]["decisives"]),
             "recent_battles": [],
             "war_exhaustion": None,
             "army_strength": None,
@@ -685,10 +701,18 @@ def build_active_wars(world) -> Dict[str, Any]:
             # just how long it has left.
             # FA-D18 (slice 17, Phase 2): the HUD's fork counts the thaw over the
             # turns REMAINING, the same arithmetic the war-context snapshot uses.
+            # PC-R2: the two signed exits both read "peace" to the card's
+            # fork; `armistice_exit` carries which.
             "armistice_projected_outcome": (
-                "peace" if armistice_projected_relation(relation, remaining)
-                >= ARMISTICE_AUTO_PEACE_RELATION else "war"
+                "peace" if _words["exit"] in ("peace", "dictated") else "war"
             ),
+            "armistice_exit": str(_words["exit"]),
+            "armistice_keeps_line": str(_words["keeps_line"]),
+            "armistice_heading_line": str(_words["heading_line"]),
+            "armistice_hope_line": str(_words["hope_line"]),
+            "armistice_cure_line": str(_words["cure_line"]),
+            "armistice_sureties_line": str(_words["sureties_line"]),
+            "armistice_lines": list(_words["display_lines"]),
             "armistice_projected_relation": int(armistice_projected_relation(relation, remaining)),
             "armistice_auto_peace_threshold": int(ARMISTICE_AUTO_PEACE_RELATION),
             "relation": relation,

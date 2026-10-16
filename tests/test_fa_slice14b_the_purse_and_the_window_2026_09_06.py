@@ -146,9 +146,13 @@ class TestThePurseIsRead:
         ("empty chest, therefore no lump") is unsatisfiable under this shape
         and is recorded as such rather than quietly dropped.
         """
+        # PC-R3 (S13e part 2, ruling I item 3): the low end is priced to
+        # the WAR like the rest — an empty chest is asked the war's figure
+        # (the transfer clamps to what the payer holds).
         rich.nation_gold["France"] = 0
         _, terms = _harsh(rich, gold_mult=1.0)
-        assert _lump(terms) == 270          # 54 * 5, the legacy ladder
+        assert _lump(terms) == AD.war_priced_indemnity(
+            rich, "France", "Britain", 54, AD.pair_war_age(rich, "Britain", "France"))["lump"]
 
     def test_the_purse_floor_reads_the_term_not_the_player(self, rich):
         """Nation-pair-general for free. Same answer today by construction —
@@ -170,13 +174,13 @@ class TestTheTwoChannelsPriceAlike:
         the caller IS the helper — the mutation sweep proved it by perturbing
         the shared formula and watching both sides move together.
         """
+        # PC-R3 (S13e part 2, ruling I item 3): the multilateral amount is
+        # the WAR's figure — base + the age + the score — with no treasury
+        # term and no cap; the drift pin recomputes it from the constants.
         def ec_w4(treasury, ws, age):
             base = (AD.SETTLEMENT_OFFER_BASE_GOLD_AMOUNT
                     + max(0, age) * AD.SETTLEMENT_OFFER_PER_DURATION_BONUS)
-            scaled = (base + abs(int(ws)) * AD.SETTLEMENT_OFFER_PER_WAR_SCORE
-                      + int(treasury * AD.SETTLEMENT_OFFER_TREASURY_FRACTION))
-            cap = int(treasury * AD.SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
-            return max(0, min(scaled, cap))
+            return max(0, base + abs(int(ws)) * AD.SETTLEMENT_OFFER_PER_WAR_SCORE)
 
         for treasury in (0, 800, 6650, 17487, 100000):
             rich.nation_gold["France"] = treasury
@@ -189,8 +193,15 @@ class TestTheTwoChannelsPriceAlike:
                                 if t["type"] == "gold_indemnity"), 0)
                     want = ec_w4(treasury, ws, age)
                     assert got == want, (treasury, ws, age, got, want)
+                    # the purse helper itself keeps EC-W4's body (the tier-0
+                    # reducer's floor reads it)
+                    base = (AD.SETTLEMENT_OFFER_BASE_GOLD_AMOUNT
+                            + max(0, age) * AD.SETTLEMENT_OFFER_PER_DURATION_BONUS)
+                    scaled = (base + abs(int(ws)) * AD.SETTLEMENT_OFFER_PER_WAR_SCORE
+                              + int(treasury * AD.SETTLEMENT_OFFER_TREASURY_FRACTION))
+                    cap = int(treasury * AD.SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
                     assert AD.purse_scaled_indemnity(
-                        rich, "France", ws, age) == want
+                        rich, "France", ws, age) == max(0, min(scaled, cap))
 
     def test_the_legacy_no_world_arm_survives(self, rich):
         """Direct callers with no world keep the pre-EC-W4 flat sizing."""

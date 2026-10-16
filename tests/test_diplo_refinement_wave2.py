@@ -260,8 +260,11 @@ class TestAggressiveDominanceP8:
         terms_80 = _build_proposal_terms("Prussia", "harsh_peace", 80, world, gold_mult=1.0)
         gold_50 = terms_50["demands"][0]["value"]
         gold_80 = terms_80["demands"][0]["value"]
-        assert gold_50 == 320   # the purse (0.40 x 800) beats the ladder's 250
-        assert gold_80 == max(200, int(80 * 5))  # 400 — the ladder still wins
+        # PC-R3 (S13e part 2): priced to the WAR — `war_priced_indemnity`
+        from backend.game_logic.ai_diplomacy import pair_war_age, war_priced_indemnity
+        age = pair_war_age(world, "Prussia", "France")
+        assert gold_50 == war_priced_indemnity(world, "France", "Prussia", 50, age)["lump"]
+        assert gold_80 == war_priced_indemnity(world, "France", "Prussia", 80, age)["lump"]
         assert gold_80 > gold_50
 
     def test_ap_reduction_removed_dead_code(self):

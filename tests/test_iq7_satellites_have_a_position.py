@@ -1992,7 +1992,7 @@ class TestT21CampaignLog:
     def test_the_type_is_registered(self):
         assert "client_petition_answered" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["client_petition_answered"] == "diplomacy"
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 175  # 173->175 flipped consciously: DD-1 S8 Step 3 (Oct 12, 2026) adds `allegiance_bid` (a bid laid before a court in play, SFR-D40) and `province_returned` (a home province asked back from an ally, with its outcome, SFR-D42) — neither act had a persistent surface; no inert diplomacy type retired in exchange  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface  # 172->173 flipped consciously: TILSIT (SF-NAV-1-D1, Score Finish Step 7, Oct 4, 2026) adds `continental_system_membership` — a court joining or leaving France's Continental System (by the Tilsit clause, a forced alliance, a satellite's auto-join, or the exit at war) had no persistent surface
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 176  # 175->176 flipped consciously: PC-R2 (S13e part 2, Oct 16, 2026) adds `surety_returned` — a surety province held until a dictated stream is paid and returned at its end had no persistent surface; no inert diplomacy type retired in exchange  # 173->175 flipped consciously: DD-1 S8 Step 3 (Oct 12, 2026) adds `allegiance_bid` (a bid laid before a court in play, SFR-D40) and `province_returned` (a home province asked back from an ally, with its outcome, SFR-D42) — neither act had a persistent surface; no inert diplomacy type retired in exchange  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface  # 172->173 flipped consciously: TILSIT (SF-NAV-1-D1, Score Finish Step 7, Oct 4, 2026) adds `continental_system_membership` — a court joining or leaving France's Continental System (by the Tilsit clause, a forced alliance, a satellite's auto-join, or the exit at war) had no persistent surface
 
     def test_every_count_pin_moved_with_the_rationale(self):
         """The census over the flips: every file that pins the count reads
@@ -2018,7 +2018,11 @@ class TestT21CampaignLog:
         TILSIT, with the six earlier flips still on the line. ⚡ DD-1 S8 Step 3
         (Oct 12, 2026) moved it 173 -> 175 (`allegiance_bid`, `province_returned`
         — the two verbs' acts) — flipped consciously: the census now reads 175
-        and S8, with the seven earlier flips still on the line."""
+        and S8, with the seven earlier flips still on the line. ⚡ S13e part 2
+        (Oct 16, 2026) moved it 175 -> 176 (`surety_returned`, a surety province
+        returned when the dictated stream is paid) — flipped consciously: the
+        census now reads 176 and S13e part 2, with the eight earlier flips still
+        on the line."""
         pinned = {}
         for path in sorted((REPO / "tests").glob("test_*.py")):
             for line in path.read_text(encoding="utf-8").splitlines():
@@ -2026,7 +2030,7 @@ class TestT21CampaignLog:
                 if m:
                     pinned[path.name] = (int(m.group(1)), m.group(2))
         assert len(pinned) >= 14, sorted(pinned)
-        stale = {name: value for name, (value, _) in pinned.items() if value != 175}
+        stale = {name: value for name, (value, _) in pinned.items() if value != 176}
         assert stale == {}, stale
         unexplained = [name for name, (_, tail) in pinned.items()
                        if "IQ-7" not in tail or "GE-1" not in tail

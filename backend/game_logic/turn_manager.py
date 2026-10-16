@@ -447,6 +447,13 @@ class TurnManager:
                 if nation:
                     apply_lapse_type_cooldown(
                         nation, lapse.get("proposal_type", ""), self.world)
+                    # PC-R3: a dictated letter left unanswered lapses — the
+                    # congress let lapse (Châtillon) is a refusal to the
+                    # ratchet.
+                    if str(lapse.get("proposal_type") or "") == "harsh_peace":
+                        from backend.game_logic.ai_diplomacy import note_dictated_refusal
+                        note_dictated_refusal(self.world, nation, self.world.player_nation,
+                                              channel="bilateral", outcome="lapsed")
                 # FA-17 (slice 10): an unanswered COUNTER to France's own
                 # overture costs the player a re-ask cooldown, exactly as
                 # answering it "reject" would (`reject_counter_offer` sets

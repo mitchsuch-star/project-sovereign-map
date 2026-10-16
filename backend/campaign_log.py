@@ -357,6 +357,8 @@ CAMPAIGN_LOG_TYPES = {
     "settlement_recurring_gold_partial",
     "settlement_recurring_gold_completed",
     "settlement_recurring_gold_cancelled",
+    # PC-R3 (S13e part 2): a dictated stream's last payment sends its sureties home
+    "surety_returned",
     # SC-30 / Slice G1: the Request Terms lifecycle
     "settlement_terms_requested",
     "settlement_terms_request_granted",
@@ -676,6 +678,7 @@ CATEGORY_MAP = {
     "settlement_recurring_gold_partial": "diplomacy",
     "settlement_recurring_gold_completed": "diplomacy",
     "settlement_recurring_gold_cancelled": "diplomacy",
+    "surety_returned": "diplomacy",
     "settlement_terms_requested": "diplomacy",
     "settlement_terms_request_granted": "diplomacy",
     "settlement_terms_request_refused": "diplomacy",
@@ -745,7 +748,7 @@ LOG_TIER_ROUTINE = frozenset({
     "ai_proposal_counter_failed", "ai_proposal_rejected",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected", "ai_ultimatum_void",
     "allegiance_auction_opened", "allegiance_auction_resolved",
-    "allegiance_bid", "province_returned",
+    "allegiance_bid", "province_returned", "surety_returned",
     "ally_entry_accepted", "ally_entry_refused", "ally_refused_free_join",
     "amends_offered", "auto_downgrade", "bargain_fulfilled",
     "bargain_ratified", "bargain_repudiated", "bargain_triggered",
@@ -2693,6 +2696,15 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
             f"gold from {ctx.event.get('from_nation', 'Unknown')} to "
             f"{ctx.event.get('to_nation', 'Unknown')} "
             f"({ctx.event.get('war_label', 'the war')})."
+        )
+
+    if ctx.event_type == "surety_returned":
+        _regions = ctx.event.get("regions")
+        _regions = ", ".join(_regions) if isinstance(_regions, list) else str(_regions or "")
+        return (
+            f"The indemnity is paid: {_regions} — held by "
+            f"{ctx.event.get('payee', 'Unknown')} until paid — return to "
+            f"{ctx.event.get('ceder', 'Unknown')}."
         )
 
     if ctx.event_type == "settlement_recurring_gold_cancelled":

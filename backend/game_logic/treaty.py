@@ -231,7 +231,7 @@ def treaty_clauses_of(proposal: Dict[str, Any], proposer: str, target: str) -> L
         if s.get("type") == "territory_cede" and "regions" in s:
             clause_entry["regions"] = s["regions"]
         # W6-7: `marshal` rides prisoner_return clauses.
-        for extra_key in ("named_enemy", "claim_region", "claim_holder", "marshal"):
+        for extra_key in ("named_enemy", "claim_region", "claim_holder", "marshal", "marshals"):
             if extra_key in s:
                 clause_entry[extra_key] = s[extra_key]
         treaty_clauses.append(clause_entry)
@@ -254,12 +254,16 @@ def treaty_clauses_of(proposal: Dict[str, Any], proposer: str, target: str) -> L
             "includes_continental_system",
             "named_enemy", "claim_region", "claim_holder",
             "marshal",  # W6-7: prisoner_return names its prisoner
+            "marshals",  # PC-F13: one term, several men
             # NA-6c / IGR-D: a `create_client` demand's SUBJECT. `tag`
             # is the authority (the apply arm re-resolves the template);
             # `provinces` feeds harshness pricing and the estate
             # warning; `client_display_name` keeps the confirm popup
             # from printing the raw template id at the player.
             "tag", "provinces", "client_display_name",
+            # PC-R3: a dictated stream runs `turns` turns and holds its
+            # `surety_regions` until the last payment lands.
+            "turns", "surety_regions",
         ):
             if extra_key in d:
                 clause_entry[extra_key] = d[extra_key]

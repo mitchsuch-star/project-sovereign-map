@@ -578,6 +578,15 @@ func _render_war_detail(w: Dictionary):
 			var outcome_color = COLOR_GREEN if b.get("won", false) else COLOR_RED
 			bbcode += "  " + prefix + "[color=" + outcome_color + "]" + outcome + "[/color] at " + str(b.get("location", "?")) + " (T:" + str(int(b.get("turn", 0))) + ")\n"
 
+
+	# PC-R3 (S13e part 2): the tier the court's next letter would dictate,
+	# and the peace the Emperor refused (both from the backend's reading).
+	var next_letter = w.get("next_letter", null)
+	if next_letter is Dictionary and str(next_letter.get("display", "")) != "":
+		bbcode += "\n[color=" + COLOR_AMBER + "]" + str(next_letter.get("display", "")) + "[/color]\n"
+	var refused_peace = str(w.get("refused_peace", ""))
+	if refused_peace != "" and refused_peace != "null":
+		bbcode += "[color=" + COLOR_AMBER + "]" + refused_peace + "[/color]\n"
 	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 
 
@@ -636,14 +645,25 @@ func _render_armistice_detail(w: Dictionary):
 	bbcode += "Relations: [color=" + rel_color + "]" + rel_sign + str(relation) + " (" + rel_desc + ")[/color]\n"
 	bbcode += "Trend: " + _trend_str(rel_trend) + "\n"
 
-	# G4F-17: project the expiry fork — where this truce is heading and why.
-	var projected = str(w.get("armistice_projected_outcome", ""))
-	if projected != "":
-		var threshold = int(float(w.get("armistice_auto_peace_threshold", -60)))
-		if projected == "peace":
-			bbcode += "[color=" + COLOR_GREEN + "]On course for peace: relations have healed past " + str(threshold) + ".[/color]\n"
-		else:
-			bbcode += "[color=" + COLOR_AMBER + "]On course to collapse: unless relations heal to " + str(threshold) + " or better, the war resumes at expiry.[/color]\n"
+	# PC-R2 / PC-F44 (S13e part 2): the ONE wording from the backend
+	# (`diplomacy.truce_words` — what the truce keeps, where it heads, the
+	# hope terms, the sureties, the cure priced) — the client composed its
+	# own "On course to collapse" sentence before.
+	var exit_kind = str(w.get("armistice_exit", w.get("armistice_projected_outcome", "")))
+	var line_color = COLOR_GREEN if (exit_kind == "peace" or exit_kind == "dictated") else COLOR_AMBER
+	var truce_lines = w.get("armistice_lines", [])
+	if truce_lines is Array and not truce_lines.is_empty():
+		for line in truce_lines:
+			bbcode += "[color=" + line_color + "]" + str(line) + "[/color]\n"
+	else:
+		# G4F-17: the fork alone (a save from before the words)
+		var projected = str(w.get("armistice_projected_outcome", ""))
+		if projected != "":
+			var threshold = int(float(w.get("armistice_auto_peace_threshold", -60)))
+			if projected == "peace":
+				bbcode += "[color=" + COLOR_GREEN + "]On course for peace: relations have healed past " + str(threshold) + ".[/color]\n"
+			else:
+				bbcode += "[color=" + COLOR_AMBER + "]On course to collapse: unless relations heal to " + str(threshold) + " or better, the war resumes at expiry.[/color]\n"
 
 	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
 

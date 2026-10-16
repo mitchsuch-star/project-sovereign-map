@@ -444,10 +444,13 @@ class TestTheTrucesFollowers:
         the dispatch template renders clean."""
         from backend.game_logic.dispatch import _format_dispatch_event_text
         assert D.truce_followers_line(w, "France", "Prussia") == ""
+        # PC-R2 / PC-F44: the line carries what the truce keeps and where it
+        # heads (`{keeps}` / `{heading}` from `truce_words`)
         text = _format_dispatch_event_text("armistice_ratified", {
             "proposer_nation": "France", "target_nation": "Prussia", "other": "Prussia",
-            "turns": 10, "thaw": 20, "followers": ""})
-        assert text.endswith("else the war resumes.")
+            "turns": 10, "thaw": 20, "keeps": " The ledger stands.",
+            "heading": " At expiry: the war resumes where it stood.", "followers": ""})
+        assert text.endswith("At expiry: the war resumes where it stood.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

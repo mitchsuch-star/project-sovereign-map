@@ -13,7 +13,7 @@ Single source of truth for diplomatic mechanics:
 
 import copy
 import random  # noqa: F401 — used in _process_mission_effects
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from backend.display_names import (
     FEEDBACK_STRINGS,
@@ -2928,10 +2928,16 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         from backend.game_logic.withdrawal import revoke_evacuation_grant
         revoke_evacuation_grant(world, nation_a, nation_b)
 
-    # War start tracking
+    # War start tracking. PC-R2 (ruling D item 2): the war's age survives
+    # a TRUCE — WAR → ARMISTICE keeps the stamp and ARMISTICE → WAR (the
+    # collapse) keeps the ORIGINAL stamp, so the −65 war-age penalty does
+    # not return and the young-war band does not re-open on every collapse
+    # (F59: three truces in 26 turns on austerlitz).
+    _truce_keeps = truce_keeps_the_ledger(world, key)
     if new_state == "WAR" and old_state != "WAR":
         war_start_turns = getattr(world, 'war_start_turns', {})
-        war_start_turns[key] = int(world.current_turn)
+        if not (old_state == "ARMISTICE" and _truce_keeps and key in war_start_turns):
+            war_start_turns[key] = int(world.current_turn)
         world.war_start_turns = war_start_turns
     elif new_state == "WAR" and old_state == "WAR":
         # Ensure war_start_turns is set even for redundant WAR→WAR (e.g. cheat fix-up)
@@ -2941,7 +2947,8 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
             world.war_start_turns = war_start_turns
     elif new_state != "WAR" and old_state == "WAR":
         war_start_turns = getattr(world, 'war_start_turns', {})
-        war_start_turns.pop(key, None)
+        if not (new_state == "ARMISTICE" and _truce_keeps):
+            war_start_turns.pop(key, None)
         world.war_start_turns = war_start_turns
 
     # SF7-X35: a war opened by any road but a declaration gets the purpose a
@@ -4678,9 +4685,328 @@ def armistice_resolves_this_turn(world, nation_a: str, nation_b: str) -> str:
     remaining = int(max(0, ARMISTICE_DURATION - elapsed))
     if remaining > 1:
         return ""
+    # PC-R2: the two signed exits (the dictated peace, the courted peace)
+    # both END the war — "peace" to every reader of this predicate.
+    return "war" if armistice_expiry_exit(world, nation_a, nation_b)["exit"] == "war" else "peace"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PC-R2 — ruling D, THE VICTOR'S TRUCE (the peace report §46, October 16,
+# 2026; `docs/COALITION_SPEC.md` §6a.2 is the rule's home). A truce freezes
+# the ledger and keeps the war's age (`truce_keeps_the_ledger`,
+# `coalition.truce_holds_exhaustion`); at expiry it has TWO signed exits
+# and one collapse (`armistice_expiry_exit`); a court asks a truce only
+# while its HOPE is alive (`truce_hope_alive`, read by the expiry and by the
+# AI's own ask — one function); every surface says what the truce keeps,
+# where it is heading and what the cure costs (`truce_words`, F44).
+# ═══════════════════════════════════════════════════════════════════════════
+
+# The loser's LIVE pair score at or under this line, with its hope dead,
+# ends the truce in a DICTATED peace on the held line (ruling D item 4).
+# It is P1's own break-ranks line (`ai_diplomacy.BREAK_RANKS_WAR_SCORE`).
+TRUCE_DICTATED_SCORE = -50
+# A league member is SPENT at P1's own exhaustion line.
+TRUCE_SPENT_EXHAUSTION = 80
+
+
+def truce_loser(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
+    """Who is losing the paused war, by the LIVE pair score from each chair
+    (`live_war_score_for`, the war panel's own read — the stored score is
+    frozen under the truce but the held line may still move). {loser,
+    victor, loser_score}; a level war has no loser ('' / 0)."""
+    score_a = int(live_war_score_for(world, nation_a, nation_b))
+    if score_a < 0:
+        return {"loser": nation_a, "victor": nation_b, "loser_score": score_a}
+    if score_a > 0:
+        return {"loser": nation_b, "victor": nation_a, "loser_score": -score_a}
+    return {"loser": "", "victor": "", "loser_score": 0}
+
+
+def truce_hope_alive(world, loser: str, victor: str) -> Dict[str, Any]:
+    """Ruling D's three-term HOPE predicate, read from stores that exist —
+    the beaten court's reason to hold out for better terms than the held
+    line: (1) another league member on its side not yet spent (at WAR with
+    the victor, exhaustion under `TRUCE_SPENT_EXHAUSTION`,
+    `coalition.war_exhaustion`); (2) a subsidy flowing to the court
+    (`coalition.projected_paymaster_subsidy` — `_process_british_subsidy`'s
+    own plan); (3) the victor's exhaustion past the loser's. Alive while ANY
+    term holds. ONE function read by the expiry (`armistice_expiry_exit`)
+    and by the AI's ask (P1 asks a truce between −50 and −70 only while its
+    hope is alive; otherwise it sends the peace letter). The series
+    attribution holds it down (`--seam …:truce_hope_alive=lambda w, l, v:
+    {"alive": True, "members": [], "subsidy": None, "exhaustion": {}, "alive_terms": [], "dead_terms": []}`)."""
+    from backend.game_logic.coalition import projected_paymaster_subsidy
+    we = getattr(world, "war_exhaustion", {}) or {}
+    members: List[str] = []
+    if loser and victor:
+        from backend.game_logic.ai_diplomacy import _find_war_instance_for_pair
+        instance = _find_war_instance_for_pair(world, loser, victor)
+        side_mates: List[str] = []
+        if instance is not None:
+            side = (instance.get("side_by_nation") or {}).get(loser)
+            side_mates = [str(n) for n in (instance.get(side) or [])
+                          if str(n) and str(n) != loser]
+        else:
+            side_mates = [str(n) for n in world.get_nations_at_war_with(victor)
+                          if str(n) != loser]
+        for mate in sorted(set(side_mates)):
+            if not world.is_at_war(mate, victor):
+                continue
+            if int(we.get(mate, 0) or 0) >= TRUCE_SPENT_EXHAUSTION:
+                continue
+            members.append(mate)
+    subsidy = None
+    plan = projected_paymaster_subsidy(world) if loser else None
+    if (plan and str(plan.get("recipient") or "") == loser
+            and str(plan.get("payer") or "") != victor):
+        subsidy = {"payer": str(plan.get("payer") or ""), "amount": int(plan.get("amount") or 0)}
+    victor_we = int(we.get(victor, 0) or 0) if victor else 0
+    loser_we = int(we.get(loser, 0) or 0) if loser else 0
+    alive_terms: List[str] = []
+    dead_terms: List[str] = []
+    (alive_terms if members else dead_terms).append("league")
+    (alive_terms if subsidy else dead_terms).append("subsidy")
+    (alive_terms if victor_we > loser_we else dead_terms).append("exhaustion")
+    return {
+        "alive": bool(alive_terms),
+        "members": members, "subsidy": subsidy,
+        "exhaustion": {"victor": victor_we, "loser": loser_we},
+        "alive_terms": alive_terms, "dead_terms": dead_terms,
+    }
+
+
+def armistice_expiry_exit(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
+    """Ruling D item 4 — where the truce between the two is HEADING, read
+    as the expiry will read it: `exit` = 'dictated' (the loser's live pair
+    at or under `TRUCE_DICTATED_SCORE` and its hope dead — a peace on the
+    held line, the sureties filed at the truce its terms), 'peace' (the
+    courted peace: the projected relation at or past
+    `ARMISTICE_AUTO_PEACE_RELATION` — the volte-face's door, kept so a level
+    war has an exit but collapse) or 'war' (the collapse — the war resumes at
+    its age with its ledger). Carries {loser, victor, loser_score, hope,
+    relation, projected, remaining}. Pure read; the HUD, the popup, the
+    wizard row, the counsel, the dispatch and the processor read ONE."""
+    key = world._make_diplo_key(nation_a, nation_b)
     relation = int((getattr(world, "nation_relations", {}) or {}).get(key, 0) or 0)
-    return ("peace" if armistice_projected_relation(relation, remaining)
-            >= ARMISTICE_AUTO_PEACE_RELATION else "war")
+    state = (getattr(world, "diplomatic_states", {}) or {}).get(key, "PEACE")
+    elapsed = int((getattr(world, "armistice_turns", {}) or {}).get(key, 0) or 0)
+    remaining = (int(max(0, ARMISTICE_DURATION - elapsed)) if state == "ARMISTICE"
+                 else int(ARMISTICE_DURATION))
+    projected = int(armistice_projected_relation(relation, remaining))
+    who = truce_loser(world, nation_a, nation_b)
+    loser, victor = who["loser"], who["victor"]
+    hope = truce_hope_alive(world, loser, victor) if loser else None
+    if loser and int(who["loser_score"]) <= TRUCE_DICTATED_SCORE and hope and not hope["alive"]:
+        exit_ = "dictated"
+    elif projected >= ARMISTICE_AUTO_PEACE_RELATION:
+        exit_ = "peace"
+    else:
+        exit_ = "war"
+    return {
+        "exit": exit_, "loser": loser, "victor": victor,
+        "loser_score": int(who["loser_score"]), "hope": hope,
+        "relation": relation, "projected": projected, "remaining": remaining,
+        "line": int(ARMISTICE_AUTO_PEACE_RELATION),
+    }
+
+
+def truce_sureties_for(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
+    """The sureties filed at the truce (`record_truce_sureties` at the
+    armistice's ratification, on the war instance): {gold_per_turn, from,
+    to, held: [provinces of the loser the victor's side holds], turn} or {}."""
+    key = world._make_diplo_key(nation_a, nation_b)
+    from backend.game_logic.ai_diplomacy import _find_war_instance_for_pair
+    instance = _find_war_instance_for_pair(world, nation_a, nation_b)
+    if instance is None:
+        return {}
+    return dict((instance.get("truce_sureties") or {}).get(key) or {})
+
+
+def record_truce_sureties(world, nation_a: str, nation_b: str,
+                          clauses: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Ruling D item 4 / item 5: at the armistice's ratification, file the
+    loser's sureties on the war instance — the gold stream the
+    `armistice_losing` letter carried (a court that asks for a pause pays
+    for it) and the held line (the loser's provinces the victor's side
+    holds, held until the peace). The dictated exit reads them back as its
+    terms: the stream runs on into the peace (the treaty record persists;
+    a renewed war pops it) and the held line is titled by the signature
+    (SR-1a, `game_end.SIGNED_PEACE_REASONS`)."""
+    key = world._make_diplo_key(nation_a, nation_b)
+    from backend.game_logic.ai_diplomacy import _find_war_instance_for_pair
+    instance = _find_war_instance_for_pair(world, nation_a, nation_b)
+    if instance is None:
+        return {}
+    who = truce_loser(world, nation_a, nation_b)
+    loser, victor = who["loser"], who["victor"]
+    stream = 0
+    payer, payee = "", ""
+    for c in clauses or []:
+        if not isinstance(c, dict) or str(c.get("type") or "") != "gold_per_turn":
+            continue
+        amt = int(abs(int(c.get("amount", 0) or c.get("value", 0) or 0)))
+        if amt > stream:
+            stream, payer, payee = amt, str(c.get("from") or ""), str(c.get("to") or "")
+    held: List[str] = []
+    if loser and victor:
+        victor_side = {victor}
+        side = (instance.get("side_by_nation") or {}).get(victor)
+        if side:
+            victor_side.update(str(n) for n in (instance.get(side) or []) if n)
+        for region_name in sorted(world.nation_starting_regions.get(loser, []) or []):
+            region = world.regions.get(region_name)
+            if region is not None and str(getattr(region, "controller", "") or "") in victor_side:
+                held.append(str(region_name))
+    record = {
+        "gold_per_turn": int(stream), "from": payer, "to": payee,
+        "loser": loser, "victor": victor, "held": held,
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+    }
+    store = instance.setdefault("truce_sureties", {})
+    store[key] = record
+    return record
+
+
+def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
+    """PC-F44 — the ONE wording of the truce, read by `armistice_mechanics`'
+    display lines (the armistice popup, the incoming letter), the wizard's
+    armistice row, the counsel's truce road, the morning dispatch and the
+    war HUD: what the truce KEEPS ("the ledger stands: the war score reads
+    +54 for France, 3 battles and 1 decisive kept; the war is 9 turns old
+    and stays so; exhaustion holds"), which EXIT it is heading for (the
+    dictated peace / the courted peace / the collapse) with the hope terms
+    named, and the CURE priced where it is in reach (one turn of Improve
+    Relations at +8 makes this truce a peace — its DP said). {keeps,
+    keeps_line, exit, heading_line, hope_line, cure, cure_line,
+    sureties_line, display_lines}."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    from backend.game_logic.diplomatic_dialogue import mission_effect_magnitude
+    player = str(getattr(world, "player_nation", "France") or "France")
+    other = nation_b if nation_a == player else nation_a
+    key = world._make_diplo_key(nation_a, nation_b)
+    state = (getattr(world, "diplomatic_states", {}) or {}).get(key, "PEACE")
+    other_name = _fdn(world, other)
+    us = _fdn(world, player)
+    score = int(get_war_score_for(world, player, other)) if state in ("WAR", "ARMISTICE") else 0
+    records = list((getattr(world, "battle_records", {}) or {}).get(key, []) or [])
+    decisives = list((getattr(world, "decisive_battles", {}) or {}).get(key, []) or [])
+    war_start = int((getattr(world, "war_start_turns", {}) or {}).get(key, world.current_turn))
+    age = int(max(0, int(world.current_turn) - war_start))
+    keeps = {
+        "war_score": score, "battles": len(records), "decisives": len(decisives),
+        "war_age": age, "exhaustion": int((getattr(world, "war_exhaustion", {}) or {}).get(other, 0) or 0),
+    }
+    sign = "+" if score > 0 else ""
+    keeps_line = (
+        f"The ledger stands: the war score reads {sign}{score} for {us}"
+        f" ({len(records)} battle{'' if len(records) == 1 else 's'}, "
+        f"{len(decisives)} decisive{'' if len(decisives) == 1 else 's'} kept); "
+        f"the war is {age} turn{'' if age == 1 else 's'} old and stays so; "
+        f"exhaustion holds."
+    )
+    exit_ = armistice_expiry_exit(world, nation_a, nation_b)
+    hope = exit_.get("hope") or {}
+    loser_name = _fdn(world, exit_["loser"]) if exit_.get("loser") else ""
+    hope_line = ""
+    if exit_.get("loser"):
+        pieces: List[str] = []
+        if hope.get("members"):
+            pieces.append(", ".join(_fdn(world, m) for m in hope["members"])
+                          + (" fights on, unspent" if len(hope["members"]) == 1 else " fight on, unspent"))
+        if hope.get("subsidy"):
+            pieces.append(f"{_fdn(world, hope['subsidy']['payer'])}'s subsidy "
+                          f"({int(hope['subsidy']['amount'])} a turn) flows to her")
+        ex = hope.get("exhaustion") or {}
+        if int(ex.get("victor", 0)) > int(ex.get("loser", 0)):
+            pieces.append(f"the victor's exhaustion ({int(ex.get('victor', 0))}) "
+                          f"is past hers ({int(ex.get('loser', 0))})")
+        if pieces:
+            hope_line = f"{loser_name}'s hope lives: " + "; ".join(pieces) + "."
+        else:
+            hope_line = (f"{loser_name}'s hope is dead: no league member fights on "
+                         f"unspent, no subsidy flows to her, and the victor's exhaustion "
+                         f"({int(ex.get('victor', 0))}) is not past hers ({int(ex.get('loser', 0))}).")
+    sureties = truce_sureties_for(world, nation_a, nation_b)
+    sureties_line = ""
+    if sureties:
+        bits: List[str] = []
+        if int(sureties.get("gold_per_turn", 0) or 0) > 0:
+            bits.append(f"{_fdn(world, sureties.get('from') or '')} pays "
+                        f"{int(sureties['gold_per_turn'])} gold a turn for the pause")
+        if sureties.get("held"):
+            bits.append(f"{', '.join(sureties['held'])} held by {_fdn(world, sureties.get('victor') or '')}")
+        if bits:
+            sureties_line = "Sureties filed at the truce: " + "; ".join(bits) + "."
+    line = int(exit_["line"])
+    if exit_["exit"] == "dictated":
+        heading_line = (
+            f"At expiry: a dictated peace on the held line — {loser_name} reads "
+            f"{int(exit_['loser_score'])} and her hope is dead; what each side holds is "
+            f"titled by the signature and the sureties become its terms."
+        )
+    elif exit_["exit"] == "peace":
+        heading_line = (
+            f"At expiry: peace — relations stand at {int(exit_['relation'])} and will thaw to "
+            f"{int(exit_['projected'])}, at or past {line}; what each side holds is titled by "
+            f"the signature."
+        )
+    else:
+        heading_line = (
+            f"At expiry: the war resumes where it stood — relations stand at "
+            f"{int(exit_['relation'])} and will thaw to {int(exit_['projected'])}, short of "
+            f"{line}; the ledger and the war's age come back with it."
+        )
+    cure = None
+    cure_line = ""
+    if exit_["exit"] == "war":
+        gap = int(line - int(exit_["projected"]))
+        gain = int(mission_effect_magnitude(world, "IMPROVE_RELATIONS", "relation_change") or 0)
+        if gap > 0 and gain > 0:
+            turns = int(-(-gap // gain))
+            try:
+                from backend.nation_config import get_player_diplomat
+                _t = get_player_diplomat(world)
+                skill = int(getattr(_t, "skill", 5) or 5) if _t else 5
+            except Exception as exc:
+                report(exc, "diplomacy.truce_words: get_player_diplomat")
+                skill = 5
+            dp = int(get_dp_cost("mission_improve_relations", skill)) * turns
+            remaining = int(exit_["remaining"])
+            cure = {"turns": turns, "gain": gain, "dp": dp, "gap": gap,
+                    "in_reach": bool(turns <= max(1, remaining))}
+            if cure["in_reach"]:
+                cure_line = (
+                    f"The cure is in reach: {turns} turn{'' if turns == 1 else 's'} of Improve "
+                    f"Relations (+{gain} a turn, {dp} DP) would carry this truce into peace."
+                )
+            else:
+                cure_line = (
+                    f"The cure is out of reach: {turns} turns of Improve Relations (+{gain} a "
+                    f"turn) would be needed and {remaining} remain."
+                )
+    display_lines = [
+        (f"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops. {keeps_line} "
+         f"No territory or gold changes hands until it ends."),
+        (f"When it expires: a dictated peace on the held line if the loser reads "
+         f"{int(TRUCE_DICTATED_SCORE)} or worse with no hope left; otherwise peace if "
+         f"relations have healed to {line} or better; otherwise the war resumes at its age."),
+        heading_line,
+    ]
+    if hope_line:
+        display_lines.append(hope_line)
+    if sureties_line:
+        display_lines.append(sureties_line)
+    if cure_line:
+        display_lines.append(cure_line)
+    return {
+        "keeps": keeps, "keeps_line": keeps_line, "exit": exit_["exit"],
+        "heading_line": heading_line, "hope_line": hope_line, "hope": hope,
+        "cure": cure, "cure_line": cure_line, "sureties": sureties,
+        "sureties_line": sureties_line, "display_lines": display_lines,
+        "loser": exit_.get("loser", ""), "victor": exit_.get("victor", ""),
+        "projected": int(exit_["projected"]), "relation": int(exit_["relation"]),
+        "remaining": int(exit_["remaining"]),
+    }
 
 HARSHNESS_LABELS = [
     (0.10, "generous"),
@@ -5022,60 +5348,29 @@ def build_war_context_snapshot(
     # war score freezes; no terms convert at expiry). Attach the mechanics
     # block whenever an armistice is being proposed OR is already running.
     if proposed_state == "ARMISTICE" or current_state == "ARMISTICE":
-        relation_now = int(world.nation_relations.get(diplo_key, 0))
-        # FA-D18 (slice 17, Phase 2): the projection read the relation NOW
-        # against the −60 line and ignored the thaw the truce itself runs
-        # (ARMISTICE_THAW_PER_TURN per active turn) — from the boot's −80 a
-        # single 5-turn truce "on course for war" thaws to −65: still short,
-        # and the copy must SAY the figure it will reach.
-        remaining = (int(max(0, ARMISTICE_DURATION - int(world.armistice_turns.get(diplo_key, 0))))
-                     if current_state == "ARMISTICE" else int(ARMISTICE_DURATION))
-        projected_relation = armistice_projected_relation(relation_now, remaining)
-        on_course_for_peace = projected_relation >= ARMISTICE_AUTO_PEACE_RELATION
-        if on_course_for_peace:
-            projection_line = (
-                f"Relations stand at {relation_now} and will thaw to "
-                f"{projected_relation} by expiry — on course to settle "
-                "into peace when the truce expires."
-            )
-        else:
-            projection_line = (
-                f"Relations stand at {relation_now} and will thaw to "
-                f"{projected_relation} by expiry — short of "
-                f"{ARMISTICE_AUTO_PEACE_RELATION}; the war resumes when the "
-                "truce expires unless relations improve by other means, or a "
-                "second truce follows."
-            )
+        # PC-R2 / PC-F44 (S13e part 2, October 16, 2026): the ONE wording
+        # (`truce_words`) — what the truce KEEPS (the ledger stands, the
+        # war's age), which EXIT it is heading for (dictated / courted /
+        # the collapse) with the hope terms named, and the CURE priced
+        # where it is in reach. The Aug 30 line "struck from the war score"
+        # described the pop PC-R2 retired.
+        words = truce_words(world, player_nation, target_nation)
         snapshot["armistice_mechanics"] = {
             "duration_turns": int(ARMISTICE_DURATION),
             "auto_peace_relation_threshold": int(ARMISTICE_AUTO_PEACE_RELATION),
-            "current_relation": relation_now,
-            "projected_relation": int(projected_relation),
-            "projected_outcome": "peace" if on_course_for_peace else "war",
-            "display_lines": [
-                # Aug 30, 2026 review: this said "the war score freezes", and
-                # it does not — ratifying WAR->ARMISTICE runs `cleanup_war_end`,
-                # which POPS `war_scores`, `battle_records` and
-                # `decisive_battles` for the pair. Every battle won before the
-                # truce is amnestied, permanently, and if the war resumes it
-                # resumes from nothing. The player was being told the opposite
-                # of that at the exact moment of deciding. PT-J2's campaign
-                # ledger (provinces taken, own dead) is the half that DOES
-                # survive by design, so the sentence names both.
-                (
-                    f"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops, "
-                    "and the battles fought so far are struck from the war "
-                    "score — if the war resumes, it resumes from nothing. "
-                    "The campaign ledger of provinces and dead still stands. "
-                    "No territory or gold changes hands at its end."
-                ),
-                (
-                    f"When it expires: peace if relations have healed to "
-                    f"{ARMISTICE_AUTO_PEACE_RELATION} or better — otherwise "
-                    "the war resumes."
-                ),
-                projection_line,
-            ],
+            "dictated_score_line": int(TRUCE_DICTATED_SCORE),
+            "current_relation": int(words["relation"]),
+            "projected_relation": int(words["projected"]),
+            "projected_outcome": "peace" if words["exit"] in ("peace", "dictated") else "war",
+            "exit": words["exit"],
+            "keeps": words["keeps"],
+            "keeps_line": words["keeps_line"],
+            "heading_line": words["heading_line"],
+            "hope_line": words["hope_line"],
+            "cure": words["cure"],
+            "cure_line": words["cure_line"],
+            "sureties_line": words["sureties_line"],
+            "display_lines": list(words["display_lines"]),
         }
 
     return snapshot
@@ -5799,27 +6094,49 @@ def _find_friendly_retreat(world, marshal) -> str:
     return ""
 
 
+def truce_keeps_the_ledger(world, diplo_key: str) -> bool:
+    """PC-R2 — ruling D, items 1 and 2 (the peace report §46, October 16,
+    2026): a TRUCE FREEZES the war's ledger and keeps the war's age. The
+    pops of `battle_records`, `decisive_battles`, `war_scores` and
+    `war_score_history` — and the single-front exhaustion pop, and the
+    `war_start_turns` pop — run only when the war is actually OVER
+    (`conclude_objectives`), the rule PT-J2 already gave the campaign
+    ledger. Measured before: every battle won before the truce was
+    amnestied, the −65 war-age penalty returned for eight turns at the
+    collapse, Russia's exhaustion fell 90 → 0 on one truce, and a war under
+    −60 relations cycled truce → collapse → truce (three in 26 turns on
+    austerlitz, F59). The ONE seam the series attribution holds down
+    (`--seam backend.game_logic.diplomacy:truce_keeps_the_ledger=lambda *a: False`)."""
+    return True
+
+
 def cleanup_war_end(world, diplo_key: str, *,
                     conclude_objectives: bool = True) -> None:
     """Clean up war-related data when a war ends (R1b, R49, R47/R30).
 
     Called on WAR→ARMISTICE/PEACE transitions.
-    - Clears battle_records, decisive_battles, war_scores for the pair
+    - Clears battle_records, decisive_battles, war_scores for the pair —
+      ONLY when the war is over (PC-R2: a truce keeps them, `truce_keeps_the_ledger`)
     - Resets war_exhaustion to 0 only for pair nations with NO other active
       wars (R49 — and load-bearing for EC-W2: a multi-front France keeps
-      its exhaustion until the LAST war ends)
+      its exhaustion until the LAST war ends) — likewise only at the end
     - Cancels PURSUE/MOVE_TO strategic orders targeting the now-peaceful nation's marshals
     """
+    # PC-R2 (ruling D): the ledger is popped when the war ENDS; a truce
+    # (`conclude_objectives=False`, every truce road) keeps it.
+    war_over = bool(conclude_objectives) or not truce_keeps_the_ledger(world, diplo_key)
+
     # R1b: Clear war data
     battle_records = getattr(world, 'battle_records', {})
     decisive_battles = getattr(world, 'decisive_battles', {})
     war_scores = getattr(world, 'war_scores', {})
     war_score_history = getattr(world, 'war_score_history', {})
 
-    battle_records.pop(diplo_key, None)
-    decisive_battles.pop(diplo_key, None)
-    war_scores.pop(diplo_key, None)
-    war_score_history.pop(diplo_key, None)
+    if war_over:
+        battle_records.pop(diplo_key, None)
+        decisive_battles.pop(diplo_key, None)
+        war_scores.pop(diplo_key, None)
+        war_score_history.pop(diplo_key, None)
     world.war_score_history = war_score_history
 
     # WPS-A: Conclude objectives only when the war is actually over.
@@ -5836,23 +6153,33 @@ def cleanup_war_end(world, diplo_key: str, *,
     # rule does not live in a caller-enumerated seam like this one.
 
     # R49: Reset war_exhaustion only for nations with no other active wars
+    # — and only when the war is OVER (PC-R2 / ruling H: "never reset it by
+    # a truce"; the truce HOLDS it, `coalition.next_war_exhaustion`).
     parts = diplo_key.split("|")
     war_exhaustion = getattr(world, 'war_exhaustion', {})
-    if len(parts) == 2:
+    # PC-X9 (S13e part 2, found by the austerlitz drive): a pair in TRUCE is
+    # a war not over — a peace on another front must not pop a court's
+    # exhaustion while its main war stands paused (Austria read 8 at turn
+    # 44 of a war 24 turns old: her peace with Bavaria popped it under the
+    # French truce).
+    if len(parts) == 2 and war_over:
         for nation in parts:
             has_other_war = False
             for other_key, other_state in world.diplomatic_states.items():
                 if other_key == diplo_key:
                     continue
-                if other_state == "WAR" and nation in other_key.split("|"):
+                if other_state in ("WAR", "ARMISTICE") and nation in other_key.split("|"):
                     has_other_war = True
                     break
             if not has_other_war:
                 war_exhaustion.pop(nation, None)
 
-    # R142: Clear war start turn
+    # R142: Clear war start turn — at the END; a truce keeps the war's age
+    # (PC-R2 item 2: the instance keeps its war_id, the war is not new on
+    # the collapse).
     war_start_turns = getattr(world, 'war_start_turns', {})
-    war_start_turns.pop(diplo_key, None)
+    if war_over:
+        war_start_turns.pop(diplo_key, None)
     world.war_start_turns = war_start_turns
 
     # R69: Clear cascade_triggered entries for this war pair
@@ -8219,17 +8546,21 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             # W6-7: releasing a prisoner ≈ handing back 500g of leverage
             # (a MAJOR nation's marshal 800g), valued at the gold_lump
             # rate (-3/100). Blessed defaults, spec §9.2.
-            ransom_worth = 500
-            held = world.get_marshal(d.get("marshal", "") or "")
-            if (held is not None
-                    and world.get_capital_garrison_target(held.nation)
-                    >= 25000):
-                ransom_worth = 800
-            # NP-4 (N10): a SOVEREIGN prices like a war, not a marshal —
-            # the Brétigny rule (Madrid 1526, Brétigny 1360).
-            if held is not None and getattr(held, "is_sovereign", False):
-                ransom_worth = SOVEREIGN_RANSOM
-            demand_total += -3 * ransom_worth / 100
+            # PC-F13: ONE term may name several men (`marshals`); each is
+            # priced as before.
+            _names = list(d.get("marshals") or ([d.get("marshal")] if d.get("marshal") else []))
+            for _name in _names:
+                ransom_worth = 500
+                held = world.get_marshal(str(_name or ""))
+                if (held is not None
+                        and world.get_capital_garrison_target(held.nation)
+                        >= 25000):
+                    ransom_worth = 800
+                # NP-4 (N10): a SOVEREIGN prices like a war, not a marshal —
+                # the Brétigny rule (Madrid 1526, Brétigny 1360).
+                if held is not None and getattr(held, "is_sovereign", False):
+                    ransom_worth = SOVEREIGN_RANSOM
+                demand_total += -3 * ransom_worth / 100
         elif dtype == "create_client":
             # NA-6c / IGR-D. The registry row alone would be a NO-OP: the
             # generic branches multiply by `value`, and before this arm a
@@ -9135,6 +9466,11 @@ def offensive_call_bar(world, callee: str, target: str) -> str:
         return f"fresh peace with {target}"
     cooldown = declaration_cooldown_left(world, callee, target)
     if cooldown > 0:
+        # PC-X8 (S13e part 2, F73's class): at PEACE the store holds a
+        # peace's floor (the table's, the bilateral's since PC-F69, the
+        # exhausted-pair exit's) — worded as a fresh peace, not a truce's.
+        if world.get_diplomatic_state(callee, target) not in ("WAR", "ARMISTICE"):
+            return f"fresh peace with {target} ({cooldown} more turns)"
         return f"a truce's cooldown binds it to {target} ({cooldown} more turns)"
     from backend.game_logic.congress import spared_from_coalition
     spared = spared_from_coalition(world, callee, target)
@@ -11364,13 +11700,35 @@ def _process_armistice_expiration(world) -> List[Dict]:
         nation_a, nation_b = parts
         relation = world.nation_relations.get(diplo_key, 0)
 
-        if relation >= ARMISTICE_AUTO_PEACE_RELATION:
+        # PC-R2 (ruling D item 4): TWO signed exits and one collapse, read
+        # off the one predicate every surface reads (`armistice_expiry_exit`).
+        exit_ = armistice_expiry_exit(world, nation_a, nation_b)
+        if exit_["exit"] in ("dictated", "peace"):
+            dictated = exit_["exit"] == "dictated"
+            reason = "armistice_dictated_peace" if dictated else "armistice_expired_peace"
             # Transition to PEACE (R2: setter handles armistice cleanup).
             # Slice A2 §7.3: ARMISTICE -> PEACE moves the pair to
             # resolved_diplo_keys with pair_status='resolved'.
+            # The peace is SIGNED (ruling D item 3): the setter titles what
+            # each side holds (`game_end.SIGNED_PEACE_REASONS`), the dictated
+            # peace on the held line with the sureties filed at the truce
+            # as its terms (the stream runs on: the treaty record persists).
+            from backend.game_logic.game_end import take_status_quo_titled as _take_sq
+            _take_sq(world)
             resolve_pair_to_resolved(world, diplo_key)
-            set_diplomatic_state(world, nation_a, nation_b, "PEACE", "armistice_expired_peace")
+            set_diplomatic_state(world, nation_a, nation_b, "PEACE", reason)
+            _sq_entries = _take_sq(world, [diplo_key])
+            _treaty = (getattr(world, "active_treaties", {}) or {}).get(diplo_key)
+            if isinstance(_treaty, dict):
+                _treaty["type"] = "dictated_peace" if dictated else "peace"
+                _treaty["state_transition"] = "ARMISTICE_TO_PEACE"
+                _treaty["signed_reason"] = reason
             cleanup_war_end(world, diplo_key)
+            # PC-F69: the signed peace writes the fresh-peace floor the table
+            # writes (one floor for every road that ends a war in a peace).
+            from backend.game_logic.settlement_ratify import write_settlement_peace_floors
+            write_settlement_peace_floors(world, [{
+                "pair": diplo_key, "current_state_before": "ARMISTICE", "final_state": "PEACE"}])
             # GE-1 review round: the war this truce ends is a peace the
             # record counts — the truce itself never was one.
             from backend.game_logic.game_end import count_peace
@@ -11381,27 +11739,61 @@ def _process_armistice_expiration(world) -> List[Dict]:
                 if world.diplomatic_states.get(client_key) != "ARMISTICE":
                     continue
                 resolve_pair_to_resolved(world, client_key)
-                set_diplomatic_state(world, x, y, "PEACE", "armistice_expired_peace")
+                set_diplomatic_state(world, x, y, "PEACE", reason)
                 cleanup_war_end(world, client_key)
+                write_settlement_peace_floors(world, [{
+                    "pair": client_key, "current_state_before": "ARMISTICE", "final_state": "PEACE"}])
                 count_peace(world, x, y)
+            from backend.game_logic.game_end import status_quo_summary_lines as _sq_lines_for
+            _titled_lines = [str(x) for x in (_sq_lines_for(world, _sq_entries, world.player_nation) or []) if x]
+            _titled = " ".join(_titled_lines)
+            if dictated:
+                _loser_name = str(exit_.get("loser") or "")
+                _sure = truce_sureties_for(world, nation_a, nation_b)
+                _stream = int(_sure.get("gold_per_turn", 0) or 0)
+                _held = list(_sure.get("held") or [])
+                _terms_bits = []
+                if _stream > 0:
+                    _terms_bits.append(f"{_sure.get('from') or _loser_name} pays {_stream} gold a turn")
+                if _held:
+                    _terms_bits.append(f"{', '.join(_held)} stay{'s' if len(_held) == 1 else ''} with "
+                                       f"{_sure.get('victor') or exit_.get('victor') or ''}")
+                _terms_line = ("; ".join(_terms_bits) + ". ") if _terms_bits else ""
+                message = (
+                    f"The armistice between {nation_a} and {nation_b} has concluded in a "
+                    f"DICTATED peace on the held line: {_loser_name} read "
+                    f"{int(exit_.get('loser_score', 0))} and her hope was dead. {_terms_line}"
+                    f"{_titled}".rstrip()
+                )
+            else:
+                message = (
+                    f"The armistice between {nation_a} and {nation_b} has concluded. "
+                    f"Peace declared — signed on the held line. {_titled}".rstrip()
+                )
             events.append({
-                "type": "armistice_expired_peace",
+                "type": "armistice_expired_dictated" if dictated else "armistice_expired_peace",
                 "nations": [nation_a, nation_b],
-                "message": f"The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
+                "exit": exit_["exit"],
+                "titled": _titled_lines,
+                "message": message,
             })
             # Fix 12: Notification + dispatch for armistice expiration (peace)
             from backend.notifications import (
                 ARMISTICE_EXPIRED, create_notification, NotificationPriority,
             )
+            _other = nation_b if nation_a == world.player_nation else nation_a
             world.notifications.add(create_notification(
                 ARMISTICE_EXPIRED, NotificationPriority.HIGH,
                 "Armistice Concluded",
-                f"The armistice with {nation_b if nation_a == world.player_nation else nation_a} has concluded. Peace declared.",
+                (f"The armistice with {_other} has concluded in a dictated peace on the held line."
+                 if dictated else
+                 f"The armistice with {_other} has concluded. Peace declared — signed on the held line."),
                 int(world.current_turn),
             ))
             from backend.game_logic.dispatch import queue_dispatch_event
             queue_dispatch_event(world, "diplomatic_armistice_expired_peace",
-                                {"nation_a": nation_a, "nation_b": nation_b}, "always")
+                                {"nation_a": nation_a, "nation_b": nation_b,
+                                 "exit": exit_["exit"], "titled": _titled}, "always")
         else:
             # Relations too hostile — back to WAR (R2: setter handles war_start + armistice cleanup + treaty).
             # Slice A2 §7.3: ARMISTICE -> WAR reuses the same war_id; if no
@@ -12026,10 +12418,21 @@ def break_treaty(
         "PEACE": "PEACE",
         "VASSAL": "NON_AGGRESSION",  # Audit fix L-4
         "WAR": "PEACE",  # Deep audit fix 3
-        "ARMISTICE": "PEACE",  # Deep audit fix 3
+        # PC-F82 (S13e part 2, October 16, 2026): breaking a TRUCE resumes
+        # the war — it does not end it as an unsigned peace with no paradox
+        # verdict and no separate-peace penalty (the road was never driven;
+        # verified by `TestPCR2::test_g_f82_breaking_a_truce_resumes_the_war`).
+        # The war resumes at its age with its ledger (PC-R2), on the same
+        # war_id (`ensure_war_instance_for_pair` restores the pair).
+        "ARMISTICE": "WAR",
     }
     current_state = world.diplomatic_states.get(pair_key, "PEACE")
     new_state = post_break_map.get(current_state, "PEACE")
+    if current_state == "ARMISTICE" and other:
+        ensure_war_instance_for_pair(
+            world, breaker_nation, other,
+            entry_path="armistice_broken", reason="truce broken",
+        )
     set_diplomatic_state(world, breaker_nation, other, new_state, "treaty_break")
     # GE-1 verification round: a treaty repudiated WITHOUT a war ends the
     # signature as a renewed war does — "breaking the treaty re-arms" the
@@ -12040,12 +12443,14 @@ def break_treaty(
         from backend.game_logic.game_end import break_signed_titles
         break_signed_titles(world, breaker_nation, other)
 
-    # Deep audit fix 3: Clean up war data if breaking from WAR/ARMISTICE
-    if current_state in ("WAR", "ARMISTICE"):
+    # Deep audit fix 3: Clean up war data if breaking from WAR. A broken
+    # TRUCE resumes the war (PC-F82) — nothing is cleaned; the ledger stands.
+    if current_state == "WAR":
         cleanup_war_end(world, pair_key)
 
-    # Remove treaty
-    del active_treaties[pair_key]
+    # Remove treaty (the setter already popped it on the way into WAR for a
+    # broken truce — PC-F82).
+    active_treaties.pop(pair_key, None)
 
     # Deep audit fix 12: Void any proposal_in_transit for this nation pair
     pit = getattr(world, 'proposal_in_transit', None)
@@ -13037,6 +13442,15 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             row["closed_clause"] = verdict.clause
         if separate_peace_display:
             row["separate_peace_display"] = separate_peace_display
+        # PC-R2 / PC-F44: the truce's row (the WAR page's Propose Armistice,
+        # and every proposal row on the ARMISTICE page) carries the one
+        # wording — what the truce keeps, where it heads, the cure priced.
+        if target_state == "ARMISTICE" or state == "ARMISTICE":
+            _tw = truce_words(world, player, target_nation)
+            row["truce_display"] = " ".join(
+                x for x in (_tw["keeps_line"], _tw["heading_line"], _tw["cure_line"]) if x)
+            row["truce_exit"] = str(_tw["exit"])
+            row["truce_lines"] = list(_tw["display_lines"])
         return row
 
     # ── MISSION HELPERS ──

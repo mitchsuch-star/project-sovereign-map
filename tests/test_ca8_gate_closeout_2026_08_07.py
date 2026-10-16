@@ -394,14 +394,14 @@ class TestOfferProducerReadsTheWar:
             SETTLEMENT_OFFER_PER_WAR_SCORE,
             SETTLEMENT_OFFER_TREASURY_FRACTION,
         )
-        payer_treasury = int(world.nation_gold["Prussia"])
+        # PC-R3 (S13e part 2, ruling I item 3): the amount is priced to the
+        # WAR — base + the age + the score — never to the payer's purse.
         war_age = int(world.current_turn) - int(war["created_turn"])
         scaled = (SETTLEMENT_OFFER_BASE_GOLD_AMOUNT
                   + war_age * SETTLEMENT_OFFER_PER_DURATION_BONUS
-                  + 50 * SETTLEMENT_OFFER_PER_WAR_SCORE
-                  + int(payer_treasury * SETTLEMENT_OFFER_TREASURY_FRACTION))
-        cap = int(payer_treasury * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
-        assert indemnities[0]["amount"] == max(0, min(scaled, cap)), terms
+                  + 50 * SETTLEMENT_OFFER_PER_WAR_SCORE)
+        assert indemnities[0]["amount"] == scaled, terms
+        assert SETTLEMENT_OFFER_TREASURY_FRACTION and SETTLEMENT_OFFER_MAX_TREASURY_FRACTION  # kept for the tier-0 reducer
 
     def test_without_the_war_level_read_this_was_a_white_peace(self):
         """FALSIFIABLE CONTROL: the same board scored pairwise vs the leader

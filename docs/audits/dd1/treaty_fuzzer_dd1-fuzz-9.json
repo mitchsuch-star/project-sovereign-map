@@ -1,40 +1,41 @@
 {
  "seed": "dd1-fuzz-9",
  "steps": 1000,
- "seconds": 78.2,
- "final_turn": 57,
+ "seconds": 54.9,
+ "final_turn": 55,
  "verbs": {
-  "propose": 131,
-  "common_peace": 69,
-  "white_peace": 78,
-  "end_turn": 308,
+  "propose": 137,
+  "common_peace": 65,
+  "white_peace": 75,
+  "end_turn": 313,
   "make_vassal": 48,
-  "answer": 164,
+  "answer": 152,
   "release_vassal": 35,
-  "break": 38,
-  "declare_war": 88,
-  "summon": 41
+  "break": 43,
+  "declare_war": 89,
+  "summon": 43
  },
  "refusals": {
-  "propose: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 102,
-  "declare_war: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 61,
-  "summon: The campaign has ended — no Congress will sit.": 36,
+  "propose: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 108,
+  "summon: The campaign has ended — no Congress will sit.": 38,
   "summon: The Congress cannot be summoned on N titled provinces — N are needed (N more to win and settle).": 5,
-  "make_vassal: Prussia still stands — Berlin is its own and N of its corps are in the field (its war score +N; it submits at -N). Take": 5,
-  "make_vassal: Spain still stands — Madrid is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 4,
+  "make_vassal: Spain still stands — Madrid is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 5,
+  "make_vassal: Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 4,
+  "make_vassal: Hanover submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 4,
   "propose: Insufficient Diplomatic Points. This proposal costs N DP, but we only have N.": 3,
-  "make_vassal: Holland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 3,
-  "make_vassal: Sweden still stands — Stockholm is its own and N of its corps are in the field (its war score +N; it submits at -N). Ta": 3,
-  "make_vassal: Britain still stands — London is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 3,
-  "make_vassal: Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 3,
-  "make_vassal: A vassalage of Hanover needs a war (a dictated peace) or open borders and above — we stand at Peace.": 3,
-  "make_vassal: Naples still stands — Naples is its own and N of its corps are in the field (its war score +N; it submits at -N). Take ": 3,
+  "make_vassal: Russia still stands — Vilna is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 3,
+  "make_vassal: Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 3,
+  "make_vassal: Prussia still stands — Berlin is its own and N of its corps are in the field (its war score +N; it submits at -N). Take": 3,
   "propose: Relations with Austria stand at -N; a Defensive Alliance needs N.": 2,
-  "make_vassal: Russia still stands — Vilna is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 2,
-  "make_vassal: The Papal States submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table inste": 2,
-  "make_vassal: Portugal submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 2,
-  "make_vassal: Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 2,
+  "make_vassal: Holland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 2,
+  "make_vassal: Sweden still stands — Stockholm is its own and N of its corps are in the field (its war score +N; it submits at -N). Ta": 2,
+  "make_vassal: Britain still stands — London is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 2,
+  "make_vassal: Denmark still stands — Copenhagen is its own and N of its corps are in the field (its war score +N; it submits at -N). ": 2,
+  "make_vassal: Austria still stands — Vienna is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 2,
   "make_vassal: Bavaria still stands — Munich is its own and N of its corps are in the field (its war score +N; it submits at -N). Take": 2,
+  "make_vassal: Sardinia submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 2,
+  "make_vassal: Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 2,
+  "make_vassal: Naples still stands — Naples is its own and N of its corps are in the field (its war score +N; it submits at -N). Take ": 2,
   "propose: Relations with Russia stand at -N; a Non-Aggression needs N.": 1,
   "propose: Relations with Prussia stand at -N; a Defensive Alliance needs N.": 1,
   "make_vassal: A vassalage of Sweden needs a war (a dictated peace) or open borders and above — we stand at Peace.": 1,
@@ -43,6 +44,7 @@
   "propose: We already have Alliance with Bavaria. Talleyrand sees no purpose in proposing what we already possess.": 1,
   "propose: Relations with the Papal States stand at -N; an Open Borders needs -N.": 1,
   "make_vassal: A vassalage of Portugal needs a war (a dictated peace) or open borders and above — we stand at Peace.": 1,
+  "declare_war: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 1,
   "common_peace: the confirm never offered Ratify or Back Out": 1,
   "make_vassal: Cannot vassalize Bavaria: Bavaria is too powerful to vassalize (power: N% of France).": 1,
   "propose: Relations with Sweden stand at -N; a Non-Aggression needs N.": 1,
@@ -58,27 +60,24 @@
   "propose: Relations with Switzerland stand at -N; an Alliance needs N.": 1,
   "propose: Relations with Bavaria stand at -N; an Open Borders needs -N.": 1,
   "propose: Relations with Bavaria stand at -N; a Non-Aggression needs N.": 1,
-  "propose: Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: N% of France).": 1,
+  "propose: Cannot vassalize Ottoman: France lacks the national power to vassalize Ottoman.": 1,
   "answer: Relations with Bavaria stand at -N; a Non-Aggression needs N.": 1,
-  "make_vassal: Denmark still stands — Copenhagen is its own and N of its corps are in the field (its war score +N; it submits at -N). ": 1,
-  "make_vassal: Austria still stands — Vienna is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 1,
-  "make_vassal: Sardinia submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 1,
-  "make_vassal: Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 1
+  "make_vassal: The Papal States submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table inste": 1,
+  "make_vassal: Portugal submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 1
  },
  "transitions": {
   "WAR→PEACE": 16,
   "None→WAR": 13,
   "PEACE→WAR": 13,
   "ALLIANCE→DEFENSIVE_ALLIANCE": 5,
-  "OPEN_BORDERS→PEACE": 5,
   "DEFENSIVE_ALLIANCE→NON_AGGRESSION": 5,
-  "VASSAL→PEACE": 4,
+  "OPEN_BORDERS→PEACE": 4,
   "NON_AGGRESSION→OPEN_BORDERS": 4,
+  "VASSAL→PEACE": 3,
   "None→OPEN_BORDERS": 2,
   "NON_AGGRESSION→WAR": 2,
   "None→VASSAL": 1,
-  "None→NON_AGGRESSION": 1,
-  "WAR→VASSAL": 1
+  "None→NON_AGGRESSION": 1
  },
  "invalid_transitions": {},
  "writers_outside_setter": {},
@@ -915,7 +914,7 @@
    "verb": "make_vassal",
    "detail": "Austria",
    "ok": false,
-   "refused": "Cannot vassalize Austria: Austria is too powerful to vassalize (power: 624% of France)."
+   "refused": "Cannot vassalize Austria: Austria is too powerful to vassalize (power: 936% of France)."
   },
   {
    "i": 132,
@@ -994,7 +993,7 @@
    "verb": "summon",
    "detail": "",
    "ok": false,
-   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+   "refused": "The Congress cannot be summoned on 3 titled provinces — 45 are needed (42 more to win and settle)."
   },
   {
    "i": 144,
@@ -1118,7 +1117,7 @@
    "verb": "summon",
    "detail": "",
    "ok": false,
-   "refused": "The Congress cannot be summoned on 3 titled provinces — 45 are needed (42 more to win and settle)."
+   "refused": "The Congress cannot be summoned on 2 titled provinces — 45 are needed (43 more to win and settle)."
   },
   {
    "i": 163,
@@ -1186,13 +1185,13 @@
   {
    "i": 173,
    "verb": "end_turn",
-   "detail": "turn 56",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 174,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1205,7 +1204,7 @@
   {
    "i": 176,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1231,7 +1230,7 @@
   {
    "i": 180,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1239,18 +1238,18 @@
    "verb": "make_vassal",
    "detail": "Russia",
    "ok": false,
-   "refused": "Russia still stands — Vilna is its own and 3 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Russia still stands — Vilna is its own and 3 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 182,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 183,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1285,12 +1284,12 @@
    "verb": "propose",
    "detail": "vassalage → Ottoman",
    "ok": false,
-   "refused": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 1333% of France)."
+   "refused": "Cannot vassalize Ottoman: France lacks the national power to vassalize Ottoman."
   },
   {
    "i": 189,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1323,7 +1322,7 @@
   {
    "i": 194,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1343,7 +1342,7 @@
   {
    "i": 197,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1370,7 +1369,7 @@
    "verb": "make_vassal",
    "detail": "Spain",
    "ok": false,
-   "refused": "Spain still stands — Madrid is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Spain still stands — Madrid is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 202,
@@ -1389,7 +1388,7 @@
   {
    "i": 204,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1401,7 +1400,7 @@
   {
    "i": 206,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1443,7 +1442,7 @@
    "verb": "make_vassal",
    "detail": "Spain",
    "ok": false,
-   "refused": "Spain still stands — Madrid is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Spain still stands — Madrid is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 213,
@@ -1454,13 +1453,13 @@
   {
    "i": 214,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 215,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1468,7 +1467,7 @@
    "verb": "make_vassal",
    "detail": "Spain",
    "ok": false,
-   "refused": "Spain still stands — Madrid is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Spain still stands — Madrid is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 217,
@@ -1519,7 +1518,7 @@
   {
    "i": 224,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1538,7 +1537,7 @@
   {
    "i": 227,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1551,13 +1550,13 @@
   {
    "i": 229,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 230,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1577,13 +1576,13 @@
   {
    "i": 233,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 234,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1596,7 +1595,7 @@
   {
    "i": 236,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1616,13 +1615,13 @@
   {
    "i": 239,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 240,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1642,7 +1641,7 @@
   {
    "i": 243,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1655,7 +1654,7 @@
   {
    "i": 245,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1675,13 +1674,13 @@
   {
    "i": 248,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 249,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1694,13 +1693,13 @@
   {
    "i": 251,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 252,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1735,7 +1734,7 @@
    "verb": "make_vassal",
    "detail": "Sweden",
    "ok": false,
-   "refused": "Sweden still stands — Stockholm is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Sweden still stands — Stockholm is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 258,
@@ -1758,7 +1757,7 @@
   {
    "i": 261,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1799,7 +1798,7 @@
   {
    "i": 267,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1812,7 +1811,7 @@
   {
    "i": 269,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1825,7 +1824,7 @@
   {
    "i": 271,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1838,7 +1837,7 @@
   {
    "i": 273,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1850,7 +1849,7 @@
   {
    "i": 275,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1877,7 +1876,7 @@
   {
    "i": 279,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1897,7 +1896,7 @@
   {
    "i": 282,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1928,7 +1927,7 @@
   {
    "i": 287,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1948,7 +1947,7 @@
   {
    "i": 290,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1956,7 +1955,7 @@
    "verb": "make_vassal",
    "detail": "Britain",
    "ok": false,
-   "refused": "Britain still stands — London is its own and 4 of its corps are in the field (its war score +57; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Britain still stands — London is its own and 3 of its corps are in the field (its war score +60; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 292,
@@ -1975,7 +1974,7 @@
   {
    "i": 294,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -1995,7 +1994,7 @@
   {
    "i": 297,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -2010,7 +2009,7 @@
    "verb": "make_vassal",
    "detail": "Britain",
    "ok": false,
-   "refused": "Britain still stands — London is its own and 4 of its corps are in the field (its war score +57; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Britain still stands — London is its own and 3 of its corps are in the field (its war score +60; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 300,
@@ -2050,25 +2049,25 @@
   {
    "i": 305,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 306,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 307,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 308,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -2149,13 +2148,13 @@
   {
    "i": 320,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 321,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -2163,13 +2162,14 @@
    "verb": "make_vassal",
    "detail": "Denmark",
    "ok": false,
-   "refused": "Denmark still stands — Copenhagen is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Denmark still stands — Copenhagen is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 323,
    "verb": "make_vassal",
    "detail": "Hanover",
-   "ok": true
+   "ok": false,
+   "refused": "Hanover submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
   },
   {
    "i": 324,
@@ -2181,672 +2181,676 @@
   {
    "i": 325,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 326,
    "verb": "common_peace",
-   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
+   "detail": "common peace Normandy (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 327,
-   "verb": "propose",
-   "detail": "open_borders → PapalStates",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 328,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 329,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 330,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 331,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 332,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 333,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "i": 328,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
-   "i": 334,
+   "i": 329,
    "verb": "declare_war",
    "detail": "",
    "ok": false,
    "skipped": "nobody to declare on"
   },
   {
-   "i": 335,
-   "verb": "release_vassal",
-   "detail": "Hanover",
+   "i": 330,
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
+  },
+  {
+   "i": 331,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 332,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 333,
+   "verb": "propose",
+   "detail": "non_aggression → Prussia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 334,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 335,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
   },
   {
    "i": 336,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 337,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 338,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 339,
-   "verb": "propose",
-   "detail": "peace → Sardinia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 340,
-   "verb": "white_peace",
-   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 341,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 342,
-   "verb": "make_vassal",
-   "detail": "Hesse",
-   "ok": false,
-   "refused": "Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 343,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 344,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 345,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 346,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 347,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 348,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 349,
-   "verb": "propose",
-   "detail": "armistice → Holland",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 350,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 351,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 352,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 353,
-   "verb": "propose",
-   "detail": "alliance → Bavaria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 354,
-   "verb": "propose",
-   "detail": "armistice → Sardinia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 355,
-   "verb": "propose",
-   "detail": "defensive_alliance → Bavaria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 356,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 357,
-   "verb": "propose",
-   "detail": "non_aggression → PapalStates",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 358,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 359,
-   "verb": "propose",
-   "detail": "open_borders → Portugal",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 360,
-   "verb": "white_peace",
-   "detail": "white peace Portugal (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 361,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 362,
-   "verb": "white_peace",
-   "detail": "white peace Bavaria (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 363,
-   "verb": "propose",
-   "detail": "defensive_alliance → Naples",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 364,
-   "verb": "make_vassal",
-   "detail": "Hanover (execute_proposal)",
-   "ok": false,
-   "refused": "A vassalage of Hanover needs a war (a dictated peace) or open borders and above — we stand at Peace."
-  },
-  {
-   "i": 365,
-   "verb": "common_peace",
-   "detail": "common peace Sardinia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 366,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 367,
-   "verb": "propose",
-   "detail": "open_borders → Bavaria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 368,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 369,
-   "verb": "answer",
-   "detail": "proposal_confirm → adjust_terms",
-   "ok": true
-  },
-  {
-   "i": 370,
-   "verb": "make_vassal",
-   "detail": "Naples",
-   "ok": false,
-   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
-  },
-  {
-   "i": 371,
-   "verb": "white_peace",
-   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 372,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 373,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 374,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 375,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 376,
-   "verb": "answer",
-   "detail": "terms_guidance → territory_no_ap",
-   "ok": true
-  },
-  {
-   "i": 377,
-   "verb": "propose",
-   "detail": "open_borders → Spain",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 378,
-   "verb": "make_vassal",
-   "detail": "Prussia",
-   "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
-  },
-  {
-   "i": 379,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 380,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 381,
-   "verb": "make_vassal",
-   "detail": "Sweden",
-   "ok": false,
-   "refused": "Sweden still stands — Stockholm is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
-  },
-  {
-   "i": 382,
-   "verb": "answer",
-   "detail": "terms_guidance → skip_ap",
-   "ok": true
-  },
-  {
-   "i": 383,
-   "verb": "answer",
-   "detail": "terms_guidance → reconsider",
-   "ok": true
-  },
-  {
-   "i": 384,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 385,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 386,
-   "verb": "common_peace",
-   "detail": "common peace Austria (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 387,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 388,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 389,
-   "verb": "white_peace",
-   "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 390,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 391,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 392,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 393,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 394,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 395,
-   "verb": "white_peace",
-   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 396,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 397,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 398,
-   "verb": "common_peace",
-   "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 399,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 400,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 401,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 402,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 403,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 404,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 405,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 406,
    "verb": "release_vassal",
    "detail": "",
    "ok": false,
    "skipped": "no vassal of ours"
   },
   {
-   "i": 407,
+   "i": 337,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 338,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 339,
+   "verb": "make_vassal",
+   "detail": "Saxony",
+   "ok": false,
+   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 340,
+   "verb": "propose",
+   "detail": "peace → Sardinia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 341,
    "verb": "white_peace",
-   "detail": "white peace Britain (back_out_settlement: no Ratify offered)",
+   "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 342,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 343,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 344,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 345,
+   "verb": "make_vassal",
+   "detail": "Hesse",
+   "ok": false,
+   "refused": "Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 346,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 347,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 348,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 349,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 350,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 351,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 352,
+   "verb": "propose",
+   "detail": "armistice → Holland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 353,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 354,
+   "verb": "propose",
+   "detail": "non_aggression → Bavaria",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 355,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 356,
+   "verb": "propose",
+   "detail": "vassalage → Hanover",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 357,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 358,
+   "verb": "white_peace",
+   "detail": "white peace Bavaria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 359,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 360,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 361,
+   "verb": "propose",
+   "detail": "vassalage → Holland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 362,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 363,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 364,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 365,
+   "verb": "propose",
+   "detail": "non_aggression → PapalStates",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 366,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 367,
+   "verb": "propose",
+   "detail": "open_borders → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 368,
+   "verb": "white_peace",
+   "detail": "white peace Normandy (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 369,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 370,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 371,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 372,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 373,
+   "verb": "propose",
+   "detail": "defensive_alliance → Naples",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 374,
+   "verb": "make_vassal",
+   "detail": "Hanover",
+   "ok": false,
+   "refused": "Hanover submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 375,
+   "verb": "common_peace",
+   "detail": "common peace PapalStates (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 376,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 377,
+   "verb": "propose",
+   "detail": "open_borders → Bavaria",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 378,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 379,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 380,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 381,
+   "verb": "common_peace",
+   "detail": "common peace PapalStates (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 382,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 383,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 384,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 385,
+   "verb": "propose",
+   "detail": "alliance → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 386,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 387,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 388,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 389,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 390,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 391,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 392,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 393,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 394,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 395,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 396,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 397,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 398,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 399,
+   "verb": "make_vassal",
+   "detail": "Sweden",
+   "ok": false,
+   "refused": "Sweden still stands — Stockholm is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 400,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 401,
+   "verb": "propose",
+   "detail": "open_borders → Denmark",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 402,
+   "verb": "propose",
+   "detail": "open_borders → Holland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 403,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 404,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 405,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 406,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 407,
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 408,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 409,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 410,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 411,
    "verb": "break",
    "detail": "",
    "ok": false,
    "skipped": "no treaty of ours"
   },
   {
-   "i": 412,
+   "i": 411,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
+  },
+  {
+   "i": 412,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
   },
   {
    "i": 413,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 414,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 415,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 416,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
-  },
-  {
-   "i": 414,
-   "verb": "propose",
-   "detail": "non_aggression → Portugal",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 415,
-   "verb": "white_peace",
-   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 416,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
   },
   {
    "i": 417,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 418,
-   "verb": "propose",
-   "detail": "vassalage → PapalStates",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "white_peace",
+   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 419,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 420,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 421,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 422,
-   "verb": "white_peace",
-   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 423,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 424,
-   "verb": "break",
+   "i": 420,
+   "verb": "answer",
    "detail": "",
    "ok": false,
-   "skipped": "no treaty of ours"
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 421,
+   "verb": "common_peace",
+   "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 422,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 423,
+   "verb": "make_vassal",
+   "detail": "Austria",
+   "ok": false,
+   "refused": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +39; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 424,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 425,
-   "verb": "propose",
-   "detail": "defensive_alliance → PapalStates",
+   "verb": "answer",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "no dialogue"
   },
   {
    "i": 426,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Bavaria (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
@@ -2858,42 +2862,41 @@
   },
   {
    "i": 428,
-   "verb": "white_peace",
-   "detail": "white peace Sweden (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 429,
-   "verb": "propose",
-   "detail": "vassalage → Hanover",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 430,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
+   "verb": "release_vassal",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "no vassal of ours"
   },
   {
    "i": 431,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Britain (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 432,
-   "verb": "white_peace",
-   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 433,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
+  },
+  {
+   "i": 433,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 434,
@@ -2904,9 +2907,10 @@
   },
   {
    "i": 435,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
   },
   {
    "i": 436,
@@ -2917,99 +2921,100 @@
   },
   {
    "i": 437,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 438,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "propose",
+   "detail": "non_aggression → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 439,
-   "verb": "make_vassal",
-   "detail": "Bavaria",
-   "ok": false,
-   "refused": "Bavaria still stands — Munich is its own and 1 of its corps are in the field (its war score +0; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "verb": "white_peace",
+   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 440,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 441,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 442,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
+   "verb": "propose",
+   "detail": "vassalage → PapalStates",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 443,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 444,
-   "verb": "common_peace",
-   "detail": "common peace PapalStates (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 445,
-   "verb": "propose",
-   "detail": "non_aggression → Holland",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 446,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 447,
-   "verb": "common_peace",
-   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 448,
-   "verb": "propose",
-   "detail": "alliance → Hesse",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "i": 446,
+   "verb": "white_peace",
+   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
-   "i": 449,
+   "i": 447,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
+   "i": 448,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 449,
+   "verb": "propose",
+   "detail": "defensive_alliance → PapalStates",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
    "i": 450,
-   "verb": "common_peace",
-   "detail": "common peace Holland (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 451,
-   "verb": "white_peace",
-   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 452,
@@ -3020,126 +3025,124 @@
   {
    "i": 453,
    "verb": "propose",
-   "detail": "defensive_alliance → Portugal",
+   "detail": "vassalage → Hanover",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 454,
-   "verb": "summon",
+   "verb": "declare_war",
    "detail": "",
    "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
+   "skipped": "nobody to declare on"
   },
   {
    "i": 455,
-   "verb": "white_peace",
-   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 456,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 457,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 458,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 459,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 460,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 461,
-   "verb": "release_vassal",
+   "i": 459,
+   "verb": "answer",
    "detail": "",
    "ok": false,
-   "skipped": "no vassal of ours"
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 460,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 461,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 462,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 463,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 464,
-   "verb": "white_peace",
-   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "verb": "make_vassal",
+   "detail": "Bavaria",
+   "ok": false,
+   "refused": "Bavaria still stands — Munich is its own and 1 of its corps are in the field (its war score +0; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 465,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 466,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 467,
-   "verb": "propose",
-   "detail": "open_borders → Prussia",
+   "verb": "declare_war",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
   },
   {
    "i": 468,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 469,
-   "verb": "white_peace",
-   "detail": "white peace Ottoman (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 470,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "common_peace",
+   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 471,
-   "verb": "summon",
-   "detail": "",
+   "verb": "propose",
+   "detail": "non_aggression → Holland",
    "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 472,
@@ -3150,335 +3153,335 @@
   },
   {
    "i": 473,
-   "verb": "white_peace",
-   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
+   "verb": "common_peace",
+   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 474,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 475,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 476,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
+   "verb": "propose",
+   "detail": "alliance → Hesse",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
+   "i": 475,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 476,
+   "verb": "common_peace",
+   "detail": "common peace Sardinia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
    "i": 477,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 478,
    "verb": "white_peace",
-   "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
+   "detail": "white peace Sweden (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 479,
+   "verb": "propose",
+   "detail": "defensive_alliance → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 480,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 481,
+   "verb": "white_peace",
+   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 482,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 483,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 484,
    "verb": "release_vassal",
    "detail": "",
    "ok": false,
    "skipped": "no vassal of ours"
   },
   {
-   "i": 480,
+   "i": 485,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 486,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 481,
+   "i": 487,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 488,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 489,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 490,
+   "verb": "white_peace",
+   "detail": "white peace Sardinia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 491,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 492,
    "verb": "declare_war",
-   "detail": "Hanover (conquest)",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 493,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 494,
+   "verb": "propose",
+   "detail": "open_borders → Prussia",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 482,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "i": 495,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 496,
+   "verb": "white_peace",
+   "detail": "white peace Ottoman (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 483,
+   "i": 497,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 484,
+   "i": 498,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 499,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 500,
+   "verb": "white_peace",
+   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 501,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 502,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 503,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 504,
+   "verb": "propose",
+   "detail": "defensive_alliance → Spain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 505,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 506,
+   "verb": "white_peace",
+   "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 507,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 508,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 509,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 510,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 511,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 512,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 513,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 514,
    "verb": "propose",
    "detail": "open_borders → Naples",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 485,
+   "i": 515,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 486,
+   "i": 516,
    "verb": "make_vassal",
    "detail": "Bavaria",
    "ok": false,
    "refused": "Bavaria still stands — Munich is its own and 1 of its corps are in the field (its war score +0; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
-   "i": 487,
+   "i": 517,
    "verb": "white_peace",
-   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
+   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 488,
+   "i": 518,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 489,
+   "i": 519,
    "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 520,
+   "verb": "propose",
+   "detail": "defensive_alliance → Saxony",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 490,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 491,
+   "i": 521,
    "verb": "summon",
    "detail": "",
    "ok": false,
    "refused": "The campaign has ended — no Congress will sit."
   },
   {
-   "i": 492,
+   "i": 522,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 493,
+   "i": 523,
    "verb": "propose",
    "detail": "armistice → Austria",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 494,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 495,
-   "verb": "propose",
-   "detail": "alliance → Hanover",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 496,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 497,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 498,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 499,
-   "verb": "white_peace",
-   "detail": "white peace Denmark (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 500,
-   "verb": "propose",
-   "detail": "defensive_alliance → Hesse",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 501,
-   "verb": "white_peace",
-   "detail": "white peace Sardinia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 502,
-   "verb": "white_peace",
-   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 503,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 504,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 505,
-   "verb": "common_peace",
-   "detail": "common peace Austria (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 506,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 507,
-   "verb": "common_peace",
-   "detail": "common peace Switzerland (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 508,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 509,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 510,
-   "verb": "propose",
-   "detail": "alliance → PapalStates",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 511,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 512,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 513,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 514,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 515,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 516,
-   "verb": "white_peace",
-   "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 517,
-   "verb": "propose",
-   "detail": "alliance → Portugal",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 518,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 519,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 520,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 521,
-   "verb": "propose",
-   "detail": "vassalage → Hesse",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 522,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 523,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
   },
   {
    "i": 524,
@@ -3489,551 +3492,548 @@
   },
   {
    "i": 525,
+   "verb": "propose",
+   "detail": "alliance → Hanover",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 526,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 527,
+   "verb": "make_vassal",
+   "detail": "Hesse",
+   "ok": false,
+   "refused": "Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 528,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 529,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 530,
+   "verb": "white_peace",
+   "detail": "white peace Denmark (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 531,
+   "verb": "propose",
+   "detail": "defensive_alliance → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 532,
+   "verb": "white_peace",
+   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 533,
+   "verb": "white_peace",
+   "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 534,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 535,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 526,
+   "i": 536,
    "verb": "common_peace",
-   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
+   "detail": "common peace Austria (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 527,
+   "i": 537,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 538,
+   "verb": "common_peace",
+   "detail": "common peace Holland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 539,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 528,
+   "i": 540,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 541,
+   "verb": "propose",
+   "detail": "alliance → PapalStates",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 542,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 543,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 544,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 545,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 546,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 547,
+   "verb": "propose",
+   "detail": "vassalage → Prussia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 548,
+   "verb": "common_peace",
+   "detail": "common peace Sweden (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 549,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 550,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 551,
+   "verb": "white_peace",
+   "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 552,
+   "verb": "propose",
+   "detail": "alliance → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 553,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 554,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 555,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 556,
+   "verb": "propose",
+   "detail": "vassalage → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 557,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 558,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 559,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 560,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 561,
+   "verb": "common_peace",
+   "detail": "common peace Hanover (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 562,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 563,
    "verb": "propose",
    "detail": "defensive_alliance → Austria",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 529,
+   "i": 564,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 530,
+   "i": 565,
    "verb": "declare_war",
-   "detail": "Hanover (conquest)",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
   },
   {
-   "i": 531,
+   "i": 566,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 567,
    "verb": "make_vassal",
    "detail": "Austria",
    "ok": false,
-   "refused": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +40; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +39; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
-   "i": 532,
+   "i": 568,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 533,
+   "i": 569,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 534,
+   "i": 570,
    "verb": "propose",
    "detail": "armistice → PapalStates",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 535,
+   "i": 571,
    "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 536,
-   "verb": "propose",
-   "detail": "defensive_alliance → Russia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 537,
-   "verb": "propose",
-   "detail": "peace → Sweden",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 538,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 539,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 540,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 541,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 542,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 543,
-   "verb": "answer",
    "detail": "",
    "ok": false,
-   "skipped": "no dialogue"
+   "skipped": "nobody to declare on"
   },
   {
-   "i": 544,
-   "verb": "white_peace",
-   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "i": 572,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
   },
   {
-   "i": 545,
+   "i": 573,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 546,
-   "verb": "common_peace",
-   "detail": "common peace Holland (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 547,
-   "verb": "white_peace",
-   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 548,
+   "i": 574,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 549,
+   "i": 575,
+   "verb": "propose",
+   "detail": "armistice → Spain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 576,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 577,
    "verb": "break",
    "detail": "",
    "ok": false,
    "skipped": "no treaty of ours"
   },
   {
-   "i": 550,
+   "i": 578,
+   "verb": "propose",
+   "detail": "armistice → PapalStates",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 579,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 551,
+   "i": 580,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 552,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "i": 581,
+   "verb": "white_peace",
+   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 553,
+   "i": 582,
+   "verb": "white_peace",
+   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 583,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 584,
+   "verb": "common_peace",
+   "detail": "common peace Sardinia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 585,
+   "verb": "white_peace",
+   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 586,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 587,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 588,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 589,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 590,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 591,
    "verb": "propose",
    "detail": "armistice → Ottoman",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 554,
+   "i": 592,
    "verb": "propose",
    "detail": "alliance → Switzerland",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 555,
+   "i": 593,
    "verb": "summon",
    "detail": "",
    "ok": false,
    "refused": "The campaign has ended — no Congress will sit."
   },
   {
-   "i": 556,
+   "i": 594,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 557,
+   "i": 595,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 558,
+   "i": 596,
    "verb": "break",
    "detail": "",
    "ok": false,
    "skipped": "no treaty of ours"
   },
   {
-   "i": 559,
+   "i": 597,
    "verb": "propose",
    "detail": "defensive_alliance → PapalStates",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 560,
+   "i": 598,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 561,
+   "i": 599,
    "verb": "make_vassal",
    "detail": "Prussia",
    "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
-   "i": 562,
+   "i": 600,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 563,
+   "i": 601,
    "verb": "propose",
    "detail": "armistice → PapalStates",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 564,
+   "i": 602,
    "verb": "propose",
    "detail": "peace → Spain",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 565,
+   "i": 603,
    "verb": "break",
    "detail": "",
    "ok": false,
    "skipped": "no treaty of ours"
   },
   {
-   "i": 566,
+   "i": 604,
    "verb": "propose",
    "detail": "armistice → Sweden",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 567,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 568,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 569,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 570,
-   "verb": "common_peace",
-   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 571,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 572,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 573,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 574,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 575,
-   "verb": "white_peace",
-   "detail": "white peace Hesse (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 576,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 577,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 578,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 579,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 580,
-   "verb": "common_peace",
-   "detail": "common peace Sweden (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 581,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 582,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 583,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 584,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 585,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 586,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 587,
-   "verb": "propose",
-   "detail": "alliance → Britain",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 588,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 589,
-   "verb": "white_peace",
-   "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 590,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 591,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 592,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 593,
-   "verb": "common_peace",
-   "detail": "common peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 594,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 595,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 596,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 597,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 598,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 599,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 600,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 601,
-   "verb": "propose",
-   "detail": "armistice → Hesse",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 602,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 603,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 604,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
    "i": 605,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 606,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
+   "verb": "release_vassal",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "no vassal of ours"
   },
   {
    "i": 607,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 608,
-   "verb": "make_vassal",
-   "detail": "Holland",
-   "ok": false,
-   "refused": "Holland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+   "verb": "common_peace",
+   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 609,
@@ -4044,155 +4044,157 @@
   },
   {
    "i": 610,
-   "verb": "white_peace",
-   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 611,
-   "verb": "common_peace",
-   "detail": "common peace Austria (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
   },
   {
    "i": 612,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
   },
   {
    "i": 613,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Hanover (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 614,
-   "verb": "propose",
-   "detail": "peace → Switzerland",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 615,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 616,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 617,
+   "i": 615,
    "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 616,
+   "verb": "make_vassal",
+   "detail": "Spain",
+   "ok": false,
+   "refused": "Spain still stands — Madrid is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 617,
+   "verb": "make_vassal",
+   "detail": "Russia",
+   "ok": false,
+   "refused": "Russia still stands — Vilna is its own and 3 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 618,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Portugal (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 619,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 620,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 621,
    "verb": "break",
    "detail": "",
    "ok": false,
    "skipped": "no treaty of ours"
   },
   {
-   "i": 622,
-   "verb": "white_peace",
-   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
+   "i": 620,
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 623,
-   "verb": "propose",
-   "detail": "non_aggression → Russia",
+   "i": 621,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 622,
+   "verb": "declare_war",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 623,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 624,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Britain (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 625,
-   "verb": "common_peace",
-   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Sardinia submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
   },
   {
    "i": 626,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Portugal (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 627,
-   "verb": "common_peace",
-   "detail": "common peace Spain (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 628,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 629,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 630,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 631,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 632,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 631,
-   "verb": "propose",
-   "detail": "defensive_alliance → Russia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 632,
-   "verb": "white_peace",
-   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
    "i": 633,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -4204,48 +4206,50 @@
   },
   {
    "i": 635,
-   "verb": "white_peace",
-   "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 636,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 637,
-   "verb": "white_peace",
-   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 638,
-   "verb": "white_peace",
-   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 639,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 640,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 641,
+   "i": 636,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 637,
    "verb": "propose",
-   "detail": "alliance → Switzerland",
+   "detail": "armistice → PapalStates",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 638,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 639,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 640,
+   "verb": "propose",
+   "detail": "armistice → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 641,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
   },
   {
    "i": 642,
@@ -4256,198 +4260,196 @@
   },
   {
    "i": 643,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 644,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 645,
-   "verb": "propose",
-   "detail": "defensive_alliance → Portugal",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 646,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 647,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 648,
-   "verb": "common_peace",
-   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 649,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 650,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 651,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 652,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 653,
-   "verb": "propose",
-   "detail": "defensive_alliance → Holland",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 654,
-   "verb": "white_peace",
-   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 655,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 656,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 657,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 658,
-   "verb": "white_peace",
-   "detail": "white peace Portugal (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 659,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 660,
    "verb": "summon",
    "detail": "",
    "ok": false,
    "refused": "The campaign has ended — no Congress will sit."
   },
   {
+   "i": 644,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 645,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 646,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 647,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 648,
+   "verb": "make_vassal",
+   "detail": "Sardinia",
+   "ok": false,
+   "refused": "Sardinia submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 649,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 650,
+   "verb": "make_vassal",
+   "detail": "Holland",
+   "ok": false,
+   "refused": "Holland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 651,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 652,
+   "verb": "white_peace",
+   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 653,
+   "verb": "common_peace",
+   "detail": "common peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 654,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 655,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 656,
+   "verb": "propose",
+   "detail": "peace → Switzerland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 657,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 658,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 659,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 660,
+   "verb": "white_peace",
+   "detail": "white peace Hanover (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
    "i": 661,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 662,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
+   "verb": "answer",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "no dialogue"
   },
   {
    "i": 663,
-   "verb": "propose",
-   "detail": "open_borders → Saxony",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 664,
-   "verb": "propose",
-   "detail": "armistice → Hanover",
+   "verb": "break",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "no treaty of ours"
   },
   {
    "i": 665,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "white_peace",
+   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 666,
-   "verb": "answer",
-   "detail": "",
+   "verb": "propose",
+   "detail": "non_aggression → Russia",
    "ok": false,
-   "skipped": "no dialogue"
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 667,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 668,
-   "verb": "propose",
-   "detail": "defensive_alliance → Sweden",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "common_peace",
+   "detail": "common peace Hanover (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 669,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 670,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "common_peace",
+   "detail": "common peace Spain (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 671,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 672,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -4460,23 +4462,21 @@
   {
    "i": 674,
    "verb": "propose",
-   "detail": "non_aggression → Austria",
+   "detail": "defensive_alliance → Russia",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 675,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "white_peace",
+   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 676,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 677,
@@ -4487,174 +4487,173 @@
   },
   {
    "i": 678,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 679,
-   "verb": "propose",
-   "detail": "defensive_alliance → Bavaria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 680,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 681,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 682,
    "verb": "white_peace",
    "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 683,
+   "i": 679,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 684,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 685,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 686,
+   "i": 680,
    "verb": "white_peace",
-   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
+   "detail": "white peace Normandy (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 687,
-   "verb": "common_peace",
-   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 688,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 689,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 690,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 691,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 692,
+   "i": 681,
    "verb": "propose",
-   "detail": "defensive_alliance → PapalStates",
+   "detail": "open_borders → PapalStates",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 693,
+   "i": 682,
    "verb": "summon",
    "detail": "",
    "ok": false,
    "refused": "The campaign has ended — no Congress will sit."
   },
   {
-   "i": 694,
-   "verb": "white_peace",
-   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 695,
-   "verb": "propose",
-   "detail": "non_aggression → Denmark",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 696,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 697,
+   "i": 683,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 698,
+   "i": 684,
    "verb": "propose",
-   "detail": "defensive_alliance → Austria",
+   "detail": "alliance → Switzerland",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 699,
+   "i": 685,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 686,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 687,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 688,
+   "verb": "propose",
+   "detail": "defensive_alliance → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 689,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 690,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 691,
+   "verb": "common_peace",
+   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 692,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 693,
    "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
   },
   {
-   "i": 700,
-   "verb": "propose",
-   "detail": "vassalage → Denmark",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "i": 694,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
-   "i": 701,
-   "verb": "make_vassal",
-   "detail": "Sardinia",
-   "ok": false,
-   "refused": "Sardinia submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 702,
+   "i": 695,
    "verb": "break",
    "detail": "",
    "ok": false,
    "skipped": "no treaty of ours"
   },
   {
-   "i": 703,
+   "i": 696,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
+  },
+  {
+   "i": 697,
+   "verb": "propose",
+   "detail": "defensive_alliance → Holland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 698,
+   "verb": "white_peace",
+   "detail": "white peace Sardinia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 699,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 700,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 701,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 702,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 703,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
   },
   {
    "i": 704,
@@ -4664,550 +4663,560 @@
   },
   {
    "i": 705,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 706,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 707,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 708,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 709,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 710,
+   "verb": "propose",
+   "detail": "vassalage → PapalStates",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 711,
+   "verb": "white_peace",
+   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 712,
+   "verb": "propose",
+   "detail": "armistice → Hanover",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 713,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 714,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 715,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 716,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 717,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 718,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 719,
+   "verb": "propose",
+   "detail": "peace → Ottoman",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 720,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 721,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 722,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 723,
+   "verb": "propose",
+   "detail": "peace → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 724,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 725,
+   "verb": "make_vassal",
+   "detail": "Denmark",
+   "ok": false,
+   "refused": "Denmark still stands — Copenhagen is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 726,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 727,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 728,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 729,
+   "verb": "propose",
+   "detail": "defensive_alliance → Bavaria",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 730,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 731,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 732,
+   "verb": "white_peace",
+   "detail": "white peace Russia (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 733,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 734,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 735,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 736,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 737,
+   "verb": "propose",
+   "detail": "non_aggression → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 738,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 739,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 740,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 741,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 742,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 743,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 744,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 745,
+   "verb": "common_peace",
+   "detail": "common peace Normandy (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 746,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 747,
+   "verb": "white_peace",
+   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 748,
+   "verb": "propose",
+   "detail": "non_aggression → Denmark",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 749,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 750,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 751,
+   "verb": "propose",
+   "detail": "defensive_alliance → Austria",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 752,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 753,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 754,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 755,
+   "verb": "make_vassal",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 756,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 757,
+   "verb": "propose",
+   "detail": "armistice → Hanover",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 758,
+   "verb": "common_peace",
+   "detail": "common peace Bavaria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 759,
    "verb": "propose",
    "detail": "vassalage → Prussia",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 706,
+   "i": 760,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 707,
+   "i": 761,
    "verb": "common_peace",
-   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
+   "detail": "common peace Hanover (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 708,
+   "i": 762,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 709,
+   "i": 763,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 710,
+   "i": 764,
    "verb": "white_peace",
    "detail": "white peace Portugal (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 711,
+   "i": 765,
    "verb": "white_peace",
    "detail": "white peace Ottoman (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 712,
+   "i": 766,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 713,
+   "i": 767,
    "verb": "propose",
    "detail": "defensive_alliance → Sardinia",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 714,
+   "i": 768,
    "verb": "propose",
    "detail": "armistice → Saxony",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 715,
+   "i": 769,
    "verb": "white_peace",
-   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
+   "detail": "white peace Normandy (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 716,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "i": 770,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
-   "i": 717,
+   "i": 771,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 772,
    "verb": "white_peace",
    "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 718,
+   "i": 773,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 774,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 719,
+   "i": 775,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 720,
+   "i": 776,
    "verb": "common_peace",
    "detail": "common peace Russia (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 721,
+   "i": 777,
    "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 722,
-   "verb": "white_peace",
-   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 723,
-   "verb": "common_peace",
-   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 724,
-   "verb": "common_peace",
-   "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 725,
-   "verb": "answer",
    "detail": "",
    "ok": false,
-   "skipped": "no dialogue"
+   "skipped": "nobody to declare on"
   },
   {
-   "i": 726,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 727,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 728,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 729,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 730,
-   "verb": "common_peace",
-   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 731,
-   "verb": "common_peace",
-   "detail": "common peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 732,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 733,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 734,
+   "i": 778,
    "verb": "propose",
-   "detail": "vassalage → Denmark",
+   "detail": "vassalage → Britain",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 735,
+   "i": 779,
    "verb": "propose",
    "detail": "open_borders → Austria",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 736,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 737,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 738,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 739,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 740,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 741,
-   "verb": "make_vassal",
-   "detail": "Russia",
-   "ok": false,
-   "refused": "Russia still stands — Vilna is its own and 3 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
-  },
-  {
-   "i": 742,
-   "verb": "make_vassal",
-   "detail": "Saxony",
-   "ok": false,
-   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 743,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 744,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 745,
-   "verb": "common_peace",
-   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 746,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 747,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 748,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 749,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 750,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 751,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 752,
-   "verb": "common_peace",
-   "detail": "common peace Switzerland (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 753,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 754,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 755,
-   "verb": "propose",
-   "detail": "open_borders → Portugal",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 756,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 757,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 758,
-   "verb": "make_vassal",
-   "detail": "Hanover (execute_proposal)",
-   "ok": false,
-   "refused": "A vassalage of Hanover needs a war (a dictated peace) or open borders and above — we stand at Peace."
-  },
-  {
-   "i": 759,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 760,
-   "verb": "answer",
-   "detail": "proposal_confirm → adjust_terms",
-   "ok": true
-  },
-  {
-   "i": 761,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 762,
-   "verb": "common_peace",
-   "detail": "common peace Sweden (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 763,
-   "verb": "make_vassal",
-   "detail": "Holland",
-   "ok": false,
-   "refused": "Holland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 764,
-   "verb": "propose",
-   "detail": "peace → Austria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 765,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 766,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 767,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 768,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 769,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 770,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 771,
-   "verb": "propose",
-   "detail": "armistice → Prussia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 772,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 773,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 774,
-   "verb": "make_vassal",
-   "detail": "Hesse",
-   "ok": false,
-   "refused": "Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 775,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 776,
-   "verb": "white_peace",
-   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 777,
-   "verb": "answer",
-   "detail": "terms_guidance → territory_no_gold",
-   "ok": true
-  },
-  {
-   "i": 778,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 779,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
    "i": 780,
-   "verb": "answer",
-   "detail": "terms_guidance → skip_gold",
+   "verb": "common_peace",
+   "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 781,
    "verb": "answer",
-   "detail": "terms_guidance → skip_ap",
-   "ok": true
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 782,
-   "verb": "common_peace",
-   "detail": "common peace Sweden (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
   },
   {
    "i": 783,
-   "verb": "break",
+   "verb": "declare_war",
    "detail": "",
    "ok": false,
-   "skipped": "no treaty of ours"
+   "skipped": "nobody to declare on"
   },
   {
    "i": 784,
-   "verb": "answer",
-   "detail": "terms_guidance → reconsider",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 785,
-   "verb": "propose",
-   "detail": "non_aggression → Austria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 786,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 787,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "common_peace",
+   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 788,
-   "verb": "white_peace",
-   "detail": "white peace PapalStates (back_out_settlement: no Ratify offered)",
+   "verb": "common_peace",
+   "detail": "common peace Saxony (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 789,
-   "verb": "white_peace",
-   "detail": "white peace Prussia (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -5219,16 +5228,17 @@
   },
   {
    "i": 791,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
+   "verb": "propose",
+   "detail": "vassalage → Denmark",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 792,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "propose",
+   "detail": "open_borders → Austria",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 793,
@@ -5239,42 +5249,43 @@
   },
   {
    "i": 794,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
+   "verb": "summon",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "refused": "The campaign has ended — no Congress will sit."
   },
   {
    "i": 795,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 796,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 797,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 798,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 799,
-   "verb": "answer",
-   "detail": "",
+   "i": 798,
+   "verb": "make_vassal",
+   "detail": "Russia",
    "ok": false,
-   "skipped": "no dialogue"
+   "refused": "Russia still stands — Vilna is its own and 3 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 799,
+   "verb": "make_vassal",
+   "detail": "Saxony",
+   "ok": false,
+   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
   },
   {
    "i": 800,
@@ -5285,9 +5296,10 @@
   },
   {
    "i": 801,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
   },
   {
    "i": 802,
@@ -5298,230 +5310,233 @@
   },
   {
    "i": 803,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "common_peace",
+   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 804,
-   "verb": "common_peace",
-   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 805,
-   "verb": "make_vassal",
-   "detail": "Saxony",
+   "verb": "answer",
+   "detail": "",
    "ok": false,
-   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+   "skipped": "no dialogue"
   },
   {
    "i": 806,
-   "verb": "answer",
+   "verb": "declare_war",
    "detail": "",
    "ok": false,
-   "skipped": "no dialogue"
+   "skipped": "nobody to declare on"
   },
   {
    "i": 807,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
   },
   {
    "i": 808,
-   "verb": "propose",
-   "detail": "peace → Bavaria",
+   "verb": "declare_war",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
   },
   {
    "i": 809,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 810,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 811,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 812,
-   "verb": "propose",
-   "detail": "alliance → Hanover",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 813,
-   "verb": "make_vassal",
-   "detail": "Switzerland",
-   "ok": false,
-   "refused": "Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 814,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 815,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 816,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 817,
-   "verb": "propose",
-   "detail": "vassalage → Saxony",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 818,
-   "verb": "white_peace",
-   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 819,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 820,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 821,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 822,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 823,
-   "verb": "white_peace",
-   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 824,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 825,
-   "verb": "white_peace",
-   "detail": "white peace Normandy (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 826,
-   "verb": "propose",
-   "detail": "non_aggression → Denmark",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 827,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 828,
-   "verb": "common_peace",
-   "detail": "common peace Sardinia (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 829,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 830,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 831,
-   "verb": "make_vassal",
-   "detail": "Naples",
-   "ok": false,
-   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
-  },
-  {
-   "i": 832,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 833,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 834,
    "verb": "summon",
    "detail": "",
    "ok": false,
    "refused": "The campaign has ended — no Congress will sit."
   },
   {
-   "i": 835,
+   "i": 810,
    "verb": "common_peace",
-   "detail": "common peace Sardinia (back_out_settlement: no Ratify offered)",
+   "detail": "common peace Sweden (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 836,
+   "i": 811,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 812,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 813,
+   "verb": "common_peace",
+   "detail": "common peace Holland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 814,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 815,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 816,
    "verb": "propose",
-   "detail": "non_aggression → Sardinia",
+   "detail": "open_borders → Portugal",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 837,
-   "verb": "common_peace",
-   "detail": "common peace Sardinia (back_out_settlement: no Ratify offered)",
+   "i": 817,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 818,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 819,
+   "verb": "make_vassal",
+   "detail": "Hanover",
+   "ok": false,
+   "refused": "Hanover submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 820,
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
+  },
+  {
+   "i": 821,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 822,
+   "verb": "propose",
+   "detail": "alliance → Sweden",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 823,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 824,
+   "verb": "propose",
+   "detail": "peace → Austria",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 825,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 826,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 827,
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
+  },
+  {
+   "i": 828,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 829,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 830,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 831,
+   "verb": "propose",
+   "detail": "armistice → Prussia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 832,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 833,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 834,
+   "verb": "make_vassal",
+   "detail": "Hesse",
+   "ok": false,
+   "refused": "Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 835,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 836,
+   "verb": "white_peace",
+   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 837,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 838,
@@ -5532,16 +5547,17 @@
   },
   {
    "i": 839,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 840,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
-  },
-  {
-   "i": 840,
-   "verb": "white_peace",
-   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
-   "ok": true
   },
   {
    "i": 841,
@@ -5552,49 +5568,50 @@
   },
   {
    "i": 842,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 843,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 844,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 845,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
+   "i": 843,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 844,
+   "verb": "propose",
+   "detail": "non_aggression → Russia",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 846,
+   "i": 845,
    "verb": "make_vassal",
-   "detail": "Prussia",
+   "detail": "Switzerland",
    "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 846,
+   "verb": "propose",
+   "detail": "peace → Sardinia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 847,
-   "verb": "common_peace",
-   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 848,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "propose",
+   "detail": "vassalage → Portugal",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 849,
@@ -5605,10 +5622,10 @@
   },
   {
    "i": 850,
-   "verb": "answer",
+   "verb": "release_vassal",
    "detail": "",
    "ok": false,
-   "skipped": "no dialogue"
+   "skipped": "no vassal of ours"
   },
   {
    "i": 851,
@@ -5619,113 +5636,113 @@
   },
   {
    "i": 852,
-   "verb": "make_vassal",
-   "detail": "Prussia",
+   "verb": "declare_war",
+   "detail": "",
    "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "skipped": "nobody to declare on"
   },
   {
    "i": 853,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 854,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 855,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 856,
-   "verb": "answer",
+   "i": 855,
+   "verb": "release_vassal",
    "detail": "",
    "ok": false,
-   "skipped": "no dialogue"
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 856,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
   },
   {
    "i": 857,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 858,
-   "verb": "propose",
-   "detail": "non_aggression → Spain",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 859,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 860,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 861,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 862,
-   "verb": "common_peace",
-   "detail": "common peace Normandy (back_out_settlement: no Ratify offered)",
+   "i": 861,
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 863,
-   "verb": "summon",
+   "i": 862,
+   "verb": "answer",
    "detail": "",
    "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 863,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 864,
-   "verb": "white_peace",
-   "detail": "white peace Bavaria (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 865,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 866,
-   "verb": "propose",
-   "detail": "defensive_alliance → Austria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 867,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "common_peace",
+   "detail": "common peace Prussia (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 868,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "make_vassal",
+   "detail": "Saxony",
+   "ok": false,
+   "refused": "Saxony submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
   },
   {
    "i": 869,
@@ -5736,49 +5753,49 @@
   },
   {
    "i": 870,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 871,
    "verb": "propose",
-   "detail": "alliance → Switzerland",
+   "detail": "peace → Bavaria",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 871,
+   "i": 872,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 873,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 872,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 873,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
    "i": 874,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 875,
-   "verb": "release_vassal",
-   "detail": "",
+   "verb": "propose",
+   "detail": "alliance → Hanover",
    "ok": false,
-   "skipped": "no vassal of ours"
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 876,
-   "verb": "release_vassal",
-   "detail": "",
+   "verb": "make_vassal",
+   "detail": "Switzerland",
    "ok": false,
-   "skipped": "no vassal of ours"
+   "refused": "Switzerland submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
   },
   {
    "i": 877,
@@ -5789,223 +5806,222 @@
   },
   {
    "i": 878,
-   "verb": "propose",
-   "detail": "open_borders → Russia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 879,
    "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
   },
   {
    "i": 880,
-   "verb": "propose",
-   "detail": "defensive_alliance → Hesse",
+   "verb": "declare_war",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
   },
   {
    "i": 881,
-   "verb": "propose",
-   "detail": "open_borders → Russia",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 882,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 883,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 884,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
+   "i": 882,
+   "verb": "propose",
+   "detail": "vassalage → Saxony",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 883,
+   "verb": "white_peace",
+   "detail": "white peace Holland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 884,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
    "i": 885,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 886,
    "verb": "propose",
-   "detail": "open_borders → Russia",
+   "detail": "peace → Spain",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 887,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 888,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 889,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "common_peace",
+   "detail": "common peace Sardinia (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 890,
-   "verb": "white_peace",
-   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 891,
-   "verb": "common_peace",
-   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 892,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 893,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 894,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 895,
-   "verb": "make_vassal",
-   "detail": "Naples",
-   "ok": false,
-   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
-  },
-  {
-   "i": 896,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 897,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 898,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 899,
-   "verb": "propose",
-   "detail": "defensive_alliance → Britain",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 900,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 901,
+   "i": 891,
+   "verb": "white_peace",
+   "detail": "white peace Switzerland (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 892,
    "verb": "propose",
    "detail": "non_aggression → Denmark",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 902,
+   "i": 893,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 894,
+   "verb": "common_peace",
+   "detail": "common peace PapalStates (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 895,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 903,
+   "i": 896,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 897,
+   "verb": "make_vassal",
+   "detail": "Naples",
+   "ok": false,
+   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 898,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 899,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 900,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 901,
+   "verb": "common_peace",
+   "detail": "common peace PapalStates (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 902,
+   "verb": "propose",
+   "detail": "non_aggression → Sardinia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 903,
+   "verb": "common_peace",
+   "detail": "common peace PapalStates (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 904,
-   "verb": "white_peace",
-   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 905,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 906,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
-  },
-  {
-   "i": 907,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 908,
-   "verb": "common_peace",
-   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
+   "verb": "white_peace",
+   "detail": "white peace Saxony (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 909,
-   "verb": "summon",
+   "i": 907,
+   "verb": "answer",
    "detail": "",
    "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 908,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 909,
+   "verb": "white_peace",
+   "detail": "white peace Denmark (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 910,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 911,
-   "verb": "common_peace",
-   "detail": "common peace Bavaria (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -6017,402 +6033,405 @@
   },
   {
    "i": 913,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 914,
-   "verb": "white_peace",
-   "detail": "white peace Normandy (back_out_settlement: no Ratify offered)",
+   "verb": "common_peace",
+   "detail": "common peace PapalStates (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 915,
-   "verb": "common_peace",
-   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 916,
-   "verb": "propose",
-   "detail": "armistice → Sweden",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 917,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 918,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 919,
-   "verb": "propose",
-   "detail": "vassalage → Bavaria",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 920,
-   "verb": "make_vassal",
-   "detail": "Hanover (execute_proposal)",
-   "ok": false,
-   "refused": "A vassalage of Hanover needs a war (a dictated peace) or open borders and above — we stand at Peace."
-  },
-  {
-   "i": 921,
-   "verb": "propose",
-   "detail": "vassalage → Spain",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 922,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 923,
-   "verb": "make_vassal",
-   "detail": "Prussia",
-   "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
-  },
-  {
-   "i": 924,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 925,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 926,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 927,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 928,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 929,
-   "verb": "answer",
-   "detail": "proposal_confirm → modify_harsh",
-   "ok": true
-  },
-  {
-   "i": 930,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 931,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 932,
-   "verb": "propose",
-   "detail": "open_borders → Spain",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 933,
-   "verb": "declare_war",
-   "detail": "Hanover (forced_alliance)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 934,
-   "verb": "release_vassal",
-   "detail": "",
-   "ok": false,
-   "skipped": "no vassal of ours"
-  },
-  {
-   "i": 935,
-   "verb": "make_vassal",
-   "detail": "Portugal",
-   "ok": false,
-   "refused": "Portugal submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
-  },
-  {
-   "i": 936,
    "verb": "white_peace",
    "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 937,
+   "i": 916,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
-   "i": 938,
+   "i": 917,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 918,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 919,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 920,
+   "verb": "make_vassal",
+   "detail": "Prussia",
+   "ok": false,
+   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 921,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 922,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 923,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 924,
+   "verb": "propose",
+   "detail": "open_borders → Britain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 925,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 926,
    "verb": "summon",
    "detail": "",
    "ok": false,
    "refused": "The campaign has ended — no Congress will sit."
   },
   {
-   "i": 939,
+   "i": 927,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 928,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 929,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 930,
    "verb": "declare_war",
-   "detail": "Hanover (conquest)",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 931,
+   "verb": "propose",
+   "detail": "open_borders → PapalStates",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 940,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "i": 932,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 933,
+   "verb": "common_peace",
+   "detail": "common peace Switzerland (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
-   "i": 941,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "i": 934,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
+   "i": 935,
+   "verb": "white_peace",
+   "detail": "white peace Bavaria (back_out_settlement: no Ratify offered)",
    "ok": true
+  },
+  {
+   "i": 936,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 937,
+   "verb": "propose",
+   "detail": "defensive_alliance → Austria",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 938,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 939,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 940,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 941,
+   "verb": "propose",
+   "detail": "alliance → Switzerland",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 942,
    "verb": "answer",
-   "detail": "proposal_confirm → less_generous",
-   "ok": true
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 943,
-   "verb": "answer",
-   "detail": "proposal_confirm → reconsider",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 944,
-   "verb": "make_vassal",
-   "detail": "Sweden",
-   "ok": false,
-   "refused": "Sweden still stands — Stockholm is its own and 1 of its corps are in the field (its war score +5; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 945,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 946,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 947,
+   "verb": "release_vassal",
+   "detail": "",
+   "ok": false,
+   "skipped": "no vassal of ours"
+  },
+  {
+   "i": 948,
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
+  },
+  {
+   "i": 949,
+   "verb": "propose",
+   "detail": "open_borders → Russia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 950,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 951,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 952,
+   "verb": "propose",
+   "detail": "defensive_alliance → Hesse",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 953,
+   "verb": "propose",
+   "detail": "open_borders → Russia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 954,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 955,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 956,
    "verb": "propose",
    "detail": "defensive_alliance → Saxony",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
-   "i": 946,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 947,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 948,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 949,
-   "verb": "common_peace",
-   "detail": "common peace Hesse (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 950,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 951,
-   "verb": "declare_war",
-   "detail": "Hanover (subjugation)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 952,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 953,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 954,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 955,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 956,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
    "i": 957,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 958,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "propose",
+   "detail": "open_borders → Russia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 959,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 960,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 961,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 962,
-   "verb": "end_turn",
-   "detail": "turn 57",
+   "verb": "white_peace",
+   "detail": "white peace Spain (back_out_settlement: no Ratify offered)",
    "ok": true
   },
   {
    "i": 963,
-   "verb": "summon",
-   "detail": "",
-   "ok": false,
-   "refused": "The campaign has ended — no Congress will sit."
+   "verb": "common_peace",
+   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 964,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
   },
   {
    "i": 965,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 966,
-   "verb": "white_peace",
-   "detail": "white peace Naples (back_out_settlement: no Ratify offered)",
-   "ok": true
-  },
-  {
-   "i": 967,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 968,
    "verb": "release_vassal",
    "detail": "",
    "ok": false,
    "skipped": "no vassal of ours"
   },
   {
-   "i": 969,
+   "i": 967,
+   "verb": "make_vassal",
+   "detail": "Naples",
+   "ok": false,
+   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+  },
+  {
+   "i": 968,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
+  },
+  {
+   "i": 969,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
   },
   {
    "i": 970,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 971,
-   "verb": "common_peace",
-   "detail": "common peace Britain (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 972,
-   "verb": "make_vassal",
-   "detail": "Britain",
+   "verb": "propose",
+   "detail": "defensive_alliance → Britain",
    "ok": false,
-   "refused": "Britain still stands — London is its own and 4 of its corps are in the field (its war score +57; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 973,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
+   "verb": "answer",
+   "detail": "",
+   "ok": false,
+   "skipped": "no dialogue"
   },
   {
    "i": 974,
    "verb": "propose",
-   "detail": "peace → Denmark",
+   "detail": "non_aggression → Denmark",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
@@ -6426,81 +6445,78 @@
   {
    "i": 976,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 977,
+   "verb": "white_peace",
+   "detail": "white peace Austria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 978,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 979,
    "verb": "summon",
    "detail": "",
    "ok": false,
    "refused": "The campaign has ended — no Congress will sit."
   },
   {
-   "i": 978,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 979,
-   "verb": "propose",
-   "detail": "vassalage → Denmark",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
    "i": 980,
-   "verb": "break",
-   "detail": "",
-   "ok": false,
-   "skipped": "no treaty of ours"
-  },
-  {
-   "i": 981,
-   "verb": "propose",
-   "detail": "vassalage → Holland",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 982,
    "verb": "release_vassal",
    "detail": "",
    "ok": false,
    "skipped": "no vassal of ours"
   },
   {
+   "i": 981,
+   "verb": "common_peace",
+   "detail": "common peace Portugal (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 982,
+   "verb": "summon",
+   "detail": "",
+   "ok": false,
+   "refused": "The campaign has ended — no Congress will sit."
+  },
+  {
    "i": 983,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 984,
+   "verb": "common_peace",
+   "detail": "common peace Bavaria (back_out_settlement: no Ratify offered)",
+   "ok": true
+  },
+  {
+   "i": 985,
    "verb": "answer",
    "detail": "",
    "ok": false,
    "skipped": "no dialogue"
   },
   {
-   "i": 985,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
    "i": 986,
-   "verb": "propose",
-   "detail": "vassalage → Hesse",
+   "verb": "declare_war",
+   "detail": "",
    "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+   "skipped": "nobody to declare on"
   },
   {
    "i": 987,
-   "verb": "common_peace",
-   "detail": "common peace Bavaria (back_out_settlement: no Ratify offered)",
+   "verb": "end_turn",
+   "detail": "turn 55",
    "ok": true
   },
   {
@@ -6511,83 +6527,82 @@
   },
   {
    "i": 989,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
+   "verb": "common_peace",
+   "detail": "common peace Naples (back_out_settlement: no Ratify offered)",
+   "ok": true
   },
   {
    "i": 990,
-   "verb": "make_vassal",
-   "detail": "PapalStates",
+   "verb": "propose",
+   "detail": "armistice → Sweden",
    "ok": false,
-   "refused": "The Papal States submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 991,
    "verb": "end_turn",
-   "detail": "turn 57",
+   "detail": "turn 55",
    "ok": true
   },
   {
    "i": 992,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 993,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 994,
-   "verb": "propose",
-   "detail": "alliance → Portugal",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 995,
-   "verb": "end_turn",
-   "detail": "turn 57",
-   "ok": true
-  },
-  {
-   "i": 996,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 997,
-   "verb": "declare_war",
-   "detail": "Hanover (conquest)",
-   "ok": false,
-   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
-  },
-  {
-   "i": 998,
-   "verb": "answer",
-   "detail": "",
-   "ok": false,
-   "skipped": "no dialogue"
-  },
-  {
-   "i": 999,
    "verb": "release_vassal",
    "detail": "",
    "ok": false,
    "skipped": "no vassal of ours"
   },
   {
-   "i": 1000,
+   "i": 993,
    "verb": "propose",
-   "detail": "defensive_alliance → Portugal",
+   "detail": "vassalage → Bavaria",
    "ok": false,
    "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 994,
+   "verb": "make_vassal",
+   "detail": "Hanover",
+   "ok": false,
+   "refused": "Hanover submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead."
+  },
+  {
+   "i": 995,
+   "verb": "propose",
+   "detail": "vassalage → Spain",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
+  },
+  {
+   "i": 996,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
+  },
+  {
+   "i": 997,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 998,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 999,
+   "verb": "end_turn",
+   "detail": "turn 55",
+   "ok": true
+  },
+  {
+   "i": 1000,
+   "verb": "declare_war",
+   "detail": "",
+   "ok": false,
+   "skipped": "nobody to declare on"
   }
  ]
 }

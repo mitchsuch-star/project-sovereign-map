@@ -1133,7 +1133,17 @@ def _handle_settlement_demand_action(
             consumption = int(clause.get("amount", 0) or 0)
             if ttype == "gold_per_turn":
                 consumption *= max(0, int(clause.get("turns", 0) or 0))
-            if consumption > headroom:
+            # PC-R3 (S13e part 2): a clause a COURT dictated (the consented
+            # letter's own ask) may be kept or lowered without the player's
+            # solvency refusal — the ask is the court's, priced to the war;
+            # raising it past the court's figure is the player's authoring.
+            _before = terms[clause_index]
+            _court_authored = str(_before.get("authored_by") or "") not in (
+                "", "player", str(getattr(world, "player_nation", "France") or "France"))
+            _not_raised = int(clause.get("amount", 0) or 0) <= int(_before.get("amount", 0) or 0) and (
+                ttype != "gold_per_turn"
+                or int(clause.get("turns", 0) or 0) <= int(_before.get("turns", 0) or 0))
+            if consumption > headroom and not (_court_authored and _not_raised):
                 return _fail(
                     "gold_payment_budget_conflict",
                     _payer_budget_refusal_display(
@@ -1241,7 +1251,16 @@ def _handle_settlement_demand_action(
                     )
                     or ""
                 )
-            if not region or region not in court_regions:
+            # PC-F52 / PC-R1 (v): a province the court no longer holds may be
+            # demanded when it is her homeland and OUR side holds it (Tyrol at
+            # Pressburg: France held it; Austria ceded it to Bavaria) — the
+            # one rule the validator, the preview and the ratifier read.
+            from backend.game_logic.settlement_validation import occupied_homeland_cession_ok
+            _region_obj = (getattr(world, "regions", {}) or {}).get(region) if region else None
+            _holder = str(getattr(_region_obj, "controller", "") or "") if _region_obj else ""
+            _occupied_ok = bool(region and _region_obj is not None and occupied_homeland_cession_ok(
+                world, war_instance, region, court, beneficiary, _holder))
+            if not region or (region not in court_regions and not _occupied_ok):
                 return _fail(
                     "no_transferable_region",
                     f"{court} holds no region we may demand, Sire."
@@ -1775,12 +1794,19 @@ def _action_submit_settlement_for_review(
     # package can never reach the REVIEW ratification gate. On failure the
     # still-mounted PROPOSE dialogue is re-attached (the Tier-2 net
     # pattern) with the failure rendered, never a silent dead end.
+    # PC-R3 (S13e part 2): a consented package — the court's own letter laid
+    # back in substance (SR-2a) — is the court's ask, priced to the war; the
+    # player's solvency rule does not refuse it (the transfer clamps).
+    from backend.game_logic.settlement_validation import consent_terms_equal as _consent_eq
+    _consent_terms = dialogue.get("consent_terms")
+    _consented_unchanged = bool(_consent_terms) and _consent_eq(terms, _consent_terms)
     submit_validation = validate_settlement_terms(
         terms,
         proposer_side=str(dialogue.get("proposer_side") or ""),
         covered_enemy_participants=covered,
         world=world,
         war_instance=(getattr(world, "war_instances", {}) or {}).get(war_id) or {},
+        enforce_solvency=not _consented_unchanged,
     )
     if not submit_validation.get("valid"):
         blocker = str(
@@ -3189,6 +3215,10 @@ def _execute_pair_substitute_handoff(
                 if opt.get("action") == "execute_proposal" and (opt.get("terms") or {}).get("demands"):
                     opt["terms"] = dict(opt["terms"], demands=[])
                     armistice_demands_dropped = True
+        # PC-F70: the hand-off says what it carried for an ally and what
+        # the bilateral road cannot carry.
+        proposal_dialogue["handoff_carried"] = list(seed.get("carried") or [])
+        proposal_dialogue["handoff_dropped"] = list(seed.get("dropped") or [])
         if seed["demands"] or seed["sweeteners"]:
             seeded = False
             for opt in proposal_dialogue.get("options", []):

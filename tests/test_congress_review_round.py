@@ -294,10 +294,12 @@ class TestTheSitting:
         assert titled["met"] is True
         assert "Hanover's war contests what it ceded" in titled["text"]
         assert "counted while the Congress sits" in titled["text"]
-        # the war ends by an unsigned road: a truce that ran out into peace
+        # the war ends by an unsigned road. PC-R2 (S13e part 2, October 16,
+        # 2026): a truce that runs out into peace is SIGNED now (ruling D
+        # item 3), so the unsigned end here is a bare state write.
         with _quiet():
             set_diplomatic_state(w, "Hanover", "France", "ARMISTICE", "test_truce")
-            set_diplomatic_state(w, "Hanover", "France", "PEACE", "armistice_expired_peace")
+            set_diplomatic_state(w, "Hanover", "France", "PEACE", "")
         titled = next(h for h in congress.hold_conditions(w) if h["key"] == "titled")
         assert titled["met"] is False
         assert "Hanover's war reopened what it ceded" in titled["text"]

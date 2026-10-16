@@ -612,6 +612,9 @@ CHARGES_UNREST_STABILITY = 50  # a held province at/below this stability is rest
 # blood, so 10k and 76k dead price differently — the reason the flat-term
 # retune was REJECTED at the gate) escalates.
 CHARGES_PENSIONS_DIVISOR = 750   # +1 rate per 750 fallen in live campaigns
+# PC-R3 (ruling I item 4): a refused dictated peace is a charge — per tier
+# refused (Reichenbach 25, Frankfurt 50, Châtillon 75, the frontiers 100).
+CHARGES_REFUSED_PEACE_RATE = 25
 CHARGES_PENSIONS_CAP = 150       # saturates ≈112k dead
 # EC-W3 "The Butcher's Bill": one-time materiel charge per battle — the guns,
 # horses and stores lost with each side's casualties. 0.05 g/man = 50g per
@@ -6694,6 +6697,22 @@ class WorldState:
                           "label": "the pensions of the fallen",
                           "amount": min(CHARGES_PENSIONS_CAP,
                                         fallen // CHARGES_PENSIONS_DIVISOR)})
+        # PC-R3 (ruling I item 4): "Continue fighting" is Châtillon with a
+        # price — the refused dictated peace is named and charged by its
+        # tier while it stands (`ai_diplomacy.refused_peace_standing`).
+        from backend.game_logic.ai_diplomacy import refused_peace_standing
+        _refused = refused_peace_standing(self, nation)
+        if _refused:
+            from backend.game_logic.formations import formed_display_name as _fdn
+            terms.append({
+                "key": "refused_peace",
+                "label": (f"the peace refused — {_fdn(self, str(_refused.get('proposer') or ''))}'s "
+                          f"terms ({_refused.get('label')}, turn "
+                          f"{int(_refused.get('answered_turn', _refused.get('turn', 0)) or 0)})"),
+                "amount": int(CHARGES_REFUSED_PEACE_RATE * (int(_refused.get("tier", 0) or 0) + 1)),
+                "tier": int(_refused.get("tier", 0) or 0),
+                "next_label": str(_refused.get("next_label") or ""),
+            })
         return {"rate": int(sum(t["amount"] for t in terms)), "terms": terms}
 
     def calculate_state_charges(self, nation: str, rate=None) -> int:
@@ -12721,6 +12740,22 @@ class WorldState:
         # R5b: Set armistice cooldown when entering ARMISTICE
         if ctx.target_state == "ARMISTICE":
             self.armistice_cooldowns[ctx.diplo_key] = 5
+            # PC-R2 (ruling D item 4): the sureties filed at the truce — the
+            # stream the losing court's letter carried and the held line —
+            # on the war instance, read back by the dictated exit and by
+            # every surface that says what the truce keeps.
+            from backend.game_logic.diplomacy import record_truce_sureties
+            record_truce_sureties(self, ctx.proposer, ctx.target_nation, ctx.treaty_clauses)
+        # PC-F69 (S13e part 2): a bilateral PEACE writes the fresh-peace floor
+        # the table writes (`FRESH_PEACE_FLOOR_TURNS`) — the store every
+        # war-entry gate reads. Before, only an ARMISTICE wrote a cooldown
+        # here, so Prussia re-declared six turns after signing the bilateral
+        # peace on the Tilsit fixture with nothing to stop her.
+        if ctx.target_state == "PEACE" and ctx.current_state in ("WAR", "ARMISTICE"):
+            from backend.game_logic.settlement_ratify import write_settlement_peace_floors
+            write_settlement_peace_floors(self, [{
+                "pair": ctx.diplo_key, "current_state_before": ctx.current_state,
+                "final_state": "PEACE"}])
 
         # Handle open_borders clause (R2: centralized setter)
         if "open_borders" in ctx.proposal.get("clauses", []):
@@ -12947,10 +12982,15 @@ class WorldState:
                 # morale 50). Peace treaties ALSO auto-return all mutual
                 # prisoners at the set_diplomatic_state chokepoint — this
                 # clause covers ransoms inside non-peace treaties.
-                pr_marshal = clause.get("marshal", "")
-                if pr_marshal and self.release_captured_marshal(
-                        pr_marshal, reason="ransom"):
-                    ctx.applied_treaty_clauses.append(clause.copy())
+                # PC-F13: one term may name several men (`marshals`).
+                _pr_names = list(clause.get("marshals") or
+                                 ([clause.get("marshal")] if clause.get("marshal") else []))
+                _released = [n for n in _pr_names
+                             if n and self.release_captured_marshal(str(n), reason="ransom")]
+                if _released:
+                    _applied_pr = clause.copy()
+                    _applied_pr["marshals"] = _released
+                    ctx.applied_treaty_clauses.append(_applied_pr)
 
             elif ctype == "liberation":
                 lib_vassal = clause.get("vassal_nation", "") or clause.get("from", "")
@@ -13495,11 +13535,17 @@ class WorldState:
                     # own sentence — whom it binds, whose war runs on.
                     _followers = truce_followers_line(
                         self, self.player_nation, ctx.player_counterpart or ctx.target_nation)
+                    # PC-R2 / PC-F44: the morning says what the truce keeps
+                    # and where it heads (the one wording, `truce_words`).
+                    from backend.game_logic.diplomacy import truce_words as _truce_words
+                    _tw = _truce_words(self, self.player_nation, ctx.player_counterpart or ctx.target_nation)
                     queue_dispatch_event(self, "armistice_ratified", {
                         "proposer_nation": ctx.proposer, "target_nation": ctx.target_nation,
                         "other": _fdn(self, ctx.player_counterpart or ctx.target_nation),
                         "turns": int(ARMISTICE_DURATION),
                         "thaw": int(ARMISTICE_AUTO_PEACE_RELATION),
+                        "keeps": " " + str(_tw["keeps_line"]),
+                        "heading": " " + str(_tw["heading_line"]),
                         "followers": (" " + _followers) if _followers else "",
                     }, "always")
                 else:
@@ -13680,8 +13726,14 @@ class WorldState:
         """Stage 9 of `_ratify_treaty`: Two other courts: relations, the
         dispatch, the log, the pair's cooldown (R43), the result."""
         # ═══ AI-AI-specific events ═══
-        # Improve relations
-        self.modify_nation_relation(ctx.proposer, ctx.target_nation, 10)
+        # Improve relations — never for a TRUCE (PC-F87, S13e part 2,
+        # October 16, 2026: verified — an AI–AI armistice reached this +10
+        # while the player's got none, so the identical −80 truce ended in
+        # peace between two AI courts and in war for France; Golden Rule 5:
+        # neither chair's truce thaws by signature, both thaw at the one
+        # `ARMISTICE_THAW_PER_TURN`).
+        if ctx.target_state != "ARMISTICE":
+            self.modify_nation_relation(ctx.proposer, ctx.target_nation, 10)
 
         from backend.display_names import proposal_display_name
         treaty_type_display = proposal_display_name(ctx.proposal_type)
@@ -13717,6 +13769,37 @@ class WorldState:
         if ctx.bargain_breach_events:
             result["bargain_breach_events"] = ctx.bargain_breach_events
         return result
+
+    def _return_surety_regions(self, clause: Dict, pair_key: str) -> List[str]:
+        """PC-R3: the stream's sureties — the ceder's provinces the payee's
+        side held until the indemnity was paid — go home with the last
+        payment: the controller flips back, the retention title is popped,
+        the morning says so. Returns the regions returned."""
+        returned: List[str] = []
+        ceder = str(clause.get("from") or "")
+        for region_name in list(clause.get("surety_regions") or []):
+            region = self.regions.get(region_name)
+            if region is None or not ceder:
+                continue
+            holder = str(getattr(region, "controller", "") or "")
+            if holder == ceder:
+                continue
+            region.controller = ceder
+            region.stability = 50
+            titles = getattr(self, "province_title", None)
+            if isinstance(titles, dict):
+                titles.pop(region_name, None)
+            self.invalidate_active_nations_cache()
+            returned.append(region_name)
+        if returned:
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(self, "surety_returned", {
+                "ceder": ceder, "payee": str(clause.get("to") or ""),
+                "regions": ", ".join(returned)}, "always")
+            self.log_event({"type": "surety_returned", "ceder": ceder,
+                            "payee": str(clause.get("to") or ""), "regions": list(returned),
+                            "turn": int(self.current_turn)})
+        return returned
 
     def _process_treaty_clauses(self) -> None:
         """Apply per-turn treaty clauses (gold/turn, manpower/turn).
@@ -13766,6 +13849,7 @@ class WorldState:
             )
 
         for pair_key, treaty in self.active_treaties.items():
+            _finished: List[int] = []
             for clause_index, clause in enumerate(treaty.get("clauses", [])):
                 ctype = clause.get("type", "")
                 amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
@@ -13773,6 +13857,15 @@ class WorldState:
                 to_nation = clause.get("to", "")
 
                 if ctype == "gold_per_turn":
+                    # PC-R3 (ruling I item 3): a dictated stream runs its
+                    # `turns` and then ENDS — its `surety_regions` (held
+                    # until paid) return to the ceder with the last payment.
+                    if clause.get("turns") is not None:
+                        _left = int(clause.get("turns", 0) or 0) - 1
+                        clause["turns"] = max(0, _left)
+                        if _left <= 0:
+                            _finished.append(clause_index)
+                            self._return_surety_regions(clause, pair_key)
                     # R3: Gold floor — transfer only what's available, never go negative
                     # Fix 8: removed else branch that credited without debiting
                     if from_nation in self.nation_gold:
@@ -13850,6 +13943,12 @@ class WorldState:
 
     # R6: _decrement_proposal_cooldowns, _decrement_ai_proposal_cooldowns,
     # _decrement_proactive_cooldowns, _decrement_ultimatum_cooldowns REMOVED.
+            if _finished:
+                # PC-R3: a dictated stream that has paid its last turn is
+                # retired from the treaty (its sureties went home above).
+                treaty["clauses"] = [c for i, c in enumerate(treaty.get("clauses", []))
+                                     if i not in set(_finished)]
+
     # Replaced by self._cooldown_manager.decrement_all() in advance_turn.
 
     def _update_co_location_tracking(self):

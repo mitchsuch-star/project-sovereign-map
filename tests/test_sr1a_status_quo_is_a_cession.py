@@ -178,7 +178,10 @@ class TestOnlyASignedPeace:
         for region in THE_FOUR:
             assert w.province_title[region]["kind"] == game_end.TITLE_TREATY
 
-    @pytest.mark.parametrize("reason", ["armistice_expired_peace", "nation_eliminated",
+    # PC-R2 (S13e part 2, October 16, 2026): `armistice_expired_peace` and
+    # `armistice_dictated_peace` are SIGNED roads now (ruling D item 3) —
+    # they ride `test_every_signed_road_titles`.
+    @pytest.mark.parametrize("reason", ["nation_eliminated",
                                         "treaty_break", "cheat_command", ""])
     def test_an_unsigned_road_to_peace_titles_nothing(self, vienna_road, reason):
         w = vienna_road

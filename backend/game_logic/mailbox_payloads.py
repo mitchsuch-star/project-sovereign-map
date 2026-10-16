@@ -445,9 +445,16 @@ def build_pending_envoy_popup_from_terms(
         "proposal_type": terms.get("type", "unknown"),
         # PC-F76: only the dictated peace's label is read from the envelope —
         # every other letter is titled by its lead clause (IGR-F's rule).
-        "proposal_type_display": proposal_display_name(
-            label_type if (label_type == "harsh_peace" and label_type in PROPOSAL_TYPE_DISPLAY)
-            else terms.get("type", "unknown")),
+        # PC-R3: a dictated letter's label carries its tier ("Harsh Peace
+        # Treaty — Frankfurt").
+        "proposal_type_display": (
+            proposal_display_name(
+                label_type if (label_type == "harsh_peace" and label_type in PROPOSAL_TYPE_DISPLAY)
+                else terms.get("type", "unknown"))
+            + (f" — {terms.get('dictated_label')}"
+               if (label_type == "harsh_peace" and terms.get("dictated_label")) else "")),
+        "dictated_tier": int(terms.get("dictated_tier", 0) or 0) if label_type == "harsh_peace" else 0,
+        "dictated_label": str(terms.get("dictated_label") or "") if label_type == "harsh_peace" else "",
         "clauses": build_proposal_popup_clauses(
             terms, include_base=not is_counter_offer
         ),

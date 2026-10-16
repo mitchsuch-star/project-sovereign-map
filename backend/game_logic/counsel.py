@@ -110,37 +110,36 @@ COUNSEL_POOLS: Dict[tuple, List[str]] = {
         "If I may, Sire — the court sees no reason to sign at {score}: {best_label} "
         "stands at {best_number} of {threshold}; it wants {flip_label} ({flip_value}). {lever}",
     ],
+    # PC-R2 / PC-F44 (S13e part 2): a truce KEEPS the ledger (ruling D) — the
+    # lines say what it keeps ({keeps}), where it heads ({heading}: the
+    # dictated peace, the courted peace, the collapse) and the cure priced
+    # where it is in reach ({cure}), from the one wording (`truce_words`).
     ("winning", "truce"): [
-        "Sire, the truce with {court} has {clock} turns to run; it becomes a peace only "
-        "at relations of {thaw} or better, and they stand at {relation}. {best_label} "
-        "reads {best_number} of {threshold}. {trade}",
+        "Sire, the truce with {court} has {clock_turns} to run and {keeps} {heading} "
+        "{cure} {best_label} reads {best_number} of {threshold}. {trade}",
         "Permit me to observe, Sire, that a truce is a clock, not a treaty: {clock} "
-        "turns, relations {relation} against the {thaw} it needs. {best_label} reads "
+        "turns, relations {relation}, and {keeps} {heading} {cure} {best_label} reads "
         "{best_number} of {threshold}. {trade}",
-        "If I may, Sire — {clock} turns of quiet remain with {court}. The peace follows "
-        "only at relations of {thaw}; they stand at {relation}. {best_label} reads "
-        "{best_number} of {threshold}. {trade}",
+        "If I may, Sire — {clock_turns} of quiet remain with {court}; {keeps} {heading} "
+        "{cure} {best_label} reads {best_number} of {threshold}. {trade}",
     ],
     ("losing", "truce"): [
-        "Sire, the truce with {court} buys us {clock} turns; it ends in peace only at "
-        "relations of {thaw}, and they stand at {relation}. {best_label} reads "
-        "{best_number} of {threshold}. {trade}",
-        "Permit me to observe, Sire, that {clock} turns is what we have bought with "
-        "{court}; relations {relation} against the {thaw} the peace needs. "
+        "Sire, the truce with {court} buys us {clock_turns}, and {keeps} {heading} "
+        "{cure} {best_label} reads {best_number} of {threshold}. {trade}",
+        "Permit me to observe, Sire, that {clock_turns} is what we have bought with "
+        "{court}; {keeps} {heading} {cure} {best_label} reads {best_number} of "
+        "{threshold}. {trade}",
+        "If I may, Sire — the clock with {court} reads {clock}; {keeps} {heading} {cure} "
         "{best_label} reads {best_number} of {threshold}. {trade}",
-        "If I may, Sire — the clock with {court} reads {clock}; the peace wants "
-        "relations of {thaw} (they stand at {relation}). {best_label} reads "
-        "{best_number} of {threshold}. {trade}",
     ],
     ("level", "truce"): [
-        "Sire, the truce with {court} has {clock} turns to run; the peace follows at "
-        "relations of {thaw} (they stand at {relation}). {best_label} reads "
+        "Sire, the truce with {court} has {clock_turns} to run; {keeps} {heading} {cure} "
+        "{best_label} reads {best_number} of {threshold}. {trade}",
+        "Permit me to observe, Sire, that {clock_turns} of truce remain with {court}, "
+        "relations {relation}; {keeps} {heading} {cure} {best_label} reads "
         "{best_number} of {threshold}. {trade}",
-        "Permit me to observe, Sire, that {clock} turns of truce remain with {court}, "
-        "relations {relation} against the {thaw} it needs. {best_label} reads "
-        "{best_number} of {threshold}. {trade}",
-        "If I may, Sire — a level war in truce: {clock} turns, relations {relation}, "
-        "the line at {thaw}. {best_label} reads {best_number} of {threshold}. {trade}",
+        "If I may, Sire — a level war in truce: {clock_turns}, relations {relation}; "
+        "{keeps} {heading} {cure} {best_label} reads {best_number} of {threshold}. {trade}",
     ],
 }
 
@@ -274,14 +273,22 @@ def _bilateral_road(world, player: str, court: str, ptype: str, road: str,
         out["trade"] = trade
         out["separate_peace"] = words
     else:
-        from backend.game_logic.diplomacy import (
-            ARMISTICE_AUTO_PEACE_RELATION, live_war_score_for,
-        )
-        live = int(live_war_score_for(world, player, court))
-        out["trade"] = (f"It costs {int(quote['cost'])} DP. A truce strikes the war "
-                        f"score ({live:+d} reads 0 at the table) and titles nothing; "
-                        f"the peace follows only at relations of "
-                        f"{ARMISTICE_AUTO_PEACE_RELATION} or better.")
+        # PC-R2 / PC-F44: a truce KEEPS the ledger (ruling D) — the trade
+        # is time, not the score; the one wording (`truce_words`) says what
+        # it keeps, where it heads and what the cure costs.
+        from backend.game_logic.diplomacy import truce_words
+        words = truce_words(world, player, court)
+        heading = {
+            "dictated": "it would end in a dictated peace on the held line",
+            "peace": "it would ripen into peace on the held line",
+            "war": "the war would resume where it stood",
+        }.get(str(words.get("exit") or "war"), "the war would resume where it stood")
+        cure = f" {words['cure_line']}" if words.get("cure_line") else ""
+        out["trade"] = (f"It costs {int(quote['cost'])} DP. A truce keeps the ledger "
+                        f"({words['keeps']['war_score']:+d} stands, the war "
+                        f"{int(words['keeps']['war_age'])} turns old) and titles nothing "
+                        f"until it ends; {heading}.{cure}")
+        out["truce_words"] = words
     return out
 
 
@@ -333,6 +340,9 @@ def _table_road(world, player: str, court: str, *, alone: bool,
     covered = [str(n) for n in (body.get("covered_enemy_participants") or [])]
     out["priced_terms"] = [dict(t) for t in (body.get("settlement_terms") or []) if isinstance(t, Mapping)]
     out["baseline_generated"] = bool(body.get("baseline_generated"))
+    # PC-R1 (v) item 5: the two Pressburgs — the counsel says which draft
+    # this is ("Revanche stands" / "Revanche lapses"), from the one seam.
+    out["revanche_line"] = str(body.get("revanche_line") or "")
     if alone and covered != [court]:
         # the court is not alone on this table (it is the only coverable
         # court, or the preview widened the set): the whole-table road says it
@@ -516,7 +526,10 @@ def read_counsel(world, court: str, *, staged_terms=None,
     diplomat = (getattr(world, "diplomats", {}) or {}).get(court)
     statecraft = str(getattr(diplomat, "personality", "") or "")
     truce = state == "ARMISTICE"
-    clock = int((getattr(world, "armistice_turns", {}) or {}).get(key, 0) or 0) if truce else None
+    # the truce's clock is the turns REMAINING (the store counts elapsed)
+    from backend.game_logic.diplomacy import ARMISTICE_DURATION as _DUR
+    clock = (max(0, int(_DUR) - int((getattr(world, "armistice_turns", {}) or {}).get(key, 0) or 0))
+             if truce else None)
     relation = int((getattr(world, "nation_relations", {}) or {}).get(key, 0) or 0)
 
     roads: List[Dict[str, Any]] = []
@@ -560,6 +573,8 @@ def read_counsel(world, court: str, *, staged_terms=None,
         "score": int(score), "posture": posture, "case": case,
         "league": bool(own.get("in_league")), "truce": truce, "clock": clock,
         "thaw": int(ARMISTICE_AUTO_PEACE_RELATION), "relation": relation,
+        # PC-R2 / PC-F44: the one wording of a running truce
+        **(_truce_reading(world, player, court) if truce else {}),
         "statecraft": statecraft, "own": own,
         "roads": ranked, "best": best, "nearest": nearest, "carrying": carrying,
         "preference": talleyrand_preference(world, court, posture, int(own.get("score", 0)),
@@ -586,6 +601,28 @@ def situation_key(reading: Mapping[str, Any]) -> str:
         reading.get("truce"), reading.get("statecraft"), best.get("road"),
         (reading.get("preference") or {}).get("kind"),
     ))
+
+
+def _truce_reading(world, player: str, court: str) -> Dict[str, Any]:
+    """The running truce's words for the reading: `truce_keeps` ("the ledger
+    stands: …" in the counsel's lowercase), `truce_heading` (where it heads)
+    and `truce_cure` (the cure priced, or '')."""
+    from backend.game_logic.diplomacy import truce_words
+    words = truce_words(world, player, court)
+    keeps = str(words.get("keeps_line") or "")
+    keeps = (keeps[0].lower() + keeps[1:]) if keeps else ""
+    heading = {
+        "dictated": (f"It heads for a dictated peace on the held line — "
+                     f"{words.get('loser') and _shown(world, words['loser'])} reads "
+                     f"{int(words.get('keeps', {}).get('war_score', 0)) * -1:+d} with her hope dead."),
+        "peace": (f"It ripens into peace on the held line: relations stand at "
+                  f"{int(words.get('relation', 0)):+d} and will thaw to {int(words.get('projected', 0)):+d}."),
+        "war": (f"It heads for the collapse: relations stand at {int(words.get('relation', 0)):+d} and "
+                f"will thaw to {int(words.get('projected', 0)):+d}, short of the line; the war resumes "
+                f"where it stood."),
+    }.get(str(words.get("exit") or "war"), "")
+    return {"truce_keeps": keeps, "truce_heading": heading,
+            "truce_cure": str(words.get("cure_line") or ""), "truce_exit": str(words.get("exit") or "")}
 
 
 def _second_sentence(reading: Mapping[str, Any]) -> str:
@@ -650,10 +687,16 @@ def _slots(reading: Mapping[str, Any]) -> _Slots:
         flip_label=flip.get("label", "the court's consent"),
         flip_value=f"{int(flip.get('value', 0)):+d}" if flip else "",
         clock=str(reading.get("clock") if reading.get("clock") is not None else ""),
+        # PC-X12: "1 turn", "4 turns" — the pools say {clock_turns}
+        clock_turns=(f"{int(reading['clock'])} turn{'' if int(reading['clock']) == 1 else 's'}"
+                     if reading.get("clock") is not None else ""),
         thaw=str(reading.get("thaw", -60)),
         relation=f"{int(reading.get('relation', 0)):+d}",
         second=_second_sentence(reading),
         lever=_lever_sentence(reading),
+        keeps=str(reading.get("truce_keeps", "")),
+        heading=str(reading.get("truce_heading", "")),
+        cure=str(reading.get("truce_cure", "")),
     )
     return s
 

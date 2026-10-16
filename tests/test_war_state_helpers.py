@@ -302,11 +302,20 @@ class TestSetDiplomaticState:
         set_diplomatic_state(world, "France", "Prussia", "PEACE", "peace treaty")
         assert key not in world.war_start_turns
 
-    def test_clears_war_start_on_armistice(self):
+    def test_keeps_war_start_on_armistice_and_clears_it_on_peace(self):
+        """PC-R2 (S13e part 2, October 16, 2026 — ruling D item 2): a truce
+        keeps the war's age; the collapse keeps the ORIGINAL stamp; the
+        peace clears it."""
         world = WorldFactory.with_war("France", "Prussia")
         key = world._make_diplo_key("France", "Prussia")
+        start = world.war_start_turns[key]
 
         set_diplomatic_state(world, "France", "Prussia", "ARMISTICE", "ceasefire")
+        assert world.war_start_turns[key] == start
+        world.current_turn = start + 5
+        set_diplomatic_state(world, "France", "Prussia", "WAR", "armistice_expired_war")
+        assert world.war_start_turns[key] == start
+        set_diplomatic_state(world, "France", "Prussia", "PEACE", "treaty_ratification")
         assert key not in world.war_start_turns
 
     def test_cleans_armistice_turns_on_exit(self):

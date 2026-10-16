@@ -288,13 +288,15 @@ def test_producer_offer_terms_amount_scales_with_war_age():
         for clause in young[0]["settlement_terms"]
         if clause["type"] == "gold_indemnity"
     )
+    # PC-R3 (S13e part 2, ruling I item 3): the amount is priced to the
+    # WAR — no treasury term, no cap.
     expected_young = (
         SETTLEMENT_OFFER_BASE_GOLD_AMOUNT
         + (5 - 1) * SETTLEMENT_OFFER_PER_DURATION_BONUS
         + 30 * SETTLEMENT_OFFER_PER_WAR_SCORE
-        + int(20000 * SETTLEMENT_OFFER_TREASURY_FRACTION)
     )
     assert young_amount == expected_young
+    assert SETTLEMENT_OFFER_TREASURY_FRACTION  # the tier-0 reducer's floor keeps it
 
     # An older war produces a higher amount (same purse, longer grind).
     world2 = _world_at_turn(15)
@@ -309,9 +311,12 @@ def test_producer_offer_terms_amount_scales_with_war_age():
     assert old_amount > young_amount
 
 
-def test_producer_offer_amount_capped_by_payer_purse():
-    """EC-W4: a poor payer is never dunned past MAX_TREASURY_FRACTION of its
-    chest, and an empty chest degrades the offer to a white peace."""
+def test_producer_offer_amount_is_the_wars_not_the_purses():
+    """PC-R3 (S13e part 2, October 16, 2026 — ruling I item 3): the ask is
+    priced to the WAR, not the purse — a poor payer and an empty chest are
+    asked the same figure (the transfer clamps to what the payer holds).
+    EC-W4's purse cap and its white-peace arm are retired here (they
+    survive in the bilateral tier-0 reducer's floor)."""
     world = _world_at_turn(5)
     _install_multi_party_war(world, created_turn=1)
     world.nation_gold["France"] = 800  # the boot chest
@@ -321,14 +326,18 @@ def test_producer_offer_amount_capped_by_payer_purse():
         for clause in produced[0]["settlement_terms"]
         if clause["type"] == "gold_indemnity"
     )
-    assert amount == int(800 * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
+    assert amount > int(800 * SETTLEMENT_OFFER_MAX_TREASURY_FRACTION)
 
     world2 = _world_at_turn(5)
     _install_multi_party_war(world2, created_turn=1)
     world2.nation_gold["France"] = 0
     produced2 = process_settlement_offer_phase(world2)
-    types2 = [c["type"] for c in produced2[0]["settlement_terms"]]
-    assert types2 == ["peace"], "an empty chest cannot be squeezed — white peace"
+    amount2 = next(
+        clause["amount"]
+        for clause in produced2[0]["settlement_terms"]
+        if clause["type"] == "gold_indemnity"
+    )
+    assert amount2 == amount
 
 
 def test_producer_offer_indemnity_direction_player_losing():

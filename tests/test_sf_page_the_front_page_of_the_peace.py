@@ -516,12 +516,14 @@ class TestTheTruceEndingIsNews:
     def test_a_collapsed_truce_leads(self):
         head = _page(_truce(-90))
         assert head["class"] == "war_touches_us"
-        assert head["text"] == "Sire — the truce with Russia has collapsed — the war resumes where it stood."
+        assert head["text"] == ("Sire — the truce with Russia has collapsed — the war resumes "
+                                "where it stood, at its age, with its ledger.")
 
     def test_a_truce_ripened_into_peace_leads(self):
         head = _page(_truce(D.ARMISTICE_AUTO_PEACE_RELATION))
         assert head["class"] == "peace_signed"
-        assert head["text"] == "Sire — peace with Russia is signed. The truce has ripened into peace."
+        assert head["text"] == ("Sire — peace with Russia is signed. The truce has ripened into "
+                                "peace, signed on the held line.")
 
     def test_lever_down_neither(self, monkeypatch):
         monkeypatch.setattr(dispatch, "A_TRUCES_END_IS_NEWS", False)

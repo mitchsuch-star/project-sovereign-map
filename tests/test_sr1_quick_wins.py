@@ -98,6 +98,9 @@ class TestAAR15AnArmisticeIsAnArmistice:
         # sentence rides beside the clock — a string, "" when nobody follows.
         vars_ = dict(beat["template_vars"])
         assert isinstance(vars_.pop("followers"), str)
+        # PC-R2 / PC-F44: what the truce keeps and where it heads ride too
+        assert vars_.pop("keeps").startswith(" The ledger stands")
+        assert vars_.pop("heading").startswith(" At expiry:")
         assert vars_ == {
             "proposer_nation": "Russia", "target_nation": "France", "other": "Russia",
             "turns": int(ARMISTICE_DURATION), "thaw": int(ARMISTICE_AUTO_PEACE_RELATION)}
