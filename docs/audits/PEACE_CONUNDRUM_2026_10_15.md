@@ -6,6 +6,12 @@ live game, code reading, and one in-process drive from a *copy* of the turn-6 au
 (`tools/playtest_driver.py --from-save`, 2 end-turns, offers declined). The live game was
 never written to. · **Status:** analysis + findings for the user's ruling. No code changed.
 
+> **Update, October 16, 2026.** §4 A's four fixes landed in `40a3f7bc` (S13d: PC-F1, F3, F5,
+> F6, with PC-X1 … X4; `BUG_FIXES.md` §PC). **Part II** (§6 onward) asks the wider question
+> — does peace work, is it reactive, is it varied, is Talleyrand's advice worth having, does
+> the war score climb too fast — and answers it from sixteen driven campaigns, per-turn and
+> per-lever probes, and three code reads. It adds findings F9 … F22 and rulings F … H.
+
 ---
 
 ## 0. Verdict in six lines
@@ -321,3 +327,273 @@ Reproduction artefacts (scratch, not committed): the drive digest from the autos
 the read-only threshold probe. Re-derive by loading a copy of the turn-6 autosave with
 `tools/playtest_driver.py --from-save <copy> --turns 2 --diplomacy decline`, with
 `INK_IRON_SAVE_DIR` pointed at a scratch folder.
+
+---
+
+# Part II — How peace works, measured (October 16, 2026)
+
+Part I explained one stuck war. Part II asks whether peace works at all: how a war ends,
+what the player can do about it, whether it varies from game to game, whether Talleyrand's
+advice helps, and whether the war score climbs too fast. Everything below was run on master
+at `40a3f7bc` (after §4 A's fixes) unless it says otherwise.
+
+## 6. What was measured
+
+| Instrument | What it is |
+|---|---|
+| **16 driven campaigns** | `tools/playtest_driver.py` Mode A (in-process, deterministic per seed), 40 turns each. A *commanded* France (`tools/playtest_scripts/commanded_full40.json`, which spends every action every turn) on five seeds — `historical`, `austerlitz`, `marengo`, `ulm`, `jena` — under three diplomacy policies: **decline** (refuse every envoy), **accept** (sign whatever is offered) and **propose** (France sues one court a turn and signs what it is offered). Plus one **passive** France (no orders; historical; decline). |
+| **Per-turn probe** | On the five decline campaigns, a save every turn (after the player's orders, before end turn) — 40 a campaign. Each save was loaded read-only and read for every great power at war: the stored and live war score and its components, the war row and its peace table, Talleyrand's counsel, the acceptance of his own suggested peace and armistice, whether France may send them, the court's own peace threshold and break-ranks reason. 561 court-turns in all. |
+| **Lever probe** | From one save, pull ONE lever at a time and re-read everything above. Run on a copy of the user's turn-6 save (France +54 against Austria) and on the austerlitz campaign at turn 9 (France +32). |
+| **Live-case probes** | On the turn-6 copy with Vienna in French hands: what Austria's own AI phase sends at each score and war age; what a truce does to France's leverage. |
+| **Three code reads** | War score; the AI's peace decisions; Talleyrand's counsel and terms — each with its own small probes. |
+
+**The caveat that matters.** The commanded script is a fixed script, not a skilled player. It
+peaks between +15 and +38 against Austria by turn 12. The user's own game reached **+73 by
+turn 6**. Where the two differ, the lever probe on the user's save is the better guide.
+
+## 7. The short answers
+
+| Question | Answer |
+|---|---|
+| **Does the war score climb too fast?** | **Both too fast and too slow, in different places.** A pair score (France against one court) jumps early and then saturates: the first big battle is worth about +30 by turn 2 (decisive +15, blood +14), taking the capital is +25 in one step, and the battle component is full after five net wins, so every later victory adds nothing. Then it erodes: battle points decay after three quiet turns and expire after ten, and under the default war purpose the defender's claim ticks the occupier down to −25. The number that settles a *coalition* war — the side pressure — barely moves at all: **at most 13 on any seed**, because Britain and Russia are never met in the field and their pair scores stay at **0 through turn 12 on every seed**. |
+| **Is peace reactive?** | **To three levers strongly, to most not at all.** Taking the capital, the age of the war, and the terms you ask move a court's answer by 15–30 points. More victories (past five), relations, war exhaustion and Talleyrand's missions move it by **zero** (§11). The AI's own offers run on clocks more than on the battlefield (§10). |
+| **Does it vary?** | **No.** No peace decision has any randomness in it, and shipped builds always run the `historical` seed, so the authored variance bands never reach a player (§13). Across five seeds the coalition war ended between turns 9 and 12, every time by the same letter. |
+| **Is it fun?** | **Not as built.** The war ends by itself around turn 10 with a status-quo white peace the player did not shape. France's own overtures bounce off the alliance paradox or are refused. The strongest military result cannot be cashed: in the user's game a white peace from France would score 106 with Austria (it needs 50), but the paradox forbids sending it, Austria's own letter falls silent past −70 in a young war (F9), and accepting Austria's truce cuts France's leverage to zero (F17). The pieces for a good peace game are there — the break-ranks predicate, the Pressburg arm, the per-court table — but the player rarely gets to make a decision that matters. |
+| **Is Talleyrand's advice worth having?** | **Rarely.** Four recommendations across 561 court-turns, one of them two-thirds of the time. His drafts are a bare white peace in a young war and grow absurd when France is losing. The recommendation, confidence and hints he computes never reach the screen — only his prose does. Two of his surfaces still offer a peace the game will refuse (§12). |
+
+## 8. How the wars actually ended
+
+**Signing what is offered (accept).**
+
+| Seed | Austria's truce | The war ends | How |
+|---|---|---|---|
+| austerlitz | t9 | **t9** | Britain's settlement offer — white peace, 7 pairs resolved |
+| historical | — | **t11** | Britain's settlement offer — white peace |
+| jena | t7 | **t12** | Britain's settlement offer — white peace |
+| marengo | t10 | **t12** | Britain's settlement offer — white peace |
+| ulm | — | **t10** | Britain's settlement offer — white peace |
+
+Every settlement carried a single term, `peace`, with no carves: each side keeps what it
+holds. The war was ended by the coalition leader, on its own schedule, on the same terms,
+on every seed.
+
+**Suing every turn (propose).** France sent 16–35 overtures a campaign. Every one to Austria
+or Britain while at war was refused at the send (Bavaria and Spain are still at war with them
+— the paradox). Russia refused once (turn 3), then made peace or a truce at turns 8–11 (by
+acceptance or counter). Britain's settlement still ended the war at turns 8–12. After Austria's truce in
+ulm, France's peace to Austria was refused at turns 13 and 19, with the cooldown messages in
+between.
+
+**Refusing everything (decline).** The letters came on a cadence: Britain's settlement offer
+every 5–6 turns (10, 15, 20, 27 …), Russia's truce every 7 (11, 18, 25), Austria's truce or
+peace intermittently. A **passive** France — no orders at all — still received Austria's
+peace (t11), Britain's truce (t12) and Britain's settlement (t13).
+
+**After the peace.** Wars come back: on the accept arms Austria is at war again by turns
+25–30, and on austerlitz Russia and Britain too by turns 37–39.
+
+**The truces.** Of the truces that ran their course, **10 resumed the war and 2 became
+peace**. The truce becomes peace only at relations of −60 or better (§14).
+
+## 9. The war score
+
+**The components** (`calculate_war_score`, `backend/game_logic/diplomacy.py` 3529–3674; a
+pair score, positive = France winning, clamped to ±100):
+
+| Component | Per event | Cap | Decays? | Wiped by |
+|---|---|---|---|---|
+| Territory | +5 per enemy *starting* province held | ±40 (Austria has 7: 35; practical 30) | no — live | — |
+| Battles | +3 per net win (≥ 1,000 dead) | ±15 | yes: decays after 3 quiet turns; records expire after 10 | truce, peace |
+| Decisive | +10 (> 10,000 dead, > 2:1, the winner inflicted it) | ±15; **2 slots per pair per war, shared** | no | truce, peace |
+| Capital | +20 held (+10 besieged) | 20 in practice | no — live | — |
+| Campaign | +2 per unique province taken this war | ±10 | no | peace only |
+| Blood | 1 per 2,500 net enemy dead | ±15 | no | peace only |
+| Blockade | min(15, turns ÷ 2) per side | ±15 | no | peace only |
+| Captive eagle | ±15 while a sovereign is held | ±15 | live | release |
+| Ticking | war purpose: conquest/forced alliance +2 a turn while the capital is held; **defense +1 a turn per own province the enemy holds**; liberation +1 | 25 per side | **never goes down** | peace |
+
+**How fast, measured.**
+- **The commanded campaigns** (France against Austria, stored, best by turn 12): austerlitz
+  38, ulm 32, historical 28, marengo 19, jena 15. The opening battles carry it: by turn 2,
+  decisive +15 and blood +14 on austerlitz and ulm. After that the battle component nets to
+  about 0 (France and the AI trade wins), territory is small, and the score drifts down.
+- **The user's game**: +73 at turn 6 — territory 15, battles 15, capital 20, campaign 10,
+  blood 15, decisive 0, ticking −2. Battles, campaign and blood were already full.
+- **A synthetic winning line** (code read; one win and one province a turn, Vienna on turn
+  4): 9, 18, 26 (favourable), **53 on turn 4 (dictated)**, then 55–60. Harsh peace (60)
+  arrives only by the slow blood creep (turn 13). **Total victory (80) is unreachable under
+  the default purpose without decisives**: the ceiling is 30+15+20+10+15−25 = 65.
+- **If the guns go quiet** after turn 6: the battle component falls 15 → 0 over turns 8–13
+  and the total from 58 to 39 — back to favourable.
+
+**Three numbers for one war.** France +58 against Austria and 0 against Britain and Russia
+reads 58 on the live war row, 58 in the stored side sum, and **19 to the settlement scorer**,
+which averages each court's best pair. The war row now shows the scorer's tier beside its own
+score (PC-F3); the three still disagree.
+
+## 10. How an AI court decides to offer peace
+
+`process_diplomatic_phase` (`ai_diplomacy.py` 1693) — first match wins, no randomness:
+
+1. **Captor** — a court holding the player's sovereign sends a harsh peace.
+2. **Congress** — while a Congress sits, a great power at −40 or with its capital held sends a peace with a recognition clause.
+3. **P1, losing** — the pair score is below the court's threshold: −40, ±20 for a hawk or dove, **+ war exhaustion ÷ 20**, ± ticking pressure, ± the design term. A coalition member also needs a break-ranks reason (score < −50; exhaustion > 80; or the Pressburg arm — design satisfied and score < −30). **Below −70 it sends a peace, otherwise an armistice.** The letter must clear the send filter (its acceptance from France's chair against a floor of 20, lowered for an honest letter).
+4. **P2, stalemate** — a score within ±10 for several turns sends an armistice.
+5. **P8, winning** — winning by more than 40 sends a harsh-peace demand.
+
+Separately, **settlement offers** go out every 5 turns for each multi-party war that is two
+turns old, once the opposing leader may break ranks. Their terms follow the side score: France
+leading by 20+ is paid, trailing by 20 pays, in between a white peace — which is what every
+measured settlement was.
+
+**Exhaustion is a clock.** Austria's war exhaustion read 20 at turn 1, about 120 at turn 10
+and the cap of 200 by turns 19–21 — on every seed, whatever the battlefield did (+8 a turn at
+war, plus battle losses). The break-ranks "exhaustion" arm (> 80) was open from turns 6–9 on
+every seed. So after about ten turns every coalition member is free to sue, and the
+settlement letter's gate opens, even for a coalition that is winning. Exhaustion moves the
+threshold by at most +10 and does not enter the bilateral acceptance at all.
+
+**F9 — the silent band (live).** On the copy of the user's save with Vienna in French hands,
+Austria's own AI phase sends:
+
+| France's score | war age 6 | war age 8 | war age 10–14 |
+|---|---|---|---|
+| +50 to +69 | armistice | armistice | armistice |
+| +71 to +80 | **nothing** | peace | peace |
+| +95 | **nothing** | **nothing** | peace |
+
+Below −70 P1 chooses a peace; in a young war the peace's score falls under the send filter
+and there is no fallback to the armistice that would pass. **In the user's game (war started
+turn 1) Austria at −73 sends nothing until the end of turn 9.** Before PC-F5 it read last
+turn's −54 and would have sent the armistice; reading the true −73 puts it in the silent band.
+The band existed before the fix (any court past −70 in a young war); PC-F5 is what puts this
+game in it.
+
+## 11. How a court answers France
+
+`calculate_acceptance` (`diplomacy.py` 7952): **50 accepts, 30–49 counters, below 30
+refuses**, read on arrival (a 15-point tolerance honours the at-send verdict). The terms: base
+by type (peace 30, armistice 20 or 40), war score × 0.65, relations (clamped to ±10 at war),
++2 a turn of war (cap 20), the war-age penalty on extractive terms (−65 on the first turn,
+fading to 0 by turn 8), the deal balance, harshness, the court's design, the battlefield
+(+25 at a score of 70 with the capital held, +10 above 20), and smaller terms.
+
+**What moves the answer** (one lever at a time; Austria's acceptance of Talleyrand's own
+peace; armistice in brackets):
+
+| Lever | User's save, turn 6 (France +54) | austerlitz, turn 9 (France +32) |
+|---|---|---|
+| One more victory | **0** (0) | +2 (+4) |
+| Three more victories | **0** (0) | +5 (+8) |
+| One decisive victory | +2 (+3) | +2 (+4) |
+| Take the capital | **+15** (−15) | +8 (−9) |
+| Relations +20 | **0** (0) | 0 (0) |
+| War exhaustion +40 | **0** (0) | 0 (0) |
+| Five more turns of war | **+18** (−12) | +4 (+4) |
+| Lose a battle | −2 (−2) | 0 (0) |
+| **His suggested terms vs a white peace** | **37 vs 67** | **30 vs 61** |
+
+- **Victories stop counting** once the battle component is full; the user's save was already there.
+- **Relations do nothing at war**: the term is clamped at −10 from −80 to −40, so Improve Relations moves no peace until relations pass −40.
+- **Time is a lever as large as the capital**, through the war-age penalty on any term that asks for something.
+- **Talleyrand's own terms are the biggest single cost**: his draft (a gold demand) scores 30 points below a plain white peace.
+- **The paradox is the only thing between the user and peace.** With Vienna held (+79), a white peace from France scores **106** with Austria — accepted twice over — and the send road refuses it because Bavaria is still at war (F1; the ruling is B/C).
+
+## 12. Talleyrand
+
+**How the advice is made** (no LLM; fixed composition):
+- **Counsel** (`_recommend_action`, `diplomatic_advisory.py` 1564) bands on the live pair score: above +20 "press for peace on favourable terms", below −20 "seek an armistice immediately", in between "the Tilsit model — win one more engagement". PC-F1 adds the paradox note. Hints are checked for *legality* (`can_sign`), never for whether the court would *accept*.
+- **Suggested terms** (`generate_suggested_terms`, `diplomatic_templates.py` 3546): base terms from the score (a winning peace demands gold; a losing one offers gold, then provinces, men and an action point), tailored by the court's desires, capped, then **eased** — demands are stripped until the estimate is no longer a refusal. Easing only removes; it never adds a sweetener.
+
+**What it said** (561 court-turns, five seeds):
+
+| Recommendation | Share |
+|---|---|
+| "Win a battle, then propose peace." | 67 % |
+| "Seek armistice immediately." | 25 % |
+| "Propose an armistice — <ally> is still at war …" | 4 % |
+| "Propose peace with strong terms." | 3 % |
+
+His suggested peace, best and median acceptance by turn 12: Austria 52 / 25, Britain 49 / 25,
+Russia 62 / 33. When he said "strong terms" his peace scored 15–36 — a refusal every time.
+
+**Honesty.**
+- **Young wars:** the war-age penalty makes any demand a refusal, so easing strips every draft to a white peace — including the "harsh" one — while the commentary still says "I've kept the demands firm but not humiliating" (F11).
+- **Losing wars:** his draft demands back every captured marshal one by one. On ulm at turn 24 (seven French marshals in Austrian hands) it held seven prisoner-return demands *and* offered territory, gold, men and an action point: deal balance −262, acceptance **−250**. On marengo at turn 33, −116 (F13).
+- **"What terms would they accept?"** says Austria "would likely accept" and offers "Propose these terms" on a peace the paradox refuses — the card is not stamped by the send verdict (the class of DDB-9 / PC-F1; F10). It also quotes the wrong price: 2 DP where the send charges 3.
+- **The fields nobody sees.** The client renders only his prose; `recommendation`, `confidence_level` and `action_hints` are read by no `.gd` (F12).
+- **His own mischief.** At authority 100 there is a 5 % chance a proposal is sabotaged; a white peace counts as "too generous" and gets 50 gold a turn bolted on, which turned a 53 into −14 in the probe (F22).
+- **Two rolls for one draft.** Gold and men carry an unseeded ±20 % jitter, rolled separately on each surface: the card can quote 150 gold while the menu sends 182 (F14).
+
+## 13. Variance
+
+- **No randomness in any peace decision.** `calculate_acceptance`, the settlement scorer, the baseline and every P-rung are pure functions of the board. The same state gives the same answer, in the same order.
+- **Shipped builds run the historical seed.** `/new_game` takes no seed; with `SOVEREIGN_SEED` unset the world resolves to `historical`, where every authored variance band collapses to zero. The AI Intent spec left "new campaigns default to a random seed" as a re-check decision that was never taken.
+- **Where variance does come from:** combat dice and the AI's attack moods, and the player's own choices. That is enough to move *when* things happen by a turn or two, not *what* happens: the five seeds ended the war at turns 9–12 with the same letter.
+
+## 14. The truce
+
+- **A truce wipes the victor's leverage.** It clears the pair's stored score, battles and decisives. On the user's save with Vienna held, France's white peace scored **106 at war and 0 under the truce**: the war-score term went from +51 to 0, the battlefield bonuses went, and the relations term widened from −10 to −30 (F17).
+- **It ends in peace only on relations.** A truce becomes peace at −60 or better; the truce thaws about +3 a turn, so a −80 court reaches −65 and the war resumes. Measured: 10 truces resumed the war, 2 became peace.
+- **The AI asks for exactly this truce.** A beaten court between −50 and −70 sends `armistice_losing`; the player who accepts it gives up the score that made the court sue.
+
+## 15. New findings
+
+Severity: **D** defect, **G** design gap, **L** legibility, as in Part I.
+
+| # | Kind | Finding | Evidence |
+|---|---|---|---|
+| **F9** | D | **The silent band.** A court past −70 in a young war (under 8 turns; under 10 at −95) sends nothing: P1 picks a peace, the send filter drops it, no armistice fallback. The user's Austria is in it until turn 9. | §10 table; `ai_diplomacy.py` 1862, 2217–2268 |
+| **F10** | D | **The feasibility card offers a refused peace** ("Propose these terms" under the paradox) and **misquotes its price** (2 DP shown, 3 charged). Sibling of DDB-9 / PC-F1, missed by S13d's sweep. | `diplomatic_dialogue.py` 2060–2085 (not passed through `_stamp_menu_sends`), 2062 |
+| **F11** | L | **The commentary promises demands the draft does not have** ("firm but not humiliating" on a white peace). | `diplomatic_templates.py` 3726–3732 |
+| **F12** | L | **Talleyrand's recommendation, confidence and hints never reach the screen**; the gating that protects them (DD-1) protects nothing the player sees. | no `.gd` reads `action_hints` / `confidence_level` |
+| **F13** | D | **The losing draft is absurd**: one prisoner-return demand per captured marshal plus every concession at once (−250). | §12; ulm t24, marengo t33 |
+| **F14** | L | **Unseeded ±20 % jitter, rolled per surface**: the card, the menu and the objection see different amounts. | `diplomatic_templates.py` 4186–4198 |
+| **F15** | G | **Victories stop counting after five**; the battle cap is applied before decay; two decisive slots per war, shared by both sides. | §9, §11 |
+| **F16** | G | **The default war purpose taxes the winner**: the defender's claim ticks the occupier to −25 and never goes down, so total victory is unreachable without decisives. | §9; `diplomacy.py` 4477–4551 |
+| **F17** | G | **A truce resets France's leverage to zero** while the AI's peace still turns on relations France cannot reach. | §14 |
+| **F18** | G | **Relations do nothing for peace at war** (clamped at −10 below −40), yet decide whether a truce becomes peace — the one place they matter is the one place the player cannot move them. | §11, §14 |
+| **F19** | G | **Exhaustion is a clock, not a consequence**: +8 a turn to 200 on every seed; it frees every coalition member around turn 11 and never enters the bilateral answer. | §10 |
+| **F20** | D | **Coalition loyalty binds the AI's offers but not its acceptance**: `get_coalition_loyalty_penalty` has no caller (the module header says the acceptance formula reads it). A member blocked from suing still accepts France's white peace (53). P2 and P8 also lack P1's coalition and pending-settlement gates. | `coalition.py` 2008; `ai_diplomacy.py` 1878, 2009 |
+| **F21** | G | **The coalition's peace is scheduled, not willed**: a settlement letter every 5 turns, always a white peace in the runs; `_letter_would_carry` counts every covered court as consenting. | §8, §10; `ai_diplomacy.py` 4610–4626 |
+| **F22** | D | **Talleyrand's sabotage turns a white peace into a refusal** (+50 gold a turn, applied after the estimate and the verdict). | `diplomatic_defiance.py` 279–291; `diplomatic_executor.py` 4842–4856 |
+
+## 16. What this means for the rulings
+
+Part I's rulings stand, and Part II sharpens them:
+
+- **B and C (the separate peace, the Pressburg road)** are confirmed as the centre of it: with Vienna held a white peace would be accepted at 106, and only the paradox stops it.
+- **D (the victor's truce)** is now F17 and F18 together: a truce is a trap for the winner twice over — it zeroes the score and it can end in peace only through relations the war will not let France repair.
+- **E (who prices the coalition's peace)** is now F21 as well: the coalition's peace arrives on a timer with no terms, so the question is also whether the coalition should ever *offer* something other than the status quo.
+
+Three new rulings:
+
+| | Ruling | Options |
+|---|---|---|
+| **F** | **Variance.** | (a) leave every campaign `historical` (today); (b) new campaigns roll a seed — the bands are authored and pinned; (c) a "historical / varied" choice on the new-game screen. |
+| **G** | **The shape of the war score.** | (a) leave it; (b) let battles keep counting (cap after decay, or a larger cap) and give the default purpose's ticking a ceiling that falls when provinces are returned; (c) make a conquest purpose the default for the side that declared. |
+| **H** | **What wears a court down.** | (a) exhaustion stays a clock; (b) exhaustion grows from losses and occupation rather than time, and enters the bilateral answer as the settlement scorer already lets it. |
+
+**Recommended order.** Fix the defects first (F9, F10, F13, F20, F22, with F11, F12 and F14
+as legibility rows) — F9 first, because it is live in the user's game. Then rule B/C and D,
+because they are what the user met. Then F, G and H, which are balance and want a measured pass
+of their own.
+
+## 17. Evidence for Part II
+
+| Claim | Source |
+|---|---|
+| The five war endings, the envoy cadence, the overtures | driven digests (`peace_timeline.txt`, `peace_summary.json`) |
+| Score trajectories, exhaustion, thresholds, counsel shares, Talleyrand's acceptance | the per-turn probe over 5 × 40 saves (`probe.jsonl`) |
+| The lever table | the lever probe on the user's turn-6 copy and austerlitz t9 |
+| The silent band, the truce's cost | the live-case probes on the turn-6 copy |
+| Component caps, the synthetic line, the three aggregations | the war-score code read (`diplomacy.py` 3446–3674, 3800–3818, 4241, 4477–4551) |
+| The decision tree, cooldowns, no randomness, the seed | the AI-decision code read (`ai_diplomacy.py` 598, 1533, 1693–2268, 4610, 5069; `main.py` 6090; `campaign_variance.py` 41) |
+| Talleyrand's composition, honesty and jitter | the Talleyrand code read (`diplomatic_advisory.py` 1541–1669; `diplomatic_templates.py` 3546–4239; `diplomatic_dialogue.py` 1947–2085; `diplomatic_defiance.py`) |
+
+The scripts and data are scratch, not committed. To re-derive: drive the commanded script with
+`tools/playtest_driver.py --script tools/playtest_scripts/commanded_full40.json --turns 40
+--seed <seed> --diplomacy decline --save-at 1,2,…,40` (with `INK_IRON_SAVE_DIR` in a scratch
+folder), then load each save read-only and read `calculate_war_score`, `build_active_wars`,
+`_recommend_action`, `generate_suggested_terms(..., deterministic=True)` +
+`calculate_acceptance`, `effective_peace_threshold` and `coalition_break_ranks_reason`.

@@ -24,8 +24,8 @@ from tools import defect_census as census  # noqa: E402
 # The sessions left in the plan's §2 table, and the slice names that live in
 # them (the Score Finish residue's SF-RR slices are S14's). S13c (row CC "Click
 # & Command") and S13d (row PC, the peace report's fixes) joined the table on
-# October 15, 2026.
-SESSION = re.compile(r"\bS13[b-d]\b|\bS14[b-f]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
+# October 15, 2026; S13e (row PC part 2, the peace research's defects) on October 16.
+SESSION = re.compile(r"\bS13[b-e]\b|\bS14[b-f]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
 
 
 def _open_rows():
