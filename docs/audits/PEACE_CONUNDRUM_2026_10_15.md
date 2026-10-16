@@ -355,7 +355,7 @@ turn 6**. Where the two differ, the lever probe on the user's save is the better
 
 | Question | Answer |
 |---|---|
-| **Does the war score climb too fast?** | **Both too fast and too slow, in different places.** A pair score (France against one court) jumps early and then saturates: the first big battle is worth about +30 by turn 2 (decisive +15, blood +14), taking the capital is +25 in one step, and the battle component is full after five net wins, so every later victory adds nothing. Then it erodes: battle points decay after three quiet turns and expire after ten, and under the default war purpose the defender's claim ticks the occupier down to −25. The number that settles a *coalition* war — the side pressure — barely moves at all: **at most 13 on any seed**, because Britain and Russia are never met in the field and their pair scores stay at **0 through turn 12 on every seed**. |
+| **Does the war score climb too fast?** | **Both too fast and too slow, in different places.** A pair score (France against one court) jumps early and then saturates: the first big battle is worth about +30 by turn 2 (decisive +15, blood +14), taking the capital is +25 in one step, and the battle component is full after five net wins, so every later victory adds nothing. Then it erodes: battle points decay after three quiet turns and expire after ten, and under the default war purpose the defender's claim ticks the occupier down to −25. The number that settles a *coalition* war — the side pressure — barely moves in France's favour: **never above 13 on any seed**, because Britain and Russia are never met in the field and their pair scores **never rise above 0 through turn 12 on any seed**. |
 | **Is peace reactive?** | **To three levers strongly, to most not at all.** Taking the capital, the age of the war, and the terms you ask move a court's answer by 15–30 points. More victories (past five), relations, war exhaustion and Talleyrand's missions move it by **zero** (§11). The AI's own offers run on clocks more than on the battlefield (§10). |
 | **Does it vary?** | **No.** No peace decision has any randomness in it, and shipped builds always run the `historical` seed, so the authored variance bands never reach a player (§13). Across five seeds the coalition war ended between turns 9 and 12, every time by the same letter. |
 | **Is it fun?** | **Not as built.** The war ends by itself around turn 10 with a status-quo white peace the player did not shape. France's own overtures bounce off the alliance paradox or are refused. The strongest military result cannot be cashed: in the user's game a white peace from France would score 106 with Austria (it needs 50), but the paradox forbids sending it, Austria's own letter falls silent past −70 in a young war (F9), and accepting Austria's truce cuts France's leverage to zero (F17). The pieces for a good peace game are there — the break-ranks predicate, the Pressburg arm, the per-court table — but the player rarely gets to make a decision that matters. |
@@ -446,8 +446,8 @@ turns old, once the opposing leader may break ranks. Their terms follow the side
 leading by 20+ is paid, trailing by 20 pays, in between a white peace — which is what every
 measured settlement was.
 
-**Exhaustion is a clock.** Austria's war exhaustion read 20 at turn 1, about 120 at turn 10
-and the cap of 200 by turns 19–21 — on every seed, whatever the battlefield did (+8 a turn at
+**Exhaustion is a clock.** Austria's war exhaustion read about 20 at turn 1, 84–136 at turn 9
+and the cap of 200 by turns 18–24 — on every seed, whatever the battlefield did (+8 a turn at
 war, plus battle losses). The break-ranks "exhaustion" arm (> 80) was open from turns 6–9 on
 every seed. So after about ten turns every coalition member is free to sue, and the
 settlement letter's gate opens, even for a coalition that is winning. Exhaustion moves the
