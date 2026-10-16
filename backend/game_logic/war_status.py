@@ -1,6 +1,6 @@
 """War Status Panel data builder. Produces active_wars dict for HUD + detail popup."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.display_names import display_nation
 from backend.game_logic.formations import format_progress, formed_display_name
@@ -103,6 +103,117 @@ def _tier_side(score: int) -> str:
     return ""
 
 
+def _stored_and_live_pressure(world, france: str, opponents: List[str],
+                              war_id: str) -> Tuple[Optional[int], Optional[int]]:
+    """PC-F3: the side pressure the settlement scorer reads — the power-
+    weighted average of the STORED pair scores (`settlement_scoring.
+    compute_side_pressure_score`, its own selection of each court's best
+    pair) — and the same pressure on the LIVE pair scores. (None, None) when
+    the row has nothing to score."""
+    from backend.game_logic import settlement_scoring as SC
+    from backend.game_logic.diplomacy import get_war_score_for, live_war_score_for
+    opponents = [o for o in opponents if o and o != france]
+    if not opponents:
+        return None, None
+    instance = (getattr(world, "war_instances", None) or {}).get(war_id or "")
+    side = ((instance or {}).get("side_by_nation") or {}).get(france) if isinstance(
+        instance, dict) else None
+    if side in ("attackers", "defenders"):
+        stored = SC.compute_direct_scores_by_enemy(
+            world, instance, proposer_side=side, covered_enemy_participants=opponents)
+        live = {enemy: {member: live_war_score_for(world, member, enemy)
+                        for member in per_member}
+                for enemy, per_member in stored.items()}
+        reading = SC.compute_side_pressure_score(
+            world, instance, proposer_side=side,
+            covered_enemy_participants=opponents, direct_scores=stored).get("score")
+        field = SC.compute_side_pressure_score(
+            world, instance, proposer_side=side,
+            covered_enemy_participants=opponents, direct_scores=live).get("score")
+        if reading is not None and field is not None:
+            return int(reading), int(field)
+    if len(opponents) == 1:
+        # No war instance (a synthetic or legacy pair): the bilateral seams
+        # read the stored pair score itself.
+        return (int(get_war_score_for(world, france, opponents[0])),
+                int(live_war_score_for(world, france, opponents[0])))
+    return None, None
+
+
+def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """PC-F3 (the Peace Conundrum F3, October 15, 2026): what the peace math
+    reads for this war, beside the war score the row shows.
+
+    The row's `war_score` is the war's LIVE aggregate (71 in the user's 1805
+    game); the settlement scorer reads the side pressure on the STORED
+    scores (17) and judges every court against 50. The row said "Harsh
+    Peace" where the table filed a white peace and charged its −10
+    legitimacy. So `settlement_tier` now names the scorer's tier; `courts`
+    carries each court's total for a settlement as it stands (no terms);
+    `lag_note` says when this turn's fighting has moved the field but not
+    yet the table (the stored scores are recomputed once a turn, at the
+    advance); `lines` is the sentence the war HUD's tooltip and the detail
+    popup print. None when the row has nothing to score."""
+    from backend.game_logic.diplomacy import SETTLEMENT_TIER_DISPLAY, get_settlement_tier
+    opponents = [str(o) for o in (row.get("opponents") or [row.get("opponent")]) if o]
+    war_id = str(row.get("war_instance_id", "") or "")
+    pressure, field = _stored_and_live_pressure(world, france, opponents, war_id)
+    if pressure is None:
+        return None
+    tier = get_settlement_tier(int(pressure))
+    out: Dict[str, Any] = {
+        "pressure": int(pressure),
+        "pressure_live": int(field),
+        "tier": tier,
+        "tier_display": SETTLEMENT_TIER_DISPLAY.get(tier, tier),
+        "courts": [],
+        "carries": False,
+        "lag_note": "",
+        "lines": [],
+    }
+    if war_id:
+        # The settlement preview's own per-court verdict (no terms) — the
+        # very table Open Settlement shows; it refuses (success False) where
+        # a settlement cannot be opened (a one-on-one war, not the side
+        # leader), and the row then carries no tally.
+        try:
+            from backend.game_logic.settlement_staging import build_settlement_preview
+            preview = build_settlement_preview(
+                world, war_id=war_id, settlement_terms=[], actor_nation=france,
+                ignore_active_dialogue=True)
+        except Exception as exc:
+            report(exc, "war_status._peace_table: build_settlement_preview")
+            preview = {}
+        body = preview.get("settlement_preview") if preview.get("success") else None
+        if isinstance(body, dict):
+            for court in body.get("per_court_acceptance") or []:
+                total = court.get("total")
+                threshold = int(court.get("threshold", 50) or 50)
+                out["courts"].append({
+                    "nation": str(court.get("nation", "")),
+                    "total": None if total is None else int(total),
+                    "threshold": threshold,
+                    "ready": total is not None and int(total) >= threshold,
+                })
+            out["carries"] = bool((body.get("overall_acceptance") or {}).get("carries"))
+    line = f"The peace table reads the war at {int(pressure)} — {out['tier_display']}"
+    if out["courts"]:
+        tally = " · ".join(
+            f"{formed_display_name(world, c['nation'])} "
+            + ("ready" if c["ready"] else
+               ("no score" if c["total"] is None else f"{c['total']}/{c['threshold']}"))
+            for c in out["courts"])
+        line += (f". A settlement carries only when every court reaches "
+                 f"{out['courts'][0]['threshold']} — with no terms: {tally}")
+    out["lines"].append(line + ".")
+    if int(field) != int(pressure):
+        out["lag_note"] = (
+            f"This turn's battles and captures count from next turn: the table "
+            f"reads {int(pressure)} until the turn ends; the field stands at {int(field)}.")
+        out["lines"].append(out["lag_note"])
+    return out
+
+
 def build_active_wars(world) -> Dict[str, Any]:
     """Build active wars data for the war status panel.
 
@@ -199,10 +310,23 @@ def build_active_wars(world) -> Dict[str, Any]:
         d_records = getattr(
             world, 'decisive_battles', {}
         ).get(diplo_key, [])
+        # PC-F6 (the Peace Conundrum F6, October 15, 2026): a battle row
+        # recorded since the fix carries its own `decisive` flag (set by
+        # `record_battle` when the bonus is booked), and its decisive record
+        # names the battle's `location`. A record no flagged row accounts
+        # for matches on (turn, winner, location); only a LEGACY record (no
+        # `location`) still matches on (turn, winner) — the match that
+        # starred every battle of the turn the winner fought: both repulsed
+        # assaults on Vienna wore the star.
+        flagged = {(r.get("turn", 0), r.get("winner", ""), r.get("location"))
+                   for r in records if r.get("decisive")}
+        decisive_at = set()
         for d in d_records:
-            decisive_set.add(
-                (d.get("turn", 0), d.get("winner", ""))
-            )
+            turn_winner = (d.get("turn", 0), d.get("winner", ""))
+            if d.get("location") is None:
+                decisive_set.add(turn_winner)
+            elif turn_winner + (d.get("location"),) not in flagged:
+                decisive_at.add(turn_winner + (d.get("location"),))
         decisive_won = int(sum(
             1 for d in d_records if d.get("winner") == france
         ))
@@ -210,7 +334,9 @@ def build_active_wars(world) -> Dict[str, Any]:
             turn = int(rec.get("turn", 0))
             winner = rec.get("winner", "")
             location = rec.get("location", "unknown")
-            is_decisive = (turn, winner) in decisive_set
+            is_decisive = (bool(rec.get("decisive"))
+                           or (turn, winner) in decisive_set
+                           or (turn, winner, rec.get("location")) in decisive_at)
             won = winner == france
             recent_battles.append({
                 "turn": turn,
@@ -391,6 +517,23 @@ def build_active_wars(world) -> Dict[str, Any]:
         wars.append(row)
 
     wars = _collapse_shared_war_instance_rows(world, france, wars)
+
+    # PC-F3 (the Peace Conundrum F3, October 15, 2026): each war row says
+    # what the peace math reads — the scorer's tier (the side pressure on
+    # the stored scores) replaces the live aggregate's, the side follows the
+    # same number (IQ-2's rule), and the peace table rides the row for the
+    # HUD tooltip and the detail popup. Read after the collapse, so a shared
+    # war is scored once, over the courts actually at war.
+    for row in wars:
+        if row.get("status") != "war":
+            continue
+        table = _peace_table(world, france, row)
+        if table is None:
+            continue
+        row["peace_table"] = table
+        row["settlement_tier"] = table["tier"]
+        row["settlement_tier_display"] = table["tier_display"]
+        row["settlement_tier_side"] = _tier_side(int(table["pressure"]))
 
     # Sort: coalition leader first, then coalition members, then bilateral
     wars.sort(key=lambda w: (

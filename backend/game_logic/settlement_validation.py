@@ -530,8 +530,11 @@ def evaluate_pair_peace_substitute_eligibility(
         paradox = separate_peace_paradox(world, actor, target)
         if paradox:
             refusal = _refused("commitment_paradox")
+            # PC-F1: both ways out beside the ally's name.
+            whose = "their" if len(paradox.get("allies") or []) > 1 else "her"
             refusal["disabled_reason_display"] = (
-                f"{paradox['reason']} — a separate peace would break her war.")
+                f"{paradox['reason']} — a separate peace would break {whose} war. "
+                f"Propose an armistice, or first {paradox['downgrade']}.")
             return refusal
 
     return {

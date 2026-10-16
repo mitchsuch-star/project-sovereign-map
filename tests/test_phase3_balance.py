@@ -435,14 +435,23 @@ class TestR9BattleCasualtyThreshold:
         assert len(records) == 1
 
     def test_12000_casualties_recorded_and_decisive(self):
-        """Battle with 12000 casualties + 3:1 ratio → recorded + decisive."""
+        """Battle with 12000 casualties + 3:1 ratio → recorded + decisive.
+
+        CONSCIOUSLY RE-PINNED by PC-F6 (Pre-Deploy S13d, October 15, 2026):
+        the fixture had France WIN while losing 9,000 to 3,000 — the very
+        misbooking the peace report found (a decisive credited to the side
+        that bled). The decisive is the winner's when the winner INFLICTED
+        the exchange; a victory bought at 3:1 books none."""
         world = self._make_war_world()
-        record_battle(world, "France", "Austria", "France", 9000, 3000)
+        record_battle(world, "France", "Austria", "France", 3000, 9000)
         diplo_key = world._make_diplo_key("France", "Austria")
         records = getattr(world, 'battle_records', {}).get(diplo_key, [])
         assert len(records) == 1
         decisive = getattr(world, 'decisive_battles', {}).get(diplo_key, [])
         assert len(decisive) == 1
+        record_battle(world, "France", "Austria", "France", 9000, 3000)
+        assert len(getattr(world, 'battle_records', {}).get(diplo_key, [])) == 2
+        assert len(getattr(world, 'decisive_battles', {}).get(diplo_key, [])) == 1
 
 
 # ═══════════════════════════════════════════════════════════════════════════

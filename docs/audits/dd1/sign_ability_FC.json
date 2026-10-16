@@ -29,7 +29,7 @@
    "type": "peace",
    "action": "propose_peace",
    "shown_signable": false,
-   "disabled_reason": "Would break an ally's war — propose an armistice, or settle jointly",
+   "disabled_reason": "Spain is still at war with Britain — propose an armistice, or first Downgrade the alliance with Spain (2 steps) below a defensive alliance",
    "likelihood": "",
    "verdict": "not_shown",
    "message": "",
@@ -102,7 +102,7 @@
    "type": "peace",
    "action": "propose_peace",
    "shown_signable": false,
-   "disabled_reason": "Would break an ally's war — propose an armistice, or settle jointly",
+   "disabled_reason": "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance",
    "likelihood": "",
    "verdict": "not_shown",
    "message": "",
@@ -344,25 +344,6 @@
    "turn": 1,
    "surface": "congress",
    "moment": "shown",
-   "court": "Britain",
-   "type": "peace",
-   "action": "sign a peace with Britain",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Britain.",
-   "type_sent": "peace",
-   "state_moved": [
-    "Britain|France",
-    "Britain|Holland"
-   ],
-   "arm": "FC",
-   "clause": ""
-  },
-  {
-   "turn": 1,
-   "surface": "congress",
-   "moment": "shown",
    "court": "Russia",
    "type": "peace",
    "action": "sign a peace with Russia",
@@ -373,25 +354,6 @@
    "type_sent": "peace",
    "state_moved": [
     "France|Russia"
-   ],
-   "arm": "FC",
-   "clause": ""
-  },
-  {
-   "turn": 1,
-   "surface": "congress",
-   "moment": "shown",
-   "court": "Austria",
-   "type": "peace",
-   "action": "sign a peace with Austria",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Austria.",
-   "type_sent": "peace",
-   "state_moved": [
-    "Austria|France",
-    "Austria|KingdomOfItaly"
    ],
    "arm": "FC",
    "clause": ""
@@ -601,7 +563,7 @@
    "type": "peace",
    "action": "propose_peace",
    "shown_signable": false,
-   "disabled_reason": "Would break an ally's war — propose an armistice, or settle jointly",
+   "disabled_reason": "Spain is still at war with Britain — propose an armistice, or first Downgrade the alliance with Spain (2 steps) below a defensive alliance",
    "likelihood": "",
    "verdict": "not_shown",
    "message": "",
@@ -674,7 +636,7 @@
    "type": "peace",
    "action": "propose_peace",
    "shown_signable": false,
-   "disabled_reason": "Would break an ally's war — propose an armistice, or settle jointly",
+   "disabled_reason": "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance",
    "likelihood": "",
    "verdict": "not_shown",
    "message": "",
@@ -916,25 +878,6 @@
    "turn": 2,
    "surface": "congress",
    "moment": "shown",
-   "court": "Britain",
-   "type": "peace",
-   "action": "sign a peace with Britain",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Britain.",
-   "type_sent": "peace",
-   "state_moved": [
-    "Britain|France",
-    "Britain|Holland"
-   ],
-   "arm": "FC",
-   "clause": ""
-  },
-  {
-   "turn": 2,
-   "surface": "congress",
-   "moment": "shown",
    "court": "Russia",
    "type": "peace",
    "action": "sign a peace with Russia",
@@ -945,25 +888,6 @@
    "type_sent": "peace",
    "state_moved": [
     "France|Russia"
-   ],
-   "arm": "FC",
-   "clause": ""
-  },
-  {
-   "turn": 2,
-   "surface": "congress",
-   "moment": "shown",
-   "court": "Austria",
-   "type": "peace",
-   "action": "sign a peace with Austria",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Austria.",
-   "type_sent": "peace",
-   "state_moved": [
-    "Austria|France",
-    "Austria|KingdomOfItaly"
    ],
    "arm": "FC",
    "clause": ""
@@ -1055,9 +979,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 6.65,
- "clones": 43,
- "seconds": 4.6,
+ "clone_ms_mean": 6.43,
+ "clones": 39,
+ "seconds": 5.4,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,
@@ -1065,7 +989,7 @@
   "A_by_surface": {},
   "B_refused_unnamed": 0,
   "B_messages": [],
-  "shown": 41,
+  "shown": 37,
   "letters": 9,
   "real_signs": 2,
   "real_refused_player": 0,
@@ -1074,7 +998,7 @@
   "verdicts": {
    "chip:signed": 26,
    "chip:not_shown": 12,
-   "congress:signed": 6,
+   "congress:signed": 2,
    "settlement:not_shown": 2,
    "letter:signed": 9,
    "real:signed": 2

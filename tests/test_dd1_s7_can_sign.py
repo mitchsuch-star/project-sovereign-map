@@ -148,8 +148,9 @@ class TestTheTreatyVerdict:
         assert can_sign(w, peace).ok                       # the ratifier's view
         v = can_sign(w, peace, at_send=True)               # the send road's
         assert v.clause == "paradox"
-        assert v.message.startswith("Making peace with Britain while allied with ")
-        assert "creates a diplomatic contradiction" in v.message
+        # PC-F1: the ally named in display words, both ways out.
+        assert "is still at war with Britain: a separate peace would break" in v.message
+        assert "propose an armistice" in v.message and "Downgrade the alliance with" in v.message
 
 
 # ── (b) the settlement offer ───────────────────────────────────────────────
@@ -364,8 +365,9 @@ class TestTheOtherReaders:
         peace = britain.get("propose_peace")
         if peace is not None:                                  # a WAR row, under the paradox
             assert peace["available"] is False and peace["closed_clause"] == "paradox"
-            assert peace["disabled_reason"] == (
-                "Would break an ally's war — propose an armistice, or settle jointly")
+            assert peace["disabled_reason"] == D.paradox_chip(w, "France", "Britain")
+            assert "is still at war with Britain — propose an armistice, or first Downgrade" in (
+                peace["disabled_reason"])
 
     def test_the_congress_peace_lever_is_closed_in_words(self, w, monkeypatch):
         monkeypatch.setattr(congress, "_lever_verdict",

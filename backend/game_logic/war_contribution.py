@@ -911,22 +911,6 @@ def _battle_side_raw(
     )
 
 
-def _is_decisive_battle(
-    attacker_casualties: int, defender_casualties: int,
-) -> bool:
-    """Match the war-score decisive criterion in `diplomacy.record_battle()`."""
-    total = int(attacker_casualties) + int(defender_casualties)
-    if total <= 10000:
-        return False
-    if attacker_casualties <= 0 or defender_casualties <= 0:
-        return False
-    ratio = (
-        max(attacker_casualties, defender_casualties)
-        / min(attacker_casualties, defender_casualties)
-    )
-    return ratio > 2.0
-
-
 def accrue_battle_contribution(
     world: Any,
     *,
@@ -1008,9 +992,17 @@ def accrue_battle_contribution(
     d_participants: List[str] = list(legacy_record["defender_participants"])
     theater: Dict[str, int] = dict(legacy_record["nation_theater_strength"])
 
-    decisive = _is_decisive_battle(attacker_casualties, defender_casualties)
-    attacker_decisive_win = decisive and winner_nation == attacker_nation
-    defender_decisive_win = decisive and winner_nation == defender_nation
+    # PC-F6 (the Peace Conundrum F6, October 15, 2026): the +25 decisive
+    # credit is the war score's own — the winner's only when the winner
+    # INFLICTED the exchange (`battle_scale.decisive_credit`); a garrison
+    # that held while bleeding 3:1 earned its court the bonus here too.
+    from backend.game_logic import battle_scale
+    credited = battle_scale.decisive_credit(
+        attacker_nation, defender_nation, winner_nation,
+        attacker_casualties, defender_casualties)
+    attacker_decisive_win = credited is not None and credited == attacker_nation
+    defender_decisive_win = credited is not None and credited == defender_nation
+    decisive = credited is not None
 
     attacker_side_raw = _battle_side_raw(
         inflicted_casualties=defender_casualties,

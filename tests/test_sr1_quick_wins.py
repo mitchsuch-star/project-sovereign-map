@@ -177,7 +177,10 @@ class TestGEVSection4Nits:
         from backend.game_logic import congress
         row = self._war_row(europe, "Austria")
         keys = [lv["key"] for lv in congress.price(europe, "Austria", row)["levers"]]
-        assert keys[:3] == ["war", "capital", "peace"]
+        # PC-X1 (Pre-Deploy S13d, October 15, 2026): the boot's Bavaria is
+        # still at war with Austria, so the peace lever stands third CLOSED
+        # (the send road's paradox) — the order this pin is about is unchanged.
+        assert keys[:3] == ["war", "capital", "peace_closed"]
 
 
 # ═══════════════════════════════════════════════════════════════════════

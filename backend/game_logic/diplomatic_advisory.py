@@ -1653,6 +1653,20 @@ def _recommend_action(target_nation: str, world) -> Dict:
                 _treaty_hint(world, target_nation, "peace", "armistice"),
             ]
             confidence = "medium"
+        # PC-F1 (the Peace Conundrum F1, October 15, 2026): every arm above
+        # counsels a peace; when an ally's war makes that separate peace a
+        # hard stop, the counsel says so — the ally by name and both ways
+        # out — instead of recommending a peace the send road refuses.
+        from backend.game_logic.diplomacy import paradox_words_for
+        _paradox = paradox_words_for(world, player_nation, target_nation)
+        if _paradox:
+            _whose = "their" if len(_paradox.get("allies") or []) > 1 else "her"
+            text += (f"\n\nMark one thing, Sire: {_paradox['reason']}, and a separate "
+                     f"peace would break {_whose} war. Two ways out — propose an "
+                     f"armistice, or first {_paradox['downgrade']}.")
+            if recommendation == "Propose peace with strong terms.":
+                recommendation = (f"Propose an armistice — {_paradox['reason']}, "
+                                  f"so a separate peace would break {_whose} war.")
     else:
         # At peace — recommend next diplomatic step
         if relation > 30 and state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):

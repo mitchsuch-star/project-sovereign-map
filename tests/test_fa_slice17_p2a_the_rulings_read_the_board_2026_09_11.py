@@ -395,7 +395,8 @@ class TestD17ParadoxBlockNamesTheTruce:
         set_diplomatic_state(w, "France", "Austria", "ARMISTICE")
         row = next(a for a in get_available_diplomatic_actions(w, "Austria") if a.get("action") == "propose_peace")
         assert row["available"] is False
-        assert row["disabled_reason"] == "Would break an ally's war — propose an armistice, or settle jointly"
+        assert row["disabled_reason"] == (  # PC-F1: the ally named, both ways out (a truce's own)
+            "Bavaria is still at war with Austria — let the truce run its course (it becomes the peace if relations stand at -60 or better), or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance")
         assert row["disabled_reason_display"] == row["disabled_reason"]
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -333,7 +333,8 @@ class TestTheSurface:
                    if c.get("conflict_type") == "paradox" and c.get("affected_entity") == "Bavaria"]
         assert len(paradox) == 1
         assert paradox[0]["severity"] == "HARD_STOP"
-        assert "diplomatic contradiction" in paradox[0]["display"]
+        assert paradox[0]["display"].startswith(  # PC-F1: the ally named
+            "Bavaria is still at war with Austria: a separate peace would break her war.")
         assert snapshot.get("clients_following", "").startswith("Our clients follow us out of the war")
 
     def test_a_truce_offer_says_the_truce(self):

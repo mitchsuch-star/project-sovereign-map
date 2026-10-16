@@ -9443,6 +9443,11 @@ class WorldState:
         world.war_scores = {k: int(v) for k, v in data.get("war_scores", {}).items()}
         world.battle_records = {k: [r.copy() for r in v] for k, v in data.get("battle_records", {}).items()}
         world.decisive_battles = {k: [r.copy() for r in v] for k, v in data.get("decisive_battles", {}).items()}
+        # PC-F6 (the Peace Conundrum F6): a pre-fix save's decisive booked to
+        # a winner who bled — the live campaign's Vienna repulse — is dropped
+        # here, where its battle row can still prove it (`battle_scale`).
+        from backend.game_logic import battle_scale as _battle_scale
+        _battle_scale.drop_misbooked_decisives(world.battle_records, world.decisive_battles)
         # PT-J2: pre-ledger saves default to {} — the war simply has no
         # memory yet, which is exactly what it had before the slice.
         # HC-1: the third key is SPARSE — absent on pre-blockade saves

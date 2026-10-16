@@ -266,6 +266,20 @@ def _attach_endings(result: Dict, world: WorldState, before: int) -> None:
     result["ending"] = _game_end.screen_payload(lead or stamped[-1])
 
 
+def ai_phase_reads_the_field(world: WorldState) -> None:
+    """PC-F5 (the Peace Conundrum F5, October 15, 2026): the AI's diplomatic
+    phase judges the war as it stands NOW. The stored `war_scores` are
+    recomputed once a turn, inside `advance_turn` — which runs AFTER the AI
+    phase — so every peace decision read the score the previous advance left:
+    a beaten Austria at −73 asked only for an armistice because it read −54
+    (it sues for peace below −70). Recalculated here from the same
+    components, just before the phase; the advance recomputes again after
+    its pruning and ticking, so the stored score at the turn's close is
+    unchanged in kind. One seam — the series attribution patches it."""
+    from backend.game_logic.diplomacy import recalculate_war_scores
+    recalculate_war_scores(world)
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.
@@ -544,6 +558,8 @@ class TurnManager:
         # ════════════════════════════════════════════════════════════
         ai_proposal_delivered = None
         if game_state and not self.world.game_over:
+            # PC-F5: the phase reads this turn's war, not the last advance's.
+            ai_phase_reads_the_field(self.world)
             ai_proposal_delivered = self._process_ai_diplomatic_phase()
 
         # ════════════════════════════════════════════════════════════

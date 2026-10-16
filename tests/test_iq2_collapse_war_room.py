@@ -442,12 +442,23 @@ class TestWarRows:
         rows = [r for r in WS.build_active_wars(collapsed)["wars"]
                 if r["status"] == "war"]
         assert rows
+        # CONSCIOUSLY RE-PINNED by PC-F3 (Pre-Deploy S13d, October 15,
+        # 2026): the tier and its side follow the number the peace table
+        # reads (`peace_table.pressure`, the settlement scorer's side
+        # pressure on the stored scores), not the live aggregate. On this
+        # board the aggregate is −75 but France's table reads 0 — the scorer
+        # presses each court with the side's BEST pair, and Spain, Holland,
+        # Bavaria and Italy have lost nothing — so the row says "White
+        # Peace", nobody's to impose, and the bar still shows the −75.
         for row in rows:
-            assert row["settlement_tier_side"] == WS._tier_side(int(row["war_score"]))
+            assert row["settlement_tier_side"] == WS._tier_side(
+                int(row["peace_table"]["pressure"]))
         multi = next(r for r in rows if r.get("is_multi_participant_war"))
-        assert multi["war_score"] < 0 and multi["settlement_tier_side"] == "theirs"
+        assert multi["war_score"] < 0
+        assert multi["peace_table"]["pressure"] == 0 and multi["settlement_tier_side"] == ""
         denmark = next(r for r in rows if r["opponent"] == "Denmark")
-        assert denmark["settlement_tier_side"] == WS._tier_side(int(denmark["war_score"]))
+        assert denmark["settlement_tier_side"] == WS._tier_side(
+            int(denmark["peace_table"]["pressure"]))
 
     def test_the_hint_knows_the_homeland_is_lost(self, fallen, monkeypatch):
         row = next(r for r in WS.build_active_wars(fallen)["wars"]

@@ -99,8 +99,17 @@ class TestTheTableTellsTheTruth:
         w.diplomatic_states[w._make_diplo_key("Austria", "France")] = "ARMISTICE"
         w.invalidate_active_nations_cache()
         pr = congress.price(w, "Austria")
-        assert pr["levers"][0]["key"] == "peace"
-        assert pr["text"].startswith("sign a peace with Austria")
+        # CONSCIOUSLY RE-PINNED by PC-X1 (Pre-Deploy S13d, October 15, 2026):
+        # the 1805 boot's Bavaria is still at war with Austria, so a peace
+        # France PROPOSES is the send road's paradox hard stop — the lever
+        # still leads, closed, naming the ally and both ways out; a peace
+        # Austria offers can still be signed (below), and it recognizes.
+        assert pr["levers"][0]["key"] == "peace_closed"
+        assert pr["levers"][0]["closed_clause"] == "paradox"
+        assert pr["text"].startswith(
+            "no peace France can propose today — Bavaria is still at war with Austria")
+        assert "let the truce run its course" in pr["levers"][0]["text"]
+        assert pr["levers"][0]["text"].endswith("A peace Austria offers can still be signed.")
         with _quiet():
             w._ratify_treaty({"proposer_nation": "Austria", "target_nation": "France",
                               "type": "peace", "demands": [], "sweeteners": []})

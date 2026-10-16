@@ -1294,17 +1294,26 @@ def peace_paradox_block_text(world, proposer: str, target: str) -> str:
     likelihood, so the player is not sent to a truce blind. ONE source for
     the bilateral draft's block and the generic menu's Propose peace
     (DDB-9)."""
-    from backend.game_logic.diplomacy import separate_peace_paradox
+    from backend.game_logic.diplomacy import (
+        ARMISTICE_AUTO_PEACE_RELATION, separate_peace_paradox)
     paradox = separate_peace_paradox(world, proposer, target)
     if not paradox:
         return ""
     likely = paradox.get("armistice_likelihood") or ""
     odds = (f" — the court reads it {likely} ({int(paradox.get('armistice_score', 0))})"
             if likely else "")
-    return (f"I cannot deliver this, Sire — {paradox.get('display', '')} "
-            f"Propose an armistice instead{odds}: a truce carries no contradiction, "
-            f"and its expiry makes the peace. Or settle the war jointly at the "
-            f"settlement table.")
+    # PC-F1 (the Peace Conundrum F1, October 15, 2026): the ally named, then
+    # BOTH ways out — the armistice and the Downgrade — and the truce's
+    # expiry stated as the game runs it (peace only at relations of −60 or
+    # better; "its expiry makes the peace" promised more than it does).
+    whose = "their" if len(paradox.get("allies") or []) > 1 else "her"
+    return (f"I cannot deliver this, Sire — {paradox.get('reason', '')}, and a "
+            f"separate peace would break {whose} war. Propose an armistice "
+            f"instead{odds}: a truce carries no contradiction, and at its expiry "
+            f"it becomes the peace if relations stand at "
+            f"{ARMISTICE_AUTO_PEACE_RELATION} or better. Or first "
+            f"{paradox.get('downgrade', '')} — then the peace is ours to make. "
+            f"Or settle the war jointly at the settlement table.")
 
 
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:

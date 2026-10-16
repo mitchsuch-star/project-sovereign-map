@@ -1301,13 +1301,19 @@ _LEVER_PROPOSAL_TYPES = {
 def _lever_verdict(world, court: str, target_state: str):
     """DD-1 Slice B: would the ratifier sign a treaty of `target_state`
     between the player and `court` today — the ONE verdict, read before a
-    lever is priced (a priced row the ratifier refuses is the sweep's A)."""
+    lever is priced (a priced row the ratifier refuses is the sweep's A).
+
+    PC-F1 (the Peace Conundrum F1, October 15, 2026): a "sign a peace"
+    lever is a peace the PLAYER sends, so it reads the send road's own
+    paradox too (`at_send`) — it offered "sign a peace with Austria" while
+    Bavaria's war made that peace a hard stop at the send; now it closes
+    with the ally named and both ways out."""
     from backend.game_logic.treaty import can_sign
     return can_sign(world, {
         "type": _LEVER_PROPOSAL_TYPES.get(target_state, "peace"),
         "proposer_nation": _player(world), "target_nation": court,
         "sweeteners": [], "demands": [], "clauses": [],
-    })
+    }, at_send=(target_state == "PEACE"))
 
 
 def _treaty_lever(world, court: str, base: int) -> Optional[Dict[str, Any]]:
@@ -1443,6 +1449,13 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     def _peace_lever(text: str) -> Dict[str, Any]:
         if peace_verdict.ok:
             return {"key": "peace", "value": None, "text": text}
+        if peace_verdict.clause == "paradox":
+            # PC-X1: the paradox stops the peace France SENDS; a peace the
+            # court offers is only a warning, and can still be signed.
+            return {"key": "peace_closed", "value": None,
+                    "text": (f"no peace France can propose today — {peace_verdict.message} "
+                             f"A peace {_display(court)} offers can still be signed."),
+                    "closed_clause": peace_verdict.clause}
         return {"key": "peace_closed", "value": None,
                 "text": f"no peace can be signed today — {peace_verdict.message}",
                 "closed_clause": peace_verdict.clause}

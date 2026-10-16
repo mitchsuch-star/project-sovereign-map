@@ -481,6 +481,13 @@ func _render_war_detail(w: Dictionary):
 			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]\n"
 		else:
 			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
+	# PC-F3 (Oct 15, 2026): the tier above is the peace table's, not the
+	# score bar's — say the table's number, each court against 50, and
+	# (mid-turn) that this turn's fighting counts from next turn.
+	var peace_table = w.get("peace_table", null)
+	if peace_table is Dictionary:
+		for ln in peace_table.get("lines", []):
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(ln) + "[/color]\n"
 
 	# PF-2 (D4/UX-1): make the Back Out "Settlement draft kept" promise
 	# visible where the player reopens — the badge appears iff a same-turn

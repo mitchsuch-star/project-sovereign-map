@@ -700,7 +700,15 @@ ARMS = {"CMD-H": "historical", "CMD-A": "austerlitz", "CMD-M": "marengo"}
 # the world identical to the part's HEAD through turn 33; with the seam down
 # the Step 7 page returns turn for turn). A function seam, not a lever (the
 # ratchet forbids a new one): the driver's `--seam` holds it down.
-SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False"]
+SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
+              # PC-F5 / PC-F6 (Pre-Deploy S13d, October 15, 2026): the AI's
+              # phase reading this turn's war, and the decisive credited to
+              # the side that inflicted it, re-time CMD-H; down they read the
+              # last advance's score and the direction-blind exchange.
+              "backend.game_logic.turn_manager:ai_phase_reads_the_field=None",
+              "backend.game_logic.battle_scale:is_decisive_victory_exchange="
+              "__import__('backend.game_logic.battle_scale').game_logic.battle_scale"
+              ".is_decisive_exchange(a[0], a[1])"]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",
                "backend.game_logic.dispatch:THE_PASSAGE_COUNTS_ITS_SLACK=0",

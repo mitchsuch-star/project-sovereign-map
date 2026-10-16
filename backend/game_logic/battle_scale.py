@@ -107,3 +107,73 @@ def is_decisive_exchange(side_a_casualties, side_b_casualties) -> bool:
     if a + b <= DECISIVE_MIN_CASUALTIES or a <= 0 or b <= 0:
         return False
     return max(a, b) / min(a, b) > DECISIVE_RATIO
+
+
+# PC-F6 (the Peace Conundrum F6, October 15, 2026): WHOSE decisive it is.
+# `is_decisive_exchange` asks only whether the exchange was lopsided; the war
+# score credited it to `winner_nation` without asking who bled, so Massena's
+# repulse at Vienna — the garrison held, 8,485 Austrian dead to 2,872 French —
+# was booked as a decisive AUSTRIAN victory and took the war's last decisive
+# slot. The ruling: a decisive is the WINNER's only when the winner inflicted
+# the exchange (the reading the two threat arms in combat_executor and the
+# auto-charge already made with their own directional ratio). A victory won at
+# 2:1 cost books none; neither does a repulse the attacker bled at 3:1 — the
+# side that won the exchange did not win the field, and the war score's blood
+# component already prices the dead. A garrison that holds still books a
+# defender victory: the city stood.
+def is_decisive_victory_exchange(winner_casualties, loser_casualties) -> bool:
+    """True when the exchange was decisive AND the winner inflicted it — the
+    ONE predicate the war score, the settlement contribution and the reward
+    curve read (the series attribution patches this seam)."""
+    try:
+        won = int(winner_casualties)
+        lost = int(loser_casualties)
+    except (TypeError, ValueError):
+        return False
+    return is_decisive_exchange(won, lost) and won < lost
+
+
+def decisive_credit(attacker_nation, defender_nation, winner_nation,
+                    attacker_casualties, defender_casualties):
+    """The nation a battle's decisive bonus is credited to — the winner, when
+    the winner inflicted the decisive exchange — or None."""
+    if winner_nation == attacker_nation:
+        won, lost = attacker_casualties, defender_casualties
+    elif winner_nation == defender_nation:
+        won, lost = defender_casualties, attacker_casualties
+    else:
+        return None
+    return winner_nation if is_decisive_victory_exchange(won, lost) else None
+
+
+def drop_misbooked_decisives(battle_records, decisive_battles) -> int:
+    """PC-F6, on load: a save written before the fix may hold a decisive
+    credited to a winner who BLED (the live 1805 campaign's Vienna repulse).
+    A legacy record (no `location`) whose battle row is still kept — same
+    turn, same winner, same dead — and which `decisive_credit` would not
+    credit to that winner is dropped; a record whose battle has been pruned
+    cannot be checked and is kept. Mutates `decisive_battles`; returns the
+    number dropped."""
+    dropped = 0
+    for key, decisives in (decisive_battles or {}).items():
+        rows = (battle_records or {}).get(key) or []
+        kept = []
+        for d in decisives:
+            if d.get("location") is not None:
+                kept.append(d)
+                continue
+            twins = [r for r in rows
+                     if r.get("turn") == d.get("turn") and r.get("winner") == d.get("winner")
+                     and int(r.get("attacker_casualties", 0) or 0)
+                     + int(r.get("defender_casualties", 0) or 0)
+                     == int(d.get("total_casualties", -1) or -1)]
+            if twins and not any(
+                    decisive_credit(r.get("attacker"), r.get("defender"), r.get("winner"),
+                                    r.get("attacker_casualties", 0),
+                                    r.get("defender_casualties", 0))
+                    for r in twins):
+                dropped += 1
+                continue
+            kept.append(d)
+        decisives[:] = kept
+    return dropped

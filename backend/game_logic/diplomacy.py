@@ -5343,21 +5343,104 @@ def separate_peace_paradox(world, proposer: str, target: str) -> Dict:
     separate peace with `target`, in words — {} when none. ONE read for the
     per-court peace chip (disabled with `reason`), the bilateral draft's
     block text and the generic menu's Propose peace: "Bavaria is still at
-    war with Austria", with the armistice's own likelihood beside it."""
+    war with Austria", with the armistice's own likelihood beside it.
+
+    PC-F1 (the Peace Conundrum F1, October 15, 2026): it also carries the
+    two ways out the refusal names — `downgrade` (the clause that loosens
+    every such alliance below a defensive one) and `chip` (the short form
+    the wizard rows show)."""
     hard = [c for c in get_peace_commitment_conflicts(world, proposer, target, [])
             if c.get("severity") == "HARD_STOP"]
     if not hard:
         return {}
-    from backend.game_logic.formations import formed_display_name as _fdn
-    ally = str(hard[0].get("affected_entity") or "")
+    allies = [str(c.get("affected_entity") or "") for c in hard]
+    words = paradox_refusal_words(world, proposer, target, allies)
     descriptor, score = armistice_likelihood(world, proposer, target)
     return {
-        "ally": ally,
-        "reason": f"{_fdn(world, ally)} is still at war with {_fdn(world, target)}",
+        "ally": allies[0],
+        "allies": allies,
+        "reason": words["reason"],
+        "downgrade": words["downgrade"],
+        "chip": words["chip"],
         "display": str(hard[0].get("display") or ""),
         "armistice_likelihood": descriptor,
         "armistice_score": int(score),
     }
+
+
+def paradox_words_for(world, proposer: str, target: str) -> Dict[str, Any]:
+    """PC-F1: `paradox_refusal_words` for the paradox that stops a separate
+    peace today, plus `allies` — {} when none. Cheaper than
+    `separate_peace_paradox` (no armistice dry run), for the row builders
+    and the counsel."""
+    hard = [c for c in get_peace_commitment_conflicts(world, proposer, target, [])
+            if c.get("severity") == "HARD_STOP"]
+    if not hard:
+        return {}
+    allies = [str(c.get("affected_entity") or "") for c in hard]
+    return dict(paradox_refusal_words(world, proposer, target, allies), allies=allies)
+
+
+def paradox_chip(world, proposer: str, target: str) -> str:
+    """PC-F1: the wizard row's short paradox refusal — the ally named, both
+    ways out — '' when no paradox stops the peace."""
+    return str(paradox_words_for(world, proposer, target).get("chip") or "")
+
+
+def _downgrades_below_defensive(world, proposer: str, ally: str) -> int:
+    """How many one-step Downgrades take the proposer's bond with `ally`
+    below DEFENSIVE_ALLIANCE — where the paradox stops reading it."""
+    state = world.diplomatic_states.get(world._make_diplo_key(proposer, ally), "PEACE")
+    if state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+        return 0
+    return _DOWNGRADE_ORDER.index("NON_AGGRESSION") - _DOWNGRADE_ORDER.index(state)
+
+
+def paradox_refusal_words(world, proposer: str, target: str, allies: List[str]) -> Dict[str, str]:
+    """PC-F1 (the Peace Conundrum F1, October 15, 2026): the ONE wording of
+    the alliance paradox that stops a player's separate peace. Every refusal
+    names the ally (the live case: "Bavaria is still at war with Austria" —
+    the chip said only "an ally's war") and BOTH ways out: the armistice the
+    send road exempts, and the Downgrade that loosens the alliance below a
+    defensive one (the predicate reads ALLIANCE and DEFENSIVE_ALLIANCE only).
+
+    Returns `reason` (who fights on), `downgrade` (the second way out as an
+    imperative clause), `display` (the long refusal: the send road, the
+    ratifier's verdict, the Congress lever) and `chip` (the wizard row)."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    allies = [a for a in allies if a]
+    names = [_fdn(world, a) for a in allies]
+    if len(names) > 1:
+        who = ", ".join(names[:-1]) + " and " + names[-1]
+        reason = f"{who} are still at war with {_fdn(world, target)}"
+        whose = "their"
+    else:
+        reason = f"{names[0] if names else 'An ally'} is still at war with {_fdn(world, target)}"
+        whose = "her"
+    bonds = []
+    for ally, name in zip(allies, names):
+        steps = _downgrades_below_defensive(world, proposer, ally)
+        bonds.append(f"{name} ({steps} step{'' if steps == 1 else 's'})")
+    if len(bonds) > 1:
+        bond_text = "the alliances with " + ", ".join(bonds[:-1]) + " and " + bonds[-1]
+    else:
+        bond_text = "the alliance with " + (bonds[0] if bonds else "her")
+    # "Downgrade" keeps its capital: it names the wizard's own button.
+    downgrade = f"Downgrade {bond_text} below a defensive alliance"
+    if world.diplomatic_states.get(world._make_diplo_key(proposer, target)) == "ARMISTICE":
+        # In a truce the first way out is the truce itself — its expiry is
+        # a peace the paradox does not read, at relations of −60 or better.
+        truce = (f"let the truce run its course (it becomes the peace if relations "
+                 f"stand at {ARMISTICE_AUTO_PEACE_RELATION} or better)")
+        display = (f"{reason}: a separate peace would break {whose} war. Two ways out — "
+                   f"{truce}, or first {downgrade}.")
+        chip = f"{reason} — {truce}, or first {downgrade}"
+    else:
+        display = (f"{reason}: a separate peace would break {whose} war. Two ways out — "
+                   f"propose an armistice (a truce carries no contradiction), or first "
+                   f"{downgrade}.")
+        chip = f"{reason} — propose an armistice, or first {downgrade}"
+    return {"reason": reason, "downgrade": downgrade, "display": display, "chip": chip}
 
 
 def get_peace_commitment_conflicts(
@@ -5397,6 +5480,7 @@ def get_peace_commitment_conflicts(
     all_nations = world.get_active_nations()
     _runs_on = ({row["ally"]: row for row in allies_whose_war_runs_on(world, proposer, target)}
                 if truce else {})
+    _hard_allies: Optional[List[str]] = None
     for nation in all_nations:
         if nation == proposer or nation == target:
             continue
@@ -5449,10 +5533,20 @@ def get_peace_commitment_conflicts(
             )
             _severity = "WARNING"
         else:
-            _display = (
-                f"Making peace with {target} while allied with {nation} "
-                f"(who is still at war with {target}) creates a diplomatic contradiction."
-            )
+            # PC-F1 (the Peace Conundrum F1): the refusal names the ally in
+            # display words (it printed the raw keys) and both ways out —
+            # the armistice and the Downgrade below a defensive alliance.
+            # Every HARD_STOP row carries the whole sentence, every ally
+            # named, so `hard[0]` alone is never half the story.
+            if _hard_allies is None:
+                _hard_allies = [
+                    n for n in all_nations
+                    if n not in (proposer, target)
+                    and world.diplomatic_states.get(world._make_diplo_key(proposer, n), "PEACE")
+                    in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+                    and world.diplomatic_states.get(world._make_diplo_key(n, target), "PEACE") == "WAR"
+                ]
+            _display = paradox_refusal_words(world, proposer, target, _hard_allies)["display"]
             _severity = "HARD_STOP"
         conflicts.append({
             "conflict_type": "paradox",
@@ -10628,16 +10722,27 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
 
     # Check for decisive battle — the ONE predicate (battle_scale, F4): a
     # blood exchange above 10,000 in which one side bled more than 2:1.
-    if battle_scale.is_decisive_exchange(attacker_casualties, defender_casualties):
+    # PC-F6 (the Peace Conundrum F6, October 15, 2026): credited to the
+    # winner only when the winner INFLICTED it (`battle_scale.decisive_
+    # credit`) — Massena's repulse at Vienna, the garrison bled 3:1, was
+    # booked as a decisive Austrian victory. The record also names its
+    # battle (`location`) and the battle row is flagged, so the war panel
+    # stars the very battle, not every battle of that turn and winner.
+    credited = battle_scale.decisive_credit(
+        attacker_nation, defender_nation, winner_nation,
+        attacker_casualties, defender_casualties)
+    if credited:
         ratio = max(attacker_casualties, defender_casualties) / min(attacker_casualties, defender_casualties)
         # Max 2 decisive bonuses per war
         if len(world.decisive_battles[diplo_key]) < 2:
             world.decisive_battles[diplo_key].append({
                 "turn": world.current_turn,
-                "winner": winner_nation,
+                "winner": credited,
                 "total_casualties": int(total_casualties),
                 "ratio": round(ratio, 1),
+                "location": location,
             })
+            record["decisive"] = True
 
 
 # ═══════════════════════════════════════════════════════
@@ -12711,7 +12816,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if not verdict.ok:
             available = False
             if verdict.clause == "paradox":
-                reason = "Would break an ally's war — propose an armistice, or settle jointly"
+                # PC-F1: the ally named and both ways out (FA-D17's
+                # "Would break an ally's war" named neither).
+                reason = (paradox_chip(world, player, target_nation)
+                          or str(verdict.message or ""))
                 verdict_display = reason
             else:
                 verdict_display = str(verdict.message or "")
@@ -13033,12 +13141,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         # on — a bilateral peace that breaks an ally's war is a HARD_STOP at
         # the confirm; the row said so only after the draft was written.
         if _peace_row.get("available"):
-            _hard = [c for c in get_peace_commitment_conflicts(world, player, target_nation, [])
-                     if c.get("severity") == "HARD_STOP"]
-            if _hard:
+            _chip = paradox_chip(world, player, target_nation)
+            if _chip:
                 _peace_row["available"] = False
-                _peace_row["disabled_reason"] = (
-                    "Would break an ally's war — propose an armistice, or settle jointly")
+                _peace_row["disabled_reason"] = _chip
                 _peace_row["disabled_reason_display"] = _peace_row["disabled_reason"]
         actions.append(_peace_row)
         actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))

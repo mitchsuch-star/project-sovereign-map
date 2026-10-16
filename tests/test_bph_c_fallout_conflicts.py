@@ -268,7 +268,10 @@ class TestCommitmentConflicts:
         )
 
         assert result["success"] is False
-        assert "diplomatic contradiction" in result["message"]
+        # PC-F1: the refusal names the ally and both ways out.
+        assert "a separate peace would break" in result["message"]
+        assert "propose an armistice" in result["message"]
+        assert "Downgrade the alliance with" in result["message"]
         assert world.proposal_in_transit is None
         assert world.diplomatic_points == 10
 

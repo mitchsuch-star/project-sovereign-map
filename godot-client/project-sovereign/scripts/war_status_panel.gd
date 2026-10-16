@@ -349,6 +349,13 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 			lines.append("Settlement (theirs to impose): " + tier)
 		else:
 			lines.append("Settlement: " + tier)
+	# PC-F3 (Oct 15, 2026): what the peace math reads — the table's own
+	# number, each court against 50, and (mid-turn) that this turn's
+	# fighting counts from next turn. The backend writes the sentences.
+	var peace_table = war_data.get("peace_table", null)
+	if peace_table is Dictionary:
+		for ln in peace_table.get("lines", []):
+			lines.append(Utils.humanize_nation_keys_in_text(str(ln)))
 	var objective = war_data.get("objective", null)
 	if objective != null and objective is Dictionary:
 		# LV-8 (row EP F1): one sentence, not the 28-name homeland list.

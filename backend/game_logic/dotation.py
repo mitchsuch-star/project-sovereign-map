@@ -280,8 +280,12 @@ def is_decisive_victory(outcome: str, winner_casualties: int,
     if loser is not None and (int(getattr(loser, "strength", 0) or 0) <= 0
                               or getattr(loser, "captured_by", "")):
         return True
-    from backend.game_logic.battle_scale import is_decisive_exchange
-    return is_decisive_exchange(int(winner_casualties), int(loser_casualties))
+    # PC-F6 (the Peace Conundrum F6): the exchange counts only when the
+    # WINNER inflicted it — a victory bought at 2:1 is no claim on the Empire
+    # (the direction-blind read raised a marshal's expectation for it).
+    from backend.game_logic import battle_scale
+    return battle_scale.is_decisive_victory_exchange(
+        int(winner_casualties), int(loser_casualties))
 
 
 def expectation_rise_blocked(marshal, world, ignore_cooldown: bool = False) -> str:

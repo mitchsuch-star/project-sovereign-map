@@ -314,7 +314,9 @@ class TestDDB8:
         chip = SS.separate_peace_chip(w, "Austria", war_id=war_id, staged_terms=[], actor="France")
         assert chip["available"] is False
         assert chip["disabled_reason_display"] == (
-            "Bavaria is still at war with Austria — a separate peace would break her war.")
+            "Bavaria is still at war with Austria — a separate peace would break her war. "
+            "Propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) "
+            "below a defensive alliance.")  # PC-F1: both ways out
         elig = SV.evaluate_pair_peace_substitute_eligibility(
             w, war_id=war_id, actor_nation="France", target_nation="Austria",
             action="seek_bilateral_peace")
@@ -341,8 +343,10 @@ class TestDDB9:
         assert d["type"] == "proposal_options"
         peace = next(o for o in d["options"] if o["action"] == "execute_proposal")
         assert peace["available"] is False
-        assert "Bavaria (who is still at war with Austria)" in peace["disabled_reason_display"]
+        assert "Bavaria is still at war with Austria" in peace["disabled_reason_display"]
         assert "Propose an armistice instead" in peace["disabled_reason_display"]
+        # PC-F1: the second way out beside the first.
+        assert "Downgrade the alliance with Bavaria (2 steps)" in peace["disabled_reason_display"]
 
     def test_the_popup_renders_the_transient_error(self):
         src = (SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
@@ -717,6 +721,7 @@ class TestDDB35:
         acts = acts.get("actions") if isinstance(acts, dict) else acts
         row = next(a for a in acts if a["action"] == "propose_peace")
         assert row["available"] is False
-        assert row["disabled_reason"] == "Would break an ally's war — propose an armistice, or settle jointly"
+        assert row["disabled_reason"] == (  # PC-F1: the ally named, both ways out
+            "Bavaria is still at war with Austria — propose an armistice, or first Downgrade the alliance with Bavaria (2 steps) below a defensive alliance")
         from backend.display_names import settlement_disabled_reason_display
         assert "Propose Peace or Propose Armistice" in settlement_disabled_reason_display("one_to_one_war")
