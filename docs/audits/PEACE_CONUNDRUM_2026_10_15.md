@@ -18,6 +18,8 @@ never written to. · **Status:** analysis + findings for the user's ruling. No c
 > findings F34 … F48. **Part V** (§35 onward, October 16, 2026) replays the five peaces of the
 > period on the game's machinery, designs the rulings B–H (and two new ones, I and J), writes the
 > copy for each peace moment, re-reads the earlier parts' assumptions, and files findings F49 … F88.
+> **§46** (the same day, under the user's delegation) decides every ruling — B folded into C, C, D, I, E,
+> H, G, J; F unchanged; K, Talleyrand's counsel alive, added — and re-sizes S13e to four parts.
 
 ---
 
@@ -1569,3 +1571,102 @@ with `backend.save_manager.load_game`, and read `calculate_war_score`, `get_war_
 `coalition_break_ranks_reason`, `process_diplomatic_phase` (on a fresh load) and
 `settlement_staging.build_settlement_preview(covered_enemy_participants=[…])`. Never import
 `backend.main` in a probe.
+
+## 46. The rulings, decided (October 16, 2026, under the user's delegation)
+
+> The user's words after Part V landed: *"make all decisions and make this work next before rest of
+> work commit and push doc"*, and *"we want to make sure tallyrand recs work better of course and
+> arent just set in stone and boring etc"*. So every ruling below is **decided**, not recommended;
+> **S13e is the next work ahead of everything else** (S13c parts 2–4 and S13b part 4 follow it); and
+> a ninth ruling, **K**, makes Talleyrand's counsel alive. Where §40 left a choice open, the rule
+> applied is the user's standing one — the historically fuller option with its real cost named —
+> under Golden Rules 5 (one executor for both chairs), 6 (the LLM never touches mechanics), 9 (no
+> open-ended deferral) and 10 (the sibling sweep). Nothing is left hanging: each ruling has a build
+> row (`BUG_FIXES.md` §PC, PC-R1 … R8), a part of S13e, and a behaviour test.
+
+| Ruling | Decided | The cost accepted | Lands in | Row |
+|---|---|---|---|---|
+| **B** | **Folded into C.** One verdict for France's separate peace on every road: *allowed, priced, and the leader's peace is common to its side.* The HARD_STOP at `diplomacy.py:5550` becomes the WARNING its two siblings already are (`:5514`, `:5524`), priced by `apply_separate_peace_penalties` (`:5122-5141`). **The owning spec is `COALITION_SPEC.md` §6a** (the separate peace as the primary coalition-breaking verb, priced); `BILATERAL_PEACE_HARDENING_SPEC.md` §10.1's borrowed `commitment_paradox` stop is retired for peace-making and stays for the alliance it was written for. | The DD-1 sign-ability sweep and the fuzzer re-run (A = 0, B = 0); PC-F1's word pins re-seated; the copy of F35, F36 and F43 falls out of the predicate. | S13e part 1 | PC-R1 |
+| **C** | **The leader stipulates for its allies; the ally is a beneficiary with a bill** (§40 C, items 1–5). *The beneficiary's rate, decided:* a cession to an allied beneficiary is priced to the ceding court at the **same** harshness as a cession to France — Austria lost Tyrol either way — and its credit goes to the beneficiary's standing and satisfies its petition. The moderate Pressburg (Salzburg for Tyrol) is J's compensation clause, not a discount here; until J lands, the Pressburg that carries is the harsh one, as in 1805. | 1.5–2 sessions; `BASELINE_SERIES` moves wherever the AI's P1 letter gains coverage — attributed, never re-pinned blind. | S13e part 1 (the predicate, the carry-in, the consent read, the words, F53's `to`); part 2 (the bill and the two Pressburgs' line) | PC-R1 |
+| **D** | **The truce freezes the ledger and the war's age, and ends in a dictated peace when the loser's hope has died** (§40 D, items 1–4). *The −70 split, decided:* P1 keeps the peace below −70 (F9's fallback keeps the court covered); between −50 and −70 the AI asks a truce **only while hope is alive**, otherwise it sends the peace letter at I's terms. *Hope is a three-term predicate* read from stores that exist: another league member not yet spent (`coalition.war_exhaustion`), a subsidy flowing to the court (`_process_british_subsidy`'s recipients), the victor's exhaustion past the loser's. The truce's letter says what it keeps ("the ledger stands"). | One session plus the words (F44, `armistice_mechanics.display_lines`); the series moves on every AI truce (attributed). The surrender-in-waiting risk is met by the hope test, not by moving the split. | S13e part 2 | PC-R2 |
+| **I** | **The AI may dictate what the player may** (§40 I, items 1–5): the player's clause types priced by the player's scorer (GR5); the ratchet on refusal; the indemnity priced to the war (a lump plus a stream, provinces held until paid); refusal costs France; the regime arm. *The balance pin, decided:* the ulm arm (France loses) is the acceptance test — the first dictated letter after Paris falls carries a province or a client, never a gold lump alone, and its ask does not fall as France falls. | 1.5 sessions; the losing campaigns' series move (attributed); the Normandy rail line (F65). | S13e part 2 | PC-R3 |
+| **E** | **Each court on its own war, a stake floor, a payment to the court paid** (§40 E, items 1–5). *Decided:* the tier legitimacy reads the court's **own** tier, so the −10 white-peace charge stops biting a victor in Vienna; the stake floor is the existing `CONSULT_MATERIAL_SHARE_THRESHOLD` (0.10, `war_contribution.py:88`) — one ladder for both sides; the gold cap binds per package (F62). | One session; seven test files reference the concession credit. | S13e part 3 | PC-R4 |
+| **H** | **Keep the +8 clock; make it of finance, occupation and subsidy; never reset by a truce; show it** (§40 H). *The numbers, decided:* occupation **+1** a turn per own home province the enemy holds (the defender's ticking already counts them); subsidy **−2** a turn to the recipient and **+2** to the paymaster while it flows; finance **+2** a turn while the chest is under one turn of upkeep. The league gate reads the live rate, not the constant (`ai_diplomacy.py:1637-1638`); the components ride the war popup (F42). | One session; the series moves (attributed). | S13e part 3 | PC-R5 |
+| **G** | **Keep the caps; decay then cap; a ticking that can fall; the fill shown** (§40 G). *The shield, decided:* the `defense` ticking **stops accruing for a court whose capital the enemy holds** — a court without its capital is not "still fighting" its own ground; it resumes when the capital is regained. The fill is shown per component ("Battle 15/15 — full"). | Half a session; every ±100 literal re-read (P1 −40/−70, P8 40, break-ranks −50, the Congress −40, the exhausted-pair band 15). | S13e part 3 | PC-R6 |
+| **J** | **Built, in two halves.** *(i) The stake named:* the war's purpose is its title on every surface (F41's class) and the thing the table titles. *(ii) The compensation clause* (`territory_compensate`: the loser paid in a third party's province, or its design pointed elsewhere — Salzburg at Pressburg; Austria's authored Eastern Question) and composed terms at the table (declared goals plus composable articles); the ally's bond priced. The moderate Pressburg exists only with (ii). | Two sessions; a clause type, a title, a subsidy term; touches every settlement spec. | S13e part 4 — (i) first; (ii) sized at the part's head and, if it does not fit, it **heads S14** (named here, not deferred: PC-R7 stays OPEN until (ii) lands) | PC-R7 |
+| **F** | **Unchanged**: historical by default, the opt-in roll as today. What the earlier parts wanted was **reactivity** — a court's answer moving when a lever moves — and E, G, H and I each add a lever; §44's reactivity measure (six of ten levers moving nothing) is re-run as part 4's closing read. | None. | the re-read rides part 4 | — |
+| **K (new)** | **Talleyrand's counsel is alive** — a reading of the live board, ranked over the roads that actually carry, explaining itself in one line, varied in his register, with his own mind said honestly and scored afterwards. Design below. | One session; the wizard's fixed strings become composed lines (their pins re-seated); GR6 holds — text from numbers, never numbers from text. | S13e part 1 | PC-R8 |
+
+### K — Talleyrand's counsel, alive
+
+**What it is today.** `_base_recommendation_and_mission` (`diplomacy.py:14098-14175`) picks the best
+*available* `propose_*` row by `likelihood_score` at or above 40 and prints one fixed sentence,
+"Talleyrand recommends: {display name}"; below 40 it prints one of four fixed strings. It never says
+why, never names the number, and can name a road whose own button is refused (F35); the armistice on
+Austria's page is recommended because the paradox shut the peace row, not because a truce serves
+France (F43). The per-action acceptance snapshots it could read (`war_context_snapshots`, computed on
+every wizard open, `:13757-13780`) are read by nothing; `confidence_level` and `action_hints` are
+never rendered (F12); the feasibility card carries `acceptance_score`, `largest_obstacle` and
+`steps_to_goal` unread (`diplomatic_dialogue.py:2086-2095`, F40). The client prints the one string in
+gold (`diplomacy_wizard.gd:717`, `:766-767`). The only variety is IQ-6's volte-face sentence appended
+after it (`:14077-14097`). The counsel is set in stone because it is a lookup, not a reading.
+
+**Decided.**
+
+1. **A reading, not a lookup.** The counsel ranks every road open on the page by what it would do
+   today, from the game's own dry-runs: the bilateral send (`calculate_acceptance` with its
+   components), the table with this court alone and the table whole (`build_settlement_preview` —
+   the Austria-alone preview §41 asks for), a truce (what it strikes, after D), a mission (IQ-4's
+   pricing, which exists), and a battle — only where the battle component is not full
+   (`calculate_war_score(return_components=True)`). It names the best road's number, the one term
+   that would flip the verdict (the largest obstacle among the components), and the trade the road
+   costs: standing for a separate peace, the ledger for a truce, DP for a mission.
+2. **Never a road its button refuses.** The ranked set is the rows with `available=True` whose
+   dry-run carries or names its cure; a shut row is named as shut with the predicate's own reason.
+   After C there is no shut peace row, only a priced one, and the price is said.
+3. **Varied, in his register.** Lines are composed from authored pools keyed by situation —
+   winning, losing, stalemate; the court's statecraft; a league in being; a truce running; a clock
+   near its end — in the Voice Bible's Talleyrand register (urbane, ironic, arithmetic with manners,
+   "Sire", never enthusiastic, never a battlefield metaphor), and every line carries its figures. A
+   per-court memory of the last line sent forbids a repeat while the situation is unchanged; a
+   changed situation changes the line. The pools are content in the `TALLEYRAND_COMMENTARY` shape
+   (`diplomatic_templates.py:3352`), reviewed under the Bible's process.
+4. **His own mind, honestly.** Talleyrand already has preferences the game enacts — the
+   pre-proposal objection, the drafting pushback, the pen-nudge personality
+   (`diplomatic_defiance.py:519`, `:791`, `:986`). The counsel says them: he may prefer the moderate
+   road and say why ("I would not take Tyrol, Sire; it buys a second war in four years") while the
+   numbers stay the scorer's. The preference is derived from the stores his objection reads
+   (harshness, the volte-face door, the Revanche seam), so it is character, not chance. When the
+   Emperor overrides him, the dispatch's override note (`get_override_dispatch_note`, `:755-790`)
+   already says who was right; it gains a running count ("twice right, once wrong this campaign") so
+   the player learns how far to trust him. GR6: no LLM in the loop; every sentence is deterministic
+   text from deterministic numbers; `SOVEREIGN_SEED=historical` reproduces it byte for byte.
+5. **One builder, every surface.** The wizard's recommendation, the feasibility card's verdict and
+   the table's counsel ("Press Austria alone", F35) read one ranked set, so they cannot disagree.
+
+**Done when** (`tests/test_pc_rulings.py::TestPCR8`): (a) on the two turn-6 boards the recommended
+road's button is enabled and its dry-run carries, or the line says none carries and names the flip
+term; (b) where the paradox is priced the line names the price and never "propose an armistice" as
+the way out when the truce itself is refused (F67); (c) variety — across the boot's courts and 20
+driven turns the same situation never yields the same line twice in a row, and every line carries at
+least one figure from the dry-run; (d) GR6 — the line is a pure function of the dry-run dict (a
+property test over shuffled inputs); (e) the Part IV M3 and M5 frames re-shot read the new counsel.
+
+### S13e, re-sized: four parts, one session each, in this order
+
+| Part | Builds | Rows | Done when |
+|---|---|---|---|
+| **1 — the one verdict and the counsel** | PC-R1 (i)–(iv): the predicate, the carry-in, the consent read, the words, F53's `to`; PC-R8 (K) | the P1s PC-F9, F49, F50, F51; the client's lies F48, F34, F67, F78, F65, F73, F76, F37; the counsel's rows F12, F35, F40, F43, F10, F25, F88 | Austria alone signs from the wizard on the Vienna-held board with the price said; no screen says the opposite of the button beside it; K's five pins |
+| **2 — the truce and the dictated peace** | PC-R2 (D); PC-R3 (I); PC-R1 (v) the bill and the two Pressburgs | F59, F69, F82, F44 and F17/F18's class; the table's authoring holes F53, F54, F56, F52, F70, F62; F13, F22 | a truce keeps the ledger and the war's age on austerlitz; the Pressburg trade is authorable from the rows (Tyrol **to Bavaria**; Offer Vienna) and ratifies; the AI's first dictated letter on ulm carries a province |
+| **3 — the scores and the clock** | PC-R4 (E); PC-R5 (H); PC-R6 (G) | F23, F63, F71, F60, F55, F61, F20; F42, F31; F27, F26, F38, F39, F84; the coalition's shape F58, F66, F77, F79, F80; the sea F64, F68 | Britain alone reads 6/50 beside Austria's 79 on one table; the clock's components on the war popup; the shield down with Vienna held; the blockade credits France |
+| **4 — the stake, the memory, the instruments** | PC-R7 (J, (i) then (ii)); F's reactivity re-read | F41, F72; the AI's memory F57, F81, F74, F75, F83; F28, F29, F30, F33; F11, F14, F45; the instruments F85, F86, F87 | "War for Bohemia" on every surface; a carve writes the punitive record; the staged fixtures regenerated by a drive; the reactivity read — ten levers, each moving at least one court's answer |
+
+**S13e's done-when as a whole:** 0 OPEN §PC rows; the Part IV frames re-shot on the two turn-6
+boards read so that every peace moment names the road that carries and its price; the three Part V
+replays pass as tests — the Pressburg trade authorable and ratified with Tyrol to Bavaria, a truce
+that keeps the ledger, a dictated peace carrying a province on ulm. Each part ends with its sibling
+sweep and a series attribution where a fix reaches the AI. **Then** S13c part 2 (CC-3), S13c parts
+3–4, S13b part 4, S14 — unchanged in order.
+
+**Not decided here, because it is not this report's:** UXR-4 (the user's eyes at 5120×1440, S15,
+with PC-F46 and F47) and the code-signing certificate before S15.
