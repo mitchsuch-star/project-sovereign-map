@@ -2794,11 +2794,13 @@ class TestP45TheCourtGuardNamesTheMatterAndThePlace:
                         if d.get("target_nation") == "Portugal")
         _activate(client, portugal)
         assert w.dialogue_manager.peek() is portugal
-        assert offer in list(w.dialogue_manager.iter_queue()) and DR.dialogue_court(offer) == "Britain"
+        # PC-R4 (S13e part 3): the letter's court is its WRITER, re-seated by contribution.
+        assert offer in list(w.dialogue_manager.iter_queue()) and DR.dialogue_court(offer) == offer["proposer_nation"]
         _prussian_ultimatum(w)
+        writer = str(offer["proposer_nation"])          # PC-R4: the letter's writer, by contribution
         for phrase, waits in (
                 ("accept prussia's ultimatum", "Prussia's ultimatum waits in Envoys"),
-                ("accept britain's offer", "Britain's settlement offer waits in Envoys")):
+                (f"accept {writer.lower()}'s offer", f"{writer}'s settlement offer waits in Envoys")):
             r = _cmd(client, phrase)
             assert r.get("court_mismatch") is True
             assert r.get("message") == f"{PORTUGAL_HEAD} {waits} — {ENVOYS_TAIL}"

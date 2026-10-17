@@ -255,27 +255,177 @@ def next_war_exhaustion(world, nation: str) -> int:
     The player's row ticks on Europe worlds only (the legacy fixture boots
     at war and its economy is pinned — EC-W2 review finding #1); an AI
     row keys on being at war with ANYONE on Europe, with the player on the
-    legacy world (AI-4c, pin 17c)."""
-    player = world.player_nation
+    legacy world (AI-4c, pin 17c).
+
+    PC-R5 — ruling H (the peace report §46, October 16, 2026): the WAR arm
+    is +8 plus the clock's NAMED terms (`war_exhaustion_terms`): occupation
+    +1 a turn per own home province the enemy holds, subsidy −2 to the
+    recipient / +2 to the paymaster while it flows, finance +2 while the
+    chest is under one turn of upkeep. The truce arm HOLDS (part 2); the
+    peace arm rests −5."""
     current = int((getattr(world, "war_exhaustion", {}) or {}).get(nation, 0) or 0)
+    terms = war_exhaustion_terms(world, nation)
+    if not terms["ticks"]:
+        return current
+    if terms["at_war"]:
+        return min(current + int(terms["total"]), WAR_EXHAUSTION_MAX)
+    if terms["in_truce"] and truce_holds_exhaustion(world, nation):
+        return current
+    return max(current - 5, 0)
+
+
+WAR_EXHAUSTION_BASE_AT_WAR = 8        # the +8 clock, kept (ruling H)
+WAR_EXHAUSTION_OCCUPATION_PER_PROVINCE = 1
+WAR_EXHAUSTION_SUBSIDY_RECIPIENT = -2
+WAR_EXHAUSTION_SUBSIDY_PAYMASTER = 2
+WAR_EXHAUSTION_FINANCE_SHORT = 2
+
+
+def _exhaustion_posture(world, nation: str) -> tuple:
+    """(ticks, at_war, in_truce) — the arm the court's row is on this
+    advance, by the AI-4c / EC-W2 rules `next_war_exhaustion` always read."""
+    player = world.player_nation
     europe = getattr(world, "sovereign_map", "legacy") == "europe"
     if nation == player:
         if not europe:
-            return current
-        at_war = bool(world.get_nations_at_war_with(player))
-        in_truce = bool(nations_in_truce_with(world, player))
-    elif europe:
-        at_war = bool(world.get_nations_at_war_with(nation))
-        in_truce = bool(nations_in_truce_with(world, nation))
-    else:
-        _state = _get_diplo_state(world, player, nation)
-        at_war = _state == "WAR"
-        in_truce = _state == "ARMISTICE"
+            return (False, False, False)
+        return (True, bool(world.get_nations_at_war_with(player)),
+                bool(nations_in_truce_with(world, player)))
+    if europe:
+        return (True, bool(world.get_nations_at_war_with(nation)),
+                bool(nations_in_truce_with(world, nation)))
+    _state = _get_diplo_state(world, player, nation)
+    return (True, _state == "WAR", _state == "ARMISTICE")
+
+
+def exhaustion_clock_terms(world, nation: str) -> Dict:
+    """PC-R5 — ruling H's three named terms for a court AT WAR, as ONE seam
+    (the series attribution holds it down: `--seam backend.game_logic.
+    coalition:exhaustion_clock_terms=lambda w, n: {"occupation": 0,
+    "subsidy": 0, "finance": 0, "held": [], "subsidy_role": ""}`):
+
+      occupation  +1 a turn per own HOME province (`nation_starting_regions`)
+                  a court at war with `nation` holds — the defender's ticking
+                  already counts them (an invaded Austria wears faster than
+                  an untouched Russia);
+      subsidy     −2 a turn to the recipient of the paymaster's gold and +2
+                  to the paymaster while it flows (`projected_paymaster_subsidy`,
+                  the plan `_process_british_subsidy` pays this advance);
+      finance     +2 a turn while the chest is under ONE turn of upkeep
+                  (`calculate_turn_upkeep`'s total).
+
+    Pure read; every value an int."""
+    occupation = 0
+    held: List[str] = []
+    regions = getattr(world, "regions", {}) or {}
+    for region_name in (getattr(world, "nation_starting_regions", {}) or {}).get(nation, []) or []:
+        region = regions.get(region_name)
+        holder = getattr(region, "controller", None) if region is not None else None
+        if holder and holder != nation and world.is_at_war(nation, holder):
+            occupation += WAR_EXHAUSTION_OCCUPATION_PER_PROVINCE
+            held.append(str(region_name))
+    subsidy = 0
+    role = ""
+    plan = projected_paymaster_subsidy(world)
+    if plan is not None:
+        if plan.get("recipient") == nation:
+            subsidy, role = WAR_EXHAUSTION_SUBSIDY_RECIPIENT, "recipient"
+        elif plan.get("payer") == nation:
+            subsidy, role = WAR_EXHAUSTION_SUBSIDY_PAYMASTER, "paymaster"
+    finance = 0
+    try:
+        upkeep = int((world.calculate_turn_upkeep(nation) or {}).get("total", 0) or 0)
+    except Exception as exc:
+        report(exc, "coalition.exhaustion_clock_terms: calculate_turn_upkeep")
+        upkeep = 0
+    chest = int((getattr(world, "nation_gold", {}) or {}).get(nation, 0) or 0)
+    if upkeep > 0 and chest < upkeep:
+        finance = WAR_EXHAUSTION_FINANCE_SHORT
+    return {"occupation": int(occupation), "subsidy": int(subsidy), "finance": int(finance),
+            "held": held, "subsidy_role": role, "upkeep": int(upkeep), "chest": int(chest)}
+
+
+def war_exhaustion_terms(world, nation: str) -> Dict:
+    """PC-R5 — what the clock is made of for `nation` this advance: `base`
+    (+8 at war), the three named terms (`exhaustion_clock_terms`), `total`
+    (the tick the WAR arm applies; the truce holds, the peace rests −5),
+    `at_war` / `in_truce` / `ticks`, the current value and the forecast
+    turn the court passes the league's 80 (`forecast_turns`, None when it
+    is not wearing). ONE read for the tick, the league gate's clock, the war
+    popup and the Request-Terms tooltip (F42: diplomacy carries no fog)."""
+    ticks, at_war, in_truce = _exhaustion_posture(world, nation)
+    current = int((getattr(world, "war_exhaustion", {}) or {}).get(nation, 0) or 0)
+    out: Dict = {"nation": nation, "current": current, "ticks": bool(ticks),
+                 "at_war": bool(at_war), "in_truce": bool(in_truce),
+                 "base": 0, "occupation": 0, "subsidy": 0, "finance": 0, "total": 0,
+                 "held": [], "subsidy_role": "", "forecast_turns": None}
+    if not ticks:
+        return out
     if at_war:
-        return min(current + 8, WAR_EXHAUSTION_MAX)
-    if in_truce and truce_holds_exhaustion(world, nation):
-        return current
-    return max(current - 5, 0)
+        extra = exhaustion_clock_terms(world, nation)
+        out.update({"base": WAR_EXHAUSTION_BASE_AT_WAR,
+                    "occupation": int(extra.get("occupation", 0) or 0),
+                    "subsidy": int(extra.get("subsidy", 0) or 0),
+                    "finance": int(extra.get("finance", 0) or 0),
+                    "held": list(extra.get("held") or []),
+                    "subsidy_role": str(extra.get("subsidy_role") or "")})
+        out["total"] = int(out["base"] + out["occupation"] + out["subsidy"] + out["finance"])
+        from backend.game_logic.ai_diplomacy import BREAK_RANKS_EXHAUSTION
+        if out["total"] > 0 and current <= BREAK_RANKS_EXHAUSTION:
+            out["forecast_turns"] = int(-(-(BREAK_RANKS_EXHAUSTION + 1 - current) // out["total"]))
+        elif current > BREAK_RANKS_EXHAUSTION:
+            out["forecast_turns"] = 0
+    elif in_truce and truce_holds_exhaustion(world, nation):
+        out["total"] = 0
+    else:
+        out["total"] = -5
+    return out
+
+
+def war_exhaustion_rate(world, nation: str) -> int:
+    """The live tick a court at war wears at this advance (ruling H) — the
+    league gate's clock reads it in place of the +8 constant."""
+    terms = war_exhaustion_terms(world, nation)
+    return int(terms["total"]) if terms["at_war"] else 0
+
+
+def war_exhaustion_lines(world, nation: str) -> List[str]:
+    """The clock's components in words, for the war popup and the HUD —
+    "Britain's exhaustion 45 — wearing +10 a turn: +8 at war, +0 occupation,
+    +2 as paymaster; she tires at 80 in about 4 turns." """
+    from backend.game_logic.ai_diplomacy import BREAK_RANKS_EXHAUSTION
+    from backend.game_logic.formations import formed_display_name
+    t = war_exhaustion_terms(world, nation)
+    name = formed_display_name(world, nation)
+    cur = int(t["current"])
+    if not t["ticks"]:
+        return [f"{name}'s exhaustion {cur}."]
+    if t["in_truce"] and not t["at_war"]:
+        return [f"{name}'s exhaustion {cur} — held by the truce (neither wearing nor resting)."]
+    if not t["at_war"]:
+        return [f"{name}'s exhaustion {cur} — resting −5 a turn at peace."]
+    parts = [f"+{t['base']} at war"]
+    held = t["held"]
+    if t["occupation"]:
+        parts.append(f"+{t['occupation']} occupation ({len(held)} home province"
+                     f"{'s' if len(held) != 1 else ''} the enemy holds)")
+    else:
+        parts.append("+0 occupation (no home province held)")
+    if t["subsidy_role"] == "recipient":
+        parts.append(f"{t['subsidy']:+d} subsidised")
+    elif t["subsidy_role"] == "paymaster":
+        parts.append(f"+{t['subsidy']} as paymaster")
+    if t["finance"]:
+        parts.append(f"+{t['finance']} finance (the chest under a turn's upkeep)")
+    line = (f"{name}'s exhaustion {cur} — wearing {t['total']:+d} a turn: "
+            + ", ".join(parts) + ".")
+    fc = t["forecast_turns"]
+    if cur > BREAK_RANKS_EXHAUSTION:
+        line += f" Spent: past {BREAK_RANKS_EXHAUSTION}, it treats."
+    elif fc is not None:
+        line += (f" It tires at {BREAK_RANKS_EXHAUSTION} in about {fc} turn"
+                 f"{'s' if fc != 1 else ''}.")
+    return [line]
 
 
 def nations_in_truce_with(world, nation: str) -> list:
@@ -2039,10 +2189,20 @@ def get_coalition_friction(nation_a: str, nation_b: str, world) -> float:
 # ════════════════════════════════════════════════════════════════
 
 def get_coalition_loyalty_penalty(nation: str, world) -> int:
-    """Get coalition loyalty penalty for acceptance formula (§6a).
+    """The §6a coalition-loyalty FORMULA — `min(-15 + war_exhaustion // 10, 0)`
+    for a league member, halved under the §6c wedge (the member dislikes the
+    leader).
 
-    penalty = min(-15 + war_exhaustion // 10, 0)
-    If target's relation with coalition leader < +10: halved (§6c wedge).
+    PC-F20 (S13e part 3, October 16, 2026): this module is the formula's
+    HOME and the ONE source of its numbers (`COALITION_LOYALTY_BASE`); the
+    LIVE wire the bilateral formula reads is `ai_diplomacy.coalition_loyalty_
+    penalty` (S13e part 1), which reads the constant from here and gates the
+    charge on the member's OWN readiness (0 once it would sue on its own
+    account — P1's break-ranks clause), so a member's acceptance obeys the
+    same loyalty its offers obey. The §6c wedge stays here, recorded and not
+    adopted by the live wire (adopting it would halve Russia's charge on the
+    Vienna-held board, re-opening part 1's pin). This function is read by the
+    C1 pins and by nothing live.
 
     Returns negative int (0 or less).
     """
@@ -2152,6 +2312,10 @@ def form_coalition(qualifying_nations: List[str], world,
     # 2. Apply war declarations for new belligerents (lazy import to avoid circular)
     from backend.game_logic.diplomacy import declare_war
     war_events = []
+    # PC-F66 (S13e part 3): the league's own declarations fold into ONE war
+    # — `newcomer_joins_the_war` reads the forming membership here, since
+    # `active_coalition` is set only at step 6.
+    world._league_forming = set(all_members)
     for nation in new_belligerents:
         # SFR-DR1 (October 5, 2026, the delegate's ruling): every member
         # declares IN ITS OWN RIGHT, as the player's own declaration does
@@ -2168,6 +2332,7 @@ def form_coalition(qualifying_nations: List[str], world,
             suppress_unresolved_offensive_cascade=THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT)
         if result.get("success"):
             war_events.append(result)
+    world._league_forming = set()
     if A_FAILED_DECLARATION_IS_NOT_A_MEMBER and new_belligerents:
         # SFR-DR1 rider: a court whose declaration FAILED is not at war with
         # the target and is not a member (measured: Sweden's own declaration
@@ -2472,6 +2637,16 @@ def check_dissolution(world) -> Optional[str]:
     ]
     if len(active_members) < 2:
         return "insufficient_members"
+
+    # PC-F77 (S13e part 3): a league whose members HOLD the target's capital
+    # is not a spent alarm, whatever the threat scalar reads — "the Third
+    # Coalition has dissolved" while Britain sat in Paris (ulm t24, threat
+    # 15). The low-threat arm waits until the capital is the target's again.
+    capital = world.get_nation_capital(france)
+    region = (getattr(world, "regions", {}) or {}).get(capital) if capital else None
+    holder = getattr(region, "controller", None) if region is not None else None
+    if holder and holder != france and holder in active_members:
+        return None
 
     # Check: threat below 20 (the target's own slot)
     if world.threat_by_target.get(france, 0) < DISSOLUTION_THREAT_THRESHOLD:

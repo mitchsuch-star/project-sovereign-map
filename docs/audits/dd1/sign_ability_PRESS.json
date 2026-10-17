@@ -2266,9 +2266,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 8.11,
+ "clone_ms_mean": 10.57,
  "clones": 72,
- "seconds": 6.7,
+ "seconds": 8.8,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

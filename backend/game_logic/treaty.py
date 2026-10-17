@@ -504,7 +504,8 @@ def _settlement_verdict(world, offer: Dict[str, Any]) -> Verdict:
     terms = [dict(t) for t in (offer.get("settlement_terms") or []) if isinstance(t, dict)]
     from backend.game_logic import ai_diplomacy as _ai
     if live and not _ai._letter_would_carry(world, war_id, war, player=player,
-                                            covered=list(live), terms=terms):
+                                            covered=list(live), terms=terms,
+                                            writer=str(offer.get("proposer_nation") or "")):
         courts = ", ".join(_court(world, n) for n in live)
         return _no("would_not_carry",
                    f"{_capitalised(courts)} would not sign these terms as they stand, "

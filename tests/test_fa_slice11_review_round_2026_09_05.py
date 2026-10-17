@@ -314,7 +314,7 @@ class TestTheCoalitionRowsAreNotWholeRows:
         folded = next(r["coalition_member_rows"] for r in data["wars"]
                       if r.get("coalition_member_rows"))
         assert set(folded[0]) == set(WS.COALITION_MEMBER_ROW_KEYS)
-        assert len(folded[0]) == 7
+        assert len(folded[0]) == 8        # PC-R5 / F42 (S13e part 3): + `exhaustion_line`
 
     def test_each_member_keeps_its_own_fogging(self, world):
         """The point of carrying them at all: the collapsed row's
@@ -324,7 +324,8 @@ class TestTheCoalitionRowsAreNotWholeRows:
                       if r.get("coalition_member_rows"))
         by_nation = {r["opponent"]: r for r in folded}
         assert by_nation["Austria"]["war_exhaustion"] == 55
-        assert by_nation["Britain"]["war_exhaustion"] is None
+        # PC-F42 (S13e part 3): diplomacy carries no fog — the figure is the figure.
+        assert by_nation["Britain"]["war_exhaustion"] == 20
 
     def test_the_card_still_gets_its_members(self, world):
         data = self._card(world)

@@ -3466,6 +3466,80 @@ def _decay_battle_score(raw_score: int, records: List[Dict], current_turn: int) 
     return min(0, raw_score + decay_amount)
 
 
+def battle_score_from_records(records: List[Dict], nation_a: str, nation_b: str,
+                              current_turn: int) -> int:
+    """PC-R6 — ruling G (the peace report §46, October 16, 2026): the battle
+    component is the net wins × BATTLE_SCORE_PER_WIN, DECAYED on the quiet
+    turns and THEN capped at ±BATTLE_SCORE_CAP. Before, the cap came first
+    (`:3566-3567`): a side with eight wins (24 raw) read 15, decayed to 11
+    after four quiet turns, and a ninth win could not refill what had
+    decayed — the cap had already thrown the surplus away. Now the surplus
+    absorbs the decay first (24 → 20 → still 15 on the board), so a well-
+    fought war keeps its full component longer and a sixth win counts
+    against the decay. The caps themselves are KEPT (PT-J2's anti-farm
+    rule). The series attribution holds it down (`--seam backend.game_logic.
+    diplomacy:battle_score_from_records=<cap then decay>`)."""
+    raw = 0
+    for record in records:
+        if record.get("winner") == nation_a:
+            raw += BATTLE_SCORE_PER_WIN
+        elif record.get("winner") == nation_b:
+            raw -= BATTLE_SCORE_PER_WIN
+    decayed = _decay_battle_score(int(raw), records, current_turn)
+    return int(max(-BATTLE_SCORE_CAP, min(BATTLE_SCORE_CAP, decayed)))
+
+
+# PC-R6 (ruling G): each component's CAP beside its value — the fill is
+# shown ("Battles +15/15 — full") on the war popup and the HUD; a player
+# who sees a full component knows another victory adds nothing there.
+def war_score_component_caps() -> Dict[str, int]:
+    return {
+        "territory": 40,
+        "battles": int(BATTLE_SCORE_CAP),
+        "decisive": int(DECISIVE_SCORE_CAP),
+        "capital": 30,
+        "campaign": int(CAMPAIGN_CAPTURE_CAP),
+        "blood": int(BLOOD_DIFF_CAP),
+        "blockade": int(BLOCKADE_SCORE_CAP),
+        "captive": int(CAPTIVE_EAGLE_SCORE),
+        "ticking": int(TICKING_CAP),
+    }
+
+
+WAR_SCORE_COMPONENT_LABELS = {
+    "territory": "Territory", "battles": "Battles", "decisive": "Decisive",
+    "capital": "Capital", "campaign": "Campaign", "blood": "Blood",
+    "blockade": "Blockade", "captive": "Captive", "ticking": "Ticking",
+}
+
+
+def war_score_fill(components: Dict[str, int]) -> List[Dict[str, Any]]:
+    """PC-R6: the fill per component — `[{key, label, value, cap, full,
+    display}]` in the breakdown's order; `display` is "Battles +15/15 — full"
+    or "Territory +15/40". Every number an int (Godot)."""
+    caps = war_score_component_caps()
+    out: List[Dict[str, Any]] = []
+    for key, cap in caps.items():
+        value = int((components or {}).get(key, 0) or 0)
+        full = cap > 0 and abs(value) >= cap
+        label = WAR_SCORE_COMPONENT_LABELS.get(key, key.title())
+        display = f"{label} {value:+d}/{int(cap)}" + (" — full" if full else "")
+        out.append({"key": key, "label": label, "value": int(value), "cap": int(cap),
+                    "full": bool(full), "display": display})
+    return out
+
+
+def war_score_fill_lines(components: Dict[str, int]) -> List[str]:
+    """The fill as lines for a tooltip: the FULL components named in one
+    line ("Full: Battles 15/15, Blood 15/15 — another victory adds nothing
+    there; ground or time moves the score") — "" when none is full."""
+    full = [f"{f['label']} {abs(f['value'])}/{f['cap']}" for f in war_score_fill(components) if f["full"]]
+    if not full:
+        return []
+    return [f"Full: {', '.join(full)} — another victory adds nothing there; "
+            f"ground, the capital or time moves the score."]
+
+
 def _besieges(marshal, nation: str, capital: str) -> bool:
     """CA9-F9: does this marshal actually CONTEST that capital?
 
@@ -3561,17 +3635,11 @@ def calculate_war_score(nation_a: str, nation_b: str, world, return_components: 
     territory_score = max(-40, min(40, territory_score))
 
     # Battle score (cap ±BATTLE_SCORE_CAP — PT-J2 re-weight, was ±30).
-    # Quiet-turn decay applies to this component only.
-    battle_score = 0
+    # Quiet-turn decay applies to this component only. PC-R6 (ruling G):
+    # decay THEN cap — `battle_score_from_records`.
     diplo_key = world._make_diplo_key(nation_a, nation_b)
     records = getattr(world, 'battle_records', {}).get(diplo_key, [])
-    for record in records:
-        if record.get("winner") == nation_a:
-            battle_score += BATTLE_SCORE_PER_WIN
-        elif record.get("winner") == nation_b:
-            battle_score -= BATTLE_SCORE_PER_WIN
-    battle_score = max(-BATTLE_SCORE_CAP, min(BATTLE_SCORE_CAP, battle_score))
-    battle_score = _decay_battle_score(int(battle_score), records, world.current_turn)
+    battle_score = battle_score_from_records(records, nation_a, nation_b, world.current_turn)
 
     # Decisive battle bonus (cap ±DECISIVE_SCORE_CAP — PT-J2, was ±20)
     decisive_score = 0
@@ -4541,7 +4609,9 @@ def accumulate_war_objective_ticking(world) -> List[Dict]:
             obj_type = obj.get("type", "")
             prev_ticking = obj.get("accumulated_ticking", 0)
 
-            if prev_ticking >= TICKING_CAP:
+            # PC-R6: a full defence claim may still FALL (the ground came
+            # home); every other objective at the cap has nothing to do.
+            if prev_ticking >= TICKING_CAP and obj_type != "defense":
                 continue
 
             rate = TICKING_RATES.get(obj_type, 0)
@@ -4555,17 +4625,11 @@ def accumulate_war_objective_ticking(world) -> List[Dict]:
             elif obj_type == "defense":
                 # FA-S17-5: the claim runs against the court that HOLDS the
                 # lost province — this pair's other side — not against every
-                # court the defender is at war with.
+                # court the defender is at war with. PC-R6 (ruling G): the
+                # shield and the fall — `defense_ticking_gain`.
                 _holder = [p for p in _pair if p != nation]
                 _holder = _holder[0] if len(_holder) == 1 else None
-                for target_region in obj.get("target_regions", []):
-                    if target_region in world.regions:
-                        _ctrl = world.regions[target_region].controller
-                        if _holder is not None:
-                            if _ctrl == _holder:
-                                gained += 1
-                        elif _ctrl != nation:
-                            gained += 1
+                gained = defense_ticking_gain(world, nation, _holder, obj, prev_ticking)
             elif obj_type == "liberation":
                 for target_region in obj.get("target_regions", []):
                     if target_region in world.regions:
@@ -4573,7 +4637,17 @@ def accumulate_war_objective_ticking(world) -> List[Dict]:
                         if world.regions[target_region].controller == target_nation:
                             gained += 1
 
-            if gained > 0:
+            if gained < 0:
+                # PC-R6 (ruling G): a defence claim FALLS as the ground comes
+                # home — one a turn while no named province is held — and the
+                # met stamp follows the ticking below the cap.
+                new_total = max(0, prev_ticking + gained)
+                obj["accumulated_ticking"] = int(new_total)
+                obj["ticking_active"] = False
+                if new_total < TICKING_CAP and obj.get("objective_met_turn") is not None:
+                    obj["objective_met_turn"] = None
+                continue
+            if gained > 0 and prev_ticking < TICKING_CAP:
                 new_total = min(prev_ticking + gained, TICKING_CAP)
                 obj["accumulated_ticking"] = int(new_total)
                 obj["ticking_active"] = True
@@ -4594,6 +4668,46 @@ def accumulate_war_objective_ticking(world) -> List[Dict]:
                     obj["objective_met_turn"] = int(world.current_turn)
 
     return events
+
+
+def defense_ticking_gain(world, nation: str, holder: Optional[str], obj: Dict,
+                         prev_ticking: int) -> int:
+    """PC-R6 — ruling G (the peace report §46, October 16, 2026): the
+    defender's ticking this turn, for one `defense` objective against the
+    pair's other court (`holder`):
+
+      +1 per named home province the holder holds (FA-S17-5's rule, kept);
+      0 — THE SHIELD DOWN — while the holder holds the defender's CAPITAL:
+        a court without its capital is not "still fighting" its own ground,
+        so the loser's shield (+1 a turn per province to 25) that made
+        France's total victory unreachable (Part II §9; Austria holding 13
+        French home provinces read +23 against a fallen Paris, M5) stops
+        accruing, and resumes when the capital is regained;
+      −1 while NO named province is held and the claim stands above 0 —
+        the ticking can fall as the ground comes home (`:4531` was add-only).
+
+    Pure read; the caller applies the delta and the met stamp. The series
+    attribution holds it down (`--seam backend.game_logic.diplomacy:
+    defense_ticking_gain=<the add-only count>`)."""
+    held = 0
+    for target_region in obj.get("target_regions", []):
+        region = world.regions.get(target_region)
+        if region is None:
+            continue
+        _ctrl = region.controller
+        if holder is not None:
+            if _ctrl == holder:
+                held += 1
+        elif _ctrl != nation:
+            held += 1
+    if held <= 0:
+        return -1 if int(prev_ticking or 0) > 0 else 0
+    if holder is not None:
+        capital = world.get_nation_capital(nation)
+        cap_region = world.regions.get(capital) if capital else None
+        if cap_region is not None and cap_region.controller == holder:
+            return 0
+    return int(held)
 
 
 def _conclude_war_objectives(world, diplo_key: str) -> None:
@@ -5249,13 +5363,21 @@ def build_war_context_snapshot(
         "proposed_state": proposed_state,
         "preview_title": f"{proposed_state} PREVIEW",
         "war_score": int(war_score),
+        # PC-F39 (S13e part 3): every component the score sums — the five
+        # the envoy's War Summary printed left out Campaign, Blood, Blockade
+        # and Captive, so the breakdown did not add up to its score.
         "war_score_components": {
             "territory": int(components["territory"]),
             "battle": int(components["battles"]),
             "decisive_battle": int(components["decisive"]),
             "capital": int(components["capital"]),
+            "campaign": int(components.get("campaign", 0)),
+            "blood": int(components.get("blood", 0)),
+            "blockade": int(components.get("blockade", 0)),
+            "captive": int(components.get("captive", 0)),
             "ticking": int(components["ticking"]),
         },
+        "war_score_fill": war_score_fill(components),
         "war_score_trend": war_score_trend,
         "war_duration_turns": int(war_duration),
         "battles_fought": int(battles_won + battles_lost),
@@ -5326,6 +5448,10 @@ def build_war_context_snapshot(
     tier = get_settlement_tier(war_score)
     snapshot["settlement_tier"] = tier
     snapshot["settlement_tier_display"] = SETTLEMENT_TIER_DISPLAY.get(tier, tier)
+    # PC-F38 (S13e part 3): the tier here is THIS PAIR's own (the court's own
+    # pair is what the table scores the court on since PC-R4) — labelled as
+    # the pair's, never as the whole war's.
+    snapshot["settlement_tier_scope"] = "this pair"
     # IQ-2 review round: the proposal-confirm and incoming-offer popups read
     # this snapshot, and the tier is direction-blind — a losing France saw
     # the enemy's leverage as a gold prize where she signs. The war HUD's own
@@ -8340,6 +8466,81 @@ def ai_evaluate_war_entry(
 # ACCEPTANCE FORMULA (§6)
 # ═══════════════════════════════════════════════════════
 
+def concessions_as_sweeteners(proposal: Dict) -> Dict:
+    """PC-F55 (S13e part 3, October 16, 2026): the bilateral harshness and
+    the deal balance were direction-blind — `territory_cede` counted 0.3 a
+    region with `from` / `to` unread, so France RETURNING Vienna and Bohemia
+    read 35 COUNTER while France TAKING Carniola read 61 (M1). A demand
+    whose `from` is the proposer (and whose `to` is not) is the proposer's
+    concession: it moves to the sweetener side, where the deal balance
+    credits it and the harshness never sees it. Gold France offers rides the
+    same way. Returns a shallow copy; demands without a `from` are the
+    target's as before (the legacy shape)."""
+    proposer = str(proposal.get("proposer_nation") or "")
+    demands = list(proposal.get("demands") or [])
+    if not proposer or not demands:
+        return proposal
+    kept: List[Dict] = []
+    moved: List[Dict] = []
+    for d in demands:
+        if not isinstance(d, dict):
+            kept.append(d)
+            continue
+        giver = str(d.get("from") or d.get("from_nation") or "")
+        taker = str(d.get("to") or d.get("to_nation") or "")
+        if giver == proposer and taker != proposer:
+            s = dict(d)
+            dtype = str(s.get("type") or "")
+            if dtype in ("territory_cede", "territory"):
+                regions = list(s.get("regions") or ([s["region"]] if s.get("region") else []))
+                s["regions"] = regions
+                s["value"] = len(regions) if regions else int(s.get("value") or 1)
+            elif dtype in ("gold_indemnity", "gold_lump"):
+                s["type"] = "gold_lump"
+                s["value"] = int(s.get("amount") or s.get("value") or 0)
+            elif dtype == "gold_per_turn":
+                s["value"] = int(s.get("amount") or s.get("value") or 0)
+            s["_concession"] = True
+            moved.append(s)
+        else:
+            kept.append(d)
+    if not moved:
+        return proposal
+    out = dict(proposal)
+    out["demands"] = kept
+    out["sweeteners"] = list(proposal.get("sweeteners") or []) + moved
+    return out
+
+
+def acceptance_reads_the_field(world, proposer: str, target: str) -> bool:
+    """PC-F71 (S13e part 3, October 16, 2026): whether the bilateral formula
+    reads the LIVE pair score (`live_war_score_for`) rather than the stored
+    one. `calculate_acceptance` read `world.war_scores` raw — last advance's
+    figure — while PC-F5 moved the AI's chair to the field; Golden Rule 5
+    asks one reading for both. The field is read where it has MOVED this
+    turn: a battle of the pair recorded this turn, or a battle of the turn
+    between the two courts (`battles_this_turn`). Elsewhere the stored score
+    stands (a fixture that writes `war_scores` with no board behind it reads
+    as before). The series attribution holds it down (`--seam
+    backend.game_logic.diplomacy:acceptance_reads_the_field=lambda *a: False`)."""
+    try:
+        key = world._make_diplo_key(proposer, target)
+    except Exception as exc:
+        report(exc, "diplomacy.acceptance_reads_the_field: _make_diplo_key")
+        return False
+    if (getattr(world, "diplomatic_states", {}) or {}).get(key) != "WAR":
+        return False
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for rec in (getattr(world, "battle_records", {}) or {}).get(key, []) or []:
+        if int(rec.get("turn", -1) or -1) == turn:
+            return True
+    pair = {str(proposer), str(target)}
+    for b in getattr(world, "battles_this_turn", []) or []:
+        if {str(b.get("attacker") or ""), str(b.get("defender") or "")} == pair:
+            return True
+    return False
+
+
 def calculate_acceptance(proposal: Dict, world) -> Dict:
     """Calculate acceptance score for a diplomatic proposal.
 
@@ -8361,6 +8562,11 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     proposal_type = proposal.get("type", "peace")
     proposer = proposal.get("proposer_nation", "France")
     target = proposal.get("target_nation", "")
+    # PC-F55 (S13e part 3): the bilateral formula reads a clause's DIRECTION
+    # — a demand the PROPOSER pays (`from` == proposer: a province France
+    # returns, gold France offers) is a concession, scored on the sweetener
+    # side and never charged as harshness on the target.
+    proposal = concessions_as_sweeteners(proposal)
 
     # G4F-14: resolve generic "armistice" to its war-score variant AT THE
     # SCORING SEAM. BASE_DISPOSITION only carries armistice_losing (40) /
@@ -8401,6 +8607,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     parts = diplo_key.split("|")
     if len(parts) == 2 and parts[0] == target:
         war_score = -war_score  # Flip: target is first in key, so proposer winning = negative in storage
+    # PC-F71 (S13e part 3): France's own peace is judged on the FIELD of the
+    # turn where the field has moved — as the AI's has been since PC-F5.
+    if acceptance_reads_the_field(world, proposer, target):
+        war_score = int(live_war_score_for(world, proposer, target))
     # DDB-X5 (DW-2, Pre-Deploy S13b): the settlement scorer's felt weight.
     war_score_mod = war_score * bilateral_war_score_weight()
 
@@ -12657,6 +12867,14 @@ def continental_system_join_refusal(world, nation: str, imposer: str) -> Optiona
             and vrec.get("autonomy", AUTONOMY_SATELLITE)
             in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)):
         return "cs_own_client"
+    # PC-F68 (S13e part 3): a clause that closes NO port — the joiner's
+    # coast already counts against the trade-dominance court (its capital
+    # held by a power at war with her, NV-10; or she is at war with her) —
+    # is refused at the row, never offered, priced and ratified for nothing.
+    target = naval.trade_dominance_nation(world)
+    if target and (naval.closed_ports_against(world, target, extra_members=(nation,))
+                   <= naval.closed_ports_against(world, target)):
+        return "cs_closes_no_port"
     return None
 
 
@@ -12674,8 +12892,28 @@ def continental_system_join_terms(world, nation: str) -> str:
         return ""
     now = naval.closed_ports_against(world, target)
     after = naval.closed_ports_against(world, target, extra_members=(nation,))
+    # PC-F68: the member's cost is the TRADE it actually loses — read from
+    # the one planner (`continental_system_losses`) as if it kept the System.
+    lost = int(continental_system_cost_if_joined(world, nation))
+    cost = (f"costs {nation} {lost} gold a turn in {target} trade" if lost > 0
+            else f"costs {nation} nothing in trade (no {target} trade to lose)")
     return (f"closes {now} → {after} of {total} ports · "
-            f"+{int(FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)} alarm")
+            f"+{int(FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)} alarm · {cost}")
+
+
+def continental_system_cost_if_joined(world, nation: str) -> int:
+    """PC-F68: what `nation` would lose a turn in trade with the trade-
+    dominance court if it kept the System — `continental_system_losses` run
+    with the court added to the membership, read off its row. Pure."""
+    members = list(getattr(world, "continental_system_members", []) or [])
+    if nation in members:
+        return int(continental_system_losses(world).get(nation, 0) or 0)
+    saved = members
+    try:
+        world.continental_system_members = members + [nation]
+        return int(continental_system_losses(world).get(nation, 0) or 0)
+    finally:
+        world.continental_system_members = saved
 
 
 def _continental_system_beat(world, nation: str, action: str, tail: str = "") -> None:

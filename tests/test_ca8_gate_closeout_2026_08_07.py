@@ -377,14 +377,23 @@ class TestOfferProducerReadsTheWar:
         return world, war
 
     def test_victories_over_one_court_press_on_the_leaders_table(self):
-        """Ten victories over Austria: the Prussia-led offer now arrives as
-        the LOSING side's offer — the proposer pays France."""
+        """Ten victories over Austria. CA8-D2 read the side's stored SUM, so
+        an unfought Prussia paid for Austria's defeat; PC-F63 (S13e part 3,
+        ruling E) reads the WRITER's own pair — the leader's letter with no
+        contribution ledger is Prussia's white peace, and the court that
+        LOST the war pays when it writes the letter."""
         world, war = self._world_and_war(decisive_vs_austria=True)
         offer = self._emit(world, war)
         terms = offer["settlement_terms"]
+        assert offer["proposer_nation"] == "Prussia"
+        assert not [t for t in terms if t.get("type") == "gold_indemnity"], terms   # Prussia, unfought, pays nothing
+        war["defender_leader"] = "Austria"
+        world.ai_settlement_cooldowns = {}
+        offer = self._emit(world, war)
+        terms = offer["settlement_terms"]
         indemnities = [t for t in terms if t.get("type") == "gold_indemnity"]
-        assert indemnities, terms
-        assert indemnities[0]["to"] == "France", terms
+        assert offer["proposer_nation"] == "Austria" and indemnities, terms
+        assert indemnities[0]["to"] == "France" and indemnities[0]["from"] == "Austria", terms
         # [Probe F] the EC-W4 AMOUNT reads the war too — the landing claim
         # covers direction AND amount, so pin the formula, not the sign.
         from backend.game_logic.ai_diplomacy import (

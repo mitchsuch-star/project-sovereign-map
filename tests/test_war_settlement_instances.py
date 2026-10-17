@@ -213,14 +213,29 @@ def test_ensure_war_instance_reuses_existing_pair_owner():
 
 
 def test_ensure_war_instance_attaches_new_pair_to_existing_attacker_war():
-    """If France is already attacker of war_1 (vs Austria) and now declares
-    war on Russia, the new pair joins war_1 as another front (concurrent
-    cobelligerent rule)."""
+    """PC-F66 (S13e part 3, October 16, 2026): a BARE declaration folds into
+    the existing war only beside a CO-BELLIGERENT. France, attacker of war_1
+    (vs Austria), declaring on an unrelated Russia opens war_2 — as the AI's
+    declarations always did; declaring on a Russia ALLIED to Austria joins
+    war_1 as another front (the concurrent cobelligerent rule)."""
     world = _clean_world()
     first = ensure_war_instance_for_pair(
         world, "France", "Austria", entry_path="war_declaration"
     )
     war_id = first["war_id"]
+    second = ensure_war_instance_for_pair(
+        world, "France", "Russia", entry_path="war_declaration"
+    )
+    assert second["war_id"] != war_id
+    assert second["created_new"] is True
+    assert _pair("France", "Russia") not in world.war_instances[war_id]["active_diplo_keys"]
+
+    world = _clean_world()
+    first = ensure_war_instance_for_pair(
+        world, "France", "Austria", entry_path="war_declaration"
+    )
+    war_id = first["war_id"]
+    _set_state(world, "Austria", "Russia", "DEFENSIVE_ALLIANCE")
     second = ensure_war_instance_for_pair(
         world, "France", "Russia", entry_path="war_declaration"
     )
@@ -780,19 +795,26 @@ def test_cascade_updates_context_when_attach_merge_retargets_survivor():
 
 def test_validate_war_declaration_attach_when_only_one_nation_in_existing_war():
     """If France is attacker of war_1 and now declares war on Russia (not
-    yet in any war), attaching the new pair to war_1 keeps France on the
-    attacker side and adds Russia as a new defender on the same front."""
+    yet in any war), the new pair joins war_1 when Russia stands beside a
+    defender (PC-F66: a co-belligerent — here Austria's ally) — France on
+    the attacker side, Russia a new defender on the same front. A cascade
+    entry (not a bare declaration) always folds."""
     world = _clean_world()
     seed = ensure_war_instance_for_pair(
         world, "France", "Austria", entry_path="war_declaration"
     )
     war_id = seed["war_id"]
+    _set_state(world, "Austria", "Russia", "ALLIANCE")
     second = ensure_war_instance_for_pair(
         world, "France", "Russia", entry_path="war_declaration"
     )
     assert second["war_id"] == war_id
     instance = world.war_instances[war_id]
     assert "Russia" in instance["defenders"]
+    third = ensure_war_instance_for_pair(
+        world, "France", "Prussia", entry_path="ally_entry"
+    )
+    assert third["war_id"] == war_id
 
 
 def test_declare_war_blocks_when_post_merge_revalidation_finds_side_conflict():

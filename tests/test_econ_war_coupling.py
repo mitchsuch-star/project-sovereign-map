@@ -393,7 +393,7 @@ class TestFranceWEAccrual:
         _hostile_pair(world, "France", "Austria")
         world.war_exhaustion.pop("France", None)
         process_coalition_turn(world)
-        assert world.war_exhaustion.get("France", 0) == 8
+        assert world.war_exhaustion.get("France", 0) == 8 + 2        # PC-R5 (S13e part 3): +2 finance — the boot chest (800) is under a turn's upkeep
 
     def test_decay_at_peace(self, world):
         from backend.game_logic.coalition import process_coalition_turn
@@ -465,7 +465,7 @@ class TestReviewRoundFixes:
         _hostile_pair(world, "France", "Austria")
         world.war_exhaustion.pop("France", None)
         process_coalition_turn(world)
-        assert world.war_exhaustion.get("France", 0) == 8
+        assert world.war_exhaustion.get("France", 0) == 8 + 2        # PC-R5 (S13e part 3): +2 finance — the boot chest (800) is under a turn's upkeep
 
     def test_elimination_sheds_war_exhaustion(self, world):
         """Finding #2: elimination ends wars without cleanup_war_end — the

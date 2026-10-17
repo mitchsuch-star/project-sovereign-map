@@ -2719,8 +2719,16 @@ SPOKEN_BLOCKER_PHRASES_WHITE_PEACE_NO_TERMS = {
 }
 
 
+# PC-F26 (S13e part 3): the tier legitimacy's two halves, spoken apart —
+# the tier's BASE (a white peace at this court's own score) is not a claim
+# of victory; only the MISMATCH (terms over the tier's ceiling) is.
+SPOKEN_BLOCKER_TIER_BASE = (
+    "the fortunes of war do not yet compel them — at their score a peace is "
+    "charged as a white peace")
+
+
 def spoken_blocker_phrase(component: str, fallback: str = "",
-                          *, white_peace: bool = False) -> str:
+                          *, white_peace: bool = False, detail: str = "") -> str:
     """The spoken form of a top-blocking acceptance component (CA8-17).
 
     The `{blocker_clause}` slot demands a CLAUSE — the register frames
@@ -2739,6 +2747,11 @@ def spoken_blocker_phrase(component: str, fallback: str = "",
             phrase = SPOKEN_BLOCKER_PHRASES_WHITE_PEACE_NO_TERMS.get(str(component or ""))
             if phrase:
                 return phrase
+    # PC-F26: a DRAFTED package blocked by the tier's BASE (a white-peace
+    # score, not a claim) says so; the white peace above keeps its own words.
+    if (str(component or "") == "settlement_tier_legitimacy"
+            and str(detail or "") == "tier_base"):
+        return SPOKEN_BLOCKER_TIER_BASE
     phrase = SPOKEN_BLOCKER_PHRASES.get(str(component or ""))
     if phrase:
         return phrase
@@ -2780,7 +2793,8 @@ def resolve_multi_court_settlement_voice(
         # top-blocking component; the table label is only the fallback.
         blocker_clause = spoken_blocker_phrase(
             str(row.get("top_blocker_component") or ""), top_blocker,
-            white_peace=bool(white_peace))
+            white_peace=bool(white_peace),
+            detail=str(row.get("top_blocker_detail") or ""))
         if hard_stopped:
             template_key = "settlement_multi_court_court_hard_stop"
         else:

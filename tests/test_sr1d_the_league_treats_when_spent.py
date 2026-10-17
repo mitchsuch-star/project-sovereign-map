@@ -182,7 +182,9 @@ class TestRequestTerms:
         w = _boot()
         aff = evaluate_request_terms_affordance(w, "war_1")
         assert aff["state"] == "disabled" and aff["reason"] == "league_not_spent"
-        assert "exhaustion 0 of 80; at most 11 turns" in aff["reason_display"]
+        # PC-R5 (S13e part 3): the clock says its live rate (+8 here: the boot's
+        # paymaster pays nothing at its floor).
+        assert "exhaustion 0 of 80, wearing at +8 a turn; at most 11 turns" in aff["reason_display"]
         assert aff["reason_display"].startswith("Britain leads a league that is not yet spent")
 
     def test_the_button_opens_when_the_league_is_spent(self):

@@ -461,6 +461,14 @@ Golden Rule 5 is the whole section: a winning court dictates **what the player m
 - **The regime arm.** A Fall ends in a peace the successor government signs — one tier gentler than the dictating court's, recognition of the successor the term that bought the leniency (`successor_peace`, on the ending's record and in the exile story).
 - **The balance pin** (the ulm arm): the first dictated letter after Paris falls carries a province or a client, never a gold lump alone, and its ask does not fall as France falls.
 
+#### §6a.4 Each court on its own war (ruling E of the peace report, October 16, 2026 — `PEACE_CONUNDRUM_2026_10_15.md` §46; built S13e part 3, `SYSTEMS_REFERENCE.md` §124.1)
+
+- **Each court's row is scored on its OWN pair** with the proposer's side (`settlement_scoring.court_own_pressure`), for the base and for the tier legitimacy; the side's power-weighted mean survives as the table's label and the fallback for a court with no pair. Austria at +79 is not held at 11 by Britain's 0; Britain unfought reads the 6 she reads alone.
+- **The stake floor.** A covered court under `CONSULT_MATERIAL_SHARE_THRESHOLD` (0.10 — the one ladder, both sides) is covered by its side's settlement, not consulted: no veto (`settlement_baseline.stake_floor_consults`). A court the package burdens is always consulted; a side with no ledger consults everyone; a table always has a signatory (the senior covered court).
+- **The payee is credited in full**, the rest of the side at `side_gold_credit_share()`; the gold cap binds per package (F62).
+- **The league's letter is dry-run as the player's.** The writer is re-seated by contribution when the letter is written and its direction and price read the writer's own pair (`ai_diplomacy.letter_writer_and_score`); the consenting courts are the writer, the courts that would sue on their own and the courts with no stake (the leader stipulates for the courts that did not fight — §6a.1's mirror); a court with a stake that refuses keeps its war (`courts_the_letter_carries`, PC-F50's idiom).
+- **The clock (ruling H, §124.2)** is +8 at war plus occupation, subsidy and finance, named; the league gate reads the live rate. **The shield (ruling G, §124.3)**: a court whose capital the enemy holds accrues no defence ticking until it is regained.
+
 ### §6b. Decisive Victory Impact
 
 When France wins a **decisive battle** (casualty ratio > 2:1, total casualties > 10000) against a coalition member:

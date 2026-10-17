@@ -311,7 +311,9 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 	# Score number lives here (not on the bar) so it never fights the centre gem.
 	var score_label = Label.new()
-	score_label.text = ("+" if score > 0 else "") + str(score)
+	# PC-F84 (S13e part 3): the trend's glyph beside the score ("+77 ↑").
+	var glyph = str(war_data.get("trend_glyph", ""))
+	score_label.text = ("+" if score > 0 else "") + str(score) + ("" if glyph == "" else " " + glyph)
 	score_label.theme_type_variation = &"Caption"
 	score_label.add_theme_color_override("font_color", _get_score_color(score))
 	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -356,6 +358,14 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 	if peace_table is Dictionary:
 		for ln in peace_table.get("lines", []):
 			lines.append(Utils.humanize_nation_keys_in_text(str(ln)))
+	# PC-R6 (S13e part 3): the components that are FULL, named ("Full:
+	# Battles 15/15 — another victory adds nothing there").
+	for ln in war_data.get("breakdown_fill_lines", []):
+		lines.append(str(ln))
+	# PC-R5 / F42: the clock's components, one line (the popup carries the rest).
+	var ex_line = str(war_data.get("exhaustion_line", ""))
+	if ex_line != "":
+		lines.append(Utils.humanize_nation_keys_in_text(ex_line))
 	var objective = war_data.get("objective", null)
 	if objective != null and objective is Dictionary:
 		# LV-8 (row EP F1): one sentence, not the 28-name homeland list.

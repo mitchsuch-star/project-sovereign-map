@@ -385,12 +385,103 @@ def _table_road(world, player: str, court: str, *, alone: bool,
         # alone, by the scorer's own credit (CONCESSION_GOLD_DIVISOR a point,
         # capped at CONCESSION_GOLD_CAP) — or none.
         out["gold_to_carry"] = _gold_to_carry(world, war_id, player, court, mine, staged_terms)
+        # PC-F61 (S13e part 3): what the table CARRIES from a beaten court at
+        # its score — the tier's name promises only what the scorer carries.
+        out["carry_ladder"] = _carry_ladder(world, war_id, player, court, mine)
+        out["carry_line"] = _carry_line(world, court, out["carry_ladder"])
+        if out["carry_line"]:
+            out["trade"] = f"{out['trade']} {out['carry_line']}"
+        # PC-F60: the four rates for gold against land, named.
+        from backend.game_logic.settlement_scoring import gold_land_rate_note
+        out["rates_note"] = gold_land_rate_note()
     else:
         parts = " · ".join(f"{_shown(world, n)} {t if t is not None else 'no score'}"
                            for n, t in totals.items())
         out["trade"] = (f"Every covered court must reach {out['threshold']}; the table "
                         f"reads their mean ({mean}) — {parts}.")
     return out
+
+
+def _carry_ladder(world, war_id: str, player: str, court: str, row) -> List[Dict[str, Any]]:
+    """PC-F61 (S13e part 3, October 16, 2026): three packages dry-run on the
+    court ALONE by the per-court scorer — a province, two provinces, a
+    province and 300 gold — each with its total and whether it carries, so
+    the counsel can say what the court's score actually buys. Measured at a
+    forced +80 on the Vienna-held board: a province carries (63), two do not
+    (49), where "Total Victory" promised more. Only for a court France is
+    BEATING (its pair from our chair positive) with a home province in our
+    side's hands; [] otherwise."""
+    if not row or row.get("total") is None:
+        return []
+    from backend.game_logic.diplomacy import get_war_score_for
+    if int(get_war_score_for(world, player, court)) <= 0:
+        return []
+    war = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    side_by_nation = war.get("side_by_nation") or {}
+    ours = {n for n, s in side_by_nation.items() if s == side_by_nation.get(player)}
+    capital = world.get_nation_capital(court)
+    held = []
+    for name in (getattr(world, "nation_starting_regions", {}) or {}).get(court, []) or []:
+        if name == capital:
+            continue
+        region = world.regions.get(name)
+        if region is not None and getattr(region, "controller", None) in ours:
+            held.append((int(getattr(region, "income_value", 0) or 0), str(name)))
+    held.sort(reverse=True)
+    provinces = [n for _, n in held[:2]]
+    if not provinces:
+        return []
+    packages = [("a province", [{"type": "territory_cede", "from": court, "to": player,
+                                 "region": provinces[0]}], provinces[:1])]
+    if len(provinces) > 1:
+        packages.append(("two provinces", [{"type": "territory_cede", "from": court, "to": player,
+                                            "region": p} for p in provinces], provinces[:2]))
+    packages.append(("a province and 300 gold",
+                     [{"type": "territory_cede", "from": court, "to": player, "region": provinces[0]},
+                      {"type": "gold_indemnity", "from": court, "to": player, "amount": 300}],
+                     provinces[:1]))
+    out: List[Dict[str, Any]] = []
+    from backend.game_logic.settlement_staging import build_settlement_preview
+    for label, terms, named in packages:
+        try:
+            preview = _quiet(build_settlement_preview, world, war_id=war_id,
+                             settlement_terms=terms, actor_nation=player,
+                             ignore_active_dialogue=True, covered_enemy_participants=[court])
+        except Exception as exc:
+            report(exc, "counsel._carry_ladder: build_settlement_preview")
+            continue
+        body = preview.get("settlement_preview") or {}
+        rows = body.get("per_court_acceptance") or []
+        mine = next((r for r in rows if str(r.get("nation")) == court), None)
+        if mine is None or mine.get("total") is None:
+            continue
+        out.append({"label": label, "regions": list(named), "total": int(mine["total"]),
+                    "threshold": int(mine.get("threshold") or 50),
+                    "carries": bool((body.get("overall_acceptance") or {}).get("carries"))})
+    return out
+
+
+def _carry_line(world, court: str, ladder: List[Dict[str, Any]]) -> str:
+    """PC-F61: "At her score the table carries from Austria a province (Tyrol,
+    63 of 50); not two provinces (49)." — "" with no ladder."""
+    if not ladder:
+        return ""
+    name = _shown(world, court)
+    carries = [r for r in ladder if r["carries"]]
+    refuses = [r for r in ladder if not r["carries"]]
+    parts = []
+    if carries:
+        best = max(carries, key=lambda r: (len(r["regions"]), r["total"]))
+        parts.append(f"At her score the table carries from {name} {best['label']} "
+                     f"({', '.join(best['regions'])}, {best['total']} of {best['threshold']})")
+    else:
+        worst = min(ladder, key=lambda r: len(r["regions"]))
+        parts.append(f"At her score the table carries no province from {name} "
+                     f"({worst['label']} reads {worst['total']} of {worst['threshold']})")
+    if refuses and carries:
+        r = min(refuses, key=lambda r: r["total"])
+        parts.append(f"not {r['label']} ({r['total']})")
+    return "; ".join(parts) + "."
 
 
 def _gold_to_carry(world, war_id: str, player: str, court: str, row, staged_terms) -> Optional[int]:

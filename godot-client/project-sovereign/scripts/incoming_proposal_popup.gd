@@ -299,7 +299,10 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 	var components = snapshot.get("war_score_components", {})
 	if components is Dictionary:
 		var parts = []
-		for key in ["territory", "battle", "decisive_battle", "capital", "ticking"]:
+		# PC-F39 (S13e part 3): one list with the war-detail popup — the
+		# breakdown sums to its score (Campaign, Blood, Blockade, Captive
+		# were dropped: "52 (… Ticking −4)" summed to 31).
+		for key in ["territory", "battle", "decisive_battle", "capital", "campaign", "blood", "blockade", "captive", "ticking"]:
 			var val = int(components.get(key, 0))
 			if val != 0:
 				var label = str(key).replace("_", " ").capitalize()
@@ -313,10 +316,14 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		# IQ-2 review round: an enemy's offer to a losing France showed its
 		# own leverage as a gold prize. Absent key = the old line.
 		var tier_side = snapshot.get("settlement_tier_side", "")
+		# PC-F38 (S13e part 3): this is the PAIR's own tier (what the table
+		# scores this court on since PC-R4), labelled as the pair's.
+		var scope = str(snapshot.get("settlement_tier_scope", ""))
+		var scope_text = "" if scope == "" else " (" + scope + ")"
 		if tier_side is String and tier_side == "theirs":
-			bbcode += "Settlement (theirs to impose): [color=#" + Utils.COLOR_ERROR + "]%s[/color]\n" % tier_display
+			bbcode += "Settlement" + scope_text + " (theirs to impose): [color=#" + Utils.COLOR_ERROR + "]%s[/color]\n" % tier_display
 		else:
-			bbcode += "Settlement: [color=#e0c070]%s[/color]\n" % tier_display
+			bbcode += "Settlement" + scope_text + ": [color=#e0c070]%s[/color]\n" % tier_display
 	var objective = snapshot.get("war_objective", {})
 	if objective is Dictionary and not objective.is_empty():
 		var objective_type = str(objective.get("type", "")).replace("_", " ").capitalize()

@@ -53,8 +53,19 @@ class TestTheDefenseClaimNamesItsHolder:
         return int((w.war_objectives.get(key) or {}).get("France", {}).get("accumulated_ticking", 0))
 
     def test_only_the_court_that_holds_paris_is_owed(self):
+        """PC-R6 (S13e part 3, ruling G — the shield): with the CAPITAL held
+        the defence claim does not accrue at all; with a province short of
+        it, only the court that holds it is owed."""
         w = _boot()
         self._paris_to_austria(w)
+        assert self._tick(w, "Austria") == 0        # the shield down: Paris is Austrian
+        assert self._tick(w, "Britain") == 0
+        assert self._tick(w, "Russia") == 0
+        w = _boot()
+        w.get_region("Normandy").controller = "Austria"
+        w.invalidate_active_nations_cache()
+        with _quiet():
+            D.accumulate_war_objective_ticking(w)
         assert self._tick(w, "Austria") == 1
         assert self._tick(w, "Britain") == 0
         assert self._tick(w, "Russia") == 0

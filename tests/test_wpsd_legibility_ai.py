@@ -207,7 +207,7 @@ class TestDispatchIntegration:
                        accumulated=5)
         lines = _build_war_objective_section(world, "France")
         assert len(lines) >= 1
-        assert "Settlement:" in lines[0]["text"]
+        assert "Settlement (this pair):" in lines[0]["text"]     # PC-F38 (S13e part 3)
 
 
 # ════════════════════════════════════════════════════════════════════════════

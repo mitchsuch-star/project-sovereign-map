@@ -96,6 +96,15 @@ DRIVER = REPO / "tools" / "playtest_driver.py"
 MEASURED_DEFECT = {800: 25_522, 5_000: 22_539, 20_000: 7_539,
                    40_000: 0, 60_000: 0, 88_556: 0}
 TRUE_FIXED_POINT = 25_522
+# S13e part 3 (PC-R5, ruling H, October 16, 2026) re-seated the 800 chest
+# consciously: the clock's finance term -- a chest under one turn's upkeep
+# wears +2 (France's boot upkeep is 2,834) -- is levied by the advance's
+# war-exhaustion tick the projection prices, so the one destitute chest reads
+# the rate 90 and the ceiling 2,000 + 828 x 2,500 // 90 = 25,000. Every chest
+# that pays its upkeep reads the fixed point; the claim survives -- the
+# ceiling never moves with the chest except through the clock's named term
+# (`coalition.exhaustion_clock_terms`, SYSTEMS_REFERENCE §124.3).
+UNDER_UPKEEP = {800: 25_000}
 
 
 @pytest.fixture
@@ -115,18 +124,22 @@ class TestTheCeilingIsAFixedPoint:
             world.nation_gold["France"] = chest
             econ = _build_economy(world, "France")
             seen[chest] = econ["ceiling"]
-        assert set(seen.values()) == {TRUE_FIXED_POINT}, seen
+        assert seen == {c: UNDER_UPKEEP.get(c, TRUE_FIXED_POINT)
+                        for c in MEASURED_DEFECT}, seen
 
     def test_the_rate_really_was_held_constant(self, world):
         """Without this the test above could pass by the rate moving to
         compensate — it would be measuring nothing."""
-        rates = set()
+        rates = {}
         for chest in MEASURED_DEFECT:
             world.nation_gold["France"] = chest
             econ = _build_economy(world, "France")
-            rates.add(sum(int(t.get("amount", 0))
-                          for t in econ["state_charges_terms"]))
-        assert len(rates) == 1, f"the rate moved across the sweep: {rates}"
+            rates[chest] = sum(int(t.get("amount", 0))
+                               for t in econ["state_charges_terms"])
+        paying = {r for c, r in rates.items() if c not in UNDER_UPKEEP}
+        assert len(paying) == 1, f"the rate moved across the sweep: {rates}"
+        for chest in UNDER_UPKEEP:   # PC-R5's finance term, and only it
+            assert rates[chest] == next(iter(paying)) + 2, rates
 
     def test_the_fix_is_the_pre_charge_gross(self, world):
         """Stated as arithmetic rather than as the production expression,

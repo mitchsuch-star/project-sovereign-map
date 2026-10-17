@@ -2522,7 +2522,11 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
     from backend.game_logic.formations import formed_display_name
     rows = [r for r in (per_court_acceptance or []) if isinstance(r, Mapping)]
     holdouts = [str(n) for n in (holdout_courts or []) if n]
-    if not rows or not holdouts:
+    # PC-R4 (ruling E item 3): the courts under the stake floor are covered,
+    # not consulted — the sentence says so where there is no holdout left.
+    not_consulted = [str(r.get("nation") or "") for r in rows
+                     if r.get("nation") and r.get("consulted") is False]
+    if not rows or not (holdouts or not_consulted):
         return ""
     player = str(getattr(world, "player_nation", "France") or "France")
     threshold = int(accept_threshold or 50)
@@ -2563,6 +2567,17 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
         if unfought:
             sentence += (f" {_join_names(unfought)} {'sits' if len(unfought) == 1 else 'sit'} at 0 "
                          f"because France has not fought {'her' if len(unfought) == 1 else 'them'}.")
+    if not_consulted:
+        _shares = []
+        for row in rows:
+            if str(row.get("nation") or "") in not_consulted:
+                share = row.get("material_share")
+                pct = f"{int(round(float(share) * 100))} %" if share is not None else "none"
+                _shares.append(f"{formed_display_name(world, str(row.get('nation')))} {pct}")
+        sentence += (f" Under the stake floor {_join_names([formed_display_name(world, n) for n in not_consulted])} "
+                     f"{'is' if len(not_consulted) == 1 else 'are'} covered, not consulted "
+                     f"({', '.join(_shares)} of the war's weight); the side's peace binds "
+                     f"{'her' if len(not_consulted) == 1 else 'them'}.")
     # The road that carries: the beaten court whose table ALONE carries, by
     # the scorer's own dry-run (PC-F35) — never a road the send refuses.
     # the court to press alone: a beaten holdout first (the court we hold the
@@ -3248,9 +3263,15 @@ def build_settlement_confirm_dialogue(
     # table where labels belong; his headings carry the spoken clause. The
     # empty-editor / no-dominant-pressure literals pass through unchanged.
     from backend.game_logic.diplomatic_templates import spoken_blocker_phrase
+    _detail = ""
+    for _row in (per_court_acceptance or []):
+        if isinstance(_row, Mapping) and str(_row.get("top_blocker_component") or "") == top_blocker_component:
+            _detail = str(_row.get("top_blocker_detail") or "")
+            if _detail:
+                break
     top_blocker_spoken = (
         spoken_blocker_phrase(top_blocker_component, top_blocker_display,
-                              white_peace=bool(white_peace))
+                              white_peace=bool(white_peace), detail=_detail)
         if top_blocker_component else top_blocker_display)
     player_nation = str(getattr(world, "player_nation", "France") or "France")
     all_members = {

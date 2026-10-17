@@ -4991,6 +4991,40 @@ class WorldState:
 
         return True
 
+    def retire_letters_of_a_dead_court(self, nation: str) -> int:
+        """PC-X20: every letter a court that is no more had on the desk — its
+        envoy's proposal, the settlement letter it wrote (`proposer_nation`),
+        the pending producer entry and the two modal slots — goes, with the
+        load pass's own receipt. Returns how many dialogues went."""
+        from backend.display_names import display_nation
+        court = str(nation or "")
+        if not court:
+            return 0
+
+        def _is_the_courts(d):
+            if not isinstance(d, dict):
+                return False
+            return str(d.get("proposer_nation") or d.get("from_nation")
+                       or d.get("target_nation") or "") == court and (
+                str(d.get("type") or d.get("dialogue_type") or "")
+                in ("incoming_settlement_offer", "incoming_proposal", "ai_proposal"))
+
+        removed = int(self.dialogue_manager.remove_matching(_is_the_courts))
+        pending = getattr(self, "pending_settlement_dialogues", None)
+        if isinstance(pending, list):
+            self.pending_settlement_dialogues = [
+                d for d in pending
+                if not (isinstance(d, dict) and str(d.get("proposer_nation") or "") == court)]
+        for attr, court_key, what in (
+                ("incoming_proposal_popup", "from_nation", "the envoy"),
+                ("incoming_settlement_offer_popup", "proposer_nation", "the settlement offer")):
+            popup = self._popup_queue.get(attr)
+            if isinstance(popup, dict) and str(popup.get(court_key) or "") == court:
+                setattr(self, attr, None)
+                self._record_popup_retired(
+                    f"{what} from {display_nation(court)} no longer waits — that court is no more.", attr)
+        return removed
+
     def _eliminate_nation(self, nation: str, by_treaty: bool = False) -> None:
         """Remove all marshals and clean up state for an eliminated nation.
 
@@ -5142,6 +5176,11 @@ class WorldState:
             mark_participant_eliminated_in_all_wars,
         )
         mark_participant_eliminated_in_all_wars(self, nation)
+        # PC-X20 (S13e part 3, found by the treaty fuzzer's I6): a dead
+        # court's letters retire NOW — the load pass retired them ("that
+        # court is no more") while the live world kept the envoy on the desk
+        # and the modal in its slot, so a save and its load disagreed.
+        self.retire_letters_of_a_dead_court(nation)
 
         # Set all diplomatic states to PEACE (R2: centralized setter)
         from backend.game_logic.diplomacy import set_diplomatic_state

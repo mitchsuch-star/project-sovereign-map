@@ -175,6 +175,18 @@ def _consequence_line(world, winner: str, loser: str,
     return " ".join(parts)
 
 
+def silent_band_white_peace(world, *, loser: str, winner: str,
+                            winner_score: int) -> bool:
+    """PC-F31 (S13e part 3, October 16, 2026): True when a loser past its own
+    peace threshold offers a white peace to a winner whose score is still
+    under the decisive band (`SETTLEMENT_OFFER_DECISIVE_WAR_SCORE`, 20) —
+    the winner has nothing to dictate yet, so the white peace carries. The
+    series attribution holds it down (`--seam backend.game_logic.
+    settlement_third_party:silent_band_white_peace=lambda *a, **k: False`)."""
+    from backend.game_logic.ai_diplomacy import SETTLEMENT_OFFER_DECISIVE_WAR_SCORE
+    return int(winner_score) < int(SETTLEMENT_OFFER_DECISIVE_WAR_SCORE)
+
+
 def attempt_third_party_settlement(world, war_id: str, war: Dict,
                                    *, force: bool = False,
                                    broker: Optional[str] = None) -> Optional[Dict]:
@@ -278,7 +290,16 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
         mutual_exhaustion = (not material
                              and winner_score < winner_threshold + (
                                  BROKER_ASK_MARGIN if force else 0))
-        if not surrender_shaped and not mutual_exhaustion and not force:
+        # PC-F31 (S13e part 3): the silent band — the loser past its
+        # threshold, the winner under the decisive band (nothing to dictate),
+        # a white peace the scorer refuses: nothing was sent at −12 … −19,
+        # peace at −20. A beaten court past its threshold ALWAYS has a letter
+        # to send: the white peace is taken as the loser's capitulation-lite
+        # (`silent_band_white_peace`).
+        band_white = (not material
+                      and silent_band_white_peace(world, loser=loser, winner=winner,
+                                                  winner_score=winner_score))
+        if not surrender_shaped and not mutual_exhaustion and not force and not band_white:
             return None
 
     # ── Headless ratify: the four internals + invalidations. Never

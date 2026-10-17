@@ -4,20 +4,28 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m1_war_card_tooltip_5120x1440.jpg",
-  "what": "war card tooltip — the peace table (Vienna held), re-shot S13e part 1: the averaging and what Austria's own court would do",
+  "what": "war card tooltip — the peace table (Vienna held), re-shot S13e part 3: each court on its own pair, Britain and Russia covered not consulted under the stake floor, the full components named, Britain's clock",
   "turn": "Turn 6 — Early December 1805",
   "action": "hover Britain + Austria + Russia",
   "surface": "",
   "rect_logical": [
    2370,
-   600,
+   470,
    1290,
-   430
+   560
   ],
   "scroll": null,
-  "lines": [],
-  "controls": [],
-  "reshot": "S13e part 1, October 16, 2026"
+  "lines": [
+   "Shared war: Britain + Austria + Russia\nSettlement: White Peace\nThe peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria ready · Britain 6/50 · Russia 7/50.\nCourt by court: Austria +79 · Britain -2 · Russia +0; the table reads their mean (17) for its tier, and scores each court on its own pair.\nAustria's own court would sue at -26 (she reads -54, beaten): her letter asks a truce.\nBritain and Russia are covered, not consulted — under the 10 % stake floor; the side's peace binds them.\nThis turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26.\nFull: Battles 15/15, Blood 15/15 — another victory adds nothing there; ground, the capital or time moves the score.\nBritain's exhaustion 45 — wearing +10 a turn: +8 at war, +0 occupation (no home province held), +2 as paymaster. It tires at 80 in about 4 turns.\nObjective: Defense - the homeland — 28 of 28 provinces held\nTicking: +0\nEnemy: Defense\n---\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (99%)\n  * France [France] — Seat at settlement (89%)\n    Bavaria [France] — Consulted ally (11%)\n  * Britain [The Third Coalition] — Seat at settlement (1%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants"
+  ],
+  "controls": [
+   {
+    "text": "Britain + Austria + Russia",
+    "disabled": false,
+    "tooltip": "Shared war: Britain + Austria + Russia\nSettlement: White Peace\nThe peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria ready · Britain 6/50 · Russia 7/50.\nCourt by court: Austria +79 · Britain -2 · Russia +0; the table reads their mean (17) for its tier, and scores each court on its own pair.\nAustria's own court would sue at -26 (she reads -54, beaten): her letter asks a truce.\nBritain and Russia are covered, not consulted — under the 10 % stake floor; the side's peace binds them.\nThis turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26.\nFull: Battles 15/15, Blood 15/15 — another victory adds nothing there; ground, the capital or time moves the score.\nBritain's exhaustion 45 — wearing +10 a turn: +8 at war, +0 occupation (no home province held), +2 as paymaster. It tires at 80 in about 4 turns.\nObjective: Defense - the homeland — 28 of 28 provinces held\nTicking: +0\nEnemy: Defense\n---\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (99%)\n  * France [France] — Seat at settlement (89%)\n    Bavaria [France] — Consulted ally (11%)\n  * Britain [The Third Coalition] — Seat at settlement (1%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants"
+   }
+  ],
+  "reshot": "S13e part 3, October 16, 2026"
  },
  {
   "id": "m1_war_card_tooltip",
@@ -43,7 +51,7 @@
   "resolution": "5120x1440",
   "interface_scale": 1.4,
   "file": "m2_war_detail_5120x1440.jpg",
-  "what": "war-detail popup — score breakdown and peace table",
+  "what": "war-detail popup, re-shot S13e part 3: the trend drawn, each component's fill against its cap (Battles +15/15 — full), the peace table with the stake floor",
   "turn": "Turn 6 — Early December 1805",
   "action": "click Britain + Austria + Russia",
   "surface": "WarDetailPopup",
@@ -56,7 +64,7 @@
   "scroll": [
    [
     0.0,
-    442.0
+    596.0
    ]
   ],
   "lines": [
@@ -64,7 +72,7 @@
    "BR",
    "+77",
    "FR",
-   "The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.\n\nScore Breakdown\n  Territory:  +15\n  Battles:    +15\n  Decisive:   +10\n  Capital:    +20\n  Campaign:   +6\n  Blood:      +15\n  Blockade:   -2\n  Ticking:    -2\n\nSettlement Tier: White Peace\nThe peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria 11/50 · Britain 18/50 · Russia 18/50.\nThis turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26.\nObjective: Defense - the homeland — 28 of 28 provinces held (against Britain) (not ticking, +0) — +1/turn once it begins\nA defensive purpose only (hold the homeland) — 'set war purpose against Britain' names a purpose of your own.\nEnemy Objective: Defense\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (99%)\n  * France [France] — Seat at settlement (89%)\n    Bavaria [France] — Consulted ally (11%)\n  * Britain [The Third Coalition] — Seat at settlement (1%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants\nDuration: 5 turns (since Turn 1)\nEnemy War Exhaustion: Unknown\nTheir fleet: 100 sail of the line — readiness 100, on blockade\n\nRecent Battles\n  Victory at Bohemia (T:5)\n  Victory at Bohemia (T:5)\n  Victory at Vienna (T:5)\n  Victory at Tyrol (T:4)\n  Victory at Tyrol (T:4)"
+   "The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.\n\nScore Breakdown   trend ^ rising\n  Territory:  +15/40\n  Battles:    +15/15  — full\n  Decisive:   +10/15\n  Capital:    +20/30\n  Campaign:   +6/10\n  Blood:      +15/15  — full\n  Blockade:   -2/15\n  Ticking:    -2/25\n\nSettlement Tier: White Peace\nThe peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria ready · Britain 6/50 · Russia 7/50.\nCourt by court: Austria +79 · Britain -2 · Russia +0; the table reads their mean (17) for its tier, and scores each court on its own pair.\nAustria's own court would sue at -26 (she reads -54, beaten): her letter asks a truce.\nBritain and Russia are covered, not consulted — under the 10 % stake floor; the side's peace binds them.\nThis turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26.\nObjective: Defense - the homeland — 28 of 28 provinces held (against Britain) (not ticking, +0) — +1/turn once it begins\nA defensive purpose only (hold the homeland) — 'set war purpose against Britain' names a purpose of your own.\nEnemy Objective: Defense\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (99%)\n  * France [France] — Seat at settlement (89%)\n    Bavaria [France] — Consulted ally (11%)\n  * Britain [The Third Coalition] — Seat at settlement (1%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants\nDuration: 5 turns (since Turn 1)\nEnemy War Exhaustion: 45\nBritain's exhaustion 45 — wearing +10 a turn: +8 at war, +0 occupation (no home province held), +2 as paymaster. It tires at 80 in about 4 turns.\nTheir fleet: 100 sail of the line — readiness 100, on blockade\n\nRecent Battles\n  Victory at Bohemia (T:5)\n  Victory at Bohemia (T:5)\n  Victory at Vienna (T:5)\n  Victory at Tyrol (T:4)\n  Victory at Tyrol (T:4)"
   ],
   "controls": [
    {
@@ -85,9 +93,10 @@
    {
     "text": "Request Terms",
     "disabled": true,
-    "tooltip": "Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 45 of 80; at most 5 turns, sooner if the war turns against it)."
+    "tooltip": "Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 45 of 80, wearing at +10 a turn; at most 4 turns, sooner if the war turns against it)."
    }
-  ]
+  ],
+  "reshot": "S13e part 3, October 16, 2026"
  },
  {
   "id": "m2_war_detail",
@@ -2184,5 +2193,57 @@
    }
   ],
   "reshot": "S13e part 2, October 16, 2026"
+ },
+ {
+  "id": "m2_war_detail_scrolled",
+  "resolution": "5120x1440",
+  "interface_scale": 1.4,
+  "file": "m2_war_detail_scrolled_5120x1440.jpg",
+  "what": "the same popup scrolled to its foot, S13e part 3: Enemy War Exhaustion 45 and the clock's components (+8 at war, +0 occupation, +2 as paymaster; tires at 80 in about 4 turns), Request Terms' live rate",
+  "turn": "Turn 6 — Early December 1805",
+  "action": "scroll 2900 520 down 8",
+  "surface": "WarDetailPopup",
+  "rect_logical": [
+   2570,
+   245,
+   600,
+   573
+  ],
+  "scroll": [
+   [
+    506.0,
+    596.0
+   ]
+  ],
+  "lines": [
+   "WAR WITH BRITAIN + AUSTRIA + RUSSIA",
+   "BR",
+   "+77",
+   "FR",
+   "The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.\n\nScore Breakdown   trend ^ rising\n  Territory:  +15/40\n  Battles:    +15/15  — full\n  Decisive:   +10/15\n  Capital:    +20/30\n  Campaign:   +6/10\n  Blood:      +15/15  — full\n  Blockade:   -2/15\n  Ticking:    -2/25\n\nSettlement Tier: White Peace\nThe peace table reads the war at 17 — White Peace. A settlement carries only when every court reaches 50 — with no terms: Austria ready · Britain 6/50 · Russia 7/50.\nCourt by court: Austria +79 · Britain -2 · Russia +0; the table reads their mean (17) for its tier, and scores each court on its own pair.\nAustria's own court would sue at -26 (she reads -54, beaten): her letter asks a truce.\nBritain and Russia are covered, not consulted — under the 10 % stake floor; the side's peace binds them.\nThis turn's battles and captures count from next turn: the table reads 17 until the turn ends; the field stands at 26.\nObjective: Defense - the homeland — 28 of 28 provinces held (against Britain) (not ticking, +0) — +1/turn once it begins\nA defensive purpose only (hold the homeland) — 'set war purpose against Britain' names a purpose of your own.\nEnemy Objective: Defense\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (99%)\n  * France [France] — Seat at settlement (89%)\n    Bavaria [France] — Consulted ally (11%)\n  * Britain [The Third Coalition] — Seat at settlement (1%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants\nDuration: 5 turns (since Turn 1)\nEnemy War Exhaustion: 45\nBritain's exhaustion 45 — wearing +10 a turn: +8 at war, +0 occupation (no home province held), +2 as paymaster. It tires at 80 in about 4 turns.\nTheir fleet: 100 sail of the line — readiness 100, on blockade\n\nRecent Battles\n  Victory at Bohemia (T:5)\n  Victory at Bohemia (T:5)\n  Victory at Vienna (T:5)\n  Victory at Tyrol (T:4)\n  Victory at Tyrol (T:4)"
+  ],
+  "controls": [
+   {
+    "text": "",
+    "disabled": false,
+    "tooltip": ""
+   },
+   {
+    "text": "Negotiate Peace",
+    "disabled": false,
+    "tooltip": "Open bilateral peace options for this court only."
+   },
+   {
+    "text": "Open Settlement",
+    "disabled": false,
+    "tooltip": "Open a war-wide settlement review."
+   },
+   {
+    "text": "Request Terms",
+    "disabled": true,
+    "tooltip": "Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 45 of 80, wearing at +10 a turn; at most 4 turns, sooner if the war turns against it)."
+   }
+  ],
+  "reshot": "S13e part 3, October 16, 2026"
  }
 ]

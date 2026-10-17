@@ -398,6 +398,25 @@ def _now_turn(world: Any) -> int:
     return int(getattr(world, "current_turn", 0) or 0)
 
 
+def _same_side_elsewhere(world: Any, a: str, b: str,
+                         except_war_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """PC-F66 (S13e part 3): the active instance (other than `except_war_id`)
+    on which `a` and `b` fight on the SAME side — `{"war_id", "side"}` — or
+    None. A court cannot be at war with a court it stands beside: the old
+    fold kept every front of a court in one instance, so A2's same-instance
+    check caught it; with concurrent instances the check reads across them,
+    at the validator AND at the attach (the cascade attaches straight onto
+    its own instance)."""
+    for other_id, other in _iter_active_war_instances(world):
+        if except_war_id and other_id == except_war_id:
+            continue
+        a_side = _instance_side(other, a)
+        b_side = _instance_side(other, b)
+        if a_side and b_side and a_side == b_side:
+            return {"war_id": other_id, "side": a_side}
+    return None
+
+
 def validate_war_declaration(
     world: Any,
     attacker: str,
@@ -441,6 +460,32 @@ def validate_war_declaration(
 
     pair = _make_pair_key(attacker, defender)
     existing_war_id = _find_active_war_instance_for_pair(world, pair)
+
+    # PC-F66 (S13e part 3): a court cannot be at war with a court it stands
+    # BESIDE — in any active instance, not only the one that owns the pair.
+    # The old fold kept every front of a court in one instance, so A2's
+    # same-instance check caught it; with concurrent instances the check
+    # must read across them (Prussia, France's co-belligerent against
+    # Austria, cannot enter Britain's war against France).
+    if existing_war_id is None:
+        beside = _same_side_elsewhere(world, attacker, defender)
+        if beside is not None:
+            return {
+                "ok": False,
+                "error": WAR_INSTANCE_SIDE_CONFLICT,
+                "details": {
+                    "war_id": beside["war_id"],
+                    "attacker": attacker,
+                    "attacker_side": beside["side"],
+                    "defender": defender,
+                    "defender_side": beside["side"],
+                    "entry_path": entry_path,
+                    "reason": (
+                        f"both {attacker} and {defender} fight on side "
+                        f"{beside['side']!r} of war_instance {beside['war_id']!r}"
+                    ),
+                },
+            }
 
     if existing_war_id is not None:
         # Pair already owned by an active instance: the existing instance's
@@ -614,6 +659,52 @@ def _create_skeleton_instance(
     return instance
 
 
+BARE_DECLARATION_ENTRY_PATHS = frozenset({"war_declaration"})
+
+
+def newcomer_joins_the_war(world: Any, instance: Dict[str, Any], newcomer: str,
+                           side: str, entry_path: str) -> bool:
+    """PC-F66 (S13e part 3, October 16, 2026): may `newcomer` be attached to
+    `instance` on `side` by this pair? Every entry path but a BARE
+    declaration keeps the fold (a cascade, a vassal's join, a coalition's
+    entry are the war's own geometry). A bare declaration folds only when
+    the newcomer is a CO-BELLIGERENT of the side it joins — a member of the
+    active coalition beside one of them, in an alliance (ALLIANCE or
+    DEFENSIVE_ALLIANCE) with one, or a vassal of one; otherwise the pair
+    opens its own instance, as the AI's declarations always did (the
+    probe's four-versus-three). Pure read. The series attribution holds it
+    down (`--seam backend.game_logic.settlement_helpers:newcomer_joins_the_war=
+    lambda *a, **k: True`)."""
+    if str(entry_path or "") not in BARE_DECLARATION_ENTRY_PATHS:
+        return True
+    members = [str(n) for n in (instance.get(side) or []) if n and n != newcomer]
+    if not members:
+        return True
+    coalition = getattr(world, "active_coalition", None) or {}
+    league = set(coalition.get("members") or [])
+    # A league FORMING declares its wars before it is set as active
+    # (`form_coalition` step 2 before step 6): its members fold together.
+    league |= set(getattr(world, "_league_forming", None) or ())
+    if newcomer in league and any(m in league for m in members):
+        return True
+    vassals = getattr(world, "vassals", {}) or {}
+    lord = (vassals.get(newcomer) or {}).get("lord") if isinstance(vassals.get(newcomer), dict) else None
+    if lord and lord in members:
+        return True
+    for m in members:
+        try:
+            state = world.get_diplomatic_state(newcomer, m)
+        except Exception as exc:
+            report(exc, "settlement_helpers.newcomer_joins_the_war: get_diplomatic_state")
+            state = "PEACE"
+        if state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            return True
+        rec = vassals.get(m)
+        if isinstance(rec, dict) and rec.get("lord") == newcomer:
+            return True
+    return False
+
+
 def ensure_war_instance_for_pair(
     world: Any,
     attacker: str,
@@ -717,17 +808,25 @@ def ensure_war_instance_for_pair(
 
     # 3. One-nation reuse: attach the new pair to the existing war if the
     #    side fits. Otherwise fall through to allocation (concurrent war).
+    #    PC-F66 (S13e part 3): a BARE declaration joins an existing war only
+    #    when the newcomer is a co-belligerent of the side it would face
+    #    (`newcomer_joins_the_war`) — France → Prussia reused the coalition's
+    #    war_1 (led, labelled and settled by Britain) while Prussia → France
+    #    opened war_2: 4 of 4 French declarations folded, 3 of 3 AI ones did
+    #    not. Cascades, vassal joins and coalition entries keep the fold.
     candidate_war_id: Optional[str] = None
     if attacker_war_ids and not defender_war_ids:
         for war_id in sorted(attacker_war_ids):
             instance = world.war_instances[war_id]
-            if _instance_side(instance, attacker) == "attackers":
+            if (_instance_side(instance, attacker) == "attackers"
+                    and newcomer_joins_the_war(world, instance, defender, "defenders", entry_path)):
                 candidate_war_id = war_id
                 break
     elif defender_war_ids and not attacker_war_ids:
         for war_id in sorted(defender_war_ids):
             instance = world.war_instances[war_id]
-            if _instance_side(instance, defender) == "defenders":
+            if (_instance_side(instance, defender) == "defenders"
+                    and newcomer_joins_the_war(world, instance, attacker, "attackers", entry_path)):
                 candidate_war_id = war_id
                 break
 
@@ -824,6 +923,28 @@ def attach_pair_to_war_instance(
         # After the merge, the pair is owned by the survivor. Continue with
         # the normal attach path so participant_meta / pair_status / index
         # invalidation all run as usual.
+    elif existing_owner is None:
+        # PC-F66: a pair the cascade attaches straight onto its own instance
+        # never passed the validator — the same cross-instance rule reads here.
+        beside = _same_side_elsewhere(world, attacker, defender, except_war_id=war_id)
+        if beside is not None:
+            return {
+                "ok": False,
+                "error": WAR_INSTANCE_SIDE_CONFLICT,
+                "war_id": war_id,
+                "details": {
+                    "war_id": beside["war_id"],
+                    "attacker": attacker,
+                    "attacker_side": beside["side"],
+                    "defender": defender,
+                    "defender_side": beside["side"],
+                    "entry_path": entry_path,
+                    "reason": (
+                        f"both {attacker} and {defender} fight on side "
+                        f"{beside['side']!r} of war_instance {beside['war_id']!r}"
+                    ),
+                },
+            }
 
     side_by_nation = instance.setdefault("side_by_nation", {})
     attackers_list = instance.setdefault("attackers", [])
@@ -1721,6 +1842,24 @@ def _merge_instance_data(
     survivor_pmeta = dict(survivor.get("participant_meta") or {})
     for nation, meta in (absorbed.get("participant_meta") or {}).items():
         survivor_pmeta.setdefault(nation, dict(meta))
+    # PC-X19 (S13e part 3, found by the treaty fuzzer's I5): a court that had
+    # LEFT the survivor (its pair resolved, `exited_turn` stamped) and is
+    # ACTIVE in an absorbed instance is back in the merged war — the
+    # survivor's stale row read it as both active and exited. The rejoin
+    # idiom (`_rejoin_participant_meta`): the exit stamps go, the first
+    # `joined_turn` is kept, the side is the merged side's.
+    active_now = set(survivor.get("active_participants") or [])
+    sides = survivor.get("side_by_nation") or {}
+    for nation in active_now:
+        row = survivor_pmeta.get(nation)
+        if isinstance(row, dict) and row.get("exited_turn") is not None:
+            absorbed_row = (absorbed.get("participant_meta") or {}).get(nation) or {}
+            side = str(sides.get(nation) or absorbed_row.get("side") or row.get("side") or "")
+            _rejoin_participant_meta(survivor_pmeta, nation, side,
+                                     int(row.get("joined_turn") or 0),
+                                     str(absorbed_row.get("entry_path") or row.get("entry_path") or "merge"))
+            row = survivor_pmeta[nation]
+            row["rejoined_turn"] = row.get("rejoined_turn")
     survivor["participant_meta"] = survivor_pmeta
 
 

@@ -350,7 +350,8 @@ class TestTheForecastAndTheTick:
         w = _boot()
         assert w.get_nations_at_war_with("France")
         w.war_exhaustion["France"] = 10
-        assert next_war_exhaustion(w, "France") == 18
+        # PC-R5 (S13e part 3): +8 at war plus +2 finance (the boot chest under a turn's upkeep).
+        assert next_war_exhaustion(w, "France") == 20
         w.war_exhaustion["France"] = WAR_EXHAUSTION_MAX - 3
         assert next_war_exhaustion(w, "France") == WAR_EXHAUSTION_MAX
 
@@ -374,7 +375,7 @@ class TestTheForecastAndTheTick:
         predicted = next_war_exhaustion(w, "France")
         with _quiet():
             w.advance_turn()
-        assert int(w.war_exhaustion["France"]) == predicted == 48
+        assert int(w.war_exhaustion["France"]) == predicted == 50          # PC-R5: 40 + 8 + 2 finance
 
     def test_the_legacy_player_row_never_ticks(self):
         from backend.game_logic.coalition import next_war_exhaustion
@@ -389,7 +390,7 @@ class TestTheForecastAndTheTick:
         w.war_exhaustion["France"] = 40
         today = w.get_state_charges_rate("France")
         tomorrow = w.get_state_charges_rate("France", projected=True)
-        assert tomorrow["rate"] - today["rate"] == 8
+        assert tomorrow["rate"] - today["rate"] == 10                       # PC-R5: the live tick, +8 + 2 finance
 
 
 # ═══════════════════════════════════════════════════════════════════════

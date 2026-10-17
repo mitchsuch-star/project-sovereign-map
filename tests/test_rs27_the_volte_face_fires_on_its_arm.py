@@ -153,5 +153,20 @@ class TestTheVolteFaceFiresOnItsArm:
             "--lever", "backend.models.world_state:A_MARKET_PAYS_ITS_OWN_KEEP=0",
             "--lever", "backend.ai.enemy_ai:THE_AI_BUILDS_NO_WATCHTOWERS=0",
             "--lever", "backend.ai.enemy_ai:THE_COURT_ARMS_WITH_ITS_PURSE=0",
+            # S13e part 3 (October 16, 2026): the peace rulings E / H / G re-time
+            # this arm too; the attribution this pin keeps is Step 3's, so
+            # their seams ride down with the rest (`tools/_pc_s13e3_series_arms.py`).
+            "--seam", 'backend.game_logic.settlement_scoring:court_own_pressure=int(a[0])',
+            "--seam", "backend.game_logic.settlement_baseline:stake_floor_consults={'consulted': True, 'share': None, 'reason': 'floor_down', 'burdened': False}",
+            "--seam", 'backend.game_logic.ai_diplomacy:letter_consenting_courts=list(a[2])',
+            "--seam", "backend.game_logic.ai_diplomacy:letter_writer_and_score=(str(k.get('leader') or (k.get('covered') or [''])[0]), int(__import__('backend.game_logic.diplomacy').game_logic.diplomacy.sum_stored_side_score(a[0], k['player'], list(k['covered']))) if len(k.get('covered') or []) > 1 else int(__import__('backend.game_logic.diplomacy').game_logic.diplomacy.get_war_score_for(a[0], k['player'], str(k.get('leader') or k['covered'][0]))))",
+            "--seam", "backend.game_logic.coalition:exhaustion_clock_terms={'occupation': 0, 'subsidy': 0, 'finance': 0, 'held': [], 'subsidy_role': ''}",
+            "--seam", 'backend.game_logic.ai_diplomacy:p2_league_gate=False',
+            "--seam", "backend.game_logic.diplomacy:battle_score_from_records=__import__('backend.game_logic.diplomacy').game_logic.diplomacy._decay_battle_score(max(-15, min(15, sum(3 if r.get('winner') == a[1] else (-3 if r.get('winner') == a[2] else 0) for r in a[0]))), a[0], a[3])",
+            "--seam", "backend.game_logic.diplomacy:defense_ticking_gain=sum(1 for r in a[3].get('target_regions', []) if r in a[0].regions and ((a[0].regions[r].controller == a[2]) if a[2] is not None else (a[0].regions[r].controller != a[1])))",
+            "--seam", 'backend.game_logic.diplomacy:acceptance_reads_the_field=False',
+            "--seam", 'backend.game_logic.naval:posture_blockade_answered=False',
+            "--seam", 'backend.game_logic.settlement_third_party:silent_band_white_peace=False',
+            "--seam", 'backend.game_logic.settlement_helpers:newcomer_joins_the_war=True',
         )
         assert not _volte_turns(rows)

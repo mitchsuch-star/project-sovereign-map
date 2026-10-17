@@ -562,6 +562,9 @@ def summon(world) -> Dict[str, Any]:
         "number": number,
         "status": SITTING,
         "summoned_turn": turn,
+        # PC-F80: the league standing at the summons, so the hold can tell a
+        # NEW league formed during the sitting from the one already at war.
+        "league_at_summons": str((getattr(world, "active_coalition", None) or {}).get("id") or ""),
         "ends_turn": turn + congress_turns(world),
         "answers": {},
         "strip": [],
@@ -792,6 +795,14 @@ def _signed_record(world, court: str) -> Optional[Dict[str, Any]]:
     c = record(world) or {}
     rec = (c.get("signed") or {}).get(court)
     if not isinstance(rec, dict) or rec.get("broken"):
+        return None
+    # PC-F80 (S13e part 3): a court AT WAR with the summoner has broken its
+    # latch NOW — derived live, as the capital rule below is. The tick's
+    # `broken` stamp came a turn late: the coalition turn runs inside the
+    # advance before the Congress tick, so a signed court that joined a new
+    # league that very turn still read RECOGNIZES and the Imperial Peace was
+    # proclaimed the end turn the league declared (ulm m7a4).
+    if _state(world, court) == "WAR":
         return None
     # RS-D1: a recognition bought by the capital lasts while the capital
     # stays in our hands — handed back, retaken, taken by a third party, or
@@ -1423,6 +1434,18 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     row = row if row is not None else answer(world, court)
     stance = row.get("stance")
     out: Dict[str, Any] = {"text": "", "levers": [], "gap": 0}
+    if stance == SHUT_OUT and _state(world, court) == "WAR":
+        # PC-F79 (S13e part 3): a court SHUT OUT of the Continent and still
+        # at war has a road the Congress must name — the Imperial Peace
+        # proclaimed "Europe accepts the order" with Britain at war. The
+        # working road is the war panel's: accept her letter when it comes,
+        # or Request Terms (`request_terms_state` rides the war row).
+        out["text"] = ("shut out and still at war — her peace comes by the war panel: "
+                       "accept her letter when it comes, or Request Terms there; the "
+                       "Congress prices no lever for a court the Continent is closed to")
+        out["levers"] = [{"key": "request_terms", "value": None,
+                          "text": "Request Terms (the war panel)", "command": ""}]
+        return out
     if stance in SATISFIED:
         return out
     if stance == SUES:
@@ -1750,6 +1773,41 @@ def hold_conditions(world) -> List[Dict[str, Any]]:
     ]
 
 
+def _league_since_summons(world) -> str:
+    """PC-F80 (S13e part 3): the name of a league formed against the player
+    SINCE the summons and still standing, else "" — read off
+    `active_coalition` (`formed_turn`, `id` against the one recorded at the
+    summons). The War of the Congress may brew one (GE-3 §2.8: the sitting
+    survives it and may yet win it), so this is not a hold condition; it is
+    the PROCLAMATION's guard: the Imperial Peace is never stamped while such
+    a league stands — "Europe accepts the order" the end turn a new coalition
+    declared war on us (ulm m7a4) was the lie."""
+    c = record(world) or {}
+    coalition = getattr(world, "active_coalition", None) or {}
+    if not coalition:
+        return ""
+    player = _player(world)
+    if (coalition.get("target_nation") or player) != player:
+        return ""
+    since = int(c.get("summoned_turn", _turn(world)) or 0)
+    # The league standing at the summons is not new (its members answer the
+    # table as REFUSES-by-war already); a league formed strictly after the
+    # summons — the War of the Congress brewing a fresh one — is.
+    if str(coalition.get("id") or "") and str(coalition.get("id") or "") == str(c.get("league_at_summons") or ""):
+        return ""
+    if int(coalition.get("formed_turn", -1)) <= since:
+        return ""
+    # The Congress asks the GREAT POWERS (§2.4): a league of minors formed
+    # during the sitting (the pressburg arm's Fourth Swedish Coalition) does
+    # not unsay their recognition; a great power in a new league at war with
+    # us does — however its row reads (SHUT OUT Britain leading the Fourth
+    # British Coalition, ulm m7a4).
+    greats = set(great_powers(world))
+    if not any(m in greats and _state(world, m) == "WAR" for m in (coalition.get("members") or [])):
+        return ""
+    return str(coalition.get("name") or "a league")
+
+
 def _reopened_by_war(world, view: Dict[str, Any]) -> str:
     """Review #12: a court that CEDED provinces by treaty and then goes to
     war with the Emperor — whoever declared — reopens its cessions (GE-1's
@@ -1982,10 +2040,16 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
         _dissolve(world, turn_ended, table, reason=failed[0])
         return stamped
     if int(turn_ended) >= int(c.get("ends_turn", turn_ended + 1)):
-        if all(row["stance"] in SATISFIED for row in table.values()):
+        # PC-F80: no proclamation while a league formed since the summons stands.
+        league = _league_since_summons(world)
+        if all(row["stance"] in SATISFIED for row in table.values()) and not league:
             rec = _proclaim(world, turn_ended, route="congress", table=table)
             if rec is not None:
                 stamped.append(rec)
+        elif league:
+            _dissolve(world, turn_ended, table, reason={
+                "key": "league", "met": False,
+                "text": f"{league} stands against us — formed since the summons; Europe does not accept the order"})
         else:
             _dissolve(world, turn_ended, table, reason={
                 "key": "unsigned", "met": False,

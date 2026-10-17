@@ -370,9 +370,10 @@ class TestWarObjectives:
 
     def test_a_losing_score_names_whose_terms(self, world):
         _set_score(world, "Britain", -65)
-        assert "Settlement: Harsh Peace — theirs to impose (-65)" in _line_vs(world, "Britain")
+        # PC-F38 (S13e part 3): the pair's own tier, labelled as the pair's.
+        assert "Settlement (this pair): Harsh Peace — theirs to impose (-65)" in _line_vs(world, "Britain")
         _set_score(world, "Britain", 65)
-        assert "Settlement: Harsh Peace (+65)" in _line_vs(world, "Britain")
+        assert "Settlement (this pair): Harsh Peace (+65)" in _line_vs(world, "Britain")
 
 
 # ═══════════════════════════════════════════════════════════════════════

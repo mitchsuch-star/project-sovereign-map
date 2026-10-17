@@ -145,7 +145,8 @@ class TestTheOneMembershipWrite:
 
     def test_the_terms_state_the_ports_and_the_alarm(self, world):
         terms = D.continental_system_join_terms(world, "Russia")
-        assert terms == "closes 10 → 12 of 26 ports · +10 alarm", terms
+        # PC-F68 (S13e part 3): the member's cost — the trade it actually loses — rides the terms.
+        assert terms == "closes 10 → 12 of 26 ports · +10 alarm · costs Russia 75 gold a turn in Britain trade", terms
 
     def test_a_set_shaped_store_stays_a_set(self, world):
         # (An EMPTY store reads as a list — `or []`, as the extracted arms
@@ -399,7 +400,7 @@ class TestTheGuidedRow:
         row = rows[0]
         assert row["label"] == "Austria joins the Continental System"
         assert row["available"] is True
-        assert row["terms_display"] == "closes 10 → 11 of 26 ports · +10 alarm"
+        assert row["terms_display"].startswith("closes 10 → 11 of 26 ports · +10 alarm")   # PC-F68: the cost follows
         assert row["reason_display"]
         assert row["action_params"] == {
             "nation": "Austria", "group": "demand", "clause_type": CS}
@@ -564,7 +565,7 @@ class TestTheAppliedClausesPreview:
         row = [r for r in rows if r["type"] == CS][0]
         assert row["from"] == "Austria" and row["to"] == "France"
         assert row["projected_threat_delta"] == 10
-        assert row["terms_display"] == "closes 10 → 11 of 26 ports · +10 alarm"
+        assert row["terms_display"].startswith("closes 10 → 11 of 26 ports · +10 alarm")   # PC-F68: the cost follows
         assert row["type_display"] == "Joins the Continental System"
 
 

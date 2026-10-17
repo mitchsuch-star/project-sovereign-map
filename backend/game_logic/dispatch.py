@@ -6608,7 +6608,9 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
             # IQ-2: the tier is read off abs(score); a losing France must be
             # told the terms are the enemy's to impose, not ours.
             tier_display = f"{tier_display} — theirs to impose"
-        line_text += f"  |  Settlement: {tier_display} ({score:+d})"
+        # PC-F38 (S13e part 3): this is THIS PAIR's tier — the court's own
+        # pair is what the table scores it on (PC-R4) — labelled as the pair's.
+        line_text += f"  |  Settlement (this pair): {tier_display} ({score:+d})"
 
         lines.append({
             "text": line_text,

@@ -88,6 +88,21 @@ def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
     return enriched
 
 
+def _tier_blocker_detail(result: Mapping[str, Any], enriched: Mapping[str, Any],
+                         below_threshold: bool) -> str:
+    """PC-F26 (S13e part 3): which half of the tier legitimacy blocks — the
+    tier's BASE (−10 for a white peace at this court's own score: the
+    fortunes of war compel nothing yet) or the MISMATCH (the terms exceed
+    the tier's ceiling: a victory the field has not delivered). "" for any
+    other component or when the court is at the threshold."""
+    if not below_threshold:
+        return ""
+    if str(enriched.get("top_blocker_component") or "") != "settlement_tier_legitimacy":
+        return ""
+    debug = (result.get("component_debug") or {}).get("settlement_tier_legitimacy") or {}
+    return "tier_mismatch" if debug.get("exceeded_ceiling") else "tier_base"
+
+
 CONCESSION_BASELINE_TREASURY_RESERVE = 500
 
 
@@ -1882,6 +1897,72 @@ def _acceptance_component_breakdown(
     return rows
 
 
+def stake_floor_consults(world: Any, *, war_id: str, war_instance: Mapping[str, Any],
+                         accepting_side: str, court: str,
+                         settlement_terms: Iterable[Mapping[str, Any]]) -> Dict[str, Any]:
+    """PC-R4 — ruling E item 3 (the peace report §46, October 16, 2026): the
+    STAKE FLOOR. A covered court whose material share of its side's war
+    sits under `CONSULT_MATERIAL_SHARE_THRESHOLD` (0.10 — the same ladder
+    France's allies live under, `war_contribution.classify_standing`) is
+    COVERED by its side's settlement, not consulted: its row is scored and
+    shown, but it holds no veto (HOI4's 5 %; Vic3's "no stake, no say").
+    Measured: Britain at 1 % and Russia at 0 % of the Third Coalition's war
+    held Austria's peace at 11/50 on the Vienna-held board. Three courts
+    stay consulted whatever their share: a court the package BURDENS (its
+    own soil, gold, men or crown is its stake — the floor removes the veto
+    over the side's peace, never over what is taken from it), a court on a
+    side whose contribution ledger is empty (nothing to read: every court
+    is consulted, the pre-rule shape), and a court authoring the terms. The
+    series attribution holds it down (`--seam backend.game_logic.
+    settlement_baseline:stake_floor_consults=lambda *a, **k:
+    {"consulted": True, "share": None, "reason": "floor_down"}`)."""
+    from backend.game_logic.war_contribution import (
+        CONSULT_MATERIAL_SHARE_THRESHOLD, compute_standing_inputs,
+        total_side_material_contribution,
+    )
+    court = str(court or "")
+    burdened = False
+    for term in (settlement_terms or []):
+        if not isinstance(term, Mapping):
+            continue
+        party = str(term.get("from") or term.get("from_nation")
+                    or term.get("lord_nation") or "")
+        if party and party == court:
+            burdened = True
+            break
+    try:
+        side_material = int(total_side_material_contribution(world, war_id, accepting_side))
+    except Exception as exc:
+        report(exc, "settlement_baseline.stake_floor_consults: total_side_material_contribution")
+        side_material = 0
+    if side_material <= 0:
+        return {"consulted": True, "share": None, "reason": "no_ledger", "burdened": burdened}
+    try:
+        inputs = compute_standing_inputs(world, war_id, court, side=accepting_side)
+        share = float(inputs.get("material_share") or 0.0)
+    except Exception as exc:
+        report(exc, "settlement_baseline.stake_floor_consults: compute_standing_inputs")
+        return {"consulted": True, "share": None, "reason": "no_ledger", "burdened": burdened}
+    if burdened:
+        return {"consulted": True, "share": share, "reason": "burdened", "burdened": True}
+    if share >= float(CONSULT_MATERIAL_SHARE_THRESHOLD):
+        return {"consulted": True, "share": share, "reason": "stake", "burdened": False}
+    return {"consulted": False, "share": share, "reason": "under_floor", "burdened": False}
+
+
+def stake_floor_display(world: Any, court: str, floor: Mapping[str, Any]) -> str:
+    """The row's words for a court under the floor — "" when consulted."""
+    if floor.get("consulted", True):
+        return ""
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.war_contribution import CONSULT_MATERIAL_SHARE_THRESHOLD
+    share = floor.get("share")
+    pct = f"{int(round(float(share) * 100))} %" if share is not None else "none"
+    return (f"{formed_display_name(world, court)} is covered, not consulted — "
+            f"{pct} of the war's weight, under the {int(CONSULT_MATERIAL_SHARE_THRESHOLD * 100)} % "
+            f"stake floor; the side's peace binds her.")
+
+
 def compute_per_court_acceptance(
     world: Any,
     *,
@@ -1982,6 +2063,20 @@ def compute_per_court_acceptance(
     carries = True
     previous_bands = previous_bands or {}
 
+    # PC-R4 (ruling E item 3): the stake floor, read once per court — and a
+    # table is never left with NOBODY consulted: when every covered court
+    # sits under the floor, the senior one (the largest share; ties by the
+    # coverage order) is consulted, so a settlement always has a signatory.
+    floors = {
+        court: stake_floor_consults(
+            world, war_id=war_id, war_instance=war_instance,
+            accepting_side=accepting_side, court=court, settlement_terms=terms)
+        for court in covered
+    }
+    if covered and not any(f.get("consulted", True) for f in floors.values()):
+        senior = max(covered, key=lambda c: (float(floors[c].get("share") or 0.0), -covered.index(c)))
+        floors[senior] = dict(floors[senior], consulted=True, reason="senior")
+
     for court in covered:
         # PF-1 / D6: each row carries the court's war-score DIRECTION (the
         # same dead-band rule the baseline generator uses) so presentation
@@ -2042,10 +2137,15 @@ def compute_per_court_acceptance(
         band = str(enriched.get("band") or result.get("verdict") or "reject")
         hard_stops = list(result.get("hard_stops") or [])
         court_consents = court in consenting
+        # PC-R4 (ruling E item 3): the stake floor — a court under it is
+        # covered, not consulted; it cannot hold the side's peace.
+        floor = floors[court]
+        court_consulted = bool(floor.get("consulted", True)) or court_consents
         court_passes = (
             not hard_stops
             and (
                 court_consents
+                or not court_consulted
                 or (total is not None and int(total) >= int(accept_threshold))
             )
         )
@@ -2090,6 +2190,17 @@ def compute_per_court_acceptance(
             "consent_display": (
                 "consents — these are their own terms" if court_consents else ""
             ),
+            # PC-R4 (ruling E items 2–3): the court's OWN pressure the row
+            # was scored on, and whether the court is consulted (the stake
+            # floor) — a court under it is covered by the side's peace.
+            "court_pressure_score": result.get("court_pressure_score"),
+            "consulted": bool(court_consulted),
+            "material_share": floor.get("share"),
+            "stake_display": stake_floor_display(world, court, floor),
+            # PC-F26: the tier blocker's detail — the tier's BASE (a white
+            # peace at this court's score) or a MISMATCH (the terms exceed
+            # the tier's ceiling) — so the voice says which.
+            "top_blocker_detail": _tier_blocker_detail(result, enriched, below_threshold),
             # REFRONT-9 (Guided Terms OQ-5 / GT-A4): the full component
             # table for the expanded per-court row — derived from the score
             # pass already in hand, so the focus trigger stays
@@ -2105,8 +2216,17 @@ def compute_per_court_acceptance(
 
     if not covered:
         carries = False
+    covered_not_consulted = [
+        str(r.get("nation")) for r in per_court
+        if r.get("nation") and not r.get("consulted", True)]
     if carries:
         summary_display = "This peace carries."
+        if covered_not_consulted:
+            from backend.game_logic.formations import formed_display_name as _fdn
+            _names = ", ".join(_fdn(world, n) for n in covered_not_consulted)
+            summary_display = (f"This peace carries; {_names} "
+                               f"{'is' if len(covered_not_consulted) == 1 else 'are'} covered, "
+                               f"not consulted (under the stake floor).")
     elif len(holdout_courts) == 1:
         summary_display = f"{holdout_courts[0]} is the holdout."
     elif holdout_courts:
@@ -2164,6 +2284,7 @@ def compute_per_court_acceptance(
         "overall_acceptance": {
             "carries": bool(carries),
             "holdout_courts": holdout_courts,
+            "covered_not_consulted": list(covered_not_consulted),
             "summary_display": summary_display,
             "carry_verdict_display": carry_verdict_display,
         },

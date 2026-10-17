@@ -206,7 +206,13 @@ class TestADepartedCourtTakesItsClauses:
         assert result.get("error") == "offer_terms_name_a_departed_court"
         assert "Revise Terms" in str(result.get("error_display") or "")
         assert result.get("must_reopen") is False
-        assert offer_id in _offer_ids(world), "the letter must stand"
+        # PC-X20 (S13e part 3): a letter the DEAD court wrote retires at its
+        # elimination; a letter another court wrote that merely NAMES the
+        # dead court stands.
+        if offer.get("proposer_nation") == "Britain":
+            assert offer_id not in _offer_ids(world), "the dead court's own letter retires"
+        else:
+            assert offer_id in _offer_ids(world), "the letter must stand"
 
     def test_the_refusal_names_the_court_and_why_it_left(self, world):
         offer = _clause_offer(world)

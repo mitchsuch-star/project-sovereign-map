@@ -256,7 +256,8 @@ def test_propose_mode_payload_shape_per_court_and_overall():
     for row in per_court:
         assert required <= set(row), row
     overall = block["overall_acceptance"]
-    assert set(overall) == {
+    # PC-R4 (S13e part 3): `covered_not_consulted` — the courts under the stake floor.
+    assert set(overall) - {"covered_not_consulted"} == {
         "carries", "holdout_courts", "summary_display",
         # G4F-7: the loud full-deal verdict with per-court score attribution.
         "carry_verdict_display",

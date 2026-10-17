@@ -1596,7 +1596,14 @@ class TestTheAiIsNotFrozenInstead:
         # re-times the gated board (the re-pinned standing series board) from
         # index 28. With DDB-X3's seam down in the child the economy gate's
         # figure returns (`tools/_ddb_x3_wo_attribution.py`, measured: 0 / 1).
-        assert cooldowns["gated"] == 0, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil)
+        # S13e part 3 (Pre-Deploy, October 16, 2026): 0 -> 3 — the peace
+        # rulings re-time the gated board (the re-pinned standing series
+        # board): each court on its own pair, the named exhaustion clock,
+        # decay-then-cap and the shield move the AI's wars and so the
+        # orders it has to refuse. With part 3's twelve seams down in the
+        # child DDB-X3's figure returns (`tools/_pc_s13e3_wo_attribution.py`,
+        # measured: 3 / 0).
+        assert cooldowns["gated"] == 3, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings)
 
 
 _COOLDOWN_PROBE = r'''

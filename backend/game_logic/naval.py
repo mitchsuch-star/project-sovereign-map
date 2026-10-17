@@ -2934,6 +2934,23 @@ def _emit_verdict_flips(world, before: Dict[str, str],
         queue_dispatch_event(world, event_type, {"line": line}, "always")
 
 
+def posture_blockade_answered(world, denier: str) -> bool:
+    """PC-F64 (S13e part 3, October 16, 2026): True while `denier` suffers
+    Continental-System closure at the tier-1 notch (CS_WE_TIERS' 0.40) — its
+    own posture blockade is ANSWERED and books no war-score turn, so the
+    closure arm credits France against Britain without Britain's posture
+    cancelling it (the Strangulation arc's source, NAVAL_SPEC §5.1). Below
+    the notch the posture arm accrues as before. The series attribution
+    holds it down (`--seam backend.game_logic.naval:posture_blockade_answered=
+    lambda w, d: False`)."""
+    if not denier:
+        return False
+    rec = (get_fleets(world) or {}).get(denier)
+    if not isinstance(rec, dict):
+        return False
+    return closure_against(world, denier) >= CS_WE_TIERS[-1][0]
+
+
 def _record_blockade_pressure(world, now_blockaded: List[str]) -> None:
     """HC-1 (gate §2) — credit each war pair where a side's fleets deny
     the opponent's trade, once per (denier, victim) per turn.
@@ -2956,9 +2973,16 @@ def _record_blockade_pressure(world, now_blockaded: List[str]) -> None:
     credited = set()
 
     # Arm 1: posture blockade (the untargeted watch, resolved per victim).
+    # PC-F64 (S13e part 3): a denier itself STRANGLED by the System at the
+    # tier-1 notch books nothing by its posture — the Orders in Council are
+    # answered by the Decrees (`posture_blockade_answered`); otherwise the
+    # two arms differenced to 0 for ever (8 / 8 after eight turns at 77 %
+    # closure) and Britain could never be brought to the table at sea.
     for victim in now_blockaded:
         denier, _cov = blockader_against(world, victim)
         if denier and (denier, victim) not in credited:
+            if posture_blockade_answered(world, denier):
+                continue
             world.record_blockade_turn(denier, victim)
             credited.add((denier, victim))
 

@@ -598,23 +598,33 @@ class TestA2CoalitionGuard:
         assert result is not None
 
     def test_coalition_doesnt_affect_p2(self):
-        """Coalition guard only applies to P1, P2 stalemate is unaffected."""
-        world = make_world()
-        set_war(world, "France", "Prussia")
-        set_diplomat_personality(world, "Prussia", "loyalist")
-        _boost_past_the_filter(world)
-        set_war_score(world, "Prussia", "France", 0)  # Stalemate range
-        world.ai_stalemate_counters = {
-            world._make_diplo_key("France", "Prussia"): 4}
-        # AUD-b: a real stalemate presupposes real combat on the pair.
-        world.battle_records.setdefault(
-            world._make_diplo_key("France", "Prussia"), []
-        ).append({"turn": 1, "attacker": "France", "defender": "Prussia",
-                  "attacker_casualties": 3000, "defender_casualties": 3000})
-        self._setup_coalition(world, ["Prussia", "Austria"])
-        result = process_diplomatic_phase("Prussia", world)
-        # stalemate_turns will be bumped to 5, fires P2
-        assert result is not None
+        """RE-SEATED by S13e part 3 (PC-F20, October 16, 2026) — the claim
+        inverted: P1's coalition guard now rides P2 (`p2_league_gate`). A
+        loyal member does not truce out of a stalemate on its own account
+        — the league treats when spent — and fires the moment P1's
+        break-ranks clause gives it a reason of its own (here exhaustion
+        over 80, the `exhaustion` reason). Before F20 the first arm fired."""
+        for reason_of_its_own in (False, True):
+            world = make_world()
+            set_war(world, "France", "Prussia")
+            set_diplomat_personality(world, "Prussia", "loyalist")
+            _boost_past_the_filter(world)
+            set_war_score(world, "Prussia", "France", 0)  # Stalemate range
+            world.ai_stalemate_counters = {
+                world._make_diplo_key("France", "Prussia"): 4}
+            # AUD-b: a real stalemate presupposes real combat on the pair.
+            world.battle_records.setdefault(
+                world._make_diplo_key("France", "Prussia"), []
+            ).append({"turn": 1, "attacker": "France", "defender": "Prussia",
+                      "attacker_casualties": 3000, "defender_casualties": 3000})
+            self._setup_coalition(world, ["Prussia", "Austria"])
+            if reason_of_its_own:
+                world.war_exhaustion["Prussia"] = 90  # WE > 80 — break ranks
+            result = process_diplomatic_phase("Prussia", world)
+            # stalemate_turns is bumped to 5: P2 is due, and the league gate
+            # alone decides whether the envoy goes
+            assert (result is not None) is reason_of_its_own, (
+                reason_of_its_own, result)
 
     def test_war_start_missing_uses_current_turn(self):
         """If war_start_turns entry missing, uses current_turn (duration=0)."""

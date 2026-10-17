@@ -451,26 +451,50 @@ func _render_war_detail(w: Dictionary):
 
 	# Breakdown
 	if breakdown != null and breakdown is Dictionary:
-		bbcode += "[color=" + COLOR_HEADER + "]Score Breakdown[/color]\n"
-		bbcode += "  Territory:  " + _signed(int(breakdown.get("territory", 0))) + "\n"
-		bbcode += "  Battles:    " + _signed(int(breakdown.get("battles", 0))) + "\n"
-		bbcode += "  Decisive:   " + _signed(int(breakdown.get("decisive", 0))) + "\n"
-		bbcode += "  Capital:    " + _signed(int(breakdown.get("capital", 0))) + "\n"
-		# PT-J2: the war's memory — provinces taken this war (even if
-		# retaken) and the blood differential. Shown = applied.
-		bbcode += "  Campaign:   " + _signed(int(breakdown.get("campaign", 0))) + "\n"
-		bbcode += "  Blood:      " + _signed(int(breakdown.get("blood", 0))) + "\n"
-		# HC-1: the silver blockade — rendered only when nonzero (most
-		# wars are land wars; the row earns its place by having a value).
-		var _blockade = int(breakdown.get("blockade", 0))
-		if _blockade != 0:
-			bbcode += "  Blockade:   " + _signed(_blockade) + "\n"
-		# NP-4: the Captive Eagle — a sovereign in an enemy cell weighs on
-		# the score. Render-when-nonzero, the blockade row's idiom.
-		var _captive = int(breakdown.get("captive", 0))
-		if _captive != 0:
-			bbcode += "  Captive:    " + _signed(_captive) + "\n"
-		bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
+		bbcode += "[color=" + COLOR_HEADER + "]Score Breakdown[/color]"
+		# PC-F84 (S13e part 3): the trend, drawn — it was computed on every
+		# row and printed by no surface.
+		bbcode += "   trend " + _trend_str(trend) + " " + trend + "\n"
+		# PC-R6 (ruling G, S13e part 3): each component's FILL against its
+		# cap — "Battles +15/15 — full" — read off the backend's
+		# `breakdown_fill` (one source); the old fixed rows are the fallback
+		# for an older payload. Blockade and Captive still render only when
+		# nonzero (most wars are land wars; the row earns its place).
+		var fill = w.get("breakdown_fill", null)
+		if fill is Array and not fill.is_empty():
+			for f in fill:
+				if not (f is Dictionary):
+					continue
+				var key = str(f.get("key", ""))
+				var value = int(float(f.get("value", 0)))
+				if (key == "blockade" or key == "captive") and value == 0:
+					continue
+				var label = str(f.get("label", key.capitalize()))
+				var line = "  " + (label + ":").rpad(12) + _signed(value) + "/" + str(int(float(f.get("cap", 0))))
+				if bool(f.get("full", false)):
+					line += "  [color=" + COLOR_GOLD + "]— full[/color]"
+				bbcode += line + "\n"
+			bbcode += "\n"
+		else:
+			bbcode += "  Territory:  " + _signed(int(breakdown.get("territory", 0))) + "\n"
+			bbcode += "  Battles:    " + _signed(int(breakdown.get("battles", 0))) + "\n"
+			bbcode += "  Decisive:   " + _signed(int(breakdown.get("decisive", 0))) + "\n"
+			bbcode += "  Capital:    " + _signed(int(breakdown.get("capital", 0))) + "\n"
+			# PT-J2: the war's memory — provinces taken this war (even if
+			# retaken) and the blood differential. Shown = applied.
+			bbcode += "  Campaign:   " + _signed(int(breakdown.get("campaign", 0))) + "\n"
+			bbcode += "  Blood:      " + _signed(int(breakdown.get("blood", 0))) + "\n"
+			# HC-1: the silver blockade — rendered only when nonzero (most
+			# wars are land wars; the row earns its place by having a value).
+			var _blockade = int(breakdown.get("blockade", 0))
+			if _blockade != 0:
+				bbcode += "  Blockade:   " + _signed(_blockade) + "\n"
+			# NP-4: the Captive Eagle — a sovereign in an enemy cell weighs on
+			# the score. Render-when-nonzero, the blockade row's idiom.
+			var _captive = int(breakdown.get("captive", 0))
+			if _captive != 0:
+				bbcode += "  Captive:    " + _signed(_captive) + "\n"
+			bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
 
 	var tier_display = str(w.get("settlement_tier_display", ""))
 	if tier_display:
@@ -552,6 +576,13 @@ func _render_war_detail(w: Dictionary):
 		elif we_int >= 40:
 			we_color = COLOR_AMBER
 		bbcode += "Enemy War Exhaustion: [color=" + we_color + "]" + str(we_int) + "[/color]\n"
+		# PC-R5 / PC-F42 (S13e part 3): what the clock is made of — the
+		# backend writes the sentence (`exhaustion_terms.lines`); diplomacy
+		# carries no fog, so the figure above is never "Unknown" now.
+		var ex_terms = w.get("exhaustion_terms", null)
+		if ex_terms is Dictionary:
+			for ln in ex_terms.get("lines", []):
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(str(ln)) + "[/color]\n"
 	else:
 		# FA-70 (slice 17): this `else` belongs to `if we != null` — NV-12
 		# inserted the fleet block between the two, so a fleetless court with

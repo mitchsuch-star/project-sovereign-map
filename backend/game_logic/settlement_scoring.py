@@ -560,6 +560,44 @@ SIDE_GOLD_CREDIT_SHARE = 0.5
 _SIDE_SHARED_CREDIT_TYPES = frozenset({"gold_indemnity", "gold_lump", "gold_per_turn"})
 
 
+def gold_land_rates() -> Dict[str, int]:
+    """PC-F60 (S13e part 3, October 16, 2026): the gold a PROVINCE weighs on
+    each of the four surfaces that price gold against land — READ from the
+    live constants, never retyped, so the note can never drift from the
+    arithmetic: the table's credit (CONCESSION_TERRITORY_PER_REGION points
+    at CONCESSION_GOLD_DIVISOR gold a point), the letter's harshness
+    (`calculate_raw_treaty_harshness` on one cession against 100 gold), the
+    bilateral sweetener and the bilateral demand (`SWEETENER_VALUES` /
+    `DEMAND_VALUES`). Four rates; each surface names its own (the row's
+    alternative to one rate, which is a balance pass this part does not
+    take)."""
+    from backend.game_logic.diplomacy import DEMAND_VALUES, SWEETENER_VALUES
+    from backend.game_logic.diplomatic_templates import calculate_raw_treaty_harshness
+    credit = int(CONCESSION_TERRITORY_PER_REGION * CONCESSION_GOLD_DIVISOR)
+    h_region = float(calculate_raw_treaty_harshness(
+        {"clauses": [], "demands": [{"type": "territory_cede", "regions": ["x"]}]}))
+    h_gold = float(calculate_raw_treaty_harshness(
+        {"clauses": [], "demands": [{"type": "gold_lump", "value": 100}]}))
+    harshness = int(round(h_region / h_gold * 100)) if h_gold > 0 else 0
+    s_region = float(SWEETENER_VALUES.get("territory_cede", 0) or 0)
+    s_gold = float(SWEETENER_VALUES.get("gold_lump", 0) or 0)
+    sweetener = int(round(s_region / s_gold)) if s_gold > 0 else 0
+    d_region = float(DEMAND_VALUES.get("territory_cede", 0) or 0)
+    d_gold = float(DEMAND_VALUES.get("gold_lump", 0) or 0)
+    demand = int(round(d_region / d_gold)) if d_gold != 0 else 0
+    return {"credit": credit, "harshness": harshness,
+            "bilateral_sweetener": sweetener, "bilateral_demand": demand}
+
+
+def gold_land_rate_note() -> str:
+    """PC-F60: the four rates in one sentence, for the counsel and the table."""
+    r = gold_land_rates()
+    return (f"A province weighs {r['credit']:,} gold in a court's credit at the table, "
+            f"{r['harshness']:,} in a letter's harshness, {r['bilateral_sweetener']:,} as a "
+            f"bilateral sweetener and {r['bilateral_demand']:,} as a bilateral demand — "
+            f"four rates, each surface its own.")
+
+
 def side_gold_credit_share() -> float:
     """PC-F50's rate as ONE seam (the series attribution holds it at 1.0:
     `--seam backend.game_logic.settlement_scoring:side_gold_credit_share=lambda: 1.0`)."""
@@ -705,6 +743,25 @@ def _clamp(value: int, bounds: Tuple[int, int]) -> int:
 
 
 # --- Component helpers -------------------------------------------------------
+
+
+def court_own_pressure(side_pressure_score: int, own_pair_score: Optional[int]) -> int:
+    """PC-R4 — ruling E item 2 (the peace report §46, October 16, 2026): the
+    pressure a court's OWN row is scored on is its OWN pair score with the
+    proposer's side (`select_direct_score` over the pairs at war), not the
+    side's power-weighted mean. Measured on the Vienna-held board: Austria
+    at +79 (stored +54) read 11/50 because Britain's -2 and Russia's 0
+    pulled the mean to 17 — and Britain, unfought, read 18 instead of the
+    6 she reads alone. The side pressure survives as the TABLE's reading
+    (its tier label, PC-F3's line) and as the fallback for a court with no
+    pair of its own. ONE seam: the base (`calculate_base_side_pressure`) and
+    the tier legitimacy (`calculate_settlement_tier_legitimacy`) both read
+    it, so the −10 white-peace charge stops biting a victor in Vienna. The
+    series attribution holds it down (`--seam
+    backend.game_logic.settlement_scoring:court_own_pressure=lambda s, o: s`)."""
+    if own_pair_score is None:
+        return int(side_pressure_score)
+    return int(max(WAR_SCORE_MIN, min(WAR_SCORE_MAX, int(own_pair_score))))
 
 
 def calculate_base_side_pressure(side_pressure_score: int) -> Dict[str, Any]:
@@ -1329,13 +1386,25 @@ def _classify_objective_alignment(
     objective_record: Mapping[str, Any],
     target: str,
     settlement_terms: Iterable[Mapping[str, Any]],
+    proposer_side_participants: Iterable[str] = (),
 ) -> Tuple[int, str]:
     """Spec §6.acceptance line 1176-1183 table evaluation.
 
     Returns `(score, label)` where label ∈ {'satisfies', 'partial',
     'unrelated_harsh', 'contradicts', 'no_objective'}.
+
+    PC-F27 (S13e part 3, October 16, 2026): the component scores the
+    PROPOSER's declared purpose from the accepting court's chair, and a
+    province the proposer's own side CEDES is a concession to that court —
+    never a reason for it to like the peace less. Before, France ceding
+    Flanders read as "contradicting" France's own homeland defence (−20 on
+    every court: 48 / 33 / 28 against 78 / 53 / 53 for returning Bohemia);
+    the −20 fired only for France's STARTING provinces (`target_regions` of
+    the boot `defense` purpose). A cession by a proposer-side court is
+    skipped by the contradiction arms; the enemy's own cessions still read.
     """
     target_regions = set(objective_record.get("target_regions") or [])
+    proposer_set = {str(n) for n in (proposer_side_participants or []) if n}
     has_objective_concession = False
     has_unrelated_harsh = False
     contradicts = False
@@ -1345,6 +1414,11 @@ def _classify_objective_alignment(
         from_n = _term_from_nation(term)
         to_n = _term_to_nation(term)
         regions = set(_term_regions(term))
+        # PC-F27: a term the PROPOSING side pays is its concession — it is
+        # priced by `concession_credit`, never read here as a contradiction
+        # or as harshness on an unrelated target.
+        if from_n and from_n in proposer_set:
+            continue
 
         if objective_type == "conquest":
             if ttype in _TERRITORY_TERM_TYPES and from_n == target:
@@ -1353,7 +1427,8 @@ def _classify_objective_alignment(
                 else:
                     has_objective_concession = True
             elif ttype in _TERRITORY_TERM_TYPES and to_n == target:
-                # Returns the objective region or strengthens the target.
+                # Returns the objective region or strengthens the target (a
+                # proposer-paid return never reaches here — PC-F27, above).
                 if regions & target_regions or not target_regions:
                     contradicts = True
             elif ttype == "forced_alliance" and from_n == target:
@@ -1379,6 +1454,7 @@ def _classify_objective_alignment(
         elif objective_type == "defense":
             # Defense partial vs satisfies is decided after the loop.
             # Track only contradictions / unrelated-harsh signals here.
+            # (a proposer-paid cession never reaches here — PC-F27, above)
             if ttype in _TERRITORY_TERM_TYPES and from_n == objective_record.get("declaring_nation"):
                 if regions & target_regions:
                     contradicts = True
@@ -1464,6 +1540,7 @@ def calculate_war_objective_alignment(
     declarer, target, record = selection
     score, label = _classify_objective_alignment(
         record.get("type", ""), record, target, terms_list,
+        proposer_side_participants=proposer_side_participants,
     )
     score = _clamp(int(score), ALIGN_CLAMP)
     try:
@@ -2311,9 +2388,16 @@ def calculate_common_peace_acceptance(
         }
 
     side_pressure_score = int(side_pressure_result["score"])
+    # PC-R4 (ruling E item 2): this court's row is scored on its OWN pair,
+    # blended with the side only where it has none (`court_own_pressure`).
+    _own_selection = select_direct_score(direct_scores_map.get(str(accepting_leader)) or {})
+    court_pressure_score = court_own_pressure(
+        side_pressure_score, _own_selection[0] if _own_selection else None)
 
-    # Step 3: base_side_pressure.
-    base_debug = calculate_base_side_pressure(side_pressure_score)
+    # Step 3: base_side_pressure — on the court's own pressure.
+    base_debug = calculate_base_side_pressure(court_pressure_score)
+    base_debug["court_pressure_score"] = int(court_pressure_score)
+    base_debug["side_mean_score"] = int(side_pressure_score)
 
     # Step 4-5: tier legitimacy + harshness penalty share raw harshness.
     # G4F-1: computed over the accepting-side burden terms only — proposer
@@ -2323,8 +2407,9 @@ def calculate_common_peace_acceptance(
             settlement_terms,
             proposer_side_participants=proposer_participants,
         )
+    # PC-R4 (§46 E, decided): the tier legitimacy reads the court's OWN tier.
     tier_debug = calculate_settlement_tier_legitimacy(
-        side_pressure_score, raw_total_harshness, settlement_terms,
+        court_pressure_score, raw_total_harshness, settlement_terms,
         proposer_side_participants=proposer_participants,
     )
     harshness_debug = calculate_term_harshness_penalty(raw_total_harshness)
@@ -2540,6 +2625,7 @@ def calculate_common_peace_acceptance(
         "components": components,
         "component_debug": component_debug,
         "side_pressure_score": side_pressure_score,
+        "court_pressure_score": int(court_pressure_score),
         "side_pressure_result": dict(side_pressure_result),
         "direct_scores": direct_scores_map,
         "direct_score_sources": side_pressure_result.get("direct_score_sources") or {},

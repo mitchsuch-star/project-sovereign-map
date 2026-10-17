@@ -381,9 +381,12 @@ class TestReviewRoundTheSnapshotNamesWhoseTerms:
         for name in ("proposal_confirm_popup.gd", "incoming_proposal_popup.gd"):
             code = _code_lines(SCRIPTS / name)
             assert 'snapshot.get("settlement_tier_side", "")' in code, name
-            assert "Settlement (theirs to impose): " in code, name
+            # PC-F38 (S13e part 3): the envoy's popup labels the pair's scope before the side.
+            assert ("Settlement (theirs to impose): " in code
+                    or '" (theirs to impose): ' in code), name
             # The old gold line survives as the fallback.
-            assert 'bbcode += "Settlement: [color=#e0c070]%s[/color]\\n" % tier_display' in code, name
+            assert ('bbcode += "Settlement: [color=#e0c070]%s[/color]\\n" % tier_display' in code
+                    or 'bbcode += "Settlement" + scope_text + ": [color=#e0c070]%s[/color]\\n" % tier_display' in code), name   # PC-F38 (S13e part 3)
 
 
 # ─────────────────────────────────────────────────────────────────────────

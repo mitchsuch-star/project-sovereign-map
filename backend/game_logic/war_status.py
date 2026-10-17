@@ -201,6 +201,9 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
                     "total": None if total is None else int(total),
                     "threshold": threshold,
                     "ready": total is not None and int(total) >= threshold,
+                    # PC-R4: the court's own pressure and whether it is consulted.
+                    "court_pressure": court.get("court_pressure_score"),
+                    "consulted": court.get("consulted", True),
                     "pair_score": int(live_war_score_for(world, france, nation)) if nation else 0,
                     "own_score": int(own.get("score", 0)),
                     "own_threshold": int(own.get("threshold", 0)),
@@ -220,11 +223,12 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
                  f"{out['courts'][0]['threshold']} — with no terms: {tally}")
     out["lines"].append(line + ".")
     if len(out["courts"]) > 1:
-        # PC-F37: the averaging, shown — each court's own score and the mean
-        # the table reads.
+        # PC-F37: the averaging, shown — each court's own score; PC-R4: each
+        # court is now scored on its OWN pair — the mean is the table's label.
         pairs = " · ".join(f"{formed_display_name(world, c['nation'])} {c['pair_score']:+d}"
                            for c in out["courts"])
-        out["lines"].append(f"Court by court: {pairs}; the table reads their mean ({int(pressure)}).")
+        out["lines"].append(f"Court by court: {pairs}; the table reads their mean ({int(pressure)}) "
+                            f"for its tier, and scores each court on its own pair.")
     for c in out["courts"]:
         # PC-F88: what the beaten court itself would do.
         if c["sues"]:
@@ -236,12 +240,43 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
                 f"{formed_display_name(world, c['nation'])}'s own court would sue at "
                 f"{c['own_threshold']} (she reads {c['own_score']}"
                 f"{', ' + why if why else ''}): {letter}.")
+    # PC-R4 (ruling E item 3): the courts under the stake floor, said.
+    _not_consulted = [c for c in out["courts"] if c.get("consulted") is False]
+    if _not_consulted:
+        _names = " and ".join(formed_display_name(world, c["nation"]) for c in _not_consulted)
+        out["lines"].append(
+            f"{_names} {'is' if len(_not_consulted) == 1 else 'are'} covered, not consulted "
+            f"— under the 10 % stake floor; the side's peace binds "
+            f"{'her' if len(_not_consulted) == 1 else 'them'}.")
     if int(field) != int(pressure):
         out["lag_note"] = (
             f"This turn's battles and captures count from next turn: the table "
             f"reads {int(pressure)} until the turn ends; the field stands at {int(field)}.")
         out["lines"].append(out["lag_note"])
     return out
+
+
+def _exhaustion_block(world, opponent: str) -> Tuple[int, Dict[str, Any]]:
+    """PC-F42 (S13e part 3): DIPLOMACY CARRIES NO FOG. The war row fog-gated
+    the opponent's exhaustion on its map visibility while the same popup's
+    Request Terms button stated it ("exhaustion 45 of 80"); the figure is
+    public, as every diplomatic read is. PC-R5: the clock's components ride
+    beside it (`coalition.war_exhaustion_terms`, `war_exhaustion_lines`) —
+    every number an int (Golden Rule 2)."""
+    from backend.game_logic.coalition import war_exhaustion_lines, war_exhaustion_terms
+    terms = war_exhaustion_terms(world, opponent)
+    block = {
+        "current": int(terms["current"]), "base": int(terms["base"]),
+        "occupation": int(terms["occupation"]), "subsidy": int(terms["subsidy"]),
+        "finance": int(terms["finance"]), "total": int(terms["total"]),
+        "at_war": bool(terms["at_war"]), "in_truce": bool(terms["in_truce"]),
+        "subsidy_role": str(terms["subsidy_role"] or ""),
+        "held": list(terms["held"]),
+        "forecast_turns": (None if terms["forecast_turns"] is None
+                           else int(terms["forecast_turns"])),
+        "lines": war_exhaustion_lines(world, opponent),
+    }
+    return int(world.war_exhaustion.get(opponent, 0) or 0), block
 
 
 def build_active_wars(world) -> Dict[str, Any]:
@@ -255,11 +290,12 @@ def build_active_wars(world) -> Dict[str, Any]:
     from backend.game_logic.diplomacy import (
         armistice_projected_relation,
         calculate_war_score,
+        war_score_fill,
+        war_score_fill_lines,
     )
     from backend.game_logic.diplomatic_ledger import (
         _get_nation_visibility, _format_army_strength,
     )
-    from backend.models.intel import PARTIAL, VISIBILITY_PRIORITY
 
     france = world.player_nation
     wars = []
@@ -378,15 +414,10 @@ def build_active_wars(world) -> Dict[str, Any]:
                 "decisive": is_decisive,
             })
 
-        # War exhaustion + army strength (fog-filtered)
-        raw_we = world.war_exhaustion.get(opponent, 0) or 0
+        # War exhaustion — PC-F42 / PC-R5 (S13e part 3): no fog, the clock's
+        # components beside it (`_exhaustion_block`).
         vis = _get_nation_visibility(opponent, world)
-        vis_priority = VISIBILITY_PRIORITY.get(vis, 0)
-        partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
-        if vis_priority >= partial_priority:
-            war_exhaustion = int(raw_we)
-        else:
-            war_exhaustion = None
+        war_exhaustion, exhaustion_terms = _exhaustion_block(world, opponent)
 
         opp_strength = sum(
             m.strength for m in world.marshals.values()
@@ -510,6 +541,14 @@ def build_active_wars(world) -> Dict[str, Any]:
             "decisive_won": decisive_won,
             "recent_battles": recent_battles,
             "war_exhaustion": war_exhaustion,
+            # PC-R5 / F42: the clock's named components, in words too.
+            "exhaustion_terms": exhaustion_terms,
+            "exhaustion_line": exhaustion_terms["lines"][0] if exhaustion_terms["lines"] else "",
+            # PC-R6 (ruling G): each component's fill against its cap.
+            "breakdown_fill": war_score_fill(components),
+            "breakdown_fill_lines": war_score_fill_lines(components),
+            # PC-F84: the trend's glyph, drawn by the card and the popup.
+            "trend_glyph": {"rising": "↑", "falling": "↓"}.get(trend, "→"),
             "army_strength": army_strength,
             # DEF-5 naval §9: one naval line per belligerent with a fleet.
             # PUBLIC data (the recorded fog ruling — period newspapers
@@ -826,6 +865,7 @@ COALITION_MEMBER_ROW_KEYS = (
     "opponent_display",
     "war_score",
     "war_exhaustion",
+    "exhaustion_line",      # PC-R5 / F42: each member's clock, in words
     "army_strength",
     "in_coalition",
     "is_coalition_leader",
@@ -987,6 +1027,11 @@ def _collapse_shared_war_instance_rows(
         side_components = calculate_side_war_score(
             france, row_opponents, world, return_components=True)
         combined["war_score"] = int(side_components["total"])
+        # PC-R6: the fill is the WAR's too (the representative's was the
+        # leader pair's); the trend glyph follows the combined trend.
+        from backend.game_logic.diplomacy import war_score_fill, war_score_fill_lines
+        combined["breakdown_fill"] = war_score_fill(side_components)
+        combined["breakdown_fill_lines"] = war_score_fill_lines(side_components)
         combined["breakdown"] = {
             "territory": int(side_components["territory"]),
             "battles": int(side_components["battles"]),

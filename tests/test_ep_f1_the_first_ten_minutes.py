@@ -385,7 +385,8 @@ class TestThePurposeIsOneSentence:
         assert sorted(re.search(r"vs (\w+)", t).group(1) for t in lines) == [
             "Austria", "Britain", "Russia"]
         for text in lines:
-            assert f"— {HOMELAND_SENTENCE}  |  Settlement:" in text, text
+            # PC-F38 (S13e part 3, October 16, 2026): the tier is the pair's
+            assert f"— {HOMELAND_SENTENCE}  |  Settlement (this pair):" in text, text
             for name in world.nation_starting_regions["France"]:
                 assert name not in text, (name, text)
             assert "[HELD]" not in text
@@ -411,7 +412,7 @@ class TestThePurposeIsOneSentence:
         _lose_homeland(world, keep=())
         for text in _defense_lines(world):
             assert text.startswith("War Purpose: Defense vs ")
-            assert "— the homeland is lost  |  Settlement:" in text, text
+            assert "— the homeland is lost  |  Settlement (this pair):" in text, text
 
     def test_any_other_list_names_eight(self):
         world = _scenario_world()

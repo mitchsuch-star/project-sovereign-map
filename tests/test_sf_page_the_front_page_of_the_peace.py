@@ -710,7 +710,20 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               "backend.game_logic.turn_manager:ai_phase_reads_the_field=None",
               "backend.game_logic.battle_scale:is_decisive_victory_exchange="
               "__import__('backend.game_logic.battle_scale').game_logic.battle_scale"
-              ".is_decisive_exchange(a[0], a[1])"]
+              ".is_decisive_exchange(a[0], a[1])",
+              'backend.game_logic.settlement_scoring:court_own_pressure=int(a[0])',
+              "backend.game_logic.settlement_baseline:stake_floor_consults={'consulted': True, 'share': None, 'reason': 'floor_down', 'burdened': False}",
+              'backend.game_logic.ai_diplomacy:letter_consenting_courts=list(a[2])',
+              "backend.game_logic.ai_diplomacy:letter_writer_and_score=(str(k.get('leader') or (k.get('covered') or [''])[0]), int(__import__('backend.game_logic.diplomacy').game_logic.diplomacy.sum_stored_side_score(a[0], k['player'], list(k['covered']))) if len(k.get('covered') or []) > 1 else int(__import__('backend.game_logic.diplomacy').game_logic.diplomacy.get_war_score_for(a[0], k['player'], str(k.get('leader') or k['covered'][0]))))",
+              "backend.game_logic.coalition:exhaustion_clock_terms={'occupation': 0, 'subsidy': 0, 'finance': 0, 'held': [], 'subsidy_role': ''}",
+              'backend.game_logic.ai_diplomacy:p2_league_gate=False',
+              "backend.game_logic.diplomacy:battle_score_from_records=__import__('backend.game_logic.diplomacy').game_logic.diplomacy._decay_battle_score(max(-15, min(15, sum(3 if r.get('winner') == a[1] else (-3 if r.get('winner') == a[2] else 0) for r in a[0]))), a[0], a[3])",
+              "backend.game_logic.diplomacy:defense_ticking_gain=sum(1 for r in a[3].get('target_regions', []) if r in a[0].regions and ((a[0].regions[r].controller == a[2]) if a[2] is not None else (a[0].regions[r].controller != a[1])))",
+              'backend.game_logic.diplomacy:acceptance_reads_the_field=False',
+              'backend.game_logic.naval:posture_blockade_answered=False',
+              'backend.game_logic.settlement_third_party:silent_band_white_peace=False',
+              'backend.game_logic.settlement_helpers:newcomer_joins_the_war=True',
+              ]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",
                "backend.game_logic.dispatch:THE_PASSAGE_COUNTS_ITS_SLACK=0",
@@ -870,13 +883,26 @@ class TestTheDrivenArms:
     def test_a_standing_crisis_is_on_the_page_every_turn_it_stands(self, driven):
         run, _checklist = driven
         nag = re.compile(r"arrears|unrewarded|without settlement|household goes unpaid|claim is")
+        seen = 0
         for name in ARMS:
             pages = _pages(run / "arms" / name / "digest.jsonl")
             on = [t for t, r in pages
                   if any(nag.search(x) for x in [r.get("headline_text") or ""] + list(r.get("sub_beats") or []))]
-            assert on, name
+            # RE-SEATED by S13e part 3 (PC-R4, ruling E, October 16, 2026),
+            # consciously: on CMD-A (austerlitz) Austria — the court that
+            # fought, re-seated as the league's writer by contribution — sends
+            # the settlement letter at turn 9 for Russia under the stake floor,
+            # the driver accepts it, the coalition dissolves and Britain's
+            # white peace ends the war at turn 15: the campaign that follows
+            # carries no arrears crisis at all. An arm with no standing
+            # crisis has no gap to check; the rule holds on every arm that
+            # has one (CMD-H, CMD-M), and at least one arm must.
+            if not on:
+                continue
+            seen += 1
             gaps = [t for t, r in pages if on[0] <= t <= on[-1] and t not in on]
             assert gaps == [], (name, gaps)
+        assert seen >= 1
 
     def test_the_driver_records_the_whole_page(self, driven):
         run, _checklist = driven

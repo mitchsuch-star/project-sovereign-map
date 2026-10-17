@@ -2009,8 +2009,14 @@ def coalition_break_ranks_reason(world, nation: str, *, war_score: int,
 # formula's league term (`calculate_acceptance`'s `coalition_loyalty`,
 # COALITION_SPEC §6a — finally built) all describe the same court.
 P1_PEACE_SPLIT = -70   # P1 sends a PEACE below this, a truce above it (the split stays, §46 D)
-COALITION_LOYALTY_BASE = -15          # COALITION_SPEC §6a: the loyalty penalty at 0 exhaustion
-COALITION_LOYALTY_EASE_PER = 10       # … easing one point per this much war exhaustion
+COALITION_LOYALTY_EASE_PER = 10       # … easing one point per this much war exhaustion (§6a's `we // 10`)
+
+
+def _coalition_loyalty_base() -> int:
+    """PC-F20 (S13e part 3): the §6a number has ONE home — `coalition.py`'s
+    COALITION_LOYALTY_BASE (the formula's own module) — read here, never retyped."""
+    from backend.game_logic.coalition import COALITION_LOYALTY_BASE
+    return int(COALITION_LOYALTY_BASE)
 
 
 def honest_peace_never_silent(proposal: Dict) -> None:
@@ -2028,6 +2034,33 @@ def honest_peace_never_silent(proposal: Dict) -> None:
     proposal["honest_peace_fallback"] = True
 
 
+def p2_league_gate(world, nation: str, *, war_score: int, diplo_key: str) -> bool:
+    """PC-F20 (S13e part 3): P1's coalition gate, read by P2 — True while the
+    court is a league member with NO reason of its own to break ranks
+    (`coalition_break_ranks_reason` is None): it does not truce out of a
+    stalemate on its own account; the league treats when spent. The series
+    attribution holds it down (`--seam backend.game_logic.ai_diplomacy:
+    p2_league_gate=lambda *a, **k: False`)."""
+    from backend.game_logic.coalition import is_coalition_member
+    if not is_coalition_member(nation, world):
+        return False
+    return coalition_break_ranks_reason(
+        world, nation, war_score=war_score, diplo_key=diplo_key) is None
+
+
+def _one_envoy_for_this_war(world, nation: str, player: str) -> bool:
+    """FA-S17-15's rule as ONE read (PC-F20 extends it to P2 and P8): True
+    while a settlement letter for the court's war with the player is on the
+    desk or promoted — the letter carries the peace; no twin envoy."""
+    _war = _find_war_instance_for_pair(world, nation, player)
+    _war_id = str((_war or {}).get("war_id") or "")
+    if not _war_id:
+        return False
+    _pending = getattr(world, "pending_settlement_dialogues", None) or []
+    return bool(_settlement_offer_already_pending(_pending, war_id=_war_id)
+                or _settlement_offer_already_promoted(world, war_id=_war_id))
+
+
 def coalition_loyalty_penalty(world, court: str, opponent: str) -> int:
     """COALITION_SPEC §6a's coalition-loyalty penalty on a separate peace
     with `court` (PC-R1 iii): `min(-15 + we // 10, 0)` while the court is
@@ -2039,7 +2072,7 @@ def coalition_loyalty_penalty(world, court: str, opponent: str) -> int:
     ready = court_own_readiness(world, court, opponent)
     if not ready["loyal"]:
         return 0
-    return int(min(COALITION_LOYALTY_BASE
+    return int(min(_coalition_loyalty_base()
                    + int(ready["exhaustion"]) // COALITION_LOYALTY_EASE_PER, 0))
 
 
@@ -2136,6 +2169,18 @@ def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
         coalition and coalition.get("target_nation") == player
         and leader in (coalition.get("members") or [])
     )
+    # PC-F58 (S13e part 3): where the war is the LEAGUE's, the gate reads
+    # the COALITION's leader, not the instance's — a coalition's declarations
+    # welded into an AI design war's instance (austerlitz t24: the Fourth
+    # Coalition's pairs on Austria's war_3) read Austria's exhaustion and
+    # score for Britain's league. The coalition leader must sit on the
+    # opposing side and be at war with the player, else the instance leader.
+    if leagues_war:
+        _cl = str(coalition.get("leader") or "")
+        if (_cl and _cl != leader and side_by_nation.get(_cl)
+                and side_by_nation.get(_cl) != player_side
+                and world.is_at_war(_cl, player)):
+            leader = _cl
     declared_war = bool(
         player_declared_this_war(war, player)
     )
@@ -2149,10 +2194,15 @@ def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
     if reason is not None:
         return None
     exhaustion = int(world.war_exhaustion.get(leader, 0) or 0)
-    turns = max(1, -(-(BREAK_RANKS_EXHAUSTION + 1 - exhaustion) // WAR_EXHAUSTION_PER_TURN_AT_WAR))
+    # PC-R5 (ruling H): the clock reads the LIVE rate — +8 plus occupation,
+    # subsidy and finance (`coalition.war_exhaustion_rate`) — not the +8
+    # constant; a paymaster at +10 passes 80 sooner than the constant said.
+    from backend.game_logic.coalition import war_exhaustion_rate
+    rate = max(1, int(war_exhaustion_rate(world, leader)))
+    turns = max(1, -(-(BREAK_RANKS_EXHAUSTION + 1 - exhaustion) // rate))
     return {"reason": "league_not_spent" if leagues_war else "war_not_spent",
             "leader": leader, "war_score": war_score,
-            "exhaustion": exhaustion, "turns_at_most": int(turns)}
+            "exhaustion": exhaustion, "rate": int(rate), "turns_at_most": int(turns)}
 
 
 def league_offer_gate_display(world, gate: Dict) -> str:
@@ -2160,16 +2210,20 @@ def league_offer_gate_display(world, gate: Dict) -> str:
     from backend.game_logic.formations import formed_display_name
     leader = formed_display_name(world, str(gate.get("leader") or ""))
     turns = int(gate.get("turns_at_most") or 1)
+    # PC-R5: the rate said, so the clock can be checked ("+10 a turn").
+    rate = int(gate.get("rate") or WAR_EXHAUSTION_PER_TURN_AT_WAR)
     if str(gate.get("reason") or "") == "war_not_spent":
         # PR-D1d: a war the player declared — the leader has not broken ranks.
         return (f"{leader} has not broken ranks on the war we declared, Sire — it "
                 f"names no terms while it can still fight (exhaustion "
-                f"{int(gate.get('exhaustion') or 0)} of {BREAK_RANKS_EXHAUSTION}; at "
+                f"{int(gate.get('exhaustion') or 0)} of {BREAK_RANKS_EXHAUSTION}, "
+                f"wearing at +{rate} a turn; at "
                 f"most {turns} turn{'s' if turns != 1 else ''}, sooner if the war "
                 f"turns against it).")
     return (f"{leader} leads a league that is not yet spent, Sire — it names no terms "
             f"while it can still fight (exhaustion {int(gate.get('exhaustion') or 0)} of "
-            f"{BREAK_RANKS_EXHAUSTION}; at most {turns} turn{'s' if turns != 1 else ''}, "
+            f"{BREAK_RANKS_EXHAUSTION}, wearing at +{rate} a turn; at most {turns} "
+            f"turn{'s' if turns != 1 else ''}, "
             f"sooner if the war turns against it).")
 
 
@@ -2405,7 +2459,15 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             if has_fought
             else max(effective_stalemate_turns, P2_NO_CONTACT_ESCAPE_TURNS)
         )
-        if stalemate_turns >= p2_threshold:
+        # PC-F20 (S13e part 3): P1's gates ride P2 too — a league member with
+        # no reason of its own to break ranks does not truce out of a
+        # stalemate alone (`p2_league_gate`; the league treats when spent),
+        # and the one-envoy rule holds while a settlement letter for this
+        # war is on the desk.
+        p2_blocked = p2_league_gate(world, nation, war_score=war_score, diplo_key=diplo_key)
+        if not p2_blocked:
+            p2_blocked = _one_envoy_for_this_war(world, nation, player)
+        if stalemate_turns >= p2_threshold and not p2_blocked:
             ptype = "armistice_stalemate"
             if not _is_on_cooldown(nation, "armistice", world, war_score):
                 terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
@@ -2529,7 +2591,13 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
 
     # ── P8: Aggressive Dominance — AI winning badly (war_score > 40) ──
     # R116: When AI is dominating, demand harsh peace terms
-    if proposal is None and is_at_war and war_score > 40:
+    # PC-F20: the one-envoy rule rides P8 too (a settlement letter on the
+    # desk for this war carries the peace). P1's COALITION gate does NOT —
+    # a winning member's dictated letter is the league's own instrument
+    # (ruling I; the ulm pin: Britain leads the league and dictates), not a
+    # desertion; the judgement is recorded on the row.
+    if (proposal is None and is_at_war and war_score > 40
+            and not _one_envoy_for_this_war(world, nation, player)):
         ptype = "harsh_peace"
         if not _is_on_cooldown(nation, ptype, world, war_score):
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
@@ -5172,13 +5240,129 @@ def _covered_at_war(world, war: Dict, *, player: str) -> List[str]:
     return covered_courts_at_war(world, war, player=player)
 
 
+def letter_consenting_courts(world, player: str, covered: List[str],
+                             writer: str = "") -> List[str]:
+    """PC-R4 — ruling E item 5 (the peace report §46, October 16, 2026): the
+    AI's settlement letter is dry-run AS THE PLAYER'S is. Before, every
+    covered court consented by fiat (`consenting_courts=covered`), so a
+    letter carried whatever the table would have said; the player's own
+    table is judged court by court. The courts that CONSENT to the letter
+    are the writer (its own terms, FA-3), every covered court whose own AI
+    would sue on its own account (`court_own_readiness(...)["sues"]`), and
+    every court with NO STAKE in the war — under the stake floor or on a side
+    whose ledger is empty (`settlement_baseline.stake_floor_consults`): the
+    leader stipulates for the courts that did not fight (ruling C's mirror;
+    HOI4's 5 %, Vic3's "no stake, no say"). A court with a stake that is
+    neither suing nor the writer is scored on its row like the player's
+    table scores it; where it refuses, the emitter leaves it its war
+    (`courts_the_letter_carries`, PC-F50's idiom) rather than silencing the
+    letter. The series attribution holds it down (`--seam backend.game_logic.
+    ai_diplomacy:letter_consenting_courts=lambda w, p, c, writer="": list(c)`)."""
+    out: List[str] = []
+    if writer and writer in covered:
+        out.append(str(writer))
+    war = _find_war_instance_for_pair(world, str(covered[0]), player) if covered else None
+    side_by_nation = (war or {}).get("side_by_nation") or {}
+    for court in covered:
+        if court in out:
+            continue
+        try:
+            if court_own_readiness(world, str(court), player).get("sues"):
+                out.append(str(court))
+                continue
+        except Exception as exc:
+            report(exc, "ai_diplomacy.letter_consenting_courts: court_own_readiness")
+        if war is not None:
+            try:
+                from backend.game_logic.settlement_baseline import stake_floor_consults
+                floor = stake_floor_consults(
+                    world, war_id=str(war.get("war_id") or ""), war_instance=war,
+                    accepting_side=str(side_by_nation.get(court) or ""), court=str(court),
+                    settlement_terms=[])
+                if floor.get("reason") in ("under_floor", "no_ledger"):
+                    out.append(str(court))
+            except Exception as exc:
+                report(exc, "ai_diplomacy.letter_consenting_courts: stake_floor_consults")
+    return out
+
+
+def courts_the_letter_carries(world, war_id: str, war: Dict, *, player: str,
+                              covered: List[str], terms: List[Dict], writer: str) -> List[str]:
+    """PC-R4 (E item 5): the covered courts the letter can carry, read by the
+    player's own per-court table — the consenting courts (`letter_consenting_
+    courts`) and every other court whose row reaches the threshold. A court
+    with a stake that refuses is LEFT ITS WAR, as a winning court is (PC-F50);
+    the letter is never silenced by it. The writer always stays."""
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    opposing_side = "defenders" if player_side == "attackers" else "attackers"
+    consenting = letter_consenting_courts(world, player, list(covered), writer)
+    try:
+        from backend.game_logic.settlement_baseline import compute_per_court_acceptance
+        view = compute_per_court_acceptance(
+            world, war_id=str(war_id), war_instance=war, proposer_side=player_side,
+            accepting_side=opposing_side, proposer_side_leader=player,
+            covered_enemy_participants=list(covered), settlement_terms=list(terms),
+            consenting_courts=list(consenting))
+    except Exception as exc:
+        report(exc, "ai_diplomacy.courts_the_letter_carries: compute_per_court_acceptance")
+        return list(covered)
+    holdouts = set(str(n) for n in (view.get("overall_acceptance") or {}).get("holdout_courts") or [])
+    kept = [c for c in covered if c == writer or c in consenting or c not in holdouts]
+    return kept
+
+
+def letter_writer_and_score(world, war: Dict, *, player: str, covered: List[str],
+                            leader: Optional[str]) -> tuple:
+    """PC-R4 (E item 5) + PC-F63 (S13e part 3): WHO writes the side's
+    settlement letter, and the war score its direction and price read.
+    The writer is re-seated by CONTRIBUTION when the letter is written —
+    the covered court with the largest material share of the side's war
+    (`war_contribution.material_contribution_share`; ties keep the side's
+    leader, then the coverage order) — Austria at 99 % of the Third
+    Coalition's war writes it, not Britain at 1 %. The direction reads the
+    WRITER's OWN pair with the player (F63: the letter read the stored side
+    SUM, 47 ≥ 20, and made Britain pay 2,819 gold for Austria's defeat while
+    the table read the mean, 17): the court that fought the war pays or is
+    paid on its own account — the same per-court reading the table uses
+    (E item 2). Returns `(writer, score_from_the_player's_chair)`. The
+    series attribution holds it down (`--seam …:letter_writer_and_score=
+    <the leader-or-coverage-leader and the side sum>`)."""
+    from backend.game_logic.diplomacy import get_war_score_for
+    from backend.game_logic.war_contribution import material_contribution_share
+    covered = [str(n) for n in covered if n]
+    if not covered:
+        return (str(leader or ""), 0)
+    side_by_nation = war.get("side_by_nation") or {}
+    side = side_by_nation.get(covered[0]) or (
+        "defenders" if side_by_nation.get(player) == "attackers" else "attackers")
+    war_id = str(war.get("war_id") or "")
+    shares = {}
+    for court in covered:
+        try:
+            shares[court] = float(material_contribution_share(world, war_id, court, side))
+        except Exception as exc:
+            report(exc, "ai_diplomacy.letter_writer_and_score: material_contribution_share")
+            shares[court] = 0.0
+    best = max(shares.values()) if shares else 0.0
+    top = [c for c in covered if shares.get(c, 0.0) >= best]
+    if leader and leader in top:
+        writer = str(leader)
+    else:
+        writer = top[0]
+    return (writer, int(get_war_score_for(world, player, writer)))
+
+
 def _letter_would_carry(world, war_id: str, war: Dict, *, player: str,
-                        covered: List[str], terms: List[Dict]) -> bool:
+                        covered: List[str], terms: List[Dict],
+                        writer: str = "") -> bool:
     """SF-V5: the ratifier's own reading of the letter before it is sent —
     the per-court table with the offering courts' consent (SR-2a's trio).
     True when the package carries (no hard stop, every court consenting or
     at the threshold); an unreadable table (a fixture without a scoreable
-    war) is treated as carrying so no producer is silenced by a harness."""
+    war) is treated as carrying so no producer is silenced by a harness.
+    PC-R4: the consent read is `letter_consenting_courts` — the player's
+    own dry-run, not consent by fiat."""
     side_by_nation = war.get("side_by_nation") or {}
     player_side = side_by_nation.get(player)
     opposing_side = "defenders" if player_side == "attackers" else "attackers"
@@ -5193,7 +5377,7 @@ def _letter_would_carry(world, war_id: str, war: Dict, *, player: str,
             proposer_side_leader=player,
             covered_enemy_participants=list(covered),
             settlement_terms=list(terms),
-            consenting_courts=list(covered),
+            consenting_courts=letter_consenting_courts(world, player, list(covered), writer),
         )
     except Exception as exc:
         report(exc, "ai_diplomacy._letter_would_carry: import backend.game_logic.settlement_baseline")
@@ -5261,6 +5445,7 @@ def _emit_settlement_offer_for_war(
     covered_enemies = leave_a_winning_court_its_war(world, player, covered_enemies)
     if not covered_enemies:
         return None
+    _covered_before_the_table = list(covered_enemies)
     if proposer_nation not in covered_enemies:
         from backend.game_logic.settlement_staging import (
             accepting_leader_for_coverage,
@@ -5269,26 +5454,17 @@ def _emit_settlement_offer_for_war(
             war, opposing_side, covered_enemies) or covered_enemies[0])
     war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
 
-    # AUD-c: war score from the player's perspective decides whether the
-    # offer demands or grants an indemnity.
-    # CA8-3 / CA8-D2 (close-out gate 10.1): a MULTI-PARTY war reads the
-    # WAR, not the leader pair — a campaign of victories over Austria
-    # presses on a Britain-led table too. Same SOURCE as ever (the stored
-    # pair scores), widened to the whole opposing side; a bilateral war is
-    # byte-identical to the pre-gate read.
-    from backend.game_logic.diplomacy import (
-        get_war_score_for, sum_stored_side_score,
-    )
-    player_war_score = 0
+    # PC-R4 (E item 5) + PC-F63: the WRITER is re-seated by contribution
+    # when the letter is written, and the letter's direction and price read
+    # the writer's OWN pair with the player — the per-court reading the
+    # table itself uses — never the side's stored SUM (CA8-D2's read, which
+    # made an unfought Britain pay for Austria's defeat).
     try:
-        if len(covered_enemies) > 1:
-            player_war_score = int(sum_stored_side_score(
-                world, player, covered_enemies))
-        elif proposer_nation:
-            player_war_score = int(get_war_score_for(
-                world, player, proposer_nation))
+        proposer_nation, player_war_score = letter_writer_and_score(
+            world, war, player=player, covered=covered_enemies, leader=proposer_nation)
+        player_war_score = int(player_war_score)
     except Exception as exc:
-        report(exc, "ai_diplomacy._emit_settlement_offer_for_war: len / int")
+        report(exc, "ai_diplomacy._emit_settlement_offer_for_war: letter_writer_and_score")
         player_war_score = 0
 
     terms = _settlement_offer_build_terms(
@@ -5298,6 +5474,14 @@ def _emit_settlement_offer_for_war(
         accepter_war_score=player_war_score,
         world=world,
     )
+    # PC-R4 (E item 5): the letter covers the courts the player's own table
+    # says would sign it; a court with a stake that refuses keeps its war.
+    covered_enemies = courts_the_letter_carries(
+        world, str(war_id), war, player=player, covered=covered_enemies,
+        terms=list(terms), writer=str(proposer_nation))
+    left_at_war = [n for n in _covered_before_the_table if n not in covered_enemies]
+    if not covered_enemies:
+        return None
     # SF-V5 / DD-1 Slice B: the letter is read by the ONE verdict before
     # it is sent — the settlement road's own eligibility gate for the
     # player's side FIRST (DD1-3 the one-on-one war, SFR-B1 the war
@@ -5322,6 +5506,16 @@ def _emit_settlement_offer_for_war(
         debug_print(f"[SETTLEMENT OFFER] {proposer_nation}'s letter on {war_id} "
                     f"withheld — {verdict.clause}: {verdict.message}")
         return None
+    # PC-R4 (E item 5): the letter is dry-run as the player's table is — the
+    # consent of the writer and of the courts that would sue on their own;
+    # the rest on their rows; the stake floor covers the unfought.
+    if not _letter_would_carry(world, str(war_id), war, player=player,
+                               covered=list(covered_enemies), terms=list(terms),
+                               writer=str(proposer_nation)):
+        from backend.utils.debug import debug_print
+        debug_print(f"[SETTLEMENT OFFER] {proposer_nation}'s letter on {war_id} "
+                    f"withheld — the per-court table refuses it")
+        return None
     seq = _settlement_offer_next_seq(
         pending, war_id=str(war_id), current_turn=current_turn,
     )
@@ -5339,6 +5533,8 @@ def _emit_settlement_offer_for_war(
         "covered_enemy_participants": list(covered_enemies),
         "settlement_terms": terms,
         "turn_created": current_turn,
+        # PC-R4: the courts the letter left their war (they would not sign).
+        "left_at_war": list(left_at_war),
     }
     # PC-R3: a letter that dictates (the player pays) rides the instance's
     # offer history with its tier; its refusal ratchets the next.

@@ -1152,6 +1152,11 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "cs_already_member": (
         "That court already keeps the Continental System."
     ),
+    # PC-F68 (S13e part 3): a clause that closes no port is refused at the row.
+    "cs_closes_no_port": (
+        "That court's harbours are already closed to the trade the System "
+        "denies - the clause would close no port, so it is not asked."
+    ),
     "cs_trade_dominance_court": (
         "The System closes the Continent's ports against this court's "
         "trade - it cannot be asked to keep it."

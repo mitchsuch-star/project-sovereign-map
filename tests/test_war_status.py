@@ -299,8 +299,11 @@ class TestRecentBattles:
 # ======================================================
 
 class TestWarExhaustionFog:
-    def test_war_exhaustion_none_below_partial(self):
-        """§N4j-10: war_exhaustion is None when opponent visibility < PARTIAL."""
+    def test_war_exhaustion_is_never_fogged(self):
+        """§N4j-10 retired by PC-F42 (S13e part 3, October 16, 2026): diplomacy
+        carries no fog — the war row's exhaustion is the figure whatever the
+        map shows (the same popup's Request Terms button already stated it),
+        and the clock's components ride beside it."""
         world = make_world()
         set_war(world, "Prussia")
         world.war_exhaustion["Prussia"] = 42
@@ -308,7 +311,8 @@ class TestWarExhaustionFog:
 
         result = build_active_wars(world)
         w = [w for w in result["wars"] if w["opponent"] == "Prussia"][0]
-        assert w["war_exhaustion"] is None
+        assert w["war_exhaustion"] == 42
+        assert w["exhaustion_terms"]["current"] == 42 and w["exhaustion_line"]
 
 
 # ======================================================

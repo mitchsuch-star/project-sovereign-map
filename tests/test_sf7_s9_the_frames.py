@@ -226,9 +226,11 @@ class TestTheCopyReadsClean:
 
         text = staged_text()
         assert "will not sign" in text, "precondition: the hold-out line is spoken"
-        assert "Sire, Austria will not sign" not in text, text[:600]
+        # PC-R4 (S13e part 3): Austria at +80 on her own pair signs; the
+        # unfought Britain holds out — she is the court the line names.
+        assert "Sire, Britain will not sign" not in text, text[:600]
         monkeypatch.setattr(DT, "THE_TABLE_SAYS_SIRE_ONCE", False)
-        assert "Sire, Austria will not sign" in staged_text()
+        assert "Sire, Britain will not sign" in staged_text()
 
 
 # ═════════════════════════ SF7-X26 — the colours know our friends ═════════
