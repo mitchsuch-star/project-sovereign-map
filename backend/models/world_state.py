@@ -2062,6 +2062,10 @@ class WorldState:
         # turn order queue wearing a disguise, and CR-7-8 retires that queue);
         # cleared at the turn boundary and by the next /command.
         self._pending_relay: Optional[Dict] = None
+        # AO (October 17, 2026): a collective order's members still waiting
+        # behind one member's question — transient, never serialized, let go
+        # at the turn boundary (`group_orders`).
+        self._pending_group: Optional[Dict] = None
         # CR-7-9: the stash the last boundary / command let go, spoken once by
         # `build_base_response` (transient, never serialized).
         self._relay_let_go: Optional[Dict] = None
@@ -11415,6 +11419,8 @@ class WorldState:
         if getattr(self, "_pending_relay", None) is not None:
             self._relay_let_go = self._pending_relay
         self._pending_relay = None
+        # AO: the army's waiting members never cross a turn boundary either.
+        self._pending_group = None
         self._last_advanced_turn = self.current_turn
 
         # A3 §7.5: archive terminal war_instances whose 10-turn retention

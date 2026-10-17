@@ -57,6 +57,7 @@ VERBS: Dict[str, tuple] = {
     "pursue": ("attack", "PURSUE"),
     "hold": ("hold", "HOLD"),
     "support": ("move", "SUPPORT"),
+    "follow": ("move", "SUPPORT"),   # AO: the SUPPORT that stands
     "garrison": ("garrison", None),
     "retreat": ("retreat", None),
     "land": ("naval_expedition", None),

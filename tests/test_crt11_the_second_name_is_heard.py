@@ -155,7 +155,10 @@ class TestTheSupportRoleIsHeard:
     def test_the_lever_down_restores_the_misreads(self, shipped, monkeypatch):
         client, world = shipped
         monkeypatch.setattr(SN, "THE_SUPPORT_ROLE_IS_HEARD", False)
-        reply = post(client, "Lannes, follow Ney in and back him up.")
+        # AO (October 17, 2026): `follow <friend>` is a first-class SUPPORT
+        # word now (the follow that stands, REFORMS_SPEC §5a), so the lever's
+        # proof moves to a phrasing only the rewrite reads: "back Ney up".
+        reply = post(client, "Lannes, back Ney up.")
         assert order_of(M.world, "Lannes") is None, reply.get("message")
         reply = post(client, "Soult, march in support of Ney")
         assert order_of(M.world, "Soult") != ("SUPPORT", "Ney"), reply.get("message")

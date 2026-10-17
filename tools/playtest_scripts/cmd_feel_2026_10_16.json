@@ -1,0 +1,16 @@
+{
+  "name": "cmd-feel-2026-10-16",
+  "seed": "historical",
+  "llm": "mock",
+  "turns": {
+    "1": ["Murat, scout Swabia", "Davout, march to Swabia", "Ney, attack Mack", "status"],
+    "2": ["Soult, march to Franche-Comte then fortify", "Lannes, hold Lorraine", "everyone fortify", "recruit infantry in Paris"],
+    "3": ["Massena, go to Piedmont", "Bernadotte, go to Nassau", "can Davout reach Vienna", "why"],
+    "4": ["Ney, atack Mack", "Davout marhc to Bavaria", "Murat, charge", "Soult, move to Lorrain"],
+    "5": ["Ney, Davout and Soult attack Mack", "all marshals march to Swabia", "Talleyrand, propose peace to Austria", "Ney, attack"],
+    "6": ["help", "what can Ney do", "where is Mack", "Davout, pursue Mack", "Soult, support Davout"],
+    "7": ["Ney, fall back to Lorraine", "Murat, if Mack advances fall back to Bohemia", "drill the guard", "build a depot in Paris"],
+    "8": ["cancel Davout's orders", "Lannes, move to Swabia and attack Mack", "fortify everyone", "Davout, Swabia"]
+  },
+  "policy": {"objection": "trust", "diplomacy": "decline"}
+}

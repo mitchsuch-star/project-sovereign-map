@@ -4602,6 +4602,18 @@ def _command_ordinary_road(ctx: CommandContext):
                     "new_turn": None,
                 })
 
+        # AO (October 17, 2026): the collective address — "everyone fortify",
+        # "all marshals march to Swabia", "the army marches on Swabia" — goes
+        # to every corps that can take it, corps by corps or (with the Staff
+        # in force) as ONE order. Each member line walks this same road.
+        from backend.commands import group_orders as _group
+        _collective = _group.try_collective(
+            world, game_state, parser, executor, ctx.llm_game_state,
+            ctx.command_text, ctx.parsed)
+        if _collective is not None:
+            ctx.result = _collective
+            _ptrace.decide("executor", "collective", _ptrace.result_summary(ctx.result))
+            return _NEXT_STAGE
         # Execute command
         ctx.result = executor.execute(ctx.parsed, game_state)
         _ptrace.decide("executor", "result", _ptrace.result_summary(ctx.result))
@@ -4991,6 +5003,13 @@ def _command_respond(ctx: CommandContext):
                 if ambiguity_text:
                     feedback["ambiguity"] = ambiguity_text
 
+    # AO: a collective order that waited behind a member's question goes on
+    # once a typed answer settled it (the popup roads resume in their own
+    # handlers; `resume` stands down while any question still waits).
+    if getattr(world, "_pending_group", None) is not None and not _result_carries_question(ctx.result):
+        from backend.commands import group_orders as _group
+        _group.merge_into_result(ctx.result, _group.resume(
+            world, game_state, parser, executor, ctx.llm_game_state), world)
     response = _build_command_response(ctx.result, world, feedback)
     _apply_command_result_layers(response, ctx.result, world)
     return response
@@ -5233,6 +5252,11 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
         _carry_combat_fields(response, result)
         # CR-7-3: the tail that waited behind the objection, re-judged.
         _attach_answered_relay(response, result, _pending_relay)
+        # AO: the army's order goes on once its member's question is answered
+        # (`resume` stands down while any question still waits).
+        from backend.commands import group_orders as _group
+        _group.attach(response, _group.resume(
+            world, game_state, parser, executor, get_llm_game_state()), world)
 
         # V2b: Defiance passthrough
         if result.get("defiance"):
@@ -5827,6 +5851,10 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         # CR-7-3: the tail that waited behind the interrupt, re-judged.
         from backend.commands import relay as _relay
         _attach_answered_relay(response, result, _relay.pop(world))
+        # AO: the army's order goes on once the interrupt is answered.
+        from backend.commands import group_orders as _group
+        _group.attach(response, _group.resume(
+            world, game_state, parser, executor, get_llm_game_state()), world)
         return response
     except Exception as e:
         _errors.report(e, "main.handle_strategic_response: the route", every=True)

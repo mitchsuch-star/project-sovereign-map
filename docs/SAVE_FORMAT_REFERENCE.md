@@ -772,7 +772,8 @@ Reserved future `event_log` payloads:
   "last_contact_enemy": null,
   "last_contact_turn": null,
   "arrival_target": null,
-  "condition_progress": []
+  "condition_progress": [],
+  "standing_follow": false
 }
 ```
 
@@ -800,6 +801,7 @@ Reserved future `event_log` payloads:
 | `last_contact_enemy` | string\|null | (PURSUE) Last enemy contacted during pursuit (fog-of-war tracking) |
 | `last_contact_turn` | int\|null | (PURSUE) Turn of last enemy contact |
 | `condition_progress` | list[string] | CR-7-9 (Sept 22, 2026): the arms of an ALL-OF condition already met, in the order they landed (`max_turns`, `until_marshal_arrives`, …) — the latch that keeps an arm counted after it has passed. Empty on every any-of order; absent in older saves → `[]`. |
+| `standing_follow` | bool | AO (Oct 17, 2026, `REFORMS_SPEC.md` §5a): a SUPPORT that STANDS — "Soult, follow Ney" marches where Ney marches and to his guns and never lapses on "secure" (`strategic._execute_support`). Absent in older saves → `False` → the support it was. |
 | `arrival_target` | string\|null | CR-7-6 (Sept 22, 2026): the enemy marshal an arrival tail NAMED (`march to Swabia then attack Archduke Charles`); read by `strategic.pick_contact_enemy` at the first-step / mid-path / arrival seams, which prefer him among the enemies met and fall back to the first otherwise. Absent in older saves → `None` → the pre-CR-7-6 pick. |
 
 ---

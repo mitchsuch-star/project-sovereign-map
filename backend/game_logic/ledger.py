@@ -256,6 +256,9 @@ def _derive_status(marshal) -> str:
         if cmd == "MOVE_TO":
             return "moving_to"
         if cmd == "SUPPORT":
+            # AO: the SUPPORT that stands prints as what it is.
+            if getattr(marshal.strategic_order, "standing_follow", False):
+                return "following"
             return "supporting"
     return "idle"
 
@@ -291,6 +294,8 @@ def _derive_strategic_order_summary(marshal, current_turn=None) -> str:
     if cmd == "PURSUE":
         return f"{get_strategic_display(cmd)} {target} (tracking)"
     if cmd == "SUPPORT":
+        if getattr(order, "standing_follow", False):
+            return f"Follow {target} (standing)"
         return f"{get_strategic_display(cmd)} {target} (active)"
     if cmd == "HOLD":
         return f"{get_strategic_display(cmd)} at {target}"

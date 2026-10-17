@@ -34,10 +34,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > user owes — read it first, every session.** The Score Finish residue
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
-**▶ LIVE STATE (October 15, 2026).** The three most recent landed rows:
-- **S13c part 1 (October 15, 2026) — CC-2 "March here" — LANDED.** Quotes drift-pinned 1,000/1,000; CC-X8 fixed. **NEXT = S13e (the peace rows)**, then S13c parts 2–4, S13b part 4.
-- **S13d (October 15, 2026) — PC "the peace conundrum's fixes" — LANDED.** PC-F1/F3/F5/F6 + X1–X4 fixed; BASELINE unmoved; B–E are the user's.
-- **S13c part 0 (October 15, 2026) — CC-0 + CC-1 "Click & Command" — LANDED.** CC-X1–X5, X10 fixed; X6–X9 homed.
+**▶ LIVE STATE (October 17, 2026).** The three most recent landed rows:
+- **S13f (October 17, 2026) — AO "the army order" — LANDED.** FOLLOW (a SUPPORT that stands), the fan-out (`everyone fortify`), the Staff's army order (2 AP, the Emperor's column, authority 70 / 50): `REFORMS_SPEC.md` §5a, `SYSTEMS_REFERENCE.md` §125. **NEXT = S13e part 4**, then S13c parts 2–4, S13b part 4.
+- **S13e parts 1–3 (October 16, 2026) — PC "the peace rulings" — LANDED** (`SYSTEMS_REFERENCE.md` §122–§124).
+- **S13c part 1 (October 15, 2026) — CC-2 "March here" — LANDED.**
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15, with S12's 11 R2 marks) and a code-signing certificate before S15.
 

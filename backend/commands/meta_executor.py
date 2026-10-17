@@ -973,6 +973,16 @@ STRATEGIC COMMANDS (multi-turn; 2 AP, support 1 AP):
   march      - "Ney, march to Vienna" - travels over several turns
   pursue     - "Murat, pursue Kutuzov" - chase across the map
   support    - "Lannes, support Ney" - march to an ally's battles (1 AP)
+  follow     - "Soult, follow Ney" - march with him, turn after turn, and
+               to his guns; stands until cancelled (1 AP)
+  everyone   - "everyone fortify", "all marshals march to Swabia" - the
+               order goes to every corps that can take it, in turn, each
+               at its own price; a marshal who objects asks you himself
+  the army   - with the Grand Quartier General in force: "the army
+               marches on Swabia", "everyone follow Napoleon" - ONE order,
+               2 AP, every corps within two provinces of the Emperor, while
+               your authority holds (70 and above carries the army; below 50
+               the marshals march only on your own word, one by one)
   hold       - "Davout, hold Swabia" - hold ground (artillery auto-fires)
   cancel     - "cancel Ney" / "halt Ney" (1 AP)
 

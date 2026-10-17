@@ -8292,6 +8292,59 @@
       },
       "source": "DD-1 S8 Step 3 (tests/test_dd1_s8_the_verbs.py)",
       "notes": "SFR-D40: the auction's own word."
+    },
+    {
+      "id": "ao-follow-ney-is-the-support-that-stands",
+      "utterance": "Soult, follow Ney",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Soult",
+        "target": "Ney",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "AO the army order (tests/test_ao_the_army_order.py) — REFORMS_SPEC.md §5a",
+      "notes": "A follow is a SUPPORT that stands (`standing_follow`, pinned by the slice's own tests); it never lapses on 'secure'."
+    },
+    {
+      "id": "ao-march-with-the-emperor",
+      "utterance": "Lannes, march with Napoleon",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Lannes",
+        "target": "Napoleon",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "AO the army order (tests/test_ao_the_army_order.py)",
+      "notes": "'march with <friend>' is rebuilt as the follow (second_name._follow_patterns)."
+    },
+    {
+      "id": "ao-follow-an-enemy-is-the-chase",
+      "utterance": "Murat, follow Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Murat",
+        "action": "attack",
+        "target": "Mack",
+        "strategic_type": "PURSUE"
+      },
+      "source": "AO the army order (tests/test_ao_the_army_order.py)",
+      "notes": "The follow of an enemy is the pursuit: the SUPPORT reading of `follow` is converted to PURSUE on a foe."
+    },
+    {
+      "id": "ao-the-army-marches-is-read-as-a-march",
+      "utterance": "the army marches on Swabia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": null,
+        "action": "move"
+      },
+      "mock_only": true,
+      "source": "AO the army order (tests/test_ao_the_army_order.py)",
+      "notes": "The collective head is the executor road's business (group_orders); the parser reads the march with no marshal named."
     }
   ]
 }

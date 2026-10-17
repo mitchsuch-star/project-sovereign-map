@@ -461,12 +461,18 @@ class TestFocusEndpoint:
     ])
     def test_collective_order_not_hijacked_by_focus(self, endpoint, collective):
         # A multi-marshal intent — focus must NOT collapse it to the single
-        # focus marshal (finding-3 + audit fix); it falls through to the CR-2
-        # clarification instead.
+        # focus marshal (finding-3 + audit fix). AO (October 17, 2026,
+        # REFORMS_SPEC §5a): the army's own words ("all marshals", "the army",
+        # "everyone") now go to every corps, corps by corps — the fan-out —
+        # where they used to fall through to the CR-2 clarification; "both
+        # marshals" names no roster and still asks.
         client, m = endpoint
         client.post("/command", json={"command": "Ney, scout Belgium"})
         data = client.post("/command", json={"command": collective}).json()
-        assert data.get("state") == "awaiting_clarification"
+        if collective.startswith("both"):
+            assert data.get("state") == "awaiting_clarification"
+        else:
+            assert "corps by corps" in str(data.get("message")), data.get("message")
         assert m.world.command_history[-1]["raw_input"] != f"Ney, {collective}"
 
     def test_focus_reissue_surfaces_dropped_sequel_warning(self, endpoint):

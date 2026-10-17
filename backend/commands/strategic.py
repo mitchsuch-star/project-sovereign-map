@@ -4049,7 +4049,10 @@ class StrategicOrderProcessor:
             # Only auto-complete on ally_safe if no explicit max_turns set.
             # When player said "support for N turns", honor the full duration.
             has_explicit_duration = (order.condition and order.condition.max_turns)
-            if ally_safe and not has_explicit_duration:
+            # AO (October 17, 2026): a FOLLOW (`standing_follow`) never
+            # lapses on "secure" — it stands until cancelled, or until the
+            # friend leaves the field (the arms above).
+            if ally_safe and not has_explicit_duration and not getattr(order, "standing_follow", False):
                 return self._complete_order(marshal, world,
                                             f"{ally.name} is secure")
 
@@ -4061,7 +4064,9 @@ class StrategicOrderProcessor:
                 "ally": ally.name,
                 "location": marshal.location,
                 "order_status": "continues",
-                "message": f"{marshal.name} supports {ally.name} at {ally.location}."
+                "message": (f"{marshal.name} marches with {ally.name} at {ally.location}."
+                            if getattr(order, "standing_follow", False)
+                            else f"{marshal.name} supports {ally.name} at {ally.location}.")
             }
 
         # Not with ally — move toward them
@@ -4157,8 +4162,10 @@ class StrategicOrderProcessor:
                 "regions_moved": moves_made,
                 "ally": ally.name,
                 "distance": int(distance),
-                "message": f"{marshal.name} moves to support {ally.name}. "
-                           f"{_plural_lv9(int(distance), 'region')} away."
+                "message": (f"{marshal.name} follows {ally.name}. "
+                            if getattr(order, "standing_follow", False)
+                            else f"{marshal.name} moves to support {ally.name}. ")
+                           + f"{_plural_lv9(int(distance), 'region')} away."
             }
 
         # FA-N41: PF-8's stall idiom never reached SUPPORT — a first step

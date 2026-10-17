@@ -91,14 +91,37 @@ def _patterns(friends: str):
                    r"to\s+(?:" + HONORIFIC + r")?(?P<friend>" + friends + r")['’]s\s+"
                    r"(?:" + _SUPPORT_NOUNS + r"|side|help)\b",
                    re.IGNORECASE),
+        # "back Ney up"
+        re.compile(head + r"back\s+" + named + r"\s+up\b", re.IGNORECASE),
+    )
+
+
+def _follow_patterns(friends: str):
+    """AO (October 17, 2026): the phrasings that order a corps to MARCH WITH
+    a friend — a SUPPORT that stands (`StrategicOrder.standing_follow`),
+    rebuilt as `follow <Name>` so the strategic parser reads the one verb.
+    "follow Ney in and back him up" used to be rebuilt as `support Ney`
+    (CRT-11); the backing clause is still SUPPORT's own work, carried by the
+    standing order."""
+    head = (r"^(?P<head>\s*(?:(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*"
+            r"(?:\s+[A-Za-z][\w'’-]*)?\s*[,:]\s*)?)"
+            r"(?:(?:please|now)\s+)?")
+    named = r"(?:the\s+)?(?:" + HONORIFIC + r")?(?P<friend>" + friends + r")\b"
+    return (
         # "follow Ney (in) (and back him up)"
         re.compile(head + r"follow\s+" + named
                    + r"(?:\s+(?:in|up|on|closely|close|forward|into\s+(?:battle|the\s+fight|action)))?"
                    r"(?:\s*,?\s+and\s+" + _BACKING_VERB
                    + r"\s+(?:him|her|them|(?:" + HONORIFIC + r")?(?P=friend))(?:\s+up)?\b)?",
                    re.IGNORECASE),
-        # "back Ney up"
-        re.compile(head + r"back\s+" + named + r"\s+up\b", re.IGNORECASE),
+        # "march with Ney" / "move with" / "go with" / "ride with" / "advance
+        # with" / "keep pace with" / "keep up with" / "stay on Ney's heels"
+        re.compile(head + r"(?:march|move|go|ride|advance|travel|keep\s+pace|keep\s+up|fall\s+in)\s+"
+                   r"with\s+" + named, re.IGNORECASE),
+        # "accompany Ney" / "shadow Ney" (a friend — an enemy's shadow is the PURSUE)
+        re.compile(head + r"(?:accompany|shadow|escort)\s+" + named, re.IGNORECASE),
+        re.compile(head + r"(?:stay|keep|stick|remain)\s+(?:on|at)\s+(?:" + HONORIFIC + r")?(?P<friend>"
+                   + friends + r")['’]s\s+(?:heels|side|elbow|tail)\b", re.IGNORECASE),
     )
 
 
@@ -113,14 +136,16 @@ def rewrite_support_role(text: str,
     friends = _friend_alternation(friendly_names)
     if not friends:
         return text, None
-    for pattern in _patterns(friends):
-        m = pattern.match(text)
-        if not m:
-            continue
-        typed = m.group("friend")
-        friend = next((n for n in friendly_names
-                       if str(n).lower() == typed.lower()), typed)
-        head = m.group("head") or ""
-        rebuilt = f"{head}support {friend}{text[m.end():]}"
-        return rebuilt, friend
+    for verb, patterns in (("follow", _follow_patterns(friends)),
+                           ("support", _patterns(friends))):
+        for pattern in patterns:
+            m = pattern.match(text)
+            if not m:
+                continue
+            typed = m.group("friend")
+            friend = next((n for n in friendly_names
+                           if str(n).lower() == typed.lower()), typed)
+            head = m.group("head") or ""
+            rebuilt = f"{head}{verb} {friend}{text[m.end():]}"
+            return rebuilt, friend
     return text, None

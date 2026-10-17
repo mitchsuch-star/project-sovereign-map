@@ -25,7 +25,9 @@ from tools import defect_census as census  # noqa: E402
 # them (the Score Finish residue's SF-RR slices are S14's). S13c (row CC "Click
 # & Command") and S13d (row PC, the peace report's fixes) joined the table on
 # October 15, 2026; S13e (row PC part 2, the peace research's defects) on October 16.
-SESSION = re.compile(r"\bS13[b-e]\b|\bS14[b-f]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
+# S13f (AO "the army order", from the command-feel review's CF rows) joined on
+# October 17, 2026.
+SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-f]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
 
 
 def _open_rows():

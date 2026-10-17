@@ -209,6 +209,48 @@ Rules:
 
 ---
 
+## §5a The army order — the Staff's second power (AO; gate record and landing record, October 17, 2026)
+
+**The user's rulings (October 16–17, 2026, on `docs/audits/COMMAND_FEEL_2026_10_16.md` §10, then "make decisions and code it, make it work well"):** *the army moves as one after getting the tech; before then the corps may follow a friendly unit, it just costs more; all army orders work only while Napoleon's authority is high enough.* The decisions below were taken under that delegation and are the record; a reversal is flagged, never silent. Rules `SYSTEMS_REFERENCE.md` §125; pins `tests/test_ao_the_army_order.py`; the code `backend/commands/group_orders.py` (the entry, the fan-out, the gate, the resume), `backend/ai/second_name.py` (`_follow_patterns`), `backend/ai/strategic_parser.py` (`_FOLLOW_LEAD_RE`), `backend/commands/order_quotes.py` (`follow_quote`, `army_quote`).
+
+### The three tiers
+
+| tier | what the player types | what the game does | price |
+|---|---|---|---|
+| **FOLLOW** (any time) | `Soult, follow Ney` · `march with` · `keep pace with` · `accompany` · `shadow <friend>` · `follow Ney in and back him up` | a SUPPORT that STANDS (`StrategicOrder.standing_follow`): he re-paths to his friend each turn, marches to his guns (the Grouchy rule reads it as SUPPORT), and never lapses when the friend is secure — only on cancel, or when the friend leaves the field. `follow <enemy>` is the PURSUE. | SUPPORT's own, 1 action (SR-2e) |
+| **The fan-out** (before the Staff) | `everyone fortify` · `all marshals march to Swabia` · `every corps follow Napoleon` · `the army marches on Munich` | the order goes to every corps in the field IN TURN, each line an ordinary `/command` (Rule 5: one road); the reply opens with the sum against the pool; a refused corps is named and skipped; the pool's edge names who did not go; a marshal who objects asks you himself (the popup) and the rest wait behind his question (`world._pending_group`, transient, never serialized, let go at the turn boundary — CR-7-8 holds) and go on when he is answered, on the popup road, the interrupt road and the typed road alike | each corps its own (a march 2, 1 for a literal man or the Emperor; a follow 1) |
+| **The army order** (the Staff in force) | the same collective words with a standing verb — march / follow / pursue | ONE order at `ARMY_ORDER_AP` = **2**: every corps of the **Emperor's column** (ours, in the field, within `ARMY_COLUMN_REACH` = **2** provinces of the sovereign) takes it at once, free of its own price and — by the band below — of its own objection; a corps beyond the column, or one whose state refuses, is named and left to its own order. Tactical verbs (fortify, drill …) are each corps' own labour and stay on the fan-out whatever law is in force | 2 actions, once |
+
+### The authority gate (`AuthorityTracker`'s own thresholds)
+
+| authority | the Staff's order |
+|---|---|
+| **70 and above** (`ARMY_AUTHORITY_CARRIES`) | carries every doubt: the doubter is named ("he had his doubts; the Staff's order carries") and marches |
+| **50–69** (`ARMY_AUTHORITY_HEARD`) | a marshal who WOULD object (the quote's pure read — the evaluators under a saved random state) refuses the Staff's word and is named: "he answers you in person; order him yourself" |
+| **below 50** | there is no army order: the collective falls to the fan-out at each man's price, with the reason at its head ("at authority 42 the marshals march only on your own word, one by one") |
+
+The per-corps road is always open, so a beaten Emperor loses tempo, never the army. A first-step CONTACT (an enemy on the road) is a question of the field, not an objection: it is asked whatever the band, and the order goes on when it is answered.
+
+### What was decided, and why
+
+- **FOLLOW is SUPPORT with one flag, not a fifth order type.** SUPPORT already re-paths to the ally each turn and the muster, the Grouchy rule, the eligibility rules, the quotes and the ledger all key on it (fifteen copy-pasted predicates, mapped before the build); the only thing SUPPORT lacked was *staying*. One field, serialized with a False default, and every saved support loads as the support it was.
+- **The army order is paid like one march (2).** The Staff keeps its +1 action (§5's ruling stands: the only road to a fifth point); the army order turns "two columns a turn" into "the army and a detachment a turn".
+- **The column is the Emperor's.** Corps beyond two provinces of him are detachments with their own orders — Spain without him is a rule, not a story. No sovereign in the field, no army order.
+- **The AI issues no standing orders** (the Rule-5 note row CC's D8 recorded); the executor is nation-agnostic and the gate reads `nation_authority` for a court, so the verb is the AI's whenever its decision tree wants it. Austria's Corps d'Armée and Prussia's General Staff are the same law.
+- **"everyone retreat" is still the general retreat** (CRT-1 CQ-34), **"everyone attack Mack" one battle** whose leader the game asks for (the muster seats the rest), and a plain two-name address still rides the relay (CQ-8).
+
+### The costs, stated
+
+- **Supply.** Six corps ordered into one province starve on its rations; the march warns as it always has (the dispatch's supply line). The order marches each corps by its own road.
+- **Tempo.** France gets faster once the Staff is bought; the 4-against-8 asymmetry of §5 is softened by a 9,000-gold law, which is the asymmetry argument the section itself made ("the fifth point is worth most to France"). The series arms were not re-measured in this slice — the army order is dormant on every driven arm (no script enacts the Staff and types a collective), so `BASELINE_SERIES` is byte-identical by construction; the Q0 titled count is re-read when a commanded arm first uses it (owner: the next Score Finish residue slice, SF-RR).
+- **The sum shown is the base price.** A fortify from an aggressive stance pays one more for the stance change; the member's own reply says so.
+
+### Open to the user (not built)
+
+1. Whether the Staff's army order should be gated on the Emperor's PRESENCE in the column's province (today: within two provinces) — the stricter reading.
+2. Whether the fan-out should offer "name the two who matter" as a clarification card when the pool cannot pay for all (today it sends in roster order and names the rest).
+3. Whether a court's AI should use the army order (a rung in `enemy_ai.py`) once its Staff is in force — small on a 2-corps roster, real for Austria's five.
+
 ## §6 The draft catalogue — DRAFT numbers, authored at RF-2, measured against §11
 
 **Three pricing rules:**

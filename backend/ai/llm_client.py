@@ -258,7 +258,9 @@ def _plain_move_lead(command_lower: str) -> bool:
 
 _SUPPORT_VERBS_RE_SRC = (
     r"(?:join|link\s+up\s+with|aid|assist|bolster|come\s+to\s+the\s+aid\s+of"
-    r"|go\s+help|help|back\s+up|rally\s+to|shore\s+up|combine\s+with)")
+    r"|go\s+help|help|back\s+up|rally\s+to|shore\s+up|combine\s+with"
+    # AO (October 17, 2026): "follow <friend>" — the SUPPORT that stands.
+    r"|follow)")
 _GUARD_VERBS_RE_SRC = r"(?:guard|protect|cover|screen|shield)"
 
 
@@ -283,6 +285,20 @@ def _guards_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
     that is SUPPORT (the strategic parser upgrades), not a 2-AP HOLD "at"
     him. "protect Rhineland" keeps HOLD; "cover the retreat" stays Unknown."""
     return _names_a_friendly_after(_GUARD_VERBS_RE_SRC, command_lower, player_marshals)
+
+
+def _follows_an_enemy(command_lower: str, game_state) -> bool:
+    """AO (October 17, 2026): "follow <enemy>" — the chase (PURSUE). The
+    strategic parser converts the SUPPORT reading of `follow` to PURSUE when
+    the man named is a foe; this arm gives the mock chain the base action."""
+    if "follow" not in command_lower:
+        return False
+    names = [str(n).lower() for n in (_askable_enemy_names(game_state) or []) if n]
+    if not names:
+        return False
+    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    return bool(re.search(
+        r"\bfollow\s+(?:" + HONORIFIC + r")?(?:" + alternation + r")\b", command_lower))
 
 
 def _supports_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
@@ -3559,7 +3575,10 @@ class LLMClient:
         elif (re.search(r'\b(pursue|chase|hunt|intercept|harry|hound|shadow)\b',
                         command_lower)
               or any(kw in command_lower for kw in [
-                  "hunt down", "track down", "give chase", "go after"])):
+                  "hunt down", "track down", "give chase", "go after"])
+              # AO (October 17, 2026): "follow <enemy>" is the chase; a
+              # friend followed is the SUPPORT that stands (below).
+              or _follows_an_enemy(command_lower, game_state)):
             action = "attack"
         # Colloquial battle vocabulary (July 18, 2026 playtest fix). Everything
         # a player types that MEANS "give battle" but carries none of the four

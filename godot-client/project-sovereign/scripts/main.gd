@@ -8935,6 +8935,7 @@ const _MARSHAL_VERBS := [
 	["hold", "", "hold"],
 	["retreat", "", "retreat"],
 	["support", "M", "move"],
+	["follow", "M", "move"],
 	["garrison", "H", "garrison"],
 ]
 # CX-R2: the no-target verbs whose OWN gate rides the payload — the field in
@@ -9313,7 +9314,8 @@ const _STATE_PROBE_VERB := {
 	"attack": "attack", "march to": "march", "move to": "move",
 	"scout": "scout", "fortify": "fortify", "unfortify": "unfortify",
 	"drill": "drill", "defend": "defend", "hold": "hold",
-	"retreat": "retreat", "support": "support", "garrison": "garrison",
+	"retreat": "retreat", "support": "support", "follow": "follow",
+	"garrison": "garrison",
 }
 
 

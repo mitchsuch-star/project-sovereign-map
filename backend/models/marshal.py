@@ -170,6 +170,14 @@ class StrategicOrder:
     # nested in the marshal dict — legacy saves load by construction.
     arrival_target: Optional[str] = None
 
+    # AO "the army order" (October 17, 2026): a SUPPORT that STANDS —
+    # "Soult, follow Ney" marches where Ney marches and to his guns, and the
+    # order does NOT lapse when Ney is out of danger (plain SUPPORT does, the
+    # turn he is secure). Read by `strategic._execute_support`; the ledger
+    # prints it "following". A declared field, serialized, default False, so
+    # every saved SUPPORT loads as the support it was.
+    standing_follow: bool = False
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -197,6 +205,7 @@ class StrategicOrder:
             "last_contact_turn": self.last_contact_turn,
             "arrival_target": self.arrival_target,
             "condition_progress": list(self.condition_progress or []),
+            "standing_follow": bool(self.standing_follow),
         }
 
     @classmethod
@@ -230,6 +239,7 @@ class StrategicOrder:
             last_contact_turn=data.get("last_contact_turn"),
             arrival_target=data.get("arrival_target"),
             condition_progress=list(data.get("condition_progress") or []),
+            standing_follow=bool(data.get("standing_follow", False)),
         )
 
 

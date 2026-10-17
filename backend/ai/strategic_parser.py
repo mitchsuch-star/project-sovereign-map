@@ -378,8 +378,17 @@ STRATEGIC_KEYWORDS = {
         # FA slice 7 (FA-D20): object REQUIRED — a friendly marshal must
         # follow, see _OBJECT_MUST_BE_A_MARSHAL in _detect_strategic_type.
         "go help", "help", "cover", "screen", "shield",
+        # AO (October 17, 2026): "follow <friend>" — the SUPPORT that stands
+        # (`standing_follow`); "follow <enemy>" is converted to the PURSUE
+        # below. "follow and destroy" is PURSUE's own phrase and is read
+        # first (the table's key order).
+        "follow",
     ],
 }
+
+# AO: the follow word at the order's head — read on the cleaned text once the
+# SUPPORT type and a marshal target are known.
+_FOLLOW_LEAD_RE = re.compile(r"\bfollow\b", re.IGNORECASE)
 
 # These keywords overlap with existing tactical actions in llm_client.py.
 # Strategic detection runs AFTER the mock parser, inspecting raw_command text
@@ -505,6 +514,16 @@ def detect_strategic_command(
     # FA slice 7 (FA-D20): "protect Davout" / "guard Davout" name a MAN of
     # our own army — SUPPORT, not a HOLD "at" him. A province, an enemy or
     # a bare "guard" keep HOLD.
+    # AO (October 17, 2026): "follow <friend>" is a SUPPORT that STANDS — it
+    # marches where he marches and does not lapse when he is secure.
+    # "follow <enemy>" is the chase (PURSUE), as "march to <enemy>" is.
+    standing_follow = False
+    if strategic_type == "SUPPORT" and _FOLLOW_LEAD_RE.search(cleaned):
+        if target_info.get("convert_to_pursue"):
+            strategic_type = "PURSUE"
+            print("[PARSER] Converted SUPPORT -> PURSUE (follow an enemy marshal)")
+        elif target_info.get("target_type") == "marshal":
+            standing_follow = True
     if (strategic_type == "HOLD" and target_info.get("target_type") == "marshal" and not target_info.get("convert_to_pursue") and _GUARD_VERB_RE.search(cleaned)):
         strategic_type = "SUPPORT"
 
@@ -550,6 +569,7 @@ def detect_strategic_command(
         "condition_refusal": condition_refusal,
         "condition_notes": condition_notes,
         "dropped_arrival_note": dropped_arrival_note,
+        "standing_follow": standing_follow,
     }
 
     # Phase 5.2-C: Add interpretation for generic targets (Grouchy clarification)

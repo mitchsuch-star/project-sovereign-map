@@ -3597,6 +3597,9 @@ class CommandParser:
                         result["is_strategic"] = True
                         result["strategic_type"] = strategic["strategic_type"]
                         result["target_snapshot_location"] = strategic.get("target_snapshot_location")
+                        # AO (October 17, 2026): "follow <friend>" — the
+                        # SUPPORT that stands; the executor stamps the order.
+                        result["standing_follow"] = bool(strategic.get("standing_follow", False))
                         # CRT-2 (SR-3b): a hold the game placed reads no name.
                         result["target_placed_by_the_game"] = bool(
                             strategic.get("target_placed_by_the_game"))

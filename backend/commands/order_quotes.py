@@ -64,6 +64,8 @@ def _replaces(marshal) -> str:
         return ""
     kind = str(getattr(order, "command_type", "") or "")
     target = humanize_entity_name(str(getattr(order, "target", "") or ""))
+    if kind == "SUPPORT" and getattr(order, "standing_follow", False):
+        return f"his march with {target}"
     return {
         "MOVE_TO": f"his march to {target}",
         "PURSUE": f"his pursuit of {target}",
@@ -170,10 +172,12 @@ def _road(world, marshal, dest: str, order_type: str, memo: Optional[dict]):
 
 
 def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
-                    probe_verb: str, q: Dict[str, Any], memo: Optional[dict]) -> Dict[str, Any]:
+                    probe_verb: str, q: Dict[str, Any], memo: Optional[dict],
+                    standing_follow: Optional[bool] = None) -> Dict[str, Any]:
     """The standing-order arms common to a march and a support: the state,
     the identical order (a no-op the executor takes at 0 AP), the road, the
-    price, the clock."""
+    price, the clock. `standing_follow` (AO) tells a follow from a support
+    when the identical order is read."""
     from backend.commands import strategic as road_law
     from backend.commands.state_probe import order_state_refusal
     state = order_state_refusal(world, marshal, probe_verb)
@@ -183,7 +187,9 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     order = getattr(marshal, "strategic_order", None)
     if (order is not None and not getattr(order, "condition", None)
             and getattr(order, "command_type", None) == order_type
-            and str(getattr(order, "target", "") or "").lower() == str(target).lower()):
+            and str(getattr(order, "target", "") or "").lower() == str(target).lower()
+            and (standing_follow is None
+                 or bool(getattr(order, "standing_follow", False)) == bool(standing_follow))):
         q.update(ok=True, already=True,
                  note=f"{q['shown']} is already carrying out that order.")
         return q
@@ -260,7 +266,95 @@ def support_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[
         q["refusal"] = f"{shown_ally} has no corps of ours in the field to support"
         return q
     return _standing_quote(world, marshal, ally.location, "SUPPORT", ally.name,
-                           "support", q, memo)
+                           "support", q, memo, standing_follow=False)
+
+
+def follow_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[str, Any]:
+    """AO: `<Marshal>, follow <ally>` — the SUPPORT that stands (marches where
+    he marches, turn after turn, and to his guns; never lapses on "secure").
+    SUPPORT's own price."""
+    shown_ally = humanize_entity_name(ally.name)
+    q = _blank("follow", marshal, ally.location,
+               f"{humanize_entity_name(marshal.name)}, follow {shown_ally}")
+    if ally.name == marshal.name:
+        q["refusal"] = "a marshal cannot follow himself"
+        return q
+    if ally.nation != marshal.nation or getattr(ally, "captured_by", "") \
+            or int(getattr(ally, "strength", 0) or 0) <= 0:
+        q["refusal"] = f"{shown_ally} has no corps of ours in the field to follow"
+        return q
+    return _standing_quote(world, marshal, ally.location, "SUPPORT", ally.name,
+                           "follow", q, memo, standing_follow=True)
+
+
+def army_quote(world, region: str, *, memo: Optional[dict] = None) -> Dict[str, Any]:
+    """AO (`REFORMS_SPEC.md` §5a): `the army, march to <region>` — ONE order
+    at the Staff's price for every corps of the Emperor's column, or the
+    reason there is no army order today (the Staff not in force, no Emperor
+    in the field, authority below the gate, the pool, no corps in reach)."""
+    from backend.commands import group_orders as G
+    q: Dict[str, Any] = {
+        "kind": "army", "marshal": "", "shown": "The army", "dest": region,
+        "command": f"the army, march to {region}", "ok": False, "ap": int(G.ARMY_ORDER_AP),
+        "turns": 0, "road": [], "refusal": "", "replaces": "", "objection": "none",
+        "note": "", "contact": "", "already": False, "corps": [], "beyond": [],
+    }
+    if not G.army_order_available(world):
+        q["refusal"] = ("the Grand Quartier Général is not in force — the Laws, under the "
+                        "ledger, make the army one column")
+        return q
+    sovereign = G._sovereign(world)
+    if sovereign is None:
+        q["refusal"] = "no Emperor stands at the army's head"
+        return q
+    authority = G.authority_of(world)
+    if authority < G.ARMY_AUTHORITY_HEARD:
+        q["refusal"] = (f"authority {authority} — the marshals march only on your own word, "
+                        f"one by one")
+        return q
+    if int(getattr(world, "actions_remaining", 0) or 0) < G.ARMY_ORDER_AP:
+        q["refusal"] = f"needs {G.ARMY_ORDER_AP} actions"
+        return q
+    memo = {} if memo is None else memo
+    corps, beyond, refused, doubters = [], [], [], []
+    for m in _field_marshals(world):
+        if m.location == region:
+            continue
+        try:
+            dist = int(world.get_distance(m.location, sovereign.location))
+        except Exception as exc:
+            report(exc, "order_quotes.army_quote: world.get_distance")
+            dist = 999
+        if dist > G.ARMY_COLUMN_REACH:
+            beyond.append(humanize_entity_name(m.name))
+            continue
+        mq = march_quote(world, m, region, memo=memo)
+        if not mq["ok"]:
+            refused.append(f"{mq['shown']} ({mq['refusal']})")
+            continue
+        if mq["objection"] == "possible":
+            doubters.append(mq["shown"])
+        corps.append({"marshal": m.name, "shown": mq["shown"], "turns": int(mq["turns"]),
+                      "objection": mq["objection"]})
+        q["turns"] = max(int(q["turns"]), int(mq["turns"]))
+    q["corps"], q["beyond"] = corps, beyond
+    if not corps:
+        q["refusal"] = ("no corps of the column can march there"
+                        + (": " + "; ".join(refused) if refused else ""))
+        return q
+    q["ok"] = True
+    notes = [f"{len(corps)} corps march: " + ", ".join(c["shown"] for c in corps)]
+    if doubters:
+        if authority >= G.ARMY_AUTHORITY_CARRIES:
+            notes.append("the Staff's order carries " + ", ".join(doubters) + " past their doubts")
+        else:
+            notes.append(", ".join(doubters) + f" would refuse the Staff's word (authority {authority})")
+    if refused:
+        notes.append("left to their own orders: " + "; ".join(refused))
+    if beyond:
+        notes.append("beyond the Emperor's reach: " + ", ".join(beyond))
+    q["note"] = " · ".join(notes)
+    return q
 
 
 def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[str, Any]:
@@ -306,10 +400,15 @@ def march_quotes_for_region(world, region: str) -> Dict[str, Any]:
     away = [m for m in field if m.location != region]
     march = sorted((march_quote(world, m, region, memo=memo) for m in away), key=_sort_key)
     support = []
+    follow = []
     for ally in here:
         quotes = sorted((support_quote(world, m, ally, memo=memo) for m in away), key=_sort_key)
         support.append({"ally": ally.name, "ally_shown": humanize_entity_name(ally.name),
                         "quotes": quotes})
+        # AO: the SUPPORT that stands, one row per corps of ours standing here.
+        fq = sorted((follow_quote(world, m, ally, memo=memo) for m in away), key=_sort_key)
+        follow.append({"ally": ally.name, "ally_shown": humanize_entity_name(ally.name),
+                       "quotes": fq})
     attack = []
     seen_names = set()
     for row in world.get_visible_enemies_in_region(region, player):
@@ -328,5 +427,9 @@ def march_quotes_for_region(world, region: str) -> Dict[str, Any]:
         "ap_left": int(getattr(world, "actions_remaining", 0) or 0),
         "march": march,
         "support": support,
+        "follow": follow,
+        # AO: the Staff's one order for the Emperor's column — quoted, or the
+        # reason there is none today (a dimmed chip that teaches the reform).
+        "army": army_quote(world, region, memo=memo),
         "attack": attack,
     }

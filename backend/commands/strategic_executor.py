@@ -1338,6 +1338,11 @@ class StrategicExecutor:
             # own strategic will (objection_v2's head guard is the belt).
             if getattr(ctx.marshal, 'is_sovereign', False):
                 should_check = False
+            # AO (REFORMS_SPEC §5a): a member of the Staff's ARMY ORDER
+            # marches on the Emperor's authority — the doubt is named in the
+            # reply, never asked (the gate chose who marches, by band).
+            if ctx.command.get("_army_order"):
+                should_check = False
 
             if should_check:
                 # V2 evaluation: deterministic concern level + mood variance
@@ -1635,6 +1640,9 @@ class StrategicExecutor:
             # verb so ONLY they get the fortification-aware bad-odds gate.
             delegation_inferred=ctx.parsed_command.get("delegation_inferred", False),
             issued_turn=ctx.world.current_turn,
+            # AO: "follow <friend>" — the SUPPORT that stands (never lapses
+            # on "secure"); read off the strategic parser's own flag.
+            standing_follow=bool(ctx.parsed_command.get("standing_follow", False)),
         )
         # CR-7-4 item 5: `until the battle is won` read the MARSHAL-scoped
         # `last_combat_result`, which a battle fought BEFORE this order left
@@ -2034,6 +2042,21 @@ class StrategicExecutor:
                    + ("" if (ctx._hold_placed_by_the_game)
                       else destination_grounding_note(
                           ctx.parsed_command.get("raw_input"), hold_loc)))
+        elif ctx.strategic_type == "SUPPORT" and getattr(ctx.order, "standing_follow", False):
+            # AO (October 17, 2026): the SUPPORT that stands — the follow.
+            ally_m = ctx.world.get_marshal(ctx.target)
+            loc = ally_m.location if ally_m else "unknown"
+            shown_ally = humanize_entity_name(ctx.target)
+            ctx.msg = (f"{ctx.marshal.name} follows {shown_ally} (at {loc})."
+                       f"{ctx.first_step_msg}"
+                       f" {ctx.marshal.name} marches where {shown_ally} marches and to his "
+                       f"guns, turn after turn; the order stands until you cancel it or "
+                       f"{shown_ally} leaves the field.")
+            if getattr(ctx.marshal, 'fortified', False):
+                ctx.msg += (
+                    f"\n\nBerthier: \"Sire, {ctx.marshal.name} is ordered to follow {ctx.target} "
+                    f"but is fortified — he cannot march from his works. Consider unfortifying.\""
+                )
         elif ctx.strategic_type == "SUPPORT":
             ally_m = ctx.world.get_marshal(ctx.target)
             loc = ally_m.location if ally_m else "unknown"

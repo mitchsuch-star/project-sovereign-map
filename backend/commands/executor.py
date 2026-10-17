@@ -1847,6 +1847,12 @@ class CommandExecutor:
         # Strategic execution is always free (cost paid upfront when order issued)
         if is_strategic_execution:
             action_costs_point = False
+        # AO (REFORMS_SPEC §5a): a member of the Staff's ARMY ORDER is free —
+        # the order itself was paid once, at the head (`group_orders`). The
+        # standing order is still CREATED (the interception below runs) and
+        # its objection is the gate's business, not the battery's.
+        if command.get("_army_order"):
+            action_costs_point = False
 
         # Check if this is a player action (enemy AI has separate action budget)
         # July 2026 AI audit: the AI-execution context covers marshal-less AI

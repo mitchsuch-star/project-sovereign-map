@@ -924,6 +924,25 @@ func _march_here_section() -> String:
 					+ str(row.get("ally_shown", "")).to_upper() + "[/color]  [color=#" \
 					+ Utils.COLOR_INFO + "]he follows, and marches to the guns[/color]\n"
 				out += _quote_rows(row.get("quotes", []))
+	# AO (October 17, 2026): the SUPPORT that stands — one row per corps of
+	# ours standing here, each chip `<Marshal>, follow <ally>`.
+	var follow = _quotes.get("follow", [])
+	if follow is Array:
+		for row in follow:
+			if row is Dictionary:
+				out += "\n[color=#" + Utils.COLOR_HEADER + "]FOLLOW " \
+					+ str(row.get("ally_shown", "")).to_upper() + "[/color]  [color=#" \
+					+ Utils.COLOR_INFO + "]he marches where " + str(row.get("ally_shown", "")) \
+					+ " marches, turn after turn, and to his guns[/color]\n"
+				out += _quote_rows(row.get("quotes", []))
+	# AO: the Staff's one order for the Emperor's column — a chip when the
+	# army can march here as one, else dimmed beside the reason (the law not
+	# in force, no Emperor in the field, authority below the gate, the pool).
+	var army = _quotes.get("army", null)
+	if army is Dictionary and not army.is_empty():
+		out += "\n[color=#" + Utils.COLOR_HEADER + "]THE ARMY[/color]  [color=#" \
+			+ Utils.COLOR_INFO + "]one order, the Staff's price, every corps within the Emperor's reach[/color]\n"
+		out += _quote_rows([army])
 	var attack = _quotes.get("attack", [])
 	if attack is Array:
 		for row in attack:
@@ -984,6 +1003,14 @@ func _quote_label(q: Dictionary) -> String:
 		label += " · attack"
 	elif kind == "march_attack":
 		label += " · march & attack"
+	elif kind == "army":
+		# AO: `The army · 6 corps · 2 AP · longest 3 turns`
+		var corps = q.get("corps", [])
+		var n: int = corps.size() if corps is Array else 0
+		label += " · " + Utils.plural(n, "corps") + " · " + str(int(q.get("ap", 0))) + " AP"
+		var longest := int(q.get("turns", 0))
+		label += " · " + ("this turn" if longest == 0 else "longest " + Utils.plural(longest, "turn"))
+		return label
 	label += " · " + str(int(q.get("ap", 0))) + " AP"
 	if kind != "attack":
 		var turns := int(q.get("turns", 0))
