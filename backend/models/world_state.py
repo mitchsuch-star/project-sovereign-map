@@ -267,6 +267,17 @@ def _order_refusals(world, marshal) -> Dict:
         return {}
 
 
+def _order_prices(world, marshal) -> Dict:
+    """CF-6: `state_probe.order_prices` (a display-only read) — the figure
+    each chip's label prints beside the verb."""
+    try:
+        from backend.commands.state_probe import order_prices
+        return order_prices(world, marshal)
+    except Exception as exc:
+        report(exc, "world_state._order_prices: import backend.commands.state_probe")
+        return {}
+
+
 def _action_pools(world) -> Dict:
     """CRT-9: `state_probe.action_pools` (a display-only read)."""
     from backend.commands.state_probe import action_pools
@@ -2066,6 +2077,10 @@ class WorldState:
         # behind one member's question — transient, never serialized, let go
         # at the turn boundary (`group_orders`).
         self._pending_group: Optional[Dict] = None
+        # CF-4 (October 17, 2026): the order a refusal's one-verb remedy
+        # answered, kept for one command's life and re-offered once the
+        # remedy is sent — transient, never serialized (`remedy.py`).
+        self._pending_remedy: Optional[Dict] = None
         # CR-7-9: the stash the last boundary / command let go, spoken once by
         # `build_base_response` (transient, never serialized).
         self._relay_let_go: Optional[Dict] = None
@@ -10799,6 +10814,10 @@ class WorldState:
                         # turn's actions refuse, verb -> short reason, read
                         # by the region panel's chips and the completer.
                         "order_refusals": _order_refusals(self, m),
+                        # CF-6 (Oct 17, 2026): what each verb costs, so the
+                        # Hold / Garrison chips price themselves as the
+                        # executor will charge ("Hold (2 AP)").
+                        "order_prices": _order_prices(self, m),
                     }
 
                     # Session 66: Relationships for tooltip display
@@ -11421,6 +11440,8 @@ class WorldState:
         self._pending_relay = None
         # AO: the army's waiting members never cross a turn boundary either.
         self._pending_group = None
+        # CF-4: nor does the order a remedy answered (`remedy.py`).
+        self._pending_remedy = None
         self._last_advanced_turn = self.current_turn
 
         # A3 §7.5: archive terminal war_instances whose 10-turn retention

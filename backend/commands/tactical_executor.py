@@ -235,10 +235,17 @@ def order_refusal_response(world, marshal, verb: str, *,
     if not sentence:
         return None
     response = {"success": False, "message": sentence}
+    from backend.commands import remedy as _remedy
     if (stance_gate or verb == "fortify") and _aggressive_stance_refusal(marshal, verb):
         response["stance"] = "aggressive"
         response["suggestion"] = (f"Change stance first: '{marshal.name} "
                                   f"defensive' or '{marshal.name} neutral'")
+        # CF-4: the stance change is one known verb — `neutral`, the free
+        # one, which both the drill and the works accept.
+        _remedy.stamp(response, marshal.name, "neutral")
+    elif _short == "fortified — unfortify first":
+        # CF-4: the drill's fortified arm names its remedy too.
+        _remedy.stamp(response, marshal.name, "unfortify")
     return response
 
 

@@ -141,12 +141,14 @@ def _stashers(src):
 
 class TestTheStashIsOneChokepoint:
 
-    def test_there_are_eight_stashers(self, src):
-        """A census, so a ninth surface cannot be added beside the chokepoint."""
+    def test_there_are_nine_stashers(self, src):
+        """A census, so a tenth surface cannot be added beside the chokepoint.
+        (Eight until CF-4, October 17, 2026, added the remedy's — the ↳
+        offer-slot stash that rides the chokepoint like the relay's.)"""
         assert _stashers(src) == [
             "_stash_deferred_dialogue", "_stash_diorama", "_stash_ending",
             "_stash_envoy_digest", "_stash_petition", "_stash_proclamation",
-            "_stash_redemption", "_stash_relay",
+            "_stash_redemption", "_stash_relay", "_stash_remedy",
         ]
 
     def test_the_chokepoint_calls_every_stasher(self, src):

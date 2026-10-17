@@ -80,6 +80,9 @@ STATE_KINDS = frozenset({
     "treaties", "borders_nation", "war_with_place", "holder",
     # the HOLD arm's own six (Oct 3, 2026)
     "who_is", "wars_leader", "safe_natural", "what_is_in", "goal",
+    # CF-7 / CF-8 (Oct 17, 2026): the march priced by the panel's own quote,
+    # the per-marshal options from the state probe, the per-verb "can he".
+    "march_cost", "marshal_options", "marshal_can",
 })
 
 _APOS = "['’]"
@@ -287,6 +290,38 @@ _RULE_WORDS = {
     "trust_rule": r"\btrust\b",
 }
 
+# CF-8: a marshal's name as it stands in the normalised sentence — one or
+# two lower-case words (the `_norm` of "Ney", "Archduke Charles").
+_MARSHAL_FORM = r"(?:[a-z][a-z'-]*(?: [a-z][a-z'-]*)?)"
+
+# CF-8's sibling ("can Ney fortify"): the probe verb a bare modal asks of,
+# in the probe's own keys (`state_probe.VERBS`). Checked in this order so
+# "unfortify" is read before "fortify" and "fall back" as the retreat.
+_ASKED_VERBS: List[Tuple[str, str]] = [
+    ("unfortify", r"\bunfortif|\bbreak camp\b|\babandon (?:the )?works\b"),
+    ("fortify", r"\bfortif|\bdig in\b|\bentrench"),
+    ("drill", r"\bdrill|\btrain\b|\btraining\b"),
+    ("scout", r"\bscout|\breconnoit"),
+    ("garrison", r"\bgarrison|\bdetach"),
+    ("retreat", r"\bretreat|\bfall back\b|\bwithdraw"),
+    ("pursue", r"\bpursu|\bchase\b|\bhunt\b"),
+    ("follow", r"\bfollow\b|\bkeep pace\b|\baccompany\b"),
+    ("support", r"\bsupport|\breinforce\b|\bback up\b"),
+    ("march", r"\bmarch|\badvance\b"),
+    ("move", r"\bmove\b"),
+    ("hold", r"\bhold\b|\bstand\b"),
+    ("defend", r"\bdefend\b|\bdefensive\b"),
+    ("attack", r"\battack|\bstrike\b|\bfight\b|\bengage\b"),
+]
+
+
+def _asked_verb(norm: str) -> str:
+    for verb, pattern in _ASKED_VERBS:
+        if re.search(pattern, norm):
+            return verb
+    return ""
+
+
 _RULE_ASK_RE = re.compile(
     r"^(?:what (?:does|do|is|are|would|will)|how (?:does|do|is|are)|explain|tell me (?:about|how|what)"
     r"|describe|what happens (?:if|when)|when (?:should|do|does|can|could|would) (?:i|we|a marshal|the army)"
@@ -399,6 +434,17 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
         for key, pattern in _RULE_WORDS.items():
             if re.search(pattern, norm):
                 return q("rule", key, "rule", place=first_place, marshal=first_marshal)
+    # CF-7 (Oct 17, 2026): "what would it cost to march Davout to Vienna" —
+    # a march that names OUR marshal and a province is priced by the board
+    # (`order_quotes.march_quote`, the province panel's own quote: the
+    # actions, the turns, the road, the seen contact), not by the manual.
+    # The rule arm below keeps the bare "what does a march cost".
+    if (first_marshal and first_place and not foes
+            and has(r"\bcost|\bprice|\bhow much\b|\bhow many (?:ap|actions?|action points?|turns)\b")
+            and has(r"\bmarch|\bmove|\bsend|\bgo\b|\bget\b|\breach|\btake\b|\badvance|\border")
+            and not has(r"\brecruit|\blev(?:y|ies)|\braise|\bconscript|\binfantry\b|\bcavalry\b|\bartillery\b"
+                        r"|\bship|\bkeel|\bfleet|\bbuild|\bcommission|\bhire|\bdepot|\bfort\b|\bmarket|\bstable|\btower|\byard|\bestate|\brente|\bpension")):
+        return q("march_cost", first_place, "region", marshal=first_marshal)
     # "how much does scouting cost" / "what does a march cost" — the verb's
     # price in actions, not a levy.
     if has(r"\bcost|\bprice|\bhow much\b") and not has(
@@ -606,6 +652,26 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
         return q("nation_army", first_court, "nation")
 
     # ── marshals of ours ─────────────────────────────────────────────────
+    # CF-8 (Oct 17, 2026): "what can Ney do" / "what are Ney's options" /
+    # "what orders can I give Ney" — the per-marshal options, answered from
+    # the state probe (`state_probe.order_refusals`): the verbs that stand
+    # and each refused verb with its reason. Sited before the `orders` arm
+    # ("what orders …" is the standing-orders question) and the state arm.
+    if (first_marshal and not foes and not places
+            and has(r"\bwhat (?:can|could|may|might|should) " + _MARSHAL_FORM + r" do\b"
+                    r"|\boptions\b|\bchoices\b"
+                    r"|\bwhat (?:orders?|commands?) (?:can|could|may|should|might) (?:i|we) give\b"
+                    r"|\bwhat (?:can|could|may|should) (?:i|we) (?:do|order|command|ask) (?:with|of|from)\b"
+                    r"|\bwhat (?:orders?|commands?) (?:can|could|will|would) " + _MARSHAL_FORM + r" (?:take|accept|obey|follow)\b"
+                    r"|\bwhat (?:is|are) " + _MARSHAL_FORM + r"(?:'s)? (?:able|free|fit) to do\b")):
+        return q("marshal_options", first_marshal, "marshal")
+    # CF-8's sibling: the per-verb form — "can Ney fortify", "could Davout
+    # march" — a bare modal with no foe and no province (a place makes it
+    # the hold / reach / what-if question, a foe the odds).
+    if first_marshal and not foes and not places and has(r"^(?:can|could|may|might)\b"):
+        verb = _asked_verb(norm)
+        if verb:
+            return q("marshal_can", first_marshal, "marshal", verb=verb)
     if len(ours) >= 2 and has(r"\bget on\b|\bget along\b|\bthink of\b|\bthinks of\b|\bfeel about\b|\bdislike|\blike\b|\bhate|\brelation|\bfriends?\b|\brivals?\b|\bquarrel|\bfeud|\bon terms\b|\btrust\b"):
         return q("relationship", ours[0], "marshal", other=ours[1])
     if first_marshal and has(r"\bhow many men\b|\bhow strong\b|\bhow big\b|\bhow large\b|\bstrength of\b") and not foes:
@@ -1195,8 +1261,130 @@ def _answer_what_if_march(world, place: str, marshal_name: str) -> str:
     return _answer_reach(world, player, marshal_name, place) or ""
 
 
+def _quote_sentences(world, q: Dict, me) -> str:
+    """CF-7: the quote's riders in the desk's register — the contact or
+    the foe on the road (`note`), the standing order the march would
+    replace, the objection — the same facts the panel prints beside its
+    chip (`region_panel._quote_notes`)."""
+    tail = []
+    note = str(q.get("note") or "")
+    if note:
+        tail.append(note if note.endswith(".") else note + ".")
+    replaces = str(q.get("replaces") or "")
+    if replaces and not q.get("already"):
+        tail.append(f"It replaces {replaces}.")
+    if str(q.get("objection") or "none") == "possible":
+        tail.append(f"{_display(me.name)} may object.")
+    return (" " + " ".join(tail)) if tail else ""
+
+
+def _answer_march_cost(world, place: str, marshal_name: str) -> str:
+    """CF-7 (Oct 17, 2026): "what would it cost to march Davout to Vienna"
+    — the figures are the province panel's own quote
+    (`order_quotes.march_quote`: the state probe, CRT-4's road reader, the
+    arrival law, the price by keyword, the concern evaluators) so the desk
+    and the March here chip can never disagree. Byte-identical in the
+    actions, the turns and the road; the refusal in the quote's own words."""
+    from backend.commands.order_quotes import march_quote
+    me = _own(world, marshal_name)
+    if me is None:
+        return f"{_display(marshal_name)} leads no corps of ours, Sire."
+    shown = _display(me.name)
+    if me.location == place:
+        return f"{shown} already stands at {place}, Sire — the march would cost nothing and go nowhere."
+    q = march_quote(world, me, place)
+    if not q.get("ok"):
+        why = str(q.get("refusal") or "the order would be refused")
+        return f"'{q.get('command')}' would be refused today, Sire — {why}."
+    if q.get("already"):
+        return f"{str(q.get('note') or '').rstrip('.')}, Sire — nothing more to pay."
+    road = list(q.get("road") or [])
+    turns = int(q.get("turns") or 0)
+    clock = ("he arrives this very turn" if turns == 0
+             else f"he arrives in {_plural(turns, 'turn')}")
+    return (f"'{q.get('command')}' costs {_plural(int(q.get('ap') or 0), 'action')}, Sire, and "
+            f"{clock} — the road runs {' -> '.join([me.location] + road)}."
+            + _quote_sentences(world, q, me))
+
+
+# CF-8: the probe's verbs as the player says them, with the typed form.
+_VERB_SAID: Dict[str, Tuple[str, str]] = {
+    "attack": ("attack", "attack <enemy>"),
+    "scout": ("scout", "scout <province>"),
+    "fortify": ("fortify", "fortify"),
+    "unfortify": ("unfortify", "unfortify"),
+    "drill": ("drill", "drill"),
+    "defend": ("defend", "defend"),
+    "move": ("move one province", "move to <province>"),
+    "march": ("march", "march to <province>"),
+    "pursue": ("pursue", "pursue <enemy>"),
+    "hold": ("hold", "hold"),
+    "support": ("support a marshal", "support <marshal>"),
+    "follow": ("follow a marshal", "follow <marshal>"),
+    "garrison": ("garrison", "garrison"),
+    "retreat": ("fall back", "retreat"),
+}
+
+
+def _answer_marshal_options(world, marshal_name: str) -> str:
+    """CF-8 (Oct 17, 2026): "what can Ney do" — the verbs that stand and
+    each refused verb with its reason, from the ONE probe the chips and the
+    completer read (`state_probe.order_refusals`), each priced as the
+    executor would charge it (`state_probe.order_prices`). The naval
+    landing has its own desk and is left to it."""
+    from backend.commands.state_probe import order_prices, order_refusals
+    me = _own(world, marshal_name)
+    if me is None:
+        return f"{_display(marshal_name)} leads no corps of ours, Sire."
+    shown = _display(me.name)
+    refused = order_refusals(world, me)
+    prices = order_prices(world, me)
+    stand, closed = [], []
+    for verb, (said, _typed) in _VERB_SAID.items():
+        if verb in refused:
+            closed.append(f"{said} — {refused[verb]}")
+            continue
+        ap = int(prices.get(verb, 0))
+        stand.append(f"{said} ({'free' if ap == 0 else _plural(ap, 'action')})")
+    left = int(getattr(world, "actions_remaining", 0) or 0)
+    head = (f"{shown} stands at {me.location} with {_plural(left, 'action')} of the day "
+            f"left, Sire.")
+    if stand:
+        head += f" He would take: {', '.join(stand)}."
+    else:
+        head += " No order would be taken today."
+    if closed:
+        # One reason said once for every verb it stops (the chips' rule).
+        by_reason: Dict[str, List[str]] = {}
+        for entry in closed:
+            said, why = entry.split(" — ", 1)
+            by_reason.setdefault(why, []).append(said)
+        head += " Refused today: " + "; ".join(
+            f"{', '.join(saids)} — {why}" for why, saids in by_reason.items()) + "."
+    return head
+
+
+def _answer_marshal_can(world, marshal_name: str, verb: str) -> str:
+    """CF-8's sibling: "can Ney fortify" — the probe's own verdict for his
+    STATE and the day's actions (the target is each order's own business:
+    a march may still be refused for its road, an attack for its man)."""
+    from backend.commands.state_probe import order_price, order_state_refusal
+    me = _own(world, marshal_name)
+    if me is None:
+        return f"{_display(marshal_name)} leads no corps of ours, Sire."
+    shown = _display(me.name)
+    said, typed = _VERB_SAID.get(verb, (verb, verb))
+    why = order_state_refusal(world, me, verb)
+    if why:
+        return f"Not today, Sire — {shown}: {why}."
+    ap = int(order_price(world, me, verb))
+    price = "it is free" if ap == 0 else f"it costs {_plural(ap, 'action')}"
+    return (f"Yes, Sire — {shown} can {said} today; {price}. "
+            f"'{shown}, {typed}' gives the order.")
+
+
 def _answer_how_long(world, question: Dict) -> str:
-    from backend.commands.strategic import march_turns, plot_route
+    from backend.commands.strategic import march_turns
     player = world.player_nation
     places = list(question.get("places") or [])
     marshal_name = str(question.get("marshal") or "")
@@ -1207,16 +1395,24 @@ def _answer_how_long(world, question: Dict) -> str:
         dest = places[0] if places else ""
         if not dest:
             return f"Name the province, Sire — where should {_display(me.name)} go?"
-        path, verdict = plot_route(world, me, dest, use_weighted=False, want_verdict=True)
-        if not path:
-            reason = ""
-            if isinstance(verdict, dict):
-                reason = str(verdict.get("reason") or verdict.get("message") or "")
+        if me.location == dest:
+            return f"{_display(me.name)} already stands at {dest}, Sire."
+        # CF-7's sibling (Oct 17, 2026): the road and the clock are the
+        # march's own (`march_road` — the weighted road, the cautious man's
+        # avoid-set; `march_turns`), the same readers the panel's quote and
+        # the reach answer walk. It read `plot_route`'s UNWEIGHTED road
+        # before, so a cautious marshal's turns could disagree with the
+        # chip beside them.
+        from backend.commands.strategic import march_road
+        road, refusal, _kind = march_road(world, me, dest, "MOVE_TO")
+        if refusal is not None:
+            reason = str(refusal.get("message") or "")
             return (f"No lawful road runs from {me.location} to {dest} for {_display(me.name)}, Sire"
                     + (f" — {reason}" if reason else "") + ".")
-        turns = march_turns(len(path), int(getattr(me, "movement_range", 1) or 1))
+        road = list(road or [])
+        turns = march_turns(len(road), int(getattr(me, "movement_range", 1) or 1))
         return (f"{_display(me.name)} reaches {dest} in {_plural(turns, 'turn')} from {me.location}, "
-                f"Sire — the road runs {' -> '.join([me.location] + list(path))}.")
+                f"Sire — the road runs {' -> '.join([me.location] + road)}.")
     if len(places) >= 2:
         a, b = places[0], places[1]
         hops = world.get_distance(a, b)
@@ -2808,6 +3004,12 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_what_if_march(world, subject, str(question.get("marshal") or ""))
         if kind == "how_long":
             return _answer_how_long(world, question)
+        if kind == "march_cost":
+            return _answer_march_cost(world, subject, str(question.get("marshal") or ""))
+        if kind == "marshal_options":
+            return _answer_marshal_options(world, subject)
+        if kind == "marshal_can":
+            return _answer_marshal_can(world, subject, str(question.get("verb") or ""))
         if kind == "trust":
             return _answer_trust(world, subject)
         if kind == "morale":

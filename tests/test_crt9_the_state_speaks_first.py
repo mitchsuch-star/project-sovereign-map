@@ -122,6 +122,8 @@ COMMANDS = {
     "hold": "Davout, hold",
     "support": "Davout, support Ney",
     "retreat": "Davout, retreat",
+    # CF-6 (Oct 17, 2026): the Garrison chip's verb joins the census.
+    "garrison": "Davout, garrison",
 }
 
 # The sentences only a STATE or POOL refusal speaks — an "open" verb must
@@ -190,7 +192,10 @@ class TestTheProbeAgreesWithTheExecutor:
             stage(M.world)
             closed = SP.order_refusals(M.world, M.world.get_marshal("Davout"))
             if state in ("fresh", "no_admin"):
-                assert set(closed) <= {"unfortify", "drill", "defend", "land"}, (state, closed)
+                # CF-6 (Oct 17, 2026): `garrison` joined the probe's own
+                # gates — the 1805 boot already keeps its three garrisons,
+                # so a fresh Davout's is closed by that gate alone.
+                assert set(closed) <= {"unfortify", "drill", "defend", "land", "garrison"}, (state, closed)
             else:
                 assert closed, state
 

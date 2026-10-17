@@ -976,6 +976,10 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "relay_kind",
     "relay_note",
     "relay_command",
+    # CF-4 (Oct 17, 2026): a refusal's one-verb remedy, for the ↳ offer
+    # slot (`backend/commands/remedy.py`). Absent — not null — on every
+    # other reply.
+    "remedy_command",
     # FA-9, slice 17 review round (L1-3): the walk-in-refused flag reaches the
     # wire, so the digest (and a pin) can tell "walked on and did not take".
     "capture_refused_recovering",
@@ -3187,6 +3191,9 @@ class CommandContext:
     berthier_msg: Any = field(init=False)
     _relay_obj: Any = field(init=False)
     _stamp_relay: Any = field(init=False)
+    # CF-4: the order a remedy answered (popped at the door), and the stamp.
+    _carried_remedy: Any = field(init=False)
+    _stamp_remedy: Any = field(init=False)
     # DDB-R1: an answered clarification's option flags, merged into the parse
     _reissue_flags: Any = field(init=False)
 
@@ -3288,6 +3295,10 @@ def _command_open(ctx: CommandContext):
     _ptrace.open_trace(str(getattr(ctx.request, "command", "") or ""),
                        wire=_ptrace.wanted(getattr(ctx.request, "trace", False)))
     ctx._carried_relay = _relay.pop(world)
+    # CF-4: the order a remedy answered, kept for exactly one command's life
+    # (`remedy.py`); re-offered below when THIS command is the remedy.
+    from backend.commands import remedy as _remedy_mod
+    ctx._carried_remedy = _remedy_mod.pop(world)
     # CR-7-9: a stash this command neither answers nor re-types is LET GO
     # with a word — the consuming routes below clear this, and
     # `build_base_response` speaks it on whatever reply goes out.
@@ -4740,6 +4751,33 @@ def _command_riders(ctx: CommandContext):
     ctx._stamp_relay = _stamp_relay
 
     ctx._stamp_relay()
+
+    # ════════════════════════════════════════════════════════════
+    # CF-4 — THE REMEDY (backend/commands/remedy.py). A refusal whose
+    # remedy is one known verb carries it as `remedy_command` (the
+    # producer stamped it); the refused order is stashed for one
+    # command's life. When THIS command is that remedy, sent unchanged,
+    # and it went out, the order is re-offered once on the relay's own
+    # keys — never beside a compound's relay, which keeps the line.
+    # ════════════════════════════════════════════════════════════
+    def _stamp_remedy():
+        from backend.commands import remedy as _rem
+        if not isinstance(ctx.result, dict):
+            return
+        typed = str(getattr(ctx.request, "command", "") or "")
+        if ctx.result.get("remedy_command") and not ctx.result.get("success"):
+            if ctx.result.pop("remedy_reoffer", True):
+                _rem.stash(world, ctx.result["remedy_command"], typed)
+            return
+        carried = getattr(ctx, "_carried_remedy", None)
+        if (carried and ctx.result.get("success") and ctx._relay_obj is None
+                and _rem.is_the_remedy(carried, typed)):
+            reoffer = _rem.reoffer_relay(carried)
+            _relay.attach(ctx.result, reoffer)
+            _relay.append_note(ctx.result, reoffer, standalone=True)
+    ctx._stamp_remedy = _stamp_remedy
+
+    ctx._stamp_remedy()
 
     # CR-5: a cautious delegation executed as an observe-first order —
     # append the character-naming soft note (§6.3c legibility) so the

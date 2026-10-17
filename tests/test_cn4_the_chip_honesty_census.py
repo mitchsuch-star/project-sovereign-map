@@ -113,14 +113,20 @@ def snapshot(world):
         "pools": dict(world.manpower_pools.get("France", {})),
         "marshals": {m.name: {"loc": m.location, "strength": int(m.strength),
                               "fortified": bool(getattr(m, "fortified", False)),
-                              "drilling": bool(getattr(m, "drilling", False))}
+                              "drilling": bool(getattr(m, "drilling", False)),
+                              # CF-6: the Hold / Fall back chips' effects.
+                              "order": ((m.strategic_order.command_type, m.strategic_order.target)
+                                        if getattr(m, "strategic_order", None) else None),
+                              "retreating": bool(getattr(m, "retreating", False))}
                      for m in world.marshals.values()},
         "regions": {r: {"damaged": sorted(b["type"] for b in reg.buildings
                                           if b.get("damaged")),
                         "building": (reg.building_under_construction or {}).get("type")
                         if isinstance(reg.building_under_construction, dict) else None,
                         "watchtower": reg.watchtower,
-                        "war_damage": float(reg.war_damage)}
+                        "war_damage": float(reg.war_damage),
+                        # CF-6: the Garrison chip's effect.
+                        "garrison": int(reg.garrison_strength)}
                     for r, reg in world.regions.items() if reg.controller == "France"},
     }
 
@@ -197,6 +203,20 @@ def judge(region, url, label, tail, before, after, response):
               "drill": state["drilling"] or asked,
               "scout": msg.startswith(f"{who} scouts from")}[verb]
         return "" if ok else f"{verb} did not take: {msg[:80]}"
+    # CF-6 (Oct 17, 2026): Hold · Fall back · Garrison — the hold stands as
+    # his order where he stood (or is put to him), the retreat moves him
+    # into recovery, the garrison raises the province's own.
+    m = re.fullmatch(r"(.+), (hold|retreat|garrison)", cmd)
+    if m:
+        who, verb = m.group(1), m.group(2)
+        strategic = getattr(M.world, "pending_strategic_objection", None) or {}
+        asked = objection.get("marshal") == who or str(strategic.get("marshal") or "") == who
+        b, a = before["marshals"][who], after["marshals"][who]
+        ok = {"hold": a["order"] == ("HOLD", b["loc"]) or asked,
+              "retreat": (a["loc"] != b["loc"] and a["retreating"]) or asked,
+              "garrison": (after["regions"].get(b["loc"], {}).get("garrison", 0)
+                           > before["regions"].get(b["loc"], {}).get("garrison", 0)) or asked}[verb]
+        return "" if ok else f"{verb} did not take: {msg[:80]}"
     return f"unreviewed chip shape: {cmd!r}"
 
 
@@ -269,10 +289,24 @@ class TestZeroActionsDimEveryChip:
         assert zero["gs"].get("action_pools") == {"military": 0, "admin": 0}
 
     def test_no_order_chip_stays_lit_on_the_panel(self, zero):
+        """CF-6 (Oct 17, 2026): the one exception is the free retreat —
+        `Fall back` costs nothing, so at zero actions it stays lit on a
+        corps in visible danger and, sent, is taken at no action."""
         lit = [(region, url) for region, bb in zero["rendered"].items()
                for url, _label, _tail in C.chips(bb)
-               if url.startswith(("order:", "do:"))]
+               if url.startswith(("order:", "do:")) and not url.startswith("order:retreat:")]
         assert lit == [], lit[:8]
+        free = [url for _region, bb in zero["rendered"].items()
+                for url, _label, _tail in C.chips(bb) if url.startswith("order:retreat:")]
+        assert free, "no Fall back lit at zero actions — the staged board has Ney beside the enemy"
+        with pytest.MonkeyPatch.context() as mp:
+            C.board_env(mp)
+            for url in free:
+                client = fresh_zero()
+                response = C.post(client, {"command": C.chip_command(url)})
+                asked = (M.world.pending_objection or {}).get("marshal") == url.split(":")[2]
+                assert response.get("success") or asked, (url, response.get("message"))
+                assert M.world.actions_remaining == 0, url
 
     def test_the_panel_dims_with_the_pools_reason(self, zero):
         reasons = {}
@@ -292,7 +326,9 @@ class TestZeroActionsDimEveryChip:
     def test_the_cards_light_no_order_chip(self, zero):
         cards_bb = zero["cards"]
         assert cards_bb, "the harness rendered no Generals cards"
-        lit = [url for url, _l, _t in C.chips(cards_bb) if url.startswith("order:")]
+        # CF-6: the free Fall back is the one chip that may stay lit.
+        lit = [url for url, _l, _t in C.chips(cards_bb)
+               if url.startswith("order:") and not url.startswith("order:retreat:")]
         assert lit == [], lit
         assert "no military action left this turn" in cards_bb
 
@@ -1043,6 +1079,10 @@ REVIEWED = {
     ("region_panel.gd", '"order:fortify:" + m_name'): "driven",
     ("region_panel.gd", '"order:drill:" + m_name'): "driven; dimmed with the executor's reason",
     ("region_panel.gd", '"order:scout:" + m_name'): "driven",
+    # CF-6 (Oct 17, 2026): Hold · Fall back · Garrison — one expression, three
+    # verbs; driven here (the judge's hold / retreat / garrison arm) and in
+    # tests/test_cf_the_four_rows.py.
+    ("region_panel.gd", '"order:" + verb + ":" + m_name'): "driven; dimmed with the probe's reason",
     ("region_panel.gd", '"negotiate:" + controller'): "opens the wizard at that court; sends nothing",
     # NUI "The Admiralty on the Map" (Sept 23, 2026): THE SEA block's link
     ("region_panel.gd", '"admiralty"'): "opens THE ADMIRALTY (Ledger book 7) via main.gd; sends nothing",
@@ -1050,6 +1090,8 @@ REVIEWED = {
     ("marshal_management.gd", '"order:unfortify:" + chip_name'): "same command as the panel's",
     ("marshal_management.gd", '"order:fortify:" + chip_name'): "same command as the panel's",
     ("marshal_management.gd", '"order:drill:" + chip_name'): "same command; dimmed with the card's reason",
+    # CF-6's sibling CF-X1: the card's Hold · Fall back · Garrison.
+    ("marshal_management.gd", '"order:" + verb + ":" + str(m.get("name", ""))'): "same commands as the panel's; dimmed with the card's reason",
     ("marshal_management.gd", '"commission:" + cname'): "driven: `commission <name>`",
     ("marshal_management.gd", '"commission_open"'): "opens the bench; sends nothing",
     ("marshal_management.gd", '"commission_back"'): "closes the bench; sends nothing",

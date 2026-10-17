@@ -232,6 +232,9 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         # panel's chips and the completer read) — the card's Fortify /
         # Unfortify / Drill chips dim with it.
         "order_refusals": _order_refusals_of(world, marshal),
+        # CF-6 (Oct 17, 2026): the price of each verb, so the card's Hold /
+        # Garrison chips carry the executor's own figure on the label.
+        "order_prices": _order_prices_of(world, marshal),
 
         # ═══════ CAVALRY/ARTILLERY SPECIFICS ═══════
         **_build_unit_specifics(marshal),
@@ -574,6 +577,16 @@ def _order_refusals_of(world, marshal) -> Dict:
         return order_refusals(world, marshal)
     except Exception as exc:
         report(exc, "marshal_overview._order_refusals_of: import backend.commands.state_probe")
+        return {}
+
+
+def _order_prices_of(world, marshal) -> Dict:
+    """CF-6: the card's copy of `state_probe.order_prices`."""
+    try:
+        from backend.commands.state_probe import order_prices
+        return order_prices(world, marshal)
+    except Exception as exc:
+        report(exc, "marshal_overview._order_prices_of: import backend.commands.state_probe")
         return {}
 
 

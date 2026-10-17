@@ -2372,13 +2372,16 @@ class CommandExecutor:
                 # FORTIFIED CHECK: Cannot move or attack while fortified
                 # ═══════════════════════════════════════════════════════════
                 if getattr(marshal, 'fortified', False) and action in ['attack', 'move']:
-                    return {
+                    # CF-4: the remedy is ONE known verb — offered on the
+                    # ↳ slot, the order re-offered once it is sent.
+                    from backend.commands import remedy as _remedy
+                    return _remedy.stamp({
                         "success": False,
                         "message": f"{marshal_name} is fortified at {marshal.location} and cannot {action}. "
                                   f"Order 'unfortify' first to make the army mobile.",
                         "fortified": True,
                         "suggestion": f"Try: '{marshal_name}, unfortify' to abandon fortified position"
-                    }
+                    }, marshal_name, "unfortify")
 
                 # ═══════════════════════════════════════════════════════════
                 # DEFEND GATES — Validation BEFORE objection (CX-R2)

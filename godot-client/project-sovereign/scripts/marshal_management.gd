@@ -796,6 +796,33 @@ func _render_card(m: Dictionary, index: int) -> String:
 					order_chips.append(Utils.bb_chip_disabled("Drill") + " [color=#" + Utils.COLOR_INFO + "]" + drill_why + "[/color]")
 			if order_chips.size() > 0:
 				bbcode += "  " + "  ".join(PackedStringArray(order_chips)) + "\n"
+	# CF-6 sibling (October 17, 2026): the card offers the province panel's
+	# Hold · Fall back · Garrison too — lit where the card's `order_refusals`
+	# carries no reason, dimmed beside the reason otherwise, priced from its
+	# `order_prices`. Rendered for a recovering or broken corps as well: the
+	# probe names his state as the reason, and the free Fall back is the one
+	# order a corps recovering beside the enemy still has.
+	if not m.get("captured", false) and str(m.get("name", "")) != "":
+		var state_chips = []
+		var state_refusals = m.get("order_refusals", {})
+		if not (state_refusals is Dictionary):
+			state_refusals = {}
+		var prices = m.get("order_prices", {})
+		if not (prices is Dictionary):
+			prices = {}
+		for spec in [["hold", "Hold"], ["retreat", "Fall back"], ["garrison", "Garrison"]]:
+			var verb := str(spec[0])
+			var label := str(spec[1])
+			var ap := int(prices.get(verb, 0))
+			if ap > 0:
+				label += " (" + str(ap) + " AP)"
+			var why := str(state_refusals.get(verb, ""))
+			if why == "":
+				state_chips.append(Utils.bb_button_chip("order:" + verb + ":" + str(m.get("name", "")), label, Utils.COLOR_COMMAND, "233043"))
+			else:
+				state_chips.append(Utils.bb_chip_disabled(label) + " [color=#" + Utils.COLOR_INFO + "]" + why + "[/color]")
+		if state_chips.size() > 0:
+			bbcode += "  " + "  ".join(PackedStringArray(state_chips)) + "\n"
 
 	# ═══════ UNIT SPECIFICS ═══════
 	var specifics = []

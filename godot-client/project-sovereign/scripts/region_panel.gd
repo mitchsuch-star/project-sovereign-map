@@ -10,7 +10,10 @@ extends CanvasLayer
 # — no extra fetch, no fog leak) plus context action chips:
 #   - own province:      [Recruit Infantry] [Build Depot]
 #   - foreign controller: [Negotiate with X] → the F1 wizard at that court
-#   - own marshals here:  [Fortify]/[Unfortify] [Drill] per marshal
+#   - own marshals here:  [Fortify]/[Unfortify] [Drill] [Scout] per marshal,
+#                         and CF-6's [Hold (2 AP)] [Fall back] [Garrison (2 AP)]
+#                         (lit where `order_refusals` has no reason, dimmed
+#                         with it otherwise; priced from `order_prices`)
 # Chips send the SAME typed commands a player would type — the executor owns
 # every gate (AP, gold, objections); a refused chip reports like a typed
 # refusal in the terminal. Display-only, Golden Rule 6 clean.
@@ -838,6 +841,10 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 		if tactical is Dictionary and not tactical.is_empty():
 			var retreating = bool(tactical.get("retreating", false))
 			var broken = bool(tactical.get("broken", false))
+			# CF-6 (October 17, 2026): the dimmed list is shared by the CN-4
+			# chips below and the three new ones after them, so one reason is
+			# said once for every chip it stops.
+			var dimmed_all := []
 			if not retreating and not broken:
 				# CN-4: Fortify likewise — offered only where the works would
 				# begin (`tactical_state.fortify_refusal`, the executor's own
@@ -900,8 +907,47 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 					dimmed.append(["Fortify", fortify_why])
 				if not drilling and drill_why != "":
 					dimmed.append(["Drill", drill_why])
-				row += _dimmed_chips(dimmed)
+				dimmed_all = dimmed
+			# CF-6 (October 17, 2026): Hold · Fall back · Garrison — the three
+			# verbs a player gives every campaign that were typed-only. Each
+			# is offered only where the probe (`tactical_state.order_refusals`)
+			# has no reason for it and dimmed with the reason otherwise, priced
+			# on the label from `tactical_state.order_prices` (the executor's
+			# own figure — a literal marshal's hold is 1), and sends the
+			# literal typed string through the chip road ("<Name>, hold" /
+			# "<Name>, retreat" / "<Name>, garrison"). Rendered for a
+			# recovering or broken corps too: the probe already carries his
+			# state as the reason, and a corps recovering beside the enemy is
+			# exactly the one whose Fall back matters.
+			row += _state_order_chips(m_name, tactical, dimmed_all)
+			row += _dimmed_chips(dimmed_all)
 	return row + "\n"
+
+
+func _state_order_chips(m_name: String, tactical: Dictionary, dimmed: Array) -> String:
+	"""CF-6: the Hold / Fall back / Garrison chips of one corps of ours —
+	lit where `order_refusals` carries no reason for the verb, else added to
+	`dimmed` with the reason. The label carries the price when it is not
+	free ("Hold (2 AP)"); the free retreat has none."""
+	var refusals = tactical.get("order_refusals", {})
+	if not (refusals is Dictionary):
+		refusals = {}
+	var prices = tactical.get("order_prices", {})
+	if not (prices is Dictionary):
+		prices = {}
+	var out := ""
+	for spec in [["hold", "Hold"], ["retreat", "Fall back"], ["garrison", "Garrison"]]:
+		var verb := str(spec[0])
+		var label := str(spec[1])
+		var ap := int(prices.get(verb, 0))
+		if ap > 0:
+			label += " (" + str(ap) + " AP)"
+		var why := str(refusals.get(verb, ""))
+		if why == "":
+			out += "  " + Utils.bb_button_chip("order:" + verb + ":" + m_name, label, Utils.COLOR_COMMAND, _CHIP_BG)
+		else:
+			dimmed.append([label, why])
+	return out
 
 
 func _march_here_section() -> String:

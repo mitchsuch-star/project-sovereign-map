@@ -226,6 +226,16 @@ def synthetic_boards(staged_state):
             "location": "Swabia", "nation": "Austria", "strength": 0,
             "strength_band": "large", "fog_level": fog,
             "at_war_with_player": True}
+        # CF-6 (Oct 17, 2026): the probe now ships the retreat's own danger
+        # verdict (`order_refusals["retreat"]`, fog-honest), stamped on the
+        # STAGED board where the Austrians stand at Vienna. This hand-made
+        # board moves Mack back beside Ney in the client's `enemies` dict
+        # only, so the stamped "not in danger" is lifted here and the
+        # completer's own map rule (`_in_visible_danger`) decides — which is
+        # what the stale / partial pair measures.
+        for m in board["map_data"]["Rhineland"]["marshals"]:
+            if m.get("name") == "Ney":
+                m["tactical_state"].get("order_refusals", {}).pop("retreat", None)
         out[fog] = (board, ["Ney, retrea"])
     far = copy.deepcopy(staged_state)
     far["enemies"]["Mack"] = {

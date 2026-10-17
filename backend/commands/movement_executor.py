@@ -461,13 +461,22 @@ class MovementExecutor:
                     _hint = (f"'{marshal.name}, attack "
                              f"{_hname(enemies_here[0].name)}' fights; "
                              f"'{marshal.name}, hold' stands.")
-                return {
+                _refusal = {
                     "success": False,
                     "message": _msg,
                     "engaged_with": [e.name for e in enemies_here],
                     "retreat_options": list(friendly_adjacent),
                     "suggestion": _hint,
                 }
+                # CF-4 (the first half only): the withdrawal the sentence
+                # names goes to the ↳ slot; it REPLACES the move, so the
+                # move is never re-offered after it.
+                if friendly_adjacent and not getattr(marshal, "retreated_this_turn", False):
+                    from backend.commands import remedy as _remedy
+                    _remedy.stamp(_refusal, marshal.name,
+                                  f"retreat to {target_name if _back else friendly_adjacent[0]}",
+                                  reoffer=False)
+                return _refusal
             return {
                 "success": False,
                 "message": "Cannot advance while engaged with enemy forces. You may retreat to friendly territory.",
@@ -620,13 +629,16 @@ class MovementExecutor:
                 drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         if getattr(marshal, 'fortified', False):
-            return {
+            # CF-4: the remedy is one known verb — on the ↳ slot, and the
+            # move re-offered once it is sent.
+            from backend.commands import remedy as _remedy
+            return _remedy.stamp({
                 "success": False,
                 "message": (f"{marshal.name} is fortified at {marshal.location} and "
                             f"cannot move. Order 'unfortify' first to make the army mobile."),
                 "fortified": True,
                 "suggestion": f"Try: '{marshal.name}, unfortify' to abandon fortified position",
-            }
+            }, marshal.name, "unfortify")
         if not target:
             # July 19, 2026 — same shape as the "give them hell" defect, one
             # action over. The prompt instructs the model to answer a vague

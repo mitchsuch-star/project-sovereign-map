@@ -749,12 +749,15 @@ class StrategicExecutor:
                 and str(ctx.parsed_command.get("strategic_type") or "").upper() not in ("HOLD", "SUPPORT")):
             if getattr(ctx.marshal, 'fortified', False):
                 from backend.display_names import humanize_entity_name as _hn
-                return {
+                # CF-4: the remedy on the ↳ slot; the march re-offered once
+                # it is sent.
+                from backend.commands import remedy as _remedy
+                return _remedy.stamp({
                     "success": False,
                     "message": (f"{_hn(ctx.marshal.name)} is fortified at {ctx.marshal.location} "
                                 f"and cannot march from his works — '{_hn(ctx.marshal.name)}, "
                                 f"unfortify' first. Nothing spent."),
-                }
+                }, ctx.marshal.name, "unfortify")
             if getattr(ctx.marshal, 'drilling_locked', False) or getattr(ctx.marshal, 'drilling', False):
                 from backend.display_names import humanize_entity_name as _hn
                 return {

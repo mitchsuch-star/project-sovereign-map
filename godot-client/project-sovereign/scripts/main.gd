@@ -344,6 +344,13 @@ var pending_relay_command := ""
 # The line the last fill put on the command line, so `_execute_command` can
 # tell the backend the tail was sent UNCHANGED (the CR-7-8 re-open instrument).
 var _last_relay_fill := ""
+# CF-4 (October 17, 2026) — THE REMEDY. A refusal whose remedy is one known
+# verb ("Ney is fortified … Order 'unfortify' first") rides `remedy_command`;
+# the client puts it in the ↳ offer slot (beside the line, one Tab away —
+# never on the line, never sent). Once the remedy goes out the backend
+# re-offers the refused order on the relay's keys, which the fill above
+# already handles. Stashed like the relay, raised at control return.
+var pending_remedy_command := ""
 # CC-0 "The line is the player's" (October 15, 2026). An order OFFERED to the
 # line — a dispatch TODAY chip, the tutor, a relay arriving over a draft —
 # never overwrites what the player is typing. It waits at the head of the
@@ -2401,6 +2408,7 @@ func _execute_command():
 	var relayed: bool = (_last_relay_fill != "" and command == _last_relay_fill)
 	_last_relay_fill = ""
 	pending_relay_command = ""
+	pending_remedy_command = ""   # CF-4: any send retires a waiting remedy
 
 	# POSITION 7 (Sept 23, 2026): the School of War is told what was SENT
 	# (observe-only — it reads the refusal of its own suggested order).
@@ -3692,6 +3700,30 @@ func _stash_relay(response: Dictionary) -> void:
 	pending_relay_command = str(relay) if relay is String and relay != "" else ""
 
 
+func _stash_remedy(response: Dictionary) -> void:
+	"""CF-4: remember a refusal's one-verb remedy (`remedy_command`). Every
+	response resets it — the key is absent on every reply but the refusal
+	that named it, so an older remedy never outlives the next answer."""
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var remedy = response.get("remedy_command")
+	pending_remedy_command = str(remedy) if remedy is String and remedy != "" else ""
+
+
+func _fill_pending_remedy() -> void:
+	"""CF-4: put the remedy in the ↳ offer slot when control returns — beside
+	the line, never on it (the line is the player's, CC-0), never sent. A
+	relay waiting on the same return takes the line first; the remedy then
+	waits beside it like any offer."""
+	if pending_remedy_command == "":
+		return
+	if _chip_command_in_flight or command_input == null or not command_input.editable:
+		return
+	var cmd := pending_remedy_command
+	pending_remedy_command = ""
+	_offer_beside_line(cmd, false)
+
+
 func _fill_pending_relay() -> void:
 	"""CR-7-3: put the relayed tail on the command line, once, when control
 	returns. Fills only an EMPTY line (never over something the player is
@@ -4160,6 +4192,7 @@ func _stash_pending_surfaces(response) -> void:
 	_stash_deferred_dialogue(response)  # FA slice 3 review round
 	_stash_petition(response)  # FA slice 6 (FA-5)
 	_stash_relay(response)  # CR-7-3
+	_stash_remedy(response)  # CF-4
 	_stash_ending(response)  # GE-2
 
 
@@ -4173,6 +4206,7 @@ func _clear_pending_surfaces() -> void:
 	pending_petition_data = null
 	pending_capture_response = null
 	pending_relay_command = ""
+	pending_remedy_command = ""  # CF-4
 	pending_ending_queue.clear()
 	_pending_envoy_digest_turn = -1
 
@@ -5886,6 +5920,9 @@ func set_input_enabled(enabled: bool):
 		# every control-return arm (success, objection answer, interrupt
 		# answer, clarification reissue) passes through here.
 		_fill_pending_relay()
+		# CF-4: a refusal's remedy goes to the ↳ offer slot at the same
+		# chokepoint.
+		_fill_pending_remedy()
 		# CC-0: and a draft the player parked to send an offered order.
 		_restore_parked_draft()
 
@@ -8115,6 +8152,7 @@ func _retire_line_latches() -> void:
 	_awaiting_end_turn_confirmation = false
 	_set_open_envoys_prompt_visible(false)
 	pending_relay_command = ""
+	pending_remedy_command = ""   # CF-4
 	_last_relay_fill = ""
 	_offered_command = ""
 
