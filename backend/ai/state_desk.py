@@ -2020,7 +2020,10 @@ def _answer_why_war(world, nation: str) -> str:
     if not world.is_at_war(player, nation):
         return f"We are not at war with {court}, Sire."
     wars = (build_active_wars(world) or {}).get("wars") or []
-    row = next((w for w in wars if w.get("opponent") == nation), None)
+    # PC-X26 (S13e part 4): a coalition member's war is the collapsed row
+    # keyed on its leader — read the row whose courts include her.
+    row = next((w for w in wars if w.get("opponent") == nation
+                or nation in (w.get("opponents") or [])), None)
     line = f"We are at war with {court}, Sire"
     if row:
         if row.get("in_coalition"):
@@ -2032,6 +2035,11 @@ def _answer_why_war(world, nation: str) -> str:
             line += f" Casus belli: {row['stated_reason']}"
     else:
         line += "."
+    # PC-R7 (i) / PC-X26: "what is the war for" — the stake, named.
+    from backend.game_logic.war_title import war_title_for_pair
+    _title_line = str(war_title_for_pair(world, player, nation).get("line") or "")
+    if _title_line:
+        line += " " + _title_line
     intent = _intent_clause(world, nation)
     if intent:
         line += " " + intent

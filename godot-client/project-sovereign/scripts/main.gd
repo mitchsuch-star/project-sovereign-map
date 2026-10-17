@@ -5290,7 +5290,8 @@ func _display_morning_dispatch(data: Dictionary):
 			if bool(lapse.get("is_petition", false)) and l_line != "":
 				add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]")
 				continue
-			var l_ptype = str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()
+			# PC-F45 (S13e part 4): the letter's display name (R7), never the raw key.
+			var l_ptype = str(lapse.get("proposal_type_display", str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()))
 			add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + Utils.display_nation_name(l_nation) + "'s " + l_ptype + " offer lapsed unanswered[/color]")
 		add_output("")
 
@@ -5303,8 +5304,10 @@ func _display_morning_dispatch(data: Dictionary):
 		for i in range(min(pending_envoys.size(), 3)):
 			var envoy = pending_envoys[i]
 			var envoy_nation = str(envoy.get("nation", "?"))
-			var envoy_type = str(envoy.get("proposal_type", "proposal")).capitalize()
-			add_output("[color=#" + Utils.COLOR_INFO + "]    - " + envoy_nation + " — " + envoy_type + "[/color]")
+			# PC-F45: the backend's display name names the letter; R7 — the
+			# court's display name too.
+			var envoy_type = str(envoy.get("proposal_type_display", str(envoy.get("proposal_type", "proposal")).capitalize()))
+			add_output("[color=#" + Utils.COLOR_INFO + "]    - " + Utils.display_nation_name(envoy_nation) + " — " + envoy_type + "[/color]")
 		if pending_envoys.size() > 3:
 			add_output("[color=#" + Utils.COLOR_INFO + "]    - ...and " + str(pending_envoys.size() - 3) + " more[/color]")
 		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"[/color]")

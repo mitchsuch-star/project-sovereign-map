@@ -737,6 +737,10 @@ func _render_preview(data: Dictionary):
 	bbcode += Utils.bb_flag(_selected_nation, 16)
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND'S ASSESSMENT — " + Utils.display_nation_name(_selected_nation).to_upper() + "[/color]\n"
 	bbcode += "Status: [color=#" + state_color + "]" + state_display + "[/color]"
+	# PC-R7 (i) — ruling J (S13e part 4): at war, the war is named by its stake.
+	var war_title = str(data.get("war_title", ""))
+	if war_title != "":
+		bbcode += " [color=#" + state_color + "]— the " + Utils.humanize_nation_keys_in_text(war_title) + "[/color]"
 	bbcode += "   Relation: [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"
 
 	# Vassal-specific fields

@@ -5621,7 +5621,7 @@ def _resolve_settlement_terms_requests(
             if isinstance(war, dict)
             else "war_archived"
         )
-        war_label = _settlement_request_war_label(war, war_id, player=player)
+        war_label = _settlement_request_war_label(war, war_id, player=player, world=world)
         leader = str(entry.get("answering_leader") or "")
         if structural in (None, "cooldown_active", "war_too_young") and (
             _settlement_offer_already_pending(pending, war_id=str(war_id))
@@ -5827,7 +5827,21 @@ def _resolve_settlement_terms_requests(
     return granted
 
 
-def _settlement_request_war_label(war, war_id: str, *, player: str = None) -> str:
+def _settlement_request_war_label(war, war_id: str, *, player: str = None,
+                                  world=None) -> str:
+    # PC-R7 (i) — ruling J (S13e part 4): with a `world` the label leads with
+    # the war's STAKE ("the War for Bohemia — France + Bavaria against
+    # Britain + Austria + Russia"); the sides follow as WHO. Never the pair
+    # as the name.
+    if world is not None and isinstance(war, dict) and war_id:
+        from backend.game_logic.war_title import war_title
+        rec = war_title(world, war_id, chair=player or getattr(world, "player_nation", "France"))
+        sides = _settlement_request_war_label(war, war_id, player=player)
+        if rec.get("title") and sides and " vs " in sides:
+            ours, theirs = sides.split(" vs ", 1)
+            return f"the {rec['title']} — {ours} against {theirs}"
+        if rec.get("title"):
+            return f"the {rec['title']}"
     # PR-2: this label reaches the settlement rail verbatim — measured,
     # "Settlement of France + Spain + Holland + Bavaria + KingdomOfItaly
     # vs Britain + Austria + Russia".

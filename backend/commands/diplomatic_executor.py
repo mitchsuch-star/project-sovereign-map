@@ -3249,7 +3249,7 @@ class DiplomaticExecutor:
             or ""
         )
         war_label = _settlement_request_war_label(
-            war, requested_war_id, player=player)
+            war, requested_war_id, player=player, world=world)
 
         world.diplomatic_points -= dp_cost
         requests = getattr(world, "settlement_terms_requests", None)

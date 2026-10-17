@@ -4415,9 +4415,12 @@ def _lapsed_offer_row(offer: Dict) -> Dict[str, Any]:
     `refuse_petition`'s own return), so both renderers print the applied
     figures — never "Client petition offer lapsed unanswered". A withdrawn
     petition (moot before the lapse) carries its own line and no price."""
+    from backend.models.dialogue_manager import _proposal_display as _ptd
     row: Dict[str, Any] = {
         "nation": offer["nation"],
         "proposal_type": (offer.get("proposal_type") or "proposal").replace("_", " "),
+        # PC-F45: the display name beside the raw key.
+        "proposal_type_display": _ptd(str(offer.get("proposal_type") or "proposal")),
     }
     petition = offer.get("petition")
     if isinstance(petition, dict) and petition:
@@ -4627,10 +4630,15 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
             _lapsed_offer_row(offer) for offer in lapsed_offers
         ]
 
+    # PC-F45 (S13e part 4): the envoy list names a letter by its display name
+    # (`PROPOSAL_TYPE_DISPLAY`, R7) — "Austria — Armistice Losing" read as
+    # France losing; the client printed the raw key capitalized.
+    from backend.models.dialogue_manager import _proposal_display as _ptd
     pending_envoys = [
         {
             "nation": item.get("source_nation", "?"),
             "proposal_type": str(item.get("proposal_type", "proposal")).replace("_", " "),
+            "proposal_type_display": _ptd(str(item.get("proposal_type") or "proposal")),
             "state": item.get("state", "WAITING"),
         }
         for item in world.dialogue_manager.get_mailbox_items()
@@ -6593,10 +6601,14 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
             region_str = target_summary
         tick_str = f"+{rate}/turn" if rate > 0 else ""
 
+        # PC-R7 (i): the war is named by its stake on the morning too.
+        from backend.game_logic.war_title import war_title_for_pair as _wt
+        _title = str(_wt(world, player_nation, target_nation).get("title") or "")
+        _title_tail = f" ({_title})" if _title else ""
         if homeland_sentence:
-            line_text = f"War Purpose: {type_display} vs {target_nation} — {target_summary}"
+            line_text = f"War Purpose: {type_display} vs {target_nation}{_title_tail} — {target_summary}"
         else:
-            line_text = f"War Purpose: {type_display} vs {target_nation} — {region_str} [{held_str}]"
+            line_text = f"War Purpose: {type_display} vs {target_nation}{_title_tail} — {region_str} [{held_str}]"
         if accumulated > 0:
             line_text += f" (ticking: +{accumulated}{', ' + tick_str if tick_str else ''})"
 

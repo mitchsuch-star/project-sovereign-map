@@ -1857,9 +1857,16 @@ def agd_gate_flip(arm, ctx) -> str:
 
 
 def agendas_c4_tilsit(arms, ctx):
-    """TILSIT (§4.6): the IGR-D fixture — France six turns at war with Prussia, holding Posen — offers the Warsaw
-    carve as a separate peace; the game's OWN scorer answers (nothing patched) and, if it accepts, the treaty is
-    ratified at the seam the dialogue's accept reaches; `nation_proclamation` fires and DuchyOfWarsaw stands."""
+    """TILSIT (§4.6): the DRIVEN Tilsit board — France six turns at war with Prussia, Prussia's field army gone,
+    Berlin and Silesia held — takes Posen through the capture seam (as the SF-AGD-1 arm takes it in play) and offers
+    the Warsaw carve as a separate peace; the game's OWN scorer answers (nothing patched) and, if it accepts, the
+    treaty is ratified at the seam the dialogue's accept reaches; `nation_proclamation` fires and DuchyOfWarsaw stands.
+
+    PC-X23 (S13e part 4, PC-F85's sibling): this probe stood on `test_igr_d_carve_completable._beaten_prussia`,
+    which PLANTS a stored score of 100 (a unit board's isolation, legitimate there) — so the instrument measured the
+    carve at a score the game cannot produce (it quoted 30 / 90; it read 58 / 118 by part 4). It now reads the
+    driven fixture (`tools/gen_agd_fixture.py`, the war's own score, 30 at turn 7) with the scores recomputed after
+    the capture, as the next advance would store them."""
     _boot(ctx)
     try:
         import importlib.util
@@ -1869,9 +1876,15 @@ def agendas_c4_tilsit(arms, ctx):
         T = importlib.util.module_from_spec(spec)
         with contextlib.redirect_stdout(io.StringIO()):
             spec.loader.exec_module(T)
-            # the DoD's precondition: a court that has actually been BEATEN (its field army gone, Posen/Berlin/Silesia held)
-            world = T._beaten_prussia()
-            from backend.game_logic.diplomacy import calculate_acceptance
+            from backend import save_manager as _SM
+            from backend.game_logic.diplomacy import calculate_acceptance, recalculate_war_scores
+            loaded = _SM.load_game(ROOT / "tests" / "fixtures" / "playtest_saves" / "fixture_agd_tilsit.json")
+            if not loaded.get("success"):
+                return _un(f"the driven Tilsit fixture did not load: {loaded.get('message')}")
+            world = loaded["world"]
+            # Posen taken in play, as the arm takes it (the capture seam), then the scores the advance would store
+            world.capture_region("Posen", "France")
+            recalculate_war_scores(world)
 
             tried = []
             proposal = None

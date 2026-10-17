@@ -475,6 +475,120 @@ def _compute_affected_nations(
 # ---------------------------------------------------------------------------
 
 
+def _reward_named_ally(world: Any, *, actor: str, ally: str, standing: str,
+                       war_id: str, awarded_regions: List[str], episode_id: str,
+                       power_tier: str) -> Dict[str, Any]:
+    """Spec §14.3 — a proposer-side ally NAMED in the instrument: `they_chose_us`
+    durable + the relation + `settlement_gratitude` transient (only when
+    material_contribution_points > 0; spec line 1478). ONE body for both
+    roads (PC-F81, S13e part 4): the table's proposer-side pass and the
+    bilateral ratifier's carried allies (`reward_named_carried_allies`)."""
+    relation_delta = (
+        RELATION_GRATITUDE_SEAT if standing == "seat"
+        else RELATION_GRATITUDE_CONSULT
+    )
+    if hasattr(world, "modify_nation_relation"):
+        world.modify_nation_relation(actor, ally, relation_delta)
+    _add_settlement_memory(
+        world,
+        actor=actor,
+        subject=ally,
+        memory_type="they_chose_us",
+        episode_id=episode_id,
+        payload={
+            "war_id": war_id,
+            "standing_level": standing,
+            "awarded_regions": awarded_regions,
+            "relation_delta": relation_delta,
+        },
+        expires_in=None,
+    )
+    material_points = 0
+    try:
+        from backend.game_logic.war_contribution import (
+            current_episode_material_total,
+        )
+        material_points = int(
+            current_episode_material_total(world, war_id, ally) or 0
+        )
+    except Exception as exc:
+        report(exc, "settlement_reactions._reward_named_ally: import backend.game_logic.war_contribution")
+        material_points = 0
+    if material_points > 0:
+        _add_settlement_memory(
+            world,
+            actor=actor,
+            subject=ally,
+            memory_type="settlement_gratitude",
+            episode_id=episode_id,
+            payload={
+                "war_id": war_id,
+                "standing_level": standing,
+                "awarded_regions": awarded_regions,
+                "material_contribution_points": material_points,
+            },
+            expires_in=SETTLEMENT_GRATITUDE_TURNS,
+        )
+    return {
+        "kind": "ally_rewarded",
+        "ally": ally,
+        "standing_level": standing,
+        "awarded_regions": awarded_regions,
+        "relation_delta": relation_delta,
+        "power_tier": power_tier,
+        "material_points": material_points,
+    }
+
+
+def carried_ally_standings(world: Any, war_id: str, side: str, allies: Iterable[str],
+                           clauses: Iterable[Mapping[str, Any]]) -> Dict[str, str]:
+    """PC-F81 (S13e part 4): the carried allies' standing read BEFORE their
+    pairs close (the table's lesson, part 2: `cleanup_war_end` closes the
+    contribution episode and the standing reads `no_standing` after)."""
+    terms = [dict(c) for c in (clauses or []) if isinstance(c, Mapping)]
+    return {str(a): _classify_proposer_ally_standing(world, war_id, side, str(a), terms)
+            for a in (allies or []) if a}
+
+
+def reward_named_carried_allies(world: Any, *, war_id: str, actor: str,
+                                standings: Mapping[str, str],
+                                applied_clauses: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """PC-F81's second road (S13e part 4, October 17, 2026): a carried ally
+    the BILATERAL instrument names as beneficiary (F53's `to`, F70's hand-
+    off — Tyrol to Bavaria) gets the gratitude pass the table gives it
+    (`_reward_named_ally`): before, the ratifier transferred the province and
+    nothing else — Bavaria named for Tyrol on the wizard's peace read 60 → 60
+    where the table's read 60 → 60 + the gratitude. An ally carried in and
+    named for nothing keeps PC-R1's ruling (carried, no fallout); a
+    `no_standing` ally does not react (spec §14.4). Returns the reactions."""
+    clauses = [dict(c) for c in (applied_clauses or []) if isinstance(c, Mapping)]
+    if not clauses or not standings:
+        return []
+    named_allies = []
+    for ally, standing in standings.items():
+        if standing == "no_standing":
+            continue
+        named, regions = _is_named_beneficiary(clauses, ally)
+        if named:
+            named_allies.append((str(ally), str(standing), list(regions)))
+    if not named_allies:
+        return []
+    episode_id = f"carried:{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    try:
+        from backend.game_logic.diplomacy import _allocate_episode_id
+        episode_id = str(_allocate_episode_id(world) or episode_id)
+    except Exception as exc:
+        report(exc, "settlement_reactions.reward_named_carried_allies: _allocate_episode_id")
+    out: List[Dict[str, Any]] = []
+    for ally, standing, regions in named_allies:
+        tier_getter = getattr(world, "get_power_tier", None)
+        power_tier = (tier_getter(ally) if callable(tier_getter) else "secondary") or "secondary"
+        out.append(_reward_named_ally(
+            world, actor=actor, ally=str(ally), standing=str(standing), war_id=war_id,
+            awarded_regions=list(regions), episode_id=episode_id, power_tier=power_tier))
+    return out
+
+
 def _evaluate_proposer_side_reactions(
     world: Any,
     *,
@@ -524,64 +638,10 @@ def _evaluate_proposer_side_reactions(
         power_tier = power_tier or "secondary"
 
         if is_beneficiary:
-            # Spec §14.3 — `they_chose_us` durable + `settlement_gratitude`
-            # transient (only when material_contribution_points > 0; spec
-            # line 1478).
-            relation_delta = (
-                RELATION_GRATITUDE_SEAT if standing == "seat"
-                else RELATION_GRATITUDE_CONSULT
-            )
-            if hasattr(world, "modify_nation_relation"):
-                world.modify_nation_relation(actor, ally, relation_delta)
-            _add_settlement_memory(
-                world,
-                actor=actor,
-                subject=ally,
-                memory_type="they_chose_us",
-                episode_id=episode_id,
-                payload={
-                    "war_id": war_id,
-                    "standing_level": standing,
-                    "awarded_regions": awarded_regions,
-                    "relation_delta": relation_delta,
-                },
-                expires_in=None,
-            )
-            material_points = 0
-            try:
-                from backend.game_logic.war_contribution import (
-                    current_episode_material_total,
-                )
-                material_points = int(
-                    current_episode_material_total(world, war_id, ally) or 0
-                )
-            except Exception as exc:
-                report(exc, "settlement_reactions._evaluate_proposer_side_reactions: import backend.game_logic.war_contribution")
-                material_points = 0
-            if material_points > 0:
-                _add_settlement_memory(
-                    world,
-                    actor=actor,
-                    subject=ally,
-                    memory_type="settlement_gratitude",
-                    episode_id=episode_id,
-                    payload={
-                        "war_id": war_id,
-                        "standing_level": standing,
-                        "awarded_regions": awarded_regions,
-                        "material_contribution_points": material_points,
-                    },
-                    expires_in=SETTLEMENT_GRATITUDE_TURNS,
-                )
-            reactions.append({
-                "kind": "ally_rewarded",
-                "ally": ally,
-                "standing_level": standing,
-                "awarded_regions": awarded_regions,
-                "relation_delta": relation_delta,
-                "power_tier": power_tier,
-                "material_points": material_points,
-            })
+            reactions.append(_reward_named_ally(
+                world, actor=actor, ally=ally, standing=standing, war_id=war_id,
+                awarded_regions=awarded_regions, episode_id=episode_id,
+                power_tier=power_tier))
             continue
 
         # Ally was NOT rewarded. Decide shut-out severity.

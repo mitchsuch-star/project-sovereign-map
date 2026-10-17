@@ -2678,6 +2678,8 @@ class Answerer:
         # None held: no id is sent, and the backend answers the dialogue
         # that is current — as a bare client answer does.
         body = {"choice": action}
+        # PC-F86: the chooser this click opens is the script's choice to make
+        self._last_script_action = action
         if isinstance(dialogue, dict) and dialogue.get("dialogue_id") is not None:
             body["dialogue_id"] = dialogue.get("dialogue_id")
         if params:
@@ -3310,6 +3312,15 @@ class Answerer:
     def _pick_dialogue_choice(self, dialogue):
         dtype = str(dialogue.get("type") or "")
         all_options = dialogue.get("options") or dialogue.get("choices") or []
+        # PC-F86 (S13e part 4): the bilateral chooser the script's OWN
+        # `@seek_bilateral_peace` opened proceeds with the bilateral — the
+        # table's "keep" answer undid the script's click and backed out.
+        if (dtype == "settlement_pair_substitute_confirm"
+                and getattr(self, "_last_script_action", "") == "seek_bilateral_peace"
+                and any(_option_id(o) == "confirm_pair_substitute" and _enabled(o)
+                        for o in all_options)):
+            self._last_script_action = ""
+            return "confirm_pair_substitute"
         # FA-78: a DISABLED option is never pressed. The archive's `propose`
         # arm pressed a greyed "Send as suggested" seven times and recorded
         # WIN-1's honest refusals as artefacts. Enabled-only from here on —
@@ -3512,6 +3523,24 @@ class Answerer:
         elif mode == "first":
             picked = _option_id(options[0]) if options else None
         else:  # decline
+            # PC-F86 (S13e part 4, October 17, 2026): the player's OWN
+            # settlement confirm — the terms the SCRIPT put on the table
+            # (`proposer_nation` is the player) — follows the script, as
+            # `PLAYTESTING.md` promises ("the player's own confirms are never
+            # touched"): the decline dial answered it `back_out_settlement`,
+            # so a scripted `seek_bilateral_peace` never sent under decline.
+            # The league's own table (`--settlement decline`, GE-V) and an
+            # incoming offer's chained confirm keep the dial: only a confirm
+            # the player authored, under the MIRRORED mode, is confirmed.
+            if (dtype == "settlement_confirm"
+                    and str((self.policy or {}).get("settlement") or "") not in SETTLEMENT_MODES
+                    and str(dialogue.get("caller_kind") or "player_editor") == "player_editor"
+                    and str(dialogue.get("proposer_nation") or "") in (
+                        "", str(getattr(self, "player_nation", None) or "France"))
+                    and any(_option_id(o) == "confirm_settlement" for o in options)):
+                # the table's own ENABLED ratify (FA-78: a disabled one is never
+                # pressed; a PROPOSE table with none keeps the decline answer)
+                return "confirm_settlement"
             # FA-72: "no" dropped — it earned nothing (decline/reject/refuse
             # cover the live vocabulary) and cost a war declaration.
             picked = find("decline", "reject", "refuse")

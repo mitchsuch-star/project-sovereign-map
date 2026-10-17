@@ -80,6 +80,7 @@ from backend.game_logic.settlement_routes import (
     evaluate_war_detail_actionability,
     mint_settlement_route_id,
 )
+from backend.game_logic.war_title import titled_label as _titled_label
 from backend.game_logic.settlement_validation import (
     PAIR_SUBSTITUTE_DISABLED_RENDER_CODES,
     _active_cross_side_pairs,
@@ -176,7 +177,7 @@ def _collision_war_label(world: Any, war_id: str, fallback: str) -> str:
     instance = (getattr(world, "war_instances", {}) or {}).get(str(war_id))
     if not isinstance(instance, Mapping):
         return fallback
-    return _war_label(str(war_id), instance) or fallback
+    return _war_label(str(war_id), instance, world) or fallback
 
 
 def _settlement_collision_payload(
@@ -2199,7 +2200,9 @@ def build_settlement_preview(
 
     preview = {
         "war_instance": instance,
-        "war_label": _war_label(war_id, instance),
+        # PC-R7 (i): the table titles the same object the war card does —
+        # the war's stake, then the courts this table covers.
+        "war_label": _titled_label(world, war_id, covered=covered),
         "covered_enemy_participants": covered,
         "proposer_side": side,
         "accepting_side": accepting_side,
@@ -3086,7 +3089,7 @@ def build_settlement_confirm_dialogue(
     _covered_leader = str(preview.get("accepting_leader") or "")
     if _covered_leader:
         leaders[accepting_side] = _covered_leader
-    war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
+    war_label = str(preview.get("war_label") or _war_label(war_id, war_instance, world))
     # G4F-7 (Gate-4 smoke): a multilateral settlement is labeled by its
     # COVERAGE, not the leader pair — "the settlement of France vs Britain"
     # on a Britain + Prussia table fed the "Britain-only" misreading. The
@@ -3104,9 +3107,10 @@ def build_settlement_confirm_dialogue(
         leaders.get(str(preview.get("proposer_side") or "")) or ""
     )
     if covered_for_label and proposer_leader_for_label:
-        war_label = (
-            f"{proposer_leader_for_label} vs {' + '.join(covered_for_label)}"
-        )
+        # PC-R7 (i) — ruling J: the table titles the same object the war
+        # card does — the war's STAKE ("War for Bohemia"), then the courts
+        # this table covers; never the leader pair.
+        war_label = _titled_label(world, war_id, covered=covered_for_label)
     # REFRONT-V: each per-court row speaks through its NAMED diplomat (chancery
     # fallback — never an anonymous beat), and Talleyrand narrates the table.
     # SRX-6 (SR-6b): the per-court holdout line speaks the white peace's
@@ -4065,11 +4069,18 @@ def build_settlement_confirm_dialogue(
     _status_quo_review = settlement_status_quo_review(
         world, war_instance, proposer_side, covered,
         preview.get("settlement_terms") or [])
+    # PC-F33 (S13e part 4): the table's "White Peace" is LABELLED as the
+    # peace on the held line when the status quo it fixes moves a province.
+    _held_note = ("White Peace — on the held line: each side keeps what it holds."
+                  if _status_quo_review and not _has_material_concession_terms(
+                      preview.get("settlement_terms") or [])
+                  else "")
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
         "dialogue_mode": dialogue_mode,
         "status_quo_review": _status_quo_review,
+        "held_line_note": _held_note,
         # Re-front Slice 1 §11.2/§11.4: the per-court acceptance block and the
         # per-covered-court carry gate ride on every settlement_confirm
         # dialogue (PROPOSE and REVIEW) so the displayed acceptance IS the gate.

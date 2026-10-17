@@ -317,16 +317,29 @@ def collect_cessions_from_clauses(clauses) -> Dict[str, List[Tuple[str, str]]]:
     for clause in clauses or []:
         if not isinstance(clause, dict):
             continue
-        if clause.get("type") not in ("territory_cede", "territory"):
+        if clause.get("type") not in ("territory_cede", "territory", "create_client"):
             continue
         victim = clause.get("from_nation") or clause.get("from")
         receiver = clause.get("to_nation") or clause.get("to")
+        if clause.get("type") == "create_client":
+            # PC-F57 (S13e part 4, October 17, 2026): a CARVE is a cession —
+            # the client erected out of the victim's homeland is the
+            # hegemon's act (IQ6-D2's own note; Tilsit's Duchy of Warsaw),
+            # so Posen carved beside Silesia ceded makes the punitive record
+            # that forecloses the volte-face. `settlement_scoring` declares
+            # the carve cession-shaped; this collector read only the two
+            # territory types. The provinces are the clause's denormalized
+            # copy (the authoring seam stamps them); the receiver is the
+            # carver, whose client it becomes.
+            names = [str(p) for p in (clause.get("provinces") or []) if p]
+            receiver = receiver or clause.get("client_display_name") or clause.get("tag")
+        else:
+            names = list(clause.get("regions") or [])
+            single = clause.get("region")
+            if single and single not in names:
+                names.append(single)
         if not victim or not receiver or victim == receiver:
             continue
-        names = list(clause.get("regions") or [])
-        single = clause.get("region")
-        if single and single not in names:
-            names.append(single)
         if not names:
             continue
         pairs = out.setdefault(str(victim), [])

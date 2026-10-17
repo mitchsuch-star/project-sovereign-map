@@ -5499,6 +5499,15 @@ def build_war_context_snapshot(
             "display_lines": list(words["display_lines"]),
         }
 
+    # PC-X27 (S13e part 4, PC-R7 (i)'s sibling): the peace-class letter and
+    # the player's own peace preview name the war by its stake under War
+    # Summary — the envoy's letter read "War score: 52" and never which war.
+    if current_state in ("WAR", "ARMISTICE"):
+        from backend.game_logic.war_title import war_title_for_pair
+        _wt = war_title_for_pair(world, player_nation, target_nation)
+        snapshot["war_title"] = str(_wt.get("title") or "")
+        snapshot["war_title_line"] = str(_wt.get("line") or "")
+
     return snapshot
 
 
@@ -12931,14 +12940,66 @@ def _continental_system_beat(world, nation: str, action: str, tail: str = "") ->
     })
 
 
+CONTINENTAL_SYSTEM_LIFTED_CLAUSE = "continental_system_lifted"
+# PC-F83 (S13e part 4, October 17, 2026): the France-to-Britain sweetener
+# Britain's desire profile always priced (+15, `SPECIAL_BONUSES`) and nothing
+# produced. Lifted by treaty, the System stays lifted this long — no court
+# may be enrolled and the closure's charge rests — the length of a fresh
+# peace's floor doubled (Amiens held fourteen months).
+CONTINENTAL_SYSTEM_LIFT_TURNS = 16
+
+
+def continental_system_lifted(world) -> bool:
+    """True while a treaty's lifting of the System stands (PC-F83)."""
+    until = int(getattr(world, "continental_system_lifted_until", 0) or 0)
+    return until > int(getattr(world, "current_turn", 0) or 0)
+
+
+def continental_system_lift_words(world) -> str:
+    until = int(getattr(world, "continental_system_lifted_until", 0) or 0)
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    if until <= turn:
+        return ""
+    return (f"The Continental System is lifted by treaty — the Continent's ports "
+            f"are open to British trade for {until - turn} more "
+            f"turn{'' if until - turn == 1 else 's'}.")
+
+
+def lift_continental_system(world, lord: str, reason: str = "") -> List[str]:
+    """PC-F83 — THE lifting write: every member leaves the System (through
+    the one membership write, each with its beat) and no court may be
+    enrolled for `CONTINENTAL_SYSTEM_LIFT_TURNS`. Returns the courts
+    released. The bilateral ratifier applies it for the `continental_system_
+    lifted` clause when the proposer is the System's lord."""
+    released = [str(n) for n in list(getattr(world, "continental_system_members", []) or [])]
+    for nation in released:
+        leave_continental_system(world, nation, reason or "the System lifted by treaty")
+    world.continental_system_lifted_until = (
+        int(getattr(world, "current_turn", 0) or 0) + CONTINENTAL_SYSTEM_LIFT_TURNS)
+    world.log_event({
+        "type": "continental_system_membership",
+        "nation": str(lord), "action": "lifted", "released": released,
+        "until": int(world.continental_system_lifted_until),
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+        "message": (f"{lord} lifts the Continental System"
+                    f"{' — ' + reason if reason else ''}: the Continent's ports "
+                    f"reopen to British trade for {CONTINENTAL_SYSTEM_LIFT_TURNS} turns."),
+    })
+    return released
+
+
 def join_continental_system(world, nation: str, imposer: str, reason: str = "") -> bool:
     """THE membership write. Adds `nation` to the System (the store keeps its
     list or set shape), announces it, and returns True when it joined. The
     alarm is the caller's (`FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_
     SURCHARGE`, one source), so the forced-alliance arms keep their single
-    combined charge byte for byte."""
+    combined charge byte for byte. PC-F83: refused while a treaty's lifting
+    of the System stands."""
     members = getattr(world, "continental_system_members", []) or []
     if nation in members:
+        world.continental_system_members = members
+        return False
+    if continental_system_lifted(world):
         world.continental_system_members = members
         return False
     if isinstance(members, set):
@@ -12976,6 +13037,9 @@ def apply_continental_system(world) -> None:
     """
     members = getattr(world, 'continental_system_members', [])
     if not members:
+        return
+    if continental_system_lifted(world):
+        # PC-F83: lifted by treaty — no enrolment, no charge while it stands.
         return
 
     lord = getattr(world, 'player_nation', 'France')
@@ -14317,11 +14381,18 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     has_deferred_result = world.proposal_result_popup is not None
     talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
 
+    # PC-R7 (i): the wizard names the war by its stake beside the state.
+    _war_title_rec = {}
+    if state in ("WAR", "ARMISTICE"):
+        from backend.game_logic.war_title import war_title_for_pair as _wt
+        _war_title_rec = _wt(world, player, target_nation)
     response = {
         "nation": target_nation,
         "state": state,  # Bug 7 fix: alias for wizard consistency with Step 1
         "current_state": state,
         "current_state_display": _STATE_DISPLAY_NAMES.get(state, state),
+        "war_title": str(_war_title_rec.get("title") or ""),
+        "war_title_line": str(_war_title_rec.get("line") or ""),
         "relation": int(relation),
         "relation_descriptor": get_relation_descriptor(relation),
         "dp_available": int(dp),
@@ -14395,6 +14466,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     actions = counsel_first(actions, _rec_text, _rec_mission,
                             rec_action=str((_counsel or {}).get("best_action") or ""),
                             rec_coverage=list((_counsel or {}).get("best_coverage") or []))
+    # PC-F41: every peace row names the courts it addresses.
+    actions = name_the_courts_a_peace_row_addresses(world, target_nation, actions)
     response["actions"] = actions
     # IQ-4: the machine key the counsel names (display-only, GR6) — the
     # playtest driver's advisor arm reads it; absent when nothing is named.
@@ -14829,6 +14902,49 @@ def counsel_first(actions: List[Dict], rec_text: str, rec_mission: str,
             # K item 6: the table opens with the coverage the counsel priced
             row["counsel_coverage"] = list(rec_coverage)
     return lead + [r for r in actions if r not in lead]
+
+
+def name_the_courts_a_peace_row_addresses(world, target_nation: str,
+                                           actions: List[Dict]) -> List[Dict]:
+    """PC-F41 (S13e part 4): every peace button names the court or courts it
+    addresses. The wizard's "Propose White Peace" on Austria's page staged
+    the WHOLE war's table with Britain and Russia while the terminal echoed
+    "propose white peace with Austria"; the settlement rows' coverage is
+    stamped by the counsel (`counsel_coverage`, K item 6) or is the war's
+    whole table. The row's `display_name` says which — "Propose White Peace
+    — with Austria alone" / "— the whole table: Austria, Britain and Russia"
+    — and `addresses` carries the courts for the client."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
+    player = getattr(world, "player_nation", "France")
+    whole: List[str] = []
+    war_id = _find_active_war_instance_for_pair(world, world._make_diplo_key(player, target_nation))
+    instance = (getattr(world, "war_instances", {}) or {}).get(war_id or "") or {}
+    side_by_nation = instance.get("side_by_nation") or {}
+    my_side = side_by_nation.get(player)
+    if my_side in ("attackers", "defenders"):
+        enemy_side = "defenders" if my_side == "attackers" else "attackers"
+        whole = [str(n) for n in (instance.get(enemy_side) or [])
+                 if side_by_nation.get(str(n)) == enemy_side
+                 and world.get_diplomatic_state(player, str(n)) == "WAR"]
+    for row in actions:
+        action = str(row.get("action") or "")
+        if action not in ("open_settlement", "propose_white_peace"):
+            continue
+        covered = [str(n) for n in (row.get("counsel_coverage") or []) if n] or list(whole)
+        if not covered:
+            continue
+        row["addresses"] = list(covered)
+        names = [_fdn(world, n) for n in covered]
+        base = str(row.get("display_name") or "")
+        if len(covered) == 1:
+            suffix = f"with {names[0]} alone" if len(whole) > 1 else f"with {names[0]}"
+        else:
+            suffix = "the whole table: " + ", ".join(names[:-1]) + " and " + names[-1]
+        row["addresses_display"] = suffix
+        if " — " not in base:
+            row["display_name"] = f"{base} — {suffix}"
+    return actions
 
 
 def _recommendation_and_mission(world, target_nation: str, actions: List[Dict],

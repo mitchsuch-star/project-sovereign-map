@@ -111,6 +111,7 @@ SIGNED_PEACE_REASONS = frozenset({
     "treaty_ratification",          # the bilateral treaty (player, AI-AI)
     "common_peace_settlement",      # the settlement table + the third-party peace
     "mutual_exhaustion",            # the exhausted-pair exit (an AI white peace)
+    "sub_pair_loser_sues",          # PC-F28: a beaten sub-pair's loser sues; the held line titled
     "treaty_vassalization",         # a court submitting by signed clause
     "conquest_vassalization",       # a beaten court subjugated (GEV-1's gate)
     "vassalage_entry",              # DD1-8: a new client's wars follow its lord's peace
@@ -901,6 +902,41 @@ def homeland_returns(world, holder_leader: str, ceder: str,
             {h: sorted(r) for h, r in back.items()})
 
 
+def ally_homeland_returns(world, holder_leader: str, ceder: str) -> Dict[str, List[str]]:
+    """PC-F75 (S13e part 4, October 17, 2026) — verified real: `homeland_
+    returns` splits only what `status_quo_retentions` lists (the CEDER's
+    homeland and ground captured FROM the ceder), so a co-belligerent's
+    homeland retaken from the ceder's ALLY never reached it: Carniola —
+    Austria's, taken by Bavaria, retaken by Britain — stayed British
+    through the France–Britain peace while Russia's Carniola, captured from
+    France herself, went home. The ONE rule, read beside the other: a
+    province the holder's bloc holds whose conquest record names a member
+    of the ceder's bloc (its allies and clients — `get_bloc_members`), whose
+    home nation is a co-belligerent of the holder (not the holder, not of
+    the ceder's bloc), goes home at the peace. Pure read; {home: [regions]}."""
+    out: Dict[str, List[str]] = {}
+    if not holder_leader or not ceder or holder_leader == ceder:
+        return out
+    store = getattr(world, "province_title", None)
+    store = store if isinstance(store, dict) else {}
+    ceder_bloc = set(world.get_bloc_members(ceder) or []) | {ceder}
+    for holder in _bloc_of(world, holder_leader):
+        for region_name in world.get_nation_regions(holder) or []:
+            rec = store.get(region_name) or {}
+            if not (isinstance(rec, dict) and rec.get("kind") == TITLE_CONQUEST):
+                continue
+            taken_from = str(rec.get("from") or "")
+            if taken_from == ceder or taken_from not in ceder_bloc:
+                continue
+            home = home_nation_of(world, region_name)
+            if not home or home == holder or home in ceder_bloc:
+                continue
+            if not _co_belligerent(world, home, holder, ceder):
+                continue
+            out.setdefault(home, []).append(region_name)
+    return {h: sorted(r) for h, r in out.items()}
+
+
 def _return_home(world, region_name: str, home: str, holder: str) -> None:
     """The status quo's homeland return — moved as a treaty cession moves a
     province (controller, stability 50; the homeland's title record is
@@ -981,15 +1017,23 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
         turn = int(getattr(world, "current_turn", 0) or 0)
         for holder_leader, ceder in ((nation_a, nation_b), (nation_b, nation_a)):
             kept = status_quo_retentions(world, holder_leader, ceder)
-            if not kept:
+            # PC-F75: an ally's homeland retaken from the ceder's ally goes
+            # home too (it is not in `kept` — read beside it).
+            ally_home = ally_homeland_returns(world, holder_leader, ceder)
+            if not kept and not ally_home:
                 continue
             # DDB-12: a co-belligerent's homeland retaken by an ally goes
             # home, titled back; the rest is retained as before.
             kept, returned = homeland_returns(world, holder_leader, ceder, kept)
+            for home, regions in ally_home.items():
+                returned.setdefault(home, [])
+                returned[home] = sorted(set(returned[home]) | set(regions))
             for home, regions in returned.items():
                 for region_name in regions:
                     holder = str(getattr(world.regions.get(region_name), "controller", "") or "")
                     _return_home(world, region_name, home, holder)
+            if not kept and not returned:
+                continue
             # The HOUSE is the signatory's lord: a satellite signing its own
             # pair (SR-1b's cascade, or its own treaty) titles for its lord's
             # house, so one renewed war between the lords breaks it.
@@ -1105,7 +1149,13 @@ def status_quo_summary_lines(world, entries: Iterable[Dict[str, Any]],
                 to = "us" if home == speaker else formed_display_name(world, home)
                 lines.append(f"Status quo: {_join_names(sorted(regions))} {verb} to {to} "
                              f"by the treaty — homeland retaken by an ally.")
-        names = sorted(r for rs in (entry.get("titled") or {}).values() for r in rs)
+        # PC-X22 (S13e part 4): a province the same instrument then CEDED
+        # (Tyrol to Bavaria — the status quo titles at the state write, the
+        # cession moves it after) is no longer the holder's; the sentence
+        # names only what each holder still holds, as the forecast does.
+        names = sorted(r for holder, rs in (entry.get("titled") or {}).items() for r in rs
+                       if str(getattr((getattr(world, "regions", {}) or {}).get(r), "controller", holder)
+                              or holder) == str(holder))
         if not names:
             continue
         house = str(entry.get("house") or "")
@@ -1138,9 +1188,15 @@ def status_quo_forecast(world, nation_a: str, nation_b: str,
             kept = status_quo_retentions(world, holder_leader, ceder, forecast=True)
             kept = {h: [r for r in rs if r not in gone] for h, rs in kept.items()}
             kept = {h: rs for h, rs in kept.items() if rs}
-            if not kept:
+            # PC-F75: the forecast reads the ally-homeland rule the pass applies.
+            ally_home = {h: [r for r in rs if r not in gone]
+                         for h, rs in ally_homeland_returns(world, holder_leader, ceder).items()}
+            ally_home = {h: rs for h, rs in ally_home.items() if rs}
+            if not kept and not ally_home:
                 continue
             kept, returned = homeland_returns(world, holder_leader, ceder, kept)
+            for home, regions in ally_home.items():
+                returned[home] = sorted(set(returned.get(home, [])) | set(regions))
             entries.append({
                 "house": str(world._top_overlord(holder_leader) or holder_leader),
                 "ceder": ceder,

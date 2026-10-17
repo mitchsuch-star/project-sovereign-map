@@ -516,8 +516,11 @@ ARMS: dict[str, dict] = {
     },
     # SF-AGD-1 "The agendas arm" (Step 5 SR-8b): a PLAYED road from the TILSIT
     # board — Posen taken in play (the Duchy's gate flips), the Duchy carved
-    # through the settlement table's own clicks and the separate peace, the
+    # through the settlement table's own clicks to its Confirm, the
     # Proclamation on ratification. SF-M's TILSIT probe is its instrument.
+    # PC-F85: the board is DRIVEN now (tools/gen_agd_fixture.py plays six end
+    # turns instead of planting a score), and Prussia's war is its own table
+    # (PC-F66), so the road ends on `confirm_settlement`, not the separate peace.
     "AGD": {
         "argv": [
             "--script",

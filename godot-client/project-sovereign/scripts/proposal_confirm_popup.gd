@@ -619,6 +619,11 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	# homeland first.
 	var titled = data.get("status_quo_review", [])
 	if titled is Array and titled.size() > 0:
+		# PC-F33 (S13e part 4): the "White Peace" that confirms every holding
+		# is labelled as the peace on the held line.
+		var held_note = str(data.get("held_line_note", ""))
+		if held_note != "":
+			bbcode += "[b][color=#e0c070]%s[/color][/b]\n" % held_note
 		bbcode += "[b]What the treaty titles[/b]\n"
 		for line in titled:
 			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(line)
@@ -1615,6 +1620,10 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			bbcode += "[color=#e66262]Key obstacle: %s[/color]\n" % ln
 
 	bbcode += "\n[b]War Summary[/b]\n"
+	# PC-X27 (S13e part 4): the war is named by its stake.
+	var war_title_line = str(snapshot.get("war_title_line", ""))
+	if war_title_line != "":
+		bbcode += Utils.humanize_nation_keys_in_text(war_title_line) + "\n"
 	var war_score = int(snapshot.get("war_score", 0))
 	var score_color = "#80c080"
 	if war_score < 0:

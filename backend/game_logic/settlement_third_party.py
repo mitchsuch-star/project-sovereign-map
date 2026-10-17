@@ -62,6 +62,14 @@ PAIR_EXIT_STAGNANT_SCORE = 15       # |pair war score| within this band
 # court answering the sitting Congress bars the call), so a floored pair can
 # no longer be re-welded by a third court's fresh war.
 PAIR_EXIT_TRUCE_FLOOR_TURNS = 8
+# PC-F28 (S13e part 4, October 17, 2026): a DECISIVE war between two AI
+# courts folded into France's instance could end only by elimination — the
+# exhausted-pair exit above needs a stagnant score, and the loser's own
+# instance road (`attempt_third_party_settlement`, where a loser SUES past
+# P1's threshold) never runs inside a player-containing war. Measured on
+# marengo: Austria–Bavaria sat at +35 to +60 for eight turns until Bavaria
+# was destroyed. The loser sues after this many turns of its pair.
+SUB_PAIR_SUE_MIN_TURNS = 4
 
 
 def _side_leader_active(war: Dict, side: str) -> Optional[str]:
@@ -483,13 +491,56 @@ def pair_is_mutually_exhausted(world, a: str, b: str,
     return abs(int(get_war_score_for(world, a, b))) <= PAIR_EXIT_STAGNANT_SCORE
 
 
+def sub_pair_loser_sues(world, a: str, b: str, joined_turn: int):
+    """PC-F28 — the SEAM: inside a player-containing instance, a non-player,
+    non-client sub-pair whose loser's stored pair score has fallen under its
+    own P1 threshold (`effective_peace_threshold`, the seam P1 reads) after
+    `SUB_PAIR_SUE_MIN_TURNS` of the pair sues; the winner takes the peace on
+    the held line (the ground it holds is titled by SR-1a, the unheld
+    homeland returned as the exhausted exit returns it). Returns (loser,
+    winner, the loser's score) or None — the score read BEFORE the peace
+    cleans the pair's ledger. The series attribution holds it down."""
+    from backend.game_logic.ai_diplomacy import effective_peace_threshold
+    from backend.game_logic.diplomacy import get_war_score_for
+    turn = int(getattr(world, "current_turn", 0))
+    if turn - int(joined_turn) < SUB_PAIR_SUE_MIN_TURNS:
+        return None
+    candidates = []
+    for loser, winner in ((a, b), (b, a)):
+        score = int(get_war_score_for(world, loser, winner))
+        if score < int(effective_peace_threshold(loser, winner, world)):
+            candidates.append((score, loser, winner))
+    if not candidates:
+        return None
+    candidates.sort()
+    score, loser, winner = candidates[0]
+    return loser, winner, int(score)
+
+
+def client_pair_is_the_lords_war(world, client: str, court: str) -> bool:
+    """PC-F29 — the SEAM: a client's pair with `court` is its lord's war (and
+    follows the lord out — SR-1b's six roads) while the lord is at WAR with
+    that court; otherwise it is the client's own war, which takes the pair
+    exits like any court's. Before, every client pair was untouchable here
+    whatever its lord was doing (Part III §23: Britain–Holland and Austria–
+    the Kingdom of Italy at exhaustion 200 with no road out). The series
+    attribution holds it down (always True — the old rule)."""
+    row = (getattr(world, "vassals", {}) or {}).get(client) or {}
+    lord = str(row.get("lord") or "")
+    if not lord or lord == court:
+        return True
+    return world.get_diplomatic_state(lord, court) == "WAR"
+
+
 def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
                                   events: List[Dict]) -> None:
     """The mutual-exhaustion white peace for a non-player sub-pair inside
     a player-containing instance (constants above). At most ONE pair exit
-    per turn world-wide (tempo); the player's own pairs and every vassal's
-    pairs are untouchable — a vassal follows its lord's war, and its
-    weariness is the lord's pressure to read."""
+    per turn world-wide (tempo); the player's own pairs are untouchable, and
+    a client's pair while it is its LORD's war (`client_pair_is_the_lords_
+    war` — it follows the lord out, SR-1b). PC-F29: the weariness of a
+    client fighting its lord's war is NOT read by the lord's scorer (Part V
+    §43 found the claim unbacked); its war ends with the lord's."""
     from backend.game_logic.diplomacy import (
         cleanup_war_end,
         set_diplomatic_state,
@@ -509,22 +560,34 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
         if len(parts) != 2:
             continue
         a, b = parts
-        if player in (a, b) or a in vassals or b in vassals:
+        if player in (a, b):
+            continue
+        # PC-F29 (S13e part 4): a client's pair is the LORD's war — untouchable
+        # here, it follows the lord out (SR-1b) — only while the lord is at war
+        # with that court. A client's war with a court its lord is NOT fighting
+        # is the client's own, and it takes the same two exits as any court.
+        if ((a in vassals and client_pair_is_the_lords_war(world, a, b))
+                or (b in vassals and client_pair_is_the_lords_war(world, b, a))):
             continue
         joined = int(pair_meta.get("joined_turn", war.get("created_turn", turn)) or 0)
         # WO slice 5: the three inequalities now live in ONE place (above),
         # which the war room's counsel reads too. Same order, same answers.
+        sued = None
         if not pair_is_mutually_exhausted(world, a, b, joined):
-            continue
+            # PC-F28: a decisive sub-pair — the loser sues past its threshold.
+            sued = sub_pair_loser_sues(world, a, b, joined)
+            if sued is None:
+                continue
+        exit_reason = "sub_pair_loser_sues" if sued else "mutual_exhaustion"
 
-        set_diplomatic_state(world, a, b, "PEACE", "mutual_exhaustion")
+        set_diplomatic_state(world, a, b, "PEACE", exit_reason)
         cleanup_war_end(world, pair_key, conclude_objectives=True)
         # SR-1b: the client's war is the lord's war — a spent lord's exit
         # takes its satellites' pairs with the same court out too, on the
         # same truce floor (a vassal's own pair is never exited on its own
         # account; it follows).
         from backend.game_logic.diplomacy import follow_the_lord
-        follow_the_lord(world, a, b, "PEACE", "mutual_exhaustion",
+        follow_the_lord(world, a, b, "PEACE", exit_reason,
                         truce_floor=PAIR_EXIT_TRUCE_FLOOR_TURNS)
         # PC15-D4 piece 3 — status-quo-ante-lite: each court returns the
         # OTHER's homeland provinces it holds with no standing army (the
@@ -541,29 +604,39 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
         world._pair_exit_this_turn = int(world.current_turn)
 
         from backend.display_names import humanize_entity_name
-        consequence = ("Both courts are spent; their side of the war ends "
-                       "while the greater war goes on.")
+        if sued:
+            # PC-F28: the loser sues; the winner keeps what it holds.
+            loser, winner, sued_score = sued
+            consequence = (f"{humanize_entity_name(loser)}, beaten "
+                           f"({int(sued_score):+d}), sues for peace and "
+                           f"{humanize_entity_name(winner)} takes it on the held line; "
+                           "their side of the war ends while the greater war goes on.")
+        else:
+            consequence = ("Both courts are spent; their side of the war ends "
+                           "while the greater war goes on.")
         if returned_regions:
             consequence += (
                 " Unheld homeland returns to its crown: "
                 + ", ".join(sorted(returned_regions)) + ".")
+        proposer, accepter = ((sued[0], sued[1]) if sued else (a, b))
         event = {
             "type": "third_party_peace",
             "war_id": war_id,
-            "proposer": a,
-            "accepter": b,
+            "proposer": proposer,
+            "accepter": accepter,
             "broker": None,
+            "exit": exit_reason,
             "consequence": consequence,
-            "message": (f"Peace concluded between {humanize_entity_name(a)} "
-                        f"and {humanize_entity_name(b)} without France. "
+            "message": (f"Peace concluded between {humanize_entity_name(proposer)} "
+                        f"and {humanize_entity_name(accepter)} without France. "
                         f"{consequence}"),
         }
         world.log_event(dict(event))
         events.append(event)
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "third_party_peace", {
-            "proposer": humanize_entity_name(a),
-            "accepter": humanize_entity_name(b),
+            "proposer": humanize_entity_name(proposer),
+            "accepter": humanize_entity_name(accepter),
             "consequence": consequence,
         }, "always")
         return

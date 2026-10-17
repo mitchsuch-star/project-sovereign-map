@@ -97,7 +97,18 @@ def _error_display(code: str) -> str:
     return settlement_disabled_reason_display(code)
 
 
-def _war_label(war_id: str, war_instance: Mapping[str, Any]) -> str:
+def _war_label(war_id: str, war_instance: Mapping[str, Any], world: Any = None) -> str:
+    """The war's label. PC-R7 (i) — ruling J (S13e part 4, October 17, 2026):
+    with a `world` the war is titled by its STAKE — "the War for Bohemia —
+    Britain + Austria + Russia" (`war_title.settlement_war_label` over the ONE
+    builder every surface reads); never the leader pair ("France vs Britain" named a war
+    Austria was losing). The pair survives only for a world-less caller (a
+    bare roster dict in a test)."""
+    if world is not None and war_id:
+        from backend.game_logic.war_title import settlement_war_label
+        label = settlement_war_label(world, war_id)
+        if label:
+            return label
     attackers = list(war_instance.get("attackers") or [])
     defenders = list(war_instance.get("defenders") or [])
     if attackers and defenders:

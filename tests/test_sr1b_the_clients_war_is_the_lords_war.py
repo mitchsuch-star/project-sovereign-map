@@ -263,8 +263,11 @@ class TestTheOtherRoads:
     def test_the_pair_exit_calls_the_helper(self):
         src = Path("backend/game_logic/settlement_third_party.py").read_text(encoding="utf-8")
         body = src.split("def _process_exhausted_pair_exits(", 1)[1].split("\ndef ", 1)[0]
-        assert 'set_diplomatic_state(world, a, b, "PEACE", "mutual_exhaustion")' in body
-        assert "follow_the_lord(world, a, b, \"PEACE\", \"mutual_exhaustion\"" in body
+        # PC-F28 (S13e part 4): the exit's reason is the mutual-exhaustion
+        # white peace or the beaten loser's suit — both follow the lord
+        assert 'exit_reason = "sub_pair_loser_sues" if sued else "mutual_exhaustion"' in body
+        assert 'set_diplomatic_state(world, a, b, "PEACE", exit_reason)' in body
+        assert "follow_the_lord(world, a, b, \"PEACE\", exit_reason" in body
 
 
 class TestGR5:

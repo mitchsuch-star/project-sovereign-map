@@ -858,7 +858,8 @@ class TestRecurringGoldSurfaces:
     def test_payment_record_carries_war_label_stamped_at_ratify(self):
         world = WorldState()
         record = self._ratified_record(world)
-        assert record["war_label"] == "France vs Britain + Prussia"
+        # PC-R7 (i) (S13e part 4): the record is titled by the war's stake
+        assert record["war_label"] == "the War with Britain — Britain + Prussia"
 
     def test_dispatch_label_survives_war_archival(self):
         world = WorldState()
@@ -877,7 +878,7 @@ class TestRecurringGoldSurfaces:
         ]
         assert paid, world.pending_dispatch_events
         label = paid[0]["template_vars"]["war_label"]
-        assert label == "France vs Britain + Prussia"
+        assert label == "the War with Britain — Britain + Prussia"  # PC-R7 (i)
         assert "war_1" not in label
 
     def test_payments_enter_campaign_log_with_prose(self):
@@ -912,7 +913,7 @@ class TestRecurringGoldSurfaces:
         assert filter_campaign_log([event], world)
         line = format_event_oneliner(event)
         assert "Prussia paid 50 gold to France" in line
-        assert "France vs Britain + Prussia" in line
+        assert "on the settlement of the War with Britain — Britain + Prussia" in line  # PC-R7 (i)
         assert "war_1" not in line
 
     def test_ledger_economy_lists_settlement_streams(self):

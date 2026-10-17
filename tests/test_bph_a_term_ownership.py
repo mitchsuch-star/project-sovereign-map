@@ -146,10 +146,12 @@ class TestAnnotatePeaceTerms:
         assert len(result) == 1
         t = result[0]
         assert t["clause_type"] == "continental_system_lifted"
-        assert t["term_direction"] == "demand"
-        assert t["from_nation"] == "Prussia"
-        assert t["to_nation"] == "France"
-        assert t["display_label"] == "Prussia closes ports to Britain"
+        # PC-F83 (S13e part 4): the System's lord LIFTS it — a concession the
+        # proposer pays (the old row read it backwards, a demand on the target)
+        assert t["term_direction"] == "concession"
+        assert t["from_nation"] == "France"
+        assert t["to_nation"] == "Prussia"
+        assert t["display_label"] == "France lifts the Continental System — its ports reopen to British trade"
 
     def test_clause_military_access(self):
         terms = {"sweeteners": [], "demands": [],

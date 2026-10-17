@@ -571,8 +571,9 @@ class TestPCR8:
         by = {(e["id"], e["resolution"]): e for e in index}
         for sid in ("m1_war_card_tooltip", "m3_wizard_austria", "m5_counsel", "m5_feasibility"):
             e = by[(sid, "5120x1440")]
-            # M1 was re-shot again in part 3 (the stake floor, the fill, the clock).
-            assert e.get("reshot", "").startswith("S13e part 3" if sid == "m1_war_card_tooltip" else "S13e part 1"), sid
+            # M1 was re-shot again in part 3 (the stake floor, the fill, the clock)
+            # and all four in part 4 (PC-R7 (i): the war's title) — any S13e re-shoot.
+            assert e.get("reshot", "").startswith("S13e part"), sid
             assert (REPO / "docs" / "audits" / "peace_client" / e["file"]).exists(), e["file"]
         m3 = " ".join(by[("m3_wizard_austria", "5120x1440")]["lines"])
         assert "Recommendation: Permit me to observe, Sire" in m3 or "Recommendation: Sire" in m3 or "Recommendation: If I may, Sire" in m3 or "Recommendation: One could" in m3, m3[:300]
@@ -1084,7 +1085,9 @@ class TestPCR2:
                     "m8_armistice_popup", "m8_armistice_popup_turn8", "m8_wizard_under_truce",
                     "m8_truce_next_morning", "m8_table_under_truce"):
             e = by[(sid, "5120x1440")]
-            assert e.get("reshot", "").startswith("S13e part 2"), sid
+            # re-shot in part 2, and (all but the wizard and the table under the
+            # truce) again in part 4 — PC-R7 (i)'s title and PC-X27's War Summary
+            assert e.get("reshot", "").startswith("S13e part"), sid
             assert (REPO / "docs" / "audits" / "peace_client" / e["file"]).exists(), e["file"]
         letter = " ".join(by[("m7_armistice_letter", "5120x1440")]["lines"])
         assert "Armistice Terms" in letter and "The ledger stands: the war score reads +52" in letter, letter[:400]
@@ -1252,7 +1255,8 @@ class TestPCR3:
         assert standing["tier"] == 1 and standing["next_label"] == "Châtillon"
         term = next(t for t in w.get_state_charges_rate("France")["terms"] if t["key"] == "refused_peace")
         assert term["amount"] == CHARGES_REFUSED_PEACE_RATE * 2
-        assert term["label"].startswith("the peace refused — Britain's terms (Frankfurt, turn 18)")
+        # PC-R7 (i): the Charges name the war by its stake (ulm: Paris held).
+        assert term["label"].startswith("the peace refused — Britain's terms in the War for Paris (Frankfurt, turn 18)"), term["label"]
         clause = AI.refused_peace_clause(w, "France")
         assert clause.startswith("Britain's terms — ") and "were refused at turn 18" in clause
         assert "her next letter will ask Châtillon's" in clause
@@ -2179,7 +2183,7 @@ class TestPCR6:
         by = {(e["id"], e["resolution"]): e for e in index}
         for sid in ("m1_war_card_tooltip", "m2_war_detail", "m2_war_detail_scrolled"):
             e = by[(sid, "5120x1440")]
-            assert e.get("reshot", "").startswith("S13e part 3"), sid
+            assert e.get("reshot", "").startswith(("S13e part 3", "S13e part 4")), sid
             assert (REPO / "docs" / "audits" / "peace_client" / e["file"]).exists(), e["file"]
         tip = " ".join(by[("m1_war_card_tooltip", "5120x1440")]["lines"])
         assert "Austria ready · Britain 6/50 · Russia 7/50" in tip
@@ -2476,3 +2480,689 @@ class TestTheSeriesPart3:
         reach = rec["arms"]["ALL"]["reach"]
         assert reach.get("exhaustion|named", 0) > 0 and reach.get("battle|decay_then_cap", 0) > 0
         assert reach.get("own_pressure|own", 0) > 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# S13e part 4 (October 17, 2026) — the stake, the memory, the instruments
+# (rules `SYSTEMS_REFERENCE.md` §127; the report's §47 the reactivity read)
+# ═══════════════════════════════════════════════════════════════════════════
+
+AGD_FIXTURE = REPO / "tests" / "fixtures" / "playtest_saves" / "fixture_agd_tilsit.json"
+GE3_PRESSBURG = REPO / "tests" / "fixtures" / "playtest_saves" / "fixture_ge3_pressburg.json"
+
+
+def _load_save(path):
+    from backend import save_manager as SM
+    with _quiet():
+        res = SM.load_game(Path(path))
+    assert res.get("success"), res.get("message")
+    return res["world"]
+
+
+def _set_pair_score(w, a, b, score_for_a):
+    k = w._make_diplo_key(a, b)
+    w.war_scores[k] = score_for_a if k.split("|")[0] == a else -score_for_a
+
+
+def _tool(name):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, REPO / "tools" / f"{name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class TestPCR7:
+    """PC-R7 (i) — ruling J: the war's PURPOSE is its title on every surface
+    ("War for Bohemia", never "vs Britain"); the table titles the same
+    object (`backend/game_logic/war_title.py`, the ONE builder). (ii) — the
+    compensation clause — was sized at the part's head and HEADS S14 (the
+    row stays OPEN; the pin below holds its home)."""
+
+    def test_a_the_vienna_held_war_is_the_war_for_bohemia(self, vienna_held):
+        from backend.game_logic.war_title import war_title
+        rec = war_title(vienna_held, "war_1")
+        assert rec["title"] == "War for Bohemia" and rec["source"] == "ground"
+        # the first taken first; a capital after the provinces of its turn
+        assert rec["theirs_we_hold"] == ["Bohemia", "Tyrol", "Vienna"]
+        assert rec["roster"] == ["Britain", "Austria", "Russia"]
+        assert rec["display"] == "War for Bohemia — Britain + Austria + Russia"
+        assert rec["line"] == "The War for Bohemia: France holds Bohemia, Tyrol and Vienna of Austria's."
+
+    def test_b_the_ladder(self, w, ulm_t18):
+        from backend.game_logic.war_title import war_title
+        # the boot: nothing taken — a league's war is titled by the league
+        boot = war_title(w, "war_1")
+        assert boot["title"] == "War with the Third Coalition" and boot["source"] == "league"
+        # a wound is named by its gravest: the capital first
+        ulm = war_title(ulm_t18, "war_1")
+        assert ulm["title"] == "War for Paris" and ulm["ours_they_hold"][0] == "Paris"
+        # the chair's NAMED purpose outranks the ground
+        k = w._make_diplo_key("France", "Austria")
+        w.war_objectives.setdefault(k, {})["France"] = D.create_war_objective(
+            "conquest", "France", "Austria", ["Moravia"], w.current_turn)
+        named = war_title(w, "war_1")
+        assert named["title"] == "War for Moravia" and named["source"] == "purpose"
+        # an AI-initiated war names its design
+        w.war_objectives[k].pop("France")
+        w.war_instances["war_1"]["stated_reason"] = "The Hanoverian Prize"
+        design = war_title(w, "war_1")
+        assert design["title"] == "War for the Hanoverian Prize" and design["source"] == "design"
+
+    def test_c_every_surface_reads_the_one_title(self, vienna_held):
+        from backend.game_logic.ai_diplomacy import _settlement_request_war_label
+        from backend.game_logic.dispatch import _build_war_objective_section
+        from backend.game_logic.settlement_offers import _war_label_for_id
+        from backend.game_logic.settlement_presentation import _war_label as _presentation_label
+        from backend.game_logic.settlement_routes import _war_label
+        from backend.game_logic.settlement_staging import build_settlement_preview
+        from backend.game_logic.war_status import build_active_wars
+        w = vienna_held
+        with _quiet():
+            row = next(r for r in build_active_wars(w)["wars"] if r.get("status") == "war")
+            pv = build_settlement_preview(w, war_id="war_1", covered_enemy_participants=["Austria"],
+                                          settlement_terms=[{"type": "peace"}])
+            wiz = D.get_diplomatic_preview(w, "Austria")
+            purpose = [ln["text"] for ln in _build_war_objective_section(w, "France")]
+        assert row["war_title"] == "War for Bohemia"
+        assert row["war_roster_display"] == "Britain + Austria + Russia"
+        assert row["war_title_line"].startswith("The War for Bohemia: France holds Bohemia")
+        assert pv["settlement_preview"]["war_label"] == "the War for Bohemia — the table with Austria"
+        assert wiz["war_title"] == "War for Bohemia"
+        assert any("(War for Bohemia)" in t for t in purpose), purpose
+        inst = w.war_instances["war_1"]
+        for label in (_war_label("war_1", inst, w), _presentation_label(w, "war_1"),
+                      _war_label_for_id(w, "war_1")):
+            assert label.startswith("the War for Bohemia — ") and " vs " not in label, label
+        req = _settlement_request_war_label(inst, "war_1", player="France", world=w)
+        assert req.startswith("the War for Bohemia — France") and " against " in req, req
+
+    def test_d_the_charges_name_the_war(self, ulm_t18):
+        w = ulm_t18
+        _britain_at(w, 45)
+        with _quiet():
+            AI.process_diplomatic_phase("Britain", w)
+        AI.note_dictated_refusal(w, "Britain", "France", channel="bilateral")
+        term = next(t for t in w.get_state_charges_rate("France")["terms"] if t["key"] == "refused_peace")
+        assert "Britain's terms in the War for Paris (Frankfurt" in term["label"], term["label"]
+
+    def test_f_the_part_iv_frames_name_the_war_on_both_boards(self):
+        """The Part IV frames re-shot at 5120x1440 on BOTH turn-6 boards
+        (`docs/audits/peace_client/`; the copy's M1–M6 as `_t6copy`, its
+        M7 / M8 under their own ids): every peace moment titles the war and
+        names the road that carries and its price."""
+        index = json.loads((REPO / "docs" / "audits" / "peace_client" / "moments.json")
+                           .read_text(encoding="utf-8"))
+        by = {(e["id"], e["resolution"]): e for e in index}
+
+        def text(sid):
+            e = by[(sid, "5120x1440")]
+            assert e.get("reshot", "").startswith("S13e part 4"), sid
+            assert (REPO / "docs" / "audits" / "peace_client" / e["file"]).exists(), e["file"]
+            return " ".join(e["lines"]) + " " + " ".join(
+                f"{c.get('text') or ''} {c.get('tooltip') or ''}" for c in e.get("controls") or [])
+
+        for suffix, held in (("", "Bohemia, Tyrol and Vienna"), ("_t6copy", "Bohemia and Tyrol")):
+            assert f"The War for Bohemia: France holds {held}" in text("m1_war_card_tooltip" + suffix)
+            assert "WAR FOR BOHEMIA" in text("m2_war_detail" + suffix)
+            assert "Negotiate with Austria" in text("m2_war_detail" + suffix)
+            wizard = text("m3_wizard_austria" + suffix)
+            assert "Status: At War — the War for Bohemia" in wizard and "It costs 3 DP" in wizard
+            assert "Propose White Peace — with Austria alone" in wizard
+            table = text("m4_white_peace_confirm" + suffix)
+            assert "Settlement of the War for Bohemia — the table with Austria" in table
+            assert "Will carry as drafted" in table
+            assert "the War for Bohemia — the table with Austria + Britain + Russia" in text("m6_table_white" + suffix)
+        assert "Open Settlement with Austria alone, at 50 of 50" in text("m3_wizard_austria")
+        assert "Open Settlement with Austria alone carries today — 62 of 50" in text("m3_wizard_austria_t6copy")
+        assert "The War for Bohemia: France holds Bohemia and Tyrol" in text("m7_armistice_letter")
+        assert "WAR FOR BOHEMIA — ARMISTICE WITH AUSTRIA" in text("m8_armistice_popup")
+        assert "War for Bohemia — Austria, truce 4t" in text("m8_truce_card")
+
+    def test_e_the_client_prints_the_title(self):
+        panel = (SCRIPTS / "war_status_panel.gd").read_text(encoding="utf-8")
+        popup = (SCRIPTS / "war_detail_popup.gd").read_text(encoding="utf-8")
+        wizard = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
+        assert 'war_data.get("war_title", "")' in panel and 'war_data.get("war_title_line", "")' in panel
+        assert "war_title.to_upper()" in popup and 'w.get("war_title_line", "")' in popup
+        assert 'data.get("war_title", "")' in wizard
+
+    def test_ii_the_compensation_clause_heads_s14(self):
+        """(ii), sized at the part's head (a clause type through the
+        validator, the scorers, the ratifiers, the AI producer and the
+        guided rows; declared goals; the ally's bond — §40 J's two sessions)
+        and NOT built here: the row stays OPEN, homed at S14's head with its
+        completion, its STATUS line and this class (GR9)."""
+        from backend.game_logic.settlement_scoring import CANONICAL_CLAUSE_TYPES
+        assert "territory_compensate" not in CANONICAL_CLAUSE_TYPES
+        bug = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        row = next(ln for ln in bug.splitlines() if ln.startswith("| **PC-R7**"))
+        assert "OPEN" in row and "S14" in row and "TestPCR7" in row
+        status = (REPO / "docs" / "STATUS.md").read_text(encoding="utf-8")
+        assert "PC-R7 (ii)" in status and "heads S14" in status
+
+
+class TestPCF41:
+    def test_every_peace_row_names_the_courts_it_addresses(self, vienna_held):
+        with _quiet():
+            acts = D.get_diplomatic_preview(vienna_held, "Austria")["actions"]
+        white = next(a for a in acts if a["action"] == "propose_white_peace")
+        table = next(a for a in acts if a["action"] == "open_settlement")
+        # the counsel priced Austria alone: the row says so
+        assert white["display_name"] == "Propose White Peace — with Austria alone"
+        assert white["addresses"] == ["Austria"]
+        assert table["display_name"].startswith("Open Settlement — the whole table: ")
+        assert set(table["addresses"]) == {"Austria", "Britain", "Russia"}
+
+    def test_the_war_popup_names_each_court(self):
+        popup = (SCRIPTS / "war_detail_popup.gd").read_text(encoding="utf-8")
+        assert '"Negotiate with " + Utils.display_nation_name(nation)' in popup
+        assert "for court in courts:" in popup and "_add_negotiate_button(str(court))" in popup
+        assert 'btn.text = "Negotiate Peace"' not in popup
+
+
+class TestPCF72:
+    def test_the_direction_names_a_carve_an_alliance_and_the_system(self):
+        from backend.game_logic.settlement_baseline import _court_direction_summary
+        terms = [{"type": "create_client", "from": "Prussia", "to": "France", "tag": "DuchyOfWarsaw",
+                  "client_display_name": "the Duchy of Warsaw"},
+                 {"type": "forced_alliance", "from": "Prussia", "to": "France",
+                  "includes_continental_system": False},
+                 {"type": "continental_system_join", "from": "Russia", "to": "France"}]
+        assert (_court_direction_summary("Prussia", "France", terms)
+                == "Demanded: the Duchy of Warsaw carved out + an alliance imposed")
+        assert _court_direction_summary("Russia", "France", terms) == "Demanded: joins the Continental System"
+        assert _court_direction_summary("France", "France", terms).startswith("Conceded: the Duchy of Warsaw carved for it")
+        assert _court_direction_summary("Austria", "France", terms) == "White peace"
+
+
+class TestPCF33:
+    """The coalition's "white peace" is uti possidetis: where it is offered,
+    labelled and ratified it says what each side keeps."""
+
+    def test_a_the_war_row_says_what_the_held_line_titles(self, vienna_held):
+        from backend.game_logic.war_status import build_active_wars
+        with _quiet():
+            row = next(r for r in build_active_wars(vienna_held)["wars"] if r.get("status") == "war")
+        assert row["held_line"] == ("A peace signed now is on the held line: Bohemia, Tyrol and Vienna "
+                                    "stay ours by the treaty.")
+
+    def test_b_the_white_letter_is_labelled_the_peace_on_the_held_line(self, vienna_held):
+        from backend.game_logic.mailbox_payloads import (
+            attach_peace_preview, build_pending_envoy_popup_from_terms,
+        )
+        terms = {"type": "peace", "proposer_nation": "Austria", "target_nation": "France",
+                 "demands": [], "sweeteners": [], "clauses": []}
+        with _quiet():
+            payload = build_pending_envoy_popup_from_terms(vienna_held, nation="Austria", terms=terms)
+            payload = attach_peace_preview(vienna_held, payload, "Austria", terms)
+        assert payload["proposal_type_display"].endswith("— on the held line"), payload["proposal_type_display"]
+        assert "Bohemia, Tyrol and Vienna stay ours" in payload["held_line"]
+
+    def test_c_the_table_labels_it_and_the_client_prints_it(self, vienna_held):
+        from backend.game_logic.settlement_staging import (
+            build_settlement_confirm_dialogue, build_settlement_preview,
+        )
+        with _quiet():
+            prev = build_settlement_preview(vienna_held, war_id="war_1",
+                                            covered_enemy_participants=["Austria"],
+                                            settlement_terms=[{"type": "peace"}])
+            dlg = build_settlement_confirm_dialogue(vienna_held, prev, white_peace=True)
+        assert dlg["held_line_note"] == "White Peace — on the held line: each side keeps what it holds."
+        assert any("stay ours by the treaty" in ln for ln in dlg["status_quo_review"])
+        assert 'data.get("held_line_note", "")' in (SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
+        assert 'war_data.get("held_line", "")' in (SCRIPTS / "war_status_panel.gd").read_text(encoding="utf-8")
+
+
+class TestPCF57:
+    def test_a_carve_writes_the_punitive_record_on_the_tilsit_board(self):
+        from backend.game_logic import emergent_designs as ED
+        from backend.game_logic import formations as F
+        t = _load_save(AGD_FIXTURE)
+        carve = {"type": "create_client", "from": "Prussia", "to": "France", "tag": "DuchyOfWarsaw",
+                 "provinces": F.template_provinces(F.get_template(t, "DuchyOfWarsaw"))}
+        silesia = {"type": "territory_cede", "from": "Prussia", "to": "France", "region": "Silesia"}
+        # Silesia alone is one homeland province — beaten, not humiliated
+        assert ED.record_punitive_cessions(t, ED.collect_cessions_from_clauses([silesia])) == []
+        cessions = ED.collect_cessions_from_clauses([carve, silesia])
+        assert cessions == {"Prussia": [("Posen", "France"), ("Silesia", "France")]}
+        assert ED.VOLTE_CLAUSE_PUNITIVE not in ED.volte_face_failing_clauses(t, "Prussia", "France", exhaustive=True)
+        written = ED.record_punitive_cessions(t, cessions)
+        assert written, "Posen carved beside Silesia ceded is a partition"
+        assert ED.VOLTE_CLAUSE_PUNITIVE in ED.volte_face_failing_clauses(t, "Prussia", "France", exhaustive=True)
+
+    def test_the_seam_holds_the_carve_down(self, monkeypatch):
+        from backend.game_logic import emergent_designs as ED
+        orig = ED.collect_cessions_from_clauses
+        monkeypatch.setattr(ED, "collect_cessions_from_clauses",
+                            lambda c: orig([x for x in c if x.get("type") != "create_client"]))
+        assert ED.collect_cessions_from_clauses(
+            [{"type": "create_client", "from": "Prussia", "to": "France", "provinces": ["Posen"]}]) == {}
+
+
+class TestPCF74:
+    def test_a_dormant_design_is_not_achieved(self, turn6, monkeypatch):
+        """Verified real by construction: SF-LB-1's ally rule puts a design to
+        sleep while an ally's bloc holds its target, and `_entry_satisfied`
+        read the sleeping design as SATISFIED — so the Pressburg arm let a
+        court whose first design was unmet break ranks at -30."""
+        from backend.game_logic import agendas as AG
+        w = turn6
+        # a first design whose target an ally's bloc holds (Russia's Volhynia;
+        # Austria is allied to Britain, whose bloc holds Russia)
+        w.agendas["Austria"] = ([{"id": "probe_design", "type": "acquire_regions",
+                                  "regions": ["Volhynia"], "title": "A probe design"}]
+                                + list(w.agendas["Austria"]))
+        w.invalidate_active_nations_cache()
+        assert not AG.survival_override_active(w, "Austria")
+        assert AG._entry_satisfied(w, "Austria", w.agendas["Austria"][0]), "the dormancy branch reads satisfied"
+        assert not AG._entry_achieved(w, "Austria", w.agendas["Austria"][0])
+        assert not AG.agenda_separate_peace_ready("Austria", w)
+        monkeypatch.setattr(AG, "_entry_achieved", lambda *a, **k: AG._entry_satisfied(*a, **k))
+        assert AG.agenda_separate_peace_ready("Austria", w), "the seam down: the old reading"
+
+    def test_an_achieved_design_still_reads_satisfied(self, turn6):
+        from backend.game_logic import agendas as AG
+        w = turn6
+        held = sorted(w.get_nation_regions("Austria"))[:1]
+        w.agendas["Austria"] = [{"id": "probe_held", "type": "acquire_regions", "regions": held}]
+        assert AG._entry_achieved(w, "Austria", w.agendas["Austria"][0])
+        assert AG._court_design_satisfied(w, "Austria")
+
+
+class TestPCF75:
+    def test_an_allys_homeland_retaken_from_the_ceders_ally_goes_home(self, vienna_held):
+        """Verified real by construction (the austerlitz t46 board is not a
+        fixture): Carniola — Austria's, taken by Bavaria, retaken by Britain —
+        was read by neither half of DDB-12's rule, so it stayed British through
+        the France–Britain peace."""
+        from backend.game_logic import game_end as GE
+        w = vienna_held
+        w.regions["Carniola"].controller = "Britain"
+        GE.record_province_title(w, "Carniola", GE.TITLE_CONQUEST, "Bavaria", "Britain")
+        w.invalidate_active_nations_cache()
+        assert "Carniola" not in (GE.status_quo_retentions(w, "Britain", "France", forecast=True).get("Britain") or [])
+        assert GE.ally_homeland_returns(w, "Britain", "France") == {"Austria": ["Carniola"]}
+        forecast = GE.status_quo_forecast(w, "France", "Britain")
+        assert any((e.get("returned") or {}).get("Austria") == ["Carniola"] for e in forecast), forecast
+        GE.title_status_quo_retentions(w, "Britain", "France", "WAR", "PEACE", "treaty_ratification")
+        assert w.regions["Carniola"].controller == "Austria"
+
+
+class TestPCF83:
+    def test_the_system_lifted_is_drafted_priced_applied_and_held(self, vienna_held):
+        from backend.game_logic import diplomatic_templates as DT
+        w = vienna_held
+        assert not DT.continental_system_lift_offered(w, "France", "Britain"), "no System to lift"
+        D.join_continental_system(w, "Spain", "France")
+        assert DT.continental_system_lift_offered(w, "France", "Britain")
+        assert not DT.continental_system_lift_offered(w, "France", "Austria"), "only London prices it"
+        with _quiet():
+            terms = DT.generate_suggested_terms("Britain", "peace", w, deterministic=True)
+        assert "continental_system_lifted" in terms["clauses"]
+        prop = dict(terms, proposer_nation="France", target_nation="Britain")
+        bare = dict(prop, clauses=[c for c in prop["clauses"] if c != "continental_system_lifted"])
+        with _quiet():
+            lifted, plain = D.calculate_acceptance(prop, w), D.calculate_acceptance(bare, w)
+        assert lifted["components"]["special_desire_bonus"] == 15 and plain["components"]["special_desire_bonus"] == 0
+        rows = DT.annotate_peace_terms({"demands": [], "sweeteners": [], "clauses": ["continental_system_lifted"]},
+                                       "France", "Britain")
+        row = next(r for r in rows if r["clause_type"] == "continental_system_lifted")
+        assert row["term_direction"] == "concession"
+        assert row["display_label"] == "France lifts the Continental System — its ports reopen to British trade"
+        with _quiet():
+            w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Britain",
+                              "sweeteners": [], "demands": [], "clauses": ["continental_system_lifted"]})
+        assert w.continental_system_members == [] and D.continental_system_lifted(w)
+        assert w.continental_system_lifted_until == w.current_turn + D.CONTINENTAL_SYSTEM_LIFT_TURNS
+        assert not D.join_continental_system(w, "Spain", "France"), "no enrolment while it stands"
+        again = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+        assert again.continental_system_lifted_until == w.continental_system_lifted_until
+
+
+class TestPCF28:
+    def test_a_beaten_sub_pair_loser_sues_inside_frances_war(self, vienna_held):
+        from backend.game_logic import settlement_third_party as TP
+        w = vienna_held
+        _set_pair_score(w, "Austria", "Bavaria", 60)
+        events = []
+        with _quiet():
+            TP._process_exhausted_pair_exits(w, "war_1", w.war_instances["war_1"], events)
+        assert _state(w, "Austria", "Bavaria") == "PEACE"
+        ev = events[-1]
+        assert ev["exit"] == "sub_pair_loser_sues" and (ev["proposer"], ev["accepter"]) == ("Bavaria", "Austria")
+        assert ev["consequence"].startswith("Bavaria, beaten (-60), sues for peace and Austria takes it on the held line")
+        from backend.game_logic.game_end import SIGNED_PEACE_REASONS
+        assert "sub_pair_loser_sues" in SIGNED_PEACE_REASONS
+
+    def test_a_level_pair_waits_for_the_exhausted_exit(self, vienna_held):
+        from backend.game_logic import settlement_third_party as TP
+        w = vienna_held
+        assert TP.sub_pair_loser_sues(w, "Austria", "Bavaria", 1) is None
+        assert TP.sub_pair_loser_sues(w, "Austria", "Bavaria", w.current_turn) is None, "too young a pair"
+
+
+class TestPCF29:
+    def test_a_clients_own_war_has_a_road_out(self, vienna_held):
+        from backend.game_logic import settlement_third_party as TP
+        w = vienna_held
+        _set_pair_score(w, "Austria", "KingdomOfItaly", 60)
+        assert TP.client_pair_is_the_lords_war(w, "KingdomOfItaly", "Austria")
+        events = []
+        with _quiet():
+            TP._process_exhausted_pair_exits(w, "war_1", w.war_instances["war_1"], events)
+        assert _state(w, "Austria", "KingdomOfItaly") == "WAR", "the lord's war: it follows the lord out"
+        # the lord out of that war: the client's war is its own, and it has the road out
+        w.diplomatic_states[w._make_diplo_key("France", "Austria")] = "ARMISTICE"
+        assert not TP.client_pair_is_the_lords_war(w, "KingdomOfItaly", "Austria")
+        w._pair_exit_this_turn = -1
+        with _quiet():
+            TP._process_exhausted_pair_exits(w, "war_1", w.war_instances["war_1"], events)
+        assert _state(w, "Austria", "KingdomOfItaly") == "PEACE"
+
+
+class TestPCF30:
+    def test_a_client_that_changes_lord_leaves_its_old_lords_wars(self, vienna_held):
+        from backend.game_logic import vassal as V
+        w = vienna_held
+        assert _state(w, "Holland", "Britain") == "WAR" and _state(w, "Russia", "Britain") == "ALLIANCE"
+        with _quiet():
+            assert V.transfer_vassal(w, "Holland", "Russia")["success"]
+        assert _state(w, "Holland", "Britain") == "ARMISTICE", "Russia's footing with Britain"
+
+    def test_the_old_exemption_is_the_seam(self, vienna_held, monkeypatch):
+        from backend.game_logic import vassal as V
+        monkeypatch.setattr(V, "client_leads_its_own_war",
+                            lambda v, o, inst: str(v) in {str((inst or {}).get("attacker_leader") or ""),
+                                                          str((inst or {}).get("defender_leader") or "")}
+                            or str(o) in {str((inst or {}).get("attacker_leader") or ""),
+                                          str((inst or {}).get("defender_leader") or "")})
+        with _quiet():
+            V.transfer_vassal(vienna_held, "Holland", "Russia")
+        assert _state(vienna_held, "Holland", "Britain") == "WAR", "Britain leads the instance: the old exemption"
+
+    def test_the_fuzzer_reads_the_one_rule(self):
+        src = (REPO / "tools" / "treaty_fuzzer.py").read_text(encoding="utf-8")
+        assert "from backend.game_logic.vassal import client_leads_its_own_war" in src
+
+
+class TestPCF81TheSecondRoad:
+    def test_a_named_carried_ally_is_thanked_on_the_bilateral_road(self, vienna_held):
+        from backend.game_logic.settlement_reactions import (
+            RELATION_GRATITUDE_CONSULT, RELATION_GRATITUDE_SEAT,
+        )
+        w = vienna_held
+        key = w._make_diplo_key("France", "Bavaria")
+        before = w.nation_relations[key]
+        with _quiet():
+            res = w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                                    "sweeteners": [], "clauses": [],
+                                    "demands": [{"type": "territory_cede", "value": 1, "regions": ["Tyrol"],
+                                                 "to_nation": "Bavaria"}]})
+        delta = w.nation_relations[key] - before
+        assert delta in (RELATION_GRATITUDE_SEAT, RELATION_GRATITUDE_CONSULT)
+        aft = res["peace_ratification_summary"]["political_aftermath"]
+        assert (f"Bavaria's war with Austria ends in this instrument; she takes Tyrol by it and thanks us "
+                f"({delta:+d} relation).") in aft
+
+    def test_an_unnamed_carried_ally_keeps_pc_r1s_ruling(self, vienna_held):
+        w = vienna_held
+        key = w._make_diplo_key("France", "Bavaria")
+        before = w.nation_relations[key]
+        with _quiet():
+            res = w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                                    "sweeteners": [], "demands": [], "clauses": []})
+        assert w.nation_relations[key] == before
+        assert BAVARIA_NOTE in res["peace_ratification_summary"]["political_aftermath"]
+
+
+class TestPCF11:
+    def test_the_commentary_names_only_demands_the_draft_holds(self, vienna_held, monkeypatch):
+        from backend.game_logic import diplomatic_templates as DT
+        monkeypatch.setattr(DT, "_ease_suggestion_until_not_rejected",
+                            lambda terms, **k: dict(terms, demands=[]))
+        with _quiet():
+            terms = DT.generate_suggested_terms("Austria", "peace", vienna_held, deterministic=True)
+        assert terms["demands"] == []
+        assert "firm but not humiliating" not in terms["talleyrand_commentary"]
+        assert "asked nothing of them beyond the peace itself" in terms["talleyrand_commentary"]
+
+
+class TestPCF14:
+    def test_one_roll_per_draft_shown_and_sent_alike(self, vienna_held):
+        from backend.game_logic import diplomatic_templates as DT
+        state = random.getstate()
+        with _quiet():
+            first = DT.generate_suggested_terms("Austria", "peace", vienna_held)
+            second = DT.generate_suggested_terms("Austria", "peace", vienna_held)
+        assert first["demands"] == second["demands"] and first["sweeteners"] == second["sweeteners"]
+        assert random.getstate() == state, "the global RNG is never touched"
+        roll = DT.terms_jitter(vienna_held, "France", "Austria", "peace")
+        assert 0.8 <= roll <= 1.2 and roll == DT.terms_jitter(vienna_held, "France", "Austria", "peace")
+        vienna_held.current_turn += 1
+        assert DT.terms_jitter(vienna_held, "France", "Austria", "peace") != roll, "a new turn rolls anew"
+
+
+class TestPCF45:
+    def test_the_envoy_list_names_a_letter_by_its_display_name(self):
+        from backend.game_logic.dispatch import _lapsed_offer_row
+        row = _lapsed_offer_row({"nation": "Austria", "proposal_type": "armistice_losing"})
+        assert row["proposal_type_display"] == "Armistice"
+        src = (REPO / "backend" / "game_logic" / "dispatch.py").read_text(encoding="utf-8")
+        assert '"proposal_type_display": _ptd(str(item.get("proposal_type") or "proposal"))' in src
+        for name in ("dispatch_view.gd", "main.gd"):
+            gd = (SCRIPTS / name).read_text(encoding="utf-8")
+            assert 'envoy.get("proposal_type_display"' in gd and 'lapse.get("proposal_type_display"' in gd, name
+
+
+class TestPCF86:
+    def _answerer(self, **policy):
+        drv = _tool("playtest_driver")
+        return drv.Answerer(None, None, dict(drv.POLICY_DEFAULTS) | policy, strict=False)
+
+    def test_the_decline_dial_leaves_the_players_own_settlement_to_the_script(self):
+        own = {"type": "settlement_confirm", "proposer_nation": "France", "caller_kind": "player_editor",
+               "options": [
+                   {"label": "Make peace with Austria only", "action": "seek_bilateral_peace"},
+                   {"label": "Ratify the settlement", "action": "confirm_settlement"},
+                   {"label": "Back out", "action": "back_out_settlement"}]}
+        assert self._answerer(diplomacy="decline")._pick_dialogue_choice(own) == "confirm_settlement"
+        # the league's table keeps the dial; an explicit --settlement decline holds
+        league = dict(own, proposer_nation="Britain")
+        assert self._answerer(diplomacy="decline")._pick_dialogue_choice(league) != "confirm_settlement"
+        assert self._answerer(diplomacy="decline", settlement="decline")._pick_dialogue_choice(own) != "confirm_settlement"
+        # a disabled ratify is never pressed (FA-78)
+        shut = dict(own, options=[dict(o, enabled=False) if o["action"] == "confirm_settlement" else o
+                                  for o in own["options"]])
+        assert self._answerer(diplomacy="decline")._pick_dialogue_choice(shut) != "confirm_settlement"
+
+    def test_the_chooser_the_scripts_click_opened_proceeds(self):
+        chooser = {"type": "settlement_pair_substitute_confirm", "options": [
+            {"label": "Proceed — peace with Austria alone", "action": "confirm_pair_substitute"},
+            {"label": "Stay with the joint settlement", "action": "keep_joint_settlement"}]}
+        ans = self._answerer(diplomacy="decline")
+        assert ans._pick_dialogue_choice(chooser) != "confirm_pair_substitute", "unattended: the table's keep"
+        ans._last_script_action = "seek_bilateral_peace"
+        assert ans._pick_dialogue_choice(chooser) == "confirm_pair_substitute"
+        assert ans._pick_dialogue_choice(chooser) != "confirm_pair_substitute", "consumed once"
+
+
+class TestTheStagedFixtures:
+    """PC-F85: the staged fixtures carry only states the game can produce."""
+
+    def test_the_tilsit_board_was_driven_to_a_score_the_game_computes(self):
+        t = _load_save(AGD_FIXTURE)
+        key = t._make_diplo_key("France", "Prussia")
+        assert int(t.war_scores[key]) == int(D.calculate_war_score("France", "Prussia", t)) == 30
+        assert int(t.current_turn) - int(t.war_start_turns[key]) == 6
+
+    def test_the_congress_board_resolves_every_peace_in_its_war(self):
+        p = _load_save(GE3_PRESSBURG)
+        sides = p.war_instances["war_1"].get("side_by_nation") or {}
+        assert "Austria" not in sides and "Russia" not in sides
+        from backend.game_logic.war_status import build_active_wars
+        with _quiet():
+            rows = build_active_wars(p)["wars"]
+        assert any(r.get("opponent") == "Britain" and isinstance(r.get("war_score"), int) for r in rows)
+
+
+class TestTheReactivityRead:
+    """§47 — F's re-read: §44's ten levers on the Vienna-held board, each
+    moving at least one court's answer — three of them only on the footing
+    a ruling made live (G's decay for a victory; D's truce exit for the
+    relations and the mission), and inert at war at turn 6 by the decided
+    caps and R141's clamp, which is said, not hidden."""
+
+    def _board(self, name):
+        rec = json.loads((REPO / "tools" / "_pc_s13e4_reactivity.json").read_text(encoding="utf-8"))
+        return next(b for b in rec["boards"] if b["board"] == name)
+
+    def test_a_ten_levers_each_move_a_courts_answer(self):
+        board = self._board("vienna_held")
+        assert len(board["ten"]) == 10
+        assert all(v["moves"] for v in board["ten"].values()), {
+            k: v for k, v in board["ten"].items() if not v["moves"]}
+
+    def test_b_the_footings_are_named(self):
+        ten = self._board("vienna_held")["ten"]
+        for lever in ("1 one more victory", "2 three more victories"):
+            assert [r["footing"] for r in ten[lever]["where"]] == ["war after 2 quiet turns (G's decay)"], lever
+        for lever in ("5 relations +20", "10 Talleyrand's mission"):
+            assert [r["footing"] for r in ten[lever]["where"]] == ["a truce (D's exit)"], lever
+        board = self._board("vienna_held")
+        for lever in ("1 one more victory", "5 relations +20", "10 Talleyrand's mission"):
+            assert board["levers"][lever]["moved"] == {}, lever
+
+    def test_c_the_live_read_agrees(self, vienna_held):
+        R = _tool("_pc_s13e4_reactivity")
+        assert R.quiet_turns_until_a_victory_counts(vienna_held) == 2
+        truce = R.clone(vienna_held)
+        R.sign_truces(truce)
+        base = R.truce_read(truce)
+        pulled = R.clone(truce)
+        R.levers(vienna_held, "vienna_held")["5 relations +20"](pulled)
+        assert base["Austria"]["exit"] == "war" and R.truce_read(pulled)["Austria"]["exit"] == "peace"
+
+
+class TestTheSeriesPart4:
+    def _record(self):
+        return json.loads((REPO / "tools" / "_pc_s13e4_series_arms_final.json").read_text(encoding="utf-8"))
+
+    def test_the_record_links_to_the_last_one(self):
+        rec = self._record()
+        prior = json.loads((REPO / "tools" / "_pc_s13e3_series_arms_final.json").read_text(encoding="utf-8"))
+        assert rec["prior"] == prior["arms"]["ALL"]["series"]
+        assert set(rec["arms"]) >= {"0", "L", "V", "C", "A", "H", "S", "J", "K", "B", "ALL"}
+        for arm, row in rec["arms"].items():
+            assert row["first_divergence_vs_prior"] is None, arm   # byte-identical: attributed, not re-pinned
+
+    def test_the_seams_were_reached(self):
+        reach = self._record()["arms"]["ALL"]["reach"]
+        for key in ("achieved|active", "client_pair|lords", "loser_sues|no", "ally_home|none", "carve|cede"):
+            assert reach.get(key, 0) > 0, key
+
+
+class TestThePartVReplays:
+    """S13e's done-when as a whole: the three Part V replays pass as tests."""
+
+    def test_1_pressburg_tyrol_to_bavaria_and_vienna_home(self, vienna_held):
+        w = vienna_held
+        with _quiet():
+            res = w._ratify_treaty({
+                "type": "peace", "proposer_nation": "France", "target_nation": "Austria", "clauses": [],
+                "sweeteners": [{"type": "territory_cede", "value": 1, "regions": ["Vienna"]}],
+                "demands": [{"type": "territory_cede", "value": 1, "regions": ["Tyrol"], "to_nation": "Bavaria"}]})
+        assert w.regions["Tyrol"].controller == "Bavaria" and w.regions["Vienna"].controller == "Austria"
+        assert _state(w, "France", "Austria") == "PEACE" and _state(w, "Bavaria", "Austria") == "PEACE"
+        summary = res["peace_ratification_summary"]
+        assert any(ln.startswith("Bavaria's war with Austria ends in this instrument; she takes Tyrol by it")
+                   for ln in summary["political_aftermath"])
+        # PC-X22: the status quo names only what each holder still holds
+        assert "Tyrol" not in summary["status_quo_titled"]
+        assert not any("Tyrol" in ln and "stay ours" in ln for ln in summary["terms_ratified"])
+
+    def test_2_a_truce_keeps_the_ledger(self, vienna_held):
+        w = vienna_held
+        key = w._make_diplo_key("France", "Austria")
+        score, start = w.war_scores[key], w.war_start_turns[key]
+        with _quiet():
+            w._ratify_treaty({"type": D.armistice_variant_for(w, "France", "Austria"),
+                              "proposer_nation": "France", "target_nation": "Austria",
+                              "sweeteners": [], "demands": [], "clauses": []})
+        assert _state(w, "France", "Austria") == "ARMISTICE"
+        assert w.war_scores[key] == score and w.war_start_turns[key] == start
+        assert D.truce_words(w, "France", "Austria")["keeps_line"].startswith("The ledger stands")
+
+    def test_3_the_dictated_peace_on_ulm_carries_a_province(self, ulm_t18):
+        w = ulm_t18
+        _britain_at(w, 45)
+        with _quiet():
+            letter = AI.process_diplomatic_phase("Britain", w)
+        kinds = [d["type"] for d in letter["terms"]["demands"]]
+        assert letter["proposal_type"] == "harsh_peace" and "territory_cede" in kinds
+
+
+class TestThePart4Siblings:
+    def test_x21_the_bilateral_carries_an_occupied_homeland_cession_and_names_a_drop(self, vienna_held):
+        w = vienna_held
+        # Carniola (Austria's homeland) held by Russia — not on Bavaria's side: named, never silent
+        w.regions["Carniola"].controller = "Russia"
+        w.invalidate_active_nations_cache()
+        with _quiet():
+            res = w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                                    "sweeteners": [], "clauses": [],
+                                    "demands": [{"type": "territory_cede", "value": 1, "regions": ["Tyrol", "Carniola"],
+                                                 "to_nation": "Bavaria"}]})
+        assert w.regions["Tyrol"].controller == "Bavaria", "F52's one rule on the bilateral road"
+        assert w.regions["Carniola"].controller == "Russia"
+        assert ("Not carried: Carniola not carried — Austria no longer holds it and Russia stands on the "
+                "other side.") in res["peace_ratification_summary"]["political_aftermath"]
+
+    def test_x21_a_province_the_receiver_already_holds_is_left_to_the_status_quo(self, vienna_held):
+        w = vienna_held
+        with _quiet():
+            res = w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                                    "sweeteners": [], "clauses": [],
+                                    "demands": [{"type": "territory_cede", "value": 1, "regions": ["Bohemia"]}]})
+        assert w.regions["Bohemia"].controller == "France"
+        assert not any(ln.startswith("Not carried") for ln in res["peace_ratification_summary"]["political_aftermath"])
+
+    def test_x23_the_tilsit_instrument_reads_the_driven_board(self):
+        """PC-X23 (F85's sibling): Score Finish's agendas C4 probe measured the
+        carve on a PLANTED stored score of 100; it reads the driven fixture now."""
+        src = (REPO / "tools" / "_score_probes.py").read_text(encoding="utf-8")
+        body = src[src.index("def agendas_c4_tilsit("):src.index("# ═══", src.index("def agendas_c4_tilsit("))]
+        assert "fixture_agd_tilsit.json" in body and "recalculate_war_scores(world)" in body
+        assert "T._beaten_prussia()" not in body
+
+    def test_x24_every_war_on_the_congress_board_is_owned_and_purposed(self):
+        """PC-X24 (F85's sibling): the generator wrote three WAR pairs owned by
+        no instance (the fuzzer's I1); each is its own war with its purposes."""
+        from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
+        p = _load_save(GE3_PRESSBURG)
+        for pair, state in p.diplomatic_states.items():
+            if state != "WAR":
+                continue
+            assert _find_active_war_instance_for_pair(p, pair), pair
+            assert len(p.war_objectives.get(pair) or {}) == 2, pair
+
+    def test_x25_a_foreign_war_is_titled_by_its_design(self, w):
+        """PC-X25 (PC-R7 (i)'s sibling): the HUD's foreign-wars rows named an
+        AI war "Prussia vs Sweden"; an AI design war is titled by its design."""
+        from backend.game_logic.war_status import _build_foreign_wars
+        with _quiet():
+            D.declare_war(w, "Prussia", "Sweden")
+        wid = sorted(w.war_instances)[-1]
+        w.war_instances[wid]["stated_reason"] = "The Hanoverian Prize"
+        w.war_objectives[w._make_diplo_key("Prussia", "Sweden")]["Prussia"]["design"] = "hanoverian_prize"
+        row = next(r for r in _build_foreign_wars(w) if r["war_id"] == wid)
+        assert row["war_title"] == "War for the Hanoverian Prize"
+        assert 'fw.get("war_title", "")' in (SCRIPTS / "war_status_panel.gd").read_text(encoding="utf-8")
+
+    def test_x26_the_desk_names_what_the_war_is_for(self, vienna_held):
+        """PC-X26 (PC-R7 (i)'s sibling): "what is the war for" answered with the
+        dates and never the stake, and missed a coalition member's row."""
+        from backend.ai.state_desk import _answer_why_war
+        line = _answer_why_war(vienna_held, "Austria")
+        assert "a member of the coalition against us, since turn 1." in line
+        assert "The War for Bohemia: France holds Bohemia, Tyrol and Vienna of Austria's." in line

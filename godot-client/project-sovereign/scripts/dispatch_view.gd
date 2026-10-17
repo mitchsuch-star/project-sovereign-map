@@ -367,7 +367,8 @@ func _on_dispatch_received(response):
 			if bool(lapse.get("is_petition", false)) and l_line != "":
 				bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]\n"
 				continue
-			var l_ptype = str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()
+			# PC-F45 (S13e part 4): the letter's display name (R7), never the raw key.
+			var l_ptype = str(lapse.get("proposal_type_display", str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()))
 			bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + Utils.display_nation_name(l_nation) + "'s " + l_ptype + " offer lapsed unanswered[/color]\n"
 		bbcode += "\n"
 
@@ -383,7 +384,9 @@ func _on_dispatch_received(response):
 		for i in range(min(pending_envoys.size(), 3)):
 			var envoy = pending_envoys[i]
 			var envoy_nation = str(envoy.get("nation", "?"))
-			var envoy_type = str(envoy.get("proposal_type", "proposal")).capitalize()
+			# PC-F45: "Austria — Armistice Losing" read as France losing; the
+			# backend's display name names the letter.
+			var envoy_type = str(envoy.get("proposal_type_display", str(envoy.get("proposal_type", "proposal")).capitalize()))
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - " + Utils.display_nation_name(envoy_nation) + " — " + envoy_type + "[/color]\n"
 		if pending_envoys.size() > 3:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]    - ...and " + str(pending_envoys.size() - 3) + " more[/color]\n"

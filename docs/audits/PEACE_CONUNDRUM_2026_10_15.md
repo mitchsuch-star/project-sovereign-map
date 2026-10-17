@@ -20,6 +20,8 @@ never written to. · **Status:** analysis + findings for the user's ruling. No c
 > copy for each peace moment, re-reads the earlier parts' assumptions, and files findings F49 … F88.
 > **§46** (the same day, under the user's delegation) decides every ruling — B folded into C, C, D, I, E,
 > H, G, J; F unchanged; K, Talleyrand's counsel alive, added — and re-sizes S13e to four parts.
+> **§47** (October 17, 2026, S13e part 4) re-reads ruling F: on the Vienna-held board all ten levers
+> move at least one court's answer, three of them only where a ruling made them live (G's decay; D's truce).
 
 ---
 
@@ -1678,3 +1680,72 @@ sweep and a series attribution where a fix reaches the AI. **Then** S13c part 2 
 
 **Not decided here, because it is not this report's:** UXR-4 (the user's eyes at 5120×1440, S15,
 with PC-F46 and F47) and the code-signing certificate before S15.
+
+
+## 47. F's reactivity re-read (October 17, 2026, S13e part 4)
+
+> Ruling F kept determinism and asked for a measure of **reactivity**: does a court's answer move
+> when a lever moves? §7 and §44 read six of ten levers moving nothing. Rulings E, G, H and I each
+> added a lever since. This section re-runs the ten levers of §11 on the Vienna-held board, and on
+> the turn-6 copy and the ulm board beside it.
+
+**How it was measured.** `tools/_pc_s13e4_reactivity.py` (record `tools/_pc_s13e4_reactivity.json`;
+pinned by `tests/test_pc_rulings.py::TestTheReactivityRead`) pulls one lever at a time on a copy of
+the board and **recomputes the stored scores first**. Part II's probe did not, so it read every
+battlefield lever as zero by construction (§36 row 14). Each court is then read through the game's
+own readers:
+
+- the bilateral answer to a white peace, to Talleyrand's own draft and to a truce;
+- the court's row on the whole-war table;
+- the court's own readiness (its score, whether it sues, its letter, its break-ranks reason);
+- its war-exhaustion clock;
+- the tier its next dictated letter would carry.
+
+A lever **moves an answer** when any of those numbers or verdicts changes for a court. The clock
+alone does not count.
+
+**The answer on the Vienna-held board: all ten levers move at least one court's answer.**
+
+| Lever | Where it moves an answer | Courts |
+|---|---|---|
+| 1 One more victory | after two quiet turns (G's decay) | Austria |
+| 2 Three more victories | after two quiet turns (G's decay) | Austria |
+| 3 One decisive victory | at war, turn 6 | Austria |
+| 4 The capital (Vienna returned) | at war, turn 6 | Austria |
+| 5 Relations +20 | at a truce's exit (D's −60 line) | Austria, Britain, Russia |
+| 6 War exhaustion +40 | at war, turn 6 (E's loyalty term: Britain and Russia break ranks) | Britain, Russia |
+| 7 Five more turns of war | at war, turn 6 | Austria, Britain, Russia |
+| 8 Lose a battle | at war, turn 6 | Austria |
+| 9 The terms (Talleyrand's draft against a white peace) | at war, turn 6 | Austria |
+| 10 Talleyrand's mission (Improve Relations, +8) | at a truce's exit | Austria, Russia |
+
+**What is still inert, and why.** At war at turn 6 three levers move nothing:
+
+- **One more victory.** The battle and blood components are full (15 of 15). Ruling G kept the caps.
+  The decay now pulls a full component under its cap after two quiet turns, and a new victory resets
+  the quiet clock, so a victory counts again from then.
+- **Relations +20 and the mission.** R141's clamp holds the relations term at −10 until relations
+  pass −40, and the board reads −80. Under a truce, ruling D's courted peace reads the same relations
+  at the −60 line, so both levers decide the truce's exit.
+
+The game says this on screen. The fill line reads "Full: Battles 15/15, Blood 15/15 — another victory
+adds nothing there". The counsel prices a mission's road on the formula's own slope, so it never
+recommends one that moves nothing.
+
+**The four levers the rulings added each move an answer.**
+
+| Lever | Ruling | Effect |
+|---|---|---|
+| A payment to the court paid (300 gold to Austria) | E | All three table rows rise: Austria 71 → 83, Britain and Russia +6 each |
+| The decay | G | Levers 1 and 2 become live |
+| One more home province held (Moravia) | H | Austria's answers and clock move |
+| A refused dictated letter | I | Every court's next dictated tier rises by one |
+
+**The other two boards.** On the turn-6 copy the same ten levers move the same courts. On ulm
+(France losing) exhaustion +40 and a lost battle move nothing, because every court there already
+breaks ranks on exhaustion. The result is reported per board, never as a law.
+
+**What this means for ruling F.** Nothing new to decide. Determinism stays the design, and reactivity
+now holds on the board the report began from. The three levers inert at war are inert by two rules
+the user's rulings kept, G's caps and R141's clamp. Revisiting either is a balance question, not a
+defect, and §46 did not ask for it.

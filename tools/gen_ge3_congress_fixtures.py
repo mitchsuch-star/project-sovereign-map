@@ -44,6 +44,19 @@ a save whose state is WRITTEN, not played — and say so in their slot names:
 Neither is a measurement of the played reach (GE-V owns it): each is a
 starting state for the Congress's own machinery on the real /command road.
 
+PC-F85 (Pre-Deploy S13e part 4): written is not the same as UNPLAYABLE. The
+first cuts set every PEACE with a raw `set_diplomatic_state`, which left the
+pair ACTIVE inside war_1 (Austria and Russia stayed on France's war roster
+though France was at peace with both, so the HUD read "no score" and the
+default settlement coverage hard-stopped on two courts France is not at war
+with), and wrote no war score at all. Now every pair the staging moves out of
+WAR is resolved inside its war instance the way the engine resolves it
+(`_honest_peace`: `resolve_pair_to_resolved` + `cleanup_war_end` + the state,
+the idiom of `tools/gen_agd_fixture.py`), and `recalculate_war_scores` runs
+before the save so the war the board still fights carries a score a played
+campaign would store. The turn numbers and every other staged fact are as
+they were.
+
   python tools/gen_ge3_congress_fixtures.py
 
 WHEN TO RE-RUN: a FORMAT_VERSION bump, a serialized-field change that
@@ -100,12 +113,27 @@ def _state(world, a, b, state, reason):
         set_diplomatic_state(world, a, b, state, reason)
 
 
+def _honest_peace(world, a, b, reason):
+    """PC-F85: a peace the engine itself would record - the pair resolved
+    inside its war instance and the war's data cleaned (`gen_agd_fixture.py`'s
+    idiom), then the state set. A pair that is not at war takes the plain
+    write (an alliance or a friendship downgrade is not a war's end)."""
+    from backend.game_logic.diplomacy import cleanup_war_end
+    from backend.game_logic.settlement_helpers import resolve_pair_to_resolved
+    if world.get_diplomatic_state(a, b) in ("WAR", "ARMISTICE"):
+        pair = world._make_diplo_key(a, b)
+        with contextlib.redirect_stdout(io.StringIO()):
+            resolve_pair_to_resolved(world, pair)
+            cleanup_war_end(world, pair)
+    _state(world, a, b, "PEACE", reason)
+
+
 def stage_pressburg(world) -> None:
     from backend.game_logic import congress, game_end, vassal
     player = world.player_nation
     # Pressburg, turn 20 — Austria cedes three provinces and signs.
     world.current_turn = 20
-    _state(world, player, "Austria", "PEACE", "ge3_staged_pressburg")
+    _honest_peace(world, player, "Austria", "ge3_staged_pressburg")
     for region in ("Tyrol", "Carniola", "Croatia"):
         world.regions[region].controller = player
         game_end.record_province_title(world, region, game_end.TITLE_TREATY,
@@ -139,13 +167,25 @@ def stage_pressburg(world) -> None:
     # Tilsit, turn 26 — Russia signs, and turns on London with Denmark and
     # (allied to us at Schönbrunn) Prussia.
     world.current_turn = 26
-    _state(world, player, "Russia", "PEACE", "ge3_staged_tilsit")
+    _honest_peace(world, player, "Russia", "ge3_staged_tilsit")
     congress.note_ratification(world, ["Russia"], True, beaten=["Russia"])
     # Prussia, allied to us, stays OUT of London's war: an ally at war with
     # Britain makes any French peace with London an alliance conflict (the
     # fourth staging measured the peace lever refused for exactly that).
+    # PC-X24 (S13e part 4, PC-F85's sibling): each war is a WAR the game can
+    # produce — its own war instance (a bare declaration not beside a
+    # co-belligerent opens its own war, PC-F66) and its defence purpose —
+    # where the raw state write left three WAR pairs owned by no instance
+    # (the fuzzer's I1). No cascade is run: the staging is the treaty board.
+    from backend.game_logic.diplomacy import _auto_assign_defense_objective
+    from backend.game_logic.settlement_helpers import ensure_war_instance_for_pair
     for name in ("Russia", "Denmark", "Sweden"):
         _state(world, name, "Britain", "WAR", "ge3_staged_continental_system")
+        with contextlib.redirect_stdout(io.StringIO()):
+            made = ensure_war_instance_for_pair(world, name, "Britain", entry_path="war_declaration",
+                                                reason="ge3_staged_continental_system")
+        assert made.get("ok"), (name, made)
+        _auto_assign_defense_objective(world, "Britain", name, world._make_diplo_key(name, "Britain"))
     _state(world, player, "Prussia", "ALLIANCE", "ge3_staged_schonbrunn")
     # The System's reach (Fontainebleau 1807, Schönbrunn 1809, brought
     # forward): every continental court that would still HOST a British army
@@ -161,7 +201,7 @@ def stage_pressburg(world) -> None:
             continue
         if naval.is_expedition_host(world, "Britain", nation):
             if world.get_diplomatic_state(nation, "Britain") not in ("PEACE",):
-                _state(world, nation, "Britain", "PEACE", "ge3_staged_system")
+                _honest_peace(world, nation, "Britain", "ge3_staged_system")
             world.nation_relations[world._make_diplo_key(nation, "Britain")] = 0
     world.nation_relations[world._make_diplo_key(player, "Prussia")] = 30
     # Pressburg and Tilsit ended the WHOLE war, not France's pair alone: the
@@ -173,14 +213,18 @@ def stage_pressburg(world) -> None:
     for court in ("Austria", "Russia"):
         for member in sorted(bloc):
             if world.get_diplomatic_state(court, member) in ("WAR", "ARMISTICE"):
-                _state(world, court, member, "PEACE", "ge3_staged_pressburg")
+                _honest_peace(world, court, member, "ge3_staged_pressburg")
     # The summer of 1806.
     world.current_turn = 28
     world.threat_by_target[player] = 50
     world.diplomatic_points = 5
     world.nation_gold[player] = max(8000, int(world.nation_gold.get(player, 0)))
     world.invalidate_active_nations_cache()
+    # PC-F85: the war the board still fights stores the score a played
+    # campaign would hold (the HUD read "no score" off an empty ledger).
+    from backend.game_logic.diplomacy import recalculate_war_scores
     with contextlib.redirect_stdout(io.StringIO()):
+        recalculate_war_scores(world)
         world.calculate_visibility()
     view = congress.titled(world)
     assert view["count"] >= congress.hold_titled(world), view

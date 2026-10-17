@@ -5086,9 +5086,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War for Bohemia — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War for Bohemia — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Austria|Bavaria",
@@ -5099,7 +5099,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty."
+    "message": "Settlement Ratified: the War for Bohemia — the table with Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty."
    },
    "arm": "VOLTE",
    "clause": ""
@@ -5118,9 +5118,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War for Bohemia — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War for Bohemia — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Austria|Bavaria",
@@ -5131,7 +5131,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty."
+    "message": "Settlement Ratified: the War for Bohemia — the table with Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty."
    },
    "arm": "VOLTE",
    "clause": ""
@@ -17445,9 +17445,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 11.23,
+ "clone_ms_mean": 8.42,
  "clones": 476,
- "seconds": 46.4,
+ "seconds": 36.3,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

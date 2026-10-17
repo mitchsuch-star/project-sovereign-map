@@ -691,6 +691,21 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     }
 
 
+def client_leads_its_own_war(vassal: str, other: str, instance) -> bool:
+    """PC-F30 (S13e part 4, October 17, 2026): the ONE reading of "the
+    client's own war" for the entry / transfer reconcile (DD1-8) and the
+    fuzzer's I2 — the client LEADS a side of the instance. The old exemption
+    also spared a pair whose OTHER court led the instance, and the 1805 boot
+    makes Britain the leader of France's war: Holland, gone over to Russia
+    at turn 32, was still at war with Britain — Russia's ally — at turn 38,
+    losing Brabant and Flanders, because every pair against the league's
+    leader read as "the client's own". A court led AGAINST is the instance's
+    defender leader itself, so that case is kept by the same test."""
+    leaders = {str((instance or {}).get("attacker_leader") or ""),
+               str((instance or {}).get("defender_leader") or "")}
+    return str(vassal) in leaders
+
+
 def _reconcile_vassal_diplomacy(world, lord: str, vassal: str, *,
                                 skip_pairs=None) -> None:
     """R48: Reconcile diplomatic conflicts after vassalization.
@@ -726,10 +741,8 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str, *,
         if vassal_state == "WAR" and lord_state != "WAR" and key not in skip:
             war_id = _find_active_war_instance_for_pair(world, key)
             instance = instances.get(war_id) if war_id else None
-            leaders = {str((instance or {}).get("attacker_leader") or ""),
-                       str((instance or {}).get("defender_leader") or "")}
-            if vassal in leaders or other in leaders:
-                continue  # the client's own war — it leads it, or is led against
+            if client_leads_its_own_war(vassal, other, instance):
+                continue  # the client's own war — it leads it
             followed = ("ARMISTICE"
                         if lord_state in ("ARMISTICE", "DEFENSIVE_ALLIANCE", "ALLIANCE")
                         else "PEACE")

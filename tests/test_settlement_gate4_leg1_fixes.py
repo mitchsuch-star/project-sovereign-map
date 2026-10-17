@@ -880,9 +880,14 @@ class TestCarryVerdictPresentation:
     def test_settlement_label_names_every_covered_court(self):
         world, _war = _winning_two_court_world()
         dialogue = _stage_propose(world)
-        assert dialogue.get("war_label") == "France vs Britain + Prussia"
-        # The blocked copy now reads "the settlement of France vs
-        # Britain + Prussia ..." â€” the leader-pair label fed the
+        # PC-R7 (i) — ruling J (S13e part 4, October 17, 2026): the table is
+        # titled by the war's STAKE, then the courts it covers — never the
+        # pair ("France vs Britain + Prussia" was G4F-7's coverage label).
+        _label = str(dialogue.get("war_label") or "")
+        assert _label.startswith("the War ") and _label.endswith("the table with Britain + Prussia"), _label
+        assert " vs " not in _label
+        # The blocked copy now reads "the settlement of <the title> — the
+        # table with Britain + Prussia ..." — the leader-pair label fed the
         # "Britain-only" misreading.
         result = handle_settlement_dialogue_action(
             world,
@@ -1210,8 +1215,10 @@ class TestRatificationEventRichness:
         ]
         assert summaries, world.event_log
         event = summaries[-1]
-        # Full-sides label â€” never the first-vs-first pair form.
-        assert event.get("war_label") == "France vs Britain + Prussia"
+        # Full-sides label — never the first-vs-first pair form. PC-R7 (i):
+        # titled by the stake, the covered courts named.
+        _label = str(event.get("war_label") or "")
+        assert _label.startswith("the War ") and _label.endswith("the table with Britain + Prussia"), _label
         lines = [str(line) for line in event.get("terms_summary") or []]
         assert lines
         # Rich formatter: a gold line names its amount and direction; the
@@ -2620,7 +2627,10 @@ class TestGate4SmokeCoverageLabelInNarration:
         world, _war = _winning_two_court_world()
         dialogue = _stage_propose(world)
         narration = str(dialogue.get("multi_court_table_narration") or "")
-        assert "France vs Britain + Prussia" in narration
+        # PC-R7 (i): the narration carries the titled label with every
+        # covered court, never the pair.
+        assert "the table with Britain + Prussia" in narration, narration
+        assert "France vs Britain" not in narration
 
 
 class TestGate4SmokeParadoxSurfacesAtMount:

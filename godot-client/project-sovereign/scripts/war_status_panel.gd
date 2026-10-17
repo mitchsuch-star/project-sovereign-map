@@ -301,7 +301,11 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 	var name_label = Label.new()
 	var indent = "  " if is_coalition_member else ""
-	name_label.text = indent + opponent_display
+	# PC-R7 (i) — ruling J (S13e part 4): the card is titled by the war's
+	# STAKE ("War for Bohemia"), never the leader pair; who stays on the
+	# tooltip's first line. An older payload keeps the roster.
+	var war_title = str(war_data.get("war_title", ""))
+	name_label.text = indent + (war_title if war_title != "" else opponent_display)
 	name_label.clip_text = true
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.theme_type_variation = &"Caption"
@@ -339,8 +343,14 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 func _build_war_tooltip(war_data: Dictionary) -> String:
 	var lines = []
+	# PC-R7 (i): the title's own line leads — the stake named, then who.
+	var title_line = str(war_data.get("war_title_line", ""))
+	if title_line != "":
+		lines.append(Utils.humanize_nation_keys_in_text(title_line))
 	if bool(war_data.get("is_multi_participant_war", false)):
 		lines.append("Shared war: " + Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(str(war_data.get("opponent", "?")))))))
+	elif str(war_data.get("war_title", "")) != "":
+		lines.append("With: " + Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(str(war_data.get("opponent", "?")))))))
 	var tier = str(war_data.get("settlement_tier_display", ""))
 	if tier:
 		# IQ-2 (Sept 14, 2026): the tier read as OURS to claim — "Settlement:
@@ -351,6 +361,10 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 			lines.append("Settlement (theirs to impose): " + tier)
 		else:
 			lines.append("Settlement: " + tier)
+	# PC-F33 (S13e part 4): a white peace confirms every holding — say so.
+	var held_line = str(war_data.get("held_line", ""))
+	if held_line != "":
+		lines.append(Utils.humanize_nation_keys_in_text(held_line))
 	# PC-F3 (Oct 15, 2026): what the peace math reads — the table's own
 	# number, each court against 50, and (mid-turn) that this turn's
 	# fighting counts from next turn. The backend writes the sentences.
@@ -393,7 +407,13 @@ func _add_armistice_card(war_data: Dictionary):
 	var remaining = int(float(war_data.get("armistice_remaining", 0)))
 
 	var btn = Button.new()
-	btn.text = opponent_display + "  " + str(remaining) + "t"
+	# PC-R7 (i) (S13e part 4): a truce is a pause in a war that keeps its
+	# title — "War for Bohemia — Austria, truce 4t".
+	var truce_title = str(war_data.get("war_title", ""))
+	if truce_title != "":
+		btn.text = truce_title + " — " + opponent_display + ", truce " + str(remaining) + "t"
+	else:
+		btn.text = opponent_display + "  " + str(remaining) + "t"
 	btn.flat = true
 	btn.custom_minimum_size = Vector2(0, 16)
 	btn.theme_type_variation = &"CaptionButton"
@@ -437,7 +457,10 @@ func _add_foreign_war_row(fw: Dictionary):
 	var att = str(fw.get("attackers_display", "?"))
 	var def_side = str(fw.get("defenders_display", "?"))
 	var btn = Button.new()
-	btn.text = att + " vs " + def_side
+	# PC-X25 (S13e part 4): a foreign war is titled by its stake too; who
+	# fights it rides the tooltip's first line.
+	var fw_title = str(fw.get("war_title", ""))
+	btn.text = fw_title if fw_title != "" else att + " vs " + def_side
 	btn.flat = true
 	btn.custom_minimum_size = Vector2(0, 16)
 	btn.theme_type_variation = &"CaptionButton"
@@ -445,6 +468,9 @@ func _add_foreign_war_row(fw: Dictionary):
 	var lines: Array = []
 	lines.append("%s vs %s — turn %d of their war." % [
 		att, def_side, int(float(fw.get("duration", 0)))])
+	var fw_line = str(fw.get("war_title_line", ""))
+	if fw_line != "":
+		lines.append(Utils.humanize_nation_keys_in_text(fw_line))
 	var reason = str(fw.get("stated_reason", ""))
 	if reason != "":
 		lines.append("Cause: " + reason + ".")

@@ -487,13 +487,18 @@ class TestThePetitionNamesItsTable:
         # The chancery register reads `{war_label}` ("petitions for … in the
         # settlement of {war_label}" — Bavaria's line on the live screen);
         # Hardenberg's own register does not, so the field is the pin.
-        assert '"war_label": "France vs Austria + Britain"' in text, text[:800]
+        # PC-R7 (i) (S13e part 4): the table is titled by the war's stake, then
+        # the courts it covers — never the leader pair.
+        assert '"war_label": "the War with Britain — the table with Austria + Britain"' in text, text[:800]
         assert '"war_label": "France vs Britain"' not in text
 
     def test_the_lever_restores_the_leader_pair(self, monkeypatch):
         from backend.game_logic import settlement_offers as SO
         monkeypatch.setattr(SO, "THE_PETITION_NAMES_THE_TABLE", False)
-        assert '"war_label": "France vs Britain"' in self._petition_text(self._world())
+        # PC-R7 (i): lever down, the petition names the WAR (its titled label,
+        # no table coverage) — the leader pair is retired as a name
+        text = self._petition_text(self._world())
+        assert '"war_label": "the War with Britain — ' in text and "the table with" not in text, text[:800]
 
     def test_the_contribution_names_the_side_it_fought_on(self, monkeypatch):
         text = self._petition_text(self._world())

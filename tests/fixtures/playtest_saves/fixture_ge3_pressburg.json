@@ -2,7 +2,7 @@
   "metadata": {
     "format_version": 3,
     "save_name": "GE-3 staged \u2014 after Pressburg and Tilsit (turn 28, 55 titled)",
-    "saved_at": "2026-09-25T21:21:14.499835+00:00",
+    "saved_at": "2026-10-17T16:20:55.368202+00:00",
     "turn": 28,
     "calendar_label": "Early November 1806",
     "player_nation": "France",
@@ -780,6 +780,285 @@
         }
       ]
     },
+    "contingent_commanders": {
+      "Holland": [
+        {
+          "name": "Dumonceau",
+          "personality": "cautious",
+          "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 6,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Jean-Baptiste Dumonceau - a Brussels-born general of the Batavian army; his Dutch division marched with Marmont's corps to the Danube in 1805."
+        },
+        {
+          "name": "Daendels",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 5,
+            "shock": 6,
+            "defense": 4,
+            "logistics": 5,
+            "administration": 6,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Herman Willem Daendels - patriot of 1795 and the Batavian army's restless organiser; he led the Dutch into Germany in 1806."
+        },
+        {
+          "name": "Chasse",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 5,
+            "shock": 7,
+            "defense": 5,
+            "logistics": 4,
+            "administration": 4,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "David Hendrik Chasse - 'General Bayonet' to the French for his charges in Spain; a Dutch brigadier who never waited to be ordered forward."
+        }
+      ],
+      "KingdomOfItaly": [
+        {
+          "name": "Teulie",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 5,
+            "shock": 6,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Pietro Teulie - Milanese patriot and minister of war; he led the Italian division north with the Grande Armee in 1805 and fell before Kolberg in 1807."
+        },
+        {
+          "name": "Pino",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 6,
+            "shock": 6,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 5,
+            "command": 6
+          },
+          "tactical_skill": 6,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Domenico Pino - the Italian army's fighting general; his division stormed in Spain and held at Maloyaroslavets in 1812."
+        },
+        {
+          "name": "Lechi",
+          "personality": "cautious",
+          "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 6,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Giuseppe Lechi - a Brescian cavalryman who commanded the Italian division that held Barcelona in 1808."
+        }
+      ],
+      "Switzerland": [
+        {
+          "name": "Amey",
+          "personality": "cautious",
+          "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 6,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Francois Pierre Amey - a Swiss officer in French service; he brought the Swiss regiments across the Berezina in 1812."
+        }
+      ],
+      "Bavaria": [
+        {
+          "name": "Wrede",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 6,
+            "shock": 6,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 5,
+            "command": 6
+          },
+          "tactical_skill": 6,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Carl Philipp von Wrede - the Bavarian army's field commander from Ulm to Wagram; he led the Bavarians into Russia in 1812 and against Napoleon at Hanau in 1813."
+        }
+      ],
+      "Saxony": [
+        {
+          "name": "Thielmann",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 6,
+            "shock": 6,
+            "defense": 5,
+            "logistics": 4,
+            "administration": 4,
+            "command": 5
+          },
+          "tactical_skill": 6,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Johann von Thielmann - a Saxon cavalry general; his cuirassiers charged the Great Redoubt at Borodino, and he went over to the allies in 1813."
+        }
+      ],
+      "DuchyOfWarsaw": [
+        {
+          "name": "Poniatowski",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 6,
+            "shock": 7,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 5,
+            "command": 6
+          },
+          "tactical_skill": 6,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Jozef Poniatowski - nephew of the last king of Poland and the Duchy's minister of war; he led the Polish corps to Moscow and died at Leipzig a Marshal of France."
+        },
+        {
+          "name": "Dabrowski",
+          "personality": "aggressive",
+          "skills": {
+            "tactical": 5,
+            "shock": 6,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 6,
+            "command": 6
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Jan Henryk Dabrowski - founder of the Polish Legions in Italy; he raised the Poles of Posen in 1806."
+        }
+      ],
+      "Spain": [
+        {
+          "name": "La Romana",
+          "personality": "cautious",
+          "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 5,
+            "logistics": 6,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Pedro Caro, Marquis of La Romana - he led the Spanish division lent to Napoleon to Denmark in 1807, and spirited it home aboard British ships in 1808."
+        }
+      ],
+      "Denmark": [
+        {
+          "name": "Ewald",
+          "personality": "cautious",
+          "skills": {
+            "tactical": 6,
+            "shock": 5,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 6,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Johann von Ewald - a Danish general of light troops who hunted Schill's raiders to Stralsund in 1809."
+        }
+      ],
+      "Portugal": [
+        {
+          "name": "Gomes Freire",
+          "personality": "cautious",
+          "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 5,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Gomes Freire de Andrade - commander of the Portuguese Legion in French service, which marched to Russia in 1812."
+        }
+      ],
+      "Prussia": [
+        {
+          "name": "Grawert",
+          "personality": "cautious",
+          "skills": {
+            "tactical": 5,
+            "shock": 5,
+            "defense": 6,
+            "logistics": 5,
+            "administration": 5,
+            "command": 5
+          },
+          "tactical_skill": 5,
+          "trust": {
+            "value": 60
+          },
+          "biography": "Julius von Grawert - first commander of the Prussian auxiliary corps that marched with the Grande Armee in 1812."
+        }
+      ]
+    },
+    "vassal_contingents": {},
+    "vassal_hint_spent": [],
     "agendas": {
       "Austria": [
         {
@@ -802,6 +1081,16 @@
             "Swabia"
           ],
           "blurb": "Mack's thrust to the Iller - Bavaria's defection to France must be punished and the German lands held for the Habsburg crown."
+        },
+        {
+          "id": "the_eastern_question",
+          "type": "acquire_regions",
+          "title": "The Eastern Question",
+          "regions": [
+            "Albania",
+            "Rumelia"
+          ],
+          "blurb": "The Porte is failing, and the Habsburg frontier runs where the Turk is weakest. If Italy and Germany are closed to Vienna, the Danube and the Adriatic are not: Albania and Rumelia would make the House of Austria the master of the Balkans before St Petersburg can be."
         }
       ],
       "Prussia": [
@@ -970,7 +1259,552 @@
             "Flanders"
           ],
           "blurb": "The counting houses want the sea lanes open and the armies elsewhere. A Netherlands at peace is a Netherlands that trades."
+        },
+        {
+          "id": "ostfriesland",
+          "type": "acquire_regions",
+          "title": "Ostfriesland",
+          "regions": [
+            "East Frisia"
+          ],
+          "blurb": "The Ems coast the Treaty of Fontainebleau gave Louis Bonaparte's kingdom in 1807 - the one province of Holland's own dream its lord can give, once the land is his. Dormant while Amsterdam answers to Paris."
         }
+      ]
+    },
+    "reforms": {
+      "France": [
+        {
+          "id": "grand_quartier_general",
+          "name": "The Grand Quartier G\u00e9n\u00e9ral",
+          "date": "Berthier's Imperial Headquarters, expanded 1805\u201307",
+          "currency": "gold",
+          "price": 9000,
+          "upkeep": 300,
+          "effects": [
+            {
+              "type": "actions",
+              "value": 1
+            }
+          ],
+          "says": "Berthier's headquarters grown into a true general staff: one more order carried each day."
+        },
+        {
+          "id": "train_des_equipages",
+          "name": "The Train des \u00c9quipages",
+          "date": "decree of 26 March 1807",
+          "currency": "gold",
+          "price": 3500,
+          "upkeep": 200,
+          "effects": [
+            {
+              "type": "cures",
+              "flaw": "Living off the land"
+            }
+          ],
+          "says": "A military train of the state's own wagons, decreed after the Polish winter: a French army in poor or stripped country draws its full supply again - while the Grand Quartier G\u00e9n\u00e9ral stands to run it."
+        },
+        {
+          "id": "artillery_reserve",
+          "name": "The Artillery Reserve",
+          "date": "the Guard's reserve batteries, 1806\u201309",
+          "currency": "gold",
+          "price": 3000,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "recruit_price",
+              "arm": "artillery",
+              "value": 0.85
+            }
+          ],
+          "says": "The Guard's reserve batteries and a standard gun park: artillery levies cost 15% less."
+        },
+        {
+          "id": "anticipated_class",
+          "name": "The Anticipated Class",
+          "date": "the senatus-consultes calling the class early, 1806\u201307",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "manpower_regen",
+              "pool": "infantry",
+              "value": 25
+            }
+          ],
+          "says": "The Senate calls each year's conscripts before their time: infantry manpower returns 25% faster."
+        },
+        {
+          "id": "berlin_decree",
+          "name": "The Berlin Decree",
+          "date": "21 November 1806",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "cs_closure",
+              "rule": "every_client"
+            }
+          ],
+          "says": "Every client of the Empire shuts its ports to British goods, whatever its autonomy."
+        },
+        {
+          "id": "code_abroad",
+          "name": "The Code Abroad",
+          "date": "the Civil Code imposed in Italy (1806), Westphalia (1807) and Warsaw (1808)",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "satellite_loyalty",
+              "value": 1
+            }
+          ],
+          "says": "The Civil Code carried into the client states binds them to the Empire: +1 loyalty a turn in every one."
+        }
+      ],
+      "Austria": [
+        {
+          "id": "corps_d_armee",
+          "name": "The Corps d'Arm\u00e9e",
+          "date": "Archduke Charles, 1809",
+          "currency": "gold",
+          "price": 9000,
+          "upkeep": 300,
+          "effects": [
+            {
+              "type": "actions",
+              "value": 1
+            },
+            {
+              "type": "cures",
+              "flaw": "The Hofkriegsrat"
+            }
+          ],
+          "says": "The Archduke's corps d'arm\u00e9e, the system France has used since 1800, copied at last: one more order carried each day, and the Hofkriegsrat's delays are over - the corps gather as France's do."
+        },
+        {
+          "id": "landwehr",
+          "name": "The Landwehr",
+          "date": "patent of 9 June 1808",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "manpower_regen",
+              "pool": "infantry",
+              "value": 25
+            }
+          ],
+          "says": "A militia of every able man, raised by imperial patent: infantry manpower returns 25% faster."
+        },
+        {
+          "id": "jager_battalions",
+          "name": "The J\u00e4ger Battalions",
+          "date": "raised 1808",
+          "currency": "gold",
+          "price": 2500,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "recruit_morale",
+              "arm": "infantry",
+              "value": 10
+            }
+          ],
+          "says": "Light infantry raised and trained on the French model: infantry recruits muster 10 morale higher."
+        },
+        {
+          "id": "infantry_regulations",
+          "name": "The New Infantry Regulations",
+          "date": "1806\u201307",
+          "currency": "gold",
+          "price": 2000,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "drill_morale",
+              "value": 5
+            }
+          ],
+          "says": "The Archduke's new drill book: a corps that drills recovers 5 more morale."
+        },
+        {
+          "id": "generalissimus",
+          "name": "The Generalissimus",
+          "date": "Charles over the Hofkriegsrat, 1806",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "recruit_price",
+              "arm": "all",
+              "value": 0.9
+            }
+          ],
+          "says": "The Archduke placed over the Aulic Council: every levy costs 10% less."
+        }
+      ],
+      "Prussia": [
+        {
+          "id": "general_staff",
+          "name": "The General Staff",
+          "date": "Scharnhorst, 1808",
+          "currency": "gold",
+          "price": 9000,
+          "upkeep": 300,
+          "effects": [
+            {
+              "type": "actions",
+              "value": 1
+            }
+          ],
+          "says": "Scharnhorst's General Staff, built on the French headquarters that beat Prussia: one more order carried each day."
+        },
+        {
+          "id": "krumper_system",
+          "name": "The Kr\u00fcmper System",
+          "date": "1808",
+          "currency": "gold",
+          "price": 2500,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "manpower_regen",
+              "pool": "infantry",
+              "value": 25
+            }
+          ],
+          "says": "Men trained in rotation and sent home, a reserve beyond the treaty's limit: infantry manpower returns 25% faster."
+        },
+        {
+          "id": "articles_of_war",
+          "name": "The Articles of War",
+          "date": "August 1808",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "recruit_morale",
+              "arm": "infantry",
+              "value": 10
+            },
+            {
+              "type": "cures",
+              "flaw": "Brittle"
+            }
+          ],
+          "says": "Flogging abolished and promotion opened to merit: infantry recruits muster 10 morale higher, and - once the General Staff stands - the army is no longer brittle: a lopsided defeat costs what it costs France."
+        },
+        {
+          "id": "reorganisation_commission",
+          "name": "The Military Reorganisation Commission",
+          "date": "July 1807",
+          "currency": "gold",
+          "price": 2000,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "drill_morale",
+              "value": 5
+            }
+          ],
+          "says": "Scharnhorst's commission remakes the army on the French pattern: a corps that drills recovers 5 more morale."
+        },
+        {
+          "id": "emancipation_edict",
+          "name": "The Emancipation Edict",
+          "date": "9 October 1807",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "recruit_price",
+              "arm": "infantry",
+              "value": 0.9
+            }
+          ],
+          "says": "Serfdom ended by edict, and free men answer the levy: infantry recruits cost 10% less."
+        }
+      ],
+      "Russia": [
+        {
+          "id": "divisional_system",
+          "name": "The Divisional System",
+          "date": "1806",
+          "currency": "gold",
+          "price": 9000,
+          "upkeep": 300,
+          "effects": [
+            {
+              "type": "actions",
+              "value": 1
+            },
+            {
+              "type": "cures",
+              "flaw": "Slow to concentrate"
+            }
+          ],
+          "says": "Permanent divisions on the French pattern: one more order carried each day, and the columns gather as France's do - the army is no longer slow to concentrate."
+        },
+        {
+          "id": "arakcheev_artillery",
+          "name": "Arakcheev's Artillery",
+          "date": "the system of 1805, to 1808",
+          "currency": "gold",
+          "price": 3000,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "recruit_price",
+              "arm": "artillery",
+              "value": 0.85
+            }
+          ],
+          "says": "Arakcheev's standard guns and parks: artillery levies cost 15% less."
+        },
+        {
+          "id": "opolchenie",
+          "name": "The Opolchenie",
+          "date": "manifesto of 30 November 1806",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "manpower_regen",
+              "pool": "infantry",
+              "value": 25
+            }
+          ],
+          "says": "The Tsar's militia called up by manifesto: infantry manpower returns 25% faster."
+        },
+        {
+          "id": "extraordinary_levy",
+          "name": "The Extraordinary Levy",
+          "date": "the recruit levies",
+          "currency": "gold",
+          "price": 2000,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "recruit_price",
+              "arm": "infantry",
+              "value": 0.8
+            },
+            {
+              "type": "recruit_morale",
+              "arm": "infantry",
+              "value": -10
+            }
+          ],
+          "says": "Serfs taken from the estates by extraordinary levy: infantry recruits cost 20% less and muster 10 morale lower."
+        },
+        {
+          "id": "war_ministry",
+          "name": "The War Ministry under Arakcheev",
+          "date": "January 1808",
+          "currency": "gold",
+          "price": 2000,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "drill_morale",
+              "value": 5
+            }
+          ],
+          "says": "Arakcheev's ministry drills the army to the letter: a corps that drills recovers 5 more morale."
+        }
+      ],
+      "Britain": [
+        {
+          "id": "horse_guards_reforms",
+          "name": "The Horse Guards Reforms",
+          "date": "the Duke of York, 1795\u20131809",
+          "currency": "gold",
+          "price": 9000,
+          "upkeep": 300,
+          "effects": [
+            {
+              "type": "actions",
+              "value": 1
+            }
+          ],
+          "says": "The Duke of York's reforms at the Horse Guards, a staff to match the French one: one more order carried each day."
+        },
+        {
+          "id": "orders_in_council",
+          "name": "The Orders in Council",
+          "date": "January and November 1807",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "blockade_denial",
+              "value": 1.25
+            }
+          ],
+          "says": "Neutral trade with the blockaded ports forbidden by Order in Council: a court Britain blockades loses a quarter more of its trade."
+        },
+        {
+          "id": "militia_transfer",
+          "name": "The Militia Transfer",
+          "date": "Castlereagh, 1807\u201308",
+          "currency": "authority",
+          "price": 15,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "manpower_regen",
+              "pool": "infantry",
+              "value": 25
+            },
+            {
+              "type": "cures",
+              "flaw": "Irreplaceable"
+            }
+          ],
+          "says": "Castlereagh draws volunteers from the militia into the line: infantry manpower returns 25% faster, and - once the Horse Guards Reforms stand - the draft is no longer irreplaceable: recruits cost what France's do."
+        },
+        {
+          "id": "commissariat",
+          "name": "The Commissariat",
+          "date": "reorganised 1809\u201310",
+          "currency": "gold",
+          "price": 3000,
+          "upkeep": 150,
+          "effects": [
+            {
+              "type": "supply_capacity",
+              "value": 1.25
+            }
+          ],
+          "says": "A Commissariat able to feed an army in the field: fed supply capacity a quarter larger."
+        },
+        {
+          "id": "congreve_rockets",
+          "name": "Congreve's Rockets",
+          "date": "Boulogne, October 1806",
+          "currency": "gold",
+          "price": 2500,
+          "upkeep": 100,
+          "effects": [
+            {
+              "type": "recruit_price",
+              "arm": "artillery",
+              "value": 0.85
+            }
+          ],
+          "says": "Congreve's rockets beside the guns: artillery levies cost 15% less."
+        }
+      ]
+    },
+    "doctrines": {
+      "courts": {
+        "France": {
+          "name": "The Corps System",
+          "says": "The corps march apart and fight together - and eat what the country gives them.",
+          "strength": {
+            "type": "arrival_bar",
+            "value": -10,
+            "name": "The corps system"
+          },
+          "flaw": {
+            "type": "supply",
+            "value": 0.8,
+            "stripped_at": 0.25,
+            "name": "Living off the land"
+          },
+          "cured_by": "train_des_equipages"
+        },
+        "Britain": {
+          "name": "The Line Holds",
+          "says": "A small army that cannot be replaced, and a line that does not give way.",
+          "strength": {
+            "type": "defense",
+            "value": 0.15,
+            "name": "The Line Holds"
+          },
+          "flaw": {
+            "type": "recruit_price",
+            "value": 1.25,
+            "arm": "all",
+            "name": "Irreplaceable"
+          },
+          "cured_by": "militia_transfer"
+        },
+        "Russia": {
+          "name": "Stubborn",
+          "says": "Easier to kill than to beat - and slow to gather from the ends of an empire.",
+          "strength": {
+            "type": "defeat_morale",
+            "value": 0.5,
+            "name": "Stubborn"
+          },
+          "flaw": {
+            "type": "arrival_bar",
+            "value": 10,
+            "name": "Slow to concentrate"
+          },
+          "cured_by": "divisional_system",
+          "shared_on_purpose": "RV-9: Russia and Austria share the flaw France's strength answers - the absence of the corps system - and both cure it by copying it (Russia's divisions, 1806; Austria's corps, 1809)."
+        },
+        "Austria": {
+          "name": "The Hereditary Lands",
+          "says": "Beaten, and back with another army - once Vienna has written the orders.",
+          "strength": {
+            "type": "recruit_price",
+            "value": 0.85,
+            "arm": "all",
+            "name": "The Hereditary Lands"
+          },
+          "flaw": {
+            "type": "arrival_bar",
+            "value": 10,
+            "name": "The Hofkriegsrat"
+          },
+          "cured_by": "corps_d_armee",
+          "shared_on_purpose": "RV-9: the one shared clause - see Russia."
+        },
+        "Prussia": {
+          "name": "Frederick's Drill",
+          "says": "Frederick's army still attacks as it did at Leuthen, and it breaks all at once.",
+          "strength": {
+            "type": "attack",
+            "value": 0.1,
+            "name": "Frederick's Drill"
+          },
+          "flaw": {
+            "type": "defeat_morale",
+            "value": 1.5,
+            "name": "Brittle"
+          },
+          "cured_by": "articles_of_war"
+        }
+      },
+      "poor_country": [
+        "East Prussia",
+        "Posen",
+        "Samogitia",
+        "Lithuania",
+        "White Russia",
+        "Volhynia",
+        "Leon",
+        "Aragon",
+        "Galicia",
+        "Alentejo",
+        "Beira",
+        "Rumelia",
+        "Epirus",
+        "Albania"
       ]
     },
     "statecraft": {
@@ -1145,12 +1979,12 @@
         ],
         "admiral": "Nelson",
         "island": true,
-        "trade_dominance": 300,
-        "overseas_income": 500,
+        "trade_dominance": 450,
+        "overseas_income": 1000,
         "readiness": 100,
         "posture": "blockade",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 100
@@ -1174,7 +2008,7 @@
         "readiness": 70,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 45
@@ -1191,7 +2025,7 @@
         "readiness": 65,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 30
@@ -1206,7 +2040,7 @@
         "readiness": 80,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 18
@@ -1220,7 +2054,7 @@
         "readiness": 60,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 15
@@ -1236,7 +2070,7 @@
         "readiness": 70,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 12
@@ -1251,7 +2085,7 @@
         "readiness": 65,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 20
@@ -1266,7 +2100,7 @@
         "readiness": 70,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 10
@@ -1280,7 +2114,7 @@
         "readiness": 70,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 10
@@ -1294,7 +2128,7 @@
         "readiness": 60,
         "posture": "guard",
         "camp_turns": 0,
-        "diversion_used": false,
+        "diversion_last_turn": -1,
         "window_turns": 0,
         "built_this_turn": 0,
         "established": 5
@@ -1328,6 +2162,7 @@
     "admin_actions_remaining": 2,
     "max_admin_actions": 2,
     "nation_bankruptcy_turns": {},
+    "nation_pay_arrears": {},
     "regions": {
       "White Russia": {
         "name": "White Russia",
@@ -1656,7 +2491,7 @@
           "Paris",
           "Normandy"
         ],
-        "income_value": 200,
+        "income_value": 150,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "major_city",
@@ -2250,7 +3085,7 @@
           "Picardy",
           "Friesland"
         ],
-        "income_value": 150,
+        "income_value": 110,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "city",
@@ -2476,7 +3311,7 @@
           "East Anglia",
           "Wessex"
         ],
-        "income_value": 150,
+        "income_value": 300,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "city",
@@ -2533,7 +3368,7 @@
           "Nassau",
           "Brabant"
         ],
-        "income_value": 150,
+        "income_value": 110,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "city",
@@ -2650,7 +3485,7 @@
           "Bordelais",
           "Languedoc"
         ],
-        "income_value": 150,
+        "income_value": 110,
         "is_capital": false,
         "terrain": "mountains",
         "region_type": "city",
@@ -2704,7 +3539,7 @@
           "Anjou",
           "Bordelais"
         ],
-        "income_value": 150,
+        "income_value": 110,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "city",
@@ -2764,7 +3599,7 @@
           "Champagne",
           "Paris"
         ],
-        "income_value": 150,
+        "income_value": 110,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "city",
@@ -2803,7 +3638,7 @@
           1
         ],
         "controller": "France",
-        "garrison_strength": 10000,
+        "garrison_strength": 0,
         "garrison_detachment": false,
         "stability": 25,
         "war_damage": 0.0,
@@ -2933,7 +3768,7 @@
           "Maine",
           "Brittany"
         ],
-        "income_value": 150,
+        "income_value": 110,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "city",
@@ -2963,7 +3798,7 @@
           "Nivernais",
           "Brabant"
         ],
-        "income_value": 150,
+        "income_value": 110,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "city",
@@ -3043,7 +3878,7 @@
           "Burgundy",
           "Provence"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3069,7 +3904,7 @@
           "Highlands",
           "Northumbria"
         ],
-        "income_value": 100,
+        "income_value": 150,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3097,7 +3932,7 @@
           "Cartagena",
           "Bordelais"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "mountains",
         "region_type": "town",
@@ -3178,7 +4013,7 @@
           "Burgundy",
           "Bern"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "mountains",
         "region_type": "town",
@@ -3234,7 +4069,7 @@
           "Brittany",
           "Normandy"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3263,7 +4098,7 @@
           "Nivernais",
           "Bern"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3408,7 +4243,7 @@
           68
         ],
         "controller": "France",
-        "garrison_strength": 15000,
+        "garrison_strength": 0,
         "garrison_detachment": false,
         "stability": 25,
         "war_damage": 0.0,
@@ -3427,7 +4262,7 @@
           "Guyenne",
           "Bearn"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "mountains",
         "region_type": "town",
@@ -3453,7 +4288,7 @@
           "Midlands",
           "Scotland"
         ],
-        "income_value": 100,
+        "income_value": 150,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3563,7 +4398,7 @@
           "Picardy",
           "Ardennes"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3591,7 +4426,7 @@
           "Lyonnais",
           "Provence"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3699,7 +4534,7 @@
           "Anjou",
           "Maine"
         ],
-        "income_value": 100,
+        "income_value": 80,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "town",
@@ -3840,7 +4675,7 @@
           "Burgundy",
           "Bern"
         ],
-        "income_value": 50,
+        "income_value": 40,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "rural",
@@ -3872,7 +4707,7 @@
           "Bern",
           "Ile-de-France"
         ],
-        "income_value": 50,
+        "income_value": 40,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "rural",
@@ -3931,7 +4766,7 @@
           "Ile-de-France",
           "Picardy"
         ],
-        "income_value": 50,
+        "income_value": 40,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "rural",
@@ -3960,7 +4795,7 @@
           "Champagne",
           "Normandy"
         ],
-        "income_value": 300,
+        "income_value": 220,
         "is_capital": true,
         "terrain": "plains",
         "region_type": "capital",
@@ -3989,7 +4824,7 @@
           "Paris",
           "London"
         ],
-        "income_value": 50,
+        "income_value": 40,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "rural",
@@ -4183,7 +5018,7 @@
           "Lyonnais",
           "Languedoc"
         ],
-        "income_value": 200,
+        "income_value": 150,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "major_city",
@@ -4221,7 +5056,7 @@
           67
         ],
         "controller": "France",
-        "garrison_strength": 10000,
+        "garrison_strength": 0,
         "garrison_detachment": false,
         "stability": 25,
         "war_damage": 0.0,
@@ -4238,7 +5073,7 @@
           "London",
           "Wessex"
         ],
-        "income_value": 200,
+        "income_value": 300,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "major_city",
@@ -4379,7 +5214,7 @@
           "Picardy",
           "Ardennes"
         ],
-        "income_value": 50,
+        "income_value": 40,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "rural",
@@ -4410,7 +5245,7 @@
           "Osnabruck",
           "Picardy"
         ],
-        "income_value": 200,
+        "income_value": 150,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "major_city",
@@ -4494,7 +5329,7 @@
           "Ile-de-France",
           "Flanders"
         ],
-        "income_value": 50,
+        "income_value": 40,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "rural",
@@ -4573,7 +5408,7 @@
           "Piedmont",
           "Cagliari"
         ],
-        "income_value": 200,
+        "income_value": 150,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "major_city",
@@ -4601,7 +5436,7 @@
           "East Anglia",
           "Wessex"
         ],
-        "income_value": 300,
+        "income_value": 500,
         "is_capital": true,
         "terrain": "plains",
         "region_type": "capital",
@@ -4733,7 +5568,7 @@
           "Orleanais",
           "Ile-de-France"
         ],
-        "income_value": 50,
+        "income_value": 40,
         "is_capital": false,
         "terrain": "plains",
         "region_type": "rural",
@@ -6147,7 +6982,7 @@
           "command_type": "MOVE_TO",
           "target": "Bohemia",
           "target_type": "region",
-          "started_turn": 26,
+          "started_turn": 22,
           "original_command": "the road home \u2014 safe passage granted by the peace",
           "path": [
             "Swabia",
@@ -6171,7 +7006,8 @@
           "last_contact_enemy": null,
           "last_contact_turn": null,
           "arrival_target": null,
-          "condition_progress": []
+          "condition_progress": [],
+          "standing_follow": false
         },
         "pending_interrupt": null,
         "cannon_fire_ignored_turn": null,
@@ -6309,7 +7145,7 @@
           "command_type": "MOVE_TO",
           "target": "Bohemia",
           "target_type": "region",
-          "started_turn": 26,
+          "started_turn": 22,
           "original_command": "the road home \u2014 safe passage granted by the peace",
           "path": [
             "Carniola",
@@ -6332,7 +7168,8 @@
           "last_contact_enemy": null,
           "last_contact_turn": null,
           "arrival_target": null,
-          "condition_progress": []
+          "condition_progress": [],
+          "standing_follow": false
         },
         "pending_interrupt": null,
         "cannon_fire_ignored_turn": null,
@@ -6469,7 +7306,7 @@
           "command_type": "MOVE_TO",
           "target": "Bohemia",
           "target_type": "region",
-          "started_turn": 26,
+          "started_turn": 22,
           "original_command": "the road home \u2014 safe passage granted by the peace",
           "path": [
             "Tyrol",
@@ -6492,7 +7329,8 @@
           "last_contact_enemy": null,
           "last_contact_turn": null,
           "arrival_target": null,
-          "condition_progress": []
+          "condition_progress": [],
+          "standing_follow": false
         },
         "pending_interrupt": null,
         "cannon_fire_ignored_turn": null,
@@ -8042,6 +8880,26 @@
         "speaker_attribution": "envoy"
       },
       {
+        "type": "evacuation_granted",
+        "nation_a": "Bavaria",
+        "nation_b": "Austria",
+        "region": "",
+        "turns": 5,
+        "marshals": [
+          "Mack",
+          "ArchdukeCharles",
+          "ArchdukeJohn"
+        ],
+        "destinations": {
+          "Mack": "Bohemia",
+          "ArchdukeCharles": "Bohemia",
+          "ArchdukeJohn": "Bohemia"
+        },
+        "cut_off": [],
+        "message": "The peace grants safe passage home.",
+        "turn": 22
+      },
+      {
         "type": "coalition_member_left",
         "nation": "Russia",
         "coalition_name": "Third Coalition",
@@ -8064,26 +8922,6 @@
       {
         "type": "evacuation_granted",
         "nation_a": "Austria",
-        "nation_b": "Bavaria",
-        "region": "",
-        "turns": 5,
-        "marshals": [
-          "Mack",
-          "ArchdukeCharles",
-          "ArchdukeJohn"
-        ],
-        "destinations": {
-          "Mack": "Bohemia",
-          "ArchdukeCharles": "Bohemia",
-          "ArchdukeJohn": "Bohemia"
-        },
-        "cut_off": [],
-        "message": "3 corps stand on the wrong side of the new frontier. Berthier has given them the road home \u2014 Mack to Bohemia, ArchdukeCharles to Bohemia, ArchdukeJohn to Bohemia. They have safe passage for 5 turns while they march.",
-        "turn": 26
-      },
-      {
-        "type": "evacuation_granted",
-        "nation_a": "Austria",
         "nation_b": "KingdomOfItaly",
         "region": "",
         "turns": 5,
@@ -8101,7 +8939,7 @@
     "gazette_issues": [],
     "notifications": [
       {
-        "id": "7e7fa451-6ad8-40e6-b182-01ca4edaf15f",
+        "id": "3ba19881-b0e6-40bd-ac10-9349987a75a8",
         "type": "coalition_member_peaced",
         "priority": 0,
         "title": "Austria Left Coalition",
@@ -8112,7 +8950,7 @@
         "repeat_count": 1
       },
       {
-        "id": "ee925bb0-5dfc-4015-93b5-71c6b6f56161",
+        "id": "0065585c-8b3e-4fdf-a71a-cc8d1afb70db",
         "type": "nation_eliminated",
         "priority": 1,
         "title": "Hanover Eliminated!",
@@ -8123,7 +8961,7 @@
         "repeat_count": 1
       },
       {
-        "id": "f2cfe686-eaa8-4fa1-9dd8-4b63f868615f",
+        "id": "2495f381-bffe-4ed0-b92d-60ca93192c15",
         "type": "nation_eliminated",
         "priority": 1,
         "title": "Naples Eliminated!",
@@ -8134,7 +8972,7 @@
         "repeat_count": 1
       },
       {
-        "id": "998e1359-daa8-438b-9dbb-89f548e5eaee",
+        "id": "d15c35e0-0692-4f02-9678-1bb3d7feae66",
         "type": "nation_eliminated",
         "priority": 1,
         "title": "Portugal Eliminated!",
@@ -8145,7 +8983,7 @@
         "repeat_count": 1
       },
       {
-        "id": "12366f90-1806-4920-81d8-cbd9c023df05",
+        "id": "b06453ea-63d2-443b-8c42-ef97414579ab",
         "type": "balance_of_europe_shifted",
         "priority": 2,
         "title": "Balance of Europe Shifts",
@@ -8185,7 +9023,7 @@
         "repeat_count": 1
       },
       {
-        "id": "36e464fd-aeca-41c2-b2a7-41316d655ffa",
+        "id": "61dd1b2e-9c67-4e67-9e03-7d5a899af999",
         "type": "coalition_member_peaced",
         "priority": 0,
         "title": "Russia Left Coalition",
@@ -8196,7 +9034,7 @@
         "repeat_count": 1
       },
       {
-        "id": "70474f6f-5c12-448e-813f-ae79af8ad07f",
+        "id": "6ba89df9-15cd-4e92-9ad7-c35233ea569c",
         "type": "coalition_dissolved",
         "priority": 0,
         "title": "Coalition Dissolved",
@@ -9993,14 +10831,21 @@
       "Switzerland": 60
     },
     "nation_dp": {},
-    "war_scores": {},
+    "war_scores": {
+      "Britain|Russia": 0,
+      "Britain|France": 0,
+      "Britain|Spain": 0,
+      "Britain|Holland": 0,
+      "Britain|Denmark": 0,
+      "Britain|Sweden": 0
+    },
     "battle_records": {},
     "decisive_battles": {},
     "campaign_ledgers": {},
     "battle_counts": {},
     "armistice_cooldowns": {},
     "evacuation_grants": {
-      "Austria|Bavaria": 31,
+      "Austria|Bavaria": 27,
       "Austria|KingdomOfItaly": 31
     },
     "corridor_windows": {
@@ -10028,6 +10873,7 @@
     "proactive_suggestion_cooldowns": {},
     "ai_stalemate_counters": {},
     "diplomatic_refusals": {},
+    "design_ask_first_stood": {},
     "war_intents": {},
     "directed_sponsorships": [],
     "compensation_bargains": [],
@@ -10104,9 +10950,15 @@
     "vassal_release_cooldowns": {},
     "cascade_triggered": [],
     "continental_system_members": [],
+    "continental_system_lifted_until": 0,
     "talleyrand_defiance_cooldown": 0,
     "pending_talleyrand_sabotage": null,
     "talleyrand_override_history": [],
+    "talleyrand_override_tally": {
+      "good": 0,
+      "bad": 0
+    },
+    "talleyrand_counsel_memory": {},
     "threat_level": 50,
     "threat_by_target": {
       "France": 50
@@ -10298,7 +11150,8 @@
           "accumulated_ticking": 0,
           "created_turn": 1,
           "ticking_active": false,
-          "objective_met_turn": null
+          "objective_met_turn": null,
+          "concluded_turn": 20
         },
         "France": {
           "type": "defense",
@@ -10337,7 +11190,8 @@
           "accumulated_ticking": 0,
           "created_turn": 1,
           "ticking_active": false,
-          "objective_met_turn": null
+          "objective_met_turn": null,
+          "concluded_turn": 20
         }
       },
       "France|Russia": {
@@ -10360,7 +11214,8 @@
           "accumulated_ticking": 0,
           "created_turn": 1,
           "ticking_active": false,
-          "objective_met_turn": null
+          "objective_met_turn": null,
+          "concluded_turn": 26
         },
         "France": {
           "type": "defense",
@@ -10399,7 +11254,8 @@
           "accumulated_ticking": 0,
           "created_turn": 1,
           "ticking_active": false,
-          "objective_met_turn": null
+          "objective_met_turn": null,
+          "concluded_turn": 26
         }
       },
       "Britain|Spain": {
@@ -10502,7 +11358,8 @@
           "accumulated_ticking": 0,
           "created_turn": 1,
           "ticking_active": false,
-          "objective_met_turn": null
+          "objective_met_turn": null,
+          "concluded_turn": 22
         },
         "Bavaria": {
           "type": "defense",
@@ -10516,7 +11373,8 @@
           "accumulated_ticking": 0,
           "created_turn": 1,
           "ticking_active": false,
-          "objective_met_turn": null
+          "objective_met_turn": null,
+          "concluded_turn": 22
         }
       },
       "Austria|KingdomOfItaly": {
@@ -10536,7 +11394,8 @@
           "accumulated_ticking": 0,
           "created_turn": 1,
           "ticking_active": false,
-          "objective_met_turn": null
+          "objective_met_turn": null,
+          "concluded_turn": 26
         },
         "KingdomOfItaly": {
           "type": "defense",
@@ -10548,6 +11407,137 @@
           ],
           "accumulated_ticking": 0,
           "created_turn": 1,
+          "ticking_active": false,
+          "objective_met_turn": null,
+          "concluded_turn": 26
+        }
+      },
+      "Britain|Russia": {
+        "Russia": {
+          "type": "defense",
+          "declaring_nation": "Russia",
+          "target_nation": "Britain",
+          "target_regions": [
+            "White Russia",
+            "Estonia",
+            "Lithuania",
+            "Volhynia",
+            "Samogitia",
+            "Podolia",
+            "Ukraine",
+            "Vilna",
+            "New Russia",
+            "Livonia"
+          ],
+          "accumulated_ticking": 0,
+          "created_turn": 26,
+          "ticking_active": false,
+          "objective_met_turn": null
+        },
+        "Britain": {
+          "type": "defense",
+          "declaring_nation": "Britain",
+          "target_nation": "Russia",
+          "target_regions": [
+            "Midlands",
+            "Ulster",
+            "Munster",
+            "Scotland",
+            "Cornwall",
+            "Highlands",
+            "Northumbria",
+            "Wales",
+            "East Anglia",
+            "London",
+            "Wessex"
+          ],
+          "accumulated_ticking": 0,
+          "created_turn": 26,
+          "ticking_active": false,
+          "objective_met_turn": null
+        }
+      },
+      "Britain|Denmark": {
+        "Denmark": {
+          "type": "defense",
+          "declaring_nation": "Denmark",
+          "target_nation": "Britain",
+          "target_regions": [
+            "Trondheim",
+            "Nordland",
+            "Jutland",
+            "Holstein",
+            "Schleswig",
+            "Copenhagen"
+          ],
+          "accumulated_ticking": 0,
+          "created_turn": 26,
+          "ticking_active": false,
+          "objective_met_turn": null
+        },
+        "Britain": {
+          "type": "defense",
+          "declaring_nation": "Britain",
+          "target_nation": "Denmark",
+          "target_regions": [
+            "Midlands",
+            "Ulster",
+            "Munster",
+            "Scotland",
+            "Cornwall",
+            "Highlands",
+            "Northumbria",
+            "Wales",
+            "East Anglia",
+            "London",
+            "Wessex"
+          ],
+          "accumulated_ticking": 0,
+          "created_turn": 26,
+          "ticking_active": false,
+          "objective_met_turn": null
+        }
+      },
+      "Britain|Sweden": {
+        "Sweden": {
+          "type": "defense",
+          "declaring_nation": "Sweden",
+          "target_nation": "Britain",
+          "target_regions": [
+            "Stockholm",
+            "Uleaborg",
+            "Norrland",
+            "Lapland",
+            "Finland",
+            "Karelia",
+            "Stralsund",
+            "Scania",
+            "Ostrobothnia"
+          ],
+          "accumulated_ticking": 0,
+          "created_turn": 26,
+          "ticking_active": false,
+          "objective_met_turn": null
+        },
+        "Britain": {
+          "type": "defense",
+          "declaring_nation": "Britain",
+          "target_nation": "Sweden",
+          "target_regions": [
+            "Midlands",
+            "Ulster",
+            "Munster",
+            "Scotland",
+            "Cornwall",
+            "Highlands",
+            "Northumbria",
+            "Wales",
+            "East Anglia",
+            "London",
+            "Wessex"
+          ],
+          "accumulated_ticking": 0,
+          "created_turn": 26,
           "ticking_active": false,
           "objective_met_turn": null
         }
@@ -10561,7 +11551,7 @@
     "next_join_opportunity_id": 1,
     "war_entry_reroll_memory": {},
     "pending_ally_entry_opportunities": [],
-    "next_war_instance_id": 2,
+    "next_war_instance_id": 5,
     "war_instances": {
       "war_1": {
         "war_id": "war_1",
@@ -10577,14 +11567,15 @@
         ],
         "active_diplo_keys": [
           "Britain|France",
-          "Austria|France",
-          "France|Russia",
           "Britain|Spain",
-          "Britain|Holland",
+          "Britain|Holland"
+        ],
+        "resolved_diplo_keys": [
+          "Austria|France",
           "Austria|Bavaria",
+          "France|Russia",
           "Austria|KingdomOfItaly"
         ],
-        "resolved_diplo_keys": [],
         "diplo_key_meta": {
           "Britain|France": {
             "attacker": "France",
@@ -10598,16 +11589,16 @@
             "attacker": "France",
             "defender": "Austria",
             "joined_turn": 1,
-            "pair_status": "war",
-            "resolved_turn": null,
+            "pair_status": "resolved",
+            "resolved_turn": 20,
             "entry_path": "scenario_start"
           },
           "France|Russia": {
             "attacker": "France",
             "defender": "Russia",
             "joined_turn": 1,
-            "pair_status": "war",
-            "resolved_turn": null,
+            "pair_status": "resolved",
+            "resolved_turn": 26,
             "entry_path": "scenario_start"
           },
           "Britain|Spain": {
@@ -10630,16 +11621,16 @@
             "attacker": "Bavaria",
             "defender": "Austria",
             "joined_turn": 1,
-            "pair_status": "war",
-            "resolved_turn": null,
+            "pair_status": "resolved",
+            "resolved_turn": 22,
             "entry_path": "scenario_start"
           },
           "Austria|KingdomOfItaly": {
             "attacker": "KingdomOfItaly",
             "defender": "Austria",
             "joined_turn": 1,
-            "pair_status": "war",
-            "resolved_turn": null,
+            "pair_status": "resolved",
+            "resolved_turn": 26,
             "entry_path": "scenario_start"
           }
         },
@@ -10652,34 +11643,22 @@
         "attackers": [
           "France",
           "Spain",
-          "Holland",
-          "Bavaria",
-          "KingdomOfItaly"
+          "Holland"
         ],
         "defenders": [
-          "Britain",
-          "Austria",
-          "Russia"
+          "Britain"
         ],
         "side_by_nation": {
           "France": "attackers",
           "Britain": "defenders",
-          "Austria": "defenders",
-          "Russia": "defenders",
           "Spain": "attackers",
-          "Holland": "attackers",
-          "Bavaria": "attackers",
-          "KingdomOfItaly": "attackers"
+          "Holland": "attackers"
         },
         "active_participants": [
           "France",
           "Britain",
-          "Austria",
-          "Russia",
           "Spain",
-          "Holland",
-          "Bavaria",
-          "KingdomOfItaly"
+          "Holland"
         ],
         "participant_meta": {
           "France": {
@@ -10697,14 +11676,16 @@
           "Austria": {
             "side": "defenders",
             "joined_turn": 1,
-            "exited_turn": null,
-            "entry_path": "scenario_start"
+            "exited_turn": 26,
+            "entry_path": "scenario_start",
+            "exit_path": "separate_peace"
           },
           "Russia": {
             "side": "defenders",
             "joined_turn": 1,
-            "exited_turn": null,
-            "entry_path": "scenario_start"
+            "exited_turn": 26,
+            "entry_path": "scenario_start",
+            "exit_path": "separate_peace"
           },
           "Spain": {
             "side": "attackers",
@@ -10721,14 +11702,211 @@
           "Bavaria": {
             "side": "attackers",
             "joined_turn": 1,
-            "exited_turn": null,
-            "entry_path": "scenario_start"
+            "exited_turn": 22,
+            "entry_path": "scenario_start",
+            "exit_path": "separate_peace"
           },
           "KingdomOfItaly": {
             "side": "attackers",
             "joined_turn": 1,
+            "exited_turn": 26,
+            "entry_path": "scenario_start",
+            "exit_path": "separate_peace"
+          }
+        },
+        "separate_peaced": [],
+        "war_bargains": [],
+        "ended_turn": null,
+        "end_reason": null
+      },
+      "war_2": {
+        "war_id": "war_2",
+        "created_turn": 26,
+        "created_sequence": 2,
+        "originator": "Russia",
+        "origin_target": "Britain",
+        "origin_diplo_key": "Britain|Russia",
+        "origin_episode_id": "",
+        "origin_entry_path": "war_declaration",
+        "objective_keys": [
+          "Britain|Russia"
+        ],
+        "active_diplo_keys": [
+          "Britain|Russia"
+        ],
+        "resolved_diplo_keys": [],
+        "diplo_key_meta": {
+          "Britain|Russia": {
+            "attacker": "Russia",
+            "defender": "Britain",
+            "joined_turn": 26,
+            "pair_status": "war",
+            "resolved_turn": null,
+            "entry_path": "war_declaration"
+          }
+        },
+        "attacker_leader": "Russia",
+        "defender_leader": "Britain",
+        "leader_source_by_side": {
+          "attackers": "originator",
+          "defenders": "origin_target"
+        },
+        "attackers": [
+          "Russia"
+        ],
+        "defenders": [
+          "Britain"
+        ],
+        "side_by_nation": {
+          "Russia": "attackers",
+          "Britain": "defenders"
+        },
+        "active_participants": [
+          "Russia",
+          "Britain"
+        ],
+        "participant_meta": {
+          "Russia": {
+            "side": "attackers",
+            "joined_turn": 26,
             "exited_turn": null,
-            "entry_path": "scenario_start"
+            "entry_path": "war_declaration"
+          },
+          "Britain": {
+            "side": "defenders",
+            "joined_turn": 26,
+            "exited_turn": null,
+            "entry_path": "war_declaration"
+          }
+        },
+        "separate_peaced": [],
+        "war_bargains": [],
+        "ended_turn": null,
+        "end_reason": null
+      },
+      "war_3": {
+        "war_id": "war_3",
+        "created_turn": 26,
+        "created_sequence": 3,
+        "originator": "Denmark",
+        "origin_target": "Britain",
+        "origin_diplo_key": "Britain|Denmark",
+        "origin_episode_id": "",
+        "origin_entry_path": "war_declaration",
+        "objective_keys": [
+          "Britain|Denmark"
+        ],
+        "active_diplo_keys": [
+          "Britain|Denmark"
+        ],
+        "resolved_diplo_keys": [],
+        "diplo_key_meta": {
+          "Britain|Denmark": {
+            "attacker": "Denmark",
+            "defender": "Britain",
+            "joined_turn": 26,
+            "pair_status": "war",
+            "resolved_turn": null,
+            "entry_path": "war_declaration"
+          }
+        },
+        "attacker_leader": "Denmark",
+        "defender_leader": "Britain",
+        "leader_source_by_side": {
+          "attackers": "originator",
+          "defenders": "origin_target"
+        },
+        "attackers": [
+          "Denmark"
+        ],
+        "defenders": [
+          "Britain"
+        ],
+        "side_by_nation": {
+          "Denmark": "attackers",
+          "Britain": "defenders"
+        },
+        "active_participants": [
+          "Denmark",
+          "Britain"
+        ],
+        "participant_meta": {
+          "Denmark": {
+            "side": "attackers",
+            "joined_turn": 26,
+            "exited_turn": null,
+            "entry_path": "war_declaration"
+          },
+          "Britain": {
+            "side": "defenders",
+            "joined_turn": 26,
+            "exited_turn": null,
+            "entry_path": "war_declaration"
+          }
+        },
+        "separate_peaced": [],
+        "war_bargains": [],
+        "ended_turn": null,
+        "end_reason": null
+      },
+      "war_4": {
+        "war_id": "war_4",
+        "created_turn": 26,
+        "created_sequence": 4,
+        "originator": "Sweden",
+        "origin_target": "Britain",
+        "origin_diplo_key": "Britain|Sweden",
+        "origin_episode_id": "",
+        "origin_entry_path": "war_declaration",
+        "objective_keys": [
+          "Britain|Sweden"
+        ],
+        "active_diplo_keys": [
+          "Britain|Sweden"
+        ],
+        "resolved_diplo_keys": [],
+        "diplo_key_meta": {
+          "Britain|Sweden": {
+            "attacker": "Sweden",
+            "defender": "Britain",
+            "joined_turn": 26,
+            "pair_status": "war",
+            "resolved_turn": null,
+            "entry_path": "war_declaration"
+          }
+        },
+        "attacker_leader": "Sweden",
+        "defender_leader": "Britain",
+        "leader_source_by_side": {
+          "attackers": "originator",
+          "defenders": "origin_target"
+        },
+        "attackers": [
+          "Sweden"
+        ],
+        "defenders": [
+          "Britain"
+        ],
+        "side_by_nation": {
+          "Sweden": "attackers",
+          "Britain": "defenders"
+        },
+        "active_participants": [
+          "Sweden",
+          "Britain"
+        ],
+        "participant_meta": {
+          "Sweden": {
+            "side": "attackers",
+            "joined_turn": 26,
+            "exited_turn": null,
+            "entry_path": "war_declaration"
+          },
+          "Britain": {
+            "side": "defenders",
+            "joined_turn": 26,
+            "exited_turn": null,
+            "entry_path": "war_declaration"
           }
         },
         "separate_peaced": [],
@@ -10775,7 +11953,7 @@
           "episodes": {
             "Austria_1_1": {
               "joined_turn": 1,
-              "exited_turn": null,
+              "exited_turn": 26,
               "battle": 0,
               "occupation": 0,
               "staying_power": 0,
@@ -10790,7 +11968,7 @@
           "episodes": {
             "Russia_1_1": {
               "joined_turn": 1,
-              "exited_turn": null,
+              "exited_turn": 26,
               "battle": 0,
               "occupation": 0,
               "staying_power": 0,
@@ -10835,7 +12013,7 @@
           "episodes": {
             "Bavaria_1_1": {
               "joined_turn": 1,
-              "exited_turn": null,
+              "exited_turn": 22,
               "battle": 0,
               "occupation": 0,
               "staying_power": 0,
@@ -10850,6 +12028,102 @@
           "episodes": {
             "KingdomOfItaly_1_1": {
               "joined_turn": 1,
+              "exited_turn": 26,
+              "battle": 0,
+              "occupation": 0,
+              "staying_power": 0,
+              "support": 0,
+              "total": 0
+            }
+          },
+          "historical_total": 0
+        }
+      },
+      "war_2": {
+        "Russia": {
+          "current_episode_id": "Russia_2_1",
+          "episodes": {
+            "Russia_2_1": {
+              "joined_turn": 26,
+              "exited_turn": null,
+              "battle": 0,
+              "occupation": 0,
+              "staying_power": 0,
+              "support": 0,
+              "total": 0
+            }
+          },
+          "historical_total": 0
+        },
+        "Britain": {
+          "current_episode_id": "Britain_2_1",
+          "episodes": {
+            "Britain_2_1": {
+              "joined_turn": 26,
+              "exited_turn": null,
+              "battle": 0,
+              "occupation": 0,
+              "staying_power": 0,
+              "support": 0,
+              "total": 0
+            }
+          },
+          "historical_total": 0
+        }
+      },
+      "war_3": {
+        "Denmark": {
+          "current_episode_id": "Denmark_3_1",
+          "episodes": {
+            "Denmark_3_1": {
+              "joined_turn": 26,
+              "exited_turn": null,
+              "battle": 0,
+              "occupation": 0,
+              "staying_power": 0,
+              "support": 0,
+              "total": 0
+            }
+          },
+          "historical_total": 0
+        },
+        "Britain": {
+          "current_episode_id": "Britain_3_1",
+          "episodes": {
+            "Britain_3_1": {
+              "joined_turn": 26,
+              "exited_turn": null,
+              "battle": 0,
+              "occupation": 0,
+              "staying_power": 0,
+              "support": 0,
+              "total": 0
+            }
+          },
+          "historical_total": 0
+        }
+      },
+      "war_4": {
+        "Sweden": {
+          "current_episode_id": "Sweden_4_1",
+          "episodes": {
+            "Sweden_4_1": {
+              "joined_turn": 26,
+              "exited_turn": null,
+              "battle": 0,
+              "occupation": 0,
+              "staying_power": 0,
+              "support": 0,
+              "total": 0
+            }
+          },
+          "historical_total": 0
+        },
+        "Britain": {
+          "current_episode_id": "Britain_4_1",
+          "episodes": {
+            "Britain_4_1": {
+              "joined_turn": 26,
               "exited_turn": null,
               "battle": 0,
               "occupation": 0,
@@ -10997,7 +12271,6 @@
         "queued_turn": 26
       }
     ],
-    "coalition_popup": null,
     "diplomatic_sabotage_popup": null,
     "vassal_rebellion_imminent_popup": null,
     "vassal_rebellion_imminent_popups": [],

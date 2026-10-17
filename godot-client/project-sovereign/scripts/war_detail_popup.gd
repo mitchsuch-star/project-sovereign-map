@@ -161,7 +161,10 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	var opponent_display = Utils.humanize_nation_keys_in_text(str(war_data.get("opponent_display", Utils.display_nation_name(_current_nation))))
 	_current_war_id = str(war_data.get("war_instance_id", ""))
 	_current_mode = "war"
-	header_label.text = "WAR WITH " + opponent_display.to_upper()
+	# PC-R7 (i) — ruling J (S13e part 4): the popup is headed by the war's
+	# STAKE ("WAR FOR BOHEMIA"); the roster rides the first line of the body.
+	var war_title = str(war_data.get("war_title", ""))
+	header_label.text = (war_title.to_upper() if war_title != "" else "WAR WITH " + opponent_display.to_upper())
 	_set_header_flag(_current_nation)
 	_clear_score_bars()
 	_add_tug_of_war_bar(
@@ -170,7 +173,14 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	)
 	_render_war_detail(war_data)
 	_clear_buttons()
-	_add_negotiate_button(_current_nation)
+	# PC-F41 (S13e part 4): every peace button names the court it addresses
+	# — one Negotiate per court of a shared war (the leader first), never a
+	# bare "Negotiate Peace" that opened the leader at 1 % of the war.
+	var courts = war_data.get("opponents", [])
+	if not (courts is Array) or courts.is_empty():
+		courts = [_current_nation]
+	for court in courts:
+		_add_negotiate_button(str(court))
 	if bool(war_data.get("settlement_available", false)):
 		_add_settlement_button(_current_war_id, _current_nation, "Open Settlement")
 	elif str(war_data.get("settlement_tier_display", "")) != "" and str(war_data.get("settlement_disabled_reason_display", "")) != "":
@@ -222,7 +232,9 @@ func show_armistice(war_data: Dictionary) -> void:
 	AudioManager.play("cloth")
 	_current_nation = str(war_data.get("opponent", ""))
 	_current_mode = "armistice"
-	header_label.text = "ARMISTICE WITH " + Utils.display_nation_name(_current_nation).to_upper()
+	# PC-R7 (i) (S13e part 4): the truce is a pause in a war that keeps its title.
+	var truce_title = str(war_data.get("war_title", ""))
+	header_label.text = ((truce_title.to_upper() + " — ARMISTICE WITH ") if truce_title != "" else "ARMISTICE WITH ") + Utils.display_nation_name(_current_nation).to_upper()
 	_set_header_flag(_current_nation)
 	_clear_score_bars()
 	_render_armistice_detail(war_data)
@@ -448,6 +460,14 @@ func _render_war_detail(w: Dictionary):
 
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.[/color]\n\n"
+	# PC-R7 (i): the stake named, then who (the header carries the title).
+	var title_line = str(w.get("war_title_line", ""))
+	if title_line != "":
+		bbcode += Utils.humanize_nation_keys_in_text(title_line) + "\n"
+		var roster = str(w.get("war_roster_display", w.get("opponent_display", "")))
+		if roster != "":
+			bbcode += "With: " + Utils.humanize_nation_keys_in_text(roster) + "\n"
+		bbcode += "\n"
 
 	# Breakdown
 	if breakdown != null and breakdown is Dictionary:
@@ -505,6 +525,11 @@ func _render_war_detail(w: Dictionary):
 			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]\n"
 		else:
 			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
+	# PC-F33 (S13e part 4): a white peace confirms every holding — say so
+	# beside the tier.
+	var held_line = str(w.get("held_line", ""))
+	if held_line != "":
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(held_line) + "[/color]\n"
 	# PC-F3 (Oct 15, 2026): the tier above is the peace table's, not the
 	# score bar's — say the table's number, each court against 50, and
 	# (mid-turn) that this turn's fighting counts from next turn.
@@ -709,8 +734,9 @@ func _clear_buttons():
 
 func _add_negotiate_button(nation: String):
 	var btn = Button.new()
-	btn.text = "Negotiate Peace"
-	btn.tooltip_text = "Open bilateral peace options for this court only."
+	# PC-F41: the button names the court it addresses.
+	btn.text = "Negotiate with " + Utils.display_nation_name(nation)
+	btn.tooltip_text = "Open bilateral peace options with " + Utils.display_nation_name(nation) + " only."
 	btn.custom_minimum_size = Vector2(160, 36)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.pressed.connect(func():

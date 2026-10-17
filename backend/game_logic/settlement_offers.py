@@ -585,7 +585,7 @@ def _objective_claim_region(objective: Mapping[str, Any]) -> str:
 def _war_label_for_id(world: Any, war_id: str) -> str:
     war = (getattr(world, "war_instances", {}) or {}).get(str(war_id or ""))
     if isinstance(war, Mapping):
-        return _war_label(str(war_id or ""), war)
+        return _war_label(str(war_id or ""), war, world)
     return str(war_id or "settlement")
 
 
@@ -598,10 +598,10 @@ def _petition_table_label(world: Any, war: Mapping[str, Any], war_id: str,
     review headed "France vs Austria + Britain + Russia")."""
     if not (THE_PETITION_NAMES_THE_TABLE and covered):
         return _war_label_for_id(world, war_id)
-    leader_key = ("attacker_leader" if player_side == "attackers"
-                  else "defender_leader")
-    our_leader = str(war.get(leader_key) or player)
-    return f"{our_leader} vs {' + '.join(covered)}"
+    # PC-R7 (i): the table is titled by the war's stake, then the courts it
+    # covers — the same object the war card and the settlement dialogue title.
+    from backend.game_logic.war_title import titled_label
+    return titled_label(world, war_id, chair=player, covered=list(covered))
 
 
 def _active_objective_claims_for_ally(
@@ -2875,7 +2875,7 @@ def build_incoming_settlement_offer_popup(
     war_instances = getattr(world, "war_instances", None) or {}
     war = war_instances.get(war_id) if isinstance(war_instances, Mapping) else None
     if isinstance(war, Mapping):
-        war_label = _war_label(war_id, war) if war_id else "settlement"
+        war_label = _war_label(war_id, war, world) if war_id else "settlement"
     else:
         war_label = war_id or "settlement"
 
@@ -3941,10 +3941,9 @@ def process_recurring_settlement_payments(world: Any) -> Dict[str, Any]:
         if not wid:
             return "the settlement"
         instance = (getattr(world, "war_instances", {}) or {}).get(wid) or {}
-        attackers = list(instance.get("attackers") or [])
-        defenders = list(instance.get("defenders") or [])
-        if attackers and defenders:
-            return f"{attackers[0]} vs {defenders[0]}"
+        if instance:
+            # PC-R7 (i): titled by the war's stake, never the leader pair.
+            return _war_label(wid, instance, world)
         return wid
 
     def _log_campaign(event_type: str, fields: Dict[str, Any]) -> None:

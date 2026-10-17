@@ -2,9 +2,23 @@
 
 A PLAYED road that carves a client through the settlement path and fires
 the Proclamation, with the formables gate flipping in play; SF-M's TILSIT
-probe is its instrument (the same board, the same carve, the same answer:
-the bare carve COUNTERs at 30 and the carve with 6,000 gold is ACCEPTed at
-90). Done when agendas C5 reads ✓ on the new arm.
+probe is its instrument (the same carve on the same shape of board).
+Done when agendas C5 reads ✓ on the new arm.
+
+PC-F85 (Pre-Deploy S13e part 4, October 17, 2026): the fixture is DRIVEN, not
+written. The first cut planted a France-Prussia score of 100 and a hand-set
+war age, and its "measured pair" (the bare carve COUNTERs at 30, the carve with
+6,000 gold is ACCEPTed at 90) was measured at a score the game cannot produce.
+Re-measured on the driven board at the head of loop 2 (world turn 8, the war
+seven turns old, the stored score the game's own 37): the bare carve REJECTs
+at 12, the carve with 3,000 gold COUNTERs at 42, the carve with 6,000 gold is
+ACCEPTed at 72 - so the arm's 6,000 still carries. Two things moved with the
+real board and the script moved with them: Prussia, beaten and robbed of Posen,
+offers a status-quo settlement of its own at the turn boundary (the arm refuses
+it - `policy.decline_from`), and since PC-F66 a declaration on Prussia opens its
+OWN war instance, so the table covers Prussia's war alone and seals with its own
+Confirm (`confirm_settlement`) where the planted fixture's coalition war_1 needed
+"Make peace with Prussia only" (`seek_bilateral_peace`).
 
 Pinned here:
 * the AGD fixture's shape (`tools/gen_agd_fixture.py`): the TILSIT board with
@@ -225,23 +239,31 @@ class TestThePlayedRoad:
                   and str(r.get("text", "")).startswith("@")]
         assert [c.split()[0] for c in clicks] == [
             "@settlement_demand_add", "@settlement_demand_add",
-            "@submit_settlement_for_review", "@seek_bilateral_peace"]
+            # PC-F85: the table's own Confirm - was "@seek_bilateral_peace" while
+            # the planted fixture folded Prussia into the coalition's war_1.
+            "@submit_settlement_for_review", "@confirm_settlement"]
 
     def test_prussia_signs_and_the_proclamation_fires(self, played):
         _, records = played
         cards = [r for r in records if r.get("kind") == "popup"
                  and r.get("key") == "nation_proclamation"]
         assert cards and "DuchyOfWarsaw" in str(cards[0].get("summary"))
-        ratified = [r for r in records if r.get("kind") == "ratified"]
-        assert ratified
-        summary = ratified[0]["summary"]
-        assert summary.get("target_nation") == "Prussia" and summary.get("new_state") == "PEACE"
+        # PC-F85: the table's own ratification. The bilateral road
+        # (`peace_ratification_summary` -> a `ratified` record) belonged to the
+        # planted fixture's coalition war_1; Prussia's war is its own instance
+        # now (PC-F66) and the table seals with "Settlement Ratified".
+        signed = [r for r in records if r.get("kind") == "popup" and r.get("key") == "proposal_result"
+                  and "Settlement Ratified" in str(r.get("summary"))
+                  and "the table with Prussia" in str(r.get("summary"))]
+        assert signed, [r.get("summary") for r in records if r.get("key") == "proposal_result"]
 
     def test_the_duchy_stands_on_the_last_save(self, played):
         arm, _ = played
         world = _load(arm / "saves" / "AGD_t3.json")
         assert world.regions["Posen"].controller == "DuchyOfWarsaw"
         assert "DuchyOfWarsaw" in world.get_active_nations()
+        # PC-F85: Prussia signed - the pair is resolved inside its war instance.
+        assert world.get_diplomatic_state("France", "Prussia") == "PEACE"
 
     def test_agendas_c5_reads_true_on_the_arm(self, played, tmp_path):
         sys.path.insert(0, str(REPO))

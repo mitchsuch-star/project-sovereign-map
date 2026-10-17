@@ -5171,9 +5171,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War with the Third Coalition — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War with the Third Coalition — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Austria|Bavaria",
@@ -5185,7 +5185,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Austria + Britain + Russia (7 pairs resolved)."
+    "message": "Settlement Ratified: the War with the Third Coalition — the table with Austria + Britain + Russia (7 pairs resolved)."
    },
    "arm": "SEED-dd1-three",
    "clause": ""
@@ -5204,9 +5204,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War with the Third Coalition — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War with the Third Coalition — the table with Austria + Britain + Russia is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Austria|Bavaria",
@@ -5218,7 +5218,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Austria + Britain + Russia (7 pairs resolved)."
+    "message": "Settlement Ratified: the War with the Third Coalition — the table with Austria + Britain + Russia (7 pairs resolved)."
    },
    "arm": "SEED-dd1-three",
    "clause": ""
@@ -18581,7 +18581,6 @@
    "message": "Treaty signed: At War → Peace with Russia.",
    "type_sent": "peace",
    "state_moved": [
-    "Bavaria|Russia",
     "France|Russia",
     "Holland|Russia",
     "Russia|Spain",
@@ -19133,7 +19132,6 @@
    "message": "Treaty signed: At War → Peace with Russia.",
    "type_sent": "peace",
    "state_moved": [
-    "Bavaria|Russia",
     "France|Russia",
     "Holland|Russia",
     "Russia|Spain",
@@ -19268,7 +19266,6 @@
    "message": "Treaty signed: At War → Peace with Russia.",
    "type_sent": "peace",
    "state_moved": [
-    "Bavaria|Russia",
     "France|Russia",
     "Holland|Russia",
     "Russia|Spain",
@@ -19820,7 +19817,6 @@
    "message": "Treaty signed: At War → Peace with Russia.",
    "type_sent": "peace",
    "state_moved": [
-    "Bavaria|Russia",
     "France|Russia",
     "Holland|Russia",
     "Russia|Spain",
@@ -19926,9 +19922,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 9.07,
+ "clone_ms_mean": 7.72,
  "clones": 576,
- "seconds": 37.9,
+ "seconds": 34.8,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

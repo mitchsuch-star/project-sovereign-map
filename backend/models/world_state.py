@@ -1317,6 +1317,8 @@ class RatifyTreatyContext:
     _forced_alliance_clauses: Any = field(init=False)
     _clients_followed: Any = field(init=False)
     _carried_in: Any = field(init=False)
+    _carried_rewarded: Any = field(init=False)   # PC-F81's second road (S13e part 4)
+    _bilateral_dropped: Any = field(init=False)  # PC-X21: a cession that could not carry, named
 
 
 
@@ -2162,6 +2164,9 @@ class WorldState:
         self.vassal_release_cooldowns: Dict[str, int] = {}  # R14: nation_name -> turns remaining
         self.cascade_triggered: set = set()  # diplo_keys where cascade already fired
         self.continental_system_members: List[str] = []  # Nations under Continental System
+        # PC-F83 (S13e part 4): the turn until which a treaty's lifting of the
+        # System stands (0 = not lifted). `diplomacy.lift_continental_system`.
+        self.continental_system_lifted_until: int = 0
 
         # ============================================================
         # DIPLOMACY - Session 6: Talleyrand defiance, objections, override tracking
@@ -6762,10 +6767,13 @@ class WorldState:
         _refused = refused_peace_standing(self, nation)
         if _refused:
             from backend.game_logic.formations import formed_display_name as _fdn
+            # PC-R7 (i): the Charges name the war by its stake.
+            from backend.game_logic.war_title import war_title_for_pair as _wt
+            _title = str(_wt(self, nation, str(_refused.get("proposer") or "")).get("title") or "")
             terms.append({
                 "key": "refused_peace",
                 "label": (f"the peace refused — {_fdn(self, str(_refused.get('proposer') or ''))}'s "
-                          f"terms ({_refused.get('label')}, turn "
+                          f"terms{' in the ' + _title if _title else ''} ({_refused.get('label')}, turn "
                           f"{int(_refused.get('answered_turn', _refused.get('turn', 0)) or 0)})"),
                 "amount": int(CHARGES_REFUSED_PEACE_RATE * (int(_refused.get("tier", 0) or 0) + 1)),
                 "tier": int(_refused.get("tier", 0) or 0),
@@ -8870,6 +8878,7 @@ class WorldState:
             # A10 idiom: sorted so the save is byte-stable across runs
             "cascade_triggered": sorted(str(k) for k in self.cascade_triggered),
             "continental_system_members": list(self.continental_system_members),
+            "continental_system_lifted_until": int(getattr(self, "continental_system_lifted_until", 0) or 0),
 
             # ═══════ DIPLOMACY Session 6 ═══════
             "talleyrand_defiance_cooldown": int(self.talleyrand_defiance_cooldown),
@@ -9691,6 +9700,7 @@ class WorldState:
         world.vassal_release_cooldowns = {k: int(v) for k, v in data.get("vassal_release_cooldowns", {}).items()}
         world.cascade_triggered = set(data.get("cascade_triggered", []))
         world.continental_system_members = list(data.get("continental_system_members", []))
+        world.continental_system_lifted_until = int(data.get("continental_system_lifted_until", 0) or 0)
 
         # ═══════ DIPLOMACY Session 6 ═══════
         world.talleyrand_defiance_cooldown = int(data.get("talleyrand_defiance_cooldown", 0))
@@ -12823,6 +12833,18 @@ class WorldState:
                 "pair": ctx.diplo_key, "current_state_before": ctx.current_state,
                 "final_state": "PEACE"}])
 
+        # PC-F83 (S13e part 4): the France-to-Britain sweetener applied — the
+        # System's lord lifts it by the treaty (every member released, no
+        # enrolment while it stands). Only the lord can lift it.
+        if "continental_system_lifted" in ctx.proposal.get("clauses", []):
+            from backend.game_logic.diplomacy import (
+                continental_system_lord, lift_continental_system,
+            )
+            if ctx.proposer == continental_system_lord(self):
+                lift_continental_system(
+                    self, ctx.proposer,
+                    reason=f"the peace with {ctx.target_nation}")
+
         # Handle open_borders clause (R2: centralized setter)
         if "open_borders" in ctx.proposal.get("clauses", []):
             if self.get_diplomatic_state(ctx.proposer, ctx.target_nation) not in ("OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
@@ -12864,6 +12886,7 @@ class WorldState:
         and payments first among them."""
         # Apply one-time clauses (shared)
         ctx.applied_treaty_clauses: List[Dict] = []
+        ctx._bilateral_dropped = []
         for clause_index, clause in enumerate(ctx.treaty_clauses):
             ctype = clause.get("type", "")
             amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
@@ -12940,9 +12963,36 @@ class WorldState:
                     if region_name not in self.regions:
                         continue
                     region = self.regions[region_name]
-                    # Validate: from_nation must actually control the region
+                    # Validate: from_nation must actually control the region —
+                    # PC-X21 (S13e part 4, F52's sibling): or the province is
+                    # the ceder's HOMELAND held by the receiving side (Tyrol at
+                    # Pressburg, ceded to Bavaria under Austria's signature while
+                    # France holds it). F52's ONE rule was read by the table's
+                    # ratifier only, so the hand-off road (F70) carried "Tyrol to
+                    # Bavaria" and this arm dropped it silently. A drop is named.
                     if from_nation and region.controller != from_nation:
-                        continue
+                        _hold = str(region.controller or "")
+                        _house = lambda n: str(self._top_overlord(n) or n)  # noqa: E731
+                        if _hold == str(to_nation or "") or (
+                                _hold and to_nation and _house(_hold) == _house(str(to_nation))):
+                            # already the receiver's, or held by the receiver's own
+                            # house (its satellite): the status quo titles it at
+                            # the signature (SR-1a; GE-1's satellite rule) — no move
+                            continue
+                        from backend.game_logic.settlement_validation import (
+                            bilateral_cession_carries as _ohc,
+                        )
+                        from backend.game_logic.settlement_helpers import (
+                            _find_active_war_instance_for_pair as _fawi,
+                        )
+                        _wid = _fawi(self, self._make_diplo_key(ctx.proposer, ctx.target_nation))
+                        _inst = (getattr(self, "war_instances", {}) or {}).get(_wid or "") or {}
+                        if not _ohc(self, _inst, region_name, from_nation, to_nation,
+                                    str(region.controller or "")):
+                            ctx._bilateral_dropped.append(
+                                f"{region_name} not carried — {from_nation} no longer holds it "
+                                f"and {region.controller or 'nobody'} stands on the other side")
+                            continue
                     _ceded_title = dict(((getattr(self, "province_title", None) or {})
                                          .get(region_name)) or {})
                     if not cession_recovers_province(
@@ -13336,11 +13386,24 @@ class WorldState:
         # they follow the lord (SR-1b, below).
         ctx._carried_in: List[Dict] = []
         _carry: List[str] = []
+        _carry_standings: Dict[str, str] = {}
+        _carry_war_id = ""
         if (ctx.is_player_treaty and ctx.target_state == "PEACE"
                 and ctx.current_state in ("WAR", "ARMISTICE")):
-            from backend.game_logic.settlement_ratify import carried_in_allies
+            from backend.game_logic.settlement_ratify import carried_in_allies, carry_in_instance
             _carry = carried_in_allies(
                 self, self.player_nation, ctx.player_counterpart or ctx.target_nation)
+            # PC-F81's second road (S13e part 4): the carried allies' standing
+            # is read BEFORE their pairs close (the table's part-2 lesson), so
+            # an ally the instrument names (Tyrol to Bavaria) is rewarded below.
+            _found = carry_in_instance(
+                self, self.player_nation, ctx.player_counterpart or ctx.target_nation) if _carry else None
+            if _found:
+                from backend.game_logic.settlement_reactions import carried_ally_standings
+                _carry_war_id = str(_found[0])
+                _carry_standings = carried_ally_standings(
+                    self, _carry_war_id, str(_found[2]), _carry,
+                    getattr(ctx, "applied_treaty_clauses", None) or [])
 
         if ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
@@ -13367,6 +13430,14 @@ class WorldState:
                 })
             if ctx._carried_in and hasattr(self, "invalidate_active_nations_cache"):
                 self.invalidate_active_nations_cache()
+            # PC-F81: the named carried ally's gratitude pass — the table's.
+            if _carry_standings:
+                from backend.game_logic.settlement_reactions import reward_named_carried_allies
+                ctx._carried_rewarded = reward_named_carried_allies(
+                    self, war_id=_carry_war_id, actor=self.player_nation,
+                    standings={a: s for a, s in _carry_standings.items()
+                               if any(r.get("ally") == a for r in ctx._carried_in)},
+                    applied_clauses=getattr(ctx, "applied_treaty_clauses", None) or [])
 
         # SR-1b: the client's war is the lord's war — every client pair
         # that follows this treaty (the lord's satellites against the court,
@@ -13699,14 +13770,23 @@ class WorldState:
                 # lie; naming the loss is what lets the player understand
                 # why the nation they drafted is not on the map.
                 applied_penalties = list(applied_penalties)
+                # PC-X21: a cession the bilateral arm could not carry is named.
+                for _line in (getattr(ctx, "_bilateral_dropped", None) or []):
+                    applied_penalties.append({"display": f"Not carried: {_line}."})
                 # PC-R1 (ii): the allies whose wars this instrument ended —
                 # named on the aftermath in the one wording (§46 B + C).
+                _rewarded = {str(r.get("ally")): r for r in (getattr(ctx, "_carried_rewarded", None) or [])}
                 for _row in (getattr(ctx, "_carried_in", None) or []):
                     from backend.game_logic.formations import formed_display_name as _fdn_c
+                    _rw = _rewarded.get(str(_row["ally"]))
+                    # PC-F81: an ally the instrument names takes what it names.
+                    _takes = ("she takes nothing by it." if not _rw else
+                              f"she takes {', '.join(_rw.get('awarded_regions') or []) or 'her share'} by it "
+                              f"and thanks us ({int(_rw.get('relation_delta', 0)):+d} relation).")
                     applied_penalties.append({"display": (
                         f"{_fdn_c(self, _row['ally'])}'s war with "
                         f"{_fdn_c(self, _row['court'])} ends in this instrument; "
-                        f"she takes nothing by it.")})
+                        f"{_takes}")})
                 # SR-1b: the clients that followed the lord out of the war
                 # — named on the aftermath so the table says who fights on
                 # (an ally, by its own fallout line) and who does not.
@@ -13757,9 +13837,12 @@ class WorldState:
                 _sq_lines = list(_sq_lines) + take_recognition_lines(self)
                 if _sq_lines:
                     peace_ratification_summary.setdefault("terms_ratified", []).extend(_sq_lines)
+                # PC-X22: what each holder still holds after the instrument's
+                # own cessions (Tyrol ceded to Bavaria is not ours).
                 peace_ratification_summary["status_quo_titled"] = sorted(
                     r for e in _sq_entries if e.get("house") == self.player_nation
-                    for rs in (e.get("titled") or {}).values() for r in rs)
+                    for holder, rs in (e.get("titled") or {}).items() for r in rs
+                    if str(getattr(self.regions.get(r), "controller", holder) or holder) == str(holder))
                 self.peace_ratification_log.append(peace_ratification_summary)
                 if len(self.peace_ratification_log) > 5:
                     self.peace_ratification_log = self.peace_ratification_log[-5:]

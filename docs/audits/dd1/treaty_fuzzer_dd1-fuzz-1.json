@@ -1,7 +1,7 @@
 {
  "seed": "dd1-fuzz-1",
  "steps": 1000,
- "seconds": 47.1,
+ "seconds": 47.9,
  "final_turn": 34,
  "verbs": {
   "white_peace": 79,

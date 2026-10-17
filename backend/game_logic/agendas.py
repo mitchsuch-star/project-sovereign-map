@@ -607,14 +607,33 @@ def _war_advances_agenda(view: AgendaView, opponent: str, world) -> bool:
     return False
 
 
+def _entry_achieved(world, nation: str, entry: dict) -> bool:
+    """PC-F74 (S13e part 4, October 17, 2026): ACHIEVED, not merely quiet.
+    `_entry_satisfied` reads an acquire design through `_acquire_active`,
+    which also sleeps while an ALLY's bloc holds a target (SF-LB-1: an ally
+    is not coveted) — so a DORMANT design read "satisfied" to the Pressburg
+    arm and a coalition member whose first design was unmet (Austria's
+    Primacy in Germany, Munich still Bavarian beside France) could break
+    ranks at −30 as if it had got what it wanted. Verified real on the
+    Vienna-held board. An acquire design is achieved only when every target
+    is held by the court or its clients; every other type reads as before."""
+    if str(entry.get("type") or "") == "acquire_regions":
+        regions = _entry_regions(world, nation, entry)
+        if not regions and entry.get("regions"):
+            return False
+        return all(_controlled_by_self_or_vassal(world, nation, r) for r in regions)
+    return _entry_satisfied(world, nation, entry)
+
+
 def _court_design_satisfied(world, nation: str) -> bool:
     """The Pressburg shape (§5.4/§5.5): the survival override is active OR
-    the deck's HIGHEST-PRIORITY entry is satisfied — the court got what it
-    most wanted (or is fighting for its life) and peace locks it in."""
+    the deck's HIGHEST-PRIORITY entry is ACHIEVED — the court got what it
+    most wanted (or is fighting for its life) and peace locks it in. PC-F74:
+    achieved (`_entry_achieved`), never dormant."""
     if survival_override_active(world, nation):
         return True
     deck = (getattr(world, "agendas", {}) or {}).get(nation) or []
-    return bool(deck and _entry_satisfied(world, nation, deck[0]))
+    return bool(deck and _entry_achieved(world, nation, deck[0]))
 
 
 def recognition_design_reading(world, court: str, hegemon: str,

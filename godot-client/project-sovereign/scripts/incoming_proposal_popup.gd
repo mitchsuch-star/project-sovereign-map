@@ -283,6 +283,10 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		bbcode += "Assessment: [color=%s]%s[/color]\n" % [harshness_color, harshness_label.to_upper()]
 
 	bbcode += "\n[b]War Summary[/b]\n"
+	# PC-X27 (S13e part 4): the war is named by its stake.
+	var war_title_line = str(snapshot.get("war_title_line", ""))
+	if war_title_line != "":
+		bbcode += Utils.humanize_nation_keys_in_text(war_title_line) + "\n"
 	var war_score = int(snapshot.get("war_score", 0))
 	var score_color = "#80c080"
 	if war_score < 0:

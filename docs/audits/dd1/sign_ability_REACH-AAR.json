@@ -5433,9 +5433,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Britain|France",
@@ -5443,7 +5443,7 @@
      "Britain|Spain"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Britain (3 pairs resolved)."
+    "message": "Settlement Ratified: the War with the Third Coalition — the table with Britain (3 pairs resolved)."
    },
    "arm": "REACH-AAR",
    "clause": ""
@@ -5462,7 +5462,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +8 (92 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
+   "message": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +7 (93 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
    "arm": "REACH-AAR",
    "clause": ""
   },
@@ -5480,9 +5480,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Britain|France",
@@ -5490,7 +5490,7 @@
      "Britain|Spain"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Britain (3 pairs resolved)."
+    "message": "Settlement Ratified: the War with the Third Coalition — the table with Britain (3 pairs resolved)."
    },
    "arm": "REACH-AAR",
    "clause": ""
@@ -5509,7 +5509,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +8 (92 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
+   "message": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +7 (93 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
    "arm": "REACH-AAR",
    "clause": ""
   },
@@ -5627,6 +5627,7 @@
    "message": "Treaty signed: Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
+    "Britain|Spain",
     "France|Spain"
    ],
    "arm": "REACH-AAR",
@@ -6128,6 +6129,7 @@
    "message": "Treaty signed: Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
+    "Britain|Spain",
     "France|Spain"
    ],
    "arm": "REACH-AAR",
@@ -6588,6 +6590,7 @@
    "message": "Treaty signed: Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
+    "Britain|Spain",
     "France|Spain"
    ],
    "arm": "REACH-AAR",
@@ -6948,9 +6951,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Britain|France",
@@ -6958,7 +6961,7 @@
      "Britain|Spain"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Britain (3 pairs resolved)."
+    "message": "Settlement Ratified: the War with the Third Coalition — the table with Britain (3 pairs resolved)."
    },
    "arm": "REACH-AAR",
    "clause": ""
@@ -6977,9 +6980,9 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "asked",
-   "message": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "message": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "asked_type": "settlement_confirm",
-   "asked_text": "Sire, the white peace for France vs Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
+   "asked_text": "Sire, the white peace for the War with the Third Coalition — the table with Britain is ready: no further land changes hands — each side keeps what it holds, now by treaty. Ratify and the field falls quiet.",
    "after_ask": {
     "state_moved": [
      "Britain|France",
@@ -6987,7 +6990,7 @@
      "Britain|Spain"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: France vs Britain (3 pairs resolved)."
+    "message": "Settlement Ratified: the War with the Third Coalition — the table with Britain (3 pairs resolved)."
    },
    "arm": "REACH-AAR",
    "clause": ""
@@ -7106,6 +7109,7 @@
    "message": "Treaty signed: Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
+    "Britain|Spain",
     "France|Spain"
    ],
    "arm": "REACH-AAR",
@@ -7466,7 +7470,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +5 (95 → 100); bond 20 → 40 (+2 a turn). Cost: 1 DP.",
+   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +4 (96 → 100); bond 20 → 40 (+2 a turn). Cost: 1 DP.",
    "arm": "REACH-AAR",
    "clause": ""
   },
@@ -7484,7 +7488,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +5 (95 → 100); bond 20 → 40 (+2 a turn). Cost: 1 DP.",
+   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +4 (96 → 100); bond 20 → 40 (+2 a turn). Cost: 1 DP.",
    "arm": "REACH-AAR",
    "clause": ""
   },
@@ -12121,13 +12125,53 @@
    "clause": "one_to_one_war"
   },
   {
+   "turn": 24,
+   "surface": "letter",
+   "moment": "arrived",
+   "court": "Russia",
+   "type": "armistice",
+   "letter_type": "incoming_proposal",
+   "dialogue_id": 41,
+   "action": "accept_ai_proposal",
+   "label": "Accept",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "state_moved": [
+    "France|Russia"
+   ],
+   "verdict": "signed",
+   "message": "You have accepted Russia's proposal. Treaty signed: At War → Armistice with Russia.",
+   "arm": "REACH-AAR",
+   "clause": ""
+  },
+  {
+   "turn": 24,
+   "surface": "letter",
+   "moment": "shown",
+   "court": "Russia",
+   "type": "armistice",
+   "letter_type": "incoming_proposal",
+   "dialogue_id": 41,
+   "action": "accept_ai_proposal",
+   "label": "Accept",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "state_moved": [
+    "France|Russia"
+   ],
+   "verdict": "signed",
+   "message": "You have accepted Russia's proposal. Treaty signed: At War → Armistice with Russia.",
+   "arm": "REACH-AAR",
+   "clause": ""
+  },
+  {
    "turn": 25,
    "surface": "letter",
    "moment": "arrived",
    "court": "KingdomOfItaly",
    "type": "client_petition",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 41,
+   "dialogue_id": 42,
    "action": "accept_ai_proposal",
    "label": "Grant the petition",
    "shown_signable": true,
@@ -12140,12 +12184,28 @@
   },
   {
    "turn": 25,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Russia",
+   "type": "armistice_losing",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": true,
+   "proposer": "Russia",
+   "target": "France",
+   "verdict": "signed",
+   "message": "Treaty signed: At War → Armistice with Russia.",
+   "arm": "REACH-AAR",
+   "clause": ""
+  },
+  {
+   "turn": 25,
    "surface": "letter",
    "moment": "shown",
    "court": "KingdomOfItaly",
    "type": "client_petition",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 41,
+   "dialogue_id": 42,
    "action": "accept_ai_proposal",
    "label": "Grant the petition",
    "shown_signable": true,
@@ -12180,32 +12240,13 @@
    "surface": "chip",
    "moment": "shown",
    "court": "Russia",
-   "type": "armistice",
-   "action": "propose_armistice",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Favorable",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Armistice with Russia.",
-   "type_sent": "armistice_losing",
-   "state_moved": [
-    "France|Russia"
-   ],
-   "arm": "REACH-AAR",
-   "clause": ""
-  },
-  {
-   "turn": 25,
-   "surface": "chip",
-   "moment": "shown",
-   "court": "Russia",
    "type": "peace",
    "action": "propose_peace",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Doubtful — may counter",
+   "likelihood": "Hopeless",
    "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Russia.",
+   "message": "Treaty signed: Armistice → Peace with Russia.",
    "type_sent": "peace",
    "state_moved": [
     "France|Russia"
@@ -12572,98 +12613,6 @@
    "likelihood": "Unlikely",
    "verdict": "not_shown",
    "message": "",
-   "arm": "REACH-AAR",
-   "clause": ""
-  },
-  {
-   "turn": 25,
-   "surface": "congress",
-   "moment": "shown",
-   "court": "Russia",
-   "type": "peace",
-   "action": "sign a peace with Russia",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Russia.",
-   "type_sent": "peace",
-   "state_moved": [
-    "France|Russia"
-   ],
-   "arm": "REACH-AAR",
-   "clause": ""
-  },
-  {
-   "turn": 25,
-   "surface": "settlement",
-   "moment": "shown",
-   "court": "Russia",
-   "type": "white_peace",
-   "war_id": "war_1",
-   "action": "propose_white_peace",
-   "shown_signable": false,
-   "preview_carries": false,
-   "preview_verdict": "",
-   "preview_error": "one_to_one_war",
-   "verdict": "refused",
-   "message": "Sire, the chancery cannot offer a white peace to Russia: A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.",
-   "stage": "propose",
-   "arm": "REACH-AAR",
-   "clause": "one_to_one_war"
-  },
-  {
-   "turn": 25,
-   "surface": "letter",
-   "moment": "arrived",
-   "court": "Russia",
-   "type": "armistice",
-   "letter_type": "incoming_proposal",
-   "dialogue_id": 42,
-   "action": "accept_ai_proposal",
-   "label": "Accept",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "state_moved": [
-    "France|Russia"
-   ],
-   "verdict": "signed",
-   "message": "You have accepted Russia's proposal. Treaty signed: At War → Armistice with Russia.",
-   "arm": "REACH-AAR",
-   "clause": ""
-  },
-  {
-   "turn": 25,
-   "surface": "letter",
-   "moment": "shown",
-   "court": "Russia",
-   "type": "armistice",
-   "letter_type": "incoming_proposal",
-   "dialogue_id": 42,
-   "action": "accept_ai_proposal",
-   "label": "Accept",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "state_moved": [
-    "France|Russia"
-   ],
-   "verdict": "signed",
-   "message": "You have accepted Russia's proposal. Treaty signed: At War → Armistice with Russia.",
-   "arm": "REACH-AAR",
-   "clause": ""
-  },
-  {
-   "turn": 26,
-   "surface": "real",
-   "moment": "signed",
-   "court": "Russia",
-   "type": "armistice_losing",
-   "action": "_ratify_treaty",
-   "shown_signable": null,
-   "is_player": true,
-   "proposer": "Russia",
-   "target": "France",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Armistice with Russia.",
    "arm": "REACH-AAR",
    "clause": ""
   },
@@ -14362,17 +14311,13 @@
    "surface": "chip",
    "moment": "shown",
    "court": "Russia",
-   "type": "peace",
-   "action": "propose_peace",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Hopeless",
-   "verdict": "signed",
-   "message": "Treaty signed: Armistice → Peace with Russia.",
-   "type_sent": "peace",
-   "state_moved": [
-    "France|Russia"
-   ],
+   "type": "open_borders",
+   "action": "propose_open_borders",
+   "shown_signable": false,
+   "disabled_reason": "Relations too low",
+   "likelihood": "Unlikely",
+   "verdict": "not_shown",
+   "message": "",
    "arm": "REACH-AAR",
    "clause": ""
   },
@@ -19110,9 +19055,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 10.76,
- "clones": 506,
- "seconds": 42.3,
+ "clone_ms_mean": 8.39,
+ "clones": 502,
+ "seconds": 34.0,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,
@@ -19120,21 +19065,21 @@
   "A_by_surface": {},
   "B_refused_unnamed": 0,
   "B_messages": [],
-  "shown": 486,
+  "shown": 483,
   "letters": 56,
   "real_signs": 22,
   "real_refused_player": 0,
   "asked": 4,
   "errors": 0,
   "verdicts": {
-   "chip:not_shown": 596,
-   "congress:signed": 36,
+   "chip:not_shown": 597,
+   "congress:signed": 35,
    "settlement:not_shown": 17,
    "letter:signed": 52,
    "real:signed": 22,
-   "chip:signed": 394,
+   "chip:signed": 392,
    "letter:asked": 4,
-   "settlement:refused": 3
+   "settlement:refused": 2
   }
  }
 }

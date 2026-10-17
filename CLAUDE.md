@@ -35,11 +35,11 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 17, 2026).** The three most recent landed rows:
-- **S13f (October 17, 2026) — AO "the army order" — LANDED.** FOLLOW (a SUPPORT that stands), the fan-out (`everyone fortify`), the Staff's army order (2 AP, the Emperor's column, authority 70 / 50): `REFORMS_SPEC.md` §5a, `SYSTEMS_REFERENCE.md` §125. **NEXT = S13e part 4**, then S13c parts 2–4, S13b part 4.
-- **S13e parts 1–3 (October 16, 2026) — PC "the peace rulings" — LANDED** (`SYSTEMS_REFERENCE.md` §122–§124).
-- **S13c part 1 (October 15, 2026) — CC-2 "March here" — LANDED.**
+- **S13e part 4 (October 17, 2026) — PC "the stake" — LANDED; S13e COMPLETE.** The war titled by its stake (`war_title.py`): `SYSTEMS_REFERENCE.md` §127; PC-R7 (ii) heads S14. **NEXT = S13c part 2 (CC-3)**, then parts 3–4, S13b part 4.
+- **S13f + CF-4/6/7/8 (October 17, 2026) — LANDED** (§125–§126).
+- **S13e parts 1–3 (October 16, 2026) — LANDED** (§122–§124).
 
-**Open with the user:** UXR-4 (their eyes at 5120×1440, S15, with S12's 11 R2 marks) and a code-signing certificate before S15.
+**Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

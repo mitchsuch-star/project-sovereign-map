@@ -279,6 +279,118 @@ def _exhaustion_block(world, opponent: str) -> Tuple[int, Dict[str, Any]]:
     return int(world.war_exhaustion.get(opponent, 0) or 0), block
 
 
+def _objective_block(world, france: str, opponent: str, coalition_members,
+                     diplo_key: str) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """The war row's objective blocks (ours, theirs) — extracted from
+    `build_active_wars` in S13e part 4 (the ratchet's 500-line cap; the
+    row's keys are byte-identical)."""
+    from backend.game_logic.diplomacy import TICKING_RATES, OBJECTIVE_TYPE_DISPLAY
+    war_obj_data = getattr(world, 'war_objectives', {}).get(diplo_key, {})
+    france_obj = war_obj_data.get(france, {})
+    enemy_obj = war_obj_data.get(opponent, {})
+    # FA-D2 (slice 17, Phase 2): a purpose set against a coalition MEMBER
+    # ticks into the score (which sums every pair) but the row resolved
+    # its objective through the LEADER pair only, so "set war purpose
+    # against Austria" rendered nothing while the score moved. Walk the
+    # war's opponents (leader first) and take the first live objective,
+    # labelling the court it targets; single-opponent rows are unchanged.
+    # FA-D4 (Phase 2b) on top: every boot pair now carries the
+    # declaration's default `defense`, so "the first live objective"
+    # was always the leader pair's default and a purpose the player
+    # NAMED against a member never rendered again. A named purpose
+    # outranks a default one; the leader still wins among equals.
+    france_obj, objective_against = _pick_war_objective(
+        world, france, opponent, coalition_members, france_obj, side="france")
+    enemy_obj, enemy_objective_by = _pick_war_objective(
+        world, france, opponent, coalition_members, enemy_obj, side="enemy")
+
+    objective_info = None
+    if france_obj and france_obj.get("concluded_turn") is None:
+        obj_type = france_obj.get("type", "")
+        objective_info = {
+            "type": obj_type,
+            "against": objective_against,
+            "type_display": OBJECTIVE_TYPE_DISPLAY.get(obj_type, obj_type),
+            "target_regions": france_obj.get("target_regions", []),
+            "accumulated_ticking": int(france_obj.get("accumulated_ticking", 0)),
+            "ticking_active": bool(france_obj.get("ticking_active", False)),
+            "ticking_rate": int(TICKING_RATES.get(obj_type, 0)),
+        }
+        # LV-8: the ONE sentence the war panel and the war-detail popup
+        # print. Absent (not "") off the Europe board or with the lever
+        # down, so those payloads stay byte-identical and each client
+        # surface keeps its own list fallback.
+        _summary = objective_target_summary(world, france, france_obj)
+        if _summary:
+            objective_info["target_summary"] = _summary
+
+    enemy_objective_info = None
+    if enemy_obj and enemy_obj.get("concluded_turn") is None:
+        eo_type = enemy_obj.get("type", "")
+        enemy_objective_info = {
+            "by": enemy_objective_by,
+            "type": eo_type,
+            "type_display": OBJECTIVE_TYPE_DISPLAY.get(eo_type, eo_type),
+        }
+    return objective_info, enemy_objective_info
+
+
+def _held_line(world, france: str, opponents: List[str]) -> str:
+    """PC-F33 (S13e part 4): the coalition's "white peace" is uti possidetis
+    — it confirms every province each side holds — and the tier, the war
+    panel and the letter called it a white peace and nothing more. The
+    ONE rule the ratifier runs (`game_end.status_quo_forecast_lines`, the
+    retention pass read before the signature) says what a peace signed now
+    would title, from the player's chair: "Bohemia, Tyrol and Vienna stay
+    ours by the treaty". One sentence per court, joined; '' when a peace
+    would move nothing."""
+    from backend.game_logic.game_end import status_quo_forecast_lines
+    lines: List[str] = []
+    for opponent in opponents:
+        if world.get_diplomatic_state(france, opponent) not in ("WAR", "ARMISTICE"):
+            continue
+        try:
+            words = status_quo_forecast_lines(world, france, opponent, france, ())
+        except Exception as exc:
+            report(exc, "war_status._held_line: status_quo_forecast_lines")
+            continue
+        for line in list(words.get("warnings") or []) + list(words.get("lines") or []):
+            # the ratifier's sentence, read as a FORECAST on the war card:
+            # "Status quo: X stay ours by the treaty — titled." names what a
+            # peace signed now would title, not what is titled already
+            text = str(line or "")
+            if text.startswith("Status quo: "):
+                text = text[len("Status quo: "):]
+            if text.endswith(" — titled."):
+                text = text[:-len(" — titled.")] + "."
+            if text and text not in lines:
+                lines.append(text)
+    if not lines:
+        return ""
+    return "A peace signed now is on the held line: " + " ".join(lines)
+
+
+def _title_block(world, war_id: str, court: str = "") -> Dict[str, Any]:
+    """PC-R7 (i) — ruling J: the row's title by the war's STAKE ("War for
+    Bohemia"), the one builder (`war_title.war_title`) every surface reads;
+    `war_roster_display` keeps WHO beside it. A pair with no instance (a
+    bare fixture) is titled by the court."""
+    from backend.game_logic.war_title import war_title
+    try:
+        rec = war_title(world, war_id, court=court or None) if (war_id or court) else {}
+    except Exception as exc:  # a title is display substrate; never a crash
+        report(exc, "war_status._title_block: war_title")
+        rec = {}
+    return {
+        "war_title": str(rec.get("title") or ""),
+        "war_title_source": str(rec.get("source") or ""),
+        "war_title_line": str(rec.get("line") or ""),
+        "war_title_display": str(rec.get("display") or ""),
+        "war_roster_display": str(rec.get("roster_display") or ""),
+        "war_stake": list(rec.get("stake") or []),
+    }
+
+
 def build_active_wars(world) -> Dict[str, Any]:
     """Build active wars data for the war status panel.
 
@@ -433,58 +545,10 @@ def build_active_wars(world) -> Dict[str, Any]:
 
         # WPS-A: War objective + settlement tier
         from backend.game_logic.diplomacy import (
-            TICKING_RATES, OBJECTIVE_TYPE_DISPLAY,
             SETTLEMENT_TIER_DISPLAY, get_settlement_tier,
         )
-        war_obj_data = getattr(world, 'war_objectives', {}).get(diplo_key, {})
-        france_obj = war_obj_data.get(france, {})
-        enemy_obj = war_obj_data.get(opponent, {})
-        objective_against = opponent
-        enemy_objective_by = opponent
-        # FA-D2 (slice 17, Phase 2): a purpose set against a coalition MEMBER
-        # ticks into the score (which sums every pair) but the row resolved
-        # its objective through the LEADER pair only, so "set war purpose
-        # against Austria" rendered nothing while the score moved. Walk the
-        # war's opponents (leader first) and take the first live objective,
-        # labelling the court it targets; single-opponent rows are unchanged.
-        # FA-D4 (Phase 2b) on top: every boot pair now carries the
-        # declaration's default `defense`, so "the first live objective"
-        # was always the leader pair's default and a purpose the player
-        # NAMED against a member never rendered again. A named purpose
-        # outranks a default one; the leader still wins among equals.
-        france_obj, objective_against = _pick_war_objective(
-            world, france, opponent, coalition_members, france_obj, side="france")
-        enemy_obj, enemy_objective_by = _pick_war_objective(
-            world, france, opponent, coalition_members, enemy_obj, side="enemy")
-
-        objective_info = None
-        if france_obj and france_obj.get("concluded_turn") is None:
-            obj_type = france_obj.get("type", "")
-            objective_info = {
-                "type": obj_type,
-                "against": objective_against,
-                "type_display": OBJECTIVE_TYPE_DISPLAY.get(obj_type, obj_type),
-                "target_regions": france_obj.get("target_regions", []),
-                "accumulated_ticking": int(france_obj.get("accumulated_ticking", 0)),
-                "ticking_active": bool(france_obj.get("ticking_active", False)),
-                "ticking_rate": int(TICKING_RATES.get(obj_type, 0)),
-            }
-            # LV-8: the ONE sentence the war panel and the war-detail popup
-            # print. Absent (not "") off the Europe board or with the lever
-            # down, so those payloads stay byte-identical and each client
-            # surface keeps its own list fallback.
-            _summary = objective_target_summary(world, france, france_obj)
-            if _summary:
-                objective_info["target_summary"] = _summary
-
-        enemy_objective_info = None
-        if enemy_obj and enemy_obj.get("concluded_turn") is None:
-            eo_type = enemy_obj.get("type", "")
-            enemy_objective_info = {
-                "by": enemy_objective_by,
-                "type": eo_type,
-                "type_display": OBJECTIVE_TYPE_DISPLAY.get(eo_type, eo_type),
-            }
+        objective_info, enemy_objective_info = _objective_block(
+            world, france, opponent, coalition_members, diplo_key)
 
         tier = get_settlement_tier(score)
 
@@ -530,6 +594,10 @@ def build_active_wars(world) -> Dict[str, Any]:
         row = {
             "next_letter": _next_letter(world, opponent, france),
             "refused_peace": _refused_clause(world, france),
+            # PC-R7 (i): the war's title by its stake, and who.
+            **_title_block(world, contribution.get("war_id", ""), opponent),
+            # PC-F33: what a peace on the held line would title.
+            "held_line": _held_line(world, france, [opponent]),
             "opponent": opponent,
             "war_score": score,
             "breakdown": breakdown,
@@ -723,6 +791,8 @@ def build_active_wars(world) -> Dict[str, Any]:
             # NA-6 appeared under its NEW name two rows above its DEAD one.
             # One producer for both.
             "opponent_display": formed_display_name(world, opponent),
+            # PC-R7 (i): a truce keeps the war's title (the pair's instance).
+            **_title_block(world, "", opponent),
             "war_score": _kept_score,
             "breakdown": None,
             "duration": int(max(0, int(world.current_turn) - _war_start)),
@@ -832,8 +902,20 @@ def _build_foreign_wars(world) -> List[Dict[str, Any]]:
         lead_attacker = attackers[0]
         lead_defender = defenders[0]
         started = int(instance.get("created_turn") or 0)
+        # PC-X25 (S13e part 4, PC-R7 (i)'s sibling): a war between other
+        # courts is titled by its stake too — read from the aggressor's chair
+        # (its design, else the ground in play) — never "Austria vs Bavaria"
+        # as its name; the sides stay on the row as who.
+        from backend.game_logic.war_title import war_title as _wt
+        try:
+            _title = _wt(world, str(war_id), chair=lead_attacker)
+        except Exception as exc:  # a title is display substrate
+            report(exc, "war_status._build_foreign_wars: war_title")
+            _title = {}
         rows.append({
             "war_id": str(war_id),
+            "war_title": str(_title.get("title") or ""),
+            "war_title_line": str(_title.get("line") or ""),
             "attackers": attackers,
             "defenders": defenders,
             # NA-6 §11.8-3: never a dead name on an always-on surface.
@@ -1006,6 +1088,10 @@ def _collapse_shared_war_instance_rows(
         combined["opponent_display"] = " + ".join(
             formed_display_name(world, nation) for nation in ordered_opponents
         )
+        # PC-R7 (i): the collapsed row's title reads the whole war (its
+        # roster is every court on the card, not the representative's pair).
+        combined.update(_title_block(world, war_id))
+        combined["held_line"] = _held_line(world, france, ordered_opponents)
         combined["is_multi_participant_war"] = True
 
         # ── CA8-D2 / CA8-24 (close-out gate 10.1) ────────────────────────

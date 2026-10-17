@@ -429,16 +429,18 @@ def humanize_war_label(label: str) -> str:
 
 
 def _war_label(world: Any, war_id: str) -> str:
-    """Return a short war label, falling back to the raw war id."""
+    """Return a short war label, falling back to the raw war id. PC-R7 (i):
+    the war is titled by its stake (`war_title.settlement_war_label` — "the
+    War for Bohemia — Britain + Austria + Russia"), never the leader pair."""
     if not war_id:
         return "settlement"
     instances = getattr(world, "war_instances", None) or {}
     war = instances.get(war_id) or {}
-    if isinstance(war, Mapping):
-        attackers = list(war.get("attackers") or [])
-        defenders = list(war.get("defenders") or [])
-        if attackers and defenders:
-            return f"{attackers[0]} vs {defenders[0]}"
+    if isinstance(war, Mapping) and war:
+        from backend.game_logic.war_title import settlement_war_label
+        label = settlement_war_label(world, war_id)
+        if label:
+            return label
     return str(war_id)
 
 

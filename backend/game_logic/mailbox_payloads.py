@@ -570,6 +570,21 @@ def attach_peace_preview(world, payload: Dict, nation: str, terms: Dict) -> Dict
             attach_status_quo_forecast(
                 world, payload, player_nation, nation, terms,
                 summary_key=None if payload.get("annotated_terms") else "clauses")
+            # PC-F33 (S13e part 4): a peace that confirms every holding is
+            # LABELLED so — "Peace Treaty — on the held line" — and the
+            # envelope carries the one sentence the ratifier would write.
+            _forecast = payload.get("status_quo_forecast") or {}
+            _held = [str(w) for w in (_forecast.get("warnings") or [])] + [
+                str(ln) for ln in (_forecast.get("lines") or [])]
+            _bare = not terms.get("demands") and not terms.get("sweeteners")
+            if _held:
+                payload["held_line"] = " ".join(_held)
+            if _held and _bare:
+                # only the WHITE peace is relabelled — a dictated peace keeps
+                # its tier's name (PC-R3's label) and names the line beside it
+                _label = str(payload.get("proposal_type_display") or "")
+                if _label and "held line" not in _label:
+                    payload["proposal_type_display"] = f"{_label} — on the held line"
     except Exception as exc:
         report(exc, "mailbox_payloads.attach_peace_preview: import backend.game_logic.diplomacy")
         payload["annotated_terms"] = []

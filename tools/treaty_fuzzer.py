@@ -218,14 +218,16 @@ def check_invariants(world, states_log_start: int) -> List[Dict[str, Any]]:
             lord_state = world.get_diplomatic_state(lord, court)
             if lord_state == "WAR":
                 continue
-            # the client leads this war itself?
+            # the client leads this war itself? (PC-F30: the ONE reading the
+            # reconcile uses — the client leads a side; a pair whose OTHER
+            # court leads the league's instance is not the client's own war)
+            from backend.game_logic.vassal import client_leads_its_own_war
             leads = False
             for inst in instances.values():
                 if inst.get("ended_turn") is not None:
                     continue
                 if pair in (inst.get("active_diplo_keys") or []):
-                    if client in (inst.get("attacker_leader"), inst.get("defender_leader")) \
-                            or court in (inst.get("attacker_leader"), inst.get("defender_leader")):
+                    if client_leads_its_own_war(client, court, inst):
                         leads = True
             if not leads:
                 out.append({"cls": "I2_client_at_war_lord_is_not",

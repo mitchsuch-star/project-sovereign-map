@@ -573,8 +573,12 @@ def _apply_settlement_terms(
                 ).get(str(war_id or "")) or {}
                 label_attackers = list(label_instance.get("attackers") or [])
                 label_defenders = list(label_instance.get("defenders") or [])
+                # PC-R7 (i): the record is titled by the war's stake.
+                from backend.game_logic.war_title import war_title as _war_title
+                _titled = _war_title(world, str(war_id or "")) if label_instance else {}
                 war_label_for_record = (
-                    f"{label_attackers[0]} vs {' + '.join(label_defenders)}"
+                    f"the {_titled['display']}" if _titled.get("title")
+                    else f"{label_attackers[0]} vs {' + '.join(label_defenders)}"
                     if label_attackers and label_defenders
                     else str(war_id or "the settlement")
                 )

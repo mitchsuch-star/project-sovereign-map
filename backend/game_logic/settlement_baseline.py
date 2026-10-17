@@ -1830,6 +1830,13 @@ def _court_direction_summary(
     conceded_regions: List[str] = []
     demanded_gold = 0
     conceded_gold = 0
+    # PC-F72 (S13e part 4, October 17, 2026): the direction names EVERY
+    # clause that burdens or benefits the court — a carve, a forced alliance,
+    # the Continental System, a submission, a liberation, a yielded client —
+    # where it read only cessions and gold and called a package that carved
+    # a client "White peace" (PC-F33's class).
+    demanded_other: List[str] = []
+    conceded_other: List[str] = []
     for term in settlement_terms:
         if not isinstance(term, Mapping):
             continue
@@ -1847,14 +1854,48 @@ def _court_direction_summary(
                 demanded_gold += amount
             elif to == court:
                 conceded_gold += amount
+        elif ttype == "create_client":
+            name = str(term.get("client_display_name") or term.get("tag") or "a client")
+            if frm == court:
+                demanded_other.append(f"{name} carved out")
+            elif to == court:
+                conceded_other.append(f"{name} carved for it")
+        elif ttype == "forced_alliance":
+            if frm == court:
+                demanded_other.append("an alliance imposed"
+                                      + (" with the Continental System"
+                                         if term.get("includes_continental_system", True) else ""))
+            elif to == court:
+                conceded_other.append("an alliance gained")
+        elif ttype == "continental_system_join":
+            if frm == court:
+                demanded_other.append("joins the Continental System")
+        elif ttype in ("vassalage", "subjugation"):
+            if frm == court:
+                demanded_other.append("submits as a client")
+            elif to == court:
+                conceded_other.append("a client gained")
+        elif ttype == "vassal_transfer":
+            name = str(term.get("vassal") or "a client")
+            if frm == court:
+                demanded_other.append(f"yields its client {name}")
+            elif to == court:
+                conceded_other.append(f"gains the client {name}")
+        elif ttype == "liberation":
+            if str(term.get("lord_nation") or "") == court:
+                demanded_other.append(f"{term.get('vassal_nation') or 'a client'} liberated")
+            elif str(term.get("vassal_nation") or "") == court:
+                conceded_other.append("liberated from vassalage")
     demand_parts: List[str] = []
     demand_parts.extend(r for r in demanded_regions if r)
     if demanded_gold > 0:
         demand_parts.append(f"{demanded_gold}g")
+    demand_parts.extend(demanded_other)
     concede_parts: List[str] = []
     concede_parts.extend(r for r in conceded_regions if r)
     if conceded_gold > 0:
         concede_parts.append(f"{conceded_gold}g")
+    concede_parts.extend(conceded_other)
     if demand_parts and concede_parts:
         return f"Demanded: {' + '.join(demand_parts)}; Conceded: {' + '.join(concede_parts)}"
     if demand_parts:

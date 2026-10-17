@@ -832,6 +832,7 @@ class TestTheWarLabelReadsActivePairs:
             ("backend/game_logic/ai_diplomacy.py",
              "_settlement_request_war_label(war, war_id, player=player)"),
             ("backend/commands/diplomatic_executor.py",
-             "war, requested_war_id, player=player)"),
+             # PC-R7 (i): the world rides along so the label leads with the stake
+             "war, requested_war_id, player=player, world=world)"),
         ):
             assert needle in (REPO / path).read_text(encoding="utf-8"), path

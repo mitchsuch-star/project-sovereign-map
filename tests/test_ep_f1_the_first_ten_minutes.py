@@ -405,7 +405,10 @@ class TestThePurposeIsOneSentence:
         _lose_homeland(world, keep=("Brittany",))
         for text in _defense_lines(world):
             assert "the homeland — 1 of 28 provinces held" in text, text
-            assert "Paris" not in text
+            # PC-R7 (i) (S13e part 4): the war's TITLE names the stake —
+            # "(War for Paris)" when they hold the capital — and that is the
+            # only place a lost province is named; the 28-name list stays out.
+            assert "Paris" not in text.replace("(War for Paris)", ""), text
 
     def test_a_fallen_homeland_is_lost(self):
         world = _scenario_world()

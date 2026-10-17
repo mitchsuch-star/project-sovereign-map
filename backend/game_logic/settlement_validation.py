@@ -1202,6 +1202,17 @@ def occupied_homeland_cession_ok(world, war_instance, region_name: str,
     return False
 
 
+def bilateral_cession_carries(world, war_instance, region_name: str,
+                              ceder: str, receiver: str, holder: str) -> bool:
+    """PC-X21 (S13e part 4) — the SEAM the BILATERAL ratifier reads for a
+    cession whose province the ceder no longer holds and the receiver does
+    not hold either (a third court on the receiving side holds it — Tyrol,
+    held by France, ceded to Bavaria under Austria's signature): F52's ONE
+    rule, `occupied_homeland_cession_ok`. The series attribution holds it
+    down (False — the old silent skip) without touching the table's road."""
+    return occupied_homeland_cession_ok(world, war_instance, region_name, ceder, receiver, holder)
+
+
 def validate_settlement_terms(
     terms: Any,
     *,

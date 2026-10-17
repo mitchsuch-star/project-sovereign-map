@@ -289,7 +289,9 @@ class TestTheRatifiedSettlementNamesItself:
         assert result["proposal_type"] == "Settlement"
         assert result["outcome"] == "ACCEPT"
         assert result["title"] == "Settlement Ratified"
-        assert "France" in result["target_nation"] and "vs" in result["target_nation"]
+        # PC-R7 (i) (S13e part 4): the settlement is named by the war's title
+        # and the courts its table covered, never the leader pair
+        assert result["target_nation"].startswith("the War ") and "the table with" in result["target_nation"]
 
     def test_the_rail_row_reads_settlement_ratified(self, endpoint):
         world = endpoint

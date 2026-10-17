@@ -162,7 +162,9 @@ class TestTheCoverageLabels:
     def test_the_record_names_the_coverage(self, world, monkeypatch):
         _carrying(monkeypatch)
         dialogue = _stage(world, ["Austria"])
-        assert dialogue["war_label"] == "France vs Austria"
+        # PC-R7 (i) (S13e part 4): the war's title, then the table's coverage
+        assert dialogue["war_label"].endswith("— the table with Austria"), dialogue["war_label"]
+        assert " vs " not in dialogue["war_label"]
         world.pending_dispatch_events = []
         with _quiet():
             result = ratify_settlement_confirm(world, dialogue)
@@ -172,7 +174,8 @@ class TestTheCoverageLabels:
         assert events, "the ratification writes its dispatch record"
         for e in events:
             label = str(e.get("war_label") or "")
-            assert label == "France vs Austria", label
+            # PC-R7 (i): the record carries the table's own titled label
+            assert label == dialogue["war_label"], label
         rows = [n for n in world.notifications.get_pending()
                 if "settlement" in str(n.get("type", "")).lower()
                 or "Settlement" in str(n.get("title", ""))]

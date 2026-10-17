@@ -1706,8 +1706,8 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # settlement family's narrative voice rather than reading as system
     # log text. Spec §16.1 line 1602.
     "settlement_aftermath_digest_talleyrand": (
-        "Sire, {hidden_count} further courts have entered the {war_label} "
-        "settlement into their ledgers — quieter reactions, but each one "
+        "Sire, {hidden_count} further courts have entered the settlement of "
+        "{war_label} into their ledgers — quieter reactions, but each one "
         "remembered."
     ),
     # SC-19 settlement voice families (Settlement UI Cleanup G2-Slice-5).
@@ -3430,6 +3430,8 @@ TALLEYRAND_COMMENTARY = {
     ("_default", "smart_cession"): "I've selected our least valuable border territory for cession. We lose little of strategic worth.",
     ("_default", "desperate_terms"): "We are not in a position to be choosy, Sire. I've assembled the most persuasive package possible.",
     ("_default", "dominant_terms"): "They have little choice but to accept. I've kept the demands firm but not humiliating.",
+    # PC-F11: the draft that asks nothing says so (the Voice Bible's register).
+    ("_default", "no_demands_winning"): "They have little choice but to accept — and I have asked nothing of them beyond the peace itself, Sire. A court beaten and spared remembers both; a demand here would buy a grievance, not a province.",
     ("_default", "neutral_deal"): "Standard terms, Sire. Neither generous nor harsh — a foundation for negotiation.",
     ("_default", "protection_offered"): "A guarantee of protection costs us nothing but obligation. For them, it means survival.",
     ("_default", "ap_for_weak"): "An extra action per turn is transformative for a smaller power. They will value this highly.",
@@ -3746,6 +3748,19 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world,
                             if t != "border_territory_demanded"]
 
     # --- Stage 4: Commentary ---
+    # PC-F11 (S13e part 4, October 17, 2026): the commentary names only
+    # demands the draft HOLDS. At +34 and above "I've kept the demands firm
+    # but not humiliating" stood on a white peace the easing had stripped
+    # (the tag was chosen by the score alone). A draft with no demands
+    # left speaks the peace it asks for.
+    if (not terms.get("demands")
+            and proposal_type in ("peace", "armistice", "armistice_winning", "armistice_losing")):
+        context_tags = [t for t in context_tags
+                        if t not in ("dominant_terms", "border_territory_demanded")]
+        if not context_tags and war_score > 30:
+            # the score alone would pick "dominant_terms" ("I've kept the
+            # demands firm") for a draft that asks nothing
+            context_tags.append("no_demands_winning")
     if not context_tags:
         if war_score < -30:
             context_tags.append("desperate_terms")
@@ -4087,6 +4102,38 @@ def collapse_identical_packages(options: List[Dict], talleyrand_text: str,
     return kept, talleyrand_text
 
 
+def continental_system_lift_offered(world, proposer: str, target: str) -> bool:
+    """PC-F83 — the SEAM: Talleyrand drafts the System's lifting into a
+    PEACE with the court the System is aimed at (Britain — the only court
+    whose profile prices it) when the proposer is the System's lord, a court
+    is enrolled, and it is not already lifted. Held down by the series."""
+    from backend.game_logic.diplomacy import (
+        SPECIAL_BONUSES, continental_system_lifted, continental_system_lord,
+    )
+    if "continental_system_lifted" not in (SPECIAL_BONUSES.get(target) or {}):
+        return False
+    if str(proposer) != continental_system_lord(world):
+        return False
+    if not list(getattr(world, "continental_system_members", []) or []):
+        return False
+    return not continental_system_lifted(world)
+
+
+def terms_jitter(world, proposer: str, target: str, proposal_type: str) -> float:
+    """PC-F14 (S13e part 4, October 17, 2026): ONE roll per draft. The ±20 %
+    amount jitter (PL-25) was the global `random`, rolled on every surface —
+    the feasibility card quoted 150 gold and the send carried 182. The roll
+    is now derived from the campaign seed and the draft's identity (the
+    turn, the pair, the type — `campaign_variance._unit`, a pure hash), so
+    the menu, the card, the objection and the send show and send one
+    figure; a new turn rolls anew. Deterministic under every seed (GR6)."""
+    from backend.game_logic.campaign_variance import _unit
+    seed = str(getattr(world, "campaign_seed", "historical") or "historical")
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    key = f"terms_jitter:{turn}:{proposer}:{target}:{proposal_type}"
+    return 0.8 + 0.4 * _unit(seed, key)
+
+
 def _build_base_terms(target_nation: str, proposal_type: str, world, deterministic: bool = False) -> Dict:
     """Build base treaty terms using war_score/relation thresholds.
 
@@ -4119,6 +4166,12 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
         # Include open borders if relation isn't too hostile
         if relation > -20:
             terms["clauses"].append("open_borders")
+        # PC-F83 (S13e part 4): the one sweetener London's profile prices
+        # and nothing produced — the System lifted. Offered where there is a
+        # System to lift (members enrolled, the player its lord) and the
+        # court is the one it is aimed at.
+        if continental_system_lift_offered(world, player_nation, target_nation):
+            terms["clauses"].append("continental_system_lifted")
 
         # ────────────────────────────────────────────────────────────
         # F14 (CA9) — the curve is continuous and MONOTONE through zero.
@@ -4247,9 +4300,9 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
                 terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [player_capital]})
 
     # PL-25: Amount jitter ±20% on gold/manpower values (demands + sweeteners)
+    # PC-F14: one seeded roll per draft (`terms_jitter`), never the global RNG.
     if not deterministic:
-        import random
-        jitter = random.uniform(0.8, 1.2)
+        jitter = terms_jitter(world, player_nation, target_nation, proposal_type)
     else:
         jitter = 1.0
     _JITTER_TYPES = {"gold_per_turn", "gold_lump", "manpower_infantry", "manpower_cavalry", "manpower_artillery"}
@@ -4813,7 +4866,10 @@ _TERM_DISPLAY_LABELS = {
     "military_access": "{from_nation} grants military access to {to_nation}",
     "protection": "{from_nation} guarantees {to_nation}'s sovereignty",
     "protection_promised": "{from_nation} guarantees {to_nation}'s sovereignty",
-    "continental_system_lifted": "{from_nation} closes ports to Britain",
+    # PC-F83 (S13e part 4): the clause named LIFTED read backwards ("closes
+    # ports"); it is the France-to-Britain sweetener — the System lifted,
+    # the Continent's ports reopened to British trade.
+    "continental_system_lifted": "{from_nation} lifts the Continental System — its ports reopen to British trade",
     "forced_alliance": "{from_nation} enters ALLIANCE with {to_nation} and joins the Continental System",
     # SF7-X5: a forced alliance whose flag says the System stays out.
     "forced_alliance_without_system": "{from_nation} enters ALLIANCE with {to_nation}",
@@ -5040,14 +5096,17 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                 "display_label": _build_display_label(ctype, proposer_nation, target_nation, [], 0),
             })
         elif ctype == "continental_system_lifted":
+            # PC-F83: the System's lord LIFTS it for the court it treats with
+            # — a concession the proposer pays (it read as a demand on the
+            # target, the wrong way round).
             annotated.append({
                 "clause_type": ctype,
-                "from_nation": target_nation,
-                "to_nation": proposer_nation,
+                "from_nation": proposer_nation,
+                "to_nation": target_nation,
                 "regions": [],
-                "term_direction": "demand",
+                "term_direction": "concession",
                 "sweetener_value": 0,
-                "display_label": _build_display_label(ctype, target_nation, proposer_nation, [], 0),
+                "display_label": _build_display_label(ctype, proposer_nation, target_nation, [], 0),
             })
         elif ctype == "create_client":
             # NA-6c: a carve carries AUTHORITATIVE direction on the clause

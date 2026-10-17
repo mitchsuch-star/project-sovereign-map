@@ -408,7 +408,10 @@ class TestTheSentenceNamesNothingLost:
         fallen = _defense_line(_collapsed(keep=()))
         assert "— the homeland is lost" in fallen
         for text in (rump, fallen):
-            assert "Paris" not in text and "Normandy" not in text
+            # PC-R7 (i) (S13e part 4): the war's TITLE names its one stake
+            # ("(War for Paris)"); no list of what was lost is printed
+            bare = text.replace("(War for Paris)", "")
+            assert "Paris" not in bare and "Normandy" not in bare, text
 
 
 class TestTheIQ2CompletionDefinition:
