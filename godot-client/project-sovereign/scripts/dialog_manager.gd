@@ -50,7 +50,13 @@ class_name DialogManager
 #        Peace, the Verdict of History, the Imperial Peace. Above the
 #        diorama so the tableau of the fatal battle plays first and the
 #        verdict on the reign is the last thing the campaign says)
+#   123: order_card (row CC, CC-3 — a map gesture's confirm card. Never
+#        co-visible with another modal: one opens only after a send, and
+#        any modal shown lets the selection — and its card — go)
 # =============================================================================
+
+# CC-3: a registered MODAL became visible (the map's selection lets go on it).
+signal modal_shown(dialog_name: String)
 
 var _dialogs: Dictionary = {}  # name -> {node, modal}
 
@@ -63,6 +69,10 @@ func register(dialog_name: String, scene_path: String, modal: bool = true) -> No
 	get_parent().add_child(instance)
 	instance.hide()
 	_dialogs[dialog_name] = {"node": instance, "modal": modal}
+	if modal and instance.has_signal("visibility_changed"):
+		instance.visibility_changed.connect(func():
+			if is_instance_valid(instance) and instance.visible:
+				modal_shown.emit(dialog_name))
 	return instance
 
 func get_dialog(dialog_name: String) -> Node:

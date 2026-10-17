@@ -583,7 +583,11 @@ class TestTheTableAndItsMirrors:
         handler = handler[:handler.index("\nfunc ")]
         assert "diplomacy_wizard.open_for_nation(nation)" in handler
         assert "_is_modal_dialog_open()" in handler
-        assert src.count("tutorial_overlay.note_sent(command)") == 3
+        # Re-seated October 17, 2026 (row CC, CC-3): the map's confirm card is
+        # a fourth road an order is SENT by (`_send_map_order`), and it tells
+        # the School what it sent like the other three.
+        assert src.count("tutorial_overlay.note_sent(command)") == 4
+        assert "tutorial_overlay.note_sent(command)" in src[src.index("func _send_map_order("):]
 
     def test_the_driver_scripts_open_the_cabinet_on_turn_three_and_begin_the_mission(self):
         for path in (LESSON, LESSON_TRUST):

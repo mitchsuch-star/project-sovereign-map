@@ -160,6 +160,17 @@ func get_march_quotes(region: String, callback: Callable):
 	backend from the orders' own readers (a read-only GET)."""
 	_send_get("/march_quotes?region=" + region.uri_encode(), callback)
 
+func get_march_reach(marshal_name: String, callback: Callable):
+	"""CC-3 "Select, click, Enter": where a selected corps of ours can march
+	and in how many turns — every province at once (a read-only GET)."""
+	_send_get("/march_reach?marshal=" + marshal_name.uri_encode(), callback)
+
+func get_order_quote(marshal_name: String, kind: String, target: String, callback: Callable):
+	"""CC-3: the ONE quote a map gesture's confirm card shows — `kind` is
+	"dest" (a march), "enemy" (an attack) or "ally" (a support)."""
+	_send_get("/march_quotes?marshal=" + marshal_name.uri_encode() + "&" + kind
+		+ "=" + target.uri_encode(), callback)
+
 func activate_mailbox_item(mailbox_id: int, callback: Callable):
 	_send_post("/mailbox/activate", {"mailbox_id": mailbox_id}, callback)
 

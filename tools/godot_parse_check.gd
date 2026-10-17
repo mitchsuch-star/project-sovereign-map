@@ -99,6 +99,9 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# UXR-2 (Pre-Deploy S9): the one shared resize grip (class_name — run a
 	# `--headless --import` pass first after a fresh clone).
 	"res://scripts/resize_grip.gd",
+	# Row CC, CC-3 "Select, click, Enter": a map gesture's confirm card —
+	# runtime-registered by dialog_manager (the IGR-E gap class).
+	"res://scripts/order_confirm_card.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -118,6 +121,8 @@ const MAP_CRITICAL_SCRIPTS = [
 	"res://scenes/diorama_figure.gd",
 	# DEF-5 naval: verdict tints + port glyphs on the connection layer.
 	"res://scenes/map_connection_layer.gd",
+	# Row CC, CC-3: the selected corps' ring and the ghost road.
+	"res://scenes/map_order_layer.gd",
 ]
 
 # Map Slice 7: headless scene-instantiation checks. instantiate() attaches
@@ -151,6 +156,8 @@ const SCENE_INSTANTIATION_CHECKS = [
 	"res://scenes/war_status_panel.tscn",
 	"res://scenes/war_detail_popup.tscn",
 	"res://scenes/region_panel.tscn",
+	# Row CC, CC-3: the confirm card (dialog_manager-registered at runtime).
+	"res://scenes/order_confirm_card.tscn",
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
@@ -195,8 +202,12 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/ge3_congress_harness.gd",
 	# PC15-10 B4b "The one tail" — the stash-and-raise, driven (tests/test_b4b_the_one_tail.py)
 	"res://../../tools/b4b_one_tail_harness.gd",
-	# Row CC "Click & Command" — CC-0 + CC-1, driven (tests/test_cc_click_and_command.py)
+	# Row CC "Click & Command" — CC-0 + CC-1, driven (tests/test_cc_click_and_command.py;
+	# CC-2 tests/test_cc2_march_here.py; CC-3 tests/test_cc3_select_click_enter.py)
 	"res://../../tools/cc_client_harness.gd",
+	# CC-3's Mode C walk (the real client against a sandboxed backend; frames
+	# under docs/audits/cc3_client/) — not driven by a pytest, parsed here
+	"res://../../tools/cc3_mode_c_walk.gd",
 	# CX3-R9 (Score Finish Step 7 slice 8): the completer's screenshot tool —
 	# not driven by a pytest, parsed here because the slice changed it
 	"res://../../tools/cx3_completer_screenshot.gd",

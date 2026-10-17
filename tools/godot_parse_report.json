@@ -99,6 +99,12 @@
       "instantiate_ok": true,
       "load_ok": true,
       "path": "res://scenes/region_panel.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/order_confirm_card.tscn"
     }
   ],
   "scripts": [
@@ -382,6 +388,12 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/order_confirm_card.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -425,6 +437,12 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://scenes/map_connection_layer.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scenes/map_order_layer.gd"
     },
     {
       "errors": [],
@@ -526,6 +544,12 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://../../tools/cc3_mode_c_walk.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://../../tools/cx3_completer_screenshot.gd"
     },
     {
@@ -547,5 +571,5 @@
       "path": "res://../../tools/uxr3_action_probe.gd"
     }
   ],
-  "timestamp": "2026-10-17T16:36:12Z"
+  "timestamp": "2026-10-17T19:15:47Z"
 }

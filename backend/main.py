@@ -7052,15 +7052,61 @@ def respond_to_mailbox_item(request: MailboxRespondRequest):
 # DIPLOMATIC LEDGER ENDPOINT (Session 8A)
 # ════════════════════════════════════════════════════════════
 
+def _quote_field_marshal(name: str):
+    """CC-3: our corps in the field by its roster key (or a case variant) —
+    the only marshal a map gesture can address — else None."""
+    if not name:
+        return None
+    from backend.commands.order_quotes import _field_marshals
+    m = world.get_marshal(name)
+    return m if m is not None and m in _field_marshals(world) else None
+
+
 @app.get("/march_quotes")
-def get_march_quotes_endpoint(region: str = ""):
+def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "",
+                              enemy: str = "", ally: str = ""):
     """CC-2 "March here": every click order the province panel offers at
     `region`, quoted from the order's own pure readers
     (`backend/commands/order_quotes.py`). READ-ONLY — it runs no command,
     touches no popup queue and records nothing, so the panel may ask it
-    whenever it opens."""
+    whenever it opens.
+
+    CC-3 "Select, click, Enter": with `marshal`, the ONE quote a map gesture
+    opens its confirm card on — `dest` (a march), `enemy` (an attack on a
+    corps we SEE and are at war with — an unseen one is refused without a
+    word of where he is) or `ally` (a support) — as ``{"success", "quote"}``,
+    the very dict the panel's rows carry."""
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
+    if marshal:
+        try:
+            from backend.commands.order_quotes import attack_quote, march_quote, support_quote
+            subject = _quote_field_marshal(marshal)
+            if subject is None:
+                return {"success": False, "message": f"No corps of ours in the field named {marshal}."}
+            if dest:
+                if world.get_region(dest) is None:
+                    return {"success": False, "message": f"Unknown province: {dest}"}
+                return {"success": True, "quote": march_quote(world, subject, dest)}
+            if enemy:
+                foe = world.get_marshal(enemy)
+                player = world.player_nation
+                seen = foe is not None and int(getattr(foe, "strength", 0) or 0) > 0 and any(
+                    (row.get("name") if isinstance(row, dict) else getattr(row, "name", "")) == foe.name
+                    for row in world.get_visible_enemies_in_region(foe.location, player))
+                if not seen or not world.is_at_war(player, foe.nation):
+                    return {"success": False, "message": f"No enemy corps named {enemy} in sight."}
+                return {"success": True, "quote": attack_quote(world, subject, foe)}
+            if ally:
+                friend = world.get_marshal(ally)
+                if friend is None or friend.nation != world.player_nation:
+                    return {"success": False, "message": f"No corps of ours named {ally}."}
+                return {"success": True, "quote": support_quote(world, subject, friend)}
+            return {"success": False, "message": "Name a dest, an enemy or an ally to quote."}
+        except Exception as e:
+            _errors.report(e, "main.get_march_quotes_endpoint: the exact quote", every=True)
+            return {"success": False, "error": str(e),
+                    **_errors.debug_fields(e, "main.get_march_quotes_endpoint: the exact quote", DEBUG_MODE)}
     if not region or world.get_region(region) is None:
         return {"success": False, "message": f"Unknown province: {region}", "region": region}
     try:
@@ -7070,6 +7116,27 @@ def get_march_quotes_endpoint(region: str = ""):
         _errors.report(e, "main.get_march_quotes_endpoint: the quotes", every=True)
         return {"success": False, "region": region, "error": str(e),
                 **_errors.debug_fields(e, "main.get_march_quotes_endpoint: the quotes", DEBUG_MODE)}
+
+
+@app.get("/march_reach")
+def get_march_reach_endpoint(marshal: str = ""):
+    """CC-3 "Select, click, Enter": where a selected corps of ours can march
+    and in how many turns — every province at once
+    (`order_quotes.march_reach`, one pathfinding pass per rung — Rule 8), for
+    the map's ETA tint and the ghost road under the cursor. READ-ONLY, like
+    `/march_quotes`; asked once per selection, never per response."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    subject = _quote_field_marshal(marshal)
+    if subject is None:
+        return {"success": False, "message": f"No corps of ours in the field named {marshal}."}
+    try:
+        from backend.commands.order_quotes import march_reach
+        return march_reach(world, subject)
+    except Exception as e:
+        _errors.report(e, "main.get_march_reach_endpoint: the reach", every=True)
+        return {"success": False, "error": str(e),
+                **_errors.debug_fields(e, "main.get_march_reach_endpoint: the reach", DEBUG_MODE)}
 
 
 @app.get("/diplomatic_preview")

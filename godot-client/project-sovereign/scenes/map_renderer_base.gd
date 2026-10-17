@@ -16,10 +16,20 @@ signal map_mode_changed(mode: String)
 # UXR3-12 (Pre-Deploy S12): the camera's zoom or position moved — main.gd's
 # map chips read is_at_min_zoom / is_fit_view on it (honest availability).
 signal view_changed
+# CC-3 "Select, click, Enter" (row CC, Pre-Deploy S13c part 2): while a corps
+# is selected (or a piece is dragged) the thing under the cursor changed —
+# the owner draws its ghost road (`show_order_ghost`). A piece of ours dragged
+# 8 px is a drag; dropped on the map it names its target (`last_click_marshal`
+# holds the piece under the drop, "" for none; "" region = open water).
+signal order_hover(region_name: String, marshal_name: String)
+signal piece_drag_started(marshal_name: String)
+signal piece_dropped(marshal_name: String, region_name: String)
+signal piece_drag_cancelled(marshal_name: String)
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
 const MapLabelLayer = preload("res://scenes/map_label_layer.gd")
+const MapOrderLayer = preload("res://scenes/map_order_layer.gd")
 
 const REGION_RADIUS: float = 30.0
 const REGION_DIAMETER: float = REGION_RADIUS * 2.0
@@ -227,6 +237,46 @@ void fragment() {
 }
 """
 const HIGHLIGHT_KEY_NONE := Vector3(-10.0, -10.0, -10.0)
+# CC-3 "Select, click, Enter": a selected corps' REACH, tinted by ETA band on
+# the true province silhouettes — the owner fill's own palette pattern (one
+# ≤128-entry uniform upload per selection, never a per-pixel CPU pass) on the
+# owner fill's own lookup texture; the layer is hidden while nothing is
+# selected, so it costs nothing then. The bands are the march's own clock
+# (`strategic.march_turns`, read by `GET /march_reach`): on the order, one
+# turn, two or three, four and more. Out of reach is washed darker.
+const REACH_FILL_SHADER := """
+shader_type canvas_item;
+
+uniform int province_count = 0;
+uniform vec4 lookup_colors[128];
+uniform vec4 band_colors[128];
+
+void fragment() {
+	vec4 key = texture(TEXTURE, UV);
+	vec4 result = vec4(0.0);
+	if (key.r + key.g + key.b >= 0.002) {
+		for (int i = 0; i < province_count; i++) {
+			if (all(lessThan(abs(key.rgb - lookup_colors[i].rgb), vec3(0.002)))) {
+				result = band_colors[i];
+				break;
+			}
+		}
+	}
+	COLOR = result;
+}
+"""
+const ORDER_BAND_COLORS := [
+	Color(1.0, 0.98, 0.84, 0.58),   # 0 — on the order: he is there this turn
+	Color(1.0, 0.90, 0.52, 0.44),   # 1 — one turn
+	Color(0.98, 0.74, 0.34, 0.30),  # 2 — two or three turns
+	Color(0.90, 0.58, 0.28, 0.16),  # 3 — four turns and more
+]
+const ORDER_BAND_NAMES := ["this turn", "1 turn", "2–3 turns", "4+ turns"]
+const ORDER_OUT_OF_REACH := Color(0.03, 0.02, 0.02, 0.42)
+# A press on a piece of ours travels this far before it is a drag — the
+# grip's click-vs-drag rule, at the plan's 8 px: a piece is a target a hand
+# trembles on, where the grip's 2 px corner is not.
+const PIECE_DRAG_THRESHOLD_PX := 8.0
 
 static var _bitmap_load_error_latch := {}
 const FOG_OVERLAYS = {
@@ -261,6 +311,28 @@ var hovered_region: String = ""
 var last_click_marshal: String = ""
 var last_click_shift := false
 var last_click_ctrl := false
+# CC-X11 (CC-3's sweep): the corps a FOG CHIP names, when the click landed on
+# one ("" otherwise) — partial sight knows him by name (the panel's ATTACK
+# row offers him), so the order gesture targets him. `last_click_marshal`
+# keeps CC-1's meaning (a piece the eye sees).
+var last_click_fogged: String = ""
+# CC-3 "Select, click, Enter" (October 17, 2026): the corps the owner selected
+# (his roster key, "" for none) — the ring at his feet, his reach tinted by
+# ETA band, the ghost road under the cursor — and a press on a piece of ours
+# that may become a DRAG (`_drag_pending` until it travels 8 px, then
+# `_dragging`). The owner says which pieces may drag (`drag_allowed_check`:
+# ours, in the field, nothing typed, nothing on the wire); a press with Shift
+# or Ctrl never drags (CC-1 writes, CC-5 groups).
+var order_selected: String = ""
+var drag_allowed_check: Callable = Callable()
+var order_layer = null
+var reach_fill_layer: TextureRect = null
+var _order_bands := {}
+var _order_reach_ok := false
+var _order_hover_last := ""
+var _order_ghost_set := false
+var _drag_pending := {}
+var _dragging := false
 var pan_keys_pressed := {
 	"left": false,
 	"right": false,
@@ -977,6 +1049,7 @@ func _create_scene_layers():
 	world_layer.add_child(visual_map_layer)
 
 	_create_owner_fill_layer()
+	_create_reach_fill_layer()
 
 	highlight_map_layer = TextureRect.new()
 	highlight_map_layer.name = "ProvinceHighlightLayer"
@@ -1067,6 +1140,17 @@ func _create_scene_layers():
 		# Re-apply any UI rects pushed before the layer existed.
 		if not _ui_avoid_global_rects.is_empty():
 			map_label_layer.set_ui_avoid_rects(_ui_avoid_global_rects)
+
+	# CC-3: the ORDER layer — the selected corps' ring and the ghost road,
+	# screen-space like the labels (crisp at every zoom), above the names and
+	# below the tooltip.
+	order_layer = MapOrderLayer.new()
+	order_layer.name = "MapOrderLayer"
+	order_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	order_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	order_layer.z_index = 60
+	order_layer.setup(self)
+	add_child(order_layer)
 
 	tooltip_layer = MapTooltipLayer.new()
 	tooltip_layer.name = "TooltipLayer"
@@ -1159,6 +1243,74 @@ func _refresh_owner_fill_palette():
 			)
 		owners[i] = owner_color
 	owner_fill_layer.material.set_shader_parameter("owner_colors", owners)
+
+
+func _create_reach_fill_layer():
+	# CC-3: the reach tint — a later sibling of the owner fill at its z, so it
+	# draws over the ownership colours and under the hover highlight (z -1).
+	# It shares the owner fill's lookup texture and palette order (no second
+	# copy of the mask); bitmap maps only, like the owner fill.
+	reach_fill_layer = null
+	if owner_fill_layer == null:
+		return
+	reach_fill_layer = TextureRect.new()
+	reach_fill_layer.name = "ReachFillLayer"
+	reach_fill_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reach_fill_layer.position = owner_fill_layer.position
+	reach_fill_layer.size = owner_fill_layer.size
+	reach_fill_layer.stretch_mode = TextureRect.STRETCH_SCALE
+	reach_fill_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	reach_fill_layer.z_index = -2
+	reach_fill_layer.texture = owner_fill_layer.texture
+	var shader = Shader.new()
+	shader.code = REACH_FILL_SHADER
+	var reach_material = ShaderMaterial.new()
+	reach_material.shader = shader
+	var lookups := PackedColorArray()
+	lookups.resize(OWNER_FILL_MAX_PROVINCES)
+	for i in range(_owner_fill_province_order.size()):
+		lookups[i] = province_shapes[_owner_fill_province_order[i]]["lookup_color"]
+	reach_material.set_shader_parameter("lookup_colors", lookups)
+	reach_material.set_shader_parameter("province_count", _owner_fill_province_order.size())
+	reach_fill_layer.material = reach_material
+	reach_fill_layer.visible = false
+	world_layer.add_child(reach_fill_layer)
+
+
+static func order_band(turns: int) -> int:
+	"""CC-3: the ETA band of a march of `turns` (`ORDER_BAND_COLORS`)."""
+	if turns <= 0:
+		return 0
+	if turns == 1:
+		return 1
+	if turns <= 3:
+		return 2
+	return 3
+
+
+func _refresh_reach_fill() -> void:
+	"""CC-3: one palette upload per selection — each province its band's
+	colour, the selected corps' own province clear, the rest washed dark.
+	Shown only while a corps is selected and his reach has come back taken
+	(a corps that cannot march today tints nothing: the strip says why)."""
+	if reach_fill_layer == null:
+		return
+	if order_selected == "" or not _order_reach_ok:
+		reach_fill_layer.visible = false
+		return
+	var home := _order_home_region()
+	var bands := PackedColorArray()
+	bands.resize(OWNER_FILL_MAX_PROVINCES)
+	for i in range(_owner_fill_province_order.size()):
+		var region_name: String = _owner_fill_province_order[i]
+		if _order_bands.has(region_name):
+			bands[i] = ORDER_BAND_COLORS[int(_order_bands[region_name])]
+		elif region_name == home:
+			bands[i] = Color(0, 0, 0, 0)
+		else:
+			bands[i] = ORDER_OUT_OF_REACH
+	reach_fill_layer.material.set_shader_parameter("band_colors", bands)
+	reach_fill_layer.visible = true
 
 
 func recenter_view() -> void:
@@ -1648,6 +1800,7 @@ func _rebuild_dynamic_nodes():
 		map_label_layer.set_avoid_rects(_label_avoid_world_rects)
 	_push_furniture()
 	_refresh_hover_state()
+	_refresh_order_ring()   # CC-3: the hitboxes the ring stands on were rebuilt
 
 
 func _add_furniture(kind: String, nodes: Array) -> void:
@@ -2344,6 +2497,12 @@ func _process(delta: float):
 
 func _input(event):
 	if event is InputEventKey:
+		# CC-3: Esc while a piece is dragged cancels the gesture — consumed
+		# here, before the owner's Esc ladder sees it.
+		if _dragging and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+			_cancel_piece_drag()
+			get_viewport().set_input_as_handled()
+			return
 		_handle_pan_key_event(event)
 		return
 
@@ -2360,8 +2519,20 @@ func _input(event):
 			pan_start_pos = event.position
 			_set_camera_position(map_camera.position - drag_delta * _viewport_pixel_scale() / _zoom_level)
 		else:
+			# CC-3: a press on a piece of ours becomes a drag past 8 px.
+			if not _drag_pending.is_empty() and not _dragging \
+					and event.position.distance_to(_drag_pending["at"]) >= PIECE_DRAG_THRESHOLD_PX:
+				_dragging = true
+				piece_drag_started.emit(str(_drag_pending["marshal"]))
 			_refresh_hover_state()
+			_order_hover_tick()
 			queue_redraw()
+		return
+
+	# CC-3: the left button's RELEASE ends a press on a piece of ours — a drop
+	# when it travelled, else the click it was.
+	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_release_piece_drag(event)
 		return
 
 	if event is InputEventMouseButton and event.pressed:
@@ -2387,12 +2558,19 @@ func _input(event):
 			last_click_shift = event.shift_pressed
 			last_click_ctrl = event.ctrl_pressed
 			last_click_marshal = str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
+			last_click_fogged = str(hovered_fogged_force.get("name", "")) if hovered_fogged_force.size() > 0 else ""
+			# CC-3: a press on a piece of ours with nothing typed waits — 8 px
+			# of travel make it a drag, a release where it stands the click.
+			if _arm_piece_drag(event):
+				return
 			# NUI: a fleet piece or a hovered crossing (open water only — a
-			# province always wins the hover) opens THE ADMIRALTY.
-			if hovered_fleet.size() > 0:
+			# province always wins the hover) opens THE ADMIRALTY. CC-3: not
+			# while a corps is selected — the click is an order then, and a
+			# province beats the fleet pieces.
+			if order_selected == "" and hovered_fleet.size() > 0:
 				fleet_clicked.emit(str(hovered_fleet.get("nation", "")))
 				return
-			if hovered_sea_link.size() > 0:
+			if order_selected == "" and hovered_sea_link.size() > 0:
 				sea_link_clicked.emit(str(hovered_sea_link.get("a", "")),
 					str(hovered_sea_link.get("b", "")))
 				return
@@ -2476,7 +2654,9 @@ func _should_handle_map_pointer_event(event) -> bool:
 		return false
 	if not (event is InputEventMouseMotion or event is InputEventMouseButton):
 		return false
-	if is_panning:
+	# CC-3: a pressed piece of ours follows the cursor over any panel, as a
+	# pan does — its release is read wherever it lands.
+	if is_panning or not _drag_pending.is_empty():
 		return true
 	# SF7-X21: a modal's dim backdrop lets motion through to the map (its
 	# empty areas take no mouse), so the hovered-control guard below read
@@ -2490,6 +2670,268 @@ func _should_handle_map_pointer_event(event) -> bool:
 	if hovered_control != null and hovered_control != self and not is_ancestor_of(hovered_control):
 		return false
 	return true
+
+
+# ═══ CC-3 "Select, click, Enter" + drag (row CC, Pre-Deploy S13c part 2) ═══
+# The renderer is the canvas: the ring, the reach tint, the ghost road, the
+# drag gesture. The owner (main.gd) is the mind — it selects, fetches the
+# backend's quotes, opens the confirm card and sends through the typed road.
+
+func _arm_piece_drag(event: InputEventMouseButton) -> bool:
+	"""A plain press on a piece the owner lets drag waits for its release
+	(the click) or 8 px of travel (the drag). Shift and Ctrl never drag."""
+	if last_click_marshal == "" or event.shift_pressed or event.ctrl_pressed:
+		return false
+	if not drag_allowed_check.is_valid() or not bool(drag_allowed_check.call(hovered_marshal)):
+		return false
+	_drag_pending = {"marshal": last_click_marshal, "at": event.position}
+	_dragging = false
+	return true
+
+
+func _release_piece_drag(event: InputEventMouseButton) -> void:
+	if _drag_pending.is_empty():
+		return
+	var piece := str(_drag_pending["marshal"])
+	var was_dragging := _dragging
+	_drag_pending = {}
+	_dragging = false
+	if not was_dragging:
+		# Released where it was pressed: the press's own click, emitted now —
+		# on the province the piece stands in.
+		last_click_marshal = piece
+		var home := _region_of_marshal(piece)
+		if home != "" and _is_region_wired(home):
+			region_clicked.emit(home)
+		return
+	# A drop over a panel of the HUD is no target: the gesture is cancelled.
+	var over = get_viewport().gui_get_hovered_control()
+	if over != null and over != self and not is_ancestor_of(over):
+		piece_drag_cancelled.emit(piece)
+		return
+	mouse_position = event.position
+	_refresh_hover_state()
+	last_click_marshal = str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
+	last_click_fogged = str(hovered_fogged_force.get("name", "")) if hovered_fogged_force.size() > 0 else ""
+	last_click_shift = false
+	last_click_ctrl = false
+	var region := _lookup_region_from_color_map(_screen_to_map_position(event.position))
+	if region == "":
+		region = hovered_region
+	if region != "" and not _is_region_wired(region):
+		region = ""
+	if region == "" and last_click_marshal == "" and last_click_fogged == "":
+		piece_drag_cancelled.emit(piece)   # open water: no target
+		return
+	piece_dropped.emit(piece, region)
+
+
+func _cancel_piece_drag() -> void:
+	var piece := str(_drag_pending.get("marshal", ""))
+	_drag_pending = {}
+	_dragging = false
+	if piece != "":
+		piece_drag_cancelled.emit(piece)
+
+
+func _order_hover_tick() -> void:
+	"""While a corps is selected or a piece is dragged, tell the owner when the
+	thing under the cursor changes (it answers with `show_order_ghost`); a
+	drag over ground no road is quoted to draws a plain line to the cursor."""
+	if order_selected == "" and not _dragging:
+		_order_hover_last = ""
+		return
+	var marshal_name := str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
+	if marshal_name == "" and hovered_fogged_force.size() > 0:
+		marshal_name = str(hovered_fogged_force.get("name", ""))   # CC-X11: a chip names him
+	var key := hovered_region + "|" + marshal_name
+	if key != _order_hover_last:
+		_order_hover_last = key
+		order_hover.emit(hovered_region, marshal_name)
+	if _dragging and not _order_ghost_set and order_layer != null:
+		var feet = _order_piece_feet(order_selected)
+		if not feet.is_empty():
+			order_layer.set_ghost_to_cursor(feet["feet"], mouse_position - global_position)
+
+
+func _region_of_marshal(marshal_name: String) -> String:
+	for region_name in region_marshals:
+		for m in region_marshals[region_name]:
+			if m is Dictionary and str(m.get("name", "")) == marshal_name:
+				return region_name
+	return ""
+
+
+func _order_home_region() -> String:
+	return _region_of_marshal(order_selected) if order_selected != "" else ""
+
+
+func _order_piece_feet(marshal_name: String) -> Dictionary:
+	"""The piece's feet (WORLD) and a ring radius — from its hover box."""
+	for hitbox in marshal_hitboxes:
+		var m = hitbox["marshal"]
+		if m is Dictionary and str(m.get("name", "")) == marshal_name:
+			var rect: Rect2 = hitbox["rect"]
+			return {"feet": Vector2(rect.get_center().x, rect.end.y), "radius": rect.size.x * 0.62}
+	return {}
+
+
+func _refresh_order_ring() -> void:
+	if order_layer == null:
+		return
+	if order_selected == "":
+		order_layer.clear_ring()
+		return
+	var feet := _order_piece_feet(order_selected)
+	if feet.is_empty():
+		order_layer.clear_ring()
+		return
+	order_layer.set_ring(feet["feet"], float(feet["radius"]))
+
+
+func set_order_selection(marshal_name: String) -> void:
+	"""CC-3: the corps the owner selected (roster key) — the ring at his feet;
+	his reach is tinted when it comes back (`set_order_reach`)."""
+	order_selected = marshal_name
+	_order_bands = {}
+	_order_reach_ok = false
+	_order_hover_last = ""
+	clear_order_ghost()
+	_refresh_order_ring()
+	_refresh_reach_fill()
+	# Hover what is under the cursor now, without waiting for a motion.
+	_order_hover_tick()
+
+
+func set_order_reach(payload: Dictionary) -> void:
+	"""CC-3: `GET /march_reach`'s answer for the selected corps — each
+	province he can march to, banded by the march's own clock."""
+	_order_bands = {}
+	_order_reach_ok = bool(payload.get("ok", false))
+	var reach = payload.get("reach", {})
+	if reach is Dictionary:
+		for region_name in reach:
+			var row = reach[region_name]
+			if row is Dictionary:
+				_order_bands[str(region_name)] = order_band(int(row.get("turns", 0)))
+	_refresh_reach_fill()
+
+
+func clear_order_selection() -> void:
+	order_selected = ""
+	_order_bands = {}
+	_order_reach_ok = false
+	_order_hover_last = ""
+	_drag_pending = {}
+	_dragging = false
+	clear_order_ghost()
+	_refresh_order_ring()
+	_refresh_reach_fill()
+
+
+func show_order_ghost(road: Array, kind: String, label: String, steps_per_turn: int = 1) -> void:
+	"""CC-3: draw `road` (the quote's provinces, his own stripped) from the
+	selected piece's feet, a pip at each turn's end, `label` at its head."""
+	if order_layer == null:
+		return
+	var feet := _order_piece_feet(order_selected)
+	var positions = _get_active_region_positions()
+	var start: Vector2 = feet.get("feet", positions.get(_order_home_region(), Vector2.ZERO))
+	var points: Array = [start]
+	for r in road:
+		if positions.has(str(r)):
+			points.append(positions[str(r)])
+	var pips: Array = []
+	var step := maxi(1, steps_per_turn)
+	var k := step - 1
+	while k < road.size() - 1:
+		pips.append(k + 1)
+		k += step
+	order_layer.set_ghost(points, kind, label, pips)
+	_order_ghost_set = points.size() > 1
+
+
+func clear_order_ghost() -> void:
+	_order_ghost_set = false
+	if order_layer != null:
+		order_layer.clear_ghost()
+
+
+func order_screen_rect() -> Rect2:
+	"""CC-3: the selected corps' ring and ghost road on screen (GLOBAL
+	coordinates; empty with neither) — the card stands clear of it."""
+	if order_layer == null:
+		return Rect2()
+	var local: Rect2 = order_layer.screen_rect()
+	if local.size == Vector2.ZERO:
+		return Rect2()
+	return Rect2(local.position + global_position, local.size)
+
+
+func rearm_order_hover() -> void:
+	"""CC-3: the card shut over the map — read what stands under the cursor
+	now and say it again (the modal cleared the hover under it)."""
+	_order_hover_last = ""
+	if order_selected == "":
+		return
+	_refresh_hover_state()
+	_order_hover_tick()
+
+
+func order_band_legend_bbcode() -> String:
+	"""CC-3: the strip's legend — each ETA band's swatch in the band's own
+	colour (opaque, on the strip's dark ground) beside its name. Composed
+	here, where the band colours live: they are the tint's, not the war
+	room's text palette."""
+	var parts := PackedStringArray()
+	for i in range(ORDER_BAND_COLORS.size()):
+		var c: Color = ORDER_BAND_COLORS[i]
+		parts.append("[color=#%s]■[/color] %s" % [Color(c.r, c.g, c.b).to_html(false), ORDER_BAND_NAMES[i]])
+	return "   ".join(parts)
+
+
+func is_dragging_piece() -> bool:
+	return _dragging
+
+
+func order_report() -> Dictionary:
+	"""What the order gesture holds — read by the CC harness."""
+	return {
+		"selected": order_selected,
+		"bands": _order_bands.duplicate(),
+		"tint_visible": reach_fill_layer != null and reach_fill_layer.visible,
+		"layer": order_layer.report() if order_layer != null else {},
+		"drag_pending": not _drag_pending.is_empty(),
+		"dragging": _dragging,
+	}
+
+
+func screen_point_of_world(world_position: Vector2) -> Vector2:
+	"""A WORLD point in the viewport's (root) coordinates — where a pushed
+	mouse event must land to touch it."""
+	if map_viewport == null:
+		return world_position
+	return global_position + (map_viewport.canvas_transform * world_position) / _viewport_pixel_scale()
+
+
+func screen_point_of_marshal(marshal_name: String) -> Vector2:
+	"""His piece's centre on screen — else the fog chip that names him."""
+	for hitbox in marshal_hitboxes:
+		var m = hitbox["marshal"]
+		if m is Dictionary and str(m.get("name", "")) == marshal_name:
+			return screen_point_of_world((hitbox["rect"] as Rect2).get_center())
+	for hitbox in fogged_force_hitboxes:
+		var f = hitbox.get("force", {})
+		if f is Dictionary and str(f.get("name", "")) == marshal_name:
+			return screen_point_of_world((hitbox["rect"] as Rect2).get_center())
+	return Vector2(-1, -1)
+
+
+func screen_point_of_region(region_name: String) -> Vector2:
+	var positions = _get_active_region_positions()
+	if not positions.has(region_name):
+		return Vector2(-1, -1)
+	return screen_point_of_world(positions[region_name])
 
 
 func _draw():
@@ -2592,8 +3034,11 @@ func _refresh_hover_state():
 			_set_hovered_region("")
 			return
 
-	# NUI: a fleet piece is hoverable and clickable like a corps.
-	for hitbox in fleet_hitboxes:
+	# NUI: a fleet piece is hoverable and clickable like a corps. CC-3: not
+	# while a corps is selected or a piece is dragged — the province beneath
+	# it is the order's target then.
+	var ordering := order_selected != "" or not _drag_pending.is_empty()
+	for hitbox in ([] if ordering else fleet_hitboxes):
 		if hitbox["rect"].has_point(map_mouse):
 			hovered_fleet = hitbox["fleet"]
 			_set_hovered_region("")
@@ -2608,7 +3053,7 @@ func _refresh_hover_state():
 	# NUI: over open water, a drawn sea crossing answers the hover with the
 	# Admiralty's own verdict sentence. Land always wins the hover (above),
 	# so a province click is never stolen by a crossing that ends on it.
-	var sea_link := _nearest_sea_link(map_mouse)
+	var sea_link: Dictionary = {} if ordering else _nearest_sea_link(map_mouse)
 	if not sea_link.is_empty():
 		hovered_sea_link = sea_link
 		_set_hovered_region("")

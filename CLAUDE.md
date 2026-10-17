@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 17, 2026).** The three most recent landed rows:
-- **S13e part 4 (October 17, 2026) — PC "the stake" — LANDED; S13e COMPLETE.** The war titled by its stake (`war_title.py`): `SYSTEMS_REFERENCE.md` §127; PC-R7 (ii) heads S14. **NEXT = S13c part 2 (CC-3)**, then parts 3–4, S13b part 4.
+- **S13c part 2 (October 17, 2026) — CC-3 "Select, click, Enter" (+ drag) — LANDED.** The map's order gesture on the exact quote: `SYSTEMS_REFERENCE.md` §128. **NEXT = S13c part 3 (CC-5)**, then part 4, S13b part 4.
+- **S13e part 4 (October 17, 2026) — LANDED; S13e COMPLETE** (§127; PC-R7 (ii) heads S14).
 - **S13f + CF-4/6/7/8 (October 17, 2026) — LANDED** (§125–§126).
-- **S13e parts 1–3 (October 16, 2026) — LANDED** (§122–§124).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

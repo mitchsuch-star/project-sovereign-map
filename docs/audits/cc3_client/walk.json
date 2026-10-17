@@ -1,0 +1,226 @@
+{
+  "backend": "http://127.0.0.1:8007",
+  "booted": true,
+  "dest": "Amsterdam",
+  "dest_quote": {
+    "already": false,
+    "ap": 1.0,
+    "command": "Napoleon, march to Amsterdam",
+    "contact": "",
+    "dest": "Amsterdam",
+    "kind": "march",
+    "marshal": "Napoleon",
+    "note": "",
+    "objection": "none",
+    "ok": true,
+    "refusal": "",
+    "replaces": "",
+    "road": [
+      "Brabant",
+      "Amsterdam"
+    ],
+    "shown": "Napoleon",
+    "turns": 2.0
+  },
+  "drop": "Carniola",
+  "drop_quote": {
+    "already": false,
+    "ap": 2.0,
+    "command": "Bernadotte, march to Carniola",
+    "contact": "",
+    "dest": "Carniola",
+    "kind": "march",
+    "marshal": "Bernadotte",
+    "note": "",
+    "objection": "none",
+    "ok": true,
+    "refusal": "",
+    "replaces": "",
+    "road": [
+      "Bohemia",
+      "Carniola"
+    ],
+    "shown": "Bernadotte",
+    "turns": 2.0
+  },
+  "enemies_seen": [
+    [
+      "Deroy",
+      false,
+      699.07421875,
+      371.263092041016
+    ],
+    [
+      "Mack",
+      true,
+      592.623474121094,
+      369.719909667969
+    ],
+    [
+      "ArchdukeJohn",
+      true,
+      691.215454101563,
+      492.602661132813
+    ],
+    [
+      "Brunswick",
+      false,
+      703.36083984375,
+      210.400985717773
+    ]
+  ],
+  "enemy": "Mack",
+  "enemy_quote": {
+    "already": false,
+    "ap": 1.0,
+    "command": "Bernadotte, attack Mack",
+    "contact": "",
+    "dest": "Swabia",
+    "kind": "attack",
+    "marshal": "Bernadotte",
+    "note": "",
+    "objection": "none",
+    "ok": true,
+    "refusal": "",
+    "replaces": "",
+    "road": [
+      "Swabia"
+    ],
+    "shown": "Bernadotte",
+    "turns": 0.0
+  },
+  "modal_after_send": false,
+  "ms": 14931,
+  "reply_tail": "), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing\n  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes\n\n─────────────────────────────────────\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Napoleon, march to Amsterdam\nNapoleon begins march to Amsterdam. Route: Brabant → Amsterdam. Moves to Brabant. (1 AP — the Emperor commands in his own name.)\n   [3/4 actions remaining]\n\n",
+  "second": "Bernadotte",
+  "sent_command": "Napoleon, march to Amsterdam",
+  "steps": [
+    {
+      "bands": 59,
+      "card_command": "",
+      "card_open": false,
+      "frame": "CC3_1_select_2026_10_17.jpg",
+      "layer": {
+        "ghost_kind": "",
+        "ghost_label": "",
+        "ghost_points": 0,
+        "pips": 0,
+        "ring": true
+      },
+      "note": "a click on Napoleon's piece on an empty line",
+      "saved": true,
+      "selected": "Napoleon",
+      "step": "1_select",
+      "strip": "Napoleon selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\n■ this turn   ■ 1 turn   ■ 2–3 turns   ■ 4+ turns   59 provinces on his roads · a march costs 1 action"
+    },
+    {
+      "bands": 59,
+      "card_command": "",
+      "card_open": false,
+      "frame": "CC3_2_hover_2026_10_17.jpg",
+      "layer": {
+        "ghost_kind": "march",
+        "ghost_label": "2 turns · 1 AP",
+        "ghost_points": 3,
+        "pips": 1,
+        "ring": true
+      },
+      "note": "the cursor on Amsterdam: the quote's road",
+      "saved": true,
+      "selected": "Napoleon",
+      "step": "2_hover",
+      "strip": "Napoleon selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\n■ this turn   ■ 1 turn   ■ 2–3 turns   ■ 4+ turns   59 provinces on his roads · a march costs 1 action"
+    },
+    {
+      "bands": 59,
+      "card_command": "Napoleon, march to Amsterdam",
+      "card_open": true,
+      "frame": "CC3_3_card_2026_10_17.jpg",
+      "layer": {
+        "ghost_kind": "march",
+        "ghost_label": "2 turns · 1 AP",
+        "ghost_points": 3,
+        "pips": 1,
+        "ring": true
+      },
+      "note": "the click on Amsterdam: the card on the exact quote",
+      "saved": true,
+      "selected": "Napoleon",
+      "step": "3_card",
+      "strip": "Napoleon selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\n■ this turn   ■ 1 turn   ■ 2–3 turns   ■ 4+ turns   59 provinces on his roads · a march costs 1 action"
+    },
+    {
+      "bands": 0,
+      "card_command": "",
+      "card_open": false,
+      "frame": "CC3_4_sent_2026_10_17.jpg",
+      "layer": {
+        "ghost_kind": "",
+        "ghost_label": "",
+        "ghost_points": 0,
+        "pips": 0,
+        "ring": false
+      },
+      "note": "Enter: 'Napoleon, march to Amsterdam' sent; the reply in the terminal",
+      "saved": true,
+      "selected": "",
+      "step": "4_sent",
+      "strip": ""
+    },
+    {
+      "bands": 59,
+      "card_command": "",
+      "card_open": false,
+      "frame": "CC3_5_dragging_2026_10_17.jpg",
+      "layer": {
+        "ghost_kind": "march",
+        "ghost_label": "2 turns · 2 AP",
+        "ghost_points": 3,
+        "pips": 1,
+        "ring": true
+      },
+      "note": "Bernadotte's piece dragged over Carniola",
+      "saved": true,
+      "selected": "Bernadotte",
+      "step": "5_dragging",
+      "strip": "Bernadotte selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\n■ this turn   ■ 1 turn   ■ 2–3 turns   ■ 4+ turns   59 provinces on his roads · a march costs 2 actions"
+    },
+    {
+      "bands": 59,
+      "card_command": "Bernadotte, march to Carniola",
+      "card_open": true,
+      "frame": "CC3_6_dropped_2026_10_17.jpg",
+      "layer": {
+        "ghost_kind": "march",
+        "ghost_label": "2 turns · 2 AP",
+        "ghost_points": 3,
+        "pips": 1,
+        "ring": true
+      },
+      "note": "released on Carniola: the card",
+      "saved": true,
+      "selected": "Bernadotte",
+      "step": "6_dropped",
+      "strip": "Bernadotte selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\n■ this turn   ■ 1 turn   ■ 2–3 turns   ■ 4+ turns   59 provinces on his roads · a march costs 2 actions"
+    },
+    {
+      "bands": 59,
+      "card_command": "Bernadotte, attack Mack",
+      "card_open": true,
+      "frame": "CC3_7_attack_2026_10_17.jpg",
+      "layer": {
+        "ghost_kind": "attack",
+        "ghost_label": "attack · 1 AP",
+        "ghost_points": 2,
+        "pips": 0,
+        "ring": true
+      },
+      "note": "with Bernadotte selected, a click on Mack",
+      "saved": true,
+      "selected": "Bernadotte",
+      "step": "7_attack",
+      "strip": "Bernadotte selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\n■ this turn   ■ 1 turn   ■ 2–3 turns   ■ 4+ turns   59 provinces on his roads · a march costs 2 actions"
+    }
+  ],
+  "subject": "Napoleon"
+}

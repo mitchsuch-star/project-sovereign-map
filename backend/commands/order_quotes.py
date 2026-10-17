@@ -252,6 +252,56 @@ def march_quote(world, marshal, dest: str, *, then_attack: str = "",
     return q
 
 
+def march_reach(world, marshal) -> Dict[str, Any]:
+    """CC-3 "Select, click, Enter": where `<marshal>, march to <P>` would be
+    TAKEN, for every province P, and in how many turns — the map's ETA tint
+    for a selected corps (`GET /march_reach`). The same readers as
+    `march_quote`, in its order: the state probe, the identical standing
+    order (taken at 0 AP), the road law — read for every province at once
+    (`strategic.march_roads`: one pathfinding pass per rung of the ladder,
+    the cautious avoid-set computed once — Rule 8), the arrival law. A
+    province is in `reach` exactly when its `march_quote` is `ok`, with the
+    quote's own road and turns (pinned). PURE."""
+    from backend.commands import strategic as road_law
+    from backend.commands.state_probe import order_state_refusal
+    reach_range = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    out: Dict[str, Any] = {
+        "success": True,
+        "marshal": marshal.name,
+        "shown": humanize_entity_name(marshal.name),
+        "location": marshal.location,
+        "ap": int(marshal.strategic_order_ap(order_type="MOVE_TO")),
+        "range": reach_range,
+        "ok": False,
+        "refusal": "",
+        "reach": {},
+    }
+    state = order_state_refusal(world, marshal, "march")
+    if state:
+        out["refusal"] = state
+        return out
+    order = getattr(marshal, "strategic_order", None)
+    already = ""
+    if (order is not None and not getattr(order, "condition", None)
+            and getattr(order, "command_type", None) == "MOVE_TO"):
+        already = str(getattr(order, "target", "") or "").lower()
+    reach: Dict[str, Any] = {}
+    for dest, (road, refusal, _kind) in road_law.march_roads(world, marshal, "MOVE_TO").items():
+        if already and dest.lower() == already:
+            # `_standing_quote`'s identical order: taken at 0 AP, whatever
+            # the road reads today.
+            reach[dest] = {"turns": int(road_law.march_turns(len(road or []), reach_range)),
+                           "road": list(road or []), "already": True}
+            continue
+        if refusal is not None or not road:
+            continue
+        reach[dest] = {"turns": int(road_law.march_turns(len(road), reach_range)),
+                       "road": list(road)}
+    out["ok"] = True
+    out["reach"] = reach
+    return out
+
+
 def support_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[str, Any]:
     """`<Marshal>, support <ally>` — a friendly, free corps; SUPPORT's own
     price (1 action for every marshal, SR-2e)."""

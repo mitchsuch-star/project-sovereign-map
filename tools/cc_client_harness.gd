@@ -67,6 +67,25 @@ class ApiStub extends Node:
 	func cancel_strategic_order(_m, _cb = null): calls.append("cancel_strategic_order")
 	func dismiss_notification(_i, _cb = null): calls.append("dismiss_notification")
 	func dismiss_all_notifications(_cb = null): calls.append("dismiss_all_notifications")
+	# CC-3: the selection's two read-only GETs — recorded, their callbacks
+	# HELD until the scenario answers them with the real backend's payload
+	# (`answer`), so the scenario controls when (and whether) each lands.
+	var held := {}
+	func get_march_reach(m, cb = null):
+		var key := "march_reach:" + str(m)
+		calls.append(key)
+		held[key] = cb
+	func get_order_quote(m, kind, target, cb = null):
+		var key := "order_quote:%s|%s|%s" % [str(m), str(kind), str(target)]
+		calls.append(key)
+		held[key] = cb
+	func answer(key: String, payload) -> bool:
+		var cb = held.get(key, null)
+		held.erase(key)
+		if cb is Callable:
+			cb.call(payload)
+			return true
+		return false
 
 
 var _frames := 0
@@ -98,6 +117,21 @@ func _tick():
 			_boot()
 		"run":
 			_run()
+		"cc3_view":
+			# The live boot shows the map when /map_topology answers; the stub
+			# never does (`_run` hands the map the topology itself).
+			var map = _map()
+			if map != null:
+				map.visible = true
+				map.call("fit_europe")
+			_phase = "cc3_drag"
+			_wait = 4
+		"cc3_drag":
+			_run_cc3_drag()
+		"cc3_minimized":
+			_restore_after_replies()
+		"cc3_restored":
+			_read_restored_terminal()
 		"done":
 			_finish()
 
@@ -162,6 +196,8 @@ func _fresh(text: String = "", caret: int = -1) -> void:
 	_main.set("_awaiting_end_turn_confirmation", false)
 	_main.set("_chip_command_in_flight", false)
 	_main.call("set_input_enabled", true)
+	if _main.has_method("_clear_order_selection"):
+		_main.call("_clear_order_selection")   # CC-3: no corps selected
 	var panel = _panel()
 	if panel != null and panel.visible:
 		panel.close_panel()
@@ -174,6 +210,7 @@ func _fresh(text: String = "", caret: int = -1) -> void:
 		map.set("last_click_marshal", "")
 		map.set("last_click_shift", false)
 		map.set("last_click_ctrl", false)
+		map.set("last_click_fogged", "")
 
 
 func _key(keycode: int, unicode: int = 0) -> void:
@@ -188,13 +225,14 @@ func _key(keycode: int, unicode: int = 0) -> void:
 	root.push_input(up)
 
 
-func _click(region: String, marshal: String = "", shift: bool = false) -> void:
+func _click(region: String, marshal: String = "", shift: bool = false, fogged: String = "") -> void:
 	"""What `map_renderer_base` records on a left press, then the signal it
 	emits — the province click as the live map delivers it."""
 	var map = _map()
 	map.set("last_click_marshal", marshal)
 	map.set("last_click_shift", shift)
 	map.set("last_click_ctrl", false)
+	map.set("last_click_fogged", fogged)
 	_main.call("_on_map_region_clicked", region)
 
 
@@ -412,6 +450,17 @@ func _run():
 
 	_out["api_calls"] = _api.calls
 	_phase = "done"
+	# ══ CC-3 "Select, click, Enter" (only when the spec carries its board) ═
+	if _spec.has("cc3"):
+		_run_cc3()
+		_out["api_calls"] = _api.calls
+		# The drag is pushed as real mouse events, so the map needs a real
+		# screen: headless, the root is 64 px square and the top bar covers
+		# every piece. A 1600x900 window, then the whole theatre in view.
+		root.mode = Window.MODE_WINDOWED
+		root.size = Vector2i(1600, 900)
+		_phase = "cc3_view"
+		_wait = 6
 
 
 func _calls_since(n: int, prefix: String) -> Array:
@@ -472,6 +521,489 @@ func _run_march_here() -> void:
 	panel.call("set_march_quotes", other, refused)
 	_out["p6_text"] = str(panel.content_area.text)
 	panel.close_panel()
+
+
+# ══ CC-3 "Select, click, Enter" + drag ═════════════════════════════════════
+# The spec's "cc3" block carries the REAL backend's answers for one corps of
+# ours: his reach (GET /march_reach) and the exact quotes (GET /march_quotes?
+# marshal=…) for a province, a refused province, an enemy and an ally. The
+# stub HOLDS each GET until the scenario answers it, as the wire would.
+
+func _card():
+	return _main.get("order_card")
+
+
+func _selected() -> String:
+	return str(_main.get("_order_marshal"))
+
+
+func _order() -> Dictionary:
+	var map = _map()
+	if map == null or not map.has_method("order_report"):
+		return {}
+	return map.call("order_report")
+
+
+func _layer() -> Dictionary:
+	var rep := _order()
+	return rep.get("layer", {}) if rep.get("layer", {}) is Dictionary else {}
+
+
+func _quote_key(cc3: Dictionary, kind: String, target: String) -> String:
+	return "order_quote:%s|%s|%s" % [str(cc3["subject"]), kind, target]
+
+
+func _select(cc3: Dictionary) -> void:
+	"""Select the subject as the live client does — a plain click on his piece
+	on an empty line — and answer his reach."""
+	_fresh("")
+	_click(str(cc3["subject_location"]), str(cc3["subject"]))
+	_api.answer("march_reach:" + str(cc3["subject"]), cc3["reach"])
+
+
+func _run_cc3() -> void:
+	var cc3: Dictionary = _spec["cc3"]
+	var subject := str(cc3["subject"])
+	var home := str(cc3["subject_location"])
+	var dest := str(cc3["dest"])
+	var line = _line()
+	var panel = _panel()
+	var card = _card()
+	# The board again: CC-1's c10 emptied the hit boxes the ring and the
+	# drag stand on.
+	_main.call("_update_map_from_game_state", (_spec.get("game_state", {}) as Dictionary).duplicate(true))
+
+	# k1 — a plain click on a piece of ours on an EMPTY line selects him: the
+	# ring, the strip, his reach asked for once; the panel stays shut.
+	_fresh("")
+	var n: int = _api.calls.size()
+	_click(home, subject)
+	_out["k1_selected"] = _selected()
+	_out["k1_panel_open"] = bool(panel.visible)
+	_out["k1_reach_asked"] = _calls_since(n, "march_reach:")
+	_out["k1_ring"] = bool(_layer().get("ring", false))
+	_out["k1_strip_loading"] = str(_main.call("order_strip_text"))
+	_out["k1_tint_before"] = bool(_order().get("tint_visible", false))
+	_api.answer("march_reach:" + subject, cc3["reach"])
+	var bands: Dictionary = _order().get("bands", {})
+	_out["k1_band_count"] = bands.size()
+	_out["k1_band_dest"] = int(bands.get(dest, -1))
+	_out["k1_band_far"] = int(bands.get(str(cc3.get("far_dest", "")), -1))
+	_out["k1_tint"] = bool(_order().get("tint_visible", false))
+	_out["k1_strip"] = str(_main.call("order_strip_text"))
+
+	# k2 — the cursor over a province draws the reach's road at once; at rest
+	# it fetches the exact quote — ONE GET, however long it rests.
+	n = _api.calls.size()
+	_main.call("_on_map_order_hover", dest, "")
+	_out["k2_ghost_points"] = int(_layer().get("ghost_points", 0))
+	_out["k2_ghost_label"] = str(_layer().get("ghost_label", ""))
+	_main.call("_on_order_dwell_timeout")
+	_main.call("_on_order_dwell_timeout")
+	_out["k2_quote_asked"] = _calls_since(n, "order_quote:")
+	_api.answer(_quote_key(cc3, "dest", dest), {"success": true, "quote": cc3["dest_quote"]})
+	_out["k2_ghost_label_exact"] = str(_layer().get("ghost_label", ""))
+	_out["k2_ghost_kind"] = str(_layer().get("ghost_kind", ""))
+
+	# k3 — a click on the province opens the CARD on that quote, never the
+	# panel; the quote in hand is not asked again.
+	n = _api.calls.size()
+	_click(dest)
+	_out["k3_card_open"] = bool(card.visible)
+	_out["k3_card_command"] = str(card.call("command"))
+	_out["k3_panel_open"] = bool(panel.visible)
+	_out["k3_asked_again"] = _calls_since(n, "order_quote:")
+	_out["k3_modal"] = bool(_main.call("_is_modal_dialog_open"))
+
+	# k4 — Enter on the card sends exactly its command — never the line,
+	# never the armed end turn — and lets the selection go.
+	_main.set("_awaiting_end_turn_confirmation", true)
+	var before := _sends().size()
+	_key(KEY_ENTER)
+	_out["k4_sent"] = _sends().slice(before)
+	_out["k4_card_open"] = bool(card.visible)
+	_out["k4_selected"] = _selected()
+	_out["k4_latch"] = bool(_main.get("_awaiting_end_turn_confirmation"))
+	_out["k4_line"] = str(line.text)
+	_out["k4_ring"] = bool(_layer().get("ring", false))
+	_out["k4_tint"] = bool(_order().get("tint_visible", false))
+	_out["k4_history_last"] = str((_main.get("command_history") as Array).back()) \
+		if (_main.get("command_history") as Array).size() > 0 else ""
+	_main.set("_chip_command_in_flight", false)
+	_main.call("set_input_enabled", true)
+
+	# k5 — Esc on the card shuts it, sends nothing and keeps him selected;
+	# the next Esc lets him go — the line's own Esc, then the map's ladder
+	# (which must not ALSO open the pause menu).
+	_select(cc3)
+	_click(dest)
+	_api.answer(_quote_key(cc3, "dest", dest), {"success": true, "quote": cc3["dest_quote"]})
+	before = _sends().size()
+	_key(KEY_ESCAPE)
+	_out["k5_card_open"] = bool(card.visible)
+	_out["k5_sends"] = _sends().slice(before)
+	_out["k5_selected_after_card_esc"] = _selected()
+	_main.call("_clear_suggestions")
+	line.grab_focus()
+	_key(KEY_ESCAPE)
+	_out["k5_selected_after_line_esc"] = _selected()
+	_select(cc3)
+	_main.get_viewport().gui_release_focus()
+	var pause = _main.get("pause_menu")
+	_key(KEY_ESCAPE)
+	_out["k5_selected_after_map_esc"] = _selected()
+	_out["k5_pause_open"] = bool(pause.visible) if pause != null else false
+	if pause != null and pause.visible:
+		pause.call("close_menu")
+
+	# k5b — under the card every key is the card's: a bare E ends no turn.
+	_select(cc3)
+	_click(dest)
+	_api.answer(_quote_key(cc3, "dest", dest), {"success": true, "quote": cc3["dest_quote"]})
+	before = _sends().size()
+	_main.get_viewport().gui_release_focus()
+	_key(KEY_E, 101)
+	_out["k5b_sends"] = _sends().slice(before)
+	_out["k5b_card_open"] = bool(card.visible)
+	_key(KEY_ESCAPE)
+
+	# k6 — [Put in line] writes the quoted command on the line, sends nothing
+	# and lets the selection go.
+	_select(cc3)
+	_click(dest)
+	_api.answer(_quote_key(cc3, "dest", dest), {"success": true, "quote": cc3["dest_quote"]})
+	before = _sends().size()
+	card.call("_on_line")
+	_out["k6_line"] = str(line.text)
+	_out["k6_sends"] = _sends().slice(before)
+	_out["k6_selected"] = _selected()
+	_out["k6_card_open"] = bool(card.visible)
+
+	# k7 — an enemy we see: the ATTACK quote (attack within his reach, march
+	# and attack beyond it — the backend's word, not the client's).
+	if cc3.has("enemy"):
+		_select(cc3)
+		n = _api.calls.size()
+		_click(str(cc3["enemy_location"]), str(cc3["enemy"]))
+		_out["k7_asked"] = _calls_since(n, "order_quote:")
+		_api.answer(_quote_key(cc3, "enemy", str(cc3["enemy"])), {"success": true, "quote": cc3["enemy_quote"]})
+		_out["k7_card_command"] = str(card.call("command"))
+		_key(KEY_ESCAPE)
+
+	# k7b — CC-X11: the enemy's FOG CHIP (partial sight names him — the
+	# panel's ATTACK row offers him): the attack quote, not a march to his
+	# province.
+	if cc3.has("enemy"):
+		_select(cc3)
+		n = _api.calls.size()
+		_click(str(cc3["enemy_location"]), "", false, str(cc3["enemy"]))
+		_out["k7b_asked"] = _calls_since(n, "order_quote:")
+		_api.answer(_quote_key(cc3, "enemy", str(cc3["enemy"])), {"success": true, "quote": cc3["enemy_quote"]})
+		_out["k7b_card_command"] = str(card.call("command"))
+		_key(KEY_ESCAPE)
+		# The control arm: the same province clicked off the chip is a march.
+		n = _api.calls.size()
+		_click(str(cc3["enemy_location"]))
+		_out["k7c_asked"] = _calls_since(n, "order_quote:")
+		_key(KEY_ESCAPE)
+
+	# k8 — a corps of ours: SUPPORT.
+	if cc3.has("ally"):
+		_select(cc3)
+		n = _api.calls.size()
+		_click(str(cc3["ally_location"]), str(cc3["ally"]))
+		_out["k8_asked"] = _calls_since(n, "order_quote:")
+		_api.answer(_quote_key(cc3, "ally", str(cc3["ally"])), {"success": true, "quote": cc3["ally_quote"]})
+		_out["k8_card_command"] = str(card.call("command"))
+		_key(KEY_ESCAPE)
+
+	# k8b — a refused order: the card says why and Send is shut; its Enter
+	# only closes the card.
+	if cc3.has("refused_dest"):
+		_select(cc3)
+		_click(str(cc3["refused_dest"]))
+		_api.answer(_quote_key(cc3, "dest", str(cc3["refused_dest"])),
+			{"success": true, "quote": cc3["refused_quote"]})
+		_out["k8b_sendable"] = bool(card.call("is_sendable"))
+		var terms = card.get("terms_label")
+		_out["k8b_terms"] = str(terms.get_parsed_text()) if terms != null else ""
+		before = _sends().size()
+		_key(KEY_ENTER)
+		_out["k8b_sends"] = _sends().slice(before)
+		_out["k8b_card_open"] = bool(card.visible)
+		_out["k8b_selected"] = _selected()
+
+	# k9 — nothing acts while a command is on the wire.
+	_select(cc3)
+	_main.call("set_input_enabled", false)
+	n = _api.calls.size()
+	_click(dest)
+	_out["k9_card_open"] = bool(card.visible)
+	_out["k9_asked"] = _calls_since(n, "order_quote:")
+	_main.call("set_input_enabled", true)
+
+	# k10 — a draft owns the clicks (CC-1): no selection; a typed draft lets
+	# a selection go.
+	_fresh(str(_spec.get("own_marshal", "Ney")) + ", ho")
+	_click(home, subject)
+	_out["k10_selected_with_draft"] = _selected()
+	_out["k10_panel_with_draft"] = _panel_open_on(home)
+	_select(cc3)
+	line.text = "N"
+	_main.call("_on_command_text_changed", line.text)
+	_out["k10_selected_after_typing"] = _selected()
+	# k10b — CC-X12: a line filled by CODE (a suggestion taken, the history
+	# walked — no text_changed) and then a map click: the click is CC-1's
+	# pen, not a card; the selection is let go.
+	_select(cc3)
+	line.text = str(_spec.get("own_marshal", "Ney")) + ", march to "
+	line.caret_column = line.text.length()
+	n = _api.calls.size()
+	_click(dest)
+	_out["k10b_selected"] = _selected()
+	_out["k10b_card_open"] = bool(card.visible)
+	_out["k10b_asked"] = _calls_since(n, "order_quote:")
+	_out["k10b_line"] = str(line.text)
+
+	# k11 — the clearing rules.
+	var rules := {}
+	_select(cc3)
+	_main.call("_on_map_dismiss_requested")
+	rules["right_click"] = _selected()
+	_select(cc3)
+	_click(home, subject)
+	rules["click_him_again"] = _selected()
+	var top = _main.get("top_bar")
+	_select(cc3)
+	if top != null:
+		top.call("toggle_screen", "ledger")
+		rules["screen"] = _selected()
+		top.call("close_all_screens")
+	_select(cc3)
+	var other = _main.get("clarification_popup")
+	if other != null:
+		other.show()
+		rules["modal"] = _selected()
+		other.hide()
+	_select(cc3)
+	_main.call("_send_end_turn")
+	rules["end_turn"] = _selected()
+	_main.call("set_input_enabled", true)
+	var gs: Dictionary = (_spec.get("game_state", {}) as Dictionary).duplicate(true)
+	_select(cc3)
+	var without: Dictionary = gs.duplicate(true)
+	(without["marshals"] as Dictionary).erase(subject)
+	_main.call("_update_map_from_game_state", without)
+	rules["missing_from_board"] = _selected()
+	_main.call("_update_map_from_game_state", gs)
+	_select(cc3)
+	n = _api.calls.size()
+	_main.call("_update_map_from_game_state", gs)
+	rules["standing_on_new_board"] = _selected()
+	rules["reach_asked_again"] = _calls_since(n, "march_reach:").size()
+	_api.answer("march_reach:" + subject, cc3["reach"])
+	_main.call("_reset_frontend_state_for_world_swap", false)
+	rules["world_swap"] = _selected()
+	_main.call("_update_map_from_game_state", gs)
+	_out["k11_rules"] = rules
+
+	# k12 — the panel stays shut while he is selected.
+	_fresh("")
+	_click(dest)
+	_out["k12_panel_first"] = _panel_open_on(dest)
+	_click(home, subject)
+	_out["k12_panel_after_select"] = bool(panel.visible)
+	_click(dest)
+	_out["k12_panel_after_click"] = bool(panel.visible)
+	_out["k12_card_after_click"] = bool(card.visible)
+	_key(KEY_ESCAPE)
+	_fresh("")
+
+
+func _push_motion(at: Vector2, held: bool) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.position = at
+	ev.global_position = at
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT if held else 0
+	root.push_input(ev, true)
+
+
+func _push_left(at: Vector2, pressed: bool) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = pressed
+	ev.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+	ev.position = at
+	ev.global_position = at
+	root.push_input(ev, true)
+
+
+func _hover(at: Vector2, held: bool = false) -> void:
+	# Twice: the map reads the control under the cursor as the GUI left it
+	# after the PREVIOUS motion (the GUI updates its hover after `_input`).
+	_push_motion(at, held)
+	_push_motion(at, held)
+
+
+func _uncovered(map, at: Vector2) -> bool:
+	_hover(at)
+	var over = root.gui_get_hovered_control()
+	return over == map or (over != null and map.is_ancestor_of(over))
+
+
+func _water_point(map) -> Vector2:
+	"""A point of open water on screen, clear of every piece and panel."""
+	var rect: Rect2 = map.get_global_rect()
+	var y := rect.position.y + 60.0
+	while y < rect.end.y - 20.0:
+		var x := rect.position.x + 20.0
+		while x < rect.end.x - 20.0:
+			var p := Vector2(x, y)
+			var world: Vector2 = map.call("_screen_to_map_position", p)
+			if str(map.call("_lookup_region_from_color_map", world)) == "":
+				var clear := true
+				for hb in map.get("marshal_hitboxes") + map.get("fleet_hitboxes"):
+					if (hb["rect"] as Rect2).grow(12.0).has_point(world):
+						clear = false
+						break
+				if clear and _uncovered(map, p):
+					return p
+			x += 24.0
+		y += 24.0
+	return Vector2(-1, -1)
+
+
+func _run_cc3_drag() -> void:
+	var cc3: Dictionary = _spec["cc3"]
+	var subject := str(cc3["subject"])
+	var drag_dest := str(cc3["drag_dest"])
+	var map = _map()
+	var card = _card()
+	_fresh("")
+	_main.call("_minimize_terminal")   # the bottom-left is the map's again
+	var water := _water_point(map)
+	var piece: Vector2 = map.call("screen_point_of_marshal", subject)
+	var dest_pt: Vector2 = map.call("screen_point_of_region", drag_dest)
+	_out["d_water"] = [water.x, water.y]
+	_out["d_piece"] = [piece.x, piece.y]
+	_out["d_dest_pt"] = [dest_pt.x, dest_pt.y]
+	var map_rect: Rect2 = map.get_global_rect()
+	_out["d_view"] = [map_rect.position.x, map_rect.position.y, map_rect.size.x, map_rect.size.y]
+	_out["d_piece_uncovered"] = _uncovered(map, piece)
+	var over = root.gui_get_hovered_control()
+	_out["d_over_piece"] = (str(over.get_path()) + ":" + over.get_class()
+		+ ":filter=" + str(over.mouse_filter) + ":rect=" + str(over.get_global_rect())) if over != null else ""
+	_out["d_hovered_piece"] = str((map.get("hovered_marshal") as Dictionary).get("name", ""))
+
+	# d1 — pressed on his piece it waits; 5 px is still a click, 9 px a drag:
+	# he is selected and his reach asked for; over a province the reach's road
+	# is the ghost; released there, the card for that province.
+	_fresh("")
+	_hover(piece)
+	var n: int = _api.calls.size()
+	_push_left(piece, true)
+	_out["d1_pending"] = bool(_order().get("drag_pending", false))
+	_out["d1_selected_on_press"] = _selected()
+	_push_motion(piece + Vector2(5, 0), true)
+	_out["d1_dragging_at_5"] = bool(_order().get("dragging", false))
+	_push_motion(piece + Vector2(9, 0), true)
+	_out["d1_dragging_at_9"] = bool(_order().get("dragging", false))
+	_out["d1_selected"] = _selected()
+	_out["d1_reach_asked"] = _calls_since(n, "march_reach:")
+	_api.answer("march_reach:" + subject, cc3["reach"])
+	_hover(dest_pt, true)
+	_out["d1_ghost_points"] = int(_layer().get("ghost_points", 0))
+	_out["d1_ghost_kind"] = str(_layer().get("ghost_kind", ""))
+	n = _api.calls.size()
+	_push_left(dest_pt, false)
+	_out["d1_asked"] = _calls_since(n, "order_quote:")
+	_api.answer(_quote_key(cc3, "dest", drag_dest), {"success": true, "quote": cc3["drag_quote"]})
+	_out["d1_card_open"] = bool(card.visible)
+	_out["d1_card_command"] = str(card.call("command"))
+	# The card stands clear of the road it confirms (and of the strip) — its
+	# place is set on the answer (`set_avoid`), before this line runs.
+	var card_rect: Rect2 = card.call("placed_rect")
+	var road_rect: Rect2 = map.call("order_screen_rect")
+	var view_rect := Rect2(Vector2.ZERO, Vector2(root.size))
+	_out["d1_card_rect"] = [card_rect.position.x, card_rect.position.y, card_rect.size.x, card_rect.size.y]
+	_out["d1_road_rect"] = [road_rect.position.x, road_rect.position.y, road_rect.size.x, road_rect.size.y]
+	_out["d1_card_covers_road"] = card_rect.intersects(road_rect)
+	_out["d1_card_on_screen"] = view_rect.encloses(card_rect)
+	_key(KEY_ESCAPE)
+	_out["d1_selected_after_card_esc"] = _selected()
+
+	# d2 — released over open water: the gesture is let go.
+	_fresh("")
+	if water.x >= 0.0:
+		_hover(piece)
+		_push_left(piece, true)
+		_push_motion(piece + Vector2(12, 0), true)
+		_api.answer("march_reach:" + subject, cc3["reach"])
+		_hover(water, true)
+		_push_left(water, false)
+		_out["d2_selected"] = _selected()
+		_out["d2_card_open"] = bool(card.visible)
+		_out["d2_dragging"] = bool(_order().get("dragging", false))
+
+	# d3 — Esc mid-drag: the gesture is let go, and that Esc goes no further.
+	_fresh("")
+	_main.get_viewport().gui_release_focus()
+	_hover(piece)
+	_push_left(piece, true)
+	_push_motion(piece + Vector2(12, 0), true)
+	_out["d3_dragging"] = bool(_order().get("dragging", false))
+	_key(KEY_ESCAPE)
+	_out["d3_dragging_after"] = bool(_order().get("dragging", false))
+	_out["d3_selected"] = _selected()
+	var pause = _main.get("pause_menu")
+	_out["d3_pause_open"] = bool(pause.visible) if pause != null else false
+	if pause != null and pause.visible:
+		pause.call("close_menu")
+	_push_left(piece + Vector2(12, 0), false)
+	_out["d3_card_open"] = bool(card.visible)
+
+	# d4 — pressed and released where it stands: the click — he is selected.
+	_fresh("")
+	_hover(piece)
+	_push_left(piece, true)
+	_push_left(piece, false)
+	_out["d4_selected"] = _selected()
+
+	# d5 — with a draft on the line his piece does not drag: the press is
+	# CC-1's pen (the name written where the caret waits).
+	_fresh(str(_spec.get("own_marshal", "Ney")) + ", march to ")
+	_hover(piece)
+	_push_left(piece, true)
+	_out["d5_pending"] = bool(_order().get("drag_pending", false))
+	_push_left(piece, false)
+	_out["d5_line"] = str(_line().text)
+	_out["d5_selected"] = _selected()
+	_fresh("")
+	# CC-X13: orders given with the terminal minimized — the replies land in
+	# a log no one can see (frames pass while it is hidden, as they do while
+	# the backend answers); restored, it must stand on its newest line.
+	var scroll = _main.get("output_scroll")
+	scroll.scroll_vertical = 0
+	for i in range(60):
+		_main.call("add_output", "a reply written while the terminal was minimized — line %d" % i)
+	_out["api_calls"] = _api.calls
+	_phase = "cc3_minimized"
+	_wait = 10
+
+
+func _restore_after_replies() -> void:
+	_main.call("_restore_terminal")
+	_phase = "cc3_restored"
+	_wait = 12
+
+
+func _read_restored_terminal() -> void:
+	var scroll = _main.get("output_scroll")
+	var bar = scroll.get_v_scroll_bar()
+	_out["x13_scroll"] = int(scroll.scroll_vertical)
+	_out["x13_end"] = int(bar.max_value - bar.page)
+	_out["x13_at_end"] = int(scroll.scroll_vertical) >= int(bar.max_value - bar.page) - 2
+	_phase = "done"
 
 
 func _finish():

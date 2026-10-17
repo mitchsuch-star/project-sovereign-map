@@ -6330,6 +6330,63 @@ class WorldState:
 
         return None  # Not reachable
 
+    def weighted_paths_from(self, start: str, avoid_regions: List[str] = None,
+                            passable_for: str = None) -> Dict[str, List[str]]:
+        """CC-3 (row CC, Rule 8): `find_weighted_path(start, end, ...)` for
+        EVERY end at once — ``{end: path}`` from ONE Dijkstra pass, where the
+        map's select-then-click tint would otherwise run 125 searches.
+
+        The same search, with the destination's two exemptions kept: an
+        avoided or closed province is never walked THROUGH, but a road may END
+        in it. So a blocked province is pushed like any other and never
+        expanded — a terminal. Every pop of a node common to the targeted run
+        happens in the same relative order (the counter is monotonic, and a
+        popped terminal pushes nothing), so each end's first pop carries the
+        targeted run's own path, ties included. Pinned against
+        `find_weighted_path` in `tests/test_cc3_select_click_enter.py`.
+        `passable_for` is read once per province (constant for the query)."""
+        import heapq
+
+        if start not in self.regions:
+            return {}
+        avoid = set(avoid_regions or [])
+        passable = {}
+
+        def blocked(region_name: str) -> bool:
+            if region_name in avoid:
+                return True
+            if not passable_for:
+                return False
+            ok = passable.get(region_name)
+            if ok is None:
+                ok = self._region_passable_for(region_name, passable_for,
+                                               mover_location=start)
+                passable[region_name] = ok
+            return not ok
+
+        counter = 0
+        heap = [(0.0, counter, start, [start])]
+        visited = set()
+        out: Dict[str, List[str]] = {}
+        while heap:
+            cost, _, current, path = heapq.heappop(heap)
+            if current in visited:
+                continue
+            visited.add(current)
+            out[current] = path
+            if current != start and blocked(current):
+                continue  # a terminal: the road may end here, never pass through
+            for adjacent in self.regions[current].adjacent_regions:
+                if adjacent in visited:
+                    continue
+                edge_cost = TERRAIN_MOVEMENT_COST.get(
+                    self.regions[adjacent].terrain, 1.0
+                )
+                counter += 1
+                heapq.heappush(heap, (cost + edge_cost, counter, adjacent,
+                                      path + [adjacent]))
+        return out
+
     def get_weighted_distance(self, start: str, end: str) -> float:
         """
         Get the total weighted movement cost of the optimal path between two regions.

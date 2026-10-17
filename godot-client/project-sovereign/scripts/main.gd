@@ -576,6 +576,15 @@ func _ready():
 	if commitment_paradox_popup:
 		commitment_paradox_popup.choice_made.connect(_on_commitment_paradox_choice)
 
+	# CC-3 "Select, click, Enter": a map gesture's confirm card (layer 123),
+	# and any OTHER modal shown lets the map's selection go.
+	order_card = dialog_manager.register("order_card", "res://scenes/order_confirm_card.tscn")
+	if order_card:
+		order_card.send_requested.connect(_on_order_card_send)
+		order_card.line_requested.connect(_on_order_card_line)
+		order_card.cancelled.connect(_on_order_card_cancel)
+	dialog_manager.modal_shown.connect(_on_modal_shown)
+
 	_configure_response_routes()
 
 	# Diplomacy wizard
@@ -782,6 +791,18 @@ func _ready():
 	# screens already turn `panning_enabled` off in `_on_screen_changed`).
 	if map_area and "pointer_blocked_check" in map_area:
 		map_area.pointer_blocked_check = _is_modal_dialog_open
+	# CC-3: the order gesture — which pieces may drag, and what the cursor and
+	# a dragged piece say while a corps is selected.
+	if map_area and "drag_allowed_check" in map_area:
+		map_area.drag_allowed_check = _piece_may_drag
+		map_area.order_hover.connect(_on_map_order_hover)
+		map_area.piece_drag_started.connect(_on_piece_drag_started)
+		map_area.piece_dropped.connect(_on_piece_dropped)
+		map_area.piece_drag_cancelled.connect(_on_piece_drag_cancelled)
+	_order_dwell = Timer.new()
+	_order_dwell.one_shot = true
+	_order_dwell.timeout.connect(_on_order_dwell_timeout)
+	add_child(_order_dwell)
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -843,6 +864,7 @@ func _ready():
 	_apply_ui_scale(UiSettings.get_ui_scale(), false)
 	_setup_scalable_terminal()
 	_build_map_controls()
+	_build_order_strip()   # CC-3
 	# The pause-menu Settings slider drives the global scale through us (we own
 	# the map compensation + persistence).
 	if pause_menu and pause_menu.has_signal("ui_scale_changed"):
@@ -1003,6 +1025,8 @@ func _print_boot_help() -> void:
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
+	# CC-3: the map's order gesture, taught where the orders are.
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes[/color]")
 	add_output("")
 	_add_separator()
 
@@ -1156,6 +1180,9 @@ func _update_map_from_game_state(game_state: Dictionary) -> void:
 	# administrative chips dim when none is left.
 	if map_area.has_method("update_action_pools"):
 		map_area.update_action_pools(game_state.get("action_pools", {}))
+	# CC-3: a selected corps missing from the new board is let go; one still
+	# standing has his roads read again (the board moved under them).
+	_reread_order_selection()
 
 
 func _try_finalize_initial_map_bootstrap() -> void:
@@ -1205,6 +1232,10 @@ func _on_command_text_changed(_text: String) -> void:
 	if history_index == -1:
 		_refresh_suggestions()
 	_refresh_draft_glow()   # CC-1: the map answers the draft
+	# CC-3: a typed draft takes the clicks back (CC-1's pen): the selection,
+	# which lives only on an empty line, is let go.
+	if _text.strip_edges() != "":
+		_clear_order_selection()
 
 
 func _on_command_submitted(_text: String):
@@ -1300,6 +1331,8 @@ func _on_command_input_gui_input(event):
 			# focus away from a player who only wanted the list gone.
 			if not _suggestions.is_empty():
 				_clear_suggestions()
+			elif _order_marshal != "":
+				_clear_order_selection()   # CC-3: then a selected corps
 			else:
 				command_input.release_focus()  # Unfocus to allow camera controls
 			command_input.accept_event()
@@ -1512,6 +1545,12 @@ func _unhandled_input(event):
 				top_bar.close_all_screens()
 				get_viewport().set_input_as_handled()
 				return
+			# CC-3: a selected corps swallows one Esc — the topmost thing on
+			# the map (the card's own Esc is the card's, read in its _input).
+			if _order_marshal != "" and not _is_modal_dialog_open():
+				_clear_order_selection()
+				get_viewport().set_input_as_handled()
+				return
 			# UX pass July 16: an open Region Action Panel swallows one ESC
 			# before the pause menu OPENS — same "close the topmost thing"
 			# ladder. Review fix: never while a modal (incl. an already-open
@@ -1635,6 +1674,20 @@ func _restore_terminal():
 		resize_grip.visible = true
 	_reposition_after_layout()
 	command_input.grab_focus()
+	_scroll_output_to_end()   # CC-X13
+
+
+func _scroll_output_to_end() -> void:
+	"""CC-X13 (CC-3's walk): a terminal restored after orders were given with
+	it minimized — the map's gestures make that a way to play — came back on
+	old scrollback: a hidden scroll never measured the lines added under it,
+	and `add_output`'s scroll-to-end read a stale height. Once the restored
+	log has laid out (and `_resnap_output` has run), it stands on its newest
+	line."""
+	for _i in range(5):
+		await get_tree().process_frame
+	if output_scroll != null and bottom_left_ui.visible:
+		output_scroll.scroll_vertical = int(output_scroll.get_v_scroll_bar().max_value)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # UI-2: Expandable command window + terminal text scale (DEF-13 fold)
@@ -1899,6 +1952,7 @@ func _fit_map_controls() -> void:
 		y = hud.position.y - Utils.HUD_MARGIN - cs.y
 	map_controls.position = Vector2(x, y)
 	map_controls.size = cs
+	_fit_order_strip()   # CC-3: the selection's strip rides above the chips
 	_push_map_label_avoid_rects.call_deferred()
 
 
@@ -1925,6 +1979,9 @@ func _push_map_label_avoid_rects() -> void:
 	# UXR-D3: the map controls too — no name draws under the chips.
 	if map_controls != null and is_instance_valid(map_controls) and map_controls.visible:
 		rects.append(map_controls.get_global_rect())
+	# CC-3: and the selection's strip while it stands.
+	if _order_strip != null and is_instance_valid(_order_strip) and _order_strip.visible:
+		rects.append(_order_strip.get_global_rect())
 	map_area.set_ui_avoid_rects(rects)
 
 func _on_grip_gui_input(event: InputEvent) -> void:
@@ -2245,6 +2302,7 @@ func _strip_desk_address(text: String) -> String:
 
 func _send_end_turn():
 	"""Actually send end turn command to backend."""
+	_clear_order_selection()   # CC-3: the turn's end lets a selected corps go
 	_set_open_envoys_prompt_visible(false)
 	# Add to history
 	_add_to_history("end turn")
@@ -2316,6 +2374,10 @@ func _show_lapse_confirmation():
 
 func _execute_command():
 	"""Execute the command in the input field."""
+	# CC-3 (D4): the map gesture's confirm card owns Enter while it is up —
+	# nothing on the line (nor an armed end turn) goes beneath it.
+	if _order_card_open():
+		return
 	var command = command_input.text.strip_edges()
 
 	if command.is_empty():
@@ -2351,6 +2413,7 @@ func _execute_command():
 	# CC-0: so has an order offered beside the line. A parked draft is NOT
 	# dropped here: it is the player's own, and comes back at control return.
 	_offered_command = ""
+	_clear_order_selection()   # CC-3: and a selected corps — a send lets him go
 
 	# Add to history before clearing
 	_add_to_history(command)
@@ -5898,6 +5961,13 @@ func _refresh_send_button() -> void:
 	var empty: bool = str(command_input.text).strip_edges() == ""
 	Utils.set_available(send_button, _input_open and not empty, "",
 		EXECUTE_EMPTY_TIP if (_input_open and empty) else "")
+	# CC-X12 (CC-3's sweep): a selected corps lives only beside an EMPTY line
+	# — a line filled by CODE (a suggestion taken, the history walked, a relay,
+	# a tutor's chip) lets him go as a typed draft does. This hook is the
+	# line's own redraw, so no writer has to remember it; deferred, since it
+	# runs inside that draw.
+	if not empty and _order_marshal != "":
+		_clear_order_selection.call_deferred()
 
 
 func set_input_enabled(enabled: bool):
@@ -6633,6 +6703,7 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	command_input.text = ""
 	_offered_command = ""
 	_parked_draft = ""
+	_clear_order_selection()   # CC-3: a load or a new campaign lets him go
 
 	if clear_output:
 		output_display.clear()
@@ -7505,6 +7576,7 @@ func _on_screen_changed(screen_name: String):
 	"""Handle top bar screen open/close — toggle map interaction."""
 	if screen_name != "":
 		# Screen opened — block map interaction
+		_clear_order_selection()   # CC-3: a screen lets a selected corps go
 		map_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		map_area.panning_enabled = false
 	else:
@@ -8082,9 +8154,20 @@ func _on_map_region_clicked(region_name: String):
 		return
 	if _is_screen_open() or _is_modal_dialog_open():
 		return
+	# CC-3: with a corps selected the click is an ORDER gesture (a card,
+	# never the panel) — while the line is empty; a draft owns the clicks
+	# (CC-X12: a line filled by code lets the selection go first).
+	if _order_marshal != "" and command_input.text.strip_edges() != "":
+		_clear_order_selection()
+	if _order_marshal != "":
+		_order_click(region_name, _last_click_target_key())
+		return
 	# CC-1: a click while the line waits for a name writes the name there
 	# (the province, or the piece clicked) instead of opening the panel.
 	if _click_writes_a_name(region_name):
+		return
+	# CC-3: on an EMPTY line a plain click on a piece of ours selects him.
+	if _click_selects_a_marshal():
 		return
 	if region_panel.visible and region_panel.current_region() == region_name:
 		region_panel.close_panel()
@@ -8158,6 +8241,7 @@ func _retire_line_latches() -> void:
 	pending_remedy_command = ""   # CF-4
 	_last_relay_fill = ""
 	_offered_command = ""
+	_clear_order_selection()      # CC-3: a send lets a selected corps go
 
 
 func _offer_beside_line(cmd: String, announce: bool) -> void:
@@ -8397,8 +8481,541 @@ func _on_suggestion_meta_clicked(meta) -> void:
 	command_input.caret_column = command_input.text.length()
 
 
+# ═══════ CC-3 "SELECT, CLICK, ENTER" + DRAG (October 17, 2026) ═══════
+#
+# On an EMPTY line a click on a piece of ours SELECTS him: a ring at his feet,
+# a strip saying what each click will do, and the provinces he can march to
+# tinted by the march's own clock (`GET /march_reach` — every province in one
+# pathfinding pass, Rule 8). The cursor then draws the quote's road as a
+# ghost line; a click opens the CONFIRM CARD (the plan's D4 — modal, its own
+# Enter and Esc) on the exact quote (`GET /march_quotes?marshal=…`, fetched
+# once and kept for the selection's life): a province → march, an enemy we
+# see → attack (march and attack beyond his reach), a corps of ours →
+# support. [Send] goes down the typed road, [Put in line] fills the line,
+# [Cancel] returns to the selection. A piece of ours dragged 8 px and dropped
+# is the same gesture in one motion. The client composes no order and judges
+# no rule: every word on the card is the quote's. The selection is let go on
+# Esc, a right-click, open water, a click on him again, any send, the turn's
+# end, a screen or another modal, a load or a new campaign, a typed draft,
+# or the corps missing from the next board; a map gesture does nothing while
+# a command is on the wire.
+
+var _order_marshal := ""                  # the selected corps (roster key), "" for none
+var _order_serial := 0                    # bumps on every change: a late answer for an old selection is dropped
+var _order_reach: Dictionary = {}         # his GET /march_reach answer ({} while it is out)
+var _order_quotes: Dictionary = {}        # "dest:Vienna" / "enemy:Mack" / "ally:Ney" -> its quote
+var _order_quote_pending: Dictionary = {} # the same keys while their GET is out
+var _order_hover_key := ""                # the target under the cursor
+var _order_card_key := ""                 # the target the card shows (or waits for)
+var order_card = null                     # the confirm card (dialog_manager "order_card")
+var _order_strip: PanelContainer = null
+var _order_strip_label: RichTextLabel = null
+var _order_dwell: Timer = null
+# The rest the cursor takes on a target before its exact quote is fetched —
+# one GET for what the player is looking at, not one per province crossed.
+const ORDER_DWELL_SEC := 0.15
+
+
+func _order_input_ready() -> bool:
+	"""A map gesture may act: nothing on the wire (the line open, no chip in
+	flight), no modal, no screen, no pause menu."""
+	return (command_input != null and command_input.editable
+		and not _chip_command_in_flight
+		and not _is_modal_dialog_open() and not _is_screen_open()
+		and not (pause_menu != null and pause_menu.visible))
+
+
+func _own_field_marshal(key: String) -> bool:
+	"""A corps of ours standing in the field on the last board (a prisoner or
+	a corps on administrative duty is not on the map)."""
+	if key == "":
+		return false
+	var marshals = _last_game_state.get("marshals", {})
+	if not (marshals is Dictionary) or not marshals.has(key):
+		return false
+	var row = marshals[key]
+	return row is Dictionary and int(row.get("strength", 0)) > 0 and not _marshal_entry(key).is_empty()
+
+
+func _last_click_marshal_key() -> String:
+	if map_area == null:
+		return ""
+	var mk = map_area.get("last_click_marshal")
+	return str(mk) if mk != null else ""
+
+
+func _last_click_target_key() -> String:
+	"""The corps an order gesture's click (or drop) named: the piece under
+	it, else — CC-X11 — the corps a fog chip names (partial sight knows him;
+	the panel's ATTACK row offers him), else ""."""
+	var key := _last_click_marshal_key()
+	if key == "" and map_area != null:
+		var fogged = map_area.get("last_click_fogged")
+		key = str(fogged) if fogged != null else ""
+	return key
+
+
+func _piece_may_drag(piece) -> bool:
+	"""The renderer's `drag_allowed_check`: a piece of ours in the field, the
+	line EMPTY (a draft owns the clicks — CC-1's pen), nothing on the wire."""
+	if not (piece is Dictionary):
+		return false
+	return (_own_field_marshal(str(piece.get("name", "")))
+		and command_input != null and command_input.text.strip_edges() == ""
+		and _order_input_ready())
+
+
+func _click_selects_a_marshal() -> bool:
+	"""On an EMPTY line a plain click on a piece of ours selects him (Shift
+	writes his name — CC-1; Ctrl is the group's — CC-5)."""
+	if map_area == null or command_input.text.strip_edges() != "":
+		return false
+	var shift = map_area.get("last_click_shift")
+	var ctrl = map_area.get("last_click_ctrl")
+	if (shift != null and bool(shift)) or (ctrl != null and bool(ctrl)):
+		return false
+	var key := _last_click_marshal_key()
+	if not _own_field_marshal(key) or not _order_input_ready():
+		return false
+	_select_marshal(key)
+	return true
+
+
+func _select_marshal(key: String) -> void:
+	"""Select a corps of ours: the ring, the strip, his reach asked for once."""
+	_order_serial += 1
+	_order_marshal = key
+	_order_reach = {}
+	_order_quotes = {}
+	_order_quote_pending = {}
+	_order_hover_key = ""
+	_order_card_key = ""
+	if region_panel and region_panel.visible:
+		region_panel.close_panel()   # the panel stays shut while he is selected
+	if map_area and map_area.has_method("set_order_selection"):
+		map_area.set_order_selection(key)
+	_render_order_strip()
+	AudioManager.play("select")
+	_fetch_order_reach()
+
+
+func _fetch_order_reach() -> void:
+	if _order_marshal == "" or api_client == null or not api_client.has_method("get_march_reach"):
+		return
+	var serial := _order_serial
+	var key := _order_marshal
+	api_client.get_march_reach(key, func(response): _on_march_reach(serial, key, response))
+
+
+func _on_march_reach(serial: int, key: String, response) -> void:
+	if serial != _order_serial or key != _order_marshal:
+		return   # the answer for a selection already let go
+	_order_reach = response if response is Dictionary else {}
+	if map_area and map_area.has_method("set_order_reach"):
+		map_area.set_order_reach(_order_reach)
+	_render_order_strip()
+	if _order_hover_key != "" and not _order_card_open():
+		_show_ghost_for(_order_hover_key)
+
+
+func _reread_order_selection() -> void:
+	"""A new board arrived: the selected corps missing from it is let go; one
+	still standing has his reach read again (the board moved under it)."""
+	if _order_marshal == "":
+		return
+	if not _own_field_marshal(_order_marshal):
+		_clear_order_selection()
+		return
+	if _order_card_open():
+		return
+	_order_serial += 1
+	_order_reach = {}
+	_order_quotes = {}
+	_order_quote_pending = {}
+	if map_area and map_area.has_method("set_order_selection"):
+		map_area.set_order_selection(_order_marshal)
+	_render_order_strip()
+	_fetch_order_reach()
+
+
+func _clear_order_selection() -> void:
+	"""Let the selection go — the ring, the tint, the ghost, the strip, and a
+	card still open (shut, nothing sent)."""
+	var card_open := _order_card_open()
+	if _order_marshal == "" and not card_open:
+		return
+	_order_serial += 1
+	_order_marshal = ""
+	_order_reach = {}
+	_order_quotes = {}
+	_order_quote_pending = {}
+	_order_hover_key = ""
+	_order_card_key = ""
+	if _order_dwell != null:
+		_order_dwell.stop()
+	if map_area and map_area.has_method("clear_order_selection"):
+		map_area.clear_order_selection()
+	if card_open:
+		order_card.close_card()
+		_update_war_panel_visibility()
+	_render_order_strip()
+
+
+func _order_card_open() -> bool:
+	return order_card != null and order_card.visible
+
+
+func _on_modal_shown(dialog_name: String) -> void:
+	"""Any modal but the card lets the selection go."""
+	if dialog_name != "order_card":
+		_clear_order_selection()
+
+
+func _order_target_key(region: String, marshal_key: String) -> String:
+	"""What a click or a drop on `marshal_key` (a piece, "" for none) or on
+	`region` orders the selected corps to do, as a quote key: "self" (his own
+	piece), "ally:<key>" (a corps of ours — support), "enemy:<key>" (a corps
+	we see and are at war with — attack), "dest:<province>" (march), or ""
+	(open water). A foreign corps we are not at war with is a march to his
+	province — the backend's `attack` is an order, never a declaration."""
+	if marshal_key != "":
+		if marshal_key == _order_marshal:
+			return "self"
+		if _own_field_marshal(marshal_key):
+			return "ally:" + marshal_key
+		var enemies = _last_game_state.get("enemies", {})
+		var row = enemies.get(marshal_key, null) if enemies is Dictionary else null
+		if row is Dictionary:
+			if bool(row.get("at_war_with_player", false)):
+				return "enemy:" + marshal_key
+			if region == "":
+				region = str(row.get("location", ""))
+	return ("dest:" + region) if region != "" else ""
+
+
+func _order_click(region: String, marshal_key: String) -> void:
+	"""A click on the map with a corps selected: the confirm card for what it
+	names — never the panel. His own piece again lets him go."""
+	if not _order_input_ready():
+		return   # nothing acts while a command is on the wire
+	var key := _order_target_key(region, marshal_key)
+	if key == "self" or key == "":
+		_clear_order_selection()
+		return
+	_open_order_card(key)
+
+
+func _order_target_shown(key: String) -> String:
+	var target := key.substr(key.find(":") + 1)
+	return target if key.begins_with("dest:") else Utils.humanize_entity_name(target)
+
+
+func _open_order_card(key: String) -> void:
+	"""The confirm card (D4) on the target's exact quote — at once when it is
+	in hand, else as soon as its one GET answers."""
+	if order_card == null:
+		return
+	_order_card_key = key
+	if _order_dwell != null:
+		_order_dwell.stop()
+	var quote = _order_quotes.get(key, null)
+	if quote is Dictionary:
+		_show_ghost_for(key)
+	order_card.open_card(quote if quote is Dictionary else {},
+		"ORDERS FOR " + Utils.humanize_entity_name(_order_marshal).to_upper(),
+		"Reading the road to " + _order_target_shown(key) + "…", _order_card_avoid())
+	_update_war_panel_visibility()
+	if not (quote is Dictionary):
+		_fetch_order_quote(key)
+
+
+func _order_card_avoid() -> Array:
+	"""What the card must not hide: the road it confirms (and the ring at his
+	feet), and the selection's strip."""
+	var out: Array = []
+	if map_area != null and map_area.has_method("order_screen_rect"):
+		out.append(map_area.order_screen_rect())
+	if _order_strip != null and _order_strip.visible:
+		out.append(_order_strip.get_global_rect())
+	return out
+
+
+func _fetch_order_quote(key: String) -> void:
+	"""ONE GET per target for the selection's life (the cache is dropped when
+	the selection — or the board under it — changes)."""
+	if key == "" or key == "self" or _order_marshal == "":
+		return
+	if _order_quotes.has(key) or _order_quote_pending.has(key):
+		return
+	if api_client == null or not api_client.has_method("get_order_quote"):
+		return
+	var cut := key.find(":")
+	var serial := _order_serial
+	_order_quote_pending[key] = true
+	api_client.get_order_quote(_order_marshal, key.substr(0, cut), key.substr(cut + 1),
+		func(response): _on_order_quote(serial, key, response))
+
+
+func _on_order_quote(serial: int, key: String, response) -> void:
+	if serial != _order_serial:
+		return   # the answer for a selection already let go
+	_order_quote_pending.erase(key)
+	var quote = response.get("quote", null) if response is Dictionary else null
+	if not (quote is Dictionary):
+		# Refused before a quote (an enemy out of sight, a corps gone): the
+		# route's own sentence is the card's refusal.
+		var why := str(response.get("message", "")) if response is Dictionary else ""
+		quote = {"ok": false, "command": "", "refusal": why}
+	_order_quotes[key] = quote
+	if _order_card_open() and key == _order_card_key:
+		_show_ghost_for(key)
+		order_card.show_quote(quote)
+		order_card.set_avoid(_order_card_avoid())
+	elif key == _order_hover_key and not _order_card_open():
+		_show_ghost_for(key)
+
+
+func _on_order_card_send(command: String) -> void:
+	_send_map_order(command)
+
+
+func _on_order_card_line(command: String) -> void:
+	"""[Put in line]: the quoted order is written on the line — empty while a
+	corps is selected, so it fills it (CC-0's offer beside a draft
+	otherwise) — and NEVER sent; the selection is let go (a draft now)."""
+	_clear_order_selection()
+	_update_war_panel_visibility()
+	if command == "" or command_input == null:
+		return
+	_on_tutorial_suggest_command(command)
+	if command_input.editable:
+		command_input.grab_focus()
+		_resume_editing()
+		command_input.caret_column = command_input.text.length()
+	_refresh_draft_glow()
+
+
+func _on_order_card_cancel() -> void:
+	"""[Cancel] / Esc on the card: back to the selection — nothing sent."""
+	_order_card_key = ""
+	_update_war_panel_visibility()
+	if map_area and map_area.has_method("rearm_order_hover"):
+		map_area.rearm_order_hover()
+
+
+func _send_map_order(command: String) -> void:
+	"""[Send] on the confirm card: the quoted command goes down the typed
+	road — the wire guard, the end-turn latch retired, history, the echo,
+	the in-flight latch — so a gesture's order is answered exactly as the
+	same line typed (its objection, its contact, its relayed tail)."""
+	if command.is_empty() or _chip_command_in_flight:
+		return
+	if not command_input.editable:
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+		return
+	_clear_order_selection()
+	_update_war_panel_visibility()
+	_chip_command_in_flight = true
+	_add_to_history(command)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	AudioManager.play("quill_flick")
+	_retire_line_latches()   # CC-0: any send means the player moved on
+	set_input_enabled(false)
+	AudioManager.start_scribble()
+	if tutorial_overlay:
+		tutorial_overlay.note_sent(command)
+	api_client.send_command(command, _on_map_order_result)
+
+
+func _on_map_order_result(response):
+	_chip_command_in_flight = false
+	_on_command_result(response)
+
+
+func _on_map_order_hover(region: String, marshal_key: String) -> void:
+	"""The renderer's word that the thing under the cursor changed while a
+	corps is selected or dragged: draw its ghost road now (the reach's road
+	for a province), and after a short rest fetch its exact quote."""
+	if _order_marshal == "" or _order_card_open():
+		return
+	_order_hover_key = _order_target_key(region, marshal_key)
+	_show_ghost_for(_order_hover_key)
+	if _order_dwell != null:
+		_order_dwell.start(ORDER_DWELL_SEC)
+
+
+func _on_order_dwell_timeout() -> void:
+	if _order_hover_key != "" and _order_hover_key != "self" and _order_input_ready():
+		_fetch_order_quote(_order_hover_key)
+
+
+func _show_ghost_for(key: String) -> void:
+	"""The ghost road for `key`: the exact quote's road once it is in; before
+	that (and for an order already standing) a province's road from the reach
+	— the same road law, pinned equal; nothing where neither has a road (the
+	tint already says so)."""
+	if map_area == null or not map_area.has_method("show_order_ghost"):
+		return
+	var steps := maxi(1, int(_order_reach.get("range", 1)))
+	var quote = _order_quotes.get(key, null)
+	if quote is Dictionary and not bool(quote.get("already", false)):
+		var road = quote.get("road", [])
+		if bool(quote.get("ok", false)) and road is Array and not road.is_empty():
+			map_area.show_order_ghost(road, str(quote.get("kind", "march")),
+				_order_ghost_label(quote), steps)
+		else:
+			map_area.clear_order_ghost()
+		return
+	if key.begins_with("dest:"):
+		var reach = _order_reach.get("reach", {})
+		var row = reach.get(key.substr(5), null) if reach is Dictionary else null
+		if row is Dictionary:
+			map_area.show_order_ghost(row.get("road", []), "march", _order_ghost_label({
+				"kind": "march", "turns": row.get("turns", 0), "ap": _order_reach.get("ap", 0),
+				"already": row.get("already", false)}), steps)
+			return
+	map_area.clear_order_ghost()
+
+
+func _order_ghost_label(q: Dictionary) -> String:
+	"""The badge at the ghost road's head: its clock and its price."""
+	if bool(q.get("already", false)):
+		return "already ordered"
+	var ap := int(q.get("ap", 0))
+	var price := "free" if ap <= 0 else "%d AP" % ap
+	if str(q.get("kind", "")) == "attack":
+		return "attack · " + price
+	var turns := int(q.get("turns", 0))
+	return ("this turn" if turns <= 0 else Utils.plural(turns, "turn")) + " · " + price
+
+
+func _on_piece_drag_started(marshal_key: String) -> void:
+	"""A piece of ours dragged 8 px: he is selected (the reach, the ghost to
+	the cursor), and the drop names the target."""
+	if not _own_field_marshal(marshal_key) or not _order_input_ready():
+		return
+	if marshal_key != _order_marshal:
+		_select_marshal(marshal_key)
+
+
+func _on_piece_dropped(marshal_key: String, region: String) -> void:
+	"""The drag's release: the card for what it was dropped on, as a click
+	there would open it. Dropped back on himself, nothing is ordered."""
+	if marshal_key != _order_marshal or not _order_input_ready():
+		return
+	var key := _order_target_key(region, _last_click_target_key())
+	if key == "self":
+		if map_area and map_area.has_method("clear_order_ghost"):
+			map_area.clear_order_ghost()
+		return
+	if key == "":
+		_clear_order_selection()
+		return
+	_open_order_card(key)
+
+
+func _on_piece_drag_cancelled(_marshal_key: String) -> void:
+	"""Released over open water or a panel, or Esc mid-drag: let him go."""
+	_clear_order_selection()
+
+
+func _build_order_strip() -> void:
+	"""The selection's status strip — what each click will do and the ETA
+	bands' legend — centred over the map's controls at the bottom of the HUD
+	band. It takes no mouse (the map beneath it stays clickable)."""
+	_order_strip = PanelContainer.new()
+	_order_strip.name = "OrderStrip"
+	_order_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.07, 0.06, 0.9)
+	style.border_color = Color(Utils.UI_GOLD, 0.75)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 12.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	_order_strip.add_theme_stylebox_override("panel", style)
+	_order_strip_label = RichTextLabel.new()
+	_order_strip_label.name = "OrderStripText"
+	_order_strip_label.bbcode_enabled = true
+	_order_strip_label.scroll_active = false
+	_order_strip_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_order_strip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_order_strip.add_child(_order_strip_label)
+	_order_strip.visible = false
+	add_child(_order_strip)
+	_order_strip.resized.connect(_queue_fit_map_controls)
+
+
+func order_strip_text() -> String:
+	"""The strip's words, plain — read by the CC harness."""
+	if _order_strip == null or not _order_strip.visible:
+		return ""
+	return _order_strip_label.get_parsed_text()
+
+
+func _render_order_strip() -> void:
+	if _order_strip == null:
+		return
+	if _order_marshal == "":
+		_order_strip.visible = false
+		_queue_fit_map_controls()
+		return
+	var text := ("[b]" + Utils.humanize_entity_name(_order_marshal) + "[/b] selected — click a "
+		+ "province: march · an enemy: attack · a marshal: support · Esc cancels")
+	if _order_reach.is_empty():
+		text += "\n[color=#" + Utils.COLOR_INFO + "]Reading his roads…[/color]"
+	elif not bool(_order_reach.get("ok", false)):
+		var why := str(_order_reach.get("refusal", "")).strip_edges()
+		if why == "":
+			why = str(_order_reach.get("message", "")).strip_edges()
+		text += "\n[color=#" + Utils.COLOR_WARNING + "]No march today — " + why + "[/color]"
+	else:
+		var legend := ""
+		if map_area and map_area.has_method("order_band_legend_bbcode"):
+			legend = str(map_area.order_band_legend_bbcode()) + "   "
+		var reach = _order_reach.get("reach", {})
+		var count: int = reach.size() if reach is Dictionary else 0
+		text += ("\n" + legend + "[color=#" + Utils.COLOR_INFO + "]" + Utils.plural(count, "province")
+			+ " on his roads · a march costs " + Utils.plural(int(_order_reach.get("ap", 0)), "action") + "[/color]")
+	_order_strip_label.text = text
+	# The strip's two lines, measured (no `fit_content`: UXR-2's scroll rule
+	# keeps unbounded text out of a panel's minimum) — unwrapped, so their
+	# own widths, laid out on a wide line first.
+	_order_strip_label.size = Vector2(4096.0, _order_strip_label.size.y)
+	_order_strip_label.custom_minimum_size = Vector2(
+		float(_order_strip_label.get_content_width()), float(_order_strip_label.get_content_height()))
+	_order_strip.visible = true
+	_queue_fit_map_controls()
+
+
+func _fit_order_strip() -> void:
+	"""The strip's place: centred over the map's controls, clear of the
+	command window, clamped inside the HUD band."""
+	if _order_strip == null or not _order_strip.visible:
+		return
+	var band := Utils.hud_band(size)
+	var cs := _order_strip.get_combined_minimum_size()
+	var anchor_x := (band.x + band.y) / 2.0
+	var bottom := size.y - Utils.HUD_MARGIN
+	if map_controls != null and is_instance_valid(map_controls) and map_controls.visible:
+		anchor_x = map_controls.position.x + map_controls.size.x / 2.0
+		bottom = map_controls.position.y - Utils.HUD_MARGIN
+	var x := floorf(anchor_x - cs.x / 2.0)
+	if bottom_left_ui != null and bottom_left_ui.visible:
+		x = maxf(x, bottom_left_ui.get_global_rect().end.x + Utils.HUD_MARGIN)
+	x = clampf(x, band.x + Utils.HUD_MARGIN, maxf(band.x + Utils.HUD_MARGIN, band.y - Utils.HUD_MARGIN - cs.x))
+	_order_strip.position = Vector2(x, bottom - cs.y)
+	_order_strip.size = cs
+
+
 func _on_map_dismiss_requested():
-	"""Right-click or open-water click on the map — put the panel away."""
+	"""Right-click or open-water click on the map — put the panel away (and,
+	CC-3, let a selected corps go)."""
+	_clear_order_selection()
 	if region_panel and region_panel.visible:
 		region_panel.close_panel()
 

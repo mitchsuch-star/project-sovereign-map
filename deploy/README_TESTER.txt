@@ -132,13 +132,18 @@ HOTKEYS:
               opens the menu.
 
 THE MAP:
-  Mouse wheel or +/- (Alt +/-) to zoom, drag to pan, Home
+  Mouse wheel or +/- (Alt +/-) to zoom, middle-drag to pan, Home
   (Alt+Home) to recenter, M (Alt+M) to cycle map coloring — the
   terminal prints which view you landed on. Click any province
   for a panel of actions there — recruit, build, negotiate, and
-  orders for marshals present. Click a marshal's piece for their
-  orders. The terminal text can be selected and copied (drag,
-  then Ctrl+C) for a report.
+  orders for marshals present. With nothing typed, click one of
+  your marshals to select him: the provinces he can march to
+  light up by how many turns away they are, his road follows the
+  cursor, and a click on a province (march), an enemy (attack) or
+  another marshal (support) opens a card with the exact order —
+  Enter sends it, Esc steps back. Or drag his piece where you want
+  him. The terminal text can be selected and copied (drag, then
+  Ctrl+C) for a report.
 
 ================================================================
   YOUR MARSHALS

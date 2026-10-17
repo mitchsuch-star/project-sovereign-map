@@ -725,6 +725,14 @@ def plot_route(world, marshal, destination: str, *, use_weighted: bool,
     road = [r for r in path if r != marshal.location]
     if not want_verdict or not player:
         return road, None
+    return road, road_verdict(world, marshal, destination, road)
+
+
+def road_verdict(world, marshal, destination: str, road) -> Dict:
+    """`plot_route`'s verdict on a plotted road (player only) — the first
+    closed intermediate, the closed destination, the first barred sea leg.
+    CC-3: ONE body for the single road and `march_roads`' every-destination
+    pass."""
     nation, here = marshal.nation, marshal.location
     blocker = next((r for r in road[:-1]
                     if not world._region_passable_for(
@@ -761,7 +769,7 @@ def plot_route(world, marshal, destination: str, *, use_weighted: bool,
         "naval_leg": naval_leg,
         "naval_check": naval_check,
     }
-    return road, verdict
+    return verdict
 
 
 def issuance_road_refusal(world, marshal, destination: str, strategic_type: str,
@@ -863,6 +871,69 @@ def march_road(world, marshal, dest: str, strategic_type: str = "MOVE_TO"):
     path, verdict = plot_route(
         world, marshal, dest, use_weighted=use_weighted, avoid_regions=avoid,
         want_verdict=(marshal.nation == world.player_nation))
+    finder = world.find_weighted_path if use_weighted else world.find_path
+    return _march_road_from_path(
+        world, marshal, dest, strategic_type, path, verdict,
+        lambda: bool(finder(marshal.location, dest, passable_for=marshal.nation)))
+
+
+def march_roads(world, marshal, strategic_type: str = "MOVE_TO"):
+    """CC-3 "Select, click, Enter" (row CC, Rule 8): `march_road` for EVERY
+    province at once — ``{dest: (road, refusal, kind)}`` — the map's ETA tint
+    for a selected corps. `plot_route`'s ladder is run as ONE pathfinding
+    pass per rung (`WorldState.weighted_paths_from`) instead of a search per
+    destination, and the cautious man's avoid-set is computed ONCE; the
+    verdict and the refusals are `march_road`'s own bodies
+    (`road_verdict`, `_march_road_from_path`). Weighted roads only (a march or
+    a hold). PURE. Pinned equal to `march_road` for every province in
+    `tests/test_cc3_select_click_enter.py`."""
+    if strategic_type not in ("MOVE_TO", "HOLD"):
+        raise ValueError("march_roads plots weighted roads only (a march or a hold)")
+    player = marshal.nation == world.player_nation
+    pf = marshal.nation if player else None
+    here = marshal.location
+    avoid = []
+    if getattr(marshal, "personality", "") == "cautious":
+        avoid = list(enemy_occupied_regions(world, marshal.nation, marshal=marshal) or [])
+    # `plot_route`'s ladder (avoid_is_law False): avoid + lawful → lawful →
+    # terrain-only; the first rung that reaches a province gives its road.
+    rungs = []
+    if avoid:
+        rungs.append(world.weighted_paths_from(here, avoid_regions=avoid, passable_for=pf))
+    rungs.append(world.weighted_paths_from(here, passable_for=pf))
+    if pf:
+        rungs.append(world.weighted_paths_from(here))
+    # The closed-frontier check's lawful search (`passable_for` = his nation):
+    # the lawful rung itself for the player; never asked for anyone else.
+    lawful = {"roads": rungs[-2] if pf else None}
+
+    def lawful_road_exists(dest):
+        if lawful["roads"] is None:
+            lawful["roads"] = world.weighted_paths_from(here, passable_for=marshal.nation)
+        return bool(lawful["roads"].get(dest))
+
+    out = {}
+    for dest in world.regions:
+        path = None
+        for rung in rungs:
+            path = rung.get(dest)
+            if path:
+                break
+        road = [r for r in path if r != here] if path else None
+        verdict = road_verdict(world, marshal, dest, road) if road and player else None
+        out[dest] = _march_road_from_path(
+            world, marshal, dest, strategic_type, road, verdict,
+            lambda d=dest: lawful_road_exists(d))
+    return out
+
+
+def _march_road_from_path(world, marshal, dest: str, strategic_type: str,
+                          path, verdict, lawful_road_exists):
+    """`march_road` after the road is plotted — the no-path refusal, the
+    issuance refusal on the verdict, S5-D2's closed frontier. ONE body for the
+    single road and `march_roads`. `path` is `plot_route`'s road (his own
+    province stripped); `lawful_road_exists()` asks for a road through lawful
+    soil only (called only where the road crosses closed soil)."""
     if not path:
         return None, {
             "success": False,
@@ -878,8 +949,7 @@ def march_road(world, marshal, dest: str, strategic_type: str = "MOVE_TO"):
             r != dest and not world._region_passable_for(
                 r, marshal.nation, mover_location=marshal.location)
             for r in road):
-        finder = world.find_weighted_path if use_weighted else world.find_path
-        if not finder(marshal.location, dest, passable_for=marshal.nation):
+        if not lawful_road_exists():
             blocker = next(
                 r for r in road
                 if r != dest and not world._region_passable_for(
