@@ -791,7 +791,14 @@ def test_distance_cache_measurably_faster_on_100_region_graph():
 
     Threshold is a 2x lower bound to avoid CI flakiness; in practice the speedup
     is 20-100x (see tools/benchmark_distance_cache.py).
+
+    G4-X2 (October 18, 2026; BUG_FIXES §G4-1): best of five, the two loops
+    interleaved, the collector held off the timed loops. One pass each, back
+    to back, left the cached loop a 0.2 ms window that a single ~4 ms stall
+    fails — a preemption under the hook's 8 workers, a gen-2 pass over a
+    suite worker's heap (measured: uncached 8.8 ms, cached 0.19 ms, 46x).
     """
+    import gc
     import random
     from time import perf_counter
 
@@ -800,19 +807,33 @@ def test_distance_cache_measurably_faster_on_100_region_graph():
     rng = random.Random(42)
     pairs = [(rng.choice(names), rng.choice(names)) for _ in range(500)]
 
-    t0 = perf_counter()
-    for a, b in pairs:
-        world.invalidate_distance_cache()
-        world.get_distance(a, b)
-    t_uncached = perf_counter() - t0
+    def uncached_pass():
+        t0 = perf_counter()
+        for a, b in pairs:
+            world.invalidate_distance_cache()
+            world.get_distance(a, b)
+        return perf_counter() - t0
 
-    world.invalidate_distance_cache()
-    for a, b in pairs:
-        world.get_distance(a, b)  # warm
-    t0 = perf_counter()
-    for a, b in pairs:
-        world.get_distance(a, b)
-    t_cached = perf_counter() - t0
+    def cached_pass():
+        world.invalidate_distance_cache()
+        for a, b in pairs:
+            world.get_distance(a, b)  # warm
+        t0 = perf_counter()
+        for a, b in pairs:
+            world.get_distance(a, b)
+        return perf_counter() - t0
+
+    uncached, cached = [], []
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        for _ in range(5):
+            uncached.append(uncached_pass())
+            cached.append(cached_pass())
+    finally:
+        if gc_was_enabled:
+            gc.enable()
+    t_uncached, t_cached = min(uncached), min(cached)
 
     assert t_cached * 2 < t_uncached, (
         f"Cached path must be at least 2x faster on 100-region graph; "
@@ -829,6 +850,18 @@ def test_distance_cache_measurably_faster_on_100_region_graph():
 # regression-guarded with generous headroom rather than held to the map gate.
 # July 2, 2026 measurements (median of 10, warm): legacy 4.3ms, bare-Europe
 # 2.1ms (0.49x — G4 PASSES), 1805 campaign 23.1ms (5.4x roster workload).
+#
+# G4-1 (October 18, 2026; BUG_FIXES §G4-1) — re-measured on the same machine,
+# interleaved min of medians: legacy 5.7ms, bare-Europe 6.4ms (1.12x), 1805
+# campaign 35ms (6.1x). The July 0.49x timed a GAME-OVER world: the bare
+# world has no armies, the legacy defeat rule ("All armies destroyed!") ended
+# it before the first timed turn, and every timed turn skipped the enemy and
+# diplomatic phases. EC-6a (July 9) made Europe a sandbox; the arm came alive
+# at 1.04x and drifted to ~1.3x by October. What it gained is NATION workload
+# (20 courts' diplomacy against the legacy 5), not map cost — a bare turn
+# still makes the same 9 full region scans it made at landing. G4-2 took the
+# one hot recompute (the bloc-share table: asked 24 times a bare turn and 146
+# times a campaign turn) to one compute per turn. The caps are unchanged.
 
 
 _SCENARIO_1805 = None
@@ -845,45 +878,104 @@ def _europe_1805_path():
     return _SCENARIO_1805
 
 
-def _median_turn_seconds(build_world, turns: int = 3) -> float:
-    """Median wall-clock of full end_turn cycles (enemy phase + advance)."""
+def _median_turn_seconds(build_world, turns: int = 3, seed: int = 1805) -> float:
+    """Median wall-clock of full end_turn cycles (enemy phase + advance).
+
+    G4-1 (October 18, 2026): the arm must still be IN PLAY when the timed
+    turns end — the landing figure timed a game-over world whose turns
+    skipped the enemy and diplomatic phases, and nothing said so. The RNG
+    is seeded (the caller's stream restored) so every rep plays the same
+    turns, and the collector is held off the timed turns (timeit's rule: a
+    gen-2 pass over a suite worker's heap is not the turn's cost)."""
     import contextlib
+    import gc
     import io
+    import random
     import statistics
     from time import perf_counter
 
     from backend.game_logic.turn_manager import TurnManager
 
-    world = build_world()
-    tm = TurnManager(world, CommandExecutor())
-    game_state = {"world": world}
-    times = []
-    with contextlib.redirect_stdout(io.StringIO()):  # AI debug prints skew timing
-        tm.end_turn(game_state)  # warm-up turn (index/caches/imports)
-        for _ in range(turns):
-            t0 = perf_counter()
-            tm.end_turn(game_state)
-            times.append(perf_counter() - t0)
+    rng_state = random.getstate()
+    random.seed(seed)
+    try:
+        world = build_world()
+        tm = TurnManager(world, CommandExecutor())
+        game_state = {"world": world}
+        times = []
+        with contextlib.redirect_stdout(io.StringIO()):  # AI debug prints skew timing
+            tm.end_turn(game_state)  # warm-up turn (index/caches/imports)
+            gc_was_enabled = gc.isenabled()
+            gc.disable()
+            try:
+                for _ in range(turns):
+                    t0 = perf_counter()
+                    tm.end_turn(game_state)
+                    times.append(perf_counter() - t0)
+            finally:
+                if gc_was_enabled:
+                    gc.enable()
+    finally:
+        random.setstate(rng_state)
+    assert not world.game_over, (
+        f"the timed arm is a game-over world ({getattr(world, 'victory', None)}) — its turns "
+        f"skip the enemy and diplomatic phases, so the timing measures nothing"
+    )
     return statistics.median(times)
+
+
+def _interleaved_min_medians(build_a, build_b, reps: int = 5, turns: int = 3):
+    """G4-1: (a, b) — each arm the MIN of its per-rep medians, the reps
+    INTERLEAVED in ABBA order. Noise under the suite's other workers only
+    ever adds, and a burst slows a window, not every window of one arm;
+    back to back, one sample each, the gate read whatever the neighbours
+    did during its second window (bare 13.5ms > 2x legacy 6.3ms, once,
+    under `-n 8`)."""
+    a, b = [], []
+    for rep in range(reps):
+        first, second = ((build_a, a), (build_b, b)) if rep % 2 == 0 else (
+            (build_b, b), (build_a, a))
+        for build, samples in (first, second):
+            samples.append(_median_turn_seconds(build, turns))
+    return min(a), min(b)
 
 
 def test_g4_turn_resolution_map_cost_within_2x_baseline():
     """(G4) The 126-province map itself must not blow up turn time.
 
-    Apples-to-apples on the MAP axis: the bare army-less Europe world
-    (126 regions, 20 nations, no wars) vs the legacy 19-region armed
-    fixture, measured in the same process. Measured ratio at landing:
-    0.49x — the per-region turn phases (visibility, supply, income)
-    scale comfortably. Relative gate, never absolute ms (CI-safe)."""
+    The bare Europe world (126 regions, 20 nations, no armies) vs the
+    legacy 19-region armed fixture, measured in the same process.
+    Measured October 18, 2026: 1.12x (interleaved min of medians). The
+    0.49x recorded at landing timed a game-over world, and the arm also
+    carries NATION workload (20 courts against 5) — see the block above.
+    Relative gate, never absolute ms (CI-safe)."""
     from backend.models.world_state import WorldState
 
-    legacy = _median_turn_seconds(lambda: WorldState())
-    bare_europe = _median_turn_seconds(lambda: WorldState(sovereign_map="europe"))
+    legacy, bare_europe = _interleaved_min_medians(
+        lambda: WorldState(), lambda: WorldState(sovereign_map="europe"))
 
     assert bare_europe <= 2.0 * legacy, (
         f"G4 map-cost budget exceeded: bare 126-region turn "
         f"{bare_europe * 1000:.1f}ms > 2x legacy {legacy * 1000:.1f}ms"
     )
+
+
+def test_the_turn_timer_refuses_a_game_over_world():
+    """G4-1's guard can fail: an army-less legacy world is defeated on its
+    first end turn ("All armies destroyed!") — the shape the bare-Europe
+    arm had at landing, when the gate passed on a world nobody played."""
+    from backend.models.world_state import WorldState
+
+    def armyless_legacy():
+        world = WorldState()
+        for name in [n for n, m in world.marshals.items()
+                     if m.nation == world.player_nation]:
+            del world.marshals[name]
+        world.refresh_marshal_indexes()
+        return world
+
+    with pytest.raises(AssertionError, match="game-over world"):
+        _median_turn_seconds(armyless_legacy, turns=1)
 
 
 def test_1805_campaign_turn_time_regression_guard():
@@ -892,13 +984,16 @@ def test_1805_campaign_turn_time_regression_guard():
     at landing — all roster count, not map cost (see the map-cost gate
     above). The 15x ceiling is generous headroom that still catches a
     quadratic blowup (e.g. an O(N^2 x R) regression in the AI-AI
-    diplomacy phase) without flaking on CI noise."""
+    diplomacy phase) without flaking on CI noise.
+
+    G4-X1 (October 18, 2026): the same harness as the map gate — it shared
+    the back-to-back exposure. Measured 7.4x before G4-2's bloc-share cache
+    and 6.1x after (legacy 5.7ms, campaign 35ms)."""
     from backend.models.world_state import WorldState
 
-    legacy = _median_turn_seconds(lambda: WorldState())
-    campaign = _median_turn_seconds(
-        lambda: WorldState.from_scenario(_europe_1805_path())
-    )
+    legacy, campaign = _interleaved_min_medians(
+        lambda: WorldState(),
+        lambda: WorldState.from_scenario(_europe_1805_path()))
 
     assert campaign <= 15.0 * legacy, (
         f"1805 campaign turn regressed: {campaign * 1000:.1f}ms > 15x legacy "
@@ -1050,3 +1145,107 @@ def test_strategic_enemy_regions_memo_resets_with_evaluation_scope():
             world_b.diplomatic_states[key] = "PEACE"
     ai._reset_enemy_query_cache(world_b)
     assert ai._get_strategic_enemy_regions("Britain", world_b) == []
+
+
+# --- G4-2: the bloc-share table, computed once a turn -------------------------
+
+
+class TestG42TheBlocShareTableOnceATurn:
+    """G4-2 (October 18, 2026; BUG_FIXES §G4-1): `identify_ranked_bloc_shares`
+    is cached per turn on the world and flushed through
+    `invalidate_bloc_members_cache` (the `_agenda_cache` idiom). Recomputed
+    per call, the table was built 24 times a bare-Europe turn and 146 times
+    an 1805 campaign turn — a fifth of the campaign's turn time — and every
+    build copied each court's region list."""
+
+    @staticmethod
+    def _count(monkeypatch):
+        from backend.game_logic import coalition
+
+        counts = {"asked": 0, "computed": 0}
+        real_ask = coalition.identify_ranked_bloc_shares
+        real_rank = coalition._rank_bloc_shares
+
+        def ask(world):
+            counts["asked"] += 1
+            return real_ask(world)
+
+        def rank(world):
+            counts["computed"] += 1
+            return real_rank(world)
+
+        monkeypatch.setattr(coalition, "identify_ranked_bloc_shares", ask)
+        monkeypatch.setattr(coalition, "_rank_bloc_shares", rank)
+        return counts
+
+    def test_asked_many_times_a_turn_the_table_is_built_once(self, monkeypatch):
+        from backend.game_logic import coalition
+        from backend.models.world_state import WorldState
+
+        world = WorldState(sovereign_map="europe")
+        counts = self._count(monkeypatch)
+        first = coalition.identify_ranked_bloc_shares(world)
+        for _ in range(5):
+            assert coalition.identify_ranked_bloc_shares(world) == first
+            assert coalition._identify_max_bloc_share(world) == first[0]
+        assert counts == {"asked": 11, "computed": 1}
+        # A caller that edits its copy cannot poison the next reader.
+        coalition.identify_ranked_bloc_shares(world).clear()
+        assert coalition.identify_ranked_bloc_shares(world) == first
+
+    def test_a_bare_europe_turn_reads_one_table(self, monkeypatch):
+        """Through the real turn: every court's acceptance and agenda read
+        asks for the hegemon; the table is built once (the turn's own
+        boundary may build it a second time, never once per ask)."""
+        import contextlib
+        import io
+
+        from backend.game_logic.turn_manager import TurnManager
+        from backend.models.world_state import WorldState
+
+        world = WorldState(sovereign_map="europe")
+        tm = TurnManager(world, CommandExecutor())
+        with contextlib.redirect_stdout(io.StringIO()):
+            tm.end_turn({"world": world})
+            counts = self._count(monkeypatch)
+            tm.end_turn({"world": world})
+        assert counts["asked"] >= 10, counts
+        assert counts["computed"] <= 2, counts
+
+    def test_the_table_follows_every_mutation_family(self):
+        """Never stale: after each family's seam the cached table equals a
+        fresh build, and each step really moved the table (no vacuous
+        step). Sensitive: with the flush dropped from
+        `invalidate_bloc_members_cache`, the capture, the alliance and the
+        vassal step each leave a stale table (measured one at a time)."""
+        from backend.game_logic.coalition import (
+            _rank_bloc_shares, identify_ranked_bloc_shares)
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.models.world_state import WorldState
+
+        world = WorldState(sovereign_map="europe")
+        seen = [identify_ranked_bloc_shares(world)]
+
+        def step(family):
+            cached = identify_ranked_bloc_shares(world)
+            assert cached == _rank_bloc_shares(world), f"{family}: stale table"
+            assert cached != seen[-1], f"{family}: the step moved nothing"
+            seen.append(cached)
+
+        # Region control — the capture seam.
+        capital = world.get_nation_capital("Austria")
+        province = next(r for r in world.get_nation_regions("Austria") if r != capital)
+        world.capture_region(province, "France")
+        step("region control")
+        # Alliance geometry — the diplomatic-state setter.
+        set_diplomatic_state(world, "France", "Spain", "ALLIANCE", "g4_2_pin")
+        step("alliance")
+        # Vassalage — the vassal seams' own two statements.
+        world.vassals["Hesse"] = {"lord": "France", "loyalty": 60}
+        world.invalidate_active_nations_cache()
+        step("vassalage")
+        # The turn boundary picks up a direct write, as every per-turn cache does.
+        prussian = world.get_nation_regions("Prussia")[0]
+        world.regions[prussian].controller = "Russia"
+        world.current_turn += 1
+        step("turn boundary")

@@ -603,7 +603,30 @@ def identify_ranked_bloc_shares(world) -> List[Tuple[str, float]]:
     anti-hegemon design must be able to ask "the largest bloc I am NOT
     in", which the max-only form cannot answer. Same basis, same
     deterministic tie-break — the max-only caller is byte-identical.
+
+    G4-2 (October 18, 2026; BUG_FIXES §G4-1): per-turn cached on the world,
+    the `_agenda_cache` idiom (GR8). The table reads the active roster,
+    region control (`power_score` over the cached region index), vassalage
+    and alliance geometry (`get_bloc_members`) — the families whose
+    chokepoint, `invalidate_bloc_members_cache`, flushes this cache (the
+    active-nations invalidation chains into it; `set_diplomatic_state`
+    calls it). Recomputed per call, every court's acceptance and agenda
+    read re-derived the whole table: 24 times a bare-Europe turn, 146
+    times an 1805 campaign turn (a fifth of its time). Callers get a
+    fresh list.
     """
+    cache = getattr(world, "_bloc_shares_cache", None)
+    if cache is not None and getattr(
+            world, "_bloc_shares_cache_turn", -1) == world.current_turn:
+        return list(cache)
+    ranked = _rank_bloc_shares(world)
+    world._bloc_shares_cache = ranked
+    world._bloc_shares_cache_turn = world.current_turn
+    return list(ranked)
+
+
+def _rank_bloc_shares(world) -> List[Tuple[str, float]]:
+    """The uncached table behind `identify_ranked_bloc_shares` (G4-2)."""
     active = world.get_active_nations()
     if not active:
         return [(None, 0.0)]

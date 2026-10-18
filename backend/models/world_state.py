@@ -3376,6 +3376,9 @@ class WorldState:
         # control and war/peace geometry — same mutation families, same
         # chokepoint. Transient, never serialized.
         self._evac_direction_cache = None
+        # G4-2: the ranked bloc shares read region control, the roster,
+        # vassalage and alliance geometry — same families, same chokepoint.
+        self._bloc_shares_cache = None
 
     def _top_overlord(self, nation: str) -> str:
         """Walk the vassal `lord` chain until it terminates. Return top overlord.
