@@ -42,13 +42,43 @@ import re
 
 import pytest
 
+from backend.commands import executor as executor_mod
+from backend.commands import objection_v2 as ov2
+from backend.commands import strategic_executor as se_mod
 from backend.commands.executor import CommandExecutor
+from backend.commands.objection_v2 import ConcernLevel
 from backend.models.world_state import WorldState
 
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _NOT_ENOUGH = re.compile(r"not enough action", re.I)
+
+
+@pytest.fixture(autouse=True)
+def _no_mood_variance(monkeypatch):
+    """The mood variance pinned flat for this file (CC-2's board: the three
+    names, the ONE source of randomness in the objection triggers).
+
+    Davout's odds concern against Wellington is MILD — he "notes the risks
+    but prepares the attack" — and `apply_mood_variance` promotes a MILD
+    concern to MODERATE one draw in ten, so he OBJECTS instead and no strike
+    is thrown. Measured October 18, 2026 (CC-5's commit, blocked by it):
+    9 of 80 seeds drawn before the attack failed the headline assertion, and
+    which draw a run met depended on what the earlier tests on the same
+    xdist worker had consumed — green and red between identical suite runs.
+    On those same draws `test_the_counter_punch_attack_costs_no_ap` passed
+    with nothing thrown (an objection moves no AP either).
+
+    The promotion is real behaviour, and keeping the strike through it is
+    correct — pinned by `TestAnObjectionIsNotAThrownStrike` below. It is
+    disabled here, not denied.
+    """
+    def flat(concern):
+        return concern
+    monkeypatch.setattr(executor_mod, "apply_mood_variance", flat)
+    monkeypatch.setattr(se_mod, "apply_mood_variance", flat)
+    monkeypatch.setattr(ov2, "apply_mood_variance", flat)
 
 
 def _world_with_cautious_attacker(ap=0, counter_punch=True):
@@ -110,6 +140,9 @@ class TestCounterPunchSurvivesTheAPGate:
         before = world.actions_remaining
         result = _attack(world)
         assert result.get("success") is True, result.get("message")
+        # An objection is `success: True` and moves no AP either, so without
+        # this the claim below holds with no strike thrown at all.
+        assert result.get("counter_punch_used") is True, result.get("message")
         assert world.actions_remaining == before, (
             "a counter-punch attack must not spend an action")
 
@@ -122,6 +155,31 @@ class TestCounterPunchSurvivesTheAPGate:
         assert result.get("success") is True, result.get("message")
         assert davout.counter_punch_available is False, (
             "a thrown counter-punch must be consumed")
+        assert world.actions_remaining == 0
+
+
+class TestAnObjectionIsNotAThrownStrike:
+    """Pins the draw the autouse fixture disables: Davout's bad morning.
+
+    With the mood promoted one level he objects before `_execute_attack` is
+    reached, so no blow lands and the strike must survive — at 0 AP, the
+    only state where the counter-punch is the player's whole turn. The
+    headline test above is the control: the same board, unpromoted, throws.
+    """
+
+    def test_a_promoted_mood_objects_and_keeps_the_strike(self, monkeypatch):
+        def promoted(concern):      # the 10% draw, as apply_mood_variance makes it
+            if concern == ConcernLevel.NONE:
+                return concern
+            return ConcernLevel(min(concern.value + 1, ConcernLevel.EXTREME.value))
+        monkeypatch.setattr(executor_mod, "apply_mood_variance", promoted)
+        world, davout = _world_with_cautious_attacker(ap=0, counter_punch=True)
+        result = _attack(world)
+        assert result.get("pending_objection"), result.get("message")
+        assert result.get("counter_punch_used") is not True
+        assert davout.counter_punch_available is True, (
+            "an objection throws no blow; it must not spend the strike")
+        assert davout.counter_punch_turns == 2
         assert world.actions_remaining == 0
 
 

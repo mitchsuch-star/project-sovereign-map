@@ -464,7 +464,7 @@ class TestWO35TheInterruptSurvivesTheLoad:
             "the restored objection could not be answered")
 
     def test_a_restored_strategic_objection_reexecutes_on_insist(
-            self, saved):
+            self, saved, monkeypatch):
         """The re-execution half of memo hazard 6 (slice-18 review round —
         the first cut of this pin only ever reached the decline arm, so the
         seam that actually re-reads `parsed_command` was unbound). INSIST
@@ -476,6 +476,13 @@ class TestWO35TheInterruptSurvivesTheLoad:
         Mutation: make the proceed arm rebuild from an empty dict (drop the
         `parsed_command` re-read) — the order goes typeless and this reds."""
         client, m, tmp_path = saved
+        # An Insist rolls V2b defiance on the process's random stream, which
+        # under the parallel hook depends on what ran before on the worker —
+        # measured October 18, 2026 (MOOD-1's sweep): 1 entry seed in 200
+        # defied and issued no order. Pinned to obedience, as test_sr2e
+        # does; the defiance machinery is its own slice's pin, not this one's.
+        import backend.commands.defiance as DEF
+        monkeypatch.setattr(DEF, "calculate_defiance_chance", lambda *a, **k: 0.0)
         m.world.pending_strategic_objection = _strategic_objection("Davout")
         self._save(m, tmp_path)
         m.world.pending_strategic_objection = None
