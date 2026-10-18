@@ -133,7 +133,8 @@ def _eta_turns(marshal, order, current_turn=None) -> int:
     rng = max(1, int(getattr(marshal, "movement_range", 1) or 1))
     if _road.ONE_CLOCK and current_turn is not None and path:
         return max(1, int(_road.order_turns_remaining(
-            order, int(current_turn), movement_range=rng, before_tick=True)))
+            order, int(current_turn), movement_range=rng, before_tick=True,
+            location=marshal.location)))   # CC-X16
     return max(1, int(math.ceil(len(path) / rng))) if path else 1
 
 

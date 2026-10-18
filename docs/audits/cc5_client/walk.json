@@ -1,0 +1,295 @@
+{
+  "anchor_cancel_disabled": true,
+  "anchor_point": [
+    776.363525390625,
+    387.4375
+  ],
+  "arrow_point": [
+    432.748168945313,
+    393.865844726563
+  ],
+  "backend": "http://127.0.0.1:8007",
+  "booted": true,
+  "dest": "Ardennes",
+  "group_tail": " every standing order is an arrow on the map — click it to cancel or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Soult, march to Ardennes\nSoult begins march to Ardennes. Route: Orleanais → Ardennes. Moves to Orleanais. \"Soult, march to Ardennes.\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)\n   [3/4 actions remaining]\n\n\n► Davout, march to Ardennes\nDavout begins march to Ardennes. Route: Lorraine → Orleanais → Ardennes. Moves to Lorraine. Davout: \"The roads will be scouted before each march, Sire.\"\n   [1/4 actions remaining]\n\n2 of 2 sent.\n",
+  "hold_tail": "   [3/4 actions remaining]\n\n\n► Davout, march to Ardennes\nDavout begins march to Ardennes. Route: Lorraine → Orleanais → Ardennes. Moves to Lorraine. Davout: \"The roads will be scouted before each march, Sire.\"\n   [1/4 actions remaining]\n\n2 of 2 sent.\n\n► Napoleon, hold Lorraine\nNapoleon will hold Lorraine. Holding position. (1 AP — the Emperor commands in his own name.)\n   [0/4 actions remaining]\n\n",
+  "ms": 17619,
+  "steps": [
+    {
+      "actions": 4,
+      "arrows": [],
+      "card_mode": "order",
+      "card_open": false,
+      "card_terms": "",
+      "card_title": "",
+      "frame": "CC5_1_group_2026_10_18.jpg",
+      "group": [
+        "Soult",
+        "Davout"
+      ],
+      "note": "Ctrl-click Soult and Davout: a ring at each, the strip",
+      "rings": 2,
+      "saved": true,
+      "selected": "",
+      "step": "1_group",
+      "strip": "Soult, Davout — 2 corps selected — click a province: march together · Ctrl-click a marshal: add or drop him · Esc cancels\nA march for them all costs 3 actions of 4 in hand · the card names each corps' road and price"
+    },
+    {
+      "actions": 4,
+      "arrows": [],
+      "card_mode": "group",
+      "card_open": true,
+      "card_terms": "Soult · 1 action · arrives in 2 turns\nDavout · 2 actions · arrives in 3 turns\n\n3 actions of 4 in hand — 2 orders go, corps by corps.\nSend stops at the first question or refusal and says how far it got.",
+      "card_title": "ORDERS FOR 2 CORPS",
+      "frame": "CC5_2_group_card_2026_10_18.jpg",
+      "group": [
+        "Soult",
+        "Davout"
+      ],
+      "note": "the click on Ardennes: ONE card, a line per corps",
+      "rings": 2,
+      "saved": true,
+      "selected": "",
+      "step": "2_group_card",
+      "strip": "Soult, Davout — 2 corps selected — click a province: march together · Ctrl-click a marshal: add or drop him · Esc cancels\nA march for them all costs 3 actions of 4 in hand · the card names each corps' road and price"
+    },
+    {
+      "actions": 1,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 3 turns",
+          "marshal": "Davout",
+          "points": 3
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 2 turns",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_mode": "group",
+      "card_open": false,
+      "card_terms": "",
+      "card_title": "",
+      "frame": "CC5_3_group_sent_2026_10_18.jpg",
+      "group": [],
+      "note": "Enter: both march; the account in the terminal",
+      "rings": 0,
+      "saved": true,
+      "selected": "",
+      "step": "3_group_sent",
+      "strip": ""
+    },
+    {
+      "actions": 0,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 3 turns",
+          "marshal": "Davout",
+          "points": 3
+        },
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Lorraine",
+          "marshal": "Napoleon",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 2 turns",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_mode": "group",
+      "card_open": false,
+      "card_terms": "",
+      "card_title": "",
+      "frame": "CC5_4_arrows_2026_10_18.jpg",
+      "group": [],
+      "note": "every standing order of ours an arrow — two marches and a hold",
+      "rings": 0,
+      "saved": true,
+      "selected": "",
+      "step": "4_arrows",
+      "strip": ""
+    },
+    {
+      "actions": 0,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 3 turns",
+          "marshal": "Davout",
+          "points": 3
+        },
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Lorraine",
+          "marshal": "Napoleon",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 2 turns",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_mode": "standing",
+      "card_open": true,
+      "card_terms": "arrives in 2 turns\nRoad: Ardennes\nCancelling costs 1 action — no trust lost: it was given this turn.\nNo action left to cancel it today.\nChange selects him: click where he should go instead.",
+      "card_title": "STANDING ORDER — SOULT",
+      "frame": "CC5_5_arrow_card_2026_10_18.jpg",
+      "group": [],
+      "note": "a click on Soult's arrow: Cancel or Change",
+      "rings": 0,
+      "saved": true,
+      "selected": "",
+      "step": "5_arrow_card",
+      "strip": ""
+    },
+    {
+      "actions": 0,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 3 turns",
+          "marshal": "Davout",
+          "points": 3
+        },
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Lorraine",
+          "marshal": "Napoleon",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 2 turns",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_mode": "standing",
+      "card_open": false,
+      "card_terms": "",
+      "card_title": "",
+      "frame": "CC5_6_change_2026_10_18.jpg",
+      "group": [],
+      "note": "Enter (Change): Soult selected — his arrow bright, the rest dimmed",
+      "rings": 1,
+      "saved": true,
+      "selected": "Soult",
+      "step": "6_change",
+      "strip": "Soult selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\nNo march today — no military action left this turn"
+    },
+    {
+      "actions": 0,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 3 turns",
+          "marshal": "Davout",
+          "points": 3
+        },
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Lorraine",
+          "marshal": "Napoleon",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 2 turns",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_mode": "standing",
+      "card_open": false,
+      "card_terms": "",
+      "card_title": "",
+      "frame": "CC5_7_idle_2026_10_18.jpg",
+      "group": [],
+      "note": "`.`: the next corps with nothing to do, the camera on him",
+      "rings": 1,
+      "saved": true,
+      "selected": "Ney",
+      "step": "7_idle",
+      "strip": "Ney selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels\nNo march today — no military action left this turn"
+    },
+    {
+      "actions": 0,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 3 turns",
+          "marshal": "Davout",
+          "points": 3
+        },
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Lorraine",
+          "marshal": "Napoleon",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Ardennes · 2 turns",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_mode": "standing",
+      "card_open": true,
+      "card_terms": "Cancelling costs 1 action — no trust lost: it was given this turn.\nNo action left to cancel it today.\nChange selects him: click where he should go instead.",
+      "card_title": "STANDING ORDER — NAPOLEON",
+      "frame": "CC5_8_anchor_card_2026_10_18.jpg",
+      "group": [],
+      "note": "the anchor clicked: its card — no action left to cancel",
+      "rings": 0,
+      "saved": true,
+      "selected": "",
+      "step": "8_anchor_card",
+      "strip": ""
+    }
+  ]
+}

@@ -1151,7 +1151,10 @@ great powers is the Diplomatic Ledger's Congress tab, press D then 7):
 SCREENS & HOTKEYS:
   F1 diplomacy wizard | T strategic ledger | G marshals
   D diplomatic ledger | L campaign log | R morning dispatch
-  E end turn | Tab terminal
+  E end turn | Tab terminal | . next marshal with nothing to do
+  On the map, every standing order is an arrow - click it to
+  cancel or change the order. Ctrl-click marshals, then a
+  province, to march them together on one card.
 
 YOUR MARSHALS (press G - each card shows skills, trust, ability):
   Ney "Bravest of the Brave" - devastating assaults

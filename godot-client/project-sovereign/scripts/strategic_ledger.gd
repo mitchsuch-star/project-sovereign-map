@@ -18,6 +18,11 @@ signal closed
 # THE LAWS' Enact / Restore / Repeal chips ride the same road — it is the
 # ledger's one chip pipeline, whatever the book.
 signal naval_command(command: String)
+# CC-X15 (CC-5's sweep): the ORDERS book's Cancel — main.gd sends it down the
+# one cancel road the map's arrow card uses (the wire guard, the end-turn
+# latch retired, the map and the actions count following the reply), then
+# re-reads this book.
+signal cancel_order_requested(marshal_name: String)
 
 # NV-6: the Admiralty chip pill, matching the region panel's `_CHIP_BG`.
 const _NAVAL_CHIP_BG = "233043"
@@ -1489,7 +1494,13 @@ func _on_meta_clicked(meta):
 	var meta_str = str(meta)
 	if meta_str.begins_with("cancel:"):
 		var marshal_name = meta_str.substr(7)
-		if _api_client_ref:
+		if not cancel_order_requested.get_connections().is_empty():
+			# CC-X15: the one cancel road (main.gd re-reads this book after).
+			Utils.order_taken = false
+			cancel_order_requested.emit(marshal_name)
+			if Utils.order_taken:
+				Utils.mark_chip_sent(content_area, meta_str, "Cancel")
+		elif _api_client_ref:
 			_api_client_ref.cancel_strategic_order(marshal_name, _on_cancel_result)
 			# S12 part 2 (R6): the request is out; the chip says so until the
 			# refreshed ledger redraws the tab.

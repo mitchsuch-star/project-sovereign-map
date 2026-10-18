@@ -278,6 +278,17 @@ def _order_prices(world, marshal) -> Dict:
         return {}
 
 
+def _order_road(world, marshal) -> Dict:
+    """CC-5: `strategic.standing_order_road` (a display-only read) — the
+    standing order's remaining road the map draws as an arrow, {} for none."""
+    try:
+        from backend.commands.strategic import standing_order_road
+        return standing_order_road(world, marshal)
+    except Exception as exc:
+        report(exc, "world_state._order_road: strategic.standing_order_road")
+        return {}
+
+
 def _action_pools(world) -> Dict:
     """CRT-9: `state_probe.action_pools` (a display-only read)."""
     from backend.commands.state_probe import action_pools
@@ -10885,6 +10896,13 @@ class WorldState:
                         # Hold / Garrison chips price themselves as the
                         # executor will charge ("Hold (2 AP)").
                         "order_prices": _order_prices(self, m),
+                        # CC-5 "The war table" (Oct 17, 2026): his standing
+                        # order's REMAINING road, where it is bound and its
+                        # clock — the map's order arrow. Derived from the
+                        # order itself (no save field, no pathfinding), and
+                        # player-only like the rest of this dict: no enemy
+                        # corps ever carries it (the fog boundary).
+                        "order_road": _order_road(self, m),
                     }
 
                     # Session 66: Relationships for tooltip display

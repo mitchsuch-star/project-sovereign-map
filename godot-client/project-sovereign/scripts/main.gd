@@ -583,6 +583,10 @@ func _ready():
 		order_card.send_requested.connect(_on_order_card_send)
 		order_card.line_requested.connect(_on_order_card_line)
 		order_card.cancelled.connect(_on_order_card_cancel)
+		# CC-5 "The war table": the same card for an arrow and for a group.
+		order_card.standing_cancel_requested.connect(_on_standing_cancel_requested)
+		order_card.standing_change_requested.connect(_on_standing_change_requested)
+		order_card.group_send_requested.connect(_on_group_send_requested)
 	dialog_manager.modal_shown.connect(_on_modal_shown)
 
 	_configure_response_routes()
@@ -728,6 +732,10 @@ func _ready():
 				# NV-6: THE ADMIRALTY's order chips (posture, the Diversion)
 				if instance.has_signal("naval_command"):
 					instance.naval_command.connect(_on_naval_command)
+				# CC-X15 (CC-5's sweep): the Orders tab's Cancel rides the
+				# arrow card's one cancel road.
+				if instance.has_signal("cancel_order_requested"):
+					instance.cancel_order_requested.connect(_on_ledger_cancel_requested)
 			elif config[0] == "diplomatic_ledger":
 				# UI-6: Vassals-tab action chips + wizard handoff + assess verb
 				if instance.has_signal("vassal_command"):
@@ -799,6 +807,11 @@ func _ready():
 		map_area.piece_drag_started.connect(_on_piece_drag_started)
 		map_area.piece_dropped.connect(_on_piece_dropped)
 		map_area.piece_drag_cancelled.connect(_on_piece_drag_cancelled)
+	# CC-5: an arrow takes a click while the line is empty and nothing is on
+	# the wire; the click opens its card.
+	if map_area and "arrow_click_check" in map_area:
+		map_area.arrow_click_check = _arrow_may_take_a_click
+		map_area.order_arrow_clicked.connect(_on_order_arrow_clicked)
 	_order_dwell = Timer.new()
 	_order_dwell.one_shot = true
 	_order_dwell.timeout.connect(_on_order_dwell_timeout)
@@ -1027,6 +1040,8 @@ func _print_boot_help() -> void:
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
 	# CC-3: the map's order gesture, taught where the orders are.
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes[/color]")
+	# CC-5: the war table — the arrows, the idle corps, the group.
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • The war table: every standing order is an arrow on the map — click it to cancel or change it; [b].[/b] (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card[/color]")
 	add_output("")
 	_add_separator()
 
@@ -1273,6 +1288,13 @@ func _on_command_input_gui_input(event):
 		if event.keycode == KEY_F1:
 			_open_diplomacy_wizard()
 			command_input.accept_event()
+		elif (event.keycode == KEY_PERIOD and not event.alt_pressed and not event.shift_pressed
+				and not event.ctrl_pressed and command_input.text.strip_edges() == ""):
+			# CC-5: a bare `.` on an EMPTY line is the next idle corps — no
+			# order begins with a period, and the line holds the keyboard
+			# after every reply (with a draft it is a full stop, as typed).
+			_cycle_idle_marshal()
+			command_input.accept_event()
 		elif event.ctrl_pressed and _ctrl_scale_key(event.keycode):
 			# UXR-1b: the Interface Scale keys, reachable while typing (a
 			# LineEdit would otherwise eat Ctrl+= as text).
@@ -1331,8 +1353,8 @@ func _on_command_input_gui_input(event):
 			# focus away from a player who only wanted the list gone.
 			if not _suggestions.is_empty():
 				_clear_suggestions()
-			elif _order_marshal != "":
-				_clear_order_selection()   # CC-3: then a selected corps
+			elif _order_engaged():
+				_clear_order_selection()   # CC-3: then a selected corps (CC-5: or a group)
 			else:
 				command_input.release_focus()  # Unfocus to allow camera controls
 			command_input.accept_event()
@@ -1384,6 +1406,11 @@ func _alt_game_key(keycode: int) -> bool:
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			if _map_keys_live():
 				map_area.zoom_step(false)
+			return true
+		KEY_PERIOD:
+			# CC-5: the next idle corps (with a draft only the camera moves).
+			if _map_keys_live():
+				_cycle_idle_marshal()
 			return true
 	return false
 
@@ -1547,7 +1574,8 @@ func _unhandled_input(event):
 				return
 			# CC-3: a selected corps swallows one Esc — the topmost thing on
 			# the map (the card's own Esc is the card's, read in its _input).
-			if _order_marshal != "" and not _is_modal_dialog_open():
+			# CC-5: so does a Ctrl-click group.
+			if _order_engaged() and not _is_modal_dialog_open():
 				_clear_order_selection()
 				get_viewport().set_input_as_handled()
 				return
@@ -1655,6 +1683,10 @@ func _unhandled_input(event):
 			if not command_input.has_focus():
 				_toggle_terminal()
 				get_viewport().set_input_as_handled()
+		# CC-5: `.` — the next corps with nothing to do (Alt+`.` while typing).
+		elif event.keycode == KEY_PERIOD and not event.shift_pressed and not event.ctrl_pressed:
+			_cycle_idle_marshal()
+			get_viewport().set_input_as_handled()
 
 func _minimize_terminal():
 	"""Collapse the terminal panel, show restore button."""
@@ -8157,8 +8189,16 @@ func _on_map_region_clicked(region_name: String):
 	# CC-3: with a corps selected the click is an ORDER gesture (a card,
 	# never the panel) — while the line is empty; a draft owns the clicks
 	# (CC-X12: a line filled by code lets the selection go first).
-	if _order_marshal != "" and command_input.text.strip_edges() != "":
+	var drafting: bool = command_input.text.strip_edges() != ""
+	if _order_engaged() and drafting:
 		_clear_order_selection()
+	# CC-5: Ctrl-click on a piece of ours gathers him into the group (or lets
+	# him out of it) — on an empty line only (a draft owns the clicks).
+	if not drafting and _click_groups_a_marshal():
+		return
+	if _order_group.size() >= 2:
+		_group_click(region_name)
+		return
 	if _order_marshal != "":
 		_order_click(region_name, _last_click_target_key())
 		return
@@ -8514,6 +8554,13 @@ var _order_dwell: Timer = null
 # The rest the cursor takes on a target before its exact quote is fetched —
 # one GET for what the player is looking at, not one per province crossed.
 const ORDER_DWELL_SEC := 0.15
+# CC-5 "The war table": a Ctrl-click GROUP (two or more roster keys — one is
+# a selection), the province its card is for, the sequencer's run while its
+# lines go, and the corps `.` visited last.
+var _order_group: Array = []
+var _group_card_dest := ""
+var _group_run: Dictionary = {}
+var _idle_cursor := ""
 
 
 func _order_input_ready() -> bool:
@@ -8582,9 +8629,13 @@ func _click_selects_a_marshal() -> bool:
 
 
 func _select_marshal(key: String) -> void:
-	"""Select a corps of ours: the ring, the strip, his reach asked for once."""
+	"""Select a corps of ours: the ring, the strip, his reach asked for once
+	(a selection replaces a CC-5 group)."""
 	_order_serial += 1
 	_order_marshal = key
+	_order_group = []
+	if map_area and map_area.has_method("set_order_group"):
+		map_area.set_order_group([])
 	_order_reach = {}
 	_order_quotes = {}
 	_order_quote_pending = {}
@@ -8620,7 +8671,18 @@ func _on_march_reach(serial: int, key: String, response) -> void:
 
 func _reread_order_selection() -> void:
 	"""A new board arrived: the selected corps missing from it is let go; one
-	still standing has his reach read again (the board moved under it)."""
+	still standing has his reach read again (the board moved under it). A
+	CC-5 group keeps the members still standing (one left is a selection)."""
+	if _order_group.size() >= 2:
+		var still: Array = _order_group.filter(func(k): return _own_field_marshal(str(k)))
+		if still.size() != _order_group.size():
+			if _order_card_open():
+				_clear_order_selection()   # the card's lines were read on the old board
+			else:
+				_set_order_group(still)
+		else:
+			_render_order_strip()
+		return
 	if _order_marshal == "":
 		return
 	if not _own_field_marshal(_order_marshal):
@@ -8642,10 +8704,11 @@ func _clear_order_selection() -> void:
 	"""Let the selection go — the ring, the tint, the ghost, the strip, and a
 	card still open (shut, nothing sent)."""
 	var card_open := _order_card_open()
-	if _order_marshal == "" and not card_open:
+	if _order_marshal == "" and not card_open and _order_group.is_empty():
 		return
 	_order_serial += 1
 	_order_marshal = ""
+	_order_group = []   # CC-5: the group goes with it
 	_order_reach = {}
 	_order_quotes = {}
 	_order_quote_pending = {}
@@ -8921,6 +8984,367 @@ func _on_piece_drag_cancelled(_marshal_key: String) -> void:
 	_clear_order_selection()
 
 
+# ═══════ CC-5 "THE WAR TABLE" (October 18, 2026) ═══════
+#
+# THE ARROWS: every standing order of ours stands on the map as a dashed
+# arrow along the road it has still to walk (the board's player-only
+# `tactical_state.order_road` — the renderer draws it). A click on one opens
+# the card's ARROW face: [Cancel order] through the existing POST
+# /cancel_order (ONE cancel road — the Orders tab's Cancel rides it too,
+# CC-X15), or [Change], which selects him (CC-3).
+# THE NEXT IDLE MARSHAL: `.` (Alt+`.` while typing) walks our corps with no
+# standing order and no works, drill or square — the camera on him, and on
+# an empty line he is selected.
+# GROUP ORDERS: Ctrl-click gathers our pieces; a province click opens ONE
+# card — a line per corps, each its own quote, the taken lines' actions
+# summed against the pool — and Send carries the lines down the typed road
+# one at a time, stopping at the first question or refusal and saying how
+# far it got. The named-list line ("Ney, Davout and Soult, march to …") is
+# NOT that road: it is CQ-8's relay — the second name handed back for the
+# seal, never spent — so the card's sealed orders go one by one
+# (SYSTEMS_REFERENCE §129).
+
+func _order_engaged() -> bool:
+	"""A corps — or a CC-5 group — is selected."""
+	return _order_marshal != "" or _order_group.size() >= 2
+
+
+func _arrow_may_take_a_click() -> bool:
+	"""The renderer's `arrow_click_check`: the line EMPTY (a draft owns the
+	clicks — CC-1's pen), nothing on the wire, no modal or screen."""
+	return (command_input != null and command_input.text.strip_edges() == ""
+		and _order_input_ready())
+
+
+func _on_order_arrow_clicked(marshal_key: String) -> void:
+	"""A click on a standing order's arrow: the card's ARROW face — what the
+	order is, its road and clock, and what cancelling costs."""
+	if order_card == null or not _arrow_may_take_a_click():
+		return
+	var info := _order_road_of(marshal_key)
+	if info.is_empty():
+		return
+	if region_panel and region_panel.visible:
+		region_panel.close_panel()
+	var avoid: Array = []
+	if map_area and map_area.has_method("order_arrow_screen_rect"):
+		avoid.append(map_area.order_arrow_screen_rect(marshal_key))
+	order_card.open_standing_card(marshal_key, Utils.humanize_entity_name(marshal_key), info,
+		int(actions_remaining), avoid)
+	_update_war_panel_visibility()
+
+
+func _order_road_of(marshal_key: String) -> Dictionary:
+	"""His standing order's `order_road` on the last board ({} for none)."""
+	var ts = _marshal_entry(marshal_key).get("tactical_state", {})
+	var info = ts.get("order_road", {}) if ts is Dictionary else {}
+	return info if info is Dictionary else {}
+
+
+func _on_standing_change_requested(marshal_key: String) -> void:
+	"""[Change] (or Enter) on the arrow card: he is selected — the next
+	click names his new order (CC-3), and its card says what it replaces."""
+	_update_war_panel_visibility()
+	if _own_field_marshal(marshal_key) and _order_input_ready():
+		_select_marshal(marshal_key)
+
+
+func _on_standing_cancel_requested(marshal_key: String) -> void:
+	_update_war_panel_visibility()
+	_send_cancel_order(marshal_key)
+
+
+func _on_ledger_cancel_requested(marshal_key: String) -> void:
+	"""CC-X15: the Orders tab's Cancel — the same road as the arrow card's."""
+	_send_cancel_order(marshal_key)
+
+
+func _send_cancel_order(marshal_key: String) -> void:
+	"""ONE cancel road (CC-5; CC-X15): the existing POST /cancel_order, sent
+	like any other order — the wire guard, the end-turn latch retired (CC-0:
+	any send means the player moved on), the in-flight latch — and its reply
+	read by `_on_command_result`, so the map (the arrow goes), the actions
+	count and any question it raises follow at once."""
+	if marshal_key == "" or _chip_command_in_flight or api_client == null:
+		return
+	if not command_input.editable:
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+		return
+	var info := _order_road_of(marshal_key)
+	var shown := Utils.humanize_entity_name(marshal_key)
+	var what: String = order_card.standing_headline(shown, info) if order_card != null and not info.is_empty() \
+		else shown + "'s standing order"
+	_clear_order_selection()
+	_chip_command_in_flight = true
+	Utils.order_taken = true   # the Orders tab's chip may say "Sent"
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► Cancel: " + what + "[/color]")
+	AudioManager.play("quill_flick")
+	_retire_line_latches()
+	set_input_enabled(false)
+	api_client.cancel_strategic_order(marshal_key, _on_cancel_order_result)
+
+
+func _on_cancel_order_result(response) -> void:
+	_chip_command_in_flight = false
+	_on_command_result(response)
+	if top_bar and top_bar.screens.has("ledger"):
+		var ledger_screen = top_bar.screens["ledger"]
+		if ledger_screen and ledger_screen.has_method("refresh_if_open"):
+			ledger_screen.refresh_if_open()
+
+
+# ── the next idle marshal ──────────────────────────────────────────────────
+
+func _idle_marshals() -> Array:
+	"""Our corps in the field with nothing to do — no standing order, no
+	works, no drill, no square — in the board's roster order."""
+	var out: Array = []
+	var marshals = _last_game_state.get("marshals", {})
+	if not (marshals is Dictionary):
+		return out
+	for key in marshals.keys():
+		var k := str(key)
+		if not _own_field_marshal(k):
+			continue
+		var ts = _marshal_entry(k).get("tactical_state", {})
+		if not (ts is Dictionary):
+			continue
+		if bool(ts.get("in_strategic_mode", false)) or str(ts.get("strategic_command_type", "")) != "":
+			continue
+		if (bool(ts.get("fortified", false)) or bool(ts.get("drilling", false))
+				or bool(ts.get("drilling_locked", false)) or bool(ts.get("square_formation", false))):
+			continue
+		out.append(k)
+	return out
+
+
+func _cycle_idle_marshal() -> void:
+	"""`.` — the next corps with nothing to do: the camera on him and, on an
+	empty line, he is selected (CC-3). With a draft on the line only the
+	camera moves (the draft owns the clicks)."""
+	if not _order_input_ready() or map_area == null:
+		return
+	var idle := _idle_marshals()
+	if idle.is_empty():
+		add_output("[color=#" + Utils.COLOR_INFO + "]Every corps in the field has its orders, Sire.[/color]")
+		return
+	var after := _order_marshal if _order_marshal != "" else _idle_cursor
+	var at := idle.find(after)
+	var key: String = idle[(at + 1) % idle.size()] if at >= 0 else idle[0]
+	_idle_cursor = key
+	if map_area.has_method("focus_on_marshal"):
+		map_area.focus_on_marshal(key)
+	if command_input.text.strip_edges() == "":
+		_select_marshal(key)
+
+
+# ── group orders ───────────────────────────────────────────────────────────
+
+func _click_groups_a_marshal() -> bool:
+	"""Ctrl-click on a piece of ours (the line empty): he joins the group —
+	or leaves it. A selected corps is the group's first member; a group of
+	one is a selection again. While a selection or a group stands, a
+	Ctrl-click on anything else does nothing. Returns whether it acted."""
+	if map_area == null:
+		return false
+	var ctrl = map_area.get("last_click_ctrl")
+	if not (ctrl != null and bool(ctrl)):
+		return false
+	var key := _last_click_marshal_key()
+	if not _own_field_marshal(key) or not _order_input_ready():
+		return _order_engaged()
+	var members: Array = _order_group.duplicate() if _order_group.size() >= 2 \
+		else ([_order_marshal] if _order_marshal != "" else [])
+	if key in members:
+		members.erase(key)
+	else:
+		members.append(key)
+	_set_order_group(members)
+	return true
+
+
+func _set_order_group(members: Array) -> void:
+	"""Two or more: the group (a ring at every member's feet, the strip — no
+	single corps' tint or ghost); one: a selection; none: let go."""
+	if members.size() < 2:
+		if members.size() == 1:
+			_select_marshal(str(members[0]))
+		else:
+			_clear_order_selection()
+		return
+	_order_serial += 1
+	_order_marshal = ""
+	_order_reach = {}
+	_order_quotes = {}
+	_order_quote_pending = {}
+	_order_hover_key = ""
+	_order_card_key = ""
+	_order_group = members.duplicate()
+	if _order_dwell != null:
+		_order_dwell.stop()
+	if region_panel and region_panel.visible:
+		region_panel.close_panel()
+	if map_area and map_area.has_method("clear_order_selection"):
+		map_area.clear_order_selection()
+	if map_area and map_area.has_method("set_order_group"):
+		map_area.set_order_group(_order_group)
+	_render_order_strip()
+	AudioManager.play("select")
+
+
+func _group_click(region: String) -> void:
+	"""A click with a group held: the group's march to the province under it
+	(whatever stands there) — ONE card, a line per corps."""
+	if not _order_input_ready():
+		return   # nothing acts while a command is on the wire
+	if region == "":
+		_clear_order_selection()
+		return
+	_open_group_card(region)
+
+
+func _open_group_card(region: String) -> void:
+	if order_card == null:
+		return
+	_group_card_dest = region
+	var names := PackedStringArray()
+	for key in _order_group:
+		names.append(Utils.humanize_entity_name(str(key)))
+	order_card.open_group_card("ORDERS FOR %d CORPS" % _order_group.size(), region,
+		"Reading the roads to " + region + " for " + ", ".join(names) + "…", _order_card_avoid())
+	_update_war_panel_visibility()
+	if api_client != null and api_client.has_method("get_group_quotes"):
+		var serial := _order_serial
+		api_client.get_group_quotes(_order_group, region,
+			func(response): _on_group_quotes(serial, region, response))
+
+
+func _on_group_quotes(serial: int, region: String, response) -> void:
+	if serial != _order_serial or region != _group_card_dest:
+		return   # the answer for a group already let go
+	if not _order_card_open() or str(order_card.mode()) != "group":
+		return
+	var quotes = response.get("quotes", []) if response is Dictionary else []
+	if not (response is Dictionary) or not bool(response.get("success", false)):
+		quotes = []
+	order_card.show_group(quotes if quotes is Array else [],
+		int(response.get("ap_left", actions_remaining)) if response is Dictionary else int(actions_remaining))
+	order_card.set_avoid(_order_card_avoid())
+
+
+func _on_group_send_requested(lines: Array, held: Array) -> void:
+	_update_war_panel_visibility()
+	_send_group_orders(lines, held)
+
+
+func _send_group_orders(lines: Array, held: Array) -> void:
+	"""The group card's Send: its lines go down the TYPED road one at a time
+	(`_send_map_order`'s steps), each answered before the next is sent; the
+	run STOPS at the first question (an objection, a contact, any popup) or
+	refusal and says how far it got ("2 of 3 sent — Lannes refused: …")."""
+	if lines.is_empty() or _chip_command_in_flight:
+		return
+	if not command_input.editable:
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+		return
+	_clear_order_selection()
+	_group_run = {"lines": lines.duplicate(true), "i": 0, "sent": [],
+		"held": held.duplicate(true), "total": lines.size() + held.size()}
+	_send_group_line()
+
+
+func _send_group_line() -> void:
+	var lines: Array = _group_run.get("lines", [])
+	var i := int(_group_run.get("i", 0))
+	if i >= lines.size():
+		_finish_group_run("", "")
+		return
+	var command := str((lines[i] as Dictionary).get("command", ""))
+	if command == "" or not command_input.editable or _chip_command_in_flight:
+		_finish_group_run(str((lines[i] as Dictionary).get("shown", "")), "could not be sent")
+		return
+	_chip_command_in_flight = true
+	_add_to_history(command)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	AudioManager.play("quill_flick")
+	_retire_line_latches()   # CC-0: any send means the player moved on
+	set_input_enabled(false)
+	AudioManager.start_scribble()
+	if tutorial_overlay:
+		tutorial_overlay.note_sent(command)
+	api_client.send_command(command, _on_group_line_result)
+
+
+func _on_group_line_result(response) -> void:
+	_chip_command_in_flight = false
+	_on_command_result(response)
+	if _group_run.is_empty():
+		return
+	var lines: Array = _group_run["lines"]
+	var i := int(_group_run["i"])
+	var shown := str((lines[i] as Dictionary).get("shown", ""))
+	if not (response is Dictionary) or not bool(response.get("success", false)):
+		_finish_group_run(shown, "refused: " + _group_reason(response))
+		return
+	if not command_input.editable or _is_modal_dialog_open():
+		# A question rides the reply — an objection, a first-step contact,
+		# any popup: the rest wait for no one (nothing is held — CR-7-8).
+		_finish_group_run(shown, "asks you first")
+		return
+	(_group_run["sent"] as Array).append(shown)
+	_group_run["i"] = i + 1
+	if i + 1 < lines.size():
+		_send_group_line.call_deferred()
+	else:
+		_finish_group_run("", "")
+
+
+func _group_reason(response) -> String:
+	"""The refusal's first sentence, plain."""
+	var text := str(response.get("message", "")) if response is Dictionary else ""
+	text = text.strip_edges().split("\n")[0].strip_edges()
+	var stop := text.find(". ")
+	if stop > 20:
+		text = text.substr(0, stop + 1)
+	return text if text != "" else "the order was not taken"
+
+
+func _finish_group_run(stopped_at: String, why: String) -> void:
+	"""The run's account — how far it got, who stopped it and why, what was
+	not sent, and who stayed by the card's own word."""
+	if _group_run.is_empty():
+		return
+	var lines: Array = _group_run.get("lines", [])
+	var sent: Array = _group_run.get("sent", [])
+	var text := "%d of %d sent" % [sent.size(), int(_group_run.get("total", lines.size()))]
+	if stopped_at != "":
+		text += " — " + stopped_at + " " + why
+		var rest := PackedStringArray()
+		for k in range(int(_group_run.get("i", 0)) + 1, lines.size()):
+			rest.append(str((lines[k] as Dictionary).get("shown", "")))
+		if not rest.is_empty():
+			text += "; not sent: " + ", ".join(rest)
+	var held := PackedStringArray()
+	for h in _group_run.get("held", []):
+		if h is Dictionary:
+			held.append(str(h.get("shown", "")) + " (" + str(h.get("reason", "")) + ")")
+	if not held.is_empty():
+		text = text.trim_suffix(".") + ". Stayed: " + "; ".join(held)
+	if not (text.ends_with(".") or text.ends_with("!") or text.ends_with("?")):
+		text += "."   # a refusal's own sentence already ends itself
+	_group_run = {}
+	add_output("[color=#" + Utils.COLOR_GOLD + "]" + text + "[/color]")
+
+
+func group_run_report() -> Dictionary:
+	"""The sequencer's state — read by the CC harness."""
+	return _group_run.duplicate(true)
+
+
 func _build_order_strip() -> void:
 	"""The selection's status strip — what each click will do and the ETA
 	bands' legend — centred over the map's controls at the bottom of the HUD
@@ -8960,9 +9384,12 @@ func order_strip_text() -> String:
 func _render_order_strip() -> void:
 	if _order_strip == null:
 		return
-	if _order_marshal == "":
+	if _order_marshal == "" and _order_group.size() < 2:
 		_order_strip.visible = false
 		_queue_fit_map_controls()
+		return
+	if _order_group.size() >= 2:
+		_show_order_strip(_group_strip_text())
 		return
 	var text := ("[b]" + Utils.humanize_entity_name(_order_marshal) + "[/b] selected — click a "
 		+ "province: march · an enemy: attack · a marshal: support · Esc cancels")
@@ -8981,6 +9408,28 @@ func _render_order_strip() -> void:
 		var count: int = reach.size() if reach is Dictionary else 0
 		text += ("\n" + legend + "[color=#" + Utils.COLOR_INFO + "]" + Utils.plural(count, "province")
 			+ " on his roads · a march costs " + Utils.plural(int(_order_reach.get("ap", 0)), "action") + "[/color]")
+	_show_order_strip(text)
+
+
+func _group_strip_text() -> String:
+	"""CC-5: the group's strip — who is in it, what a click does, and what a
+	march for all of them costs against the pool (each man's own price,
+	`tactical_state.order_prices.march`, the executor's)."""
+	var names := PackedStringArray()
+	var total := 0
+	for key in _order_group:
+		names.append(Utils.humanize_entity_name(str(key)))
+		var ts = _marshal_entry(str(key)).get("tactical_state", {})
+		var prices = ts.get("order_prices", {}) if ts is Dictionary else {}
+		total += int(prices.get("march", 0)) if prices is Dictionary else 0
+	var text := ("[b]" + ", ".join(names) + "[/b] — " + str(_order_group.size())
+		+ " corps selected — click a province: march together · Ctrl-click a marshal: add or drop him · Esc cancels")
+	text += ("\n[color=#" + Utils.COLOR_INFO + "]A march for them all costs " + Utils.plural(total, "action")
+		+ " of " + str(actions_remaining) + " in hand · the card names each corps' road and price[/color]")
+	return text
+
+
+func _show_order_strip(text: String) -> void:
 	_order_strip_label.text = text
 	# The strip's two lines, measured (no `fit_content`: UXR-2's scroll rule
 	# keeps unbounded text out of a panel's minimum) — unwrapped, so their

@@ -25,6 +25,11 @@ signal order_hover(region_name: String, marshal_name: String)
 signal piece_drag_started(marshal_name: String)
 signal piece_dropped(marshal_name: String, region_name: String)
 signal piece_drag_cancelled(marshal_name: String)
+# CC-5 "The war table": a click on a standing order's ARROW (the owner opens
+# its card — Cancel or Change). Only while nothing is selected and the owner
+# lets the arrows take a click (`arrow_click_check`: the line empty, nothing
+# on the wire); a piece or a fog chip under the cursor wins over an arrow.
+signal order_arrow_clicked(marshal_name: String)
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
@@ -325,6 +330,10 @@ var last_click_fogged: String = ""
 # or Ctrl never drags (CC-1 writes, CC-5 groups).
 var order_selected: String = ""
 var drag_allowed_check: Callable = Callable()
+# CC-5: a Ctrl-click GROUP (roster keys, two or more — one is a selection):
+# a ring at every member's feet; and whether an arrow may take a click now.
+var order_group: Array = []
+var arrow_click_check: Callable = Callable()
 var order_layer = null
 var reach_fill_layer: TextureRect = null
 var _order_bands := {}
@@ -1801,6 +1810,7 @@ func _rebuild_dynamic_nodes():
 	_push_furniture()
 	_refresh_hover_state()
 	_refresh_order_ring()   # CC-3: the hitboxes the ring stands on were rebuilt
+	_refresh_order_arrows() # CC-5: and the feet every arrow starts from
 
 
 func _add_furniture(kind: String, nodes: Array) -> void:
@@ -2526,6 +2536,7 @@ func _input(event):
 				piece_drag_started.emit(str(_drag_pending["marshal"]))
 			_refresh_hover_state()
 			_order_hover_tick()
+			_refresh_arrow_hover(event.position)   # CC-5
 			queue_redraw()
 		return
 
@@ -2559,6 +2570,15 @@ func _input(event):
 			last_click_ctrl = event.ctrl_pressed
 			last_click_marshal = str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
 			last_click_fogged = str(hovered_fogged_force.get("name", "")) if hovered_fogged_force.size() > 0 else ""
+			# CC-5: a click on a standing order's arrow opens its card — the
+			# piece (or the fog chip) under the cursor wins: it is the more
+			# particular thing, and every arrow starts at a piece's feet.
+			if last_click_marshal == "" and last_click_fogged == "" \
+					and not event.shift_pressed and not event.ctrl_pressed:
+				var arrow := _order_arrow_under(event.position)
+				if arrow != "":
+					order_arrow_clicked.emit(arrow)
+					return
 			# CC-3: a press on a piece of ours with nothing typed waits — 8 px
 			# of travel make it a drag, a release where it stands the click.
 			if _arm_piece_drag(event):
@@ -2567,10 +2587,10 @@ func _input(event):
 			# province always wins the hover) opens THE ADMIRALTY. CC-3: not
 			# while a corps is selected — the click is an order then, and a
 			# province beats the fleet pieces.
-			if order_selected == "" and hovered_fleet.size() > 0:
+			if not order_engaged() and hovered_fleet.size() > 0:
 				fleet_clicked.emit(str(hovered_fleet.get("nation", "")))
 				return
-			if order_selected == "" and hovered_sea_link.size() > 0:
+			if not order_engaged() and hovered_sea_link.size() > 0:
 				sea_link_clicked.emit(str(hovered_sea_link.get("a", "")),
 					str(hovered_sea_link.get("b", "")))
 				return
@@ -2633,6 +2653,8 @@ func _clear_hover_state():
 	hovered_fleet = {}
 	hovered_sea_link = {}
 	_set_hovered_region("")
+	if order_layer != null:
+		order_layer.set_arrow_hover("")   # CC-5
 
 
 func _pointer_is_blocked() -> bool:
@@ -2777,16 +2799,160 @@ func _order_piece_feet(marshal_name: String) -> Dictionary:
 
 
 func _refresh_order_ring() -> void:
+	"""The ring at the selected corps' feet — or, CC-5, at every member's of
+	a group; the arrows step back while either is held."""
 	if order_layer == null:
 		return
-	if order_selected == "":
-		order_layer.clear_ring()
+	var members: Array = order_group if order_group.size() >= 2 \
+		else ([order_selected] if order_selected != "" else [])
+	var rings: Array = []
+	for key in members:
+		var feet := _order_piece_feet(str(key))
+		if not feet.is_empty():
+			rings.append({"at": feet["feet"], "r": float(feet["radius"])})
+	order_layer.set_rings(rings)
+	order_layer.set_arrow_focus(order_selected, not members.is_empty())
+
+
+# ═══ CC-5 "The war table" (row CC, Pre-Deploy S13c part 3) ═══
+
+func order_engaged() -> bool:
+	"""A corps — or a CC-5 group — is selected: a click is an order then (a
+	province beats the fleets)."""
+	return order_selected != "" or order_group.size() >= 2
+
+
+func set_order_group(keys: Array) -> void:
+	"""CC-5: the owner's Ctrl-click group (two or more roster keys; fewer is
+	no group) — a ring at every member's feet."""
+	order_group = keys.duplicate() if keys.size() >= 2 else []
+	_refresh_order_ring()
+	_refresh_arrow_hover(mouse_position)
+
+
+func _refresh_order_arrows() -> void:
+	"""CC-5: every standing order of ours as an arrow along the road it has
+	still to walk — read from the board (`tactical_state.order_road`, which
+	only our own corps carry: the fog boundary) and drawn by the order layer.
+	A support or a follow ends on the friend's feet; a hold stands as an
+	anchor where it holds. Rule 8: the board's own entries, no search."""
+	if order_layer == null:
 		return
-	var feet := _order_piece_feet(order_selected)
-	if feet.is_empty():
-		order_layer.clear_ring()
+	var positions = _get_active_region_positions()
+	var arrows: Array = []
+	for region_name in region_marshals:
+		for m in region_marshals[region_name]:
+			if not (m is Dictionary):
+				continue
+			var ts = m.get("tactical_state", null)
+			var info = ts.get("order_road", {}) if ts is Dictionary else {}
+			if not (info is Dictionary) or info.is_empty():
+				continue
+			var key := str(m.get("name", ""))
+			var feet := _order_piece_feet(key)
+			var points: Array = [feet.get("feet", positions.get(region_name, Vector2.ZERO))]
+			var road = info.get("road", [])
+			for r in (road if road is Array else []):
+				if positions.has(str(r)):
+					points.append(positions[str(r)])
+			var kind := str(info.get("kind", ""))
+			var friend := str(info.get("friend", ""))
+			if friend != "" and kind in ["support", "follow"]:
+				var at := _order_piece_feet(friend)
+				if not at.is_empty():
+					if points.size() > 1 and road is Array and not road.is_empty() \
+							and str(road.back()) == str(info.get("dest", "")):
+						points[points.size() - 1] = at["feet"]   # on his piece, not the province's centre
+					else:
+						points.append(at["feet"])
+			arrows.append({"marshal": key, "kind": kind, "points": points,
+				"anchor": kind == "hold", "label": order_arrow_label(info),
+				"halted": bool(info.get("halted", false))})
+	order_layer.set_arrows(arrows)
+
+
+func order_arrow_label(info: Dictionary) -> String:
+	"""The badge on an arrow: where the order is bound and its clock — the
+	backend's own numbers (`order_road`), composed for the eye."""
+	if bool(info.get("halted", false)):
+		return "halted — awaiting your word"
+	var road = info.get("road", [])
+	var on_road: bool = road is Array and not road.is_empty()
+	var turns := int(info.get("turns", 0))
+	var clock := "this turn" if turns <= 0 else Utils.plural(turns, "turn")
+	var dest := str(info.get("dest", ""))
+	var who := str(info.get("target_shown", ""))
+	match str(info.get("kind", "")):
+		"march":
+			return dest + " · " + (clock if on_road else "arriving")
+		"pursue":
+			return "pursues " + who + ((" · " + clock) if on_road else "")
+		"hold":
+			if on_road:
+				return "to hold " + dest + " · " + clock
+			var more := int(info.get("holds_for", 0))
+			return "holds " + dest + ((" · " + Utils.plural(more, "more turn")) if more > 0 else "")
+		"support":
+			return "supports " + who + ((" · " + clock) if on_road else "")
+		"follow":
+			return "follows " + who + ((" · " + clock) if on_road else "")
+	return who
+
+
+func _arrows_take_clicks() -> bool:
+	"""An arrow answers the pointer only while nothing is selected and the
+	owner allows it (the line empty, nothing on the wire)."""
+	return order_layer != null and order_selected == "" and order_group.size() < 2 \
+		and arrow_click_check.is_valid() and bool(arrow_click_check.call())
+
+
+func _order_arrow_under(screen_pos: Vector2) -> String:
+	if not _arrows_take_clicks():
+		return ""
+	return order_layer.arrow_at(screen_pos - order_layer.global_position)
+
+
+func _refresh_arrow_hover(screen_pos: Vector2) -> void:
+	"""The arrow under the cursor thickens (a piece or a chip under it wins)."""
+	if order_layer == null:
 		return
-	order_layer.set_ring(feet["feet"], float(feet["radius"]))
+	var hit := ""
+	if hovered_marshal.is_empty() and hovered_fogged_force.is_empty():
+		hit = _order_arrow_under(screen_pos)
+	order_layer.set_arrow_hover(hit)
+
+
+func focus_on_marshal(marshal_name: String) -> void:
+	"""CC-5: the camera on his piece (else on his province)."""
+	var feet := _order_piece_feet(marshal_name)
+	if not feet.is_empty():
+		focus_on_map_point(feet["feet"])
+		return
+	var home := _region_of_marshal(marshal_name)
+	if home != "":
+		focus_on_region(home)
+
+
+func order_arrow_screen_rect(marshal_name: String) -> Rect2:
+	"""CC-5: one arrow's box on screen (GLOBAL; empty when he has none) —
+	the arrow card stands clear of it."""
+	if order_layer == null:
+		return Rect2()
+	var local: Rect2 = order_layer.arrow_rect(marshal_name)
+	if local.size == Vector2.ZERO:
+		return Rect2()
+	return Rect2(local.position + order_layer.global_position, local.size)
+
+
+func screen_point_of_arrow(marshal_name: String) -> Vector2:
+	"""CC-5: the centre of his arrow's badge on screen — where a pushed click
+	must land to touch it (the harness, the walk)."""
+	if order_layer == null:
+		return Vector2(-1, -1)
+	for geo in order_layer._arrow_geometry():
+		if str(geo["marshal"]) == marshal_name:
+			return (geo["badge"] as Rect2).get_center() + order_layer.global_position
+	return Vector2(-1, -1)
 
 
 func set_order_selection(marshal_name: String) -> void:
@@ -2819,6 +2985,7 @@ func set_order_reach(payload: Dictionary) -> void:
 
 func clear_order_selection() -> void:
 	order_selected = ""
+	order_group = []   # CC-5: the group goes with the selection
 	_order_bands = {}
 	_order_reach_ok = false
 	_order_hover_last = ""
@@ -2898,6 +3065,7 @@ func order_report() -> Dictionary:
 	"""What the order gesture holds — read by the CC harness."""
 	return {
 		"selected": order_selected,
+		"group": order_group.duplicate(),
 		"bands": _order_bands.duplicate(),
 		"tint_visible": reach_fill_layer != null and reach_fill_layer.visible,
 		"layer": order_layer.report() if order_layer != null else {},
@@ -2943,6 +3111,9 @@ func _draw():
 		_draw_fleet_tooltip()
 	elif hovered_sea_link.size() > 0:
 		_draw_sea_link_tooltip()
+	elif order_layer != null and order_layer.arrow_hovered() != "" and tooltip_layer != null:
+		# CC-5: the hovered arrow's badge is the word — no province card over it.
+		tooltip_layer.clear_tooltip()
 	elif hovered_region != "" and not _is_region_wired(hovered_region):
 		# §4.4: unwired provinces never populate region_full_data, so the
 		# standard region tooltip cannot render. Show a dedicated placeholder
@@ -3037,7 +3208,7 @@ func _refresh_hover_state():
 	# NUI: a fleet piece is hoverable and clickable like a corps. CC-3: not
 	# while a corps is selected or a piece is dragged — the province beneath
 	# it is the order's target then.
-	var ordering := order_selected != "" or not _drag_pending.is_empty()
+	var ordering := order_engaged() or not _drag_pending.is_empty()   # CC-5: a group too
 	for hitbox in ([] if ordering else fleet_hitboxes):
 		if hitbox["rect"].has_point(map_mouse):
 			hovered_fleet = hitbox["fleet"]

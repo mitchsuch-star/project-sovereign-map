@@ -97,6 +97,16 @@ def _capture_tail(move_result) -> str:
     return str((move_result or {}).get("capture_note") or "")
 
 
+def cancel_trust_change(order, current_turn: int) -> int:
+    """The trust a cancelled standing order costs its marshal: −3 once he is
+    on the road, nothing on the turn it was given (a first-step cancel).
+    ONE rule for `_execute_cancel` and the war table's arrow card (CC-5),
+    which says the price before the click."""
+    if order is None:
+        return 0
+    return 0 if int(getattr(order, "started_turn", -1)) == int(current_turn) else -3
+
+
 def _defiant_verb(action: str) -> str:
     """Slice 17 review round (L2-11): the defiance notice's SECOND clause
     needs an infinitive ("chose to attack") and ACTION_DISPLAY is third
@@ -2971,9 +2981,9 @@ class StrategicExecutor:
             marshal.holding_position = False
             marshal.hold_region = ""
 
-        # Trust penalty: -3 for mid-march, 0 for first-step cancel
-        is_first_step = (old_order and old_order.started_turn == world.current_turn)
-        trust_change = 0 if is_first_step else -3
+        # Trust penalty: -3 for mid-march, 0 for first-step cancel (CC-5:
+        # one rule, read by the war table's arrow card as well).
+        trust_change = cancel_trust_change(old_order, world.current_turn)
         if trust_change != 0 and hasattr(marshal, 'trust'):
             marshal.trust.modify(trust_change)
 

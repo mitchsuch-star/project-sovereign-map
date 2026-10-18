@@ -124,6 +124,9 @@ HOTKEYS:
   L / Alt+L — Campaign Log (history of events)
   N / Alt+N — Le Moniteur (the gazette — the press writes your war)
   E / Alt+E — End Turn
+  . / Alt+. — The next marshal with nothing to do (no standing
+              order, no works, no drill): the map turns to him and,
+              with nothing typed, he is selected
   Tab / Alt+` — Collapse/restore the terminal (Alt+Tab is the
               Windows window switcher and never reaches the game,
               so the backtick is the form that works while typing)
@@ -142,8 +145,14 @@ THE MAP:
   cursor, and a click on a province (march), an enemy (attack) or
   another marshal (support) opens a card with the exact order —
   Enter sends it, Esc steps back. Or drag his piece where you want
-  him. The terminal text can be selected and copied (drag, then
-  Ctrl+C) for a report.
+  him. Every standing order is drawn as a dashed arrow along the
+  road still to march, its clock on a badge (a hold is an anchor);
+  click an arrow to cancel the order (1 action) or change it.
+  Ctrl-click several of your marshals, then a province: one card
+  lists each corps' road and price against your actions, and Send
+  marches them one by one, stopping at the first that objects or
+  is refused. The terminal text can be selected and copied (drag,
+  then Ctrl+C) for a report.
 
 ================================================================
   YOUR MARSHALS

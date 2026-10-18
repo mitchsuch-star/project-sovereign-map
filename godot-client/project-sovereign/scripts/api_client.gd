@@ -171,6 +171,15 @@ func get_order_quote(marshal_name: String, kind: String, target: String, callbac
 	_send_get("/march_quotes?marshal=" + marshal_name.uri_encode() + "&" + kind
 		+ "=" + target.uri_encode(), callback)
 
+func get_group_quotes(marshal_names: Array, dest: String, callback: Callable):
+	"""CC-5 group orders: every member's march to `dest`, in the group's
+	order — the one card a Ctrl-click group opens (a read-only GET)."""
+	var names := PackedStringArray()
+	for n in marshal_names:
+		names.append(str(n))
+	_send_get("/march_quotes?marshals=" + ",".join(names).uri_encode() + "&dest="
+		+ dest.uri_encode(), callback)
+
 func activate_mailbox_item(mailbox_id: int, callback: Callable):
 	_send_post("/mailbox/activate", {"mailbox_id": mailbox_id}, callback)
 

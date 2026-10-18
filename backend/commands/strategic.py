@@ -1544,7 +1544,8 @@ ONE_CLOCK = True
 def order_turns_remaining(order, current_turn: int, *,
                           including_current: bool = True,
                           movement_range: int = 1,
-                          before_tick: bool = False) -> int:
+                          before_tick: bool = False,
+                          location: Optional[str] = None) -> int:
     """LV-D3 (row EP F3): ONE arithmetic for "how much of this order is
     left" — the strategic report at the tick and the morning dispatch's
     MARSHAL STATUS (which inherited the retired recap modal's lines) must
@@ -1556,13 +1557,32 @@ def order_turns_remaining(order, current_turn: int, *,
     ``including_current`` is the timer's own knob: True at the tick (the turn
     being closed counts), False on a start-of-turn surface (the dispatch, the
     Ledger), where that turn is still to play.
+
+    ``location`` (CC-X16): the man's province — a start-of-turn surface
+    passes it and counts `remaining_road`, the road the map's arrow draws (a
+    victory's advance leaves the province he stands in at the road's head;
+    the tick strips it before it walks, so the count must too).
     """
     if order_is_timed(order):
         return max(0, int(order.condition.max_turns)
                    - count_order_turns(order, int(current_turn),
                                        including_current=including_current))
-    path = getattr(order, "path", None)
-    steps = len(path) if path else 0
+    road = (remaining_road(order, location) if location is not None
+            else getattr(order, "path", None))
+    return road_turns_remaining(order, current_turn, road,
+                                movement_range=movement_range, before_tick=before_tick)
+
+
+def road_turns_remaining(order, current_turn: int, road, *,
+                         movement_range: int = 1,
+                         before_tick: bool = False) -> int:
+    """The one clock's ROAD arm (extracted from `order_turns_remaining`, its
+    body unchanged): the end turns until the man stands at the end of `road`
+    — ceil(steps / `movement_range`), +1 when `before_tick` and the order
+    was issued this turn (that turn's tick is skipped). CC-5's arrow reads
+    it over the road it draws (`remaining_road`), a timed order's road
+    included."""
+    steps = len(road) if road else 0
     if not ONE_CLOCK or steps <= 0:
         return steps
     reach = max(1, int(movement_range or 1))
@@ -1573,15 +1593,100 @@ def order_turns_remaining(order, current_turn: int, *,
     return int(ticks)
 
 
-def order_eta_phrase(order, current_turn: int, *, movement_range: int = 1) -> str:
+def remaining_road(order, location: str) -> List[str]:
+    """CC-5 "The war table": the road a standing order has still to walk —
+    `order.path` (the road the order pops as he marches, persisted for the
+    Ledger) with any province he already stands in stripped from its head.
+    A victory's advance or a pursuit's first blow leaves that head stale
+    (Ney at Swabia, `path == ["Swabia"]`); the tick strips it before it
+    walks (`_execute_move_to`), and so does the map. PURE."""
+    road = [str(r) for r in (getattr(order, "path", None) or [])]
+    while road and road[0] == location:
+        road.pop(0)
+    return road
+
+
+# CC-5: the order types the war table draws, as the map names them.
+STANDING_ROAD_KINDS = {"MOVE_TO": "march", "PURSUE": "pursue", "HOLD": "hold",
+                       "SUPPORT": "support"}
+
+
+def standing_order_road(world, marshal) -> Dict:
+    """CC-5 "The war table": a standing order of OURS as the map's arrow
+    draws it — ``{kind, target, target_shown, dest, road, turns, holds_for,
+    halted, friend, cancel_ap, cancel_trust}``, or ``{}`` for none.
+
+    Read from what the order already carries — no pathfinding (Rule 8): the
+    road is `remaining_road`; the clock is the one the morning dispatch reads
+    (`road_turns_remaining` over that road, a start-of-turn reading);
+    `holds_for` is a timed order's own count (`order_turns_remaining`); the
+    halt is the Ledger's (FA-N36). A pursuit's road runs to where OUR
+    intelligence last placed the quarry (`_execute_pursue` paths on the
+    intel store), never to where he stands. The price and the trust of a
+    cancel are the cancel's own (`get_action_cost("cancel")`,
+    `strategic_executor.cancel_trust_change`). Only the player's corps carry
+    it: `tactical_state` is player-only — the fog boundary."""
+    order = getattr(marshal, "strategic_order", None)
+    if order is None:
+        return {}
+    kind = STANDING_ROAD_KINDS.get(str(getattr(order, "command_type", "") or ""))
+    if kind is None:
+        return {}
+    if kind == "support" and getattr(order, "standing_follow", False):
+        kind = "follow"
+    location = str(marshal.location or "")
+    road = remaining_road(order, location)
+    target = str(getattr(order, "target", "") or "")
+    friend = ""
+    if kind == "march":
+        dest = str(getattr(order, "target_snapshot_location", None) or target)
+    elif kind == "hold":
+        dest = target if world.get_region(target) is not None else location
+    elif kind in ("support", "follow"):
+        ally = world.get_marshal(target)
+        if (ally is not None and ally.nation == marshal.nation
+                and not getattr(ally, "captured_by", "")
+                and int(getattr(ally, "strength", 0) or 0) > 0):
+            friend = ally.name
+            dest = str(ally.location or "")
+        else:
+            dest = road[-1] if road else location
+    else:   # pursue: the last ground our intelligence gave him
+        dest = road[-1] if road else ""
+    reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    holds_for = 0
+    if order_is_timed(order):
+        holds_for = int(order_turns_remaining(order, turn, including_current=False,
+                                              movement_range=reach, before_tick=True))
+    from backend.commands.strategic_executor import cancel_trust_change
+    from backend.game_logic.ledger import _is_halted
+    return {
+        "kind": kind,
+        "target": target,
+        "target_shown": _shown_name(target) if target else "",
+        "dest": dest,
+        "road": road,
+        "turns": int(road_turns_remaining(order, turn, road, movement_range=reach,
+                                          before_tick=True)),
+        "holds_for": int(holds_for),
+        "halted": bool(_is_halted(marshal)),
+        "friend": friend,
+        "cancel_ap": int(world.get_action_cost("cancel")),
+        "cancel_trust": int(cancel_trust_change(order, turn)),
+    }
+
+
+def order_eta_phrase(order, current_turn: int, *, movement_range: int = 1,
+                     location: Optional[str] = None) -> str:
     """LV-D3: the dispatch's clause for a standing order — "" when there is
     nothing to say, else " — arrives next turn" / " — 3 turns out" /
     " — holds 2 more turns" and the pursuit/support variants. Start-of-turn
     reading (the turn is still to play; CRT-4-X1: read before the tick, on
-    the one clock)."""
+    the one clock). ``location`` — CC-X16, see `order_turns_remaining`."""
     remaining = order_turns_remaining(order, current_turn, including_current=False,
                                       movement_range=movement_range,
-                                      before_tick=True)
+                                      before_tick=True, location=location)
     cmd = getattr(order, "command_type", "")
     if order_is_timed(order):
         if remaining <= 0:

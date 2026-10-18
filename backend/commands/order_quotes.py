@@ -160,6 +160,42 @@ def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str) -> st
     return f"{where} — {shown} stops there and asks your orders (1 action now)."
 
 
+def _seen_enemy_regions(world, nation: str, memo: Optional[dict]) -> List[str]:
+    """The provinces where we SEE an enemy corps (FULL or PARTIAL) — read
+    once per quote set (the memo), never per destination (Rule 8)."""
+    key = ("seen_enemy_regions", nation)
+    if memo is not None and key in memo:
+        return memo[key]
+    from backend.commands import strategic as road_law
+    seen = list(road_law.enemy_occupied_regions(world, nation, fog_aware=True) or [])
+    if memo is not None:
+        memo[key] = seen
+    return seen
+
+
+def literal_detour(world, marshal, dest: str, order_type: str, blocked: str,
+                   memo: Optional[dict] = None) -> Optional[List[str]]:
+    """CC-X14 (CC-5's sibling sweep): the LITERAL arm of the executor's
+    `_handle_first_step_blocked` — a corps met on the first step is GONE
+    ROUND, the road re-plotted around every enemy-held province by
+    `plot_route`'s reroute ladder (`avoid_is_law=True`: a reroute must still
+    avoid what it fled; weighted for a march or a hold) — unless the corps
+    stands on the destination itself (the order ends at the approach: None
+    here, `_contact_line` says it). Returns the detour road, ``[]`` when no
+    road goes round (the order breaks), or None when the arm does not apply.
+
+    FOG: the quote goes round the provinces where we SEE a corps; the
+    executor's reroute avoids the unseen too — a surprise the quote must not
+    name (the drift census's `fog_surprise`)."""
+    if str(getattr(marshal, "personality", "") or "") != "literal" or blocked == dest:
+        return None
+    from backend.commands import strategic as road_law
+    road, _verdict = road_law.plot_route(
+        world, marshal, dest, use_weighted=order_type in ("MOVE_TO", "HOLD"),
+        avoid_regions=_seen_enemy_regions(world, marshal.nation, memo), avoid_is_law=True)
+    return list(road) if road else []
+
+
 def _road(world, marshal, dest: str, order_type: str, memo: Optional[dict]):
     key = (marshal.name, dest, order_type)
     if memo is not None and key in memo:
@@ -218,6 +254,21 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     # surprise the quote must not name (fog).
     contact = visible_foe_on_road(world, world.player_nation, road[:1])
     if contact is not None:
+        # CC-X14: a literal man does not halt there — he goes round (the
+        # order keeps its own price, and the road and the clock are the
+        # detour's).
+        detour = literal_detour(world, marshal, dest, order_type, contact[1], memo)
+        if detour is not None:
+            if not detour:
+                q.update(ok=False, ap=0, turns=0, road=[], replaces="", objection="none",
+                         refusal=f"Path blocked at {contact[1]}, no alternate route.")
+                return q
+            q.update(road=detour, turns=int(road_law.march_turns(
+                len(detour), getattr(marshal, "movement_range", 1))))
+            q["contact"] = (f"{humanize_entity_name(contact[0].name)} blocks the road at "
+                            f"{contact[1]} — {q['shown']} goes round him by {detour[0]}, "
+                            f"to the letter of the order.")
+            return q
         q["contact"] = _contact_line(q, marshal, contact[0], contact[1], dest)
         q["ap"] = 1
         return q
@@ -286,7 +337,9 @@ def march_reach(world, marshal) -> Dict[str, Any]:
             and getattr(order, "command_type", None) == "MOVE_TO"):
         already = str(getattr(order, "target", "") or "").lower()
     reach: Dict[str, Any] = {}
-    for dest, (road, refusal, _kind) in road_law.march_roads(world, marshal, "MOVE_TO").items():
+    roads = road_law.march_roads(world, marshal, "MOVE_TO")
+    detours = _literal_detours(world, marshal, roads)
+    for dest, (road, refusal, _kind) in roads.items():
         if already and dest.lower() == already:
             # `_standing_quote`'s identical order: taken at 0 AP, whatever
             # the road reads today.
@@ -295,10 +348,49 @@ def march_reach(world, marshal) -> Dict[str, Any]:
             continue
         if refusal is not None or not road:
             continue
+        if dest in detours:
+            road = detours[dest]   # CC-X14: a literal man goes round
+            if not road:
+                continue           # no road round him: the march is refused
         reach[dest] = {"turns": int(road_law.march_turns(len(road), reach_range)),
                        "road": list(road)}
     out["ok"] = True
     out["reach"] = reach
+    return out
+
+
+def _literal_detours(world, marshal, roads) -> Dict[str, List[str]]:
+    """`literal_detour` for every destination at once (Rule 8): the first
+    steps that meet a corps we see, read once, and the reroute ladder run
+    as ONE pathfinding pass per rung (`weighted_paths_from`, pinned equal to
+    `find_weighted_path`) — avoid + lawful, then avoid + terrain-only, as
+    `plot_route(avoid_is_law=True)` climbs it. ``{dest: detour}`` for the
+    destinations whose road meets such a corps on its first step and does
+    not end there ([] where no road goes round); {} for any man but a
+    literal one."""
+    if str(getattr(marshal, "personality", "") or "") != "literal":
+        return {}
+    player = world.player_nation
+    firsts = {road[0] for road, refusal, _kind in roads.values() if road and refusal is None}
+    contacts = {f for f in firsts if visible_foe_on_road(world, player, [f]) is not None}
+    if not contacts:
+        return {}
+    here = marshal.location
+    seen = _seen_enemy_regions(world, marshal.nation, None)
+    pf = marshal.nation if marshal.nation == player else None
+    rungs = [world.weighted_paths_from(here, avoid_regions=seen, passable_for=pf)]
+    if pf:
+        rungs.append(world.weighted_paths_from(here, avoid_regions=seen))
+    out: Dict[str, List[str]] = {}
+    for dest, (road, refusal, _kind) in roads.items():
+        if refusal is not None or not road or road[0] not in contacts or road[0] == dest:
+            continue
+        path = None
+        for rung in rungs:
+            path = rung.get(dest)
+            if path:
+                break
+        out[dest] = [r for r in path if r != here] if path else []
     return out
 
 
@@ -426,6 +518,38 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
     q.update(ok=True, ap=ap, turns=0, road=[enemy.location],
              objection=_tactical_objection(world, marshal, "attack", enemy.name))
     return q
+
+
+def group_march_quotes(world, names: List[str], dest: str) -> Dict[str, Any]:
+    """CC-5 group orders: `<member>, march to <dest>` for every corps of a
+    Ctrl-click group, in the group's order, with ONE memo (the roads and the
+    seen avoid-set read once) — the group card's lines, each the very
+    `march_quote` the single card and the panel carry. A member standing on
+    `dest` is named ("already at …"), never quoted; a name that is no corps of
+    ours in the field is refused. The card sums the taken lines' `ap` against
+    `ap_left`; nothing here is sent. PURE (`GET /march_quotes?marshals=…`)."""
+    memo: dict = {}
+    field = {m.name: m for m in _field_marshals(world)}
+    quotes: List[Dict[str, Any]] = []
+    for name in names:
+        m = field.get(name)
+        if m is None:
+            shown = humanize_entity_name(name)
+            quotes.append({"kind": "march", "marshal": name, "shown": shown, "dest": dest,
+                           "command": "", "ok": False, "ap": 0, "turns": 0, "road": [],
+                           "refusal": f"no corps of ours in the field named {shown}",
+                           "replaces": "", "objection": "none", "note": "", "contact": "",
+                           "already": False})
+            continue
+        if m.location == dest:
+            q = _blank("march", m, dest, f"{humanize_entity_name(m.name)}, march to {dest}")
+            q["refusal"] = f"already at {dest}"
+            q["here"] = True
+            quotes.append(q)
+            continue
+        quotes.append(march_quote(world, m, dest, memo=memo))
+    return {"success": True, "dest": dest,
+            "ap_left": int(getattr(world, "actions_remaining", 0) or 0), "quotes": quotes}
 
 
 def _sort_key(q: Dict[str, Any]):

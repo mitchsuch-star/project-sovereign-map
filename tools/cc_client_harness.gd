@@ -51,7 +51,20 @@ class ApiStub extends Node:
 	func set_llm_key(_k, _cb = null): calls.append("set_llm_key")
 	# The one the scenarios read: WHAT was sent, never answered (a sent
 	# order stays "on the wire" until the scenario returns control itself).
-	func send_command(c, _cb = null, r = false): calls.append("send:" + str(c) + ("|relayed" if r else ""))
+	# CC-5: its callback is HELD (oldest first) so a scenario may answer it
+	# with the real backend's reply (`answer_send`); the earlier scenarios
+	# never answer and are unchanged.
+	var held_sends: Array = []
+	func send_command(c, cb = null, r = false):
+		calls.append("send:" + str(c) + ("|relayed" if r else ""))
+		held_sends.append([str(c), cb])
+	func answer_send(payload) -> String:
+		if held_sends.is_empty():
+			return ""
+		var entry: Array = held_sends.pop_front()
+		if entry[1] is Callable:
+			(entry[1] as Callable).call(payload)
+		return str(entry[0])
 	func send_structured_command(c, _d = null, _cb = null): calls.append("send_structured:" + str(c))
 	func send_dialogue_response(_c, _cb = null, _id = -1): calls.append("send_dialogue_response")
 	func send_dialogue_response_with_params(_c, _p = null, _cb = null, _id = -1): calls.append("send_dialogue_response_with_params")
@@ -64,7 +77,10 @@ class ApiStub extends Node:
 	func send_redemption_response(_c, _cb = null): calls.append("send_redemption_response")
 	func activate_mailbox_item(_i, _cb = null): calls.append("activate_mailbox_item")
 	func respond_to_mailbox_item(_i, _c = null, _cb = null): calls.append("respond_to_mailbox_item")
-	func cancel_strategic_order(_m, _cb = null): calls.append("cancel_strategic_order")
+	# CC-5: the cancel's callback is held under "cancel:<marshal>".
+	func cancel_strategic_order(m, cb = null):
+		calls.append("cancel:" + str(m))
+		held["cancel:" + str(m)] = cb
 	func dismiss_notification(_i, _cb = null): calls.append("dismiss_notification")
 	func dismiss_all_notifications(_cb = null): calls.append("dismiss_all_notifications")
 	# CC-3: the selection's two read-only GETs — recorded, their callbacks
@@ -77,6 +93,14 @@ class ApiStub extends Node:
 		held[key] = cb
 	func get_order_quote(m, kind, target, cb = null):
 		var key := "order_quote:%s|%s|%s" % [str(m), str(kind), str(target)]
+		calls.append(key)
+		held[key] = cb
+	# CC-5: the group card's one GET, held under "group_quotes:<a,b,c>|<dest>".
+	func get_group_quotes(names, dest, cb = null):
+		var keys := PackedStringArray()
+		for n in names:
+			keys.append(str(n))
+		var key := "group_quotes:%s|%s" % [",".join(keys), str(dest)]
 		calls.append(key)
 		held[key] = cb
 	func answer(key: String, payload) -> bool:
@@ -105,7 +129,7 @@ func _init():
 
 func _tick():
 	_frames += 1
-	if _frames > HARD_FRAME_LIMIT:
+	if _frames > (HARD_FRAME_LIMIT * 4 if _spec.has("cc5") else HARD_FRAME_LIMIT):
 		_fatal = "frame limit hit in phase %s" % _phase
 		_finish()
 		return
@@ -132,6 +156,15 @@ func _tick():
 			_restore_after_replies()
 		"cc3_restored":
 			_read_restored_terminal()
+		"cc5_view":
+			var map5 = _map()
+			if map5 != null:
+				map5.visible = true
+				map5.call("fit_europe")
+			_phase = "cc5_running"
+			_run_cc5.call_deferred()
+		"cc5_running":
+			pass   # the coroutine moves the phase on when it is done
 		"done":
 			_finish()
 
@@ -251,6 +284,15 @@ func _run():
 	_main.call("_reset_frontend_state_for_world_swap", true)
 	_main.call("_update_map_from_game_state", gs)
 	_main.set("_last_game_state", gs.duplicate(true))
+	if bool(_spec.get("cc5_only", false)):
+		# CC-5's own pins (`tests/test_cc5_the_war_table.py`): its scenarios
+		# alone, on a real screen (headless the root is 64 px square).
+		_out["api_calls"] = _api.calls
+		root.mode = Window.MODE_WINDOWED
+		root.size = Vector2i(1600, 900)
+		_phase = "cc5_view"
+		_wait = 6
+		return
 	var own: String = str(_spec.get("own_marshal", "Ney"))        # shown name
 	var second: String = str(_spec.get("second_marshal", "Soult"))
 	var second_key: String = str(_spec.get("second_marshal_key", "Soult"))
@@ -1003,6 +1045,335 @@ func _read_restored_terminal() -> void:
 	_out["x13_scroll"] = int(scroll.scroll_vertical)
 	_out["x13_end"] = int(bar.max_value - bar.page)
 	_out["x13_at_end"] = int(scroll.scroll_vertical) >= int(bar.max_value - bar.page) - 2
+	_phase = "cc5_view" if _spec.has("cc5") else "done"
+	_wait = 4
+
+
+# ══ CC-5 "The war table" ═══════════════════════════════════════════════════
+# The spec's "cc5" block carries a REAL board with standing orders of ours
+# and busy corps, and the real backend's replies the scenarios answer the
+# held requests with: the arrow card's cancel and the Orders tab's (POST
+# /cancel_order, in sequence on one world), the group's quotes (GET
+# /march_quotes?marshals=…) and its lines' own replies (POST /command).
+
+func _wait_frames(n: int) -> void:
+	for _i in range(n):
+		await process_frame
+
+
+func _arrow_rows() -> Array:
+	var rows = _layer().get("arrows", [])
+	return rows if rows is Array else []
+
+
+func _arrow_keys() -> Array:
+	var out: Array = []
+	for a in _arrow_rows():
+		out.append(str(a.get("marshal", "")))
+	out.sort()
+	return out
+
+
+func _arrow_point(map, key: String) -> Vector2:
+	"""A point on his arrow the map will take as the arrow's: on its drawn
+	line (or badge), uncovered, with no piece or chip under it."""
+	var layer = map.get("order_layer")
+	for geo in layer.call("_arrow_geometry"):
+		if str(geo["marshal"]) != key:
+			continue
+		var pts: PackedVector2Array = geo["pts"]
+		var cands: Array = [(geo["badge"] as Rect2).get_center()]
+		for k in range(pts.size() - 1):
+			for f in [0.5, 0.35, 0.65, 0.8]:
+				cands.append(pts[k].lerp(pts[k + 1], f))
+		for c in cands:
+			var at: Vector2 = c + layer.global_position
+			if _uncovered(map, at) and (map.get("hovered_marshal") as Dictionary).is_empty() \
+					and (map.get("hovered_fogged_force") as Dictionary).is_empty():
+				return at
+	return Vector2(-1, -1)
+
+
+func _press_at(at: Vector2) -> void:
+	_hover(at)
+	_push_left(at, true)
+	_push_left(at, false)
+
+
+func _terminal_tail(chars: int = 900) -> String:
+	var display = _main.get("output_display")
+	var text: String = display.get_parsed_text() if display != null else ""
+	return text.substr(maxi(0, text.length() - chars))
+
+
+func _ctrl_click(region: String, marshal: String) -> void:
+	var map = _map()
+	map.set("last_click_marshal", marshal)
+	map.set("last_click_shift", false)
+	map.set("last_click_ctrl", true)
+	map.set("last_click_fogged", "")
+	_main.call("_on_map_region_clicked", region)
+
+
+func _key_mod(keycode: int, unicode: int, alt: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = keycode
+	ev.physical_keycode = keycode
+	ev.unicode = unicode
+	ev.alt_pressed = alt
+	ev.pressed = true
+	root.push_input(ev)
+	var up := ev.duplicate()
+	up.pressed = false
+	root.push_input(up)
+
+
+func _board(gs: Dictionary) -> void:
+	_main.call("_update_map_from_game_state", gs.duplicate(true))
+	_main.set("_last_game_state", gs.duplicate(true))
+
+
+func _home_of(key: String) -> String:
+	var gs: Dictionary = _main.get("_last_game_state")
+	var row = (gs.get("marshals", {}) as Dictionary).get(key, {})
+	return str(row.get("location", "")) if row is Dictionary else ""
+
+
+func _gather(members: Array) -> void:
+	"""Ctrl-click every member in turn, on an empty line."""
+	_fresh("")
+	for key in members:
+		_ctrl_click(_home_of(str(key)), str(key))
+
+
+func _group_send(cc5: Dictionary, run: Dictionary, tag: String) -> void:
+	"""One group run: gather, click the province, answer the card's GET, press
+	Enter, then answer each line as it is sent — the replies in `run`."""
+	var members: Array = run["members"]
+	var dest := str(run["dest"])
+	var card = _card()
+	# The run's board was read with the pool refilled: the client holds the
+	# same pool.
+	_main.set("actions_remaining", int(run.get("ap", 4)))
+	_gather(members)
+	_out[tag + "_group"] = (_main.get("_order_group") as Array).duplicate()
+	_out[tag + "_rings"] = int(_layer().get("rings", 0))
+	_out[tag + "_strip"] = str(_main.call("order_strip_text"))
+	var n: int = _api.calls.size()
+	_click(dest)
+	_out[tag + "_card_mode"] = str(card.call("mode"))
+	_out[tag + "_asked"] = _calls_since(n, "group_quotes:")
+	var key := "group_quotes:%s|%s" % [",".join(PackedStringArray(members.map(func(k): return str(k)))), dest]
+	_api.answer(key, run["quotes"])
+	_out[tag + "_lines"] = card.call("group_lines")
+	var terms = card.get("terms_label")
+	_out[tag + "_terms"] = str(terms.get_parsed_text()) if terms != null else ""
+	_out[tag + "_send_label"] = str((card.get("send_button") as Button).text)
+	_main.set("_awaiting_end_turn_confirmation", true)
+	var sent_before := _sends().size()
+	_api.held_sends.clear()
+	_key(KEY_ENTER)
+	var trace: Array = []
+	var replies: Array = run["replies"]
+	for i in range(replies.size()):
+		await _wait_frames(2)
+		var on_wire: Array = []
+		for h in _api.held_sends:
+			on_wire.append(str(h[0]))
+		trace.append({"on_wire": on_wire, "run": _main.call("group_run_report").duplicate(true)})
+		if _api.held_sends.is_empty():
+			break
+		_api.answer_send(replies[i])
+	await _wait_frames(3)
+	_out[tag + "_trace"] = trace
+	_out[tag + "_sent"] = _sends().slice(sent_before)
+	_out[tag + "_left_on_wire"] = _api.held_sends.size()
+	_out[tag + "_latch"] = bool(_main.get("_awaiting_end_turn_confirmation"))
+	_out[tag + "_modal"] = bool(_main.call("_is_modal_dialog_open"))
+	_out[tag + "_run_after"] = _main.call("group_run_report")
+	_out[tag + "_tail"] = _terminal_tail(1400)
+	# The arrows the run left standing — and whether any two badges print on
+	# one spot (orders bound for one province step their badges apart).
+	var layer = _map().get("order_layer")
+	var badges: Array = []
+	var dests: Array = []
+	for geo in layer.call("_arrow_geometry"):
+		badges.append(geo["badge"])
+		dests.append(str(geo["marshal"]) + ":" + str((geo["arrow"] as Dictionary).get("label", "")))
+	var overlap := false
+	for i in range(badges.size()):
+		for j in range(i + 1, badges.size()):
+			if (badges[i] as Rect2).intersects(badges[j]):
+				overlap = true
+	_out[tag + "_arrow_labels"] = dests
+	_out[tag + "_badges_overlap"] = overlap
+	var dm = _main.get("dialog_manager")
+	if dm != null and dm.has_method("hide_all"):
+		dm.call("hide_all")
+	_main.set("_chip_command_in_flight", false)
+	_main.call("set_input_enabled", true)
+	_api.held_sends.clear()
+
+
+func _run_cc5() -> void:
+	var cc5: Dictionary = _spec["cc5"]
+	var map = _map()
+	var card = _card()
+	_board(cc5["board"])
+	_main.set("actions_remaining", int(cc5.get("ap", 4)))
+	_fresh("")
+	_main.call("_minimize_terminal")   # the bottom-left is the map's again
+	map.call("fit_europe")
+	await _wait_frames(6)
+
+	# w1 — every standing order of ours is an arrow; no enemy has one.
+	_out["w1_arrows"] = _arrow_rows()
+	_out["w1_arrow_keys"] = _arrow_keys()
+
+	# w2 — a click on the march's arrow: the card's ARROW face; Enter is
+	# Change — he is selected (his reach asked for).
+	var march := str(cc5["march_subject"])
+	var at := _arrow_point(map, march)
+	_out["w2_point"] = [at.x, at.y]
+	_hover(at)
+	_out["w2_hover"] = str(_layer().get("arrow_hover", ""))
+	var n: int = _api.calls.size()
+	_push_left(at, true)
+	_push_left(at, false)
+	_out["w2_card_open"] = bool(card.visible)
+	_out["w2_card_mode"] = str(card.call("mode"))
+	_out["w2_card_marshal"] = str(card.call("standing_marshal"))
+	_out["w2_title"] = str((card.get("title_label") as Label).text)
+	_out["w2_headline"] = str((card.get("command_label") as Label).text)
+	_out["w2_terms"] = str(card.get("terms_label").get_parsed_text())
+	_out["w2_cancel_label"] = str((card.get("send_button") as Button).text)
+	_out["w2_selected_before"] = _selected()
+	var card_rect: Rect2 = card.call("placed_rect")
+	var arrow_rect: Rect2 = map.call("order_arrow_screen_rect", march)
+	_out["w2_card_covers_arrow"] = card_rect.intersects(arrow_rect)
+	_key(KEY_ENTER)
+	_out["w2_selected_after_enter"] = _selected()
+	_out["w2_card_open_after_enter"] = bool(card.visible)
+	_out["w2_reach_asked"] = _calls_since(n, "march_reach:")
+	_out["w2_sends"] = _calls_since(n, "send:")
+	_out["w2_cancels"] = _calls_since(n, "cancel:")
+	_out["w2_arrows_dimmed"] = bool(_layer().get("arrows_dimmed", false))
+	_key(KEY_ESCAPE)
+	_out["w2_selected_after_esc"] = _selected()
+
+	# w3 — [Cancel order] on the arrow card: ONE POST /cancel_order; the
+	# reply's board takes the arrow away, the actions count follows, and the
+	# armed end turn is retired (a send means the player moved on).
+	_fresh("")
+	_main.set("_awaiting_end_turn_confirmation", true)
+	at = _arrow_point(map, march)
+	n = _api.calls.size()
+	_press_at(at)
+	_out["w3_card_open"] = bool(card.visible)
+	card.call("_on_send")
+	_out["w3_cancels"] = _calls_since(n, "cancel:")
+	_out["w3_sends"] = _calls_since(n, "send:")
+	_out["w3_latch"] = bool(_main.get("_awaiting_end_turn_confirmation"))
+	_out["w3_input_while_out"] = bool(_line().editable)
+	_api.answer("cancel:" + march, cc5["cancel_reply"])
+	await _wait_frames(3)
+	_out["w3_arrow_keys"] = _arrow_keys()
+	_out["w3_ap"] = int(_main.get("actions_remaining"))
+	_out["w3_input_after"] = bool(_line().editable)
+	_out["w3_tail"] = _terminal_tail(600)
+
+	# w4 — CC-X15: the Orders tab's Cancel rides the same road.
+	var ledger_subject := str(cc5["ledger_subject"])
+	_fresh("")
+	_main.set("_awaiting_end_turn_confirmation", true)
+	var top = _main.get("top_bar")
+	var ledger = top.get("screens").get("ledger") if top != null else null
+	n = _api.calls.size()
+	if ledger != null:
+		ledger.call("_on_meta_clicked", "cancel:" + ledger_subject)
+	_out["w4_cancels"] = _calls_since(n, "cancel:")
+	_out["w4_latch"] = bool(_main.get("_awaiting_end_turn_confirmation"))
+	_api.answer("cancel:" + ledger_subject, cc5["ledger_reply"])
+	await _wait_frames(3)
+	_out["w4_arrow_keys"] = _arrow_keys()
+	_out["w4_ap"] = int(_main.get("actions_remaining"))
+
+	# w5 — `.` walks the corps with nothing to do: the camera on each, and
+	# (the line empty) he is selected; the busy are skipped; it wraps.
+	_fresh("")
+	# Zoomed in: at the whole-Europe fit the camera is clamped and cannot
+	# turn to anyone.
+	map.call("_set_camera_zoom_level", 1.6)
+	await _wait_frames(3)
+	_line().grab_focus()
+	var idle: Array = cc5["idle"]
+	var walk: Array = []
+	var cams: Array = []
+	for i in range(idle.size() + 1):
+		_key(KEY_PERIOD, 46)
+		walk.append(_selected())
+		var feet: Dictionary = map.call("_order_piece_feet", _selected())
+		var cam: Vector2 = (map.get("map_camera") as Camera2D).position
+		cams.append(feet.get("feet", Vector2(-9999, -9999)).distance_to(cam) if not feet.is_empty() else -1.0)
+	_out["w5_walk"] = walk
+	_out["w5_cam_dist"] = cams
+	_out["w5_line"] = str(_line().text)
+	# …and with the line unfocused, the bare key.
+	_main.get_viewport().gui_release_focus()
+	_key(KEY_PERIOD, 46)
+	_out["w5_unfocused"] = _selected()
+	# Alt+`.` over a draft: the camera moves, nothing is selected, the draft
+	# is untouched.
+	var draft := "Ney, march to "
+	_fresh(draft)
+	_line().grab_focus()
+	var cam0: Vector2 = (map.get("map_camera") as Camera2D).position
+	_key_mod(KEY_PERIOD, 46, true)
+	_out["w5_alt_selected"] = _selected()
+	_out["w5_alt_line"] = str(_line().text)
+	_out["w5_alt_camera_moved"] = (map.get("map_camera") as Camera2D).position.distance_to(cam0) > 1.0
+	_fresh("")
+	map.call("fit_europe")
+	await _wait_frames(3)
+
+	# w6 — the group: Ctrl-click gathers (and lets go of) our corps.
+	var members: Array = cc5["toggle_members"]
+	_gather(members)
+	_out["w6_group"] = (_main.get("_order_group") as Array).duplicate()
+	_out["w6_rings"] = int(_layer().get("rings", 0))
+	_out["w6_strip"] = str(_main.call("order_strip_text"))
+	_ctrl_click(_home_of(str(members[1])), str(members[1]))
+	_out["w6_after_drop"] = (_main.get("_order_group") as Array).duplicate()
+	_ctrl_click(_home_of(str(members[0])), str(members[0]))
+	_out["w6_after_second_drop"] = (_main.get("_order_group") as Array).duplicate()
+	_out["w6_selected_after_second_drop"] = _selected()
+	_key(KEY_ESCAPE)
+	_out["w6_after_esc"] = (_main.get("_order_group") as Array).duplicate()
+	_out["w6_selected_after_esc"] = _selected()
+	# w6b — Esc lets a whole group go: the line's Esc and the map's, one step
+	# each (and never the pause menu with it).
+	_gather(members)
+	_main.call("_clear_suggestions")
+	_line().grab_focus()
+	_key(KEY_ESCAPE)
+	_out["w6b_after_line_esc"] = (_main.get("_order_group") as Array).duplicate()
+	_gather(members)
+	_main.get_viewport().gui_release_focus()
+	var pause = _main.get("pause_menu")
+	_key(KEY_ESCAPE)
+	_out["w6b_after_map_esc"] = (_main.get("_order_group") as Array).duplicate()
+	_out["w6b_pause_open"] = bool(pause.visible) if pause != null else false
+	if pause != null and pause.visible:
+		pause.call("close_menu")
+
+	# w7 / w8 / w9 — the group card and its Send: a real run that stops at a
+	# question, a line refused on the wire, and a run that sends them all.
+	for tag in ["w7", "w8", "w9"]:
+		if cc5.has(tag):
+			await _group_send(cc5, cc5[tag], tag)
+	_board(cc5["board"])
+	_fresh("")
+	_out["api_calls"] = _api.calls
 	_phase = "done"
 
 

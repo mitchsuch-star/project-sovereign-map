@@ -336,8 +336,10 @@ class TestTheCardIsTheGesturesOwn:
     def test_the_esc_ladder_lets_the_selection_go_before_the_panel(self):
         src = _src(MAIN_GD)
         ladder = _func(src, "_unhandled_input")
+        # Re-seated October 18, 2026 (row CC, CC-5): the step reads
+        # `_order_engaged()` — a Ctrl-click group is let go by the same Esc.
         assert (ladder.index("top_bar.close_all_screens()")
-                < ladder.index("if _order_marshal != \"\" and not _is_modal_dialog_open():")
+                < ladder.index("if _order_engaged() and not _is_modal_dialog_open():")
                 < ladder.index("region_panel.close_panel()"))
         line_esc = _func(src, "_on_command_input_gui_input")
         esc = line_esc[line_esc.index("elif event.keycode == KEY_ESCAPE:"):]
@@ -376,8 +378,10 @@ class TestTheMapKeepsItsGestures:
         left = _src(MAP_GD)
         left = left[left.index("elif event.button_index == MOUSE_BUTTON_LEFT:"):]
         left = left[:left.index("elif event.button_index == MOUSE_BUTTON_RIGHT:")]
-        assert "if order_selected == \"\" and hovered_fleet.size() > 0:" in left
-        assert "if order_selected == \"\" and hovered_sea_link.size() > 0:" in left
+        # Re-seated October 18, 2026 (row CC, CC-5): `order_engaged()` — a
+        # Ctrl-click group's click is an order too, and beats the fleets.
+        assert "if not order_engaged() and hovered_fleet.size() > 0:" in left
+        assert "if not order_engaged() and hovered_sea_link.size() > 0:" in left
         assert left.index("_arm_piece_drag(event)") < left.index("fleet_clicked.emit(")
 
     def test_the_order_layer_and_the_card_are_in_the_parse_check(self):

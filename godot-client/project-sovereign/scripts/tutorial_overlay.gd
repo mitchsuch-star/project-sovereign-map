@@ -248,7 +248,7 @@ const STEPS := [
 		"id": "strategic_order",
 		"turn_gate": 5,
 		"title": "X. Standing Orders",
-		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own). The Strategic Ledger's Orders book ([color=#e8d4a8]T[/color]) lists every standing order and can cancel one.",
+		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own). Every standing order stands on the map as an ARROW along the road still to march, its clock on the badge — click the arrow to cancel the order or change it. The Strategic Ledger's Orders book ([color=#e8d4a8]T[/color]) lists them all. And [color=#e8d4a8].[/color] finds your next marshal with nothing to do ([color=#e8d4a8]Alt+.[/color] while you type).",
 		"suggest": "Davout, march to Franconia",
 		"suggest_action": "move",
 		"advance": "_pred_davout_marching",

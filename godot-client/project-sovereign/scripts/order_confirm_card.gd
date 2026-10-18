@@ -9,16 +9,30 @@ extends PopupBase
 # its road, the standing order it would replace, whether he may object, the
 # contact the road meets — and [Send] [Put in line] [Cancel].
 #
+# CC-5 "The war table" gives the same card two more faces:
+#   * the ARROW card — a standing order of ours, clicked on the map: its
+#     road and clock, and [Cancel order (1 AP)] (POST /cancel_order — the
+#     price and the trust it costs are the backend's) [Change (Enter)]
+#     (selects him: CC-3) [Close (Esc)]. Enter is the harmless answer.
+#   * the GROUP card — a Ctrl-click group sent to one province: a line per
+#     corps, each its own quote (`GET /march_quotes?marshals=…`), the taken
+#     lines' actions summed against the pool, and [Send N orders (Enter)]
+#     [Cancel (Esc)].
+#
 # MODAL (dialog_manager-registered, layer 123): while it is up it takes EVERY
-# key in `_input` — Enter sends (a refused order's Enter only closes it), Esc
-# cancels, and nothing else reaches the command line or a hotkey beneath it
-# (a bare E would have ended the turn). Its buttons take no focus. It composes
-# no order and judges no rule: every word on it is the quote's.
+# key in `_input` — Enter answers, Esc cancels, and nothing else reaches the
+# command line or a hotkey beneath it (a bare E would have ended the turn).
+# Its buttons take no focus. It composes no order and judges no rule: every
+# word on it is the backend's.
 # =============================================================================
 
 signal send_requested(command: String)
 signal line_requested(command: String)
 signal cancelled
+# CC-5
+signal standing_cancel_requested(marshal: String)
+signal standing_change_requested(marshal: String)
+signal group_send_requested(lines: Array, held: Array)
 
 @onready var title_label: Label = $PanelContainer/VBox/TitleLabel
 @onready var command_label: Label = $PanelContainer/VBox/CommandLabel
@@ -28,6 +42,11 @@ signal cancelled
 @onready var cancel_button: Button = $PanelContainer/VBox/Buttons/CancelButton
 
 var _quote: Dictionary = {}
+# CC-5: which face the card wears — "order" (CC-3), "standing" (an arrow's),
+# "group" (a Ctrl-click group's).
+var _mode := "order"
+var _standing: Dictionary = {}       # the arrow's: {marshal, shown, info, ap_left}
+var _group_plan: Dictionary = {}     # the group's: {send, held, total, ap_left, dest}
 # The screen rects the card stands clear of (the selected corps' ring and
 # ghost road, the selection's strip) — GLOBAL, logical px.
 var _avoid: Array = []
@@ -42,10 +61,31 @@ func _ready():
 	cancel_button.pressed.connect(_on_cancel)
 
 
+func _wear(mode: String) -> void:
+	"""Each face's buttons."""
+	_mode = mode
+	line_button.visible = mode != "group"
+	match mode:
+		"standing":
+			send_button.text = "Cancel order"
+			line_button.text = "Change  (Enter)"
+			cancel_button.text = "Close  (Esc)"
+		"group":
+			send_button.text = "Send  (Enter)"
+			cancel_button.text = "Cancel  (Esc)"
+		_:
+			send_button.text = "Send  (Enter)"
+			line_button.text = "Put in line"
+			cancel_button.text = "Cancel  (Esc)"
+
+
 func open_card(quote: Dictionary, title: String, reading: String, avoid: Array = []) -> void:
 	"""Raise the card — on the quote when it is in hand, else on a line that
 	says it is being read (`show_quote` fills it when the answer lands) —
 	where it hides least of `avoid` (the road it confirms)."""
+	_wear("order")
+	_standing = {}
+	_group_plan = {}
 	title_label.text = title
 	_avoid = avoid.duplicate()
 	if quote.is_empty():
@@ -55,6 +95,10 @@ func open_card(quote: Dictionary, title: String, reading: String, avoid: Array =
 		_set_buttons(false, false)
 	else:
 		show_quote(quote)
+	_raise()
+
+
+func _raise() -> void:
 	if not visible:
 		AudioManager.play("select")
 	show()
@@ -75,6 +119,177 @@ func show_quote(quote: Dictionary) -> void:
 	if visible:
 		refit.call_deferred()   # the terms re-wrap first
 
+
+# ── CC-5: the arrow's card ─────────────────────────────────────────────────
+
+func open_standing_card(marshal: String, shown: String, info: Dictionary, ap_left: int,
+		avoid: Array = []) -> void:
+	"""A standing order of ours, clicked on the map: what it is, its road
+	and clock, and what cancelling it costs — [Cancel order] [Change]."""
+	_wear("standing")
+	_quote = {}
+	_group_plan = {}
+	_standing = {"marshal": marshal, "shown": shown, "info": info.duplicate(true), "ap_left": ap_left}
+	_avoid = avoid.duplicate()
+	title_label.text = "STANDING ORDER — " + shown.to_upper()
+	command_label.text = standing_headline(shown, info)
+	var cancel_ap := int(info.get("cancel_ap", 1))
+	send_button.text = "Cancel order  (%s)" % ("free" if cancel_ap <= 0 else "%d AP" % cancel_ap)
+	terms_label.text = _standing_terms(info, ap_left)
+	send_button.disabled = ap_left < cancel_ap
+	line_button.disabled = false
+	cancel_button.disabled = false
+	_raise()
+
+
+static func standing_headline(shown: String, info: Dictionary) -> String:
+	var dest := str(info.get("dest", ""))
+	var who := str(info.get("target_shown", ""))
+	match str(info.get("kind", "")):
+		"march":
+			return shown + " marches to " + dest
+		"pursue":
+			return shown + " pursues " + who
+		"hold":
+			return shown + " holds " + dest
+		"support":
+			return shown + " supports " + who
+		"follow":
+			return shown + " follows " + who
+	return shown
+
+
+func _standing_terms(info: Dictionary, ap_left: int) -> String:
+	var lines := PackedStringArray()
+	var road = info.get("road", [])
+	var turns := int(info.get("turns", 0))
+	if bool(info.get("halted", false)):
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]Halted — he awaits your word on the road.[/color]")
+	elif road is Array and not road.is_empty():
+		var clock := "arrives next turn" if turns == 1 else ("arrives in " + Utils.plural(turns, "turn"))
+		if str(info.get("kind", "")) == "pursue":
+			clock = "closes next turn" if turns == 1 else (Utils.plural(turns, "turn") + " behind him")
+		lines.append("[b]" + clock + "[/b]")
+		lines.append("[color=#" + Utils.COLOR_INFO + "]Road: " + " → ".join(PackedStringArray(road)) + "[/color]")
+	elif str(info.get("kind", "")) == "hold" and int(info.get("holds_for", 0)) > 0:
+		lines.append("[b]holds " + Utils.plural(int(info.get("holds_for", 0)), "more turn") + "[/b]")
+	var cancel_ap := int(info.get("cancel_ap", 1))
+	var trust := int(info.get("cancel_trust", 0))
+	var price := "Cancelling costs " + ("nothing" if cancel_ap <= 0 else Utils.plural(cancel_ap, "action"))
+	if trust < 0:
+		price += " and %d trust — he is already on the road" % -trust
+	else:
+		price += " — no trust lost: it was given this turn"
+	lines.append("[color=#" + Utils.COLOR_GOLD + "]" + price + ".[/color]")
+	if ap_left < cancel_ap:
+		lines.append("[color=#" + Utils.COLOR_ERROR + "]No action left to cancel it today.[/color]")
+	lines.append("[color=#" + Utils.COLOR_INFO + "]Change selects him: click where he should go instead.[/color]")
+	return "\n".join(lines)
+
+
+func standing_marshal() -> String:
+	return str(_standing.get("marshal", "")) if _mode == "standing" else ""
+
+
+# ── CC-5: the group's card ─────────────────────────────────────────────────
+
+func open_group_card(title: String, dest: String, reading: String, avoid: Array = []) -> void:
+	"""A Ctrl-click group sent to `dest` — raised while its quotes are read;
+	`show_group` fills it."""
+	_wear("group")
+	_quote = {}
+	_standing = {}
+	_group_plan = {"dest": dest, "send": [], "held": [], "total": 0, "ap_left": 0}
+	_avoid = avoid.duplicate()
+	title_label.text = title
+	command_label.text = "March to " + dest
+	terms_label.text = "[color=#" + Utils.COLOR_INFO + "]" + reading + "[/color]"
+	send_button.disabled = true
+	cancel_button.disabled = false
+	_raise()
+
+
+static func group_plan(quotes: Array, ap_left: int) -> Dictionary:
+	"""Which lines go: each corps' own quote, in the group's order — a taken
+	line goes while the pool can pay it; a refused line, a man already
+	there or already on that march, and a line the pool cannot pay stay
+	(named). The sum is the taken lines' own prices."""
+	var send: Array = []
+	var held: Array = []
+	var total := 0
+	var left := ap_left
+	for q in quotes:
+		if not (q is Dictionary):
+			continue
+		var shown := str(q.get("shown", q.get("marshal", "")))
+		if not bool(q.get("ok", false)):
+			held.append({"shown": shown, "reason": str(q.get("refusal", "the order cannot be given"))})
+		elif bool(q.get("already", false)):
+			held.append({"shown": shown, "reason": "already on that march"})
+		elif int(q.get("ap", 0)) > left:
+			held.append({"shown": shown, "reason": "the pool is spent before him (needs %s)"
+				% Utils.plural(int(q.get("ap", 0)), "action")})
+		else:
+			send.append({"marshal": str(q.get("marshal", "")), "shown": shown,
+				"command": str(q.get("command", "")), "ap": int(q.get("ap", 0))})
+			total += int(q.get("ap", 0))
+			left -= int(q.get("ap", 0))
+	return {"send": send, "held": held, "total": total, "ap_left": ap_left}
+
+
+func show_group(quotes: Array, ap_left: int) -> void:
+	var plan := group_plan(quotes, ap_left)
+	plan["dest"] = str(_group_plan.get("dest", ""))
+	_group_plan = plan
+	var lines := PackedStringArray()
+	for q in quotes:
+		if not (q is Dictionary):
+			continue
+		var shown := str(q.get("shown", q.get("marshal", "")))
+		if not bool(q.get("ok", false)):
+			lines.append("[color=#" + Utils.COLOR_ERROR + "]" + shown + " — refused: "
+				+ str(q.get("refusal", "")) + "[/color]")
+			continue
+		if bool(q.get("already", false)):
+			lines.append(shown + " — already on that march")
+			continue
+		var row := "[b]" + shown + "[/b] · " + _price(int(q.get("ap", 0))) + " · " + _clock(q)
+		if str(q.get("objection", "none")) == "possible":
+			row += " · [color=#" + Utils.COLOR_WARNING + "]he may object[/color]"
+		lines.append(row)
+		var contact := str(q.get("contact", ""))
+		if contact != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + contact + "[/color]")
+	var send: Array = plan["send"]
+	var sum_line := "[b]" + Utils.plural(int(plan["total"]), "action") + " of " + str(ap_left) + " in hand[/b]"
+	if send.is_empty():
+		sum_line += " — no order can go."
+	else:
+		sum_line += " — " + Utils.plural(send.size(), "order") + " go, corps by corps"
+		var stays := PackedStringArray()
+		for h in plan["held"]:
+			stays.append(str(h["shown"]))
+		sum_line += ("; " + ", ".join(stays) + " stay" + ("s" if stays.size() == 1 else "") + ".") if not stays.is_empty() else "."
+	lines.append("")
+	lines.append("[color=#" + Utils.COLOR_GOLD + "]" + sum_line + "[/color]")
+	lines.append("[color=#" + Utils.COLOR_INFO + "]Send stops at the first question or refusal and says how far it got.[/color]")
+	terms_label.text = "\n".join(lines)
+	send_button.text = ("Send %s  (Enter)" % Utils.plural(send.size(), "order")) if not send.is_empty() else "Nothing to send"
+	send_button.disabled = send.is_empty()
+	if visible:
+		refit.call_deferred()
+
+
+func group_lines() -> Array:
+	"""The lines Send would carry, in order — read by the CC harness."""
+	return (_group_plan.get("send", []) as Array).duplicate(true) if _mode == "group" else []
+
+
+func mode() -> String:
+	return _mode
+
+
+# ── the card's place ───────────────────────────────────────────────────────
 
 func set_avoid(avoid: Array) -> void:
 	_avoid = avoid.duplicate()
@@ -171,6 +386,8 @@ func is_sendable() -> bool:
 func close_card() -> void:
 	"""Shut the card WITHOUT an answer (the selection was let go under it)."""
 	_quote = {}
+	_standing = {}
+	_group_plan = {}
 	if visible:
 		close_popup()
 
@@ -234,7 +451,9 @@ func _input(event: InputEvent) -> void:
 		return
 	match event.keycode:
 		KEY_ENTER, KEY_KP_ENTER:
-			if not send_button.disabled:
+			if _mode == "standing":
+				_on_line()        # the arrow card's Enter is Change — never the cancel
+			elif not send_button.disabled:
 				_on_send()
 			else:
 				_on_cancel()   # a refused order's Enter only closes the card
@@ -243,14 +462,35 @@ func _input(event: InputEvent) -> void:
 
 
 func _on_send() -> void:
+	if send_button.disabled:
+		return
+	match _mode:
+		"standing":
+			var who := standing_marshal()
+			_close_quietly()
+			standing_cancel_requested.emit(who)
+			return
+		"group":
+			var lines := group_lines()
+			var held: Array = (_group_plan.get("held", []) as Array).duplicate(true)
+			if lines.is_empty():
+				return
+			_close_quietly()
+			group_send_requested.emit(lines, held)
+			return
 	var cmd := command()
-	if cmd == "" or send_button.disabled:
+	if cmd == "":
 		return
 	_close_quietly()   # the quill answers a sent order, not the "back" tap
 	send_requested.emit(cmd)
 
 
 func _on_line() -> void:
+	if _mode == "standing":
+		var who := standing_marshal()
+		_close_quietly()
+		standing_change_requested.emit(who)
+		return
 	var cmd := command()
 	if cmd == "":
 		return
@@ -265,5 +505,7 @@ func _close_quietly() -> void:
 
 func _on_cancel() -> void:
 	_quote = {}
+	_standing = {}
+	_group_plan = {}
 	close_popup()
 	cancelled.emit()

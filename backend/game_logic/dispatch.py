@@ -5354,7 +5354,8 @@ def _derive_marshal_status(marshal, world) -> tuple:
         # from the one arithmetic the report uses (strategic.order_eta_phrase).
         from backend.commands.strategic import order_eta_phrase
         eta = order_eta_phrase(order, int(world.current_turn),
-                               movement_range=getattr(marshal, "movement_range", 1))
+                               movement_range=getattr(marshal, "movement_range", 1),
+                               location=marshal.location)   # CC-X16
         if cmd == "MOVE_TO":
             # PC-9 (quiet-France played campaign, Aug 3 2026): the dispatch
             # reported a marshal "Moving to Swabia" while he was standing in

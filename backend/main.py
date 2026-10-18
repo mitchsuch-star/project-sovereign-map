@@ -7064,7 +7064,7 @@ def _quote_field_marshal(name: str):
 
 @app.get("/march_quotes")
 def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "",
-                              enemy: str = "", ally: str = ""):
+                              enemy: str = "", ally: str = "", marshals: str = ""):
     """CC-2 "March here": every click order the province panel offers at
     `region`, quoted from the order's own pure readers
     (`backend/commands/order_quotes.py`). READ-ONLY — it runs no command,
@@ -7075,9 +7075,25 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
     opens its confirm card on — `dest` (a march), `enemy` (an attack on a
     corps we SEE and are at war with — an unseen one is refused without a
     word of where he is) or `ally` (a support) — as ``{"success", "quote"}``,
-    the very dict the panel's rows carry."""
+    the very dict the panel's rows carry.
+
+    CC-5 group orders: with `marshals` (comma-separated roster keys) and
+    `dest`, every member's march there, in the group's order —
+    ``{"success", "dest", "ap_left", "quotes"}`` (`order_quotes.
+    group_march_quotes`) — the one card a Ctrl-click group opens."""
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
+    if marshals:
+        if not dest or world.get_region(dest) is None:
+            return {"success": False, "message": f"Unknown province: {dest}"}
+        try:
+            from backend.commands.order_quotes import group_march_quotes
+            names = [n.strip() for n in marshals.split(",") if n.strip()]
+            return group_march_quotes(world, names, dest)
+        except Exception as e:
+            _errors.report(e, "main.get_march_quotes_endpoint: the group's quotes", every=True)
+            return {"success": False, "error": str(e),
+                    **_errors.debug_fields(e, "main.get_march_quotes_endpoint: the group's quotes", DEBUG_MODE)}
     if marshal:
         try:
             from backend.commands.order_quotes import attack_quote, march_quote, support_quote

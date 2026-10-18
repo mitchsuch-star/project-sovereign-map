@@ -225,7 +225,10 @@ class TestPursuePathStorage:
         ledger = build_strategic_ledger(world)
         orders = ledger["orders"]
         ney_order = [o for o in orders if o["marshal"] == "Ney"][0]
-        assert ney_order["path_remaining"] == 2, \
+        # Re-seated October 18, 2026 (row CC, CC-X16): Ney stands in Belgium,
+        # this road's head — the province he stands in is no step left, so the
+        # Orders tab counts Hanover alone (it read 2, the head counted).
+        assert ney_order["path_remaining"] == 1, \
             "Ledger should show non-zero path_remaining for PURSUE"
 
 

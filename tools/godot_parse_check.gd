@@ -208,6 +208,9 @@ const TOOL_SCRIPTS = [
 	# CC-3's Mode C walk (the real client against a sandboxed backend; frames
 	# under docs/audits/cc3_client/) — not driven by a pytest, parsed here
 	"res://../../tools/cc3_mode_c_walk.gd",
+	# CC-5's Mode C walk (the arrows, `.`, a group order; frames under
+	# docs/audits/cc5_client/) — not driven by a pytest, parsed here
+	"res://../../tools/cc5_mode_c_walk.gd",
 	# CX3-R9 (Score Finish Step 7 slice 8): the completer's screenshot tool —
 	# not driven by a pytest, parsed here because the slice changed it
 	"res://../../tools/cx3_completer_screenshot.gd",

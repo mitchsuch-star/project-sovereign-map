@@ -1607,7 +1607,8 @@ def _answer_eta(world, name: str) -> str:
     order = getattr(me, "strategic_order", None)
     if order is None:
         return f"{_display(me.name)} holds no standing order, Sire — he stands at {me.location}."
-    eta = order_eta_phrase(order, world.current_turn, movement_range=int(getattr(me, "movement_range", 1) or 1))
+    eta = order_eta_phrase(order, world.current_turn, movement_range=int(getattr(me, "movement_range", 1) or 1),
+                           location=me.location)   # CC-X16
     return f"{_display(me.name)} — {str(getattr(order, 'command_type', '')).lower()} {getattr(order, 'target', '')}: {eta}."
 
 

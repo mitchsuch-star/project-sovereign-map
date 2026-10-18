@@ -287,7 +287,7 @@ def _derive_strategic_order_summary(marshal, current_turn=None) -> str:
             turns_left = _road.order_turns_remaining(
                 order, int(current_turn),
                 movement_range=getattr(marshal, "movement_range", 1),
-                before_tick=True)
+                before_tick=True, location=marshal.location)   # CC-X16
         else:
             turns_left = len(order.path)
         return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left)"
@@ -1729,12 +1729,16 @@ def _build_manpower(world, player: str) -> dict:
 from backend.display_names import get_strategic_display as _derive_order_display_name
 
 
-def _derive_condition_text(order, world) -> str:
-    """Derive human-readable condition text from StrategicCondition."""
+def _derive_condition_text(order, world, location=None) -> str:
+    """Derive human-readable condition text from StrategicCondition.
+    ``location`` (CC-X16): the man's province — the road counted is the one
+    the map's arrow draws (`strategic.remaining_road`)."""
     cond = order.condition
     if cond is None:
         if order.command_type == "MOVE_TO":
-            remaining = len(order.path)
+            from backend.commands.strategic import remaining_road
+            remaining = len(remaining_road(order, location) if location is not None
+                            else order.path)
             if remaining > 0:
                 return f"{_plural(int(remaining), 'region')} left"
             return "arriving"
@@ -1771,6 +1775,7 @@ def _display_target(target) -> str:
 
 def _build_orders(world, player: str) -> list:
     """Build orders section: per player marshal strategic order status."""
+    from backend.commands.strategic import remaining_road as _remaining_road
     active_orders = []
     idle_marshals = []
 
@@ -1783,7 +1788,7 @@ def _build_orders(world, player: str) -> list:
 
         order = marshal.strategic_order
         if order is not None:
-            condition_text = _derive_condition_text(order, world)
+            condition_text = _derive_condition_text(order, world, marshal.location)
             halted = _is_halted(marshal)
             if halted:
                 # FA-N36: the client composes "(N regions left)" from
@@ -1802,7 +1807,10 @@ def _build_orders(world, player: str) -> list:
                 # machine key stays `target` (an order is keyed by it); the
                 # display form rides beside it (FA-69's discipline).
                 "target_display": _display_target(order.target),
-                "path_remaining": 0 if halted else int(len(order.path)),
+                # CC-X16: the road the map's arrow draws (a stale head —
+                # the province he already stands in — is not a step left).
+                "path_remaining": 0 if halted else int(len(
+                    _remaining_road(order, marshal.location))),
                 "turns_active": int(world.current_turn - order.started_turn),
                 "condition": condition_text,
                 "started_turn": int(order.started_turn),

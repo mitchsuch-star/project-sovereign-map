@@ -185,8 +185,12 @@ class TestTheRecapModalIsRetired:
                 "                    order, int(world.current_turn),\n"
                 "                    movement_range=getattr(marshal, \"movement_range\", 1))") in body
         dsrc = _read(REPO / "backend" / "game_logic" / "dispatch.py")
+        # Re-seated October 18, 2026 (row CC, CC-X16): the dispatch also hands
+        # the man's province, so a road whose head he already stands in is
+        # counted as the map's arrow counts it.
         assert ("eta = order_eta_phrase(order, int(world.current_turn),\n"
-                "                               movement_range=getattr(marshal, \"movement_range\", 1))") in dsrc
+                "                               movement_range=getattr(marshal, \"movement_range\", 1),\n"
+                "                               location=marshal.location)   # CC-X16") in dsrc
 
 
 # ═══════════════════════════════════════════════════════════════════════════
