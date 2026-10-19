@@ -3460,8 +3460,8 @@ class CommandExecutor:
         if result.get("success", False) and action_costs_point and is_player_action and not is_free_action and not result.get("pending_objection"):
             if is_admin_action:
                 # Admin actions consume from admin AP pool, not CP
-                world.use_admin_action()
-                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1}
+                action_result = {"turn_advanced": False, "new_turn": None,
+                                 "action_cost": 1 if world.use_admin_action() else 0}
             else:
                 # Check for variable action cost (stance_change returns this)
                 variable_cost = result.get("variable_action_cost")
@@ -3476,14 +3476,16 @@ class CommandExecutor:
                                 "actions_remaining": int(world.actions_remaining),
                                 "action_summary": world.get_action_summary()
                             }
-                        for _ in range(variable_cost):
-                            action_result = world.use_action(action)
+                        # ACH-1: ONE charge, measured. The loop kept only its
+                        # last `use_action` reply, so every 2-action order
+                        # reported `cost: 1` while the pool fell by 2.
+                        action_result = world.spend_actions(action, variable_cost)
                     else:
                         # Free transition (returning to neutral)
                         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
                 else:
                     # NOW consume the action (after validation passed)
-                    action_result = world.use_action(action)
+                    action_result = world.spend_actions(action)
             # DDB-R4 (Pre-Deploy S13b part 3): no auto-end on EITHER pool —
             # the order that empties both says so (AAR-12's notice, now on
             # the military road too) and the turn ends when the player says

@@ -2280,8 +2280,8 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
 
                 # N3 fix: AP follows action taken
                 defiance_free_actions = ["retreat", "break_square"]
-                if defiant_action not in defiance_free_actions:
-                    world.use_action(defiant_action)
+                _defiance_spent = (world.spend_actions(defiant_action)["action_cost"]
+                                   if defiant_action not in defiance_free_actions else 0)
 
                 # Execute defiant action
                 pre_battle_strength = marshal.strength
@@ -2380,7 +2380,10 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     "authority_change": response_result.get("authority_change", 0) + outcome_result["authority_change"],
                     "berthier_text": outcome_result["berthier_text"],
                     "events": defiant_execution.get("events", []),
-                    "action_info": defiant_execution.get("action_info", {"remaining": world.actions_remaining}),
+                    # ACH-1: the action the defiance took, said — the
+                    # sub-executor's reply carries no `action_info`, so the
+                    # fallback shipped `remaining` with no `cost` at all.
+                    "action_info": world.get_action_info(_defiance_spent),
                     "action_summary": world.get_action_summary(),
                     "new_state": game_state,
                 }
@@ -2663,22 +2666,13 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
                 if result.get("success", False) and action_costs_point and not result.get("pending_objection"):
                     variable_cost = result.get("variable_action_cost", 1)
-                    for _ in range(variable_cost):
-                        action_result = world.use_action(action)
-                if result.get("pending_objection"):
-                    result["action_info"] = {
-                        "cost": 0,
-                        "remaining": world.actions_remaining,
-                        "turn_advanced": False,
-                        "new_turn": None
-                    }
-                else:
-                    result["action_info"] = {
-                        "cost": result.get("variable_action_cost", 1),
-                        "remaining": world.actions_remaining,
-                        "turn_advanced": action_result.get("turn_advanced", False),
-                        "new_turn": action_result.get("new_turn")
-                    }
+                    action_result = world.spend_actions(action, variable_cost)
+                # ACH-1: the reply says what the charge took — it echoed
+                # `variable_action_cost` (the price ASKED), which a free base
+                # verb or a short pool never charged. A pending objection
+                # charged nothing, so it reads 0 by the same rule.
+                result["action_info"] = world.get_action_info(
+                    action_result.get("action_cost", 0))
                 return result
 
         if action == "attack":
@@ -2785,8 +2779,8 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         if (result.get("success", False) and action_costs_point and charge_ap
                 and not _is_free_result):
             if is_admin:
-                world.use_admin_action(1)
-                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1}
+                action_result = {"turn_advanced": False, "new_turn": None,
+                                 "action_cost": 1 if world.use_admin_action(1) else 0}
             else:
                 variable_cost = result.get("variable_action_cost")
                 if variable_cost is not None:
@@ -2797,12 +2791,14 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                                 "message": f"Not enough actions! Need {variable_cost}, have {world.actions_remaining}.",
                                 "actions_remaining": int(world.actions_remaining),
                             }
-                        for _ in range(variable_cost):
-                            action_result = world.use_action(action)
+                        # ACH-1: the same one charge as the executor's —
+                        # an insisted fortify that shifts stance first
+                        # reported 1 for its 2.
+                        action_result = world.spend_actions(action, variable_cost)
                     else:
                         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
                 else:
-                    action_result = world.use_action(action)
+                    action_result = world.spend_actions(action)
 
         result["action_info"] = {
             "cost": action_result.get("action_cost", 0),

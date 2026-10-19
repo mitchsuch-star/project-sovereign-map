@@ -3623,8 +3623,12 @@ class DiplomaticExecutor:
         world.dialogue_manager.pop()
         result = _repudiate(world, str(bargain_id))
         if result.get("success"):
-            for _ in range(action_cost):
-                world.use_action("repudiate_bargain")
+            # ACH-1: the breach's price, charged once and said — a typed
+            # answer rides `/command`, whose reply read no `cost` here. ONE
+            # use at the verb's table price (the loop charged the price per
+            # use, `action_cost` times: the same 1 today, its square later).
+            result["action_info"] = world.get_action_info(
+                world.spend_actions("repudiate_bargain")["action_cost"])
         return result
 
     def _execute_repudiate_bargain(self, diplomatic_data: Dict, world) -> Dict:
@@ -5651,8 +5655,10 @@ class DiplomaticExecutor:
                     {"target": suggestion.get("target", "")},
                     {"world": ctx.world})
                 if result.get("success"):
-                    ctx.world.admin_actions_remaining = int(
-                        ctx.world.admin_actions_remaining) - 1
+                    # ACH-1: the admin action charged, and said — the
+                    # executor's own admin reading (1 when it was taken).
+                    result["action_info"] = ctx.world.get_action_info(
+                        1 if ctx.world.use_admin_action() else 0)
                     # DDB-R4 (Pre-Deploy S13b part 3): no order ends the
                     # turn by itself — the unread `should_end_turn` key is
                     # retired with the executor's auto-end mirror.
@@ -6741,7 +6747,9 @@ class DiplomaticExecutor:
                     ctx.world, ctx.dialogue, refusal=_refusal)
                 return {"success": False, "message": _refusal,
                         "vassal_rebellion_retained": True}
-            ctx.world.actions_remaining -= 2
+            # ACH-1: the two actions through the one charge, so the reply
+            # can say what they cost.
+            _flag_spent = ctx.world.spend_actions("garrison_vassal_rebellion", 2)["action_cost"]
             vassal_state = ctx.world.vassals.get(vassal_name, {})
             old_loyalty = vassal_state.get("loyalty", 0)
             vassal_state["loyalty"] = min(100, old_loyalty + 10)
@@ -6763,6 +6771,7 @@ class DiplomaticExecutor:
                     f"{int(old_loyalty)} → {int(vassal_state['loyalty'])} "
                     f"(2 AP spent). {_tail}"
                 ),
+                "action_info": ctx.world.get_action_info(_flag_spent),
             }
 
         elif ctx.action == "accept_vassal_rebellion":

@@ -11498,6 +11498,41 @@ class WorldState:
             "new_turn": None,
         }
 
+    def spend_actions(self, action_type: str = "generic", times: int = 1) -> Dict:
+        """ACH-1 (October 19, 2026): the ONE charge a reply's
+        `action_info.cost` is read from — `times` uses of `action_type`, and
+        `action_cost` is what the pool actually LOST.
+
+        The charge loops kept only the last `use_action` reply, so every
+        two-action order — a standing order, a fortify that shifts stance
+        first, a two-step stance change — reported `cost: 1` while the pool
+        fell by 2. Measured on the pool rather than summed from the replies:
+        a use the empty pool refuses, or a price its clamp cuts short, counts
+        what was taken and nothing more. `times` counts USES — a verb priced
+        above 1 in `_action_costs` is charged that price on each, exactly as
+        the loops it replaces did.
+        """
+        before = int(self.actions_remaining)
+        for _ in range(max(0, int(times or 0))):
+            self.use_action(action_type)
+        return {
+            "action_cost": int(before - int(self.actions_remaining)),
+            "actions_remaining": int(self.actions_remaining),
+            "turn_advanced": False,
+            "new_turn": None,
+        }
+
+    def get_action_info(self, cost: int = 0) -> Dict:
+        """ACH-1: a reply's `action_info` — `cost` is what the command spent
+        (a `spend_actions` reading, or 1 for the admin action a charge took),
+        `remaining` the military pool as it now stands."""
+        return {
+            "cost": int(cost or 0),
+            "remaining": int(self.actions_remaining),
+            "turn_advanced": False,
+            "new_turn": None,
+        }
+
     def advance_turn(self) -> None:
         """
         Public method to advance turn counter.

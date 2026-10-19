@@ -3330,8 +3330,8 @@ class StrategicExecutor:
                 # N3 fix: AP follows action taken — defiant action is always tactical (1 AP)
                 # The marshal ignores the strategic order and does their own thing.
                 defiance_free_actions = ["retreat", "break_square"]
-                if defiant_action not in defiance_free_actions:
-                    world.use_action(defiant_action)
+                _defiance_spent = (world.spend_actions(defiant_action)["action_cost"]
+                                   if defiant_action not in defiance_free_actions else 0)
 
                 pre_battle_strength = marshal.strength
 
@@ -3431,7 +3431,9 @@ class StrategicExecutor:
                     "authority_change": outcome_result["authority_change"],
                     "berthier_text": outcome_result["berthier_text"],
                     "events": defiant_execution.get("events", []),
-                    "action_info": defiant_execution.get("action_info", {"remaining": world.actions_remaining}),
+                    # ACH-1: the action the defiance took, said (the tactical
+                    # arm's twin) — the fallback carried no `cost`.
+                    "action_info": world.get_action_info(_defiance_spent),
                     "action_summary": world.get_action_summary(),
                     "new_state": game_state,
                 }
@@ -3539,14 +3541,11 @@ class StrategicExecutor:
         if result.get("success") and not result.get("pending_objection"):
             variable_cost = result.get("variable_action_cost", 2)
             if variable_cost > 0:
-                for _ in range(min(variable_cost, world.actions_remaining)):
-                    world.use_action(strategic_type or "strategic")
-                result["action_info"] = {
-                    "cost": variable_cost,
-                    "remaining": world.actions_remaining,
-                    "turn_advanced": False,
-                    "new_turn": None,
-                }
+                # ACH-1: the reply says what the charge took, not the price
+                # asked — the clamp below charges what is left of a short pool.
+                _charge = world.spend_actions(strategic_type or "strategic",
+                                              min(variable_cost, world.actions_remaining))
+                result["action_info"] = world.get_action_info(_charge["action_cost"])
 
         # M2 fix: pass through authority threshold event if one crossed
         if authority_event and isinstance(result, dict):

@@ -695,8 +695,9 @@ class TestTheRentePayerKeepsHisGraceWindow:
 # FA-R3 — a standing order is priced by the ORDER
 # ══════════════════════════════════════════════════════════════════════
 
-def _drive(sentence, ap=None):
-    """POST /command on a fresh 1805 board; returns (before, after, orders)."""
+def _drive(sentence, ap=None, reply=None):
+    """POST /command on a fresh 1805 board; returns (before, after, orders).
+    `reply`, when a dict, receives the response (ACH-1's re-seat reads it)."""
     import backend.main as M
     from backend.commands.parser import CommandParser
     from fastapi.testclient import TestClient
@@ -714,6 +715,8 @@ def _drive(sentence, ap=None):
         orders = sum(1 for m in M.world.marshals.values()
                      if m.nation == M.world.player_nation
                      and getattr(m, "strategic_order", None) is not None)
+    if isinstance(reply, dict):
+        reply.update(data)
     return before, after, orders, bool(data.get("success"))
 
 
@@ -722,9 +725,12 @@ class TestAStandingOrderIsPricedByTheOrder:
     WAIT arm sits above hold/move, so any sentence that also says "wait"
     parsed to a free verb and bypassed both the AP pre-gate and the charge.
 
-    Pin `world.actions_remaining`, never `action_info["cost"]` — the charge
-    loop overwrites `action_result` each iteration, so a 2-AP action reports
-    a cost of 1.
+    RE-SEATED by ACH-1 (October 19, 2026; `BUG_FIXES.md` §ACH-1): this
+    docstring used to say "pin `world.actions_remaining`, never
+    `action_info["cost"]` — the charge loop overwrites `action_result` each
+    iteration, so a 2-AP action reports a cost of 1". The loop is now ONE
+    measured charge (`WorldState.spend_actions`), so the reply's cost is
+    pinned beside the pool.
     """
 
     @pytest.mark.parametrize("sentence,price", [
@@ -744,9 +750,11 @@ class TestAStandingOrderIsPricedByTheOrder:
     def test_the_order_is_charged(self, sentence, price):
         """Seven shapes, not the two the row names — and it is not a
         trailing suffix: a LEADING wait fires too."""
-        before, after, orders, _ok = _drive(sentence)
+        reply = {}
+        before, after, orders, _ok = _drive(sentence, reply=reply)
         assert before - after == price, sentence
         assert orders == 1, sentence
+        assert reply["action_info"]["cost"] == price, sentence  # ACH-1
 
     @pytest.mark.parametrize("sentence", [
         "Soult, hold Lorraine and wait",       # literal
@@ -755,9 +763,11 @@ class TestAStandingOrderIsPricedByTheOrder:
     def test_the_one_ap_tiers_are_honoured(self, sentence):
         """`Marshal.strategic_order_ap` was never consulted, so the
         literal's and the sovereign's discount was bypassed too."""
-        before, after, orders, _ok = _drive(sentence)
+        reply = {}
+        before, after, orders, _ok = _drive(sentence, reply=reply)
         assert before - after == 1, sentence
         assert orders == 1, sentence
+        assert reply["action_info"]["cost"] == 1, sentence  # ACH-1
 
     @pytest.mark.parametrize("sentence", [
         "withdraw from the alliance",

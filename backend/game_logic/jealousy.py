@@ -3629,6 +3629,11 @@ def handle_petition_response(world, choice: str, executor=None,
     #     pass also re-pushes an unanswered petition, `:2523` — this is
     #     the same-response half of that promise.)
     # ══════════════════════════════════════════════════════════════════
+    # ACH-1: the arms charge the pool directly (`_spend_player_ap`, the
+    # command arm's order price) and the reply — read by the client's
+    # `_on_command_result` — said nothing of it; the arm's spend is read off
+    # the pool across the dispatch and said below.
+    _ap_before = int(world.actions_remaining)
     if kind == "jealousy_confrontation":
         # Q2(a): the command arm needs the executor, exactly as the
         # war-weary arm already does for its declare-war command.
@@ -3651,6 +3656,8 @@ def handle_petition_response(world, choice: str, executor=None,
 
     if not isinstance(result, dict):
         return result
+    result["action_info"] = world.get_action_info(
+        _ap_before - int(world.actions_remaining))
     if result.get("success"):
         if getattr(world, "pending_marshal_petition", None) is petition:
             world.pending_marshal_petition = None

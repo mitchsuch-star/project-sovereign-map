@@ -204,8 +204,9 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
                  stash: Dict[str, Any]) -> Dict[str, Any]:
     """Carry the order to the members still waiting (in `stash["members"]`),
     each line through the ordinary road. Returns ``{"lines", "question",
-    "events", "waiting"}``: `question` is the member result that asked, with
-    the rest of the members left in the stash on the world."""
+    "events", "waiting", "spent"}``: `question` is the member result that
+    asked, with the rest of the members left in the stash on the world;
+    `spent` (ACH-1) sums the actions each member's own reply says it cost."""
     from backend.main import _result_carries_question
     from backend.commands.state_probe import order_state_refusal
     rest = stash["rest"]
@@ -215,6 +216,7 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
     band = stash.get("band")
     lines: List[str] = []
     events: List[Any] = []
+    spent = 0
     members: List[str] = list(stash["members"])
     while members:
         name = members[0]
@@ -267,20 +269,23 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             continue
         if isinstance(result, dict) and result.get("events"):
             events.extend(result.get("events") or [])
+        if isinstance(result, dict) and isinstance(result.get("action_info"), dict):
+            spent += int(result["action_info"].get("cost") or 0)
         if _result_carries_question(result):
             stash["members"] = members
             stash["lines"] = list(stash.get("lines", [])) + lines
             stash["events"] = list(stash.get("events", [])) + events
             world._pending_group = stash
             return {"lines": lines, "question": result, "events": events, "waiting": members,
-                    "asker": name}
+                    "asker": name, "spent": spent}
         said = _first_sentence(result.get("message", ""))
         if army and band == "carries" and _would_object(
                 world, marshal, strategic_type, parsed_target=stash.get("target"), rest=rest):
             said += " (He had his doubts; the Staff's order carries.)"
         lines.append(f"{_display(name)}: {said}" if said else f"{_display(name)}: done.")
     world._pending_group = None
-    return {"lines": lines, "question": None, "events": events, "waiting": members, "asker": ""}
+    return {"lines": lines, "question": None, "events": events, "waiting": members, "asker": "",
+            "spent": spent}
 
 
 def _probe_verbs():
@@ -424,9 +429,8 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
             stash["note"] = army_refusal
     head_line = _head_line(world, stash, stash["members"])
     stash["head"] = head_line
-    if stash["army"]:
-        for _ in range(ARMY_ORDER_AP):
-            world.use_action("strategic")
+    head_spent = (world.spend_actions("strategic", ARMY_ORDER_AP)["action_cost"]
+                  if stash["army"] else 0)
     run = _run_members(world, game_state, parser, executor, llm_game_state, stash)
     message = _compose(stash, run, head_line, resumed=False)
     q = run.get("question")
@@ -439,10 +443,9 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
             if key in ("message", "new_state", "events"):
                 continue
             result[key] = value
-    result["action_info"] = {
-        "cost": 0, "remaining": int(getattr(world, "actions_remaining", 0) or 0),
-        "turn_advanced": False, "new_turn": None,
-    }
+    # ACH-1: the whole order's price — the Staff's charge and every corps'
+    # own reply — where it said 0 while the corps spent the pool.
+    result["action_info"] = world.get_action_info(head_spent + int(run.get("spent") or 0))
     result["action_summary"] = world.get_action_summary()
     return result
 
@@ -516,7 +519,8 @@ def resume(world, game_state, parser, executor, llm_game_state) -> Optional[Dict
         text = "The order goes on.\n" + text
     out: Dict[str, Any] = {"message": text, "question": run.get("question"),
                            "events": run.get("events") or [],
-                           "waiting": run.get("waiting") or []}
+                           "waiting": run.get("waiting") or [],
+                           "spent": int(run.get("spent") or 0)}
     return out
 
 
@@ -545,9 +549,16 @@ def attach(response: Dict[str, Any], cont: Optional[Dict[str, Any]], world) -> N
         for key in _QUESTION_CARRY:
             if q.get(key) is not None and key in q:
                 response[key] = q[key]
+    # ACH-1: the corps the answer released spent too — their price joins the
+    # answer's own (the interrupt road's reply carries no `action_info` of
+    # its own, so it is given one when they spent).
+    spent = int(cont.get("spent") or 0)
     info = response.get("action_info")
     if isinstance(info, dict):
+        info["cost"] = int(info.get("cost") or 0) + spent
         info["remaining"] = int(getattr(world, "actions_remaining", 0) or 0)
+    elif spent:
+        response["action_info"] = world.get_action_info(spent)
     response["action_summary"] = world.get_action_summary()
 
 

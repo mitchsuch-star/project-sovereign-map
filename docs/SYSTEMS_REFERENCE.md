@@ -11142,3 +11142,32 @@ CC-4's head — the four rows CC-3 and CC-5 left at it, each reproduced on the 1
 - The fortify gate D7 relaxed (a fortify carried by a standing order is not asked the turn's actions) is the one the cautious HOLD's tick goes through, so a cautious holder's works now rise at the turn's end — before, from the neutral stance with fewer than two actions left they were refused while the report said "Davout fortifies Rhineland." (CC-X23, measured on a HEAD `d6a0cd8d` snapshot). The hold's report reads the fortify's answer: a refused fortify says why, never "fortifies".
 - The sally's report reads where he stands after the return march: "then returns to Rhineland!" only if he did, else "— and stands at Swabia, short of Rhineland."; `returned_to` is where he is (CC-X24, found by reading).
 - The first-step arrival that ends a march clears its order-bound question (NPC-2's rule, read by its census).
+
+## 131. ACTION COST HONESTY — THE REPLY SAYS WHAT THE ORDER COST (ACH-1, a side row beside Pre-Deploy S13c part 4, October 19, 2026)
+
+Found in passing by CC-4 and measured on the shipped 1805 boot through the real `POST /command`: every strategic order that costs two actions replied `action_info.cost: 1` while the pool fell by 2 ("Ney, hold": before 4, after 2, cost 1). The executor's variable-cost loop kept only its LAST `use_action` reply. The sweep found the class on eight more roads. Rows `BUG_FIXES.md` §ACH-1 (ACH-1, ACH-X1 … X8 fixed; ACH-F1 … F3, found in passing outside the class, open and owned); pins `tests/test_action_cost_honesty.py`.
+
+### 131.1 The rule
+
+- **`action_info.cost` is what the command took from the pool** — the military pool for an order, the admin pool for an `ADMIN_ACTIONS` verb (whose `remaining` still reports the military pool, as before). A reply with no `action_info`, or one with no `cost`, says 0 — the client's own reading (`main.gd` `_show_action_cost`, which prints the actions line only when `cost > 0`).
+- **ONE charge:** `WorldState.spend_actions(action_type, times=1)` — `times` uses of the verb at its `_action_costs` price, exactly the uses the loops it replaces made, and `action_cost` = what the pool actually LOST (`before − after`): a use the empty pool refuses or a price its clamp cuts short counts what was taken and nothing more. `times` counts USES: a verb priced above 1 is charged that price on each.
+- **ONE builder:** `WorldState.get_action_info(cost)` — `{cost, remaining, turn_advanced: False, new_turn: None}`, `remaining` the military pool as it now stands. The admin charge reads `1 if world.use_admin_action() else 0`.
+- Prices do not move: every charge site charges what it charged before (the suite green, the AI's series byte-identical — the AI reads `variable_action_cost` itself, never `action_info`). Only what the reply SAYS moved.
+
+### 131.2 The roads
+
+- The executor's charge stage (`_exec_charge`): the variable cost and the plain verb through `spend_actions`; `_exec_finish` reads the reading (ACH-1). The garrison's own pre-charge `action_info` (the pool read BEFORE the charge, overwritten by both callers) is retired.
+- The post-objection road (`meta_executor._execute_post_objection`): its tactical arm through `spend_actions` (ACH-X1 — an insisted fortify that shifts stance first said 1 for 2), its strategic arm's reply from the charge, not the `variable_action_cost` it was asked.
+- The strategic objection's tail (`_handle_strategic_objection_from_endpoint`): the reply from the charge it clamps to the pool (ACH-X2 — a strategic objection blocks nothing, so the pool can fall below the price while it waits; the clamp's half-price order itself is ACH-F3).
+- The two defiance arms (tactical in `meta_executor`, strategic in `strategic_executor`): the defiant act's action charged through `spend_actions` and said (ACH-X3 — they shipped `{"remaining": n}` with no `cost`).
+- The collective order (`group_orders`): `_run_members` sums each corps' own reply (`spent`), `_try_collective` says the Staff's head charge plus that sum (ACH-X4); `resume` carries its `spent` and `attach` adds it to the answering reply's `cost` — creating `action_info` on the interrupt road, whose reply had none (ACH-X5).
+- `/cancel_order` (the Orders tab's and the arrow card's Cancel, read by `_on_command_result` since CC-X15): the charge through `spend_actions`, the reply stamped (ACH-X6).
+- The letters that spend actions — showing the flag (2), the confirmed repudiation (1, now ONE use at its table price where the loop charged the price per use, `action_cost` times), the war room's counsel commission (1 admin): each arm stamps its reply, and the shared dialogue assembly (`main._respond_to_dialogue_sync`, which serves the typed digit on `/command`, the button and the letter-book) forwards it (ACH-X7).
+- The marshal petition (`jealousy.handle_petition_response`, read by `_on_command_result`): the arms charge the pool directly (`_spend_player_ap`, the command arm's order price), so the dispatcher reads the pool across the arm and says it (ACH-X8).
+- Unchanged and already true: the trust arm's 1 (WO-37), the refusals' and questions' `cost: 0` (an objection or a clarification spends nothing), the interrupt answers (free `_strategic_execution` steps).
+
+### 131.3 What this is not
+
+- **The first-step interrupt's price is a rule, not a leak.** A march whose first step meets an enemy asks before it walks and is charged 1 (`variable_action_cost: 1`, "order issued, 1 AP charged explicitly" — the four first-step arms in `strategic_executor`), and the quote says so ("… else asks your orders (1 action now)", `march_quote`'s `ap: 1` for `Ney → Swabia` on the boot). The reply now says 1 too.
+- **The glorious charge's price.** Measured: the attack that raises the popup replies `success: False` ("not executed yet") and is not charged, and the answer runs `_execute_glorious_charge` / `_execute_attack` directly, past the charge stage — the battle costs no action on either arm. The reply says 0, honestly; the missing charge is outside this row's class and filed as ACH-F2.
+- Answers that spend nothing need no `cost`: the redemption's (the role's action rides the next refill, `bonus_actions`), the Talleyrand objection's (diplomatic verbs are free of actions). The crash road's `{"remaining": n}` is the crash's own defect.

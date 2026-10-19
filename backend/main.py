@@ -5592,6 +5592,11 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
             response["terminal_recovery_copy"] = result["terminal_recovery_copy"]
         if result.get("error_display"):
             response["error_display"] = result["error_display"]
+        # ACH-1: an arm that spent actions says so on every road this
+        # assembly serves — the typed "2" rides `/command`, and the client's
+        # `_on_command_result` reads `action_info` for the actions line.
+        if isinstance(result.get("action_info"), dict):
+            response["action_info"] = result["action_info"]
         return response
     except Exception as e:
         _errors.report(e, "main._respond_to_dialogue_sync: the route", every=True)
@@ -7486,8 +7491,12 @@ async def cancel_order(request: Request):
         result = executor._execute_cancel(command, game_state)
 
         # Deduct 1 AP for successful cancels (matches typed "cancel" command flow)
-        if result.get("success") and not result.get("no_action_cost"):
-            world.use_action("cancel")
+        # ACH-1: and say so — since CC-X15 this reply is read by the client's
+        # `_on_command_result`, and with no `action_info` the button's cancel
+        # printed no actions line where the typed one did.
+        _spent = (world.spend_actions("cancel")["action_cost"]
+                  if result.get("success") and not result.get("no_action_cost") else 0)
+        result["action_info"] = world.get_action_info(_spent)
 
         # Non-draining (Aug 2026 health-check audit): the ledger's cancel
         # callback ignores the response body and just refreshes the ledger,

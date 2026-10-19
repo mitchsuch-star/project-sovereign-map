@@ -2536,11 +2536,13 @@ class EconomyExecutor:
             "marshal_remaining": int(marshal.strength),
         })
 
+        # ACH-1: no `action_info` here — the garrison is charged AFTER this
+        # returns, and both callers (the executor, the post-objection road)
+        # stamp the reply from that charge; this one read the pool before it.
         return {
             "success": True,
             "message": (f"{marshal_name} detaches {self.GARRISON_DETACHMENT_SIZE:,} troops to garrison {region_name}. "
                        f"Army strength: {marshal.strength:,}."),
-            "action_info": {"remaining": world.actions_remaining},
         }
 
     # ════════════════════════════════════════════════════════════════════════════
