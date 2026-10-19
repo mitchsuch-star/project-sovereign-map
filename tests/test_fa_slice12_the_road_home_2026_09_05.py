@@ -13,8 +13,10 @@ That blindness is why the defect shipped, and it is why these are new pins
 rather than an existing one flipping.
 """
 import contextlib
+import hashlib
 import io
 import os
+import random
 
 import pytest
 
@@ -45,9 +47,36 @@ def world(base_world):
 # The live harness — a real end turn through the real endpoint
 # ══════════════════════════════════════════════════════════════════════════
 
+# DICE-1 (October 18, 2026): a real end turn on the 1805 board rides the
+# unseeded module RNG — the enemy phase's combat rolls decide WHEN Austria's
+# other wars take the ground under Bernadotte and Massena, which is the
+# stranding these pins read — so a pin that needs a given event by a given
+# turn passed or failed on the luck of its xdist worker. Measured: the
+# offer-before-warning pin was vacuous on 1 stream in 40 (seed 14: Mack's
+# assault on the Munich garrison fails on turn 2, he halts at the frontier
+# and garrisons Swabia, and Milan does not fall inside four turns). The
+# harness now plays ONE fixed draw sequence and hands the caller's stream
+# back (SRX-8's idiom, `test_tutorial_unbreakable_2026_09_23._lesson_draws`).
+# On this seed Austria takes Franconia on turn 2 and Milan on turn 3, the
+# trail 38 streams in 40 play.
+LIVE_RNG_SEED = int(hashlib.sha256(b"fa12:the road home").hexdigest(), 16) & 0xFFFFFFFF
+
+
+@contextlib.contextmanager
+def _live_draws():
+    """DICE-1: the harness's own draw sequence, the caller's handed back."""
+    rng_state = random.getstate()
+    random.seed(LIVE_RNG_SEED)
+    try:
+        yield
+    finally:
+        random.setstate(rng_state)
+
+
 @pytest.fixture
 def live(world, tmp_path, monkeypatch):
-    """A TestClient wired to THIS world, with the mock parser.
+    """A TestClient wired to THIS world, with the mock parser, on the
+    harness's own draw sequence (DICE-1).
 
     `.env` sets LLM_MODE=anthropic, so all three seams must be swapped or the
     probe bills the live API: `main.world`, `main.game_state["world"]` and
@@ -72,8 +101,9 @@ def live(world, tmp_path, monkeypatch):
         with contextlib.redirect_stdout(io.StringIO()):
             return client.post("/command", json={"command": text}).json()
 
-    return type("Live", (), {"world": world, "end_turn": staticmethod(end_turn),
-                             "send": staticmethod(send)})
+    with _live_draws():
+        yield type("Live", (), {"world": world, "end_turn": staticmethod(end_turn),
+                                "send": staticmethod(send)})
 
 
 @pytest.fixture
@@ -96,6 +126,22 @@ def _peace_with_austria(world, marshal_at=("Davout", "Vienna")):
     with contextlib.redirect_stdout(io.StringIO()):
         set_diplomatic_state(world, "France", "Austria", "PEACE", "test")
     return world.marshals[name]
+
+
+class TestTheHarnessPlaysOneDrawSequence:
+    """DICE-1: every live pin below plays the same dice on every run, and the
+    stream it found is handed back to whatever runs next on its worker."""
+
+    def test_a_live_pin_starts_on_the_harness_stream(self, live):
+        assert random.getstate() == random.Random(LIVE_RNG_SEED).getstate(), (
+            "the live harness must seed the module RNG, or its pins ride the "
+            "luck of their xdist worker")
+
+    def test_the_callers_stream_is_handed_back(self):
+        before = random.getstate()
+        with _live_draws():
+            random.random()
+        assert random.getstate() == before
 
 
 # ══════════════════════════════════════════════════════════════════════════
