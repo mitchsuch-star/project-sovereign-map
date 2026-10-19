@@ -1,73 +1,61 @@
-# NEXT SESSION PROMPT — Pre-Deploy S13c part 4: CC-4 "Chained orders"
+# NEXT SESSION PROMPT — Pre-Deploy S13b part 4: "the voice, the client and the sea"
 
-> Overwritten each time a session hands off. Current hand-over: **October 18, 2026, after S13c part 3 (CC-5)
-> landed** (one commit on master through the hook).
+> Overwritten each time a session hands off. Current hand-over: **October 19, 2026, after S13c part 4 (CC-4
+> "Chained orders") landed — row CC is COMPLETE** (two commits on master through the hook: `d6a0cd8d` the head,
+> then the builds).
 >
-> **What part 3 delivered** (`SYSTEMS_REFERENCE.md` §129; pins `tests/test_cc5_the_war_table.py`, 40, the
-> client driven by `tools/cc_client_harness.gd`):
-> - **The remaining road:** `strategic.standing_order_road` on the player-only `tactical_state.order_road` —
->   `remaining_road` (`order.path` with the province he stands in stripped from its head), the one clock's road arm
->   (`road_turns_remaining`, extracted from `order_turns_remaining`), where it is bound, the halt, the cancel's
->   price and trust (`strategic_executor.cancel_trust_change`, the executor's own rule). Derived, never saved, no
->   pathfinding; no enemy corps carries it.
-> - **The arrows:** `map_renderer_base._refresh_order_arrows` (rebuilt with the hit boxes) → `map_order_layer`'s
->   second pass (dashed road, head or anchor, the ETA badge, badges bound for one province stepped apart,
->   `arrow_at` for the click). The card's ARROW face (`open_standing_card`): [Cancel order] →
->   `main._send_cancel_order` → POST `/cancel_order` (ONE cancel road — the Orders tab's rides it, CC-X15),
->   [Change] (Enter) → `_select_marshal`.
-> - **`.`:** `main._cycle_idle_marshal` at three doors (the bare key off the line, a bare `.` on an EMPTY focused
->   line, Alt+`.` while typing); `map_renderer_base.focus_on_marshal`.
-> - **Groups:** Ctrl-click (`_click_groups_a_marshal`, `_set_order_group`; rings via `set_order_group`) → a
->   province → the card's GROUP face on `GET /march_quotes?marshals=…&dest=…` (`order_quotes.group_march_quotes`)
->   → Send = `_send_group_orders`, one line at a time down the typed road, stopping at the first question or
->   refusal. The named-list line is NOT that road: CQ-8's relay by ruling (pinned —
->   `TestTheNamedListIsCQ8sRelay`), which is why CF-9 is re-opened as **CC-X17** for this part.
-> - **The siblings:** CC-X14 (the literal detour in the quote and the reach — `order_quotes.literal_detour`,
->   `_literal_detours`), CC-X15 (one cancel road), CC-X16 (`order_turns_remaining(…, location=)` — the stale road
->   head on the Orders tab, the dispatch, the desk and the relay).
+> **What part 4 delivered** (`SYSTEMS_REFERENCE.md` §130; pins `tests/test_cc4_chained_orders.py`, 72; the Mode C
+> walk `tools/cc4_mode_c_walk.gd`, frames `docs/audits/cc4_client/`):
+> - **The head:** CC-X6 (the until-then tail named), CC-X7 (Compromise keeps the typed condition, whichever comes
+>   first — `StrategicCondition.cap_turns`), CC-X9 / X19 (no pursuit or support outlives its man —
+>   `strategic.quarry_fate`, `support_friend_fallen`), CC-X17 (every further name relayed in turn), CC-X18.
+> - **D7 the arrival verb (CF-5):** `StrategicOrder.arrival_verb` — `march to X then fortify | hold | drill | defend`,
+>   done free on arrival (`strategic._handle_move_to_arrival`, `run_arrival_verb`, `install_arrival_hold`; the
+>   first-step arrival `strategic_executor._arrive_on_the_first_step`); CC-X22 a `move to` head with such a tail is
+>   the march (`parser._arrival_verb_boundary`); CC-X20 the order's identity counts its arrival
+>   (`strategic.order_arrival_matches`, ONE rule for F10, stage 5, the quote and the reach).
+> - **D6 the contradiction asked first:** `relay.reorder_suggestion` on `/command`'s ordinary road — a head that
+>   leaves the corps standing with a tail that moves or attacks sends NOTHING and offers the order that gives both
+>   in the remedy slot, only where it is coherent (`_strikes_now`, `_has_a_road`; never a pursuit tail).
+> - **D8 the standing contingency:** `StrategicOrder.contingency` — `Ney, if Mack advances, fall back to Lorraine` /
+>   `… if the enemy comes within reach, attack` (`condition_grammar.extract_contingency`, restated as a HOLD before
+>   any reader); watched on the hold province and the neighbours we SEE (`strategic.contingency_trigger`); fired
+>   free at the head of the order pass (`StrategicOrderProcessor._fire_contingency`); CC-X21 a conditional line is
+>   never an interrupt's answer (`main._line_is_a_contingency`).
+> - **CC-X23 / X24:** a cautious holder's works now rise at the turn's end (the gate D7 relaxed), and the hold's and
+>   the sally's reports read what the executor answered.
 >
-> **The seams CC-4 builds on (and must not break):** the relay (`backend/commands/relay.py` — one tail, one
-> command's life, never auto-sent: CR-7-8); `_handle_move_to_arrival` (`strategic.py`) where an `arrival_verb` will
-> run; `strategic_executor._handle_strategic_objection_from_endpoint` (Compromise, CC-X7); the arrows read
-> `order_road` — a new order shape (an arrival verb, a contingency) must still draw (add its words to
-> `map_renderer_base.order_arrow_label` and the card's `standing_headline` if it needs them).
+> **Traps part 4 paid for:**
+> - The bash heredoc collapses `\\` to `\` and turns `\b` into a backspace byte in a payload — write every script
+>   (Python or GDScript) with the Write tool, then run it.
+> - The interrupt route (`main._command_interrupt_answer`) reads answer KEYWORDS before any parse: a new line shape
+>   that carries "attack", "hold", "march to"… must be checked against a pending question (CC-X21 was that).
+> - An aggressive marshal answers the guns of his own accord (the cannon-fire redirect): a Mode C walk that needs a
+>   march to ARRIVE uses a literal man (Soult). The terminal is trimmed — read a block by its heading
+>   ("--- Strategic Order Updates ---"), never by a character offset.
+> - A "before" measurement without touching the shared checkout: `git archive HEAD backend <the maps dir> | tar -x
+>   -C <scratch>` and run the probe with that dir first on `sys.path` (never stash, never reset).
+> - Patch the executor at its type (`type(M.executor).execute`), never the instance (the singleton-shadow trap).
+> - `CLAUDE.md` stands within ~150 bytes of its 62,000-byte cap: swap its live-state rows, never grow them.
+> - `TaskStop` leaves a backgrounded backend alive: stop the PID that LISTENS on 8007 (`netstat -ano`, check its
+>   command line is `backend.main`), never 8005 (the player's game) or 8006.
 >
-> **Traps part 3 paid for:**
-> - `tools/cc_client_harness.gd` holds every send / cancel / group-GET callback now (`answer_send`, `held`); a
->   scenario answers each with the REAL backend's reply, built in the pytest on a world rebuilt the same way
->   (`_table` in `tests/test_cc5_the_war_table.py`). The harness has a `_frames` COUNTER — a coroutine helper must
->   be named otherwise (`_wait_frames`). A spec with `cc5_only` runs CC-5 alone on a 1600×900 root.
-> - The flat mood (`_flat`): with it Ney OBJECTS to `fortify`; a named list whose first man must simply spend
->   leads with the Emperor (a sovereign never objects).
-> - `strategic_order_ap`: a march is 2, 1 for a literal man or the Emperor; a cancel is 1; four actions a turn —
->   a Mode C walk that gives orders and cancels must fit one turn (no debug refill exists).
-> - At the whole-Europe fit the camera is clamped and cannot turn to anyone: zoom in before checking a focus.
-> - `CLAUDE.md` stands within ~150 bytes of its 62,000-byte cap (`tests/test_code_health_ratchet.py`): swap its
->   live-state rows, never grow them.
-> - The bash heredoc mangles some GDScript/Python payloads (quotes, tabs): write scripts with the Write tool.
-> - `TaskStop` leaves a backgrounded backend alive: start the sandbox with PowerShell `Start-Process -PassThru`,
->   stop the PID that LISTENS on 8007 (`netstat -ano`), check the port is free.
->
-> **Nothing waits on the user before CC-4** (UXR-4, the code-signing certificate and AO's three questions are
-> theirs before S15). Paste everything below the line as the opening message of a fresh session.
+> **Nothing waits on the user before S13b part 4** (UXR-4, the code-signing certificate and AO's three questions
+> are theirs before S15; PC-R7 (ii) heads S14). Paste everything below the line as the opening message of a fresh
+> session.
 
 ---
 
-Pre-Deploy S13c part 4 — CC-4 "Chained orders" — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (S13c part 3, CC-5, has landed; read `git log -1` for the head).
+Pre-Deploy S13b part 4 — "the voice, the client and the sea" — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (S13c is complete; read `git log -1` for the head).
 
-Read first: `docs/STATUS.md` ▶ NEXT UP (the CC-4 block), the plan `~/.claude/plans/sorted-yawning-clover.md` §CC-4 and its decisions D6–D8, `docs/SYSTEMS_REFERENCE.md` §4 Stage 2c (the relay), §119, §121, §125, §128 and §129, and `docs/BUG_FIXES.md` §CC and §CF (CF-5).
+Read first: `docs/STATUS.md` ▶ NEXT UP (the S13b part 4 block), `docs/BUG_FIXES.md` §DD-B (DDB-21, DDB-45 … 62 and DDB-X6 — their filed fix shapes), `docs/audits/DD_B_RULINGS_2026_10_14.md`, `docs/SYSTEMS_REFERENCE.md` §115–§118, and `docs/NAVAL_SPEC.md` §17–§18 for the sea rows.
 
 Scope, in order:
-1. The head — each reproduced before its fix, its sibling sweep after: CC-X6 (`hold … until Davout arrives then attack` drops the attack in silence — relayed and named), CC-X7 (Compromise keeps the typed condition, merged as whichever-first), CC-X9 (a PURSUE outliving its destroyed quarry — reproduce or strike with the reason), CC-X17 (a typed named list relays every further name in turn for the seal, never spent — CQ-8; re-seat `tests/test_cc5_the_war_table.py::TestTheNamedListIsCQ8sRelay` with the row named).
-2. The arrival verb (D7): `march to Vienna then fortify | hold | drill | defend` sets `arrival_verb` (a new `StrategicOrder` field, default None), executed by `_handle_move_to_arrival`; the march paid once; CF-5.
-3. The contradiction (D6): a refused tail suggests the legal order where the relay predicate allows ("Ney can't attack once fortified — 'Ney, attack Mack then fortify'?"); the relay stays the player's seal.
-4. The contingency (D8): `Ney, if Mack advances fall back to Bohemia` / `… if the enemy comes within reach, attack` — a HOLD with its own `contingency {who, then}` field; HOLD's price at issue, free when it fires; it watches only the hold province and its neighbours in the holder's own sight; evaluated at the strategic phase after the enemy phase; the objection asked at issue only; the `if` refusal lifted for this pattern only (`when` / `once` / `in case` stay refused, pinned by negative corpus rows); the identity check counts the contingency; it warns on a fortified or marching holder. The AI issues no standing orders (a Rule-5 note).
-5. The parser rider: corpus rows, `python -m tools.gen_routed_order_words`, a `prompt_builder.py` few-shot, serialization (`tests/test_serialization_enforcement.py`, `SAVE_FORMAT_REFERENCE.md`), the help.
+1. **The P2 first — DDB-21:** a corps standing in a province the peace just titled to France is "stranded" and faces internment. Reproduce on the 1805 board, fix at the home-zone rule, sweep its class.
+2. **The voice (S13b-4):** DDB-45 (a two-part question read as one), DDB-46 (the rail keeps stale cards), DDB-47 ("… to join Ney and Davout" split into a second order — mind CC-X17's relay and CQ-8), DDB-48 ("How do I …?" dumps the whole reference), DDB-49 (the reference's developer note and stale Congress count — the help body is CX-3's census), DDB-50 (a released enemy marshal returns unannounced), DDB-51 (a war purpose against an eliminated court), DDB-52 (the Armed Peace's alarm "holds" while the sum falls), DDB-53 (one siege, three contradicting dispatch lines).
+3. **The client (S13b-5):** DDB-54 (the first Escape only leaves the line), DDB-55 (the title caption names the next painting early), DDB-56 (an ally's lost province in good-news colour), DDB-57 (the command window too short to read a long reply).
+4. **The sea (S13b-6):** DDB-58 … 61 (the Admiralty's closed ports, its automatic states read as orders, the postures question, the readiness rot and the blockade's price before the order), DDB-62 ("lay down a ship at Normandy" lays it at Bordelais), DDB-X6 (the blockade's start and end and a diversion window never announced).
 
-Method: pins in `tests/test_cc4_chained_orders.py` (each arrival verb; the contingency fires on a seen approach and never on a fogged one; AP paid once and nothing charged when it fires; Compromise keeps the condition; the honest then-attack tail; the contradiction suggestion; a save round-trip); the driven attribution arms byte-identical to `BASELINE_SERIES`, or each movement attributed and named; CC-2's drift census unchanged; the Godot parse harness EXIT 0 if any `.gd` changes (commit the refreshed `tools/godot_parse_report.json`); a Mode C check on `SOVEREIGN_PORT=8007` (never 8005 / 8006; `INK_IRON_SAVE_DIR` in the scratchpad): `march to X then fortify` arriving and fortifying, a contingency firing on a seen approach, both on the war table. Moved pins re-seated with their reasons (corpus `parseneg-until-then-attack-holds`, `test_cr7_1`'s until-then rows, `test_cr7_3`'s tail rows). Sibling sweep after each fix — file from CC-X18.
+Rules: reproduce each row before its fix; the sibling sweep after every fix (CLAUDE.md Rule 10 — each sibling filed and fixed in this part or heading the next); pins `tests/test_ddb_s13b_<slice>.py::TestDDB<n>`; where a fix reaches the AI, the driven attribution arms byte-identical to `BASELINE_SERIES` or each movement attributed and named; the Godot parse harness for the client rows and a Mode C walk on `SOVEREIGN_PORT=8007` (never 8005 / 8006; `INK_IRON_SAVE_DIR` in the scratchpad) for DDB-54 … 57. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
 
-Rules: shared checkout — never stash, reset or switch branches; commit only your own files by explicit path with `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>` in the background (the hook runs ruff and the full suite, about 7 minutes); never `--no-verify`; a moved pin is re-seated with its row named. The user's own game may be running from this checkout on port 8005 — never stop, restart or send commands to it; your sandbox backend runs on 8007 only.
-
-Close with: docs updated (`SYSTEMS_REFERENCE.md` §130, `BUG_FIXES.md` §CC rows, `PRE_DEPLOY_PLAN.md` §2 S13c (row CC complete), STATUS ▶ NEXT UP naming S13b part 4 next with its prompt pre-decided and at most seven ▶▶▶ entries kept (move the oldest verbatim to the top of `docs/archive/STATUS_2026_Q4.md`), `NEXT_SESSION_PROMPT.md` hand-over); one commit through the hook; the report opens with the commit SHA.
-
-Done when: the plan's CC-4 tests pass through the hook; the attribution arms hold; 0 OPEN §CC rows remain.
+Done when every row above is FIXED with its test and 0 §DD-B rows homed to S13b remain OPEN (DD-B's re-measure is S14e). Close with `docs/STATUS.md` ▶ NEXT UP naming S14 (PC-R7 (ii) at its head) and this file overwritten for it.

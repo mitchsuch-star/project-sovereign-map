@@ -1622,6 +1622,132 @@ def quarry_fate(world, order) -> Optional[str]:
     return "destroyed"
 
 
+def order_arrival_matches(order, arrival=None) -> bool:
+    """CC-X20 (CC-4's sweep): a standing order is IDENTICAL to a new one only
+    if what it does on arrival matches too — the attack on arrival and its
+    object (CR-7-6), the arrival verb (D7). `arrival` is the new order's own
+    (a parse, or a quote's); a missing key reads as none. Before this the
+    F10 no-op compared type and target alone, so `march to X then attack
+    Mack` (or `then fortify`) over a standing `march to X` was "already
+    carrying out that order" and the tail was lost. ONE rule for the
+    executor's F10, `order_quotes._standing_quote` and `march_reach`."""
+    arrival = arrival or {}
+
+    def _watch(c):   # D8: a contingency compares by what it does, not its words
+        return (c.get("who"), c.get("then"), c.get("to")) if c else None
+
+    return (bool(getattr(order, "attack_on_arrival", False))
+            == bool(arrival.get("attack_on_arrival", False))
+            and (getattr(order, "arrival_target", None) or None)
+            == (arrival.get("arrival_target") or None)
+            and (getattr(order, "arrival_verb", None) or None)
+            == (arrival.get("arrival_verb") or None)
+            and _watch(getattr(order, "contingency", None))
+            == _watch(arrival.get("contingency")))
+
+
+def contingency_trigger(world, marshal, order):
+    """CC-4 / D8: `(enemy, province)` when the man a HOLD's contingency
+    watches for — or, for "the enemy", any corps at war with us — stands
+    in the hold province or a neighbour that we SEE (visibility PARTIAL or
+    better), else None. Never on a fogged province. The holder's region and
+    its `adjacent_regions` only (Rule 8). PURE."""
+    contingency = getattr(order, "contingency", None)
+    if not contingency or getattr(order, "command_type", None) != "HOLD":
+        return None
+    from backend.models.intel import FULL, PARTIAL
+    here = world.get_region(marshal.location)
+    if here is None:
+        return None
+    who = contingency.get("who")
+    for name in [here.name] + list(getattr(here, "adjacent_regions", []) or []):
+        if world.get_region_intel(name).visibility not in (FULL, PARTIAL):
+            continue
+        if strike_crossing_verdict(world, marshal, name) is not None:
+            continue   # FA-15: the far shore of a SHUT crossing is not within reach
+        for enemy in world.get_enemies_in_region(name, marshal.nation):
+            if int(getattr(enemy, "strength", 0) or 0) <= 0 or getattr(enemy, "captured_by", ""):
+                continue
+            if who and enemy.name != who:
+                continue
+            if not world.is_at_war(marshal.nation, enemy.nation):
+                continue
+            return enemy, name
+    return None
+
+
+def contingency_issue_note(world, marshal, order, replaced=None) -> str:
+    """CC-4 / D8: what the player is told when a contingency is given — the
+    watch, and the three warnings: a fortified holder leaves his works when
+    it fires, a march it stops, a trigger already met."""
+    from backend.ai.condition_grammar import describe_contingency
+    contingency = getattr(order, "contingency", None)
+    if not contingency:
+        return ""
+    note = (f" {marshal.name} watches {marshal.location} and its neighbours: "
+            f"{describe_contingency(contingency, _shown_name)} — at no cost "
+            f"when it fires, at the turn's end.")
+    if getattr(marshal, "fortified", False):
+        note += " He is fortified: when it fires he leaves his works."
+    if replaced is not None and getattr(replaced, "command_type", None) in ("MOVE_TO", "PURSUE"):
+        note += (f" This stops his {'march to' if replaced.command_type == 'MOVE_TO' else 'pursuit of'} "
+                 f"{order_target_display(replaced.target)}.")
+    hit = contingency_trigger(world, marshal, order)
+    if hit is not None:
+        note += (f" {_shown_name(hit[0].name)} is within reach already, at {hit[1]} — "
+                 f"it fires at this turn's end unless he draws off.")
+    return note
+
+
+ARRIVAL_VERB_DONE = {"fortify": "fortifies", "drill": "drills his men",
+                     "defend": "takes up a defensive stance", "hold": "holds it"}
+
+
+def run_arrival_verb(executor, marshal, world, game_state) -> Optional[Dict]:
+    """CC-4 / D7: the TACTICAL verb a march carries ("then fortify | drill |
+    defend"), done where he stands — through the executor with
+    `_strategic_execution`, so it is free (the march was paid once) and is
+    not asked again (an explicitly typed arrival is never re-asked — the
+    `_inferred_attack_gate` rule). Returns {"ok", "verb", "message",
+    "result"}; None when the order carries no tactical verb (`hold` is
+    `install_arrival_hold`'s). The caller ends the march."""
+    order = getattr(marshal, "strategic_order", None)
+    verb = getattr(order, "arrival_verb", None) if order is not None else None
+    if not verb or verb == "hold":
+        return None
+    where = marshal.location
+    result = executor.execute(
+        {"command": {"marshal": marshal.name, "action": verb,
+                     "_strategic_execution": True}},
+        game_state)
+    ok = bool(isinstance(result, dict) and result.get("success"))
+    if ok:
+        message = f"{marshal.name} arrives at {where} and {ARRIVAL_VERB_DONE[verb]}."
+    else:
+        reason = str((result or {}).get("message") or "the order cannot be carried out")
+        message = f"{marshal.name} arrives at {where} but cannot {verb} — {reason}"
+    cleaned = ({k: v for k, v in result.items() if k != "new_state"}
+               if isinstance(result, dict) else None)
+    return {"ok": ok, "verb": verb, "message": message, "result": cleaned}
+
+
+def install_arrival_hold(marshal, world, original_command: str = "") -> None:
+    """CC-4 / D7: "march to X then hold" — the march, ended, becomes a
+    standing HOLD where he stands, given this turn (its first tick is the
+    next turn's); a literal marshal is immovable at once, as stage 9 makes
+    him when the hold is typed at his feet."""
+    from backend.models.marshal import StrategicOrder
+    where = str(marshal.location or "")
+    marshal.strategic_order = StrategicOrder(
+        command_type="HOLD", target=where, target_type="region",
+        started_turn=int(world.current_turn), issued_turn=int(world.current_turn),
+        original_command=str(original_command or ""))
+    if getattr(marshal, "personality", "") == "literal":
+        marshal.holding_position = True
+        marshal.hold_region = where
+    clear_order_bound_interrupt(marshal)
+
+
 def support_friend_fallen(world, order) -> bool:
     """CC-X19 (CC-X9's sweep): True when the friend a SUPPORT (or a FOLLOW)
     stands by is off the board — the rule `_execute_support` breaks on ("X
@@ -1705,7 +1831,24 @@ def standing_order_road(world, marshal) -> Dict:
         "friend": friend,
         "cancel_ap": int(world.get_action_cost("cancel")),
         "cancel_trust": int(cancel_trust_change(order, turn)),
+        # CC-4 / D7: what the march does on arrival ("" for none) — the
+        # badge reads "Moravia · 3 turns · then fortify".
+        "then": str(getattr(order, "arrival_verb", None) or ""),
+        # CC-4 / D8: a hold's standing contingency — the card's sentence and
+        # the badge's man ("holds Rhineland · if Mack comes"); "" for none.
+        **_watch_keys(getattr(order, "contingency", None)),
     }
+
+
+def _watch_keys(contingency) -> Dict:
+    """CC-4 / D8: the order road's two watch keys — `watch`, the ONE phrase
+    (`describe_contingency`), and `watch_who`, the man it watches for."""
+    if not contingency:
+        return {"watch": "", "watch_who": ""}
+    from backend.ai.condition_grammar import describe_contingency
+    who = contingency.get("who")
+    return {"watch": describe_contingency(contingency, _shown_name),
+            "watch_who": _shown_name(who) if who else "the enemy"}
 
 
 def order_eta_phrase(order, current_turn: int, *, movement_range: int = 1,
@@ -1888,6 +2031,18 @@ class StrategicOrderProcessor:
                 reports.append(self._break_order(
                     marshal, world, f"{order_target_display(order.target)} has fallen"))
                 continue
+
+            # CC-4 / D8: a HOLD's standing contingency fires here — after the
+            # enemy phase, BEFORE the issuing-turn skip, the sally and the
+            # cannon interrupt. A fall-back leaves him a fresh march, walked
+            # by the rest of this pass this very tick.
+            if order.command_type == "HOLD" and getattr(order, "contingency", None):
+                _fired = self._fire_contingency(marshal, order, world, game_state)
+                if _fired is not None:
+                    reports.append(_fired)
+                    order = marshal.strategic_order
+                    if order is None or order.command_type != "MOVE_TO":
+                        continue
 
             # Skip orders issued THIS turn — first step already executed by executor.py
             issued = getattr(order, 'issued_turn', None)
@@ -3278,6 +3433,65 @@ class StrategicOrderProcessor:
             "options": options,
         }
 
+    def _fire_contingency(self, marshal, order, world, game_state) -> Optional[Dict]:
+        """CC-4 / D8: a HOLD's standing contingency, fired when what it
+        watches for is SEEN within reach (`contingency_trigger`) — at no
+        cost, unasked (the objection was asked when the order was given).
+        Fall back: the hold becomes the march to the named province
+        (`march_road`), walked this very tick by the pass; attack: he
+        attacks the corps that came, and the hold is done. A fortified
+        holder leaves his works first — never for a fall-back with no road.
+        The report row, or None."""
+        hit = contingency_trigger(world, marshal, order)
+        if hit is None:
+            return None
+        enemy, where = hit
+        contingency = order.contingency or {}
+        came = f"{_shown_name(enemy.name)} comes within reach at {where}"
+        road = []
+        place = str(contingency.get("to") or "")
+        if contingency.get("then") != "attack":
+            road, refusal, _kind = march_road(world, marshal, place)
+            if refusal is not None or not road:
+                why = str((refusal or {}).get("message") or f"there is no road to {place}")
+                broken = self._break_order(
+                    marshal, world, f"{came} — {marshal.name} cannot fall back to {place}: {why}")
+                broken["action"] = "contingency_refused"
+                return broken
+        leaves = ""
+        if getattr(marshal, "fortified", False):
+            self.executor.execute(
+                {"command": {"marshal": marshal.name, "action": "unfortify",
+                             "_strategic_execution": True}}, game_state)
+            leaves = "leaves his works and "
+        if contingency.get("then") == "attack":
+            result = self.executor.execute(
+                {"command": {"marshal": marshal.name, "action": "attack",
+                             "target": enemy.name, "_strategic_execution": True}},
+                game_state)
+            if attack_was_refused(result):
+                broken = self._break_order(
+                    marshal, world,
+                    f"{came} — {marshal.name} cannot attack: {refusal_reason(result)}")
+                broken.update({"action": "contingency_refused", **refusal_keys(result)})
+                return broken
+            row = self._complete_order(
+                marshal, world, f"{came} — {marshal.name} {leaves}attacks, as you ordered.")
+            row.update({"action": "contingency_fired", "target": enemy.name,
+                        **_combat_carry(result)})
+            return row
+        original = getattr(order, "original_command", "") or ""
+        row = self._complete_order(
+            marshal, world, f"{came} — {marshal.name} {leaves}falls back to {place}, as you ordered.")
+        from backend.models.marshal import StrategicOrder
+        marshal.strategic_order = StrategicOrder(
+            command_type="MOVE_TO", target=place, target_type="region",
+            started_turn=int(world.current_turn), original_command=original,
+            path=list(road))
+        clear_order_bound_interrupt(marshal)
+        row["action"] = "contingency_fired"
+        return row
+
     def _handle_move_to_arrival(self, marshal, world, game_state) -> Dict:
         """Handle arrival at MOVE_TO destination."""
         order = marshal.strategic_order
@@ -3333,6 +3547,30 @@ class StrategicOrderProcessor:
                     # R2-F7: the fought battle's tableau and report ride the row.
                     **_combat_carry(result),
                 }
+
+        # CC-4 / D7 (CF-5): the march's arrival verb, done on arrival — it
+        # used to be handed back "give it when he arrives", and the march
+        # ended "I await further instruction".
+        verb = getattr(order, "arrival_verb", None)
+        if verb == "hold":
+            original = getattr(order, "original_command", "") or ""
+            row = self._complete_order(
+                marshal, world,
+                f"{marshal.name} arrives at {marshal.location} and holds it."
+                + _supply_warning(world, marshal))
+            install_arrival_hold(marshal, world, original)
+            row["action"] = "hold_on_arrival"
+            return row
+        if verb:
+            done = run_arrival_verb(self.executor, marshal, world, game_state)
+            if not done["ok"]:
+                broken = self._break_order(marshal, world, done["message"])
+                broken.update({"action": f"{verb}_refused"})
+                return broken
+            row = self._complete_order(marshal, world,
+                                       done["message"] + _supply_warning(world, marshal))
+            row["action"] = f"{verb}_on_arrival"
+            return row
 
         # Check if this was a marshal target
         if order.target_type == "marshal" and order.target_snapshot_location:
@@ -3895,7 +4133,7 @@ class StrategicOrderProcessor:
         elif personality == "cautious":
             # Auto-fortify if not already at max
             if not getattr(marshal, 'fortified', False):
-                self.executor.execute(
+                fortify_result = self.executor.execute(
                     {"command": {
                         "marshal": marshal.name,
                         "action": "fortify",
@@ -3903,6 +4141,19 @@ class StrategicOrderProcessor:
                     }},
                     game_state
                 )
+                # CC-X23: the works are said only when they are raised — a
+                # refused fortify was narrated "fortifies" every turn.
+                if not (isinstance(fortify_result, dict) and fortify_result.get("success")):
+                    why = str((fortify_result or {}).get("message")
+                              or "the works could not be raised")
+                    return {
+                        "marshal": marshal.name,
+                        "command": "HOLD",
+                        "action": "hold_active",
+                        "location": marshal.location,
+                        "order_status": "continues",
+                        "message": f"{marshal.name} holds {marshal.location} — {why}",
+                    }
 
             return {
                 "marshal": marshal.name,
@@ -4014,6 +4265,8 @@ class StrategicOrderProcessor:
                         }},
                         game_state
                     )
+                # CC-X24 (CC-X23's sweep): "then returns to X" only if he did.
+                back_at = str(marshal.location or "")
 
                 # Extract combat details for UI display
                 # CRITICAL: Strip new_state from combat_result — contains circular
@@ -4036,11 +4289,13 @@ class StrategicOrderProcessor:
                     battle_message = cleaned_combat.get("message", "")
 
                 sally_action = "glorious_charge_sally" if is_glorious_charge else "sally"
+                after = (f", then returns to {hold_position}!" if back_at == hold_position
+                         else f" — and stands at {back_at}, short of {hold_position}.")
                 sally_msg = (f"{marshal.name} leads a GLORIOUS CHARGE against "
-                             f"{_shown_name(enemy.name)}, then returns to {hold_position}!"
+                             f"{_shown_name(enemy.name)}{after}"
                              if is_glorious_charge else
                              f"{marshal.name} sallies forth to attack "
-                             f"{_shown_name(enemy.name)}, then returns to {hold_position}!")
+                             f"{_shown_name(enemy.name)}{after}")
 
                 return {
                     "marshal": marshal.name,
@@ -4053,7 +4308,7 @@ class StrategicOrderProcessor:
                     # WO-33: uniform with the combat rows.
                     "battle_report": (cleaned_combat or {}).get("battle_report"),
                     "glorious_charge": is_glorious_charge,
-                    "returned_to": hold_position,
+                    "returned_to": back_at,
                     "order_status": "continues",
                     "message": sally_msg
                 }

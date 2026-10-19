@@ -186,6 +186,12 @@ def order_from_parsed(parsed_command, *, strategic_type, target, target_type,
         # AO: "follow <friend>" — the SUPPORT that stands (never lapses on
         # "secure"); read off the strategic parser's own flag.
         standing_follow=bool(parsed.get("standing_follow", False)),
+        # CC-4 / D7: what the march does on arrival ("then fortify").
+        arrival_verb=(parsed.get("arrival_verb")
+                      if strategic_type == "MOVE_TO" else None),
+        # CC-4 / D8: the HOLD's standing contingency ("if Mack advances …").
+        contingency=(dict(parsed["contingency"])
+                     if strategic_type == "HOLD" and parsed.get("contingency") else None),
         objection_resolved=objection_resolved,
     )
 
@@ -304,6 +310,7 @@ class StrategicCommandContext:
     movement_range: Any = field(init=False)
     first_step_attack_result: Any = field(init=False)
     remaining: Any = field(init=False)
+    contingency_note: Any = field(init=False)   # CC-4 / D8: stage 8 → stage 10
 
 
 class StrategicExecutor:
@@ -877,11 +884,14 @@ class StrategicExecutor:
             ctx.parsed_command.get("strategic_condition")
             or ctx.parsed_command.get("condition")
             or ctx.command.get("strategic_condition"))
+        from backend.commands.strategic import order_arrival_matches
         if (existing_order is not None and not has_new_condition
                 and not getattr(existing_order, 'condition', None)
                 and getattr(existing_order, 'command_type', None) == ctx.strategic_type
                 and str(getattr(existing_order, 'target', '') or '').lower()
-                == str(ctx.target or '').lower()):
+                == str(ctx.target or '').lower()
+                # CC-X20: and what it does on arrival (the attack, the verb).
+                and order_arrival_matches(existing_order, ctx.parsed_command)):
             return {
                 "success": True,
                 "message": f"{ctx.marshal.name} is already carrying out that order. No change.",
@@ -1210,6 +1220,30 @@ class StrategicExecutor:
             ctx.target_type = "region"
             ctx._hold_placed_by_the_game = True
 
+        # ── CC-4 / D8: a contingency's fall-back must have a road ─────
+        # (refused now, free, rather than failing when Mack is at the door)
+        _contingency = (ctx.parsed_command.get("contingency")
+                        if ctx.strategic_type == "HOLD" else None)
+        if _contingency and _contingency.get("then") == "fall_back":
+            from backend.commands.strategic import march_road
+            _place = str(_contingency.get("to") or "")
+            if _place == ctx.marshal.location:
+                return {
+                    "success": False,
+                    "message": (f"{ctx.marshal.name} already stands at {_place}, Sire — name "
+                                f"the province he should fall back to. Nothing spent."),
+                    "variable_action_cost": 0,
+                }
+            _road, _refusal, _kind = march_road(ctx.world, ctx.marshal, _place)
+            if _refusal is not None or not _road:
+                _why = str((_refusal or {}).get("message") or f"there is no road to {_place}")
+                return {
+                    "success": False,
+                    "message": (f"{ctx.marshal.name} could not fall back to {_place} when it "
+                                f"fires — {_why} Nothing spent."),
+                    "variable_action_cost": 0,
+                }
+
         # ── HOLD: Check if already holding the same location ──────────
         # Block redundant HOLD orders to prevent accidental AP waste
         if ctx.strategic_type == "HOLD":
@@ -1217,7 +1251,10 @@ class StrategicExecutor:
             if existing_order and existing_order.command_type == "HOLD":
                 existing_target = existing_order.target or ctx.marshal.location
                 new_target = ctx.target or ctx.marshal.location
-                if existing_target == new_target:
+                from backend.commands.strategic import order_arrival_matches
+                # CC-4 / D8: a hold that watches is not the hold he holds.
+                if (existing_target == new_target
+                        and order_arrival_matches(existing_order, ctx.parsed_command)):
                     return {
                         "success": False,
                         "message": f"{ctx.marshal.name} is already holding {existing_target}. No action needed.",
@@ -1705,6 +1742,11 @@ class StrategicExecutor:
             ctx.parsed_command, strategic_type=ctx.strategic_type,
             target=ctx.target, target_type=ctx.target_type, world=ctx.world,
             path=ctx.path, condition=ctx.condition, snapshot=ctx.snapshot)
+        # CC-4 / D8: the contingency's note, read while the order it replaces
+        # is still his (a march it stops is named).
+        from backend.commands.strategic import contingency_issue_note
+        ctx.contingency_note = contingency_issue_note(
+            ctx.world, ctx.marshal, ctx.order, replaced=ctx.marshal.strategic_order)
         # CR-7-4 item 5: `until the battle is won` read the MARSHAL-scoped
         # `last_combat_result`, which a battle fought BEFORE this order left
         # standing — so the hold completed on its first tick. A new order
@@ -1732,6 +1774,29 @@ class StrategicExecutor:
 
         print(f"[STRATEGIC] Order created: {ctx.strategic_type} -> {ctx.target}, path={ctx.path}")
         return _NEXT_STAGE
+
+    def _arrive_on_the_first_step(self, ctx: StrategicCommandContext) -> str:
+        """CC-4 / D7: a march that arrives on its first step does its arrival
+        verb at once, free (the march was paid); the march is carried out —
+        or, for `hold`, becomes the standing HOLD where he stands. Returns the
+        sentence the reply carries."""
+        from backend.commands.strategic import (
+            ARRIVAL_VERB_DONE, install_arrival_hold, run_arrival_verb)
+        marshal, order = ctx.marshal, ctx.order
+        verb = getattr(order, "arrival_verb", None)
+        if verb == "hold":
+            install_arrival_hold(marshal, ctx.world, order.original_command)
+            return f" Arrives and holds {marshal.location}."
+        done = run_arrival_verb(self._executor, marshal, ctx.world, ctx.game_state)
+        if marshal.strategic_order is order:
+            marshal.strategic_order = None   # the march is carried out
+            clear_order_bound_interrupt(marshal)   # NPC-2: its question goes with it
+        if done is None:
+            return ""
+        if done["ok"]:
+            return f" Arrives and {ARRIVAL_VERB_DONE[verb]}."
+        reason = str((done.get("result") or {}).get("message") or "").strip()
+        return f" Arrives, but cannot {verb}" + (f" — {reason}" if reason else ".")
 
     def _strategic_first_step(self, ctx: StrategicCommandContext):
         """Stage 9 of `_execute_strategic_command`: The first step at once:
@@ -1837,6 +1902,11 @@ class StrategicExecutor:
                     ctx.first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
                 else:
                     ctx.first_step_msg = f" Moves to {moved_regions[0]}."
+                # CC-4 / D7: a march that ARRIVES on its first step does its
+                # arrival verb now — the tick skips the order's issuing turn,
+                # so the verb would otherwise come a turn late.
+                if not ctx.order.path and getattr(ctx.order, "arrival_verb", None):
+                    ctx.first_step_msg += self._arrive_on_the_first_step(ctx)
 
         elif ctx.strategic_type == "HOLD":
             # If already at target, set holding immediately
@@ -2102,7 +2172,9 @@ class StrategicExecutor:
             ctx.msg = (f"{ctx.marshal.name} will hold {hold_loc}.{ctx.first_step_msg}"
                    + ("" if (ctx._hold_placed_by_the_game)
                       else destination_grounding_note(
-                          ctx.parsed_command.get("raw_input"), hold_loc)))
+                          ctx.parsed_command.get("raw_input"), hold_loc))
+                   # CC-4 / D8: the watch, and its warnings.
+                   + (getattr(ctx, "contingency_note", "") or ""))
         elif ctx.strategic_type == "SUPPORT" and getattr(ctx.order, "standing_follow", False):
             # AO (October 17, 2026): the SUPPORT that stands — the follow.
             ally_m = ctx.world.get_marshal(ctx.target)

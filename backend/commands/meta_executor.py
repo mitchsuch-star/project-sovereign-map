@@ -987,17 +987,23 @@ STRATEGIC COMMANDS (multi-turn; 2 AP, support 1 AP):
   cancel     - "cancel Ney" / "halt Ney" (1 AP)
 
 TWO ORDERS IN ONE LINE:
-  then attack - "Ney, march to Swabia then attack Mack" - the ONE
-               two-step order the engine holds: he marches, and
-               engages the named man (or whoever holds the ground)
-               on arrival. Paid once, at 2 AP.
+  then attack - "Ney, march to Swabia then attack Mack" - he marches,
+               and engages the named man (or whoever holds the
+               ground) on arrival. Paid once, at 2 AP.
+  then fortify - "Ney, march to Lorraine then fortify" - a march
+               carries ONE thing to do when he arrives: fortify,
+               hold, drill or defend - done there at no further
+               cost. 'move to' with such a tail is the march too.
   , then ...  - "Ney, scout Swabia, then fortify" - any other pair
                is TWO orders: the first goes out, the second is
                handed back to your command line for your seal (it
-               pays its own AP when you send it). A second order
-               that would UNDO the first - attack after fortify,
-               march before his march is done - is named, not
-               filled: give it when you mean it.
+               pays its own AP when you send it). A pair whose
+               second order would UNDO the first - 'fortify then
+               attack Mack' - sends NOTHING: you are asked, free,
+               and the order that gives both ('attack Mack then
+               fortify') is offered beside your line. A march not
+               yet done is named, not filled: give it when you
+               mean it.
   until ...   - "Davout, hold Lorraine until Ney arrives" - a hold
                that ends when a named marshal of ours reaches him;
                also 'until relieved', 'until the battle is won',
@@ -1010,9 +1016,18 @@ TWO ORDERS IN ONE LINE:
                is won" ends on whichever comes first; 'and' means
                BOTH must land, and the Ledger ticks each off as it
                does. 'for 2 turns' counts the turn you give it.
+  if ...      - "Ney, if Mack advances, fall back to Lorraine" - a
+               hold where he stands that WATCHES his province and
+               its neighbours: when the man you name (or 'the
+               enemy') comes within reach where we can see him, he
+               falls back there - or attacks, 'if the enemy comes
+               within reach, attack' - at no further cost, at the
+               turn's end. A fortified man leaves his works to do
+               it. 'when' and 'once' are still refused.
   NOTE: orders are never held for a later turn - there is no queue.
-        'hold until ...' is the standing order; everything else you
-        give on the morning you want it carried.
+        'hold until ...' and 'if ... fall back' are the standing
+        orders; everything else you give on the morning you want it
+        carried.
 
 ECONOMY (Admin AP - the new imperial economy):
   economy    - Treasury report: income, upkeep, occupation costs,

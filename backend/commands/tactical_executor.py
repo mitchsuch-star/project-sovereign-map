@@ -291,7 +291,8 @@ class TacticalExecutor:
     def __init__(self, parent_executor):
         self._executor = parent_executor
 
-    def _execute_defend(self, marshal, world, game_state) -> Dict:
+    def _execute_defend(self, marshal, world, game_state,
+                        strategic_execution: bool = False) -> Dict:
         """
         Smart defend - context-aware defensive behavior.
 
@@ -335,6 +336,8 @@ class TacticalExecutor:
         # not yet fortified) — execute fortify
         if current_stance == Stance.DEFENSIVE:
             command = {"marshal": marshal.name}
+            if strategic_execution:   # CC-4 / D7: carried by a standing order
+                command["_strategic_execution"] = True
             fortify_result = self._execute_fortify(command, game_state)
 
             # Prepend drill cancelled message if applicable
@@ -347,8 +350,10 @@ class TacticalExecutor:
         # Case 2: In NEUTRAL or AGGRESSIVE stance - change to DEFENSIVE
         action_cost = self._get_stance_change_cost(current_stance, Stance.DEFENSIVE)
 
-        # Check if player has enough actions
-        if action_cost > 0 and marshal.nation == world.player_nation and world.actions_remaining < action_cost:
+        # Check if player has enough actions (CC-4 / D7: not when a standing
+        # order carries the defend — the order was paid)
+        if (action_cost > 0 and marshal.nation == world.player_nation
+                and not strategic_execution and world.actions_remaining < action_cost):
             return {
                 "success": False,
                 "message": f"Switching {marshal.name} to defensive stance requires {_plural(int(action_cost), 'action')}, "
@@ -555,13 +560,18 @@ class TacticalExecutor:
         stance_transition_cost = 0
         stance_message = ""
 
+        # CC-4 / D7: a fortify a standing order carries out ("march to X then
+        # fortify", done on arrival) was paid with the order — the turn's
+        # actions are not asked again, and the reply quotes no price.
+        _carried = bool(isinstance(command, dict) and command.get("_strategic_execution"))
         if current_stance == Stance.NEUTRAL:
             # Auto-transition to defensive (costs 1 extra action)
             stance_transition_cost = 1
             total_cost = 1 + stance_transition_cost  # fortify + stance change
 
             # Check if player has enough actions
-            if marshal.nation == world.player_nation and world.actions_remaining < total_cost:
+            if (marshal.nation == world.player_nation and not _carried
+                    and world.actions_remaining < total_cost):
                 return {
                     "success": False,
                     "message": f"Fortifying from neutral stance requires {total_cost} actions "
@@ -570,7 +580,8 @@ class TacticalExecutor:
 
             # Execute stance change first
             marshal.stance = Stance.DEFENSIVE
-            stance_message = "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] "
+            stance_message = ("[Shifted to DEFENSIVE stance first] " if _carried else
+                              "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] ")
 
         # ════════════════════════════════════════════════════════════
         # PERSONALITY-SPECIFIC FORTIFY (Phase 2.8)

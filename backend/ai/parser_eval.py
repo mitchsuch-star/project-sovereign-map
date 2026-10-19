@@ -78,6 +78,9 @@ ALLOWED_EXPECTED_KEYS = {
     # a deliberately wrong `dropped_sequel` reported PASS on the CLI.
     "dropped_sequel", "warning_contains", "strategic_condition",
     "attack_on_arrival",
+    # CC-4: the arrival verb ("march to X then fortify", D7) and the standing
+    # contingency ("if Mack advances, fall back to Bohemia", D8).
+    "arrival_verb", "contingency",
 }
 ALLOWED_DIPLO_KEYS = {
     "action", "proposal_type", "target_nation", "mission_type", "tone",
@@ -221,6 +224,17 @@ def evaluate_entry(parser, entry: Dict, world_key: str, world,
     if "strategic_condition" in expected:
         actual = result.get("strategic_condition") if result.get("is_strategic") else None
         check("strategic_condition", actual, expected["strategic_condition"])
+    # CC-4: `arrival_verb` compares the parse's top-level verb (None when
+    # absent); `contingency` its watch — who / then / to (the typed clause is
+    # the record, not the contract).
+    if "arrival_verb" in expected:
+        actual = result.get("arrival_verb") if result.get("is_strategic") else None
+        check("arrival_verb", actual, expected["arrival_verb"])
+    if "contingency" in expected:
+        got = result.get("contingency") if result.get("is_strategic") else None
+        actual = ({k: got.get(k) for k in ("who", "then", "to")}
+                  if isinstance(got, dict) else None)
+        check("contingency", actual, expected["contingency"])
     if "warning_contains" in expected:
         warning = result.get("warning") or ""
         if expected["warning_contains"].lower() not in warning.lower():

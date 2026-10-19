@@ -732,23 +732,25 @@ class TestTheCensus:
 
     def test_the_attack_sites_are_counted(self):
         """AST census over ALL of `backend/`: every dict literal that is an
-        attack command carrying `_strategic_execution: True` — SIXTEEN today.
-        Twelve in strategic.py (the four PURSUE arms, the HOLD sally, the
+        attack command carrying `_strategic_execution: True` — SEVENTEEN today.
+        Thirteen in strategic.py (the four PURSUE arms, the HOLD sally, the
         HOLD bombardment, the two `_handle_blocked_path` arms, the MOVE_TO
         attack-on-arrival, the cannon-fire redirect, the cannon-fire
-        investigate answer and the contact answer), three in
+        investigate answer, the contact answer and — CC-4 / D8, October 19,
+        2026 — the standing contingency's attack, `_fire_contingency`, its
+        refusal arm pinned in `tests/test_cc4_chained_orders.py`), three in
         strategic_executor.py (the first-step aggressive arm and the two
         PURSUE first-step arms), and one in jealousy.py
         (`process_autonomous_attacks`, with its own restore-on-refusal arm).
-        Thirteen are ORDER-DRIVEN and two are the player's own ANSWER; the
+        Fourteen are ORDER-DRIVEN and two are the player's own ANSWER; the
         muster re-issue is NOT strategic execution and is not counted.
 
         Slice-3 review round (R1-F7c / R3-S1): the first census was a TEXT
         count over two files that could not see a producer in a third file,
         one built through a helper, or one written with single quotes — and
         its docstring filed the redirect, the bombardment and the arrival
-        arm among "answer arms". A seventeenth producer must be added here
-        AND pinned above."""
+        arm among "answer arms". An eighteenth producer must be added here
+        AND pinned."""
         import ast
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         hits = []
@@ -767,7 +769,7 @@ class TestTheCensus:
                     if keys.get("action") == "attack" and keys.get("_strategic_execution") is True:
                         hits.append(os.path.relpath(path, root).replace(os.sep, "/"))
         by_file = {f: hits.count(f) for f in set(hits)}
-        assert by_file == {"backend/commands/strategic.py": 12,
+        assert by_file == {"backend/commands/strategic.py": 13,
                            "backend/commands/strategic_executor.py": 3,
                            "backend/game_logic/jealousy.py": 1}, by_file
 

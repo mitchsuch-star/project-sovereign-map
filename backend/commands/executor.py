@@ -3641,7 +3641,9 @@ class CommandExecutor:
             return self._combat._execute_attack(
                 marshal, target, world, game_state, command=command)
         elif action == "defend":
-            return self._tactical._execute_defend(marshal, world, game_state)
+            return self._tactical._execute_defend(
+                marshal, world, game_state,
+                strategic_execution=is_strategic_execution)   # CC-4 / D7
         elif action == "hold":
             # V2-58: "hold" routes to defend (tactical). Strategic HOLD (2 AP)
             # is handled by strategic parser. Grouchy Immovable is in strategic HOLD path.

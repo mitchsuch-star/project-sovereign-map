@@ -44,6 +44,7 @@ from backend.ai.nation_names import resolve_typed_nation
 from backend.ai.strategic_parser import (
     detect_strategic_command, _nation_demonyms, demonym_to_nation,
     clause_can_carry_an_arrival, clause_is_a_standing_order,
+    ARRIVAL_VERB_TAIL_RE, ARRIVAL_VERBS, clause_can_carry_an_arrival_verb,
 )
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 from backend.errors import report
@@ -146,6 +147,23 @@ def _head_can_carry_arrival(first: str) -> bool:
     return clause_can_carry_an_arrival(first)
 
 
+def _tail_fuses_onto_head(first: str, tail: str) -> bool:
+    """The ONE fuse rule the three split gates read: an attack tail onto a
+    head that can carry an arrival (CR-7-1), and — CC-4 / D7 — an arrival
+    VERB ("then fortify | hold | drill | defend") onto a march with a
+    destination, which carries it as `arrival_verb` and does it on arrival.
+    Before D7 that tail was split off and told "give it when he arrives"."""
+    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first):
+        return True
+    # The verb is read as the tail's FIRST clause, whole ("hold it" fuses,
+    # "hold Bavaria" does not): a third clause behind it is still split off
+    # by the caller's re-scan and reported.
+    first_clause = re.split(r'\s*[,;]\s*|\s+(?:and\s+)?then\s+|\s+and\s+',
+                            tail.strip(), maxsplit=1)[0]
+    return bool(ARRIVAL_VERB_TAIL_RE.match(first_clause)
+                and clause_can_carry_an_arrival_verb(first))
+
+
 # CR-7-1 rider (CQ-9): "move to" / "go to" are the TACTICAL move by design
 # (strategic_parser's header; `test_strategic_parser::test_move_is_not_
 # strategic`), and the executor already auto-upgrades a distant one to a
@@ -170,19 +188,45 @@ _TACTICAL_MOVE_HEAD_RE = re.compile(
     re.IGNORECASE)
 
 
+# CC-X22 (CC-4's sweep): the arrival VERB promotes the head as the attack
+# tail does — `Ney, move to Bohemia then fortify` relayed its verb while
+# `march to Bohemia then fortify` carried it (D7). The boundary is the fuse's
+# own, and the tail's first clause must be what the fuse accepts.
+_ARRIVAL_VERB_BOUNDARY_RE = re.compile(
+    r'(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|[;,]\s*)(?=(?:'
+    + "|".join(ARRIVAL_VERBS) + r')\b)', re.IGNORECASE)
+
+
+def _arrival_verb_boundary(command_text: str):
+    """CC-X22: the boundary before an arrival-verb tail the fuse would take
+    (its first clause a bare `fortify | hold | drill | defend`), else None."""
+    for boundary in _ARRIVAL_VERB_BOUNDARY_RE.finditer(command_text):
+        first = re.split(r'\s*[,;]\s*|\s+(?:and\s+)?then\s+|\s+and\s+',
+                         command_text[boundary.end():].strip(), maxsplit=1)[0]
+        if ARRIVAL_VERB_TAIL_RE.match(first):
+            return boundary
+    return None
+
+
 def promote_tactical_move_with_arrival_tail(command_text: str) -> str:
     """CR-7-1 rider — `move to X <boundary> attack Y` → `march to X …`.
 
     Returns the text unchanged unless BOTH hold: the sentence carries an
-    attack-on-arrival tail, and the head before that tail is a tactical
-    `move to` / `go to` that is not already a standing order.
+    attack-on-arrival tail (or, CC-X22, an arrival verb's), and the head
+    before that tail is a tactical `move to` / `go to` that is not already
+    a standing order.
     """
-    tail = _ARRIVAL_TAIL_RE.search(command_text)
+    attack_tail = _ARRIVAL_TAIL_RE.search(command_text)
+    tail = attack_tail or _arrival_verb_boundary(command_text)
     if not tail:
         return command_text
     head = command_text[:tail.start()]
     verb = _TACTICAL_MOVE_HEAD_RE.search(head)
     if not verb or clause_is_a_standing_order(head):
+        return command_text
+    # CC-X22: the verb must follow the DESTINATION itself — in `move to
+    # Lorraine and Davout, hold` the `hold` is Davout's order, not Ney's.
+    if not attack_tail and re.search(r"[,;]|\s(?:and|then)\s", command_text[verb.end():tail.start()]):
         return command_text
     return command_text[:verb.start()] + "march to" + command_text[verb.end():]
 
@@ -568,8 +612,9 @@ def _split_sequential_orders(command_text: str, game_state=None):
     if not first or not tail:
         return None
     # CR-7-1: an attack tail fuses onto a head that can carry an arrival,
-    # and onto nothing else (`_head_can_carry_arrival`, the positive rule).
-    if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first):
+    # and onto nothing else (`_head_can_carry_arrival`, the positive rule);
+    # CC-4 / D7: an arrival verb onto a march (`_tail_fuses_onto_head`).
+    if _tail_fuses_onto_head(first, tail):
         # CR-7-3: a THIRD clause behind the arrival tail was lost in silence
         # ("march to Swabia then attack Mack then fortify" → the fortify
         # vanished). Re-scan the tail for the next boundary: the arrival
@@ -2740,7 +2785,7 @@ class CommandParser:
         # split into a march plus a "One order at a time" note while the
         # `then` form fused. A head that cannot carry an arrival ("fortify
         # and attack Mack") still splits, as before.
-        if (_ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first)):
+        if _tail_fuses_onto_head(first, tail):   # CR-7-1 + CC-4 / D7
             return None
         # DD0-18 (a) (S4 part 4, October 11, 2026): "break camp and march to
         # Bohemia" / "strike camp and march" is ONE order — the march (D10's
@@ -2839,7 +2884,7 @@ class CommandParser:
             if (head_parse.action == "unknown" or head_parse.action in NON_ORDER_ACTIONS
                     or getattr(head_parse, "refusal", None)):
                 continue
-            if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first):
+            if _tail_fuses_onto_head(first, tail):   # CR-7-1 + CC-4 / D7
                 return None
             tail_parse = self.llm.fast_parse(tail, game_state)
             if tail_parse.action == "unknown":
@@ -2957,9 +3002,21 @@ class CommandParser:
         # The premise ("if Mack is still in Swabia, …") is read in main.py,
         # which holds the world to check it against.
         from backend.ai.condition_grammar import (
-            HALT_TAIL_NOTE, rewrite_engagement_support, strip_arrival_idiom,
-            strip_halt_tail)
+            HALT_TAIL_NOTE, extract_contingency, rewrite_engagement_support,
+            strip_arrival_idiom, strip_halt_tail)
         _rewritten = False
+        # CC-4 / D8: the standing contingency — "Ney, if Mack advances fall
+        # back to Bohemia" is a HOLD where he stands that watches and fires —
+        # restated as "Ney, hold" before ANY reader, so the clause guard never
+        # sees this `if` (and still refuses every other conditional shape).
+        _b = command_text
+        _enemies = ([m.name for m in world.marshals.values()
+                     if m.nation != world.player_nation]
+                    if world is not None else [])
+        command_text, _contingency = extract_contingency(
+            command_text, _player_marshal_names(game_state), _enemies,
+            list(getattr(world, "regions", {}) or {}))
+        _ptrace.note("parser", "extract_contingency", _b, command_text)
         # the fresh census (Oct 3, 2026): "hit Mack" is an attack when Mack is
         # a foe the parser knows; "send Murat after Mack" is Murat's pursuit.
         _b = command_text
@@ -2999,8 +3056,12 @@ class CommandParser:
         # too, as NP-1's normalisation does — the executor's addressee gate
         # reads `raw_command`, and 'Pledge France' is no officer of ours.)
         _rewritten = bool(_arr or _friend or _halt_tail or _guard_changed
-                          or _emphasis_stripped or _dd0_fired)
+                          or _emphasis_stripped or _dd0_fired or _contingency)
         result = self._parse_text(command_text, game_state, world)
+        # CC-4 / D8: the contingency rides the HOLD it was restated as.
+        if (_contingency and isinstance(result, dict) and result.get("success")
+                and result.get("strategic_type") == "HOLD"):
+            result["contingency"] = _contingency
         # DD0-19 (S4 part 4, October 11, 2026): a bare Cabinet verb at the
         # head of a DIPLOMATIC parse ("Approach Bavaria about tightening our
         # alliance") is the order's own head, never an addressee the gate may
@@ -3550,7 +3611,8 @@ class CommandParser:
                         _ptrace.decide("strategic", "detected", {
                             k: strategic.get(k) for k in (
                                 "strategic_type", "target", "target_type", "condition",
-                                "attack_on_arrival", "arrival_target", "condition_refusal")
+                                "attack_on_arrival", "arrival_target", "arrival_verb",
+                                "condition_refusal")
                             if strategic.get(k) not in (None, False)})
                     # CR-7-4: a condition the engine READ and must REFUSE — an
                     # unmet referent ("until Godot arrives"), `for 0 turns`, a
@@ -3604,6 +3666,8 @@ class CommandParser:
                         # CR-7-6: the arrival order's OBJECT; CR-7-4: how the
                         # conditions were read (the echo's second half).
                         result["arrival_target"] = strategic.get("arrival_target")
+                        # CC-4 / D7: what the march does on arrival.
+                        result["arrival_verb"] = strategic.get("arrival_verb")
                         result["condition_notes"] = list(strategic.get("condition_notes") or [])
                         # SF-V4 §6.3 item 4: the dropped arrival name, named.
                         if strategic.get("dropped_arrival_note"):

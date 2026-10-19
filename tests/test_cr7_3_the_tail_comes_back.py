@@ -71,10 +71,13 @@ def relay_keys(reply):
 
 BATTERY = [
     # (command, tail, kind)
+    # CC-4 (October 19, 2026): `… then fortify` after a march or a move is the
+    # march's ARRIVAL VERB now (D7 / CC-X22 — carried, not relayed), so these
+    # rows take a tail no march carries: `form square`.
     ("Davout, fortify then attack Mack", "attack Mack", "contradiction"),
     ("Davout, scout Swabia, then fortify", "fortify", "ready"),
-    ("Davout, move to Lorraine, then fortify", "fortify", "ready"),
-    ("Soult, march to Bordelais, then fortify", "fortify", "moment"),
+    ("Davout, move to Lorraine, then form square", "form square", "ready"),
+    ("Soult, march to Bordelais, then form square", "form square", "moment"),
     ("Davout, form square, then attack Mack", "attack Mack", "contradiction"),
     ("Davout, defend, then attack Mack", "attack Mack", "contradiction"),
     ("Davout, hold Lorraine until Ney arrives, then fortify", "fortify", "contradiction"),
@@ -117,7 +120,7 @@ class TestTheFourteenShapes:
 
     @pytest.mark.parametrize("command,tail,expected_line", [
         ("Davout, scout Swabia, then fortify", "fortify", "Davout, fortify"),
-        ("Davout, move to Lorraine, then fortify", "fortify", "Davout, fortify"),
+        ("Davout, move to Lorraine, then form square", "form square", "Davout, form square"),
         ("Ney, scout Swabia, then Davout, fortify", "Davout, fortify", "Davout, fortify"),
     ])
     def test_ready_re_addresses_the_tail_for_the_seal(self, shipped, command, tail, expected_line):
@@ -133,11 +136,16 @@ class TestTheFourteenShapes:
 class TestTheContradictionIsNamedNotInvited:
 
     def test_fortify_then_attack_names_the_works(self, shipped):
+        """CC-4 / D6 (October 19, 2026, the user's ruling "ask first, spend
+        nothing"): the contradiction is asked BEFORE the head goes out — no
+        works are raised — and the order that gives both is offered beside
+        the line (the remedy slot), never on it."""
         reply = run(shipped, "Davout, fortify then attack Mack")
-        assert M.world.get_marshal("Davout").fortified is True
+        assert M.world.get_marshal("Davout").fortified is False
         assert reply["relay_kind"] == "contradiction"
         assert "abandons the works" in reply["relay_note"]
         assert "relay_command" not in reply
+        assert reply.get("remedy_command") == "Davout, attack Mack then fortify"
         assert "must follow as its own command" not in (reply.get("message") or "")
 
     def test_a_standing_hold_names_the_hold(self, shipped):
@@ -146,7 +154,8 @@ class TestTheContradictionIsNamedNotInvited:
         assert "end his standing hold" in reply["relay_note"]
 
     def test_the_moment_names_the_destination_and_the_eta(self, shipped):
-        reply = run(shipped, "Soult, march to Bordelais, then fortify")
+        # CC-4: `then fortify` is the march's arrival verb now (D7).
+        reply = run(shipped, "Soult, march to Bordelais, then form square")
         soult = M.world.get_marshal("Soult")
         assert soult.strategic_order is not None
         assert reply["relay_kind"] == "moment"
@@ -155,11 +164,13 @@ class TestTheContradictionIsNamedNotInvited:
         assert "relay_command" not in reply
 
     def test_a_tactical_move_that_completes_now_is_ready(self, shipped):
-        """The reverse pair is coherent: fortify AT the new province."""
-        reply = run(shipped, "Davout, move to Lorraine, then fortify")
+        """The reverse pair is coherent: the square AT the new province.
+        (CC-4 / CC-X22: `move to Lorraine, then fortify` is the march with its
+        arrival verb now — carried, not relayed.)"""
+        reply = run(shipped, "Davout, move to Lorraine, then form square")
         assert M.world.get_marshal("Davout").location == "Lorraine"
         assert reply["relay_kind"] == "ready"
-        assert reply["relay_command"] == "Davout, fortify"
+        assert reply["relay_command"] == "Davout, form square"
 
     def test_the_refused_head_cancels_the_tail(self, shipped):
         """Rule 4: the tail is never promoted to a new head."""
@@ -178,6 +189,10 @@ class TestTheContradictionIsNamedNotInvited:
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestTheObjectionArm:
+    # CC-4 / D6 (October 19, 2026): `fortify then attack Mack` is asked first
+    # now, nothing spent; the objection arm rides `fortify then pursue Mack` —
+    # a pursuit carries no arrival verb, so no order gives both and the head
+    # goes to the objection as before.
 
     @pytest.mark.parametrize("answer,kind", [
         ("insist", "contradiction"),   # he fortifies as ordered → attack would undo it
@@ -185,27 +200,27 @@ class TestTheObjectionArm:
         ("compromise", "ready"),
     ])
     def test_the_tail_is_reported_after_each_answer(self, shipped, steady_temper, answer, kind):
-        first = run(shipped, "Ney, fortify then attack Mack")
+        first = run(shipped, "Ney, fortify then pursue Mack")
         assert first.get("pending_objection"), first.get("message")
         assert first["relay_kind"] == "question"
-        assert first["dropped_sequel"] == "attack Mack"
+        assert first["dropped_sequel"] == "pursue Mack"
         assert M.world._pending_relay is not None
         reply = run(shipped, answer)
-        assert reply.get("dropped_sequel") == "attack Mack", relay_keys(reply)
+        assert reply.get("dropped_sequel") == "pursue Mack", relay_keys(reply)
         assert reply.get("relay_kind") == kind, (relay_keys(reply), reply.get("message"))
-        assert '"attack Mack"' in (reply.get("message") or "")
+        assert '"pursue Mack"' in (reply.get("message") or "")
         assert M.world._pending_relay is None
 
     def test_the_popup_route_carries_it_too(self, shipped, steady_temper):
         client, _world = shipped
-        first = run(shipped, "Ney, fortify then attack Mack")
+        first = run(shipped, "Ney, fortify then pursue Mack")
         assert first.get("pending_objection")
         reply = client.post("/respond_to_objection", json={"choice": "insist"}).json()
-        assert reply.get("dropped_sequel") == "attack Mack", relay_keys(reply)
+        assert reply.get("dropped_sequel") == "pursue Mack", relay_keys(reply)
         assert reply.get("relay_kind") == "contradiction"
 
     def test_the_question_kind_fills_nothing(self, shipped, steady_temper):
-        first = run(shipped, "Ney, fortify then attack Mack")
+        first = run(shipped, "Ney, fortify then pursue Mack")
         assert "relay_command" not in first
         assert "waits behind the question" in first["relay_note"]
 
@@ -231,24 +246,26 @@ class TestTheClarificationArm:
     def test_the_tail_waits_behind_the_which_marshal_question(self, shipped):
         """The CR-2 clarifications are built OUTSIDE the executor result, so
         the first cut reported nothing on this arm (measured: `march to
-        Lorraine, then fortify` asked "Which marshal?" with no relay key)."""
-        first = run(shipped, "march to Lorraine, then fortify")
+        Lorraine, then fortify` asked "Which marshal?" with no relay key).
+        CC-4: `then fortify` after a march is its arrival verb now (D7), so
+        the arm rides `then form square`."""
+        first = run(shipped, "march to Lorraine, then form square")
         assert first.get("state") == "awaiting_clarification", first.get("message")
         assert first.get("relay_kind") == "question", relay_keys(first)
-        assert first.get("dropped_sequel") == "fortify"
+        assert first.get("dropped_sequel") == "form square"
         assert "relay_command" not in first
-        assert '"fortify"' in (first.get("message") or "")
+        assert '"form square"' in (first.get("message") or "")
         assert M.world._pending_relay is not None
 
     def test_the_reissue_re_derives_the_tail(self, shipped):
         """A which-marshal clarification reissues the WHOLE compound, so
         the tail is parsed again and re-judged (the march is multi-turn:
         the tail is held for its moment)."""
-        first = run(shipped, "march to Lorraine, then fortify")
+        first = run(shipped, "march to Lorraine, then form square")
         assert first.get("state") == "awaiting_clarification"
         reply = run(shipped, "Davout")
         assert reply.get("success") is True, reply.get("message")
-        assert reply.get("dropped_sequel") == "fortify", relay_keys(reply)
+        assert reply.get("dropped_sequel") == "form square", relay_keys(reply)
         assert reply.get("relay_kind") == "moment", relay_keys(reply)
         assert M.world._pending_relay is None
 
@@ -286,14 +303,14 @@ class TestTheClarificationArm:
 class TestTheStashLifetime:
 
     def test_an_unrelated_command_supersedes_it(self, shipped, steady_temper):
-        run(shipped, "Ney, fortify then attack Mack")
+        run(shipped, "Ney, fortify then pursue Mack")
         assert M.world._pending_relay is not None
         reply = run(shipped, "status")
         assert M.world._pending_relay is None
         assert "dropped_sequel" not in reply
 
     def test_the_turn_boundary_clears_it(self, shipped, steady_temper):
-        run(shipped, "Ney, fortify then attack Mack")
+        run(shipped, "Ney, fortify then pursue Mack")
         assert M.world._pending_relay is not None
         M.world.advance_turn()
         assert M.world._pending_relay is None
@@ -301,14 +318,14 @@ class TestTheStashLifetime:
     def test_it_is_not_serialized(self, shipped, steady_temper):
         """The integrity check the contract insists on: a serialized relay
         would be the cross-turn queue wearing a disguise (CR-7-8)."""
-        run(shipped, "Ney, fortify then attack Mack")
+        run(shipped, "Ney, fortify then pursue Mack")
         assert M.world._pending_relay is not None
         assert "_pending_relay" not in M.world.to_dict()
         assert "pending_relay" not in M.world.to_dict()
 
     def test_load_game_does_not_resurrect_it(self, shipped, steady_temper, tmp_path):
         from backend.save_manager import load_game, save_game
-        run(shipped, "Ney, fortify then attack Mack")
+        run(shipped, "Ney, fortify then pursue Mack")
         assert M.world._pending_relay is not None
         path = tmp_path / "relay.json"
         saved = save_game(M.world, "relay", filepath=path)
@@ -333,12 +350,15 @@ class TestTheBareComma:
         davout = world.get_marshal("Davout")
         location, strength = davout.location, davout.strength
         reply = run(shipped, "Davout, fortify, attack Mack")
-        assert reply.get("success") is True, reply.get("message")
+        # CC-4 / D6 (October 19, 2026): the contradiction is asked first —
+        # nothing goes out; the fifth form is still split, never swallowed.
+        assert reply.get("success") is False, reply.get("message")
         assert not reply.get("battle_report")
         davout = M.world.get_marshal("Davout")
-        assert davout.fortified is True
+        assert davout.fortified is False
         assert (davout.location, davout.strength) == (location, strength)
         assert reply.get("dropped_sequel") == "attack Mack"
+        assert reply.get("remedy_command") == "Davout, attack Mack then fortify"
 
     def test_the_comma_arrival_keeps_the_attack(self, shipped):
         reply = M.parser.parse("Ney, march to Swabia, attack Mack",

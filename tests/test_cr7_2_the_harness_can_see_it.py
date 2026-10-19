@@ -70,7 +70,10 @@ class TestTheKeysExist:
                "strategic_type", "target_stance", "requested_type",
                "error_contains", "diplo"}
         assert old <= ALLOWED_EXPECTED_KEYS
-        assert len(ALLOWED_EXPECTED_KEYS) == 15
+        # CC-4 (October 19, 2026) adds two: `arrival_verb` (D7) and
+        # `contingency` (D8).
+        assert {"arrival_verb", "contingency"} <= ALLOWED_EXPECTED_KEYS
+        assert len(ALLOWED_EXPECTED_KEYS) == 17
 
 
 class TestTheDoneWhen:

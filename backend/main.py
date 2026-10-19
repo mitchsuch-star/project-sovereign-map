@@ -1344,6 +1344,19 @@ def _interrupt_choice_from_text(cmd_lower: str, options) -> Optional[str]:
     return None
 
 
+def _line_is_a_contingency(command_text: str, world) -> bool:
+    """CC-X21: True when the line carries a condition the clause guard does
+    not blank — one it refuses, CR-7-5's hand-off, or D8's standing
+    contingency ("if Mack advances, fall back to Bohemia"). Such a line is a
+    conditional ORDER; the interrupt route never reads it as an answer."""
+    from backend.ai.clause_guards import strip_condition_clauses_with_handoff
+    friendly = [pm.name for pm in world.get_player_marshals()]
+    verdict = strip_condition_clauses_with_handoff(
+        command_text, friendly_names=friendly,
+        roster_names=list(getattr(world, "marshals", {}) or {}))
+    return bool(verdict.refuse or verdict.handoff)
+
+
 def _addressed_fresh_order_elsewhere(command_text: str, cmd_lower: str,
                                      pending: dict, world) -> bool:
     """PC15-2(b): the typed line explicitly addresses the interrupt's OWN
@@ -3577,6 +3590,14 @@ def _command_interrupt_answer(ctx: CommandContext):
                     _reprompt["pending_interrupt"] = dict(pending)
                     return _reprompt
 
+            # CC-X21 (CC-4's sweep): a CONTINGENCY is a fresh conditional
+            # order, never an answer — `Ney, if the enemy comes within reach,
+            # attack` was read as the contact question's "attack" and fought
+            # at once. It goes on to the parser (D8 builds it; the guard names
+            # a clause it cannot hold), and the question stands meanwhile.
+            if choice and _line_is_a_contingency(ctx.command_text, world):
+                continue
+
             if choice:
                 print(f"[INTERRUPT ROUTE] Routing '{ctx.request.command}' -> "
                       f"{m.name} {interrupt_type} response: {choice}")
@@ -4424,6 +4445,11 @@ def _command_ordinary_road(ctx: CommandContext):
                         _clause or ""))
                     _road = "'hold until Davout arrives'"
                     if _enemy_moves:
+                        # CC-4 / D8: the enemy's approach IS a standing order
+                        # now, in its one held form — offered first.
+                        _road = (f"'if {_foe_named or 'the enemy'} advances, fall back to "
+                                 f"<province>' (or '…, attack') — he keeps it where he "
+                                 f"stands — or {_road}")
                         _road += (f"; the road that follows him is 'pursue {_foe_named}' — "
                                   f"the pursuit follows him wherever he goes and attacks on contact"
                                   if _foe_named else
@@ -4625,6 +4651,24 @@ def _command_ordinary_road(ctx: CommandContext):
             ctx.result = _collective
             _ptrace.decide("executor", "collective", _ptrace.result_summary(ctx.result))
             return _NEXT_STAGE
+        # D6 (CC-4, the user's call of October 19, 2026): a head that would
+        # leave the corps standing with a tail that attacks or marches is
+        # ASKED FIRST, nothing spent — the line in the order that works is
+        # offered beside the input, never sent (CR-7-8).
+        _reorder = _relay.reorder_suggestion(world, parser, ctx.llm_game_state, ctx.parsed)
+        if _reorder is not None:
+            _ptrace.decide("relay", "reorder_asked_first", {"command": _reorder["command"]})
+            return build_base_response(
+                world, success=False, message=_reorder["message"],
+                dropped_sequel=_reorder["tail"], relay_kind="contradiction",
+                relay_note=_reorder["note"], remedy_command=_reorder["command"],
+                remedy_reoffer=False, variable_action_cost=0,
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
         # Execute command
         ctx.result = executor.execute(ctx.parsed, game_state)
         _ptrace.decide("executor", "result", _ptrace.result_summary(ctx.result))

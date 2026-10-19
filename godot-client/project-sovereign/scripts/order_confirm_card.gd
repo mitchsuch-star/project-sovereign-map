@@ -142,16 +142,23 @@ func open_standing_card(marshal: String, shown: String, info: Dictionary, ap_lef
 	_raise()
 
 
+const _THEN_DONE := {"fortify": "fortifies", "hold": "holds it", "drill": "drills", "defend": "defends it"}
+
+
 static func standing_headline(shown: String, info: Dictionary) -> String:
 	var dest := str(info.get("dest", ""))
 	var who := str(info.get("target_shown", ""))
+	# CC-4: the arrival verb (D7) and the standing contingency (D8), in the
+	# backend's own words (`order_road.then` / `order_road.watch`).
+	var then := str(info.get("then", ""))
+	var watch := str(info.get("watch", ""))
 	match str(info.get("kind", "")):
 		"march":
-			return shown + " marches to " + dest
+			return shown + " marches to " + dest + ((", then " + str(_THEN_DONE.get(then, then))) if then != "" else "")
 		"pursue":
 			return shown + " pursues " + who
 		"hold":
-			return shown + " holds " + dest
+			return shown + " holds " + dest + ((" — " + watch) if watch != "" else "")
 		"support":
 			return shown + " supports " + who
 		"follow":

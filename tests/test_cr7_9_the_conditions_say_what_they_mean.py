@@ -405,30 +405,32 @@ class TestTheAllOfLatch:
 class TestTheTailIsLetGoWithAWord:
 
     def _stash(self, shipped):
-        reply = run(shipped, "march to Lorraine, then fortify")     # "Which marshal, Sire?"
+        # CC-4 / D7 (October 19, 2026): `then fortify` after a march is its
+        # arrival verb now — the stash rides a tail no march carries.
+        reply = run(shipped, "march to Lorraine, then form square")     # "Which marshal, Sire?"
         assert reply.get("relay_kind") == "question", reply.get("message")
         assert "another order, or the turn's end, lets it go" in reply["relay_note"]
-        assert M.world._pending_relay and M.world._pending_relay["tail"] == "fortify"
+        assert M.world._pending_relay and M.world._pending_relay["tail"] == "form square"
         return reply
 
     def test_another_order_lets_it_go_and_says_so(self, shipped):
         self._stash(shipped)
         reply = run(shipped, "Davout, scout Swabia")
-        assert reply.get("relay_let_go") == "fortify"
-        assert 'is let go with it' in reply["message"] and '"fortify"' in reply["message"]
+        assert reply.get("relay_let_go") == "form square"
+        assert 'is let go with it' in reply["message"] and '"form square"' in reply["message"]
         assert M.world._pending_relay is None and M.world._relay_let_go is None
 
     def test_the_turns_end_lets_it_go_and_says_so(self, shipped):
         self._stash(shipped)
         reply = end_turn(shipped)
-        assert reply.get("relay_let_go") == "fortify"
+        assert reply.get("relay_let_go") == "form square"
         assert 'is let go with it' in reply["message"]
 
     def test_re_typing_the_tail_is_not_a_drop(self, shipped):
         self._stash(shipped)
-        reply = run(shipped, "Ney, march to Lorraine, then fortify")
+        reply = run(shipped, "Ney, march to Lorraine, then form square")
         assert reply.get("relay_let_go") is None
-        assert reply.get("dropped_sequel") == "fortify"
+        assert reply.get("dropped_sequel") == "form square"
         assert "is let go" not in reply["message"]
 
     def test_the_boundary_speaks_on_the_next_reply(self, shipped):

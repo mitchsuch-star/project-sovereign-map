@@ -384,3 +384,448 @@ class TestCCX19NoSupportOutlivesItsFriend:
             "Davout has fallen — the support ends at the turn's end")
         from backend.commands.strategic import standing_order_road
         assert standing_order_road(M.world, M.world.get_marshal("Soult")) == {}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE BUILDS (commit 2) — D7 the arrival verb (CF-5), D6 the contradiction
+# asked first, D8 the standing contingency, and their sweep rows CC-X20…X22
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _tick():
+    """One pass of the standing orders, as the end turn runs it after the
+    enemy phase — driven directly, so no AI move or die rides the pin."""
+    from backend.commands.strategic import StrategicOrderProcessor
+    return StrategicOrderProcessor(M.executor).process_strategic_orders(M.world, M.game_state)
+
+
+def _as_if_given_yesterday(name):
+    order = M.world.get_marshal(name).strategic_order
+    order.issued_turn = int(M.world.current_turn) - 1
+    return order
+
+
+def _row(reports, name):
+    return [r for r in reports if r.get("marshal") == name]
+
+
+def _forces_row(name):
+    from backend.game_logic.ledger import build_strategic_ledger
+    rows = build_strategic_ledger(M.world).get("forces") or []
+    return next(r for r in rows if r.get("name") == name or r.get("marshal") == name)
+
+
+class TestD7TheArrivalVerb:
+    """CF-5: `march to X then fortify` was told "give it when he arrives",
+    and on arrival he said "I await further instruction". The march now
+    carries ONE verb — fortify / hold / drill / defend — done on arrival,
+    free (the march is paid once; its objection asked at issue)."""
+
+    @pytest.mark.parametrize("line,verb", [
+        ("Ney, march to Orleanais then fortify", "fortify"),
+        ("Ney, march to Orleanais, then hold", "hold"),
+        ("Ney, march to Orleanais and drill", "drill"),
+        ("Ney, march to Orleanais then defend it", "defend"),
+    ])
+    def test_the_march_carries_the_verb(self, shipped, line, verb):
+        result = parse(line)
+        assert result.get("strategic_type") == "MOVE_TO", result
+        assert result.get("arrival_verb") == verb, result
+        assert result.get("dropped_sequel") is None, result
+
+    def test_a_third_clause_is_split_and_named(self, shipped):
+        result = parse("Ney, march to Orleanais then fortify then attack Mack")
+        assert result.get("arrival_verb") == "fortify"
+        assert result.get("dropped_sequel") == "attack Mack"
+
+    def test_the_first_step_arrival_acts_at_once_and_pays_once(self, shipped):
+        """Lorraine is one march from Rhineland: he arrives on the order's
+        own first step and fortifies there — the march's price, nothing more
+        (Davout's fortify from the neutral stance would cost 2 on its own)."""
+        world = M.world
+        davout = world.get_marshal("Davout")
+        price = davout.strategic_order_ap(order_type="MOVE_TO")
+        ap = world.actions_remaining
+        reply = run(shipped, "Davout, march to Lorraine then fortify")
+        assert reply.get("success") is True, reply.get("message")
+        assert "fortif" in reply["message"], reply["message"]
+        davout = M.world.get_marshal("Davout")
+        assert davout.location == "Lorraine" and davout.fortified is True
+        assert davout.strategic_order is None
+        assert M.world.actions_remaining == ap - price
+
+    def test_the_verb_fires_on_arrival_free(self, shipped):
+        """Orleanais is two marches off: the verb waits for the arrival and
+        is done at no cost — the pass runs with no action left."""
+        reply = run(shipped, "Ney, march to Orleanais then drill")
+        assert reply.get("success") is True, reply.get("message")
+        assert M.world.get_marshal("Ney").location == "Lorraine"
+        _as_if_given_yesterday("Ney")
+        M.world.actions_remaining = 0
+        rows = _row(_tick(), "Ney")
+        ney = M.world.get_marshal("Ney")
+        assert ney.location == "Orleanais"
+        assert ney.drilling is True, rows
+        assert ney.strategic_order is None
+        assert any(r.get("action") == "drill_on_arrival" for r in rows), rows
+
+    def test_hold_on_arrival_becomes_a_standing_hold(self, shipped):
+        run(shipped, "Ney, march to Orleanais then hold")
+        _as_if_given_yesterday("Ney")
+        rows = _row(_tick(), "Ney")
+        order = M.world.get_marshal("Ney").strategic_order
+        assert order is not None and order.command_type == "HOLD", rows
+        assert order.target == "Orleanais"
+        assert order.issued_turn == M.world.current_turn   # its first tick is the next turn's
+        assert any(r.get("action") == "hold_on_arrival" for r in rows), rows
+
+    def test_a_verb_refused_on_arrival_is_named(self, shipped):
+        """Lorraine borders Mack's Swabia: no drill with the enemy that near.
+        The march ends there and says why — never a silent arrival."""
+        reply = run(shipped, "Davout, march to Lorraine then drill")
+        message = reply.get("message") or ""
+        davout = M.world.get_marshal("Davout")
+        assert davout.location == "Lorraine", message
+        assert davout.drilling is False
+        assert davout.strategic_order is None
+        assert "cannot drill" in message, message
+
+    def test_the_orders_tab_and_the_arrow_name_the_verb(self, shipped):
+        from backend.commands.strategic import standing_order_road
+        run(shipped, "Ney, march to Orleanais then fortify")
+        assert _forces_row("Ney")["strategic_order"].endswith("— then fortify")
+        assert standing_order_road(M.world, M.world.get_marshal("Ney"))["then"] == "fortify"
+
+
+class TestCCX20TheVerbIsPartOfTheOrder:
+    """CC-X20: the F10 no-op ("already carrying out that order") compared
+    type and target only, so `march to X then fortify` over a standing
+    `march to X` was refused and the verb lost."""
+
+    def test_a_verb_added_to_a_standing_march_is_a_new_order(self, shipped):
+        """Measured before the fix: "Ney is already carrying out that order"
+        and the verb was lost. Now it goes out — one march left, so he
+        arrives at once and fortifies."""
+        run(shipped, "Ney, march to Orleanais")
+        reply = run(shipped, "Ney, march to Orleanais then fortify")
+        assert "already carrying out" not in (reply.get("message") or ""), reply.get("message")
+        ney = M.world.get_marshal("Ney")
+        assert ney.location == "Orleanais" and ney.fortified is True
+
+    def test_the_same_order_twice_is_still_the_no_op(self, shipped):
+        run(shipped, "Ney, march to Orleanais then fortify")
+        reply = run(shipped, "Ney, march to Orleanais then fortify")
+        assert "already carrying out" in (reply.get("message") or ""), reply.get("message")
+
+    def test_the_contingency_is_part_of_the_hold(self, shipped):
+        run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        same = run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        assert "already carrying out" in (same.get("message") or "")
+        other = run(shipped, "Ney, if Mack advances fall back to Brabant")
+        assert "already carrying out" not in (other.get("message") or ""), other.get("message")
+        assert M.world.get_marshal("Ney").strategic_order.contingency["to"] == "Brabant"
+
+
+class TestCCX22AMoveWithAVerbIsTheMarch:
+    """CC-X22: CR-7-1's rider promoted `move to X … attack Y` to the march
+    idiom; an arrival verb did not promote, so `move to X then fortify`
+    relayed its verb while `march to X then fortify` carried it."""
+
+    def test_the_move_head_is_promoted(self, shipped):
+        result = parse("Ney, move to Orleanais then fortify")
+        assert result.get("strategic_type") == "MOVE_TO", result
+        assert result.get("arrival_verb") == "fortify", result
+
+    def test_a_second_mans_order_never_promotes_the_first(self, shipped):
+        result = parse("Ney, move to Lorraine and Davout, hold")
+        assert result.get("is_strategic") is not True, result
+        assert result.get("arrival_verb") is None
+        assert (result.get("command") or {}).get("action") == "move"
+
+    def test_a_bare_move_stays_tactical(self, shipped):
+        result = parse("Ney, move to Lorraine")
+        assert result.get("is_strategic") is not True, result
+
+
+D6_LINES = [
+    ("Ney, fortify then attack Mack", "Ney, attack Mack then fortify"),
+    ("Davout, form square, then attack Mack", "Davout, attack Mack then form square"),
+    ("Ney, go defensive then attack Mack", "Ney, attack Mack then go defensive"),
+    ("Ney, fortify then march to Lorraine", "Ney, march to Lorraine then fortify"),
+    ("Ney, go defensive then march to Lorraine", "Ney, march to Lorraine then defend"),
+]
+
+
+class TestD6TheContradictionIsAskedFirst:
+    """D6 (the user's ruling, October 19, 2026: "ask first, spend
+    nothing"): a head that would leave the corps standing with a tail that
+    moves or attacks sends NOTHING; the order that gives both is offered
+    beside the line (never on it, never sent)."""
+
+    @pytest.mark.parametrize("line,remedy", D6_LINES)
+    def test_nothing_goes_out_and_the_reorder_is_offered(self, shipped, line, remedy):
+        world = M.world
+        name = line.split(",")[0]
+        before = (world.get_marshal(name).location, world.get_marshal(name).fortified,
+                  world.actions_remaining)
+        reply = run(shipped, line)
+        m = M.world.get_marshal(name)
+        assert reply.get("success") is False, reply.get("message")
+        assert (m.location, m.fortified, M.world.actions_remaining) == before
+        assert m.strategic_order is None and not getattr(m, "in_square", False)
+        assert reply.get("remedy_command") == remedy, reply
+        assert reply.get("relay_kind") == "contradiction"
+        assert "Nothing has gone out" in (reply.get("message") or "")
+        assert not reply.get("battle_report")
+
+    def test_the_offered_line_does_both(self, shipped):
+        reply = run(shipped, "Ney, fortify then march to Lorraine")
+        done = run(shipped, reply["remedy_command"])
+        assert done.get("success") is True, done.get("message")
+        ney = M.world.get_marshal("Ney")
+        assert ney.location == "Lorraine" and ney.fortified is True
+
+    def test_with_no_coherent_reorder_the_head_goes_out_as_before(self, shipped, monkeypatch):
+        """The tail illegal now (the state probe refuses it): no reorder is
+        offered and CR-7-3's road stands — the head goes out, the tail is
+        named. Sensitivity: this is the arm D6 must not swallow."""
+        import backend.commands.state_probe as probe
+        monkeypatch.setattr(probe, "order_state_refusal", lambda *a, **k: "refused")
+        reply = run(shipped, "Davout, fortify then attack Mack")
+        assert reply.get("success") is True, reply.get("message")
+        assert M.world.get_marshal("Davout").fortified is True
+        assert not reply.get("remedy_command")
+        assert reply.get("dropped_sequel") == "attack Mack"
+
+
+class TestD8TheStandingContingency:
+    """D8: `Ney, if Mack advances fall back to Lorraine` — a HOLD where he
+    stands that watches its province and the neighbours we SEE, and fires
+    at no cost at the turn's end."""
+
+    def test_it_is_issued_as_a_watching_hold(self, shipped):
+        world = M.world
+        price = world.get_marshal("Ney").strategic_order_ap(order_type="HOLD")
+        ap = world.actions_remaining
+        reply = run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        assert reply.get("success") is True, reply.get("message")
+        assert "watches Rhineland and its neighbours" in reply["message"]
+        assert "Mack is within reach already, at Swabia" in reply["message"]
+        order = M.world.get_marshal("Ney").strategic_order
+        assert order.command_type == "HOLD" and order.target == "Rhineland"
+        assert order.contingency == {"who": "Mack", "then": "fall_back", "to": "Lorraine",
+                                     "clause": "Ney, if Mack advances fall back to Lorraine"}
+        assert M.world.actions_remaining == ap - price
+
+    def test_a_seen_approach_fires_the_fall_back_free(self, shipped):
+        run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        ap = M.world.actions_remaining
+        rows = _row(_tick(), "Ney")
+        ney = M.world.get_marshal("Ney")
+        assert ney.location == "Lorraine", rows
+        assert ney.strategic_order is None
+        assert any(r.get("action") == "contingency_fired" for r in rows), rows
+        assert M.world.actions_remaining == ap
+
+    def test_never_on_a_fogged_province(self, shipped):
+        from backend.models.intel import UNKNOWN
+        run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        M.world.get_region_intel("Swabia").visibility = UNKNOWN
+        _tick()
+        order = M.world.get_marshal("Ney").strategic_order
+        assert M.world.get_marshal("Ney").location == "Rhineland"
+        assert order is not None and order.contingency
+
+    def test_only_the_named_man_fires_it(self, shipped):
+        reply = run(shipped, "Ney, if Kutuzov advances fall back to Lorraine")
+        assert reply.get("success") is True, reply.get("message")
+        _tick()
+        assert M.world.get_marshal("Ney").location == "Rhineland"
+        assert M.world.get_marshal("Ney").strategic_order.contingency["who"] == "Kutuzov"
+
+    def test_a_fortified_holder_leaves_his_works(self, shipped):
+        from backend.models.marshal import Stance
+        ney = M.world.get_marshal("Ney")
+        ney.fortified, ney.defense_bonus, ney.stance = True, 0.1, Stance.DEFENSIVE
+        reply = run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        assert "leaves his works" in reply["message"]
+        rows = _row(_tick(), "Ney")
+        ney = M.world.get_marshal("Ney")
+        assert ney.location == "Lorraine" and ney.fortified is False
+        assert any("leaves his works and falls back" in (r.get("message") or "") for r in rows), rows
+
+    def test_the_attack_arm_fights(self, shipped):
+        import random
+        random.seed(1805)
+        mack = M.world.get_marshal("Mack")
+        before = mack.strength
+        run(shipped, "Ney, if the enemy comes within reach, attack")
+        rows = _row(_tick(), "Ney")
+        assert any(r.get("action") == "contingency_fired" for r in rows), rows
+        assert M.world.get_marshal("Mack").strength < before
+        assert M.world.get_marshal("Ney").strategic_order is None
+
+    def test_a_fall_back_with_no_road_breaks_and_keeps_his_works(self, shipped, monkeypatch):
+        from backend.models.marshal import Stance
+        import backend.commands.strategic as road_law
+        ney = M.world.get_marshal("Ney")
+        ney.fortified, ney.defense_bonus, ney.stance = True, 0.1, Stance.DEFENSIVE
+        run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        monkeypatch.setattr(road_law, "march_road",
+                            lambda *a, **k: ([], {"message": "the road is closed."}, "road"))
+        rows = _row(_tick(), "Ney")
+        ney = M.world.get_marshal("Ney")
+        assert any(r.get("action") == "contingency_refused" for r in rows), rows
+        assert ney.fortified is True and ney.location == "Rhineland"
+        assert ney.strategic_order is None
+
+    def test_a_fall_back_to_where_he_stands_is_refused_free(self, shipped):
+        ap = M.world.actions_remaining
+        reply = run(shipped, "Ney, if Mack advances fall back to Rhineland")
+        assert reply.get("success") is False
+        assert "already stands at Rhineland" in reply["message"]
+        assert M.world.actions_remaining == ap
+        assert M.world.get_marshal("Ney").strategic_order is None
+
+    def test_an_unknown_place_is_still_the_refused_contingency(self, shipped):
+        ap = M.world.actions_remaining
+        reply = run(shipped, "Ney, if Mack advances fall back to Narnia")
+        assert reply.get("success") is False
+        assert "contingency" in reply["message"]
+        assert M.world.actions_remaining == ap
+
+    def test_the_orders_tab_and_the_arrow_show_the_watch(self, shipped):
+        from backend.commands.strategic import standing_order_road
+        run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        assert _forces_row("Ney")["strategic_order"].endswith(
+            "if Mack comes within reach, fall back to Lorraine")
+        assert _orders_row("Ney")["condition"] == "until it fires"
+        road = standing_order_road(M.world, M.world.get_marshal("Ney"))
+        assert road["watch"] == "if Mack comes within reach, fall back to Lorraine"
+        assert road["watch_who"] == "Mack"
+
+    def test_both_fields_survive_a_save(self, shipped):
+        from backend.models.marshal import StrategicOrder
+        run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        run(shipped, "Davout, march to Orleanais then fortify")
+        for name in ("Ney", "Davout"):
+            order = M.world.get_marshal(name).strategic_order
+            again = StrategicOrder.from_dict(order.to_dict())
+            assert again.to_dict() == order.to_dict()
+        assert StrategicOrder.from_dict(
+            M.world.get_marshal("Davout").strategic_order.to_dict()).arrival_verb == "fortify"
+
+
+class TestCCX21AContingencyIsNoAnswer:
+    """CC-X21 (D8's sweep): with a contact question pending, `Ney, if the
+    enemy comes within reach, attack` was read as its answer "attack" and
+    fought at once. A conditional line is a fresh order, never an answer."""
+
+    def test_the_contingency_is_issued_and_no_battle_is_fought(self, shipped):
+        asked = run(shipped, "Ney, march to Bohemia")
+        assert M.world.get_marshal("Ney").pending_interrupt, asked.get("message")
+        mack = M.world.get_marshal("Mack").strength
+        reply = run(shipped, "Ney, if the enemy comes within reach, attack")
+        ney = M.world.get_marshal("Ney")
+        assert not reply.get("battle_report"), reply.get("message")
+        assert M.world.get_marshal("Mack").strength == mack
+        assert ney.strategic_order.command_type == "HOLD"
+        assert ney.strategic_order.contingency["then"] == "attack"
+        assert not ney.pending_interrupt
+        assert "This stops his march to Bohemia" in reply["message"]
+
+    def test_the_rule_reads_the_guards_verdict(self, shipped):
+        from backend.main import _line_is_a_contingency
+        assert _line_is_a_contingency("Ney, attack anyway", M.world) is False
+        assert _line_is_a_contingency("Ney, hold until Davout arrives", M.world) is False
+        assert _line_is_a_contingency("Ney, if the enemy comes within reach, attack", M.world)
+        assert _line_is_a_contingency("Ney, if Mack advances, fortify", M.world)
+
+    def test_a_plain_answer_still_answers(self, shipped):
+        run(shipped, "Ney, march to Bohemia")
+        reply = run(shipped, "Ney, hold")
+        assert not M.world.get_marshal("Ney").pending_interrupt, reply.get("message")
+
+
+class TestCCX23ACautiousHoldRaisesItsWorks:
+    """CC-X23 (D7's sweep — the fortify gate): a cautious marshal's HOLD
+    fortifies each tick under `_strategic_execution`, and the gate asked the
+    turn's actions of it — from the neutral stance with fewer than two left
+    (the turn's end, as a rule) it was refused, while the report said
+    "Davout fortifies Rhineland." (measured on a HEAD `d6a0cd8d` snapshot:
+    `fortified` stayed False)."""
+
+    def test_the_works_rise_at_the_turns_end_with_no_action_left(self, shipped):
+        run(shipped, "Davout, hold")
+        _as_if_given_yesterday("Davout")
+        M.world.actions_remaining = 0
+        rows = _row(_tick(), "Davout")
+        assert M.world.get_marshal("Davout").fortified is True, rows
+        assert any(r.get("action") == "hold_fortify" for r in rows), rows
+
+    def test_a_refused_fortify_is_never_narrated_as_works(self, shipped):
+        run(shipped, "Davout, hold")
+        _as_if_given_yesterday("Davout")
+        M.world.get_marshal("Davout").drilling = True
+        rows = _row(_tick(), "Davout")
+        assert M.world.get_marshal("Davout").fortified is False
+        assert not any("fortifies" in (r.get("message") or "") for r in rows), rows
+        assert any("cannot fortify" in (r.get("message") or "") for r in rows), rows
+
+
+class TestCCX24TheSallySaysWhereHeStands:
+    """CC-X24 (CC-X23's sweep, found by reading — a sally fires only on
+    favourable odds and, on the 1805 board, ends at home, so the displaced
+    return was not reproduced in play): the report said "then returns to
+    Rhineland!" whatever the return march answered. Driven here with the
+    sally's battle ending on the enemy's ground (a victory's advance) and
+    the road back refused."""
+
+    def test_a_refused_return_is_said(self, shipped, monkeypatch):
+        import random
+        random.seed(1805)
+        run(shipped, "Ney, hold")
+        _as_if_given_yesterday("Ney")
+        M.world.get_marshal("Mack").strength = 4000      # a sally's odds
+        executor_type = type(M.executor)
+        real = executor_type.execute
+
+        def advance_and_no_road_back(self, command, game_state):
+            cmd = (command or {}).get("command") or {}
+            if cmd.get("action") == "move" and cmd.get("_strategic_execution"):
+                return {"success": False, "message": "the road back is closed."}
+            result = real(self, command, game_state)
+            if cmd.get("action") == "attack" and cmd.get("_strategic_execution"):
+                M.world.get_marshal("Ney").location = "Swabia"   # the advance
+            return result
+        monkeypatch.setattr(executor_type, "execute", advance_and_no_road_back)
+        rows = _row(_tick(), "Ney")
+        sally = next(r for r in rows if r.get("action") in ("sally", "glorious_charge_sally"))
+        assert M.world.get_marshal("Ney").location == "Swabia"
+        assert sally["returned_to"] == "Swabia"
+        assert "returns to Rhineland" not in sally["message"], sally["message"]
+        assert "stands at Swabia, short of Rhineland" in sally["message"], sally["message"]
+
+
+class TestD8TheContingencysAttackIsAnOrderSeam:
+    """The FA slice-3 census's seventeenth producer (`_fire_contingency`'s
+    attack): a refused strike is never narrated as a battle — the order
+    breaks with the executor's own reason (FA-14's rule)."""
+
+    def test_a_refused_attack_breaks_the_hold_with_its_reason(self, shipped, monkeypatch):
+        run(shipped, "Ney, if the enemy comes within reach, attack")
+        executor_type = type(M.executor)
+        real = executor_type.execute
+
+        def refuse_the_strike(self, command, game_state):
+            cmd = (command or {}).get("command") or {}
+            if cmd.get("action") == "attack" and cmd.get("_strategic_execution"):
+                return {"success": False, "message": "the bridge is down."}
+            return real(self, command, game_state)
+        monkeypatch.setattr(executor_type, "execute", refuse_the_strike)
+        mack = M.world.get_marshal("Mack").strength
+        rows = _row(_tick(), "Ney")
+        row = next(r for r in rows if r.get("action") == "contingency_refused")
+        assert "cannot attack: the bridge is down." in row["message"], row
+        assert "attacks, as you ordered" not in row["message"]
+        assert M.world.get_marshal("Mack").strength == mack
+        assert M.world.get_marshal("Ney").strategic_order is None

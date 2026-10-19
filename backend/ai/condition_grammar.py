@@ -723,6 +723,72 @@ def strip_halt_tail(text: str) -> Tuple[str, Optional[str]]:
     return text[:m.start()].rstrip(" ,"), text[m.start():].strip(" ,")
 
 
+# ── CC-4 / D8: the standing contingency ─────────────────────────────────────
+# "Ney, if Mack advances fall back to Bohemia" and "Ney, if the enemy comes
+# within reach, attack" are a HOLD where he stands with a contingency (the
+# user's plan, decision D8). The `if` refusal is lifted for THIS pattern only,
+# and structurally: the line is restated as "<addr>, hold" before any reader
+# — the clause guard never sees its `if`, and `when` / `once` / `in case` /
+# any other `if` shape still meet the guard and are refused as before.
+_CONTINGENCY_WHO_ANY = r"(?:the\s+)?(?:enemy|enemies|foe)"
+_CONTINGENCY_RE = re.compile(
+    r"^\s*(?P<addr>[^,]+?)\s*,\s*if\s+(?P<who>.+?)\s+"
+    r"(?P<trigger>advances?|approaches|comes\s+(?:within\s+reach|on|near|nearer|closer|forward)"
+    r"|(?:moves|marches)\s+(?:on|against)\s+(?:us|him|you))"
+    r"\s*,?\s*(?:then\s+)?"
+    r"(?P<then>(?:fall\s+back|retreat|withdraw|pull\s+back)\s+(?:to|on|upon|towards?)\s+"
+    r"(?P<place>[A-Za-z][\w'’ -]*?)|attack(?:\s+(?:him|them|it))?)"
+    r"\s*[.!]?\s*$", re.IGNORECASE)
+
+
+def extract_contingency(text: str, friendly_names, enemy_names, region_names
+                        ) -> Tuple[str, Optional[Dict]]:
+    """D8: ("<addr>, hold", {"who", "then", "to", "clause"}) for a standing
+    contingency addressed to one of our marshals — `who` an enemy marshal on
+    the rosters handed in, or None for "the enemy" (any at war); `then`
+    "fall_back" (to a province the map knows) or "attack". Any other shape,
+    an unknown man or an unknown place is returned unchanged with None, so the
+    clause guard refuses it as before. PURE (names handed in)."""
+    m = _CONTINGENCY_RE.match(text or "")
+    if not m:
+        return text, None
+    addr = m.group("addr").strip()
+    bare = re.sub(r"^(?:" + HONORIFIC + r")", "", addr, flags=re.IGNORECASE).strip()
+    if not any(str(n).lower() == bare.lower() for n in (friendly_names or [])):
+        return text, None
+    who_text = re.sub(r"^the\s+", "", m.group("who").strip(), flags=re.IGNORECASE)
+    who = None
+    if not re.fullmatch(_CONTINGENCY_WHO_ANY, m.group("who").strip(), flags=re.IGNORECASE):
+        who = next((n for n in (enemy_names or [])
+                    if who_text.lower() in {p.lower() for p in _patterns(n)} | {str(n).lower()}),
+                   None)
+        if who is None:
+            return text, None
+    then = "attack" if m.group("then").lower().startswith("attack") else "fall_back"
+    place = None
+    if then == "fall_back":
+        typed = (m.group("place") or "").strip().lower()
+        place = next((r for r in (region_names or []) if str(r).lower() == typed), None)
+        if place is None:
+            return text, None
+    return f"{addr}, hold", {"who": who, "then": then, "to": place,
+                             "clause": (text or "").strip()}
+
+
+def describe_contingency(contingency, shown=lambda n: n) -> str:
+    """D8: the ONE phrase for a contingency — the confirmation, the Orders tab
+    and the map's badge read it ("if Mack comes within reach, fall back to
+    Bohemia")."""
+    if not contingency:
+        return ""
+    who = contingency.get("who")
+    trigger = (f"if {shown(who)} comes within reach" if who
+               else "if the enemy comes within reach")
+    if contingency.get("then") == "attack":
+        return f"{trigger}, attack"
+    return f"{trigger}, fall back to {contingency.get('to')}"
+
+
 HALT_TAIL_NOTE = ("The march halts of itself when an enemy stands in the road, Sire, and "
                   "asks for your orders — that is the road's own rule, so the '{tail}' "
                   "is kept without a dispatch.")

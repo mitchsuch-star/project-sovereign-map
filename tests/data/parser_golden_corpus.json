@@ -3950,14 +3950,179 @@
     },
     {
       "id": "parseneg-conditional-refuses",
-      "utterance": "Ney, if Mack advances fall back to Lorraine",
+      "utterance": "Ney, if Mack advances, fortify",
       "world": "1805",
       "expected": {
         "success": false,
         "not_action": "move"
       },
-      "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 7",
-      "notes": "Marched to Lorraine immediately at 0.95 — the highest confidence in the whole filed set, on a sentence whose entire meaning is the condition. The engine holds no 'if', so the honest answer is that no order was issued."
+      "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 7; re-seated CC-4 / D8 (October 19, 2026)",
+      "notes": "Marched to Lorraine immediately at 0.95 — the highest confidence in the whole filed set, on a sentence whose entire meaning is the condition. CC-4 / D8: the filed line ('Ney, if Mack advances fall back to Lorraine') is the standing contingency now — a HOLD that watches (row cc4-contingency-fall-back); this row keeps the refusal on a then-clause the contingency does not hold."
+    },
+    {
+      "id": "cc4-arrival-verb-fortify",
+      "utterance": "Ney, march to Bohemia then fortify",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Bohemia",
+        "arrival_verb": "fortify",
+        "dropped_sequel": null
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D7 / CF-5",
+      "notes": "The march carries its arrival verb and does it on arrival (free — the march is paid once); it used to be handed back 'give it when he arrives'."
+    },
+    {
+      "id": "cc4-arrival-verb-hold-comma",
+      "utterance": "Davout, march to Lorraine, then hold",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "strategic_type": "MOVE_TO",
+        "arrival_verb": "hold",
+        "dropped_sequel": null
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D7",
+      "notes": "'then hold' turns the march into a standing HOLD where he arrives."
+    },
+    {
+      "id": "cc4-arrival-verb-move-promoted",
+      "utterance": "Ney, move to Bohemia then drill",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "arrival_verb": "drill",
+        "dropped_sequel": null
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — CC-X22",
+      "notes": "An arrival verb makes the sentence a march, as an attack tail does (CR-7-1's rider): the tactical 'move to' head is promoted. Before, the verb was relayed while 'march to' carried it."
+    },
+    {
+      "id": "cc4-arrival-verb-move-second-man-stays",
+      "utterance": "Ney, move to Lorraine and Davout, hold",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "move",
+        "target": "Lorraine",
+        "strategic_type": null,
+        "arrival_verb": null
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — CC-X22's guard",
+      "notes": "The 'hold' is Davout's order (CQ-8's relay), never Ney's arrival verb: the move is not promoted."
+    },
+    {
+      "id": "cc4-arrival-verb-third-clause-named",
+      "utterance": "Ney, march to Bohemia then fortify then attack Mack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "arrival_verb": "fortify",
+        "dropped_sequel": "attack Mack"
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D7",
+      "notes": "One arrival verb per march; a third clause is split and reported, never fused or dropped."
+    },
+    {
+      "id": "cc4-contingency-fall-back",
+      "utterance": "Ney, if Mack advances fall back to Lorraine",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "hold",
+        "strategic_type": "HOLD",
+        "contingency": {
+          "who": "Mack",
+          "then": "fall_back",
+          "to": "Lorraine"
+        }
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8 (PARSE-NEG's filed row 7, held now)",
+      "notes": "A standing contingency: a HOLD where he stands that watches its province and the neighbours we see, and falls back when Mack comes within reach."
+    },
+    {
+      "id": "cc4-contingency-attack-any-enemy",
+      "utterance": "Ney, if the enemy comes within reach, attack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "contingency": {
+          "who": null,
+          "then": "attack",
+          "to": null
+        }
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8",
+      "notes": "'the enemy' watches for any corps at war with us."
+    },
+    {
+      "id": "cc4-contingency-retreat-synonym",
+      "utterance": "Ney, if Mack approaches, retreat to Lorraine",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "contingency": {
+          "who": "Mack",
+          "then": "fall_back",
+          "to": "Lorraine"
+        }
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8",
+      "notes": "'approaches' / 'retreat to' are the grammar's synonyms."
+    },
+    {
+      "id": "cc4-contingency-legacy",
+      "utterance": "Ney, if Wellington advances fall back to Paris",
+      "world": "legacy",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "contingency": {
+          "who": "Wellington",
+          "then": "fall_back",
+          "to": "Paris"
+        }
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8 (test_parse_negation's filed line, held now)",
+      "notes": "The legacy roster and map."
+    },
+    {
+      "id": "cc4-contingency-when-stays-refused",
+      "utterance": "Ney, when Mack advances fall back to Lorraine",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "move"
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8's fence",
+      "notes": "Only 'if' opens the contingency; 'when' / 'once' / 'in case' stay refused (PARSE-NEG)."
+    },
+    {
+      "id": "cc4-contingency-once-stays-refused",
+      "utterance": "Ney, once Mack advances fall back to Lorraine",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "move"
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8's fence",
+      "notes": "See cc4-contingency-when-stays-refused."
+    },
+    {
+      "id": "cc4-contingency-unknown-place-refused",
+      "utterance": "Ney, if Mack advances fall back to Narnia",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "move"
+      },
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8's fence",
+      "notes": "A place the map does not know is no contingency: the clause guard refuses the line as before."
     },
     {
       "id": "parseneg-when-clause-refuses",

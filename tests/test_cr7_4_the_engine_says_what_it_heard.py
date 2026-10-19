@@ -151,11 +151,16 @@ class TestTheRefusalNamesItsCause:
         assert "'hold until Davout arrives'" not in reply["message"]
 
     def test_the_generic_contingency_names_its_clause(self, shipped):
-        reply = run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        # CC-4 / D8 (October 19, 2026): `Ney, if Mack advances fall back to
+        # Lorraine` is HELD now (the standing contingency,
+        # tests/test_cc4_chained_orders.py); the refusal arm is pinned on a
+        # then-clause the contingency does not hold, and it teaches the form.
+        reply = run(shipped, "Ney, if Mack advances, fortify")
         assert reply.get("success") is False
         assert "contingency" in reply["message"]
         assert "if Mack advances" in reply["message"]
         assert "hold until" in reply["message"]
+        assert "'if Mack advances, fall back to <province>'" in reply["message"]
 
 
 class TestTheEcho:

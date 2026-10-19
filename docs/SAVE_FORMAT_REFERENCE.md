@@ -774,7 +774,9 @@ Reserved future `event_log` payloads:
   "last_contact_turn": null,
   "arrival_target": null,
   "condition_progress": [],
-  "standing_follow": false
+  "standing_follow": false,
+  "arrival_verb": null,
+  "contingency": null
 }
 ```
 
@@ -804,6 +806,8 @@ Reserved future `event_log` payloads:
 | `condition_progress` | list[string] | CR-7-9 (Sept 22, 2026): the arms of an ALL-OF condition already met, in the order they landed (`max_turns`, `until_marshal_arrives`, …) — the latch that keeps an arm counted after it has passed. Empty on every any-of order; absent in older saves → `[]`. |
 | `standing_follow` | bool | AO (Oct 17, 2026, `REFORMS_SPEC.md` §5a): a SUPPORT that STANDS — "Soult, follow Ney" marches where Ney marches and to his guns and never lapses on "secure" (`strategic._execute_support`). Absent in older saves → `False` → the support it was. |
 | `arrival_target` | string\|null | CR-7-6 (Sept 22, 2026): the enemy marshal an arrival tail NAMED (`march to Swabia then attack Archduke Charles`); read by `strategic.pick_contact_enemy` at the first-step / mid-path / arrival seams, which prefer him among the enemies met and fall back to the first otherwise. Absent in older saves → `None` → the pre-CR-7-6 pick. |
+| `arrival_verb` | string\|null | CC-4 / D7 (Oct 19, 2026, S13c part 4): (MOVE_TO) what the march does on arrival — `"fortify"`, `"hold"`, `"drill"` or `"defend"` (`march to Orleanais then fortify`); done free on arrival by `strategic._handle_move_to_arrival` (`hold` becomes a standing HOLD where he arrives). Absent in older saves → `None` → the march ends on arrival, as before. |
+| `contingency` | dict\|null | CC-4 / D8 (Oct 19, 2026): (HOLD) the standing contingency `{who, then, to, clause}` — `who` the enemy marshal watched for (`null` = any corps at war with us), `then` `"fall_back"` or `"attack"`, `to` the fall-back province (`null` for an attack), `clause` the typed words. Fired at no cost by `StrategicOrderProcessor._fire_contingency` when `strategic.contingency_trigger` sees him within reach. Absent in older saves → `None` → a plain hold. |
 
 ---
 

@@ -2882,16 +2882,20 @@ func order_arrow_label(info: Dictionary) -> String:
 	var clock := "this turn" if turns <= 0 else Utils.plural(turns, "turn")
 	var dest := str(info.get("dest", ""))
 	var who := str(info.get("target_shown", ""))
+	# CC-4: what the march does on arrival (D7), what the hold watches for (D8).
+	var then := str(info.get("then", ""))
+	var watch_who := str(info.get("watch_who", ""))
 	match str(info.get("kind", "")):
 		"march":
-			return dest + " · " + (clock if on_road else "arriving")
+			return dest + " · " + (clock if on_road else "arriving") + ((" · then " + then) if then != "" else "")
 		"pursue":
 			return "pursues " + who + ((" · " + clock) if on_road else "")
 		"hold":
 			if on_road:
 				return "to hold " + dest + " · " + clock
 			var more := int(info.get("holds_for", 0))
-			return "holds " + dest + ((" · " + Utils.plural(more, "more turn")) if more > 0 else "")
+			return "holds " + dest + ((" · " + Utils.plural(more, "more turn")) if more > 0 else "") \
+				+ ((" · if " + watch_who + " comes") if watch_who != "" else "")
 		"support":
 			return "supports " + who + ((" · " + clock) if on_road else "")
 		"follow":

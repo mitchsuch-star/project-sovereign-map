@@ -446,7 +446,10 @@ class TestTheSixteenOpenRows:
         assert parsed.get("target") == target and parsed.get("action") in ("move", "attack"), (line, parsed)
 
     def test_d38_the_arrival_sequel_is_named_not_silent(self, client):
-        reply = _post(client, "Soult, march to Burgundy and then fortify")
+        # CC-4 / D7 (October 19, 2026): `… and then fortify` is the march's
+        # arrival verb now (carried, done on arrival); the relayed arm rides
+        # a tail no march carries.
+        reply = _post(client, "Soult, march to Burgundy and then form square")
         assert "waits behind it" in reply["message"]
         assert "Give it when he arrives" in reply["message"]
 

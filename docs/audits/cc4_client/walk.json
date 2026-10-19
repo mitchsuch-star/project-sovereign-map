@@ -1,0 +1,275 @@
+{
+  "asked_first_offer": "Ney, attack Mack then fortify",
+  "asked_first_tail": "the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Soult, march to Burgundy then fortify\nSoult begins march to Burgundy. Route: Orleanais → Burgundy. Moves to Orleanais. \"Soult, march to Burgundy then fortify.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)\n   [3/4 actions remaining]\n\n\n► Ney, fortify then attack Mack\nOne order at a time, Sire — and \"attack Mack\" would undo the first: attacking or marching abandons the works he would raise. Nothing has gone out. \"Ney, attack Mack then fortify\" gives both, in the order that works — it is beside your line.\n\n",
+  "backend": "http://127.0.0.1:8007",
+  "booted": true,
+  "contingency_tail": " attacking or marching abandons the works he would raise. Nothing has gone out. \"Ney, attack Mack then fortify\" gives both, in the order that works — it is beside your line.\n\n\n► Davout, if Mack advances, fall back to Lorraine\nDavout will hold Rhineland. Holding position. Davout watches Rhineland and its neighbours: if Mack comes within reach, fall back to Lorraine — at no cost when it fires, at the turn's end. Mack is within reach already, at Swabia — it fires at this turn's end unless he draws off. Davout: \"Good. Let them come to us.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)\n   [1/4 actions remaining]\n\n",
+  "davout_anchor_point": [
+    827.363525390625,
+    387.437561035156
+  ],
+  "modals": [
+    {
+      "context": "turn1 end",
+      "dialog": "enemy_phase",
+      "pressed": "Continue"
+    },
+    {
+      "context": "turn1 end",
+      "dialog": "battle_diorama",
+      "pressed": "Escape"
+    },
+    {
+      "context": "turn1 end",
+      "dialog": "battle_diorama",
+      "pressed": "Close"
+    },
+    {
+      "context": "turn2 end",
+      "dialog": "enemy_phase",
+      "pressed": "Continue"
+    },
+    {
+      "context": "turn2 end",
+      "dialog": "battle_diorama",
+      "pressed": "Escape"
+    },
+    {
+      "context": "turn2 end",
+      "dialog": "battle_diorama",
+      "pressed": "Close"
+    }
+  ],
+  "ms": 19568,
+  "soult_arrow_point": [
+    408.393920898438,
+    511.0390625
+  ],
+  "steps": [
+    {
+      "actions": 3,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 2 turns · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "",
+      "card_mode": "order",
+      "card_open": false,
+      "card_title": "",
+      "frame": "CC4_1_then_fortify_2026_10_19.jpg",
+      "note": "Soult's march to Burgundy, its badge '· then fortify'",
+      "saved": true,
+      "step": "1_then_fortify",
+      "turn": 1
+    },
+    {
+      "actions": 3,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 2 turns · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "Soult marches to Burgundy, then fortifies",
+      "card_mode": "standing",
+      "card_open": true,
+      "card_title": "STANDING ORDER — SOULT",
+      "frame": "CC4_2_march_card_2026_10_19.jpg",
+      "note": "the arrow clicked: 'Soult marches to Burgundy, then fortifies'",
+      "saved": true,
+      "step": "2_march_card",
+      "turn": 1
+    },
+    {
+      "actions": 3,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 2 turns · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "",
+      "card_mode": "standing",
+      "card_open": false,
+      "card_title": "",
+      "frame": "CC4_3_asked_first_2026_10_19.jpg",
+      "note": "nothing sent; 'Ney, attack Mack then fortify' offered beside the line",
+      "saved": true,
+      "step": "3_asked_first",
+      "turn": 1
+    },
+    {
+      "actions": 1,
+      "arrows": [
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Rhineland · if Mack comes",
+          "marshal": "Davout",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 2 turns · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "",
+      "card_mode": "standing",
+      "card_open": false,
+      "card_title": "",
+      "frame": "CC4_4_contingency_reply_2026_10_19.jpg",
+      "note": "the watch said: within reach already, at the turn's end",
+      "saved": true,
+      "step": "4_contingency_reply",
+      "turn": 1
+    },
+    {
+      "actions": 1,
+      "arrows": [
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Rhineland · if Mack comes",
+          "marshal": "Davout",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 2 turns · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "",
+      "card_mode": "standing",
+      "card_open": false,
+      "card_title": "",
+      "frame": "CC4_4_contingency_2026_10_19.jpg",
+      "note": "Davout's anchor: 'holds Rhineland · if Mack comes'",
+      "saved": true,
+      "step": "4_contingency",
+      "turn": 1
+    },
+    {
+      "actions": 1,
+      "arrows": [
+        {
+          "anchor": true,
+          "halted": false,
+          "kind": "hold",
+          "label": "holds Rhineland · if Mack comes",
+          "marshal": "Davout",
+          "points": 1
+        },
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 2 turns · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "Davout holds Rhineland — if Mack comes within reach, fall back to Lorraine",
+      "card_mode": "standing",
+      "card_open": true,
+      "card_title": "STANDING ORDER — DAVOUT",
+      "frame": "CC4_5_anchor_card_2026_10_19.jpg",
+      "note": "the anchor clicked: the watch in its headline",
+      "saved": true,
+      "step": "5_anchor_card",
+      "turn": 1
+    },
+    {
+      "actions": 4,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 1 turn · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "",
+      "card_mode": "standing",
+      "card_open": false,
+      "card_title": "",
+      "frame": "CC4_6_end_turn_2026_10_19.jpg",
+      "note": "the turn ends: the screen before any modal is answered",
+      "saved": true,
+      "step": "6_end_turn",
+      "turn": 2
+    },
+    {
+      "actions": 4,
+      "arrows": [
+        {
+          "anchor": false,
+          "halted": false,
+          "kind": "march",
+          "label": "Burgundy · 1 turn · then fortify",
+          "marshal": "Soult",
+          "points": 2
+        }
+      ],
+      "card_command": "",
+      "card_mode": "standing",
+      "card_open": false,
+      "card_title": "",
+      "frame": "CC4_7_morning_2026_10_19.jpg",
+      "note": "Davout's watch fired: he fell back to Lorraine; Soult one march from Burgundy",
+      "saved": true,
+      "step": "7_morning",
+      "turn": 2
+    },
+    {
+      "actions": 4,
+      "arrows": [],
+      "card_command": "",
+      "card_mode": "standing",
+      "card_open": false,
+      "card_title": "",
+      "frame": "CC4_8_arrival_2026_10_19.jpg",
+      "note": "Soult at Burgundy behind his works — the march's arrival verb done",
+      "saved": true,
+      "step": "8_arrival",
+      "turn": 3
+    }
+  ],
+  "then_fortify_tail": "gether on one card\n\n─────────────────────────────────────\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Soult, march to Burgundy then fortify\nSoult begins march to Burgundy. Route: Orleanais → Burgundy. Moves to Orleanais. \"Soult, march to Burgundy then fortify.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)\n   [3/4 actions remaining]\n\n",
+  "turn1_after": 2,
+  "turn1_report": [
+    "Davout: Mack comes within reach at Swabia — Davout falls back to Lorraine, as you ordered. Davout: \"It is done. I took the liberty of posting pickets.\"",
+    "Davout: Davout arrives at Lorraine. Davout: \"Accomplished as ordered. The army is intact.\"",
+    "Soult: Soult is marching to Burgundy (1 turn remaining)."
+  ],
+  "turn2_after": 3,
+  "turn2_report": [
+    "Soult: The order was \"Soult, march to Burgundy then fortify\". Soult arrives at Burgundy and fortifies.",
+    "Burgundy feeds 22,500; the 30,000 men standing there would lose ~149 a turn to short supply. I await further instruction."
+  ]
+}

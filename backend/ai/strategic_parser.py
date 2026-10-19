@@ -570,6 +570,10 @@ def detect_strategic_command(
         "condition": condition,
         "attack_on_arrival": attack_on_arrival,
         "arrival_target": arrival_target,
+        # CC-4 / D7: what the march does on arrival (MOVE_TO only).
+        "arrival_verb": (_detect_arrival_verb(cleaned)
+                         if strategic_type == "MOVE_TO" and not attack_on_arrival
+                         else None),
         "condition_refusal": condition_refusal,
         "condition_notes": condition_notes,
         "dropped_arrival_note": dropped_arrival_note,
@@ -1170,6 +1174,34 @@ def clause_is_a_hold_order(clause: str) -> bool:
 # stage later than the swallow this slice closes. Derived from the ONE
 # strategic routing table (`STRATEGIC_KEYWORDS`), never a second hand list.
 ARRIVAL_CARRYING_TYPES = frozenset({"MOVE_TO", "PURSUE"})
+
+
+# ── CC-4 / D7: the arrival VERB ─────────────────────────────────────────────
+# "march to Vienna then fortify | hold | drill | defend" — the march carries
+# what it does on arrival (`StrategicOrder.arrival_verb`), paid once. MOVE_TO
+# only: a pursuit arrives at a man, not a place. Read at the END of the line,
+# so a third clause behind the verb is still split and reported.
+ARRIVAL_VERBS = ("fortify", "hold", "drill", "defend")
+_ARRIVAL_VERB_TAIL = r'(?P<verb>' + "|".join(ARRIVAL_VERBS) + r')\b(?:\s+(?:it|there|the\s+(?:place|province|ground|town|city|position)))?'
+_ARRIVAL_VERB_HINT_RE = re.compile(
+    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*' + _ARRIVAL_VERB_TAIL + r'\s*[.!]?\s*$',
+    re.IGNORECASE)
+ARRIVAL_VERB_TAIL_RE = re.compile(r'^' + _ARRIVAL_VERB_TAIL + r'\s*[.!]?\s*$', re.IGNORECASE)
+
+
+def _detect_arrival_verb(command_text: str) -> Optional[str]:
+    """CC-4 / D7: the arrival verb a march's tail names, else None."""
+    m = _ARRIVAL_VERB_HINT_RE.search(command_text or "")
+    return m.group("verb").lower() if m else None
+
+
+def clause_can_carry_an_arrival_verb(clause: str) -> bool:
+    """CC-4 / D7: may an arrival-verb tail fuse onto this head?  A MOVE_TO
+    keyword with a destination — the march arrives somewhere."""
+    lowered = clause.lower()
+    if _detect_strategic_type(lowered) != "MOVE_TO":
+        return False
+    return bool(_extract_target_text(lowered, "MOVE_TO"))
 
 
 # CX3-R2 (Score Finish Step 7 slice 8, October 4, 2026): a MOVE_TO keyword

@@ -249,6 +249,115 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
                 command)
 
 
+# D6 (CC-4, the user's call of October 19, 2026): the heads that leave a
+# corps STANDING — and the words that order each again, after the tail.
+_STANDING_HEADS = {
+    "fortify": ("fortify", "attacking or marching abandons the works he would raise"),
+    "form_square": ("form square", "any other order breaks the square he would form"),
+    "defend": ("defend", "he would give up the defensive stance he would take"),
+}
+_ARRIVAL_HEADS = ("fortify", "defend")   # the heads a march can carry (D7)
+
+
+def _strikes_now(world, marshal, target) -> bool:
+    """D6: is an attack tail fought THIS turn — a seen enemy marshal in his
+    own province or a neighbour, or a neighbouring province? Fog-honest
+    (`get_visible_enemies`). Out of reach the attack is a pursuit."""
+    if not target:
+        return False
+    here = world.get_region(marshal.location)
+    reach = {marshal.location} | set(getattr(here, "adjacent_regions", []) or [])
+    enemy = world.get_marshal(str(target))
+    if enemy is not None:
+        seen = {e.name for e in world.get_visible_enemies(marshal.nation)}
+        return enemy.name in seen and enemy.location in reach
+    region = world.get_region(str(target))
+    return region is not None and region.name in reach and region.name != marshal.location
+
+
+def _has_a_road(world, marshal, target) -> bool:
+    """D6: a march tail is offered only where the march would go
+    (`strategic.march_road` — its refusal, its road)."""
+    if not target or world.get_region(str(target)) is None:
+        return False
+    from backend.commands.strategic import march_road
+    road, refusal, _kind = march_road(world, marshal, str(target))
+    return refusal is None and bool(road)
+
+
+def reorder_suggestion(world, parser, llm_game_state, parsed) -> Optional[Dict]:
+    """D6 (CC-4): a compound whose head would leave the corps standing
+    (fortified, in square, on the defensive) and whose tail attacks or
+    marches is ASKED FIRST, nothing spent — "Ney can't attack once
+    fortified" — with the line in the order that works offered beside the
+    input (`remedy_command`, offered, never re-offered; never on the line,
+    never sent). Offered only where that order is coherent: the tail is legal
+    NOW (`state_probe.order_state_refusal`) and the head follows it — after an
+    attack the head is a ready tail; after a march it is the march's arrival
+    verb (fortify / defend). Returns {"command", "tail", "note", "message"},
+    or None — every other line takes today's road (the head goes out, the
+    contradiction is named). The relay stays the player's seal (CR-7-8)."""
+    if not isinstance(parsed, dict) or not parsed.get("success") or world is None:
+        return None
+    tail = str(parsed.get("dropped_sequel") or "").strip()
+    if not tail or parsed.get("dropped_sequel_kind") == "second_name":
+        return None
+    cmd = parsed.get("command") or {}
+    head = str(cmd.get("action") or "")
+    if head == "stance_change" and str(cmd.get("target_stance") or cmd.get("target")
+                                         or "").lower() == "defensive":
+        head = "defend"
+    name = cmd.get("marshal")
+    if head not in _STANDING_HEADS or not name:
+        return None
+    marshal = world.get_marshal(name)
+    if marshal is None or marshal.nation != world.player_nation:
+        return None
+    reading = _tail_reading(parser, tail, llm_game_state)
+    if reading["marshal"] not in (None, name):
+        return None
+    marching = reading["strategic_type"] == "MOVE_TO"
+    if reading["strategic_type"] and not marching:
+        # a pursuit, a support or a hold carries no arrival verb, and the head
+        # after it waits for the order's end — no order gives both
+        return None
+    if marching:
+        if head not in _ARRIVAL_HEADS or not _has_a_road(world, marshal, reading["target"]):
+            return None
+        verb = "march"
+    elif reading["action"] in ("attack", "charge"):
+        if not _strikes_now(world, marshal, reading["target"]):
+            return None   # out of reach the attack becomes a pursuit — the head would wait
+        verb = reading["action"]
+    else:
+        return None
+    try:
+        from backend.commands.state_probe import order_state_refusal
+        # a charge is probed as the attack it is (the probe's verb table)
+        if order_state_refusal(world, marshal, "march" if marching else "attack"):
+            return None
+    except Exception as exc:
+        report(exc, "relay.reorder_suggestion: state_probe.order_state_refusal")
+        return None
+    head_words, reason = _STANDING_HEADS[head]
+    if not marching:
+        # after an attack the head is a ready tail in the player's own
+        # words ("go defensive" stays "go defensive"); only a march needs
+        # the arrival verb's form (D7: fortify / defend)
+        from backend.ai.clause_guards import order_after_address
+        typed = order_after_address(str(cmd.get("raw_command") or "")).strip(" ,;.")
+        head_words = typed or head_words
+    from backend.display_names import humanize_entity_name
+    shown = humanize_entity_name(name)
+    command = f"{shown}, {tail} then {head_words}"
+    note = (f"Sent now it would undo the first: {reason}. Nothing has gone out — "
+            f'"{command}" gives both, in the order that works; it is beside your line.')
+    message = (f'One order at a time, Sire — and "{tail}" would undo the first: {reason}. '
+               f'Nothing has gone out. "{command}" gives both, in the order that works — '
+               f"it is beside your line.")
+    return {"command": command, "tail": tail, "note": note, "message": message}
+
+
 def join_names(names) -> str:
     """"Davout", "Davout and Soult", "Davout, Soult and Lannes"."""
     names = [str(n) for n in (names or []) if n]

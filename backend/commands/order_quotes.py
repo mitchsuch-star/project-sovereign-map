@@ -209,7 +209,8 @@ def _road(world, marshal, dest: str, order_type: str, memo: Optional[dict]):
 
 def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
                     probe_verb: str, q: Dict[str, Any], memo: Optional[dict],
-                    standing_follow: Optional[bool] = None) -> Dict[str, Any]:
+                    standing_follow: Optional[bool] = None,
+                    arrival: Optional[dict] = None) -> Dict[str, Any]:
     """The standing-order arms common to a march and a support: the state,
     the identical order (a no-op the executor takes at 0 AP), the road, the
     price, the clock. `standing_follow` (AO) tells a follow from a support
@@ -225,7 +226,9 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
             and getattr(order, "command_type", None) == order_type
             and str(getattr(order, "target", "") or "").lower() == str(target).lower()
             and (standing_follow is None
-                 or bool(getattr(order, "standing_follow", False)) == bool(standing_follow))):
+                 or bool(getattr(order, "standing_follow", False)) == bool(standing_follow))
+            # CC-X20: the executor's own rule — what it does on arrival too.
+            and road_law.order_arrival_matches(order, arrival)):
         q.update(ok=True, already=True,
                  note=f"{q['shown']} is already carrying out that order.")
         return q
@@ -289,7 +292,9 @@ def march_quote(world, marshal, dest: str, *, then_attack: str = "",
     if then_attack:
         command += f" then attack {humanize_entity_name(then_attack)}"
     q = _blank("march_attack" if then_attack else "march", marshal, dest, command)
-    q = _standing_quote(world, marshal, dest, "MOVE_TO", dest, "march", q, memo)
+    q = _standing_quote(world, marshal, dest, "MOVE_TO", dest, "march", q, memo,
+                        arrival={"attack_on_arrival": bool(then_attack),
+                                 "arrival_target": then_attack or None})
     if q["ok"] and not q["already"]:
         foe = visible_foe_on_road(world, world.player_nation, q["road"])
         if q["contact"]:
@@ -334,7 +339,8 @@ def march_reach(world, marshal) -> Dict[str, Any]:
     order = getattr(marshal, "strategic_order", None)
     already = ""
     if (order is not None and not getattr(order, "condition", None)
-            and getattr(order, "command_type", None) == "MOVE_TO"):
+            and getattr(order, "command_type", None) == "MOVE_TO"
+            and road_law.order_arrival_matches(order, None)):   # CC-X20: a plain march
         already = str(getattr(order, "target", "") or "").lower()
     reach: Dict[str, Any] = {}
     roads = road_law.march_roads(world, marshal, "MOVE_TO")

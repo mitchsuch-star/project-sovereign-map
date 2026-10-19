@@ -139,34 +139,46 @@ class TestTheFortyShapes:
 
 class TestTheHeadlineAtTheEndpoint:
 
-    def test_a_cautious_marshal_fortifies_and_does_not_fight(self, shipped):
+    def test_a_cautious_marshal_does_not_fight_and_is_asked_first(self, shipped):
         """The memo's headline, re-measured on the corps that will obey a
-        fortify. Before the fix Davout would have marched into Swabia."""
+        fortify. Before the fix Davout would have marched into Swabia.
+
+        CC-4 / D6 (October 19, 2026, the user's ruling "ask first, spend
+        nothing"): the works would be undone by the tail, so NOTHING goes out
+        — no works, no battle — and the order that gives both is offered
+        beside the line (never sent). He still does not fight."""
         _client, world = shipped
         davout = world.get_marshal("Davout")
         assert davout.personality == "cautious", davout.personality
         location, strength = davout.location, davout.strength
+        ap = world.actions_remaining
         reply = run(shipped, "Davout, fortify then attack Mack")
         davout = M.world.get_marshal("Davout")
-        assert reply.get("success") is True, reply.get("message")
+        assert reply.get("success") is False, reply.get("message")
         assert not reply.get("battle_report"), reply.get("message")
-        assert davout.fortified is True
+        assert davout.fortified is False
         assert (davout.location, davout.strength) == (location, strength)
         assert davout.strategic_order is None
+        assert M.world.actions_remaining == ap
         message = reply.get("message") or ""
         assert "One order at a time" in message, message
         assert '"attack Mack"' in message, message
+        assert reply.get("remedy_command") == "Davout, attack Mack then fortify", reply
 
-    def test_an_aggressive_marshal_objects_to_the_head_not_the_tail(self, shipped, monkeypatch):
-        """Ney firmly objects to sitting idle — to the FORTIFY, the order he
-        was given. Before the fix there was nothing to object to: the tail
+    def test_an_aggressive_marshal_is_asked_first_not_objected_to(self, shipped, monkeypatch):
+        """Ney firmly objected to sitting idle — to the FORTIFY, the order he
+        was given. Before CR-7-1 there was nothing to object to: the tail
         had replaced the head and he was already marching. No battle, no
         movement, no men lost, and the tail is still reported.
 
         CR-7-3 (Sept 22, 2026): the V2a trigger rolls a ±1 concern shift
         25% of the time, so this pin was order-dependent (measured: the
         objection fired on 2 of 3 fresh boards in one process); 0.5 is
-        'exactly as evaluated'."""
+        'exactly as evaluated'.
+
+        CC-4 / D6 (October 19, 2026): the contradiction is asked BEFORE the
+        head reaches the executor, so no objection is raised — nothing went
+        out to object to; the reorder is offered beside the line."""
         import backend.commands.objection_v2 as objection_v2
         monkeypatch.setattr(objection_v2.random, "random", lambda: 0.5)
         _client, world = shipped
@@ -177,11 +189,12 @@ class TestTheHeadlineAtTheEndpoint:
         reply = run(shipped, "Ney, fortify then attack Mack")
         ney = M.world.get_marshal("Ney")
         assert not reply.get("battle_report"), reply.get("message")
-        assert reply.get("pending_objection"), reply
+        assert not reply.get("pending_objection"), reply
         assert (ney.location, ney.strength, ney.fortified,
                 M.world.actions_remaining) == before
         message = reply.get("message") or ""
         assert "One order at a time" in message, message
+        assert reply.get("remedy_command") == "Ney, attack Mack then fortify", reply
 
     @pytest.mark.parametrize("command", [
         "Ney, scout Swabia and then attack Mack",

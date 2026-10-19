@@ -235,10 +235,20 @@ class TestTheNonNegotiables:
 class TestThePinnedRefusalsDoNotFlip:
     """The seven refusals PARSE-NEG pinned, and the corpus's own
     `parseneg-*` rows on both worlds: at most 3 may flip by contract;
-    ZERO do."""
+    ZERO did here. CC-4 / D8 (October 19, 2026) flips ONE by ruling — the
+    standing contingency is a held order now (`HELD_BY_D8`); the other six
+    stay refused."""
+
+    HELD_BY_D8 = "Ney, if Mack advances fall back to Lorraine"
+
+    def test_the_d8_line_is_held_as_a_contingency(self, shipped):
+        got = parse(self.HELD_BY_D8)
+        assert got.get("success"), got
+        assert got.get("strategic_type") == "HOLD", got
+        assert (got.get("contingency") or {}).get("to") == "Lorraine", got
 
     SEVEN = [
-        "Ney, if Mack advances fall back to Lorraine",
+        "Ney, if Mack advances, fortify",
         "if Mack advances, Ney should fall back to Lorraine",
         "Ney, attack if Davout supports",
         "Ney, when Davout arrives, attack",

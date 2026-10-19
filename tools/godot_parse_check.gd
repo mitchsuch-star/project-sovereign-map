@@ -211,6 +211,10 @@ const TOOL_SCRIPTS = [
 	# CC-5's Mode C walk (the arrows, `.`, a group order; frames under
 	# docs/audits/cc5_client/) — not driven by a pytest, parsed here
 	"res://../../tools/cc5_mode_c_walk.gd",
+	# CC-4's Mode C walk (the arrival verb, the contradiction asked first, the
+	# standing contingency firing; frames under docs/audits/cc4_client/) —
+	# not driven by a pytest, parsed here
+	"res://../../tools/cc4_mode_c_walk.gd",
 	# CX3-R9 (Score Finish Step 7 slice 8): the completer's screenshot tool —
 	# not driven by a pytest, parsed here because the slice changed it
 	"res://../../tools/cx3_completer_screenshot.gd",

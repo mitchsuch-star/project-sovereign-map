@@ -153,7 +153,9 @@ def _rules(trace, stage):
 THE_FAMILIES = [
     ("Ney, attack Mack", ("dispatch", "attack")),
     ("Ney, hodl Lorraine", ("parser", "repair_leading_verb_typo")),
-    ("Davout, march to Swabia, then hold", ("parser", "split")),
+    # CC-4 / D7: `then hold` after a march is its arrival verb (fused, not
+    # split) — the split family rides a tail no march carries.
+    ("Davout, march to Swabia, then form square", ("parser", "split")),
     ("Ney, do not attack Mack", ("guards", "refusal")),
     ("Davout, march to Swabia", ("strategic", "detected")),
     ("Soult, march home to Franche-Comte", ("strategic", "province_named_after_relative")),

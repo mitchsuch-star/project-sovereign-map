@@ -187,6 +187,22 @@ class StrategicOrder:
     # every saved SUPPORT loads as the support it was.
     standing_follow: bool = False
 
+    # CC-4 / D7 (S13c part 4): what a MOVE_TO does on ARRIVAL — "march to
+    # Vienna then fortify | hold | drill | defend". Read by
+    # `strategic.run_arrival_verb` from `_handle_move_to_arrival` and the
+    # first step's arrival; the march is paid once, the verb runs free.
+    # None on every other order and in every older save.
+    arrival_verb: Optional[str] = None
+
+    # CC-4 / D8 (S13c part 4): a STANDING CONTINGENCY on a HOLD — "Ney, if
+    # Mack advances fall back to Bohemia" / "… if the enemy comes within
+    # reach, attack": {"who": <enemy marshal> | None (any enemy at war),
+    # "then": "fall_back" | "attack", "to": <province> | None, "clause":
+    # the words typed}. Watched at the strategic phase (the hold province
+    # and its neighbours, seen ones only), fired free (`strategic.
+    # contingency_trigger`). None on every other order and older save.
+    contingency: Optional[Dict] = None
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -215,6 +231,8 @@ class StrategicOrder:
             "arrival_target": self.arrival_target,
             "condition_progress": list(self.condition_progress or []),
             "standing_follow": bool(self.standing_follow),
+            "arrival_verb": self.arrival_verb,
+            "contingency": dict(self.contingency) if self.contingency else None,
         }
 
     @classmethod
@@ -249,6 +267,8 @@ class StrategicOrder:
             arrival_target=data.get("arrival_target"),
             condition_progress=list(data.get("condition_progress") or []),
             standing_follow=bool(data.get("standing_follow", False)),
+            arrival_verb=data.get("arrival_verb"),
+            contingency=(dict(data["contingency"]) if data.get("contingency") else None),
         )
 
 

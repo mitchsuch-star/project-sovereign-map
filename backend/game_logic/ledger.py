@@ -292,7 +292,10 @@ def _derive_strategic_order_summary(marshal, current_turn=None, world=None) -> s
                 before_tick=True, location=marshal.location)   # CC-X16
         else:
             turns_left = len(order.path)
-        return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left)"
+        # CC-4 / D7: what the march does on arrival.
+        verb = getattr(order, "arrival_verb", None)
+        then = f" — then {verb}" if verb else ""
+        return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left){then}"
     if cmd == "PURSUE":
         fate = _road.quarry_fate(world, order) if world is not None else None
         if fate:
@@ -308,6 +311,13 @@ def _derive_strategic_order_summary(marshal, current_turn=None, world=None) -> s
             return f"Follow {target} (standing)"
         return f"{get_strategic_display(cmd)} {target} (active)"
     if cmd == "HOLD":
+        # CC-4 / D8: the watch a standing contingency keeps.
+        contingency = getattr(order, "contingency", None)
+        if contingency:
+            from backend.ai.condition_grammar import describe_contingency
+            from backend.display_names import humanize_entity_name
+            return (f"{get_strategic_display(cmd)} at {target} — "
+                    f"{describe_contingency(contingency, humanize_entity_name)}")
         return f"{get_strategic_display(cmd)} at {target}"
     return f"{get_strategic_display(cmd)} {target}"
 
@@ -1762,6 +1772,9 @@ def _derive_condition_text(order, world, location=None) -> str:
                         f"the pursuit ends at the turn's end")
             return "tracking"
         if order.command_type == "HOLD":
+            # CC-4 / D8: a contingency's hold lasts until it fires.
+            if getattr(order, "contingency", None):
+                return "until it fires"
             return "indefinite"
         if order.command_type == "SUPPORT":
             # CC-X19: a fallen friend is said, not "active".

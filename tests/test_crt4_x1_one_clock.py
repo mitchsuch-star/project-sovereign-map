@@ -191,7 +191,9 @@ class TestEverySurfaceAgreesWithTheArrival:
 
     def test_the_relay_counts_the_skipped_tick(self, shipped):
         client, world = shipped
-        r = post(client, "Soult, march to Gascony then fortify")
+        # CC-4 / D7: `then fortify` is the march's arrival verb now; the
+        # relayed moment rides a tail no march carries.
+        r = post(client, "Soult, march to Gascony then form square")
         note = str(r.get("relay_note") or r.get("message") or "")
         m = re.search(r"~(\d+) turn", note)
         assert m, note

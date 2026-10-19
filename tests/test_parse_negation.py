@@ -246,7 +246,14 @@ class TestParserBehaviour:
         assert result["command"].get("target") is None, text
 
     def test_conditional_orders_are_refused_not_executed_now(self, board):
-        for text in ("Ney, if Mack advances fall back to Lorraine",
+        # CC-4 / D8 (October 19, 2026): `Ney, if Mack advances fall back to
+        # Lorraine` is the standing contingency now — a HOLD that watches, not
+        # a march (test_cr7_5's HELD_BY_D8); its row here takes a then-clause
+        # the contingency does not hold.
+        held = run(board, "Ney, if Mack advances fall back to Lorraine")
+        assert held.get("success") and held.get("strategic_type") == "HOLD", held
+        assert held["command"]["action"] != "move", held
+        for text in ("Ney, if Mack advances, fortify",
                      "if Mack advances, Ney should fall back to Lorraine",
                      "Ney, attack if Davout supports",
                      "Ney, when Davout arrives, attack",
@@ -447,12 +454,16 @@ class TestRefusalReachesThePlayer:
 
     def test_conditional_gets_a_different_line_that_teaches_the_supported_form(
             self, endpoint):
+        # CC-4 / D8 (October 19, 2026): `… if Wellington advances fall back to
+        # Paris` is a held contingency now; a then-clause it does not hold is
+        # refused and taught BOTH standing forms.
         data = endpoint.post(
             "/command",
-            json={"command": "Ney, if Wellington advances fall back to Paris"}).json()
+            json={"command": "Ney, if Wellington advances, fortify"}).json()
         assert data["success"] is False
         assert "contingency" in data["message"]
         assert "hold until" in data["message"]
+        assert "fall back to <province>" in data["message"]
 
     def test_a_question_shows_the_command_reference(self, endpoint):
         data = endpoint.post("/command", json={"command": "how do I attack?"}).json()
