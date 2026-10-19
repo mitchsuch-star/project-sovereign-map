@@ -535,7 +535,11 @@ def detect_strategic_command(
         cleaned, target_info["target"], marshal_name, world, condition_override)
 
     # Step 6: Check attack_on_arrival hints
-    attack_on_arrival = _detect_attack_on_arrival(cleaned)
+    # CC-X6: stamped only on the order types whose executor READS it — a
+    # HOLD / SUPPORT carried `attack_on_arrival` (and its object) and fought
+    # nothing ("support Davout until relieved then attack Mack").
+    attack_on_arrival = (strategic_type in ARRIVAL_CARRYING_TYPES
+                         and _detect_attack_on_arrival(cleaned))
     # CR-7-6: the arrival order carries its OBJECT. "march to Swabia then
     # attack Archduke Charles" names a man; before this the bool alone
     # survived and every contact seam fought `enemies[0]`.

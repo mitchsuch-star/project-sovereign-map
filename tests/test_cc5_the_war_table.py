@@ -438,14 +438,17 @@ class TestTheNamedListIsCQ8sRelay:
 
     def test_only_the_first_named_corps_is_spent(self, client):
         """The Emperor first (a sovereign never objects, so his order is
-        simply spent)."""
+        simply spent). RE-SEATED by CC-X17 (S13c part 4, October 19, 2026):
+        the relay used to carry ONE tail, "Davout, fortify", and Soult was
+        only named; it carries every further name now — each Enter gives the
+        first of them his order and hands the rest back. Still never spent."""
         C.boot()
         r = _post(client, "Napoleon, Davout and Soult, fortify")
         w = M.world
         assert w.get_marshal("Napoleon").fortified is True
         assert w.get_marshal("Davout").fortified is False
         assert w.get_marshal("Soult").fortified is False
-        assert r.get("relay_command") == "Davout, fortify"
+        assert r.get("relay_command") == "Davout and Soult, fortify"
         assert "The order goes to the army" not in (r.get("message") or "")
         assert not (r.get("group") or {}).get("members")
 

@@ -263,12 +263,14 @@ def _derive_status(marshal) -> str:
     return "idle"
 
 
-def _derive_strategic_order_summary(marshal, current_turn=None) -> str:
+def _derive_strategic_order_summary(marshal, current_turn=None, world=None) -> str:
     """Format strategic order summary string (player-facing verbs, R7).
 
     CRT-4-X1 (SR-6a): "(N turns left)" is the ONE clock
     (`strategic.order_turns_remaining`, range-aware, +1 on an order issued
     this turn — the Ledger is read before the tick), never the road's length.
+    CC-X9: with the ``world`` it names a quarry already off the board
+    (`strategic.quarry_fate`) — never "(tracking)" a fallen man.
     """
     from backend.display_names import get_strategic_display
     from backend.commands import strategic as _road
@@ -292,8 +294,16 @@ def _derive_strategic_order_summary(marshal, current_turn=None) -> str:
             turns_left = len(order.path)
         return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left)"
     if cmd == "PURSUE":
+        fate = _road.quarry_fate(world, order) if world is not None else None
+        if fate:
+            return (f"{get_strategic_display(cmd)} {target} — {fate}; "
+                    f"the pursuit ends at the turn's end")
         return f"{get_strategic_display(cmd)} {target} (tracking)"
     if cmd == "SUPPORT":
+        if world is not None and _road.support_friend_fallen(world, order):
+            # CC-X19: never "(active)" beside a fallen friend.
+            return (f"{get_strategic_display(cmd)} {target} — {target} has fallen; "
+                    f"the support ends at the turn's end")
         if getattr(order, "standing_follow", False):
             return f"Follow {target} (standing)"
         return f"{get_strategic_display(cmd)} {target} (active)"
@@ -336,7 +346,7 @@ def _build_forces(world, player: str) -> list:
             "stance": marshal.stance.value,
             "status": _derive_status(marshal),
             "strategic_order": _derive_strategic_order_summary(
-                marshal, current_turn=int(world.current_turn)),
+                marshal, current_turn=int(world.current_turn), world=world),
             "battles_won": int(marshal.battles_won),
             "battles_lost": int(marshal.battles_lost),
             "special_flags": {
@@ -1743,10 +1753,23 @@ def _derive_condition_text(order, world, location=None) -> str:
                 return f"{_plural(int(remaining), 'region')} left"
             return "arriving"
         if order.command_type == "PURSUE":
+            # CC-X9: never "tracking" a man already off the board.
+            from backend.commands.strategic import quarry_fate
+            from backend.display_names import order_target_display
+            fate = quarry_fate(world, order)
+            if fate:
+                return (f"{order_target_display(order.target)} {fate} — "
+                        f"the pursuit ends at the turn's end")
             return "tracking"
         if order.command_type == "HOLD":
             return "indefinite"
         if order.command_type == "SUPPORT":
+            # CC-X19: a fallen friend is said, not "active".
+            from backend.commands.strategic import support_friend_fallen
+            if support_friend_fallen(world, order):
+                from backend.display_names import order_target_display
+                return (f"{order_target_display(order.target)} has fallen — "
+                        f"the support ends at the turn's end")
             return "active"
         return "active"
 

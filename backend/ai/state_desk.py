@@ -1593,7 +1593,8 @@ def _answer_orders(world) -> str:
         order = getattr(m, "strategic_order", None)
         if order is None:
             continue
-        rows.append(f"{_display(m.name)}: {_derive_strategic_order_summary(m, world.current_turn)}")
+        rows.append(f"{_display(m.name)}: "
+                    f"{_derive_strategic_order_summary(m, world.current_turn, world=world)}")  # CC-X9
     if not rows:
         return "No standing order is in force, Sire — every marshal awaits the day's orders."
     return "Standing orders, Sire: " + "; ".join(rows) + "."

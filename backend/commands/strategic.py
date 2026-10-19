@@ -1606,6 +1606,33 @@ def remaining_road(order, location: str) -> List[str]:
     return road
 
 
+def quarry_fate(world, order) -> Optional[str]:
+    """CC-X9: "destroyed" or "taken prisoner" when the man a PURSUE hunts is
+    off the board, else None — ONE rule for the pursuit's tick
+    (`_execute_pursue`), the order pass's early check and the Orders tab.
+    A W6-7 prisoner stays in `world.marshals` at strength 0 with
+    `captured_by` set (the Aug 30, 2026 review's distinction). PURE."""
+    if order is None or getattr(order, "command_type", None) != "PURSUE":
+        return None
+    target = world.get_marshal(getattr(order, "target", "") or "")
+    if target is not None and int(getattr(target, "strength", 0) or 0) > 0:
+        return None
+    if target is not None and getattr(target, "captured_by", ""):
+        return "taken prisoner"
+    return "destroyed"
+
+
+def support_friend_fallen(world, order) -> bool:
+    """CC-X19 (CC-X9's sweep): True when the friend a SUPPORT (or a FOLLOW)
+    stands by is off the board — the rule `_execute_support` breaks on ("X
+    has fallen"), read by the order pass's early check and the Orders tab
+    too. PURE."""
+    if order is None or getattr(order, "command_type", None) != "SUPPORT":
+        return False
+    ally = world.get_marshal(getattr(order, "target", "") or "")
+    return ally is None or int(getattr(ally, "strength", 0) or 0) <= 0
+
+
 # CC-5: the order types the war table draws, as the map names them.
 STANDING_ROAD_KINDS = {"MOVE_TO": "march", "PURSUE": "pursue", "HOLD": "hold",
                        "SUPPORT": "support"}
@@ -1631,6 +1658,10 @@ def standing_order_road(world, marshal) -> Dict:
         return {}
     kind = STANDING_ROAD_KINDS.get(str(getattr(order, "command_type", "") or ""))
     if kind is None:
+        return {}
+    if quarry_fate(world, order) or support_friend_fallen(world, order):
+        # CC-X9 / CC-X19: an order whose man is off the board is over — no
+        # arrow runs to a fallen man's ground (the tick ends the order).
         return {}
     if kind == "support" and getattr(order, "standing_follow", False):
         kind = "follow"
@@ -1839,6 +1870,24 @@ class StrategicOrderProcessor:
 
             print(f"[STRATEGIC] {marshal.name}: {order.command_type} -> {order.target} "
                   f"(issued turn {getattr(order, 'issued_turn', '?')})")
+
+            # CC-X9: a pursuit whose quarry is off the board ends NOW. The
+            # issuing-turn skip below, the recovery / wound pauses and the
+            # reinforcement skip all pass over `_execute_pursue`'s own check,
+            # so a first-step kill left "Pursue Archduke John (tracking)" on
+            # the Orders tab a turn after John's corps was destroyed (the
+            # user's live campaign, turn 6).
+            _fate = quarry_fate(world, order)
+            if _fate:
+                reports.append(self._complete_order(
+                    marshal, world, f"{_hum(order.target)} {_fate}"))
+                continue
+            # CC-X19: the support's sibling — a friend off the board breaks
+            # it now, on `_execute_support`'s own words.
+            if support_friend_fallen(world, order):
+                reports.append(self._break_order(
+                    marshal, world, f"{order_target_display(order.target)} has fallen"))
+                continue
 
             # Skip orders issued THIS turn — first step already executed by executor.py
             issued = getattr(order, 'issued_turn', None)
@@ -3389,13 +3438,11 @@ class StrategicOrderProcessor:
         # down and captured him was told the man was "destroyed", and the
         # sentence interpolated `order.target`, which is the raw scenario KEY
         # ("ArchdukeCharles"), the exact NPC-12 shape.
-        if not target or target.strength <= 0:
+        _fate = quarry_fate(world, order)   # CC-X9: the one rule
+        if _fate:
             from backend.display_names import humanize_entity_name
             _quarry = humanize_entity_name(
                 getattr(target, "name", None) or str(order.target))
-            _fate = "destroyed"
-            if target is not None and getattr(target, "captured_by", ""):
-                _fate = "taken prisoner"
             return self._complete_order(marshal, world,
                                         f"{_quarry} {_fate}")
 
@@ -4179,8 +4226,8 @@ class StrategicOrderProcessor:
             return self._break_order(marshal, world,
                                      f"War with {ally.nation} — support cancelled")
 
-        # Ally destroyed?
-        if not ally or ally.strength <= 0:
+        # Ally destroyed?  (CC-X19: the one rule, `support_friend_fallen`)
+        if support_friend_fallen(world, order):
             return self._break_order(marshal, world,
                                      f"{order_target_display(order.target)} has fallen")
 
@@ -4755,6 +4802,17 @@ class StrategicOrderProcessor:
                         label = f"{ally.name} won the battle!" if ally_result == "victory" else f"Battle at {ally.location} concluded."
                         fact = label
             arms.append(("until_battle_won", met, label, fact))
+        cap = getattr(condition, "cap_turns", None)
+        if cap is not None:
+            # CC-X7: a Compromise's agreed timer on an all-of order — never
+            # one of the arms to wait for; `_check_condition` lets it end the
+            # order on its own.
+            met = self._turns_active(order, world) >= int(cap)
+            agreed = _plural_lv9(int(cap), 'turn')
+            arms.append(("cap_turns", met,
+                         (f"{marshal.name} has given the agreed {agreed} — "
+                          f"the order ends there." if met else ""),
+                         f"The agreed {agreed} {'has' if int(cap) == 1 else 'have'} passed."))
         return arms
 
     def _check_condition(self, marshal, condition, world) -> Tuple[bool, str]:
@@ -4762,8 +4820,13 @@ class StrategicOrderProcessor:
         on its own line. All-of (`require_all`, CR-7-9): a newly met arm is
         LATCHED on `order.condition_progress` and reported as progress —
         `(False, note)` — and the order ends when every arm has landed, on the
-        line of the arm that closed the set."""
+        line of the arm that closed the set. CC-X7: an agreed cap
+        (`cap_turns`) ends it on its own, whichever comes first."""
         arms = self._condition_arms(marshal, condition, world)
+        for key, met, label, _fact in arms:
+            if key == "cap_turns" and met:
+                return (True, label)
+        arms = [arm for arm in arms if arm[0] != "cap_turns"]
         if not arms:
             return (False, "")
         if not getattr(condition, "require_all", False):

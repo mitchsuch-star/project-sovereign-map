@@ -166,14 +166,21 @@ class TestWaitForThenAttackDoesNotAttack:
                       "Ney, wait for Davout then attack Mack").get("message")
         assert "One order at a time" in (message or ""), message
 
-    def test_the_engines_own_until_shape_is_untouched(self, shipped):
+    def test_the_engines_own_until_shape_holds_and_names_its_tail(self, shipped):
         """`until` is the ONE condition the engine implements, and
         `Ney, hold until Davout arrives then attack` is a pinned corpus row.
-        It must stay a single parse."""
+        RE-SEATED by CC-X6 (S13c part 4, October 19, 2026): it used to stay a
+        single parse, and the attack fused onto the HOLD vanished — a HOLD
+        never reads `attack_on_arrival`. The hold still goes out with its
+        condition; the attack is the relay's, named as the contradiction it
+        is (the condition is not FA slice 1's two words — those stay fixed
+        by the tests above)."""
         reply = run(shipped, "Ney, hold until Davout arrives then attack")
         assert reply.get("success") is True
         assert "will hold" in (reply.get("message") or "")
-        assert "One order at a time" not in (reply.get("message") or "")
+        assert reply.get("dropped_sequel") == "attack"
+        assert reply.get("relay_kind") == "contradiction"
+        assert "end his standing hold" in (reply.get("relay_note") or "")
 
     def test_attack_on_arrival_still_rides_a_march(self, shipped):
         reply = run(shipped, "Ney, march to Vienna then attack")

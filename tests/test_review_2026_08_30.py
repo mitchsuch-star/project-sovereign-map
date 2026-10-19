@@ -617,7 +617,14 @@ class TestAPrisonerIsNotDestroyed:
         src = _read("backend/commands/strategic.py")
         body = src[src.index("        # Target destroyed — or TAKEN."):]
         body = body[:body.index("        # ═══")]
-        assert "captured_by" in body and "taken prisoner" in body
+        # RE-SEATED by CC-X9 (S13c part 4, October 19, 2026): the two fates
+        # moved into `strategic.quarry_fate`, the ONE rule the pursuit's tick,
+        # the order pass's early check and the Orders tab read — the pin
+        # follows the rule, and the tick is pinned to CALL it.
+        assert "quarry_fate(world, order)" in body
+        rule = src[src.index("def quarry_fate("):]
+        rule = rule[:rule.index("\ndef ")]
+        assert "captured_by" in rule and "taken prisoner" in rule
         assert "humanize_entity_name" in body, (
             "and the raw scenario key must not reach the player — "
             "`order.target` is 'ArchdukeCharles', the NPC-12 shape")

@@ -66,6 +66,13 @@ class StrategicCondition:
     # `StrategicOrder.condition_progress`); False = whichever comes first.
     require_all: bool = False
 
+    # CC-X7 (S13c part 4): a Compromise's agreed timer merged into an ALL-OF
+    # condition. It ends the order on its own, whichever comes first — an
+    # all-of `max_turns` would only be one more arm to wait for. An any-of
+    # condition takes the agreed term as `max_turns` instead (the earlier of
+    # the two), so every clock reader keeps reading the one field.
+    cap_turns: Optional[int] = None
+
     def to_dict(self) -> Dict:
         return {
             "max_turns": self.max_turns,
@@ -75,6 +82,7 @@ class StrategicCondition:
             "until_relieved": self.until_relieved,
             "auto_cancel_below_ratio": self.auto_cancel_below_ratio,
             "require_all": bool(self.require_all),
+            "cap_turns": self.cap_turns,
         }
 
     @classmethod
@@ -87,6 +95,7 @@ class StrategicCondition:
             until_relieved=data.get("until_relieved", False),
             auto_cancel_below_ratio=data.get("auto_cancel_below_ratio"),
             require_all=bool(data.get("require_all", False)),
+            cap_turns=data.get("cap_turns"),
         )
 
 

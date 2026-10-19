@@ -236,17 +236,23 @@ class TestMustKeep:
         assert result.get("attack_on_arrival") is False
         assert "No foe called Wellington" in (result.get("dropped_arrival_note") or "")
 
-    def test_the_engines_one_condition_stays_one_parse(self, shipped):
+    def test_the_engines_one_condition_keeps_its_hold_and_names_the_tail(self, shipped):
         """`until` is the ONE condition the engine implements and
-        `parseneg-until-then-attack-holds` is a pinned corpus row."""
+        `parseneg-until-then-attack-holds` is a pinned corpus row.
+        RE-SEATED by CC-X6 (S13c part 4, October 19, 2026): the line used to
+        stay ONE parse and its attack, stamped on a HOLD that never reads
+        `attack_on_arrival`, vanished in silence. The head is kept exactly —
+        the hold and its condition — and the tail is split and named."""
         result = parse("Ney, hold until Davout arrives then attack Mack")
         assert result["command"]["action"] == "hold"
         assert result.get("strategic_type") == "HOLD"
         assert result.get("strategic_condition") == {"until_marshal_arrives": "Davout"}
-        assert result.get("dropped_sequel") is None
+        assert result.get("dropped_sequel") == "attack Mack"
+        assert not result.get("attack_on_arrival")
         reply = run(shipped, "Ney, hold until Davout arrives then attack Mack")
         assert "will hold" in (reply.get("message") or "")
-        assert "One order at a time" not in (reply.get("message") or "")
+        assert reply.get("relay_kind") == "contradiction"
+        assert '"attack Mack"' in (reply.get("message") or "")
 
     def test_a_stand_still_head_still_splits(self, shipped):
         """FA-7's own case, the one the old exemption DID cover."""

@@ -3991,10 +3991,10 @@
         "strategic_condition": {
           "until_marshal_arrives": "Davout"
         },
-        "dropped_sequel": null
+        "dropped_sequel": "attack"
       },
       "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 6",
-      "notes": "Attacked immediately. `until` is the ONE condition the engine implements, so it is scoped rather than refused: the keyword inside the subordinate clause no longer outranks the main verb, and the StrategicCondition survives intact. | CR-7-2: asserts the compound/conditional key(s) it always produced."
+      "notes": "Attacked immediately. `until` is the ONE condition the engine implements, so it is scoped rather than refused: the keyword inside the subordinate clause no longer outranks the main verb, and the StrategicCondition survives intact. | CR-7-2: asserts the compound/conditional key(s) it always produced. | CC-X6 (S13c part 4, October 19, 2026): RE-SEATED — the attack was fused onto the HOLD, which never reads `attack_on_arrival`, and vanished in silence; it is split now and the relay names it (`contradiction`: it would end his standing hold)."
     },
     {
       "id": "parseneg-unless-elliptical-holds",

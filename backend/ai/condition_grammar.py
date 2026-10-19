@@ -357,18 +357,26 @@ def describe_condition(cond, *, remaining: Optional[int] = None,
         entries.append(("until_marshal_destroyed", f"until {get('until_marshal_destroyed')} is destroyed"))
     if only_unmet:
         entries = [(k, t) for k, t in entries if k not in met]
+    cap = get("cap_turns")
+    # CC-X7: a Compromise's agreed cap on an all-of order is said beside the
+    # arms, never among them (it is not one more thing to wait for).
+    capped = (f"{_plural(int(cap), 'turn')} at most" if cap is not None
+              and not only_unmet else "")
     if not entries:
-        return ""
+        return f"for {capped}" if capped else ""
     if len(entries) == 1:
-        return entries[0][1]
-    if bool(get("require_all")):
+        text = entries[0][1]
+    elif bool(get("require_all")):
         texts = [t + (" (met)" if k in met and not only_unmet else "")
                  for k, t in entries]
         if only_unmet:
             return " and ".join(texts)
         tail = " — both" if len(texts) == 2 else f" — all {len(texts)}"
-        return " and ".join(texts) + tail
-    return " or ".join(t for _k, t in entries) + " — whichever comes first"
+        text = " and ".join(texts) + tail
+    else:
+        alternatives = [t for _k, t in entries] + ([capped] if capped else [])
+        return " or ".join(alternatives) + " — whichever comes first"
+    return f"{text}; or {capped} — whichever comes first" if capped else text
 
 
 def refusal_copy(detail: Dict, marshal_name: Optional[str], world=None,

@@ -830,6 +830,7 @@ Reserved future `event_log` payloads:
 | `until_battle_won` | bool | End when battle won (or stalemate) |
 | `require_all` | bool | CR-7-9 (Sept 22, 2026): `and` between clauses — EVERY arm must be met (all-of, latched on the order's `condition_progress`); `False` (the default, and every older save) = whichever comes first. |
 | `until_relieved` | bool | End when relieved by ally |
+| `cap_turns` | int\|null | CC-X7 (Oct 19, 2026, S13c part 4): a Compromise's agreed timer merged into an ALL-OF condition — it ends the order on its own, whichever comes first (`strategic._check_condition`), never one more arm to wait for. An any-of condition takes the agreed term as `max_turns` instead. Absent in older saves → `None`. |
 
 ---
 

@@ -107,6 +107,89 @@ def cancel_trust_change(order, current_turn: int) -> int:
     return 0 if int(getattr(order, "started_turn", -1)) == int(current_turn) else -3
 
 
+def typed_condition(parsed_command):
+    """CC-X7: the condition the player TYPED, read off the parse — the ONE
+    builder for the order's creation (stage 8) and the Compromise rebuild,
+    which used to rebuild the order with the agreed term alone."""
+    from backend.models.marshal import StrategicCondition
+    cond_dict = (parsed_command or {}).get("strategic_condition")
+    if not cond_dict or not isinstance(cond_dict, dict):
+        return None
+    return StrategicCondition(
+        max_turns=cond_dict.get("max_turns"),
+        until_marshal_arrives=cond_dict.get("until_marshal_arrives"),
+        until_marshal_destroyed=cond_dict.get("until_marshal_destroyed"),
+        until_relieved=cond_dict.get("until_relieved", False),
+        until_battle_won=cond_dict.get("until_battle_won", False),
+        require_all=bool(cond_dict.get("require_all", False)),  # CR-7-9
+    )
+
+
+def merge_agreed_term(condition, compromise_data):
+    """CC-X7: a Compromise's agreed term merged with the typed condition,
+    WHICHEVER COMES FIRST. An any-of condition takes the agreed timer as
+    `max_turns` (the earlier of the two); an all-of one carries it as
+    `cap_turns`, which ends the order on its own. A ratio floor keeps the
+    higher of two floors (the one that breaks off sooner). With no typed
+    condition this is the term alone, exactly as before."""
+    import dataclasses
+    from backend.models.marshal import StrategicCondition
+    turns = (compromise_data or {}).get("max_turns")
+    ratio = (compromise_data or {}).get("auto_cancel_below_ratio")
+    if not turns and not ratio:
+        return condition
+    merged = (dataclasses.replace(condition) if condition is not None
+              else StrategicCondition())
+    if ratio:
+        floor = merged.auto_cancel_below_ratio
+        merged.auto_cancel_below_ratio = ratio if floor is None else max(floor, ratio)
+    if turns:
+        if merged.require_all:
+            cap = merged.cap_turns
+            merged.cap_turns = int(turns) if cap is None else min(int(cap), int(turns))
+        else:
+            mine = merged.max_turns
+            merged.max_turns = int(turns) if mine is None else min(int(mine), int(turns))
+    return merged
+
+
+def order_from_parsed(parsed_command, *, strategic_type, target, target_type,
+                      world, path, condition, snapshot=None,
+                      objection_resolved=False):
+    """CC-X7: the ONE constructor for an order built from a parse — stage 8's
+    and the Compromise rebuild's. The rebuild was a twelve-keyword copy that
+    dropped every field it was not taught (CR-7-6's arrival object once, AO's
+    `standing_follow` until this slice); a field added here reaches both."""
+    from backend.models.marshal import StrategicOrder
+    parsed = parsed_command or {}
+    return StrategicOrder(
+        command_type=strategic_type,
+        target=target or "generic",
+        target_type=target_type,
+        started_turn=world.current_turn,
+        # CR-5 Phase 4: for a delegation-inferred order the RECORD is the
+        # player's verbatim phrase ("Ney, deal with Mack"), not the synthetic
+        # reissue the router re-parsed — rider (d) "words become the record"
+        # (§6.4). Falls back to raw_input for every explicit order.
+        original_command=(parsed.get("delegation_phrase")
+                          or parsed.get("raw_input", "")),
+        path=path,
+        condition=condition,
+        target_snapshot_location=snapshot,
+        attack_on_arrival=parsed.get("attack_on_arrival", False),
+        # CR-7-6: the man the arrival tail named (None for a bare tail).
+        arrival_target=parsed.get("arrival_target"),
+        # CR-5 Phase 4: tag orders the CR-5 router inferred from a delegation
+        # verb so ONLY they get the fortification-aware bad-odds gate.
+        delegation_inferred=parsed.get("delegation_inferred", False),
+        issued_turn=world.current_turn,
+        # AO: "follow <friend>" — the SUPPORT that stands (never lapses on
+        # "secure"); read off the strategic parser's own flag.
+        standing_follow=bool(parsed.get("standing_follow", False)),
+        objection_resolved=objection_resolved,
+    )
+
+
 def _defiant_verb(action: str) -> str:
     """Slice 17 review round (L2-11): the defiance notice's SECOND clause
     needs an infinitive ("chose to attack") and ACTION_DISPLAY is third
@@ -1614,49 +1697,14 @@ class StrategicExecutor:
     def _strategic_create_order(self, ctx: StrategicCommandContext):
         """Stage 8 of `_execute_strategic_command`: The condition, the
         `StrategicOrder`, the old order cancelled, the event logged."""
-        from backend.models.marshal import (
-            StrategicOrder,
-            StrategicCondition,
-        )
         # ── Build condition ───────────────────────────────────────────
-        ctx.condition = None
-        cond_dict = ctx.parsed_command.get("strategic_condition")
-        if cond_dict and isinstance(cond_dict, dict):
-            ctx.condition = StrategicCondition(
-                max_turns=cond_dict.get("max_turns"),
-                until_marshal_arrives=cond_dict.get("until_marshal_arrives"),
-                until_marshal_destroyed=cond_dict.get("until_marshal_destroyed"),
-                until_relieved=cond_dict.get("until_relieved", False),
-                until_battle_won=cond_dict.get("until_battle_won", False),
-                require_all=bool(cond_dict.get("require_all", False)),  # CR-7-9
-            )
+        ctx.condition = typed_condition(ctx.parsed_command)
 
-        # ── Create StrategicOrder ─────────────────────────────────────
-        ctx.order = StrategicOrder(
-            command_type=ctx.strategic_type,
-            target=ctx.target or "generic",
-            target_type=ctx.target_type,
-            started_turn=ctx.world.current_turn,
-            # CR-5 Phase 4: for a delegation-inferred order the RECORD is the
-            # player's verbatim phrase ("Ney, deal with Mack"), not the synthetic
-            # reissue the router re-parsed — rider (d) "words become the record"
-            # (§6.4). Falls back to raw_input for every explicit order.
-            original_command=(ctx.parsed_command.get("delegation_phrase")
-                              or ctx.parsed_command.get("raw_input", "")),
-            path=ctx.path,
-            condition=ctx.condition,
-            target_snapshot_location=ctx.snapshot,
-            attack_on_arrival=ctx.parsed_command.get("attack_on_arrival", False),
-            # CR-7-6: the man the arrival tail named (None for a bare tail).
-            arrival_target=ctx.parsed_command.get("arrival_target"),
-            # CR-5 Phase 4: tag orders the CR-5 router inferred from a delegation
-            # verb so ONLY they get the fortification-aware bad-odds gate.
-            delegation_inferred=ctx.parsed_command.get("delegation_inferred", False),
-            issued_turn=ctx.world.current_turn,
-            # AO: "follow <friend>" — the SUPPORT that stands (never lapses
-            # on "secure"); read off the strategic parser's own flag.
-            standing_follow=bool(ctx.parsed_command.get("standing_follow", False)),
-        )
+        # ── Create StrategicOrder (CC-X7: the one constructor) ────────
+        ctx.order = order_from_parsed(
+            ctx.parsed_command, strategic_type=ctx.strategic_type,
+            target=ctx.target, target_type=ctx.target_type, world=ctx.world,
+            path=ctx.path, condition=ctx.condition, snapshot=ctx.snapshot)
         # CR-7-4 item 5: `until the battle is won` read the MARSHAL-scoped
         # `last_combat_result`, which a battle fought BEFORE this order left
         # standing — so the hold completed on its first tick. A new order
@@ -2374,20 +2422,14 @@ class StrategicExecutor:
                     "variable_action_cost": 0,
                 }
 
-            # Build modified strategic order based on compromise type
-            condition = None
-
-            # Ney HOLD compromise: timed HOLD (3 turns)
-            if compromise_data.get("max_turns"):
-                condition = StrategicCondition(
-                    max_turns=compromise_data["max_turns"]
-                )
-
-            # Davout PURSUE compromise: auto-cancel below ratio
-            if compromise_data.get("auto_cancel_below_ratio"):
-                condition = StrategicCondition(
-                    auto_cancel_below_ratio=compromise_data["auto_cancel_below_ratio"]
-                )
+            # Build modified strategic order based on compromise type: the
+            # Ney HOLD compromise (a timed hold), the Davout PURSUE compromise
+            # (auto-cancel below a ratio). CC-X7: the condition the player
+            # TYPED is kept and the agreed term merged with it, whichever
+            # comes first — it was discarded (Insist kept it, Compromise did
+            # not).
+            typed = typed_condition(parsed_command)
+            condition = merge_agreed_term(typed, compromise_data)
 
             # Davout (cautious) compromise: safe path for MOVE_TO, HOLD, SUPPORT
             if compromise_data.get("safe_path"):
@@ -2425,27 +2467,15 @@ class StrategicExecutor:
             if hasattr(marshal, 'modify_trust'):
                 marshal.modify_trust(v2_compromise_gain)
 
-            # Create the modified strategic order
-            order = StrategicOrder(
-                command_type=strategic_type,
-                target=target or "generic",
-                target_type=command.get("target_type", "region"),
-                started_turn=world.current_turn,
-                # CR-5 Phase 4 rider (d): preserve the verbatim delegation phrase
-                # as the record (§6.4); raw_input for explicit orders.
-                original_command=(parsed_command.get("delegation_phrase")
-                                  or parsed_command.get("raw_input", "")),
-                path=path,
-                condition=condition,
-                target_snapshot_location=parsed_command.get("target_snapshot_location"),
-                attack_on_arrival=parsed_command.get("attack_on_arrival", False),
-                # CR-7-6: the 12-kwarg objection-resume rebuild used to eat
-                # the arrival object on any objection.
-                arrival_target=parsed_command.get("arrival_target"),
-                delegation_inferred=parsed_command.get("delegation_inferred", False),
-                issued_turn=world.current_turn,
-                objection_resolved=True,
-            )
+            # Create the modified strategic order — CC-X7: the ONE
+            # constructor (the 12-kwarg copy here ate CR-7-6's arrival object
+            # once and AO's `standing_follow` until this slice).
+            order = order_from_parsed(
+                parsed_command, strategic_type=strategic_type, target=target,
+                target_type=command.get("target_type", "region"), world=world,
+                path=path, condition=condition,
+                snapshot=parsed_command.get("target_snapshot_location"),
+                objection_resolved=True)
             marshal.last_combat_result = None  # CR-7-4 item 5 (see the primary site)
 
             # Apply the order
@@ -2516,19 +2546,48 @@ class StrategicExecutor:
                     if ally and marshal.location == ally.location and order.arrived_turn is None:
                         order.arrived_turn = world.current_turn
 
-            # Build success message
+            # Build success message — CC-X7: it names the AGREED term (read
+            # off the compromise, not the merged condition, so a typed timer
+            # under a safe-path compromise is not reported as the bargain) and
+            # the typed condition kept beside it.
             first_step_msg = f"{first_step_msg}{capture_tail}"
-            if condition and condition.max_turns:
+            agreed_turns = compromise_data.get("max_turns")
+            if agreed_turns:
                 if strategic_type == "SUPPORT":
-                    msg = f"{marshal.name} agrees to support {target} for {condition.max_turns} turns.{first_step_msg}"
+                    # CC-X18: a FOLLOW kept its standing through the rebuild
+                    # now, and the reply says which order it is.
+                    verb = ("follow" if parsed_command.get("standing_follow")
+                            else "support")
+                    msg = f"{marshal.name} agrees to {verb} {target} for {agreed_turns} turns."
+                elif strategic_type == "HOLD":
+                    msg = f"{marshal.name} agrees to hold position for {agreed_turns} turns."
                 else:
-                    msg = f"{marshal.name} agrees to hold position for {condition.max_turns} turns.{first_step_msg}"
-            elif condition and condition.auto_cancel_below_ratio:
-                msg = f"{marshal.name} will pursue cautiously, breaking off if odds turn against us.{first_step_msg}"
+                    msg = (f"{marshal.name} agrees to carry out the order for "
+                           f"{_plural(int(agreed_turns), 'turn')}.")
+            elif compromise_data.get("auto_cancel_below_ratio"):
+                msg = f"{marshal.name} will pursue cautiously, breaking off if odds turn against us."
             elif compromise_data.get("safe_path"):
-                msg = f"{marshal.name} will take a safer route to {target}.{first_step_msg}"
+                msg = f"{marshal.name} will take a safer route to {target}."
             else:
-                msg = f"{marshal.name} agrees to the compromise.{first_step_msg}"
+                msg = f"{marshal.name} agrees to the compromise."
+            if typed is not None:
+                import dataclasses
+                from backend.ai.condition_grammar import describe_condition
+                echoed = typed
+                if (agreed_turns and typed.max_turns is not None
+                        and int(typed.max_turns) >= int(agreed_turns)):
+                    # A typed timer the agreed one outruns is not said as if
+                    # it still bound him ("for 5 turns" under a 3-turn term).
+                    echoed = dataclasses.replace(typed, max_turns=None)
+                kept = describe_condition(echoed)
+                if kept:
+                    merged_term = (agreed_turns
+                                   or compromise_data.get("auto_cancel_below_ratio"))
+                    suffix = (", whichever comes first"
+                              if merged_term and "whichever comes first" not in kept
+                              else "")
+                    msg += f" Your condition stands — {kept}{suffix}."
+            msg += first_step_msg
 
             return {
                 "success": True,

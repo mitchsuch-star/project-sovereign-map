@@ -249,8 +249,29 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
                 command)
 
 
+def join_names(names) -> str:
+    """"Davout", "Davout and Soult", "Davout, Soult and Lannes"."""
+    names = [str(n) for n in (names or []) if n]
+    if len(names) <= 1:
+        return names[0] if names else ""
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def second_name_chain(tail: str, second: str, names) -> Optional[str]:
+    """CC-X17: the relayed line for EVERY further name of a named list that
+    needs his own order — the parser's tail ("<second>, <order>") re-addressed
+    to the list ("Davout and Soult, fortify"), so each Enter re-splits through
+    `parser._split_second_name`: the first takes his order, the rest ride the
+    line again — one sealed order at a time, never spent by the game (CQ-8).
+    None when the tail is not of that shape (the reward form)."""
+    head = f"{second}, "
+    if not tail or not tail.startswith(head) or not names:
+        return None
+    return f"{join_names(names)}, {tail[len(head):]}"
+
+
 def second_name_relay_note(world, second: str, order: str, *,
-                           spliced: bool = True) -> str:
+                           spliced: bool = True, count: int = 1) -> str:
     """CQ-8 / CQ-38 (Score Finish Step 7 slice 5a): the second man's own
     order, on the line for the seal — never sent by the game. Priced when it
     is his SUPPORT of the first (the order the muster names), from
@@ -271,7 +292,14 @@ def second_name_relay_note(world, second: str, order: str, *,
                 report(exc, "relay.second_name_relay_note: int / marshal.strategic_order_ap")
                 ap = 0
             if ap > 0:
-                price = f" ({_plural(ap, 'action')} when sent)"
+                price = (f" ({_plural(ap, 'action')} when sent)" if count <= 1
+                         else f" ({_plural(ap, 'action')} each, as each is sent)")
+    if count > 1:
+        # CC-X17: the line carries every further name; each Enter gives the
+        # first of them his order and hands the rest back in turn.
+        return (f'Their order is "{order}"{price}: it is on the line — each '
+                f'Enter gives the first named his order and hands the rest '
+                f'back in turn.')
     if spliced:
         return (f'His order is "{order}"{price}: it is on the line — send it '
                 f'when you are ready.')

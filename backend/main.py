@@ -4699,12 +4699,31 @@ def _command_riders(ctx: CommandContext):
         _second_lead = ctx.parsed.get("second_marshal_lead") or _cmd.get("marshal") or ""
         _others = _relay.second_name_others_clause(
             ctx.result, ctx.parsed.get("second_marshal_others") if _second_man else None)
+        _relay_second, _chain_count, _spliced = _second_man, 1, True
         if _second_man:
+            _tail_action = _relay._tail_reading(parser, _tail, ctx.llm_game_state)["action"]
             _unneeded = _relay.second_name_unneeded(
-                world, _second_man,
-                _relay._tail_reading(parser, _tail, ctx.llm_game_state)["action"],
-                ctx.result, _second_lead)
-            if _unneeded:
+                world, _second_man, _tail_action, ctx.result, _second_lead)
+            # CC-X17: every further name that needs his own order rides the
+            # line in turn ("Davout and Soult, fortify" — each Enter gives the
+            # first his order and hands the rest back); a man the muster
+            # counts is still one clause, never on the line. Before this the
+            # relay carried ONE tail and the third man was only named.
+            _further = list(ctx.parsed.get("second_marshal_others") or [])
+            _needing = [n for n in _further if not _relay.second_name_unneeded(
+                world, n, _tail_action, ctx.result, _second_lead)]
+            _names = ([] if _unneeded else [_second_man]) + _needing
+            _chain = (_relay.second_name_chain(_tail, _second_man, _names)
+                      if _names else None)
+            if _chain is not None:
+                _others = _relay.second_name_others_clause(
+                    ctx.result, [n for n in _further if n not in _needing])
+                if _unneeded:
+                    # He marches already; the next name takes his place.
+                    _relay.splice_second_name(ctx.result, _second_man, _unneeded + _others)
+                    _others, _spliced = "", False
+                _tail, _relay_second, _chain_count = _chain, _names[0], len(_names)
+            elif _unneeded:
                 _relay.splice_second_name(ctx.result, _second_man, _unneeded + _others)
                 ctx._relay_obj = None
                 return
@@ -4736,8 +4755,9 @@ def _command_riders(ctx: CommandContext):
         # CQ-8: the second man's own order says what it is and its price.
         if _second_man and ctx._relay_obj.get("relay_kind") == "ready":
             ctx._relay_obj["relay_note"] = _relay.second_name_relay_note(
-                world, _second_man, ctx._relay_obj.get("relay_command") or _tail,
-                spliced=bool(ctx.result.get("success"))) + _others
+                world, _relay_second, ctx._relay_obj.get("relay_command") or _tail,
+                spliced=bool(ctx.result.get("success")) and _spliced,
+                count=_chain_count) + _others
         elif _second_man and ctx._relay_obj.get("relay_kind") == "refused_head":
             ctx._relay_obj["relay_note"] = ctx._relay_obj["relay_line"] = (
                 _relay.second_name_refused_note(

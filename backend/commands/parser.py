@@ -106,16 +106,17 @@ _ATTACK_ON_ARRIVAL_TAIL_RE = levered_arrival_pattern(
 # whatever you find". A first clause that orders the marshal to STAND STILL
 # cannot carry an arrival, so the exemption has nothing to protect.
 #
-# `until` is excluded because it is the one condition the engine actually
-# implements: "Ney, hold until Davout arrives then attack" is a supported
-# standing HOLD and a pinned corpus row, and must stay one parse.
+# CC-X6 (S13c part 4, CC-4): `until` USED to be excluded here as "the one
+# condition the engine implements" — but the engine implements the HOLD and
+# its condition, never the attack: a HOLD / SUPPORT does not read
+# `attack_on_arrival`, so "Ney, hold until Davout arrives then attack" was a
+# hold that dropped its attack in silence. It splits now, like every compound.
 # FA slice 7 review round (R1-2): ONE stand-still vocabulary, shared with
 # the mock chain's wait arm — the slice taught "stay here" / "rest your men"
 # / "stand your ground" to the chain alone, and "Ney, stay here, then attack
 # Mack" FOUGHT because this gate never saw the first clause as a halt.
 _STAND_FAST_FIRST_CLAUSE_RE = re.compile(
     r'\b(?:' + STAND_STILL_ALTERNATION + r')\b', re.IGNORECASE)
-_ENGINE_CONDITION_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 
 # ── CR-7-1: the tail stops eating the head ──────────────────────────────────
 # FA-7's exemption above answered "which heads were REPORTED" (the stand-still
@@ -132,22 +133,17 @@ _ENGINE_CONDITION_RE = re.compile(r'\buntil\b', re.IGNORECASE)
 # the exemption survives when clause 1 is a marching order with a destination
 # — a MOVE_TO / PURSUE keyword from the ONE strategic routing table
 # (`strategic_parser.clause_can_carry_an_arrival`, the two order types whose
-# executor reads the flag) — or when it is a standing order carrying `until`,
-# the one condition the engine implements. Everything else keeps its own
-# order and the tail lands in the existing `dropped_sequel` note. The rule:
-# the tail fuses only onto a march (pinned by
-# test_cr7_1_the_tail_stops_eating_the_head.py).
+# executor reads the flag). Everything else keeps its own order and the tail
+# lands in the existing `dropped_sequel` note. The rule: the tail fuses only
+# onto a march (pinned by test_cr7_1_the_tail_stops_eating_the_head.py).
+# CC-X6: the second arm — a standing order carrying `until` — is gone; the
+# HOLD / SUPPORT it fused onto never read the flag (see above), so the tail
+# is reported and judged by the relay like any other.
 
 
 def _head_can_carry_arrival(first: str) -> bool:
     """CR-7-1 — may an attack tail fuse onto this head?  See the rule above."""
-    if clause_can_carry_an_arrival(first):
-        return True
-    # `until` rides a STANDING order only — "fortify until Davout arrives
-    # then attack Mack" is a tactical fortify and a reported tail, not a
-    # fused attack (measured: a bare `until` arm re-opened the swallow there).
-    return bool(_ENGINE_CONDITION_RE.search(first)
-                and clause_is_a_standing_order(first))
+    return clause_can_carry_an_arrival(first)
 
 
 # CR-7-1 rider (CQ-9): "move to" / "go to" are the TACTICAL move by design
