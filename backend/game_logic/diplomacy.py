@@ -14029,6 +14029,11 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             # the paradox — an ally still at war with this court) shuts it
             # with FA-D17's words, exactly as on the ARMISTICE page.
             actions.append(_proposal_action("propose_peace", "Propose Peace", "PEACE"))
+        # PC-X42: the war's purpose and its articles have their Cabinet row
+        from backend.game_logic.declared_goals import war_purpose_action
+        _purpose_row = war_purpose_action(world, player, target_nation)
+        if _purpose_row:
+            actions.append(_purpose_row)
         actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
         actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 

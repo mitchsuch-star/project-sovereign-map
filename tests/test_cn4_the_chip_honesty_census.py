@@ -771,6 +771,7 @@ WIZARD_NATION = {  # a court on which the action is legal on the staged board
     "send_ultimatum": "Prussia", "invest_vassal": "Holland",
     "increase_autonomy": "Holland", "decrease_autonomy": "Holland",
     "release_vassal": "Holland", "grant_region_to_vassal": "Holland",
+    "set_war_purpose": "Austria",   # PC-X42: a war on the boot's defensive purpose
 }
 PROPOSAL_WORD = {  # the treaty the confirm dialogue must name
     "propose_armistice": "Armistice", "propose_peace": "Peace Treaty",

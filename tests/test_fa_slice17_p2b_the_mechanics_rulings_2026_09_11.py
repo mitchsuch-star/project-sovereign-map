@@ -68,7 +68,8 @@ class TestD4TheSpineWarHasAPurpose:
         row = next(r for r in build_active_wars(w)["wars"] if r.get("is_multi_participant_war"))
         assert row["objective"]["type"] == "defense"
         assert row["enemy_objective"]["type"] == "defense"
-        assert f"'set war purpose against {row['opponent']}'" in row["objective_hint"]
+        # PC-X42 (S14 part 2): the hint names the Cabinet row, never a typed verb
+        assert f"Set War Purpose (F1 → {row['opponent']})" in row["objective_hint"]
         assert "defensive purpose only" in row["objective_hint"]
 
     def test_the_player_may_still_name_a_purpose_of_his_own(self):

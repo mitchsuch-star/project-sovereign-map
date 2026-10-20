@@ -460,6 +460,22 @@ def objective_articles(record: Optional[Mapping[str, Any]]) -> List[Mapping[str,
             if isinstance(a, Mapping) and not a.get("settled")]
 
 
+def war_purpose_action(world: Any, player: str, target: str) -> Optional[Dict[str, Any]]:
+    """PC-X42 (the user's rule: diplomacy is never typed): the Cabinet row
+    that names a war's purpose and its articles — offered while France's
+    purpose against `target` is the declaration's default `defense` (every
+    war of the 1805 boot) or none; a purpose of her own cannot change
+    mid-war (`_set_war_purpose_inner`)."""
+    if world.get_diplomatic_state(player, target) != "WAR":
+        return None
+    rec = _record(world, player, target)
+    if rec is not None and rec.get("concluded_turn") is None and rec.get("type") != "defense":
+        return None
+    return {"action": "set_war_purpose", "display_name": "Set War Purpose", "dp_cost": 0,
+            "available": True, "disabled_reason": "",
+            "effect_text": f"name what the war is for, and up to {MAX_DECLARED_ARTICLES} articles"}
+
+
 def declared_province_ask(world: Any, nation: str, recipient: str,
                           held: Iterable[str]) -> str:
     """PC-X40 (GR5): the province a court's dictated letter asks first is the

@@ -1099,6 +1099,10 @@ func _build_command(action_id: String, nation: String, action_payload: Dictionar
 			return "ask " + nation + " to return " + ask_region
 		"bid_for_allegiance":
 			return "bid for " + nation + ", 100 gold"
+		# PC-X42 (S14 part 2): the war's purpose and its articles — the
+		# card's two steps open from this row (diplomacy is never typed).
+		"set_war_purpose":
+			return "set war purpose against " + nation
 		"propose_armistice":
 			return "propose armistice with " + nation
 		"propose_peace":

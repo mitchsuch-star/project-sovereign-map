@@ -2638,11 +2638,6 @@ func _execute_command():
 # purpose against Austria" contains the war-declaration substring "war
 # against ", and the parser checks war purpose first too.
 const DIPLO_NO_HOME_KEYWORDS = [
-	"set war purpose",
-	"war purpose",
-	"set objective",
-	"declare purpose",
-	"set war goal",
 	"repudiate bargain",
 	"repudiate the bargain",
 	"break bargain",
@@ -2667,7 +2662,14 @@ const DIPLO_WAR_ROOM_KEYWORDS = [
 ]
 
 # The Cabinet's family — mirrored from the parser's keyword blocks.
+# PC-X42 (S14 part 2): the war purpose has its Cabinet row now (F1 → the
+# court → Set War Purpose), so its typed verb is claimed like the rest.
 const DIPLO_FAMILY_KEYWORDS = [
+	"set war purpose",
+	"war purpose",
+	"set objective",
+	"declare purpose",
+	"set war goal",
 	"declare war on",
 	"declare war against",
 	"go to war with",
@@ -2964,8 +2966,9 @@ func _redirect_diplomatic_command(command: String) -> bool:
 	marshal reward verbs (rente / endow / commission — the reward economy
 	is not diplomacy), read-only advisories and questions, dialogue
 	answers (not sentence-shaped), the underscore redemption tokens, and
-	the three verbs with no UI home (make_amends, set_war_purpose,
-	repudiate_bargain)."""
+	the two verbs with no UI home yet (make_amends, repudiate_bargain — rows
+	PC-X43 / X44, homed to S14 part 3; set_war_purpose has its Cabinet row
+	since PC-X42)."""
 	var lower := command.to_lower().strip_edges()
 	if lower.is_empty():
 		return false
@@ -3029,6 +3032,10 @@ func _is_priced_bid(lower: String) -> bool:
 # display names), named in the door's refusal: "F1 → Prussia → Buy Off
 # Their Design".
 const DIPLO_CABINET_CONTROLS = [
+	["war purpose", "Set War Purpose"],
+	["set objective", "Set War Purpose"],
+	["declare purpose", "Set War Purpose"],
+	["set war goal", "Set War Purpose"],
 	["buy off", "Buy Off Their Design"],
 	["bought off", "Buy Off Their Design"],
 	["pay off", "Buy Off Their Design"],

@@ -3593,6 +3593,43 @@ class TestTheS14Part2Siblings:
         assert w.threat_by_target["France"] == 18
 
 
+    def test_x42_the_war_purpose_has_its_cabinet_row(self, w):
+        """The user's rule (October 20, 2026): diplomacy is never typed. The
+        war purpose — and with it the boot wars' articles — had no UI home
+        (`main.gd`'s no-home list kept it typed, and the war panel's hint
+        told the player to type it). It is a Cabinet row now: F1 → the court
+        → Set War Purpose, on every war still on the default defensive
+        purpose; the hint names the row; the typed verb is claimed."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic.war_status import build_active_wars
+
+        def row_for(court):
+            return next((r for r in _rows(w, court) if r.get("action") == "set_war_purpose"), None)
+        for court in ("Austria", "Britain", "Russia"):
+            row = row_for(court)
+            assert row and row["available"] and row["display_name"] == "Set War Purpose", court
+            assert row["effect_text"] == "name what the war is for, and up to 2 articles"
+        assert row_for("Prussia") is None                        # at peace: no war to name
+        with _quiet():
+            war = next(r for r in build_active_wars(w)["wars"] if r.get("status") == "war")
+        assert "Set War Purpose (F1 → " in war["objective_hint"]
+        assert "'set war purpose" not in war["objective_hint"]
+        # the wizard's echo opens the card; a purpose of her own retires the row
+        wizard = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
+        assert '"set_war_purpose":\n\t\t\treturn "set war purpose against " + nation' in wizard
+        ex = CommandExecutor()._diplomatic
+        with _quiet():
+            ex._execute_set_war_purpose({"target_nation": "Austria"}, {"world": w})
+            assert w.pending_diplomatic_dialogue["type"] == "war_purpose_selection"
+            ex.handle_diplomatic_dialogue_response("1", {"world": w})        # Conquest
+            ex.handle_diplomatic_dialogue_response("1", {"world": w})        # no articles
+        assert w.war_objectives[w._make_diplo_key("France", "Austria")]["France"]["type"] == "conquest"
+        assert row_for("Austria") is None
+        main = (SCRIPTS / "main.gd").read_text(encoding="utf-8")
+        no_home = main[main.index("const DIPLO_NO_HOME_KEYWORDS"):main.index("const DIPLO_WAR_ROOM_KEYWORDS")]
+        assert "war purpose" not in no_home
+
+
 class TestPCF41:
     def test_every_peace_row_names_the_courts_it_addresses(self, vienna_held):
         with _quiet():

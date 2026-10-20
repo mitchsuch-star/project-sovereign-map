@@ -78,15 +78,17 @@ FAMILY_ACTIONS = {
     "propose_common_peace",
     "propose_white_peace",
     "request_terms",
+    # PC-X42 (S14 part 2, the user's rule: diplomacy is never typed): the
+    # war purpose has its Cabinet row (F1 → the court → Set War Purpose).
+    "set_war_purpose",
 }
 
 # Documented exclusions — these reach the backend as they always did,
 # each for a reason recorded in the spec's family table.
 EXCLUDED_ACTIONS = {
     # No wizard/panel home (§2 G1-11): redirecting them would make them
-    # unreachable outright.
+    # unreachable outright (PC-X43 / X44 give them rows at S14 part 3's head).
     "make_amends",
-    "set_war_purpose",
     "repudiate_bargain",
     # Read-only counsel.
     "diplomatic_advisory",
@@ -460,26 +462,34 @@ class TestTheCorpusCensus:
 
     def test_the_no_home_verbs_are_never_intercepted(self, corpus, lists,
                                                      nation_forms):
-        """§2 G1-11 as a falsifiable negative: make_amends,
-        set_war_purpose and repudiate_bargain have NO wizard home, so
-        redirecting them would make them unreachable outright. Note
-        `set war purpose against Austria` carries the war-declaration
-        substring `war against ` — precedence, not luck, is what saves
-        it."""
+        """§2 G1-11 as a falsifiable negative: make_amends and
+        repudiate_bargain have NO wizard home yet, so redirecting them
+        would make them unreachable outright. Note
+        (set_war_purpose left this list with PC-X42 — its Cabinet row —
+        and is claimed now, `test_the_war_purpose_is_claimed_and_named`)."""
         checked = set()
         for row in corpus:
             action = (row.get("expected") or {}).get("action")
-            if action not in {"make_amends", "set_war_purpose",
-                              "repudiate_bargain"}:
+            if action not in {"make_amends", "repudiate_bargain"}:
                 continue
             checked.add(action)  # noqa: PERF401
             assert _redirect_verdict(
                 row["utterance"], lists, nation_forms) == "", (
                 f"{action} has no UI home and must stay typed: "
                 f"{row['utterance']!r}")
-        assert checked == {"make_amends", "set_war_purpose",
-                           "repudiate_bargain"}, (
+        assert checked == {"make_amends", "repudiate_bargain"}, (
             f"corpus coverage lost for the no-home verbs: {checked}")
+
+    def test_the_war_purpose_is_claimed_and_named(self, corpus, lists, nation_forms):
+        """PC-X42 (S14 part 2): the war purpose has its Cabinet row — the
+        typed verb is claimed and the door names "Set War Purpose"."""
+        rows = [r for r in corpus
+                if (r.get("expected") or {}).get("action") == "set_war_purpose"]
+        assert rows, "the corpus lost its war-purpose row — the pin is blind"
+        for row in rows:
+            assert _redirect_verdict(row["utterance"], lists, nation_forms) == "cabinet", row
+        gd = MAIN_GD.read_text(encoding="utf-8")
+        assert '["war purpose", "Set War Purpose"]' in gd
 
     def test_counsel_stays_spoken(self, corpus, lists, nation_forms):
         """Advisories and feasibility questions are read-only — and one
@@ -859,7 +869,7 @@ class TestTheHelpTeachesTheDoor:
 
 READ_ONLY_PARSE_ACTIONS = {
     "diplomatic_advisory", "diplomatic_feasibility", "diplomatic_error",
-    "make_amends", "set_war_purpose", "repudiate_bargain",
+    "make_amends", "repudiate_bargain",
 }
 DIPLOMATIC_PARSE_ACTIONS = FAMILY_ACTIONS | READ_ONLY_PARSE_ACTIONS
 

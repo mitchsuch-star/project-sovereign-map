@@ -492,6 +492,11 @@ class TestActionFilters:
                 assert a["dp_cost"] == 0
                 assert "one-on-one war" in a["disabled_reason_display"]
                 continue
+            # PC-X42 (S14 part 2): naming the war's purpose costs nothing
+            # (0 DP, 0 AP) — the Cabinet row stays open at 0 DP.
+            if a["action"] == "set_war_purpose":
+                assert a["available"] is True and a["dp_cost"] == 0
+                continue
             assert a["available"] is False
             assert "Insufficient DP" in a["disabled_reason"]
 
