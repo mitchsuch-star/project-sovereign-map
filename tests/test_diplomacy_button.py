@@ -497,6 +497,11 @@ class TestActionFilters:
             if a["action"] == "set_war_purpose":
                 assert a["available"] is True and a["dp_cost"] == 0
                 continue
+            # PC-X47: Subjugate costs no DP — its gate is the beaten court
+            # (`vassal.subjugation_refusal`), said in its own words.
+            if a["action"] == "subjugate":
+                assert a["dp_cost"] == 0 and "still stands" in a["disabled_reason"]
+                continue
             assert a["available"] is False
             assert "Insufficient DP" in a["disabled_reason"]
 

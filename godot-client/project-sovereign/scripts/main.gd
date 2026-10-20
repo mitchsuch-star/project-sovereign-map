@@ -2631,13 +2631,24 @@ func _execute_command():
 # the pin regex-extracts them.
 # ════════════════════════════════════════════════════════════
 
-# Checked FIRST, mirroring the parser's own precedence — these three
-# verbs have NO wizard/panel home (§2 G1-11), so redirecting them would
-# make them unreachable outright. They keep their typed route, and the
-# exemption is recorded rather than silent. Precedence matters: "set war
-# purpose against Austria" contains the war-declaration substring "war
-# against ", and the parser checks war purpose first too.
-const DIPLO_NO_HOME_KEYWORDS = [
+# The war room owns this one verb (recorded decision, spec §3 slice 7:
+# the wizard has no request_terms case; the war-detail button is the
+# live, verified home — reversible by removing these two entries).
+const DIPLO_WAR_ROOM_KEYWORDS = [
+	"request terms",
+	"request their terms",
+]
+
+# The Cabinet's family — mirrored from the parser's keyword blocks.
+# PC-X42 … X45 (S14 part 2, the user's rule: diplomacy is never typed): the
+# war purpose, Make Amends and the bargain's repudiation have their Cabinet
+# rows now (F1 → the court → the row), so their typed verbs are claimed like
+# the rest — no diplomatic verb keeps a typed-only road.
+const DIPLO_FAMILY_KEYWORDS = [
+	"for recognition",
+	"to recognize",
+	"to recognise",
+	"sweeten",
 	"repudiate bargain",
 	"repudiate the bargain",
 	"break bargain",
@@ -2651,20 +2662,6 @@ const DIPLO_NO_HOME_KEYWORDS = [
 	"repair relations",
 	"offer reparations",
 	"send reparations",
-]
-
-# The war room owns this one verb (recorded decision, spec §3 slice 7:
-# the wizard has no request_terms case; the war-detail button is the
-# live, verified home — reversible by removing these two entries).
-const DIPLO_WAR_ROOM_KEYWORDS = [
-	"request terms",
-	"request their terms",
-]
-
-# The Cabinet's family — mirrored from the parser's keyword blocks.
-# PC-X42 (S14 part 2): the war purpose has its Cabinet row now (F1 → the
-# court → Set War Purpose), so its typed verb is claimed like the rest.
-const DIPLO_FAMILY_KEYWORDS = [
 	"set war purpose",
 	"war purpose",
 	"set objective",
@@ -2965,10 +2962,9 @@ func _redirect_diplomatic_command(command: String) -> bool:
 	Deliberately NOT claimed, each recorded in the spec's family table:
 	marshal reward verbs (rente / endow / commission — the reward economy
 	is not diplomacy), read-only advisories and questions, dialogue
-	answers (not sentence-shaped), the underscore redemption tokens, and
-	the two verbs with no UI home yet (make_amends, repudiate_bargain — rows
-	PC-X43 / X44, homed to S14 part 3; set_war_purpose has its Cabinet row
-	since PC-X42)."""
+	answers (not sentence-shaped) and the underscore redemption tokens —
+	nothing else: since PC-X42 … X45 every diplomatic verb has its Cabinet
+	row, so none keeps a typed-only road."""
 	var lower := command.to_lower().strip_edges()
 	if lower.is_empty():
 		return false
@@ -2984,17 +2980,8 @@ func _redirect_diplomatic_command(command: String) -> bool:
 	if _is_advisory_question(lower):
 		return false
 
-	# The no-home verbs keep their typed route, checked FIRST exactly as
-	# the parser checks them first.
-	for keyword in DIPLO_NO_HOME_KEYWORDS:
-		if keyword in lower:
-			return false
-
-	# DDB-10 (Pre-Deploy S13b): the typed bid the rail itself echoes ("bid
-	# for Sardinia, 1500 gold") is a PRICED order — its sum is the one thing
-	# the chips (100g) cannot say — and passes the door.
-	if _is_priced_bid(lower):
-		return false
+	# PC-X45: the priced bid no longer passes — its sum is chosen on the
+	# Cabinet row (DDB-10 let it through while the chip could bid only 100g).
 
 	for keyword in DIPLO_WAR_ROOM_KEYWORDS:
 		if keyword in lower:
@@ -3015,23 +3002,18 @@ func _redirect_diplomatic_command(command: String) -> bool:
 	command_input.grab_focus()
 	return true
 
-func _is_priced_bid(lower: String) -> bool:
-	"""DDB-10: "bid for <court>, <N> gold" — a court named and a sum of gold."""
-	var at := lower.find("bid for ")
-	if at < 0:
-		return false
-	var tail := lower.substr(at + "bid for ".length())
-	if not _names_a_nation(tail):
-		return false
-	var sum := RegEx.new()
-	sum.compile("\\d[\\d,]*\\s*(gold|g)\\b")
-	return sum.search(tail) != null
-
-
 # DDB-10: the Cabinet row each refused verb lives on (the wizard's own
 # display names), named in the door's refusal: "F1 → Prussia → Buy Off
 # Their Design".
 const DIPLO_CABINET_CONTROLS = [
+	["recognition", "Offer Gold for Recognition (while the Congress sits)"],
+	["vassalize", "Subjugate (at war), or Propose Vassal (at peace)"],
+	["subjugate", "Subjugate (at war), or Propose Vassal (at peace)"],
+	["licen", "Sponsor Their Design — Licence"],
+	["amends", "Make Amends"],
+	["reparations", "Make Amends"],
+	["repair relations", "Make Amends"],
+	["bargain", "Repudiate the Bargain"],
 	["war purpose", "Set War Purpose"],
 	["set objective", "Set War Purpose"],
 	["declare purpose", "Set War Purpose"],
@@ -3046,7 +3028,7 @@ const DIPLO_CABINET_CONTROLS = [
 	["guarantee", "Guarantee Their Borders"],
 	["cancel mission", "Cancel (the mission's row), or Recall on the rail"],
 	["recall", "Cancel (the mission's row), or Recall on the rail"],
-	["bid for", "Bid for Their Allegiance (or type 'bid for <court>, <N> gold')"],
+	["bid for", "Bid for Their Allegiance (choose the sum on the row)"],
 	["declare war", "Declare War"],
 	["ultimatum", "Send Ultimatum"],
 	["break treaty", "Break Treaty"],

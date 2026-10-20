@@ -720,7 +720,8 @@ class TestTheSummonableGateIsNews:
         assert "THE CONGRESS OF PARIS MAY BE SUMMONED" in head["text"]
         assert f"of {need} titled provinces" in head["text"]
         assert "Paris is ours" in head["text"]
-        assert "summon the congress" in head["text"]
+        # PC-X51 (S14 part 2, the user's rule: never typed): the Cabinet's row
+        assert "the Congress of Paris row" in head["text"] and "or type" not in head["text"]
         assert world.congress.get("summonable_told", {}).get("turn") == int(world.current_turn)
 
     def test_the_terms_beneath_it(self, world):

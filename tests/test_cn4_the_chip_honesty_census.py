@@ -772,6 +772,8 @@ WIZARD_NATION = {  # a court on which the action is legal on the staged board
     "increase_autonomy": "Holland", "decrease_autonomy": "Holland",
     "release_vassal": "Holland", "grant_region_to_vassal": "Holland",
     "set_war_purpose": "Austria",   # PC-X42: a war on the boot's defensive purpose
+    "set_autonomy": "Holland",      # PC-X50: a satellite of ours
+    "make_amends_grievance": "Prussia", "repudiate_bargain": "Prussia",
 }
 PROPOSAL_WORD = {  # the treaty the confirm dialogue must name
     "propose_armistice": "Armistice", "propose_peace": "Peace Treaty",
@@ -793,6 +795,13 @@ def _wizard_cases():
             payloads = [{"aim": "Hanover", "amount": 200}, {"amount": 200}]
         if action_id == "grant_region_to_vassal":
             payloads = [{"region": CEDE_REGION}, {}]
+        if action_id == "bid_for_allegiance":
+            # PC-X45: the sum chosen on the row, and the chip's own 100
+            payloads = [{"amount": 500}, {}]
+        if action_id == "recognition_sweetener":
+            payloads = [{"amount": 2000}, {}]                  # PC-X46
+        if action_id == "set_autonomy":
+            payloads = [{"level": "puppet"}, {}]               # PC-X50
         for payload in payloads:
             cases.append([action_id, nation, payload])
     return cases
@@ -810,8 +819,10 @@ def _expected_echo(action_id, nation, payload):
     else:
         assert len(rets) == 1, (action_id, rets)
         expr = rets[0]
+    default_amount = {"bid_for_allegiance": 100, "recognition_sweetener": 1000}.get(action_id, 200)
     return _compose(expr.strip(), nation=nation, aim=payload.get("aim", ""),
-                    amount=payload.get("amount", 200),
+                    amount=payload.get("amount", default_amount),
+                    level=payload.get("level", "satellite"),
                     cede_region=payload.get("region", ""),
                     ask_region=payload.get("region", ""))
 
@@ -848,7 +859,7 @@ class TestTheWizardSaysWhatItSends:
         for action_id, code in arms:
             nation = WIZARD_NATION.get(action_id, "Prussia")
             for ret in re.findall(r"return (.+)", code):
-                text = _compose(ret.strip(), nation=nation, aim="Hanover", amount=200,
+                text = _compose(ret.strip(), nation=nation, aim="Hanover", amount=200, level="satellite",
                                 cede_region=CEDE_REGION, ask_region="")
                 client = _wizard_board()
                 if action_id == "cancel_mission":

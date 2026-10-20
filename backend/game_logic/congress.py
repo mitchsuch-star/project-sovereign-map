@@ -1470,7 +1470,8 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
                            "the Congress sits, and the peace it signs then "
                            "recognizes the order")
             out["levers"] = [{"key": "summon", "value": None,
-                              "text": "summon the Congress", "command": SUMMON_COMMAND}]
+                              "text": "summon the Congress", "command": SUMMON_COMMAND,
+                              "control": "F1 → The Congress of Paris"}]
         else:
             out["text"] = ("sign the peace it sues for — its envoy brings the terms "
                            "(a peace signed while the Congress sits recognizes the order)")
@@ -1560,7 +1561,10 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
         gold = _sweetener_gold(paid, per, points)
         levers.append({"key": "sweetener", "value": points, "gold": gold,
                        "text": f"a {gold:,}g sweetener at the table (+{points})",
-                       "command": f"offer {court} {gold} gold for recognition"})
+                       "command": f"offer {court} {gold} gold for recognition",
+                       # PC-X51: the ledger names the row, never the typed line
+                       "control": (f"F1 → {_display(court)} → Offer Gold for "
+                                   f"Recognition ({gold:,}g)")})
     # 2. The design — buy it off (the chain), where buying can turn it.
     if comps.get("design", 0) < DESIGN_TERM and not at_war:
         chain = _buy_off_chain(world, court)
@@ -2811,8 +2815,8 @@ def sweetener_refusal(world, court: str, amount: int) -> Optional[str]:
     if not armed(world):
         return "There is no Congress of Paris in this campaign."
     if not sitting(world):
-        return ("A sweetener is paid at the table — summon the Congress first "
-                f"({CABINET_HINT}).")
+        return (f"A sweetener for {_display(court)} is paid at the table — summon "
+                f"the Congress first ({CABINET_HINT}).")
     if court not in great_powers(world):
         return f"{_display(court)} is not a great power — it has no seat at the Congress."
     if court_gone(world, court):
@@ -2889,8 +2893,9 @@ def sweetener_amount(text: str) -> tuple:
     distinct = sorted(set(figures))
     if len(distinct) > 1:
         shown = " and ".join(f"{g:,}g" for g in distinct[:2])
-        return None, (f"The line names two sums ({shown}) — name one, Sire: "
-                      f"'offer Prussia 1000 gold for recognition'.")
+        return None, (f"The line names two sums ({shown}) — one, Sire: the "
+                      f"Cabinet row offers them (F1 → the court → Offer Gold "
+                      f"for Recognition).")
     if distinct:
         return distinct[0], None
     bare = []

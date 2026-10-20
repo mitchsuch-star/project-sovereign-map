@@ -271,7 +271,8 @@ class TestDD017TheDesksIdioms:
         ("declare war saxony", "war purpose against Saxony"),
         ("Stables in Burgundy, build them", "Burgundy"),
         ("Tighten the leash on Holland — lower its autonomy", "Holland autonomy changed"),
-        ("naval landing ireland", "Name the marshal who is to embark"),
+        # PC-X51 (S14 part 2): the refusal names the map's landing chip
+        ("naval landing ireland", "Choose who embarks"),
     ])
     def test_the_idiom_reaches_its_desk(self, client, line, expect):
         reply = _post(client, line)

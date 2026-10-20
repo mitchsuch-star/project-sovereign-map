@@ -265,6 +265,8 @@ def _wizard_echo_table():
         ret = re.search(r"return (.+)", arm_body)
         assert ret, action_id
         echo = eval(ret.group(1), {"nation": "Prussia", "aim": "Austria", "amount": 200, "str": str,
+                                   # PC-X50: the autonomy jump's level var
+                                   "level": "satellite",
                                    # DD-1 S8: the ask-back arm's province var
                                    "ask_region": "Provence"})
         table[action_id] = echo

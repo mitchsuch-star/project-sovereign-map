@@ -3626,8 +3626,214 @@ class TestTheS14Part2Siblings:
         assert w.war_objectives[w._make_diplo_key("France", "Austria")]["France"]["type"] == "conquest"
         assert row_for("Austria") is None
         main = (SCRIPTS / "main.gd").read_text(encoding="utf-8")
-        no_home = main[main.index("const DIPLO_NO_HOME_KEYWORDS"):main.index("const DIPLO_WAR_ROOM_KEYWORDS")]
-        assert "war purpose" not in no_home
+        assert "DIPLO_NO_HOME_KEYWORDS" not in main          # PC-X43 … X45 emptied it
+        family = main[main.index("const DIPLO_FAMILY_KEYWORDS"):main.index("const DIPLO_NATION_GATED_PREFIXES")]
+        assert '"set war purpose"' in family
+
+
+class TestDiplomacyIsNeverTyped:
+    """The user's rule (October 20, 2026): "diplo stuff should never be typed"
+    — every diplomatic act has a UI control carrying everything it needs.
+    PC-X43 Make Amends, PC-X44 the bargain's repudiation and PC-X45 the
+    bid's sum had only a typed road; each has its Cabinet row now, built
+    from its executor's own gates, and the door claims every typed verb."""
+
+    @staticmethod
+    def _row(world, court, action):
+        return next((r for r in _rows(world, court) if r.get("action") == action), None)
+
+    @staticmethod
+    def _send(world, line):
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.parser import CommandParser
+        with _quiet():
+            return CommandExecutor().execute(
+                CommandParser(use_real_llm=False).parse(line, game_state={"world": world}),
+                {"world": world})
+
+    def test_x43_make_amends_has_its_cabinet_row(self, w):
+        from backend.game_logic.diplomacy import _betrayal_key
+        assert self._row(w, "Prussia", "make_amends") is None          # nothing to repair
+        w.betrayal_history[_betrayal_key("France", "Prussia")] = {
+            "strikes": [{"severity": "medium", "turn": 0, "episode_id": "ep_s", "decays_on_turn": 10}],
+            "grievance_flags": [{"turn": 0, "episode_id": "ep_g", "kind": "abandoned_alliance"}],
+            "categories": ["treaty_breach", "grievance"], "last_turn": 0}
+        w.nation_gold["France"] = 1000
+        w.diplomatic_points = 4
+        std = self._row(w, "Prussia", "make_amends")
+        grv = self._row(w, "Prussia", "make_amends_grievance")
+        assert std["available"] and (std["gold_cost"], std["dp_cost"]) == (200, 1)
+        assert grv["available"] and (grv["gold_cost"], grv["dp_cost"]) == (400, 2)
+        assert grv["display_name"] == "Make Amends for the Abandoned Alliance"
+        wizard = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
+        assert '"make_amends":\n\t\t\treturn "make amends with " + nation' in wizard
+        # the row's echo acts — a strike cleared, priced as the row said
+        out = self._send(w, "make amends with Prussia")
+        assert out.get("success"), out.get("message")
+        assert int(w.nation_gold["France"]) == 800 and int(w.diplomatic_points) == 3
+        # the shared cooldown now shuts both rows in the executor's own words
+        assert not self._row(w, "Prussia", "make_amends_grievance")["available"]
+        assert "turns ago" in self._row(w, "Prussia", "make_amends_grievance")["disabled_reason"]
+        # at war: the row stands, shut, saying why
+        w.betrayal_history[_betrayal_key("France", "Austria")] = {
+            "strikes": [{"severity": "low", "turn": 0, "episode_id": "ep_a", "decays_on_turn": 10}],
+            "grievance_flags": [], "categories": ["treaty_breach"], "last_turn": 0}
+        war_row = self._row(w, "Austria", "make_amends")
+        assert not war_row["available"] and "Restore the treaty with Austria first" in war_row["disabled_reason"]
+
+    def test_x44_repudiation_has_its_cabinet_row(self):
+        from tests.test_settlement_slice_h_ally_petitions import _seed_bargain_world
+        world = _seed_bargain_world()
+        row = self._row(world, "Prussia", "repudiate_bargain")
+        assert row and row["available"] and "break our promise of Vienna" in row["effect_text"]
+        assert self._row(world, "Austria", "repudiate_bargain") is None
+        out = self._send(world, "repudiate the bargain with Prussia")
+        dlg = out.get("diplomatic_dialogue") or {}
+        assert dlg.get("proposal_type_display") == "Repudiate Bargain", out.get("message")
+        assert [o["action"] for o in dlg["options"]] == ["confirm_repudiate_bargain", "reconsider"]
+        out = self._send(world, "repudiate the bargain with Austria")
+        assert out.get("success") is False and "no war bargain with Austria" in out["message"]
+
+    def test_x45_the_bid_names_its_sum_on_the_row(self, w):
+        w.allegiance_auctions["Denmark"] = {"opened_turn": int(w.current_turn),
+                                            "resolves_turn": int(w.current_turn) + 3}
+        w.nation_gold["France"] = 600
+        w.diplomatic_points = 4
+        row = self._row(w, "Denmark", "bid_for_allegiance")
+        assert row["available"] and "typed" not in row["effect_text"]
+        assert [c["payload"]["amount"] for c in row["choices"]] == [100, 250, 500]   # 1,000 > the chest
+        wizard = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
+        assert 'return "bid for " + nation + ", " + str(amount) + " gold"' in wizard
+        assert 'action.get("choices", [])' in wizard
+        out = self._send(w, "bid for Denmark, 500 gold")
+        assert out.get("success"), out.get("message")
+        assert w.allegiance_auctions["Denmark"]["bids"] == {"France": 500}
+
+    def test_x46_the_congress_sweetener_has_its_row(self, w):
+        """The recognition sweetener was typed-only ("offer Prussia 1000 gold
+        for recognition"); its row stands on a great power's page while the
+        Congress sits, one choice per sum the Congress would take."""
+        from backend.game_logic import congress
+        from tests.test_congress_of_paris import _sit
+        assert self._row(w, "Prussia", "recognition_sweetener") is None      # not sitting
+        with _quiet():
+            _sit(w)
+        # the summons' letters on the desk close the Cabinet (its own rule):
+        # answer them by letting this turn's offers lapse, then clear the desk
+        w.dialogue_manager.lapse_pending_offers(int(w.current_turn) + 1, world=w)
+        while w.dialogue_manager.peek() is not None:
+            w.dialogue_manager.pop()
+        w.nation_gold["France"] = 1500
+        w.diplomatic_points = 4
+        row = self._row(w, "Prussia", "recognition_sweetener")
+        assert row is not None and row["display_name"] == "Offer Gold for Recognition"
+        sums = [s for s in (500, 1000, 2000)
+                if s <= 1500 and not congress.sweetener_refusal(w, "Prussia", s)]
+        assert [c["payload"]["amount"] for c in row["choices"]] == sums
+        assert row["available"] == bool(sums)
+        wizard = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
+        assert 'return "offer " + nation + " " + str(amount) + " gold for recognition"' in wizard
+
+    def test_x47_a_beaten_minor_is_subjugated_from_its_row(self, w):
+        """`vassalize X` at war had no row (the door redirected it to a Cabinet
+        that offered nothing). Subjugate stands on the war page of a court
+        small enough to be vassalized, shut in the executor's words until she
+        is beaten."""
+        from backend.game_logic.diplomacy import check_vassalage_power_cap
+        court = next(n for n in sorted(w.get_active_nations())
+                     if n != "France" and w.get_diplomatic_state("France", n) == "PEACE"
+                     and n not in w.vassals and w.get_nation_capital(n)
+                     and check_vassalage_power_cap(w, "France", n).get("allowed"))
+        assert self._row(w, court, "subjugate") is None                        # at peace
+        with _quiet():
+            assert D.declare_war(w, "France", court, war_objective="conquest").get("success")
+        row = self._row(w, court, "subjugate")
+        assert row and not row["available"] and "still stands" in row["disabled_reason"]
+        w.regions[w.get_nation_capital(court)].controller = "France"
+        row = self._row(w, court, "subjugate")
+        assert row["available"], row["disabled_reason"]
+        out = self._send(w, f"vassalize {court}")
+        assert out.get("success"), out.get("message")
+        assert w.vassals[court]["lord"] == "France"
+
+    def test_x48_the_ladder_can_be_skipped_from_the_row(self, w):
+        """A jump up the treaty ladder ("propose alliance" at peace) was typed
+        only; the higher rungs ride the next rung's row, each priced by the
+        row builder itself."""
+        # Denmark at +10: a Non-Aggression is within reach (needs 0), an
+        # alliance is not (needs 20 / 40) — only the rungs she would sign.
+        row = self._row(w, "Denmark", "propose_open_borders")
+        assert row and row["available"]
+        skips = row.get("choices") or []
+        assert [c["action"] for c in skips] == ["propose_non_aggression"]
+        assert skips[0]["label"].startswith("Skip ahead: Non-Aggression (")
+        # Prussia at -10: no rung beyond the next would be signed — none offered
+        assert not (self._row(w, "Prussia", "propose_open_borders").get("choices") or [])
+        wizard = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
+        assert 'var choice_action = str(choice.get("action", action_id))' in wizard
+
+    def test_x49_the_licence_and_the_sums_ride_the_sponsor_row(self, w):
+        """The licence (no gold) the help names, and a larger subsidy, were
+        typed only; they are the sponsor row's choices."""
+        court = next(n for n in sorted(w.get_active_nations())
+                     if self._row(w, n, "sponsor_design") and self._row(w, n, "sponsor_design")["available"])
+        row = self._row(w, court, "sponsor_design")
+        assert row["choices"][0] == {"label": "Licence — a free hand, no gold", "payload": {"amount": 0}}
+        before = len(w.directed_sponsorships)
+        out = self._send(w, f"sponsor {court} against {row['aim']}, 0 gold")
+        assert out.get("success"), out.get("message")
+        assert len(w.directed_sponsorships) == before + 1
+        assert w.directed_sponsorships[-1]["amount_per_turn"] == 0
+
+    def test_x50_an_autonomy_jump_is_one_choice(self, w):
+        """A two-level autonomy change took two orders by chip (2 DP) and one
+        typed (1 DP); the jump is a choice on the row, one order, 1 DP."""
+        from backend.game_logic.vassal import AUTONOMY_AUTONOMOUS, AUTONOMY_PUPPET
+        court = next(iter(sorted(w.vassals)))
+        w.vassals[court]["autonomy"] = AUTONOMY_PUPPET
+        w.diplomatic_points = 4
+        inc = self._row(w, court, "increase_autonomy")
+        assert inc["choices"] == [{"label": "Straight to Autonomous (1 DP)", "action": "set_autonomy",
+                                   "payload": {"level": "autonomous"}}]
+        out = self._send(w, f"set {court} to autonomous")
+        assert out.get("success"), out.get("message")
+        assert w.vassals[court]["autonomy"] == AUTONOMY_AUTONOMOUS and w.diplomatic_points == 3
+
+    def test_x51_no_line_teaches_a_typed_diplomatic_or_naval_order(self):
+        """Every screen, dispatch, refusal and help line the census found
+        teaching a typed command names its button or row now."""
+        src = {name: (REPO / name).read_text(encoding="utf-8") for name in (
+            "godot-client/project-sovereign/scripts/diplomatic_ledger.gd",
+            "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+            "godot-client/project-sovereign/scripts/main.gd",
+            "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+            "backend/commands/naval_executor.py", "backend/game_logic/dispatch.py",
+            "backend/game_logic/ai_diplomacy.py", "backend/ai/state_desk.py",
+            "backend/game_logic/diplomacy.py")}
+        assert "or type '" not in src["godot-client/project-sovereign/scripts/diplomatic_ledger.gd"]
+        assert '"]Type "' not in src["godot-client/project-sovereign/scripts/diplomatic_ledger.gd"]
+        assert "order the diversion" not in src["godot-client/project-sovereign/scripts/strategic_ledger.gd"]
+        assert "land <marshal>" not in src["godot-client/project-sovereign/scripts/strategic_ledger.gd"]
+        assert "or type '" not in src["godot-client/project-sovereign/scripts/main.gd"]
+        assert "build ships[/color]" not in src["godot-client/project-sovereign/scripts/tutorial_overlay.gd"]
+        naval_src = src["backend/commands/naval_executor.py"]
+        assert "Say '" not in naval_src and "'blockade the enemy'" not in naval_src
+        assert "'guard home waters'" not in naval_src and "'land <marshal>" not in naval_src
+        assert "or type" not in src["backend/game_logic/dispatch.py"]
+        assert "typed: 'bid for" not in src["backend/game_logic/ai_diplomacy.py"]
+        assert "'guard home waters' covers" not in src["backend/ai/state_desk.py"]
+        assert "a larger bid is typed: '" not in src["backend/game_logic/diplomacy.py"]
+        with _quiet():
+            from backend.commands.meta_executor import MetaExecutor  # noqa: F401
+        help_src = (REPO / "backend/commands/meta_executor.py").read_text(encoding="utf-8")
+        admiralty = help_src[help_src.index("THE ADMIRALTY (the wooden wall"):]
+        admiralty = admiralty[:admiralty.index("  - An army cannot walk")]
+        for typed in ('"build ships"', '"blockade the enemy"', '"guard home waters"',
+                      '"order the diversion"', "land <marshal>"):
+            assert typed not in admiralty, typed
+        assert "or type 'bid for" not in help_src
+        assert '"offer Prussia 1000 gold for recognition"' not in help_src
+        assert "VASSALS tab of the Strategic Ledger" not in help_src
 
 
 class TestPCF41:

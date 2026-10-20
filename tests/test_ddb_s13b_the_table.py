@@ -398,16 +398,22 @@ class TestDDB10:
         src = (SCRIPTS / "main.gd").read_text(encoding="utf-8")
         door = src[src.index("func _redirect_diplomatic_command"):]
         door = door[:door.index("\nfunc ")]
-        assert "if _is_priced_bid(lower):" in door
+        # PC-X45 (S14 part 2, the user's rule: diplomacy is never typed):
+        # the priced bid no longer passes — its sum is chosen on the row.
+        assert "_is_priced_bid" not in door
         assert "_cabinet_control_for(lower)" in door
         assert '["buy off", "Buy Off Their Design"]' in src
 
-    def test_the_bid_chips_say_a_larger_bid_is_typed(self, w):
+    def test_the_bid_chips_offer_the_larger_sums_on_the_row(self, w):
+        """Re-seated by PC-X45 (S14 part 2, the user's rule: diplomacy is
+        never typed): the larger bid is a choice on the row, never typed."""
         w.allegiance_auctions = {"Saxony": {"resolves_turn": 4, "bids": {}}}
         (row,) = D._bid_actions(w, "France", "Saxony")
-        assert row["effect_text"].endswith("; a larger bid is typed: 'bid for Saxony, 500 gold'")
+        assert "typed" not in row["effect_text"]
+        assert [c["payload"]["amount"] for c in row["choices"]][:1] == [100]
         src = (REPO / "backend" / "game_logic" / "ai_diplomacy.py").read_text(encoding="utf-8")
-        assert "A larger bid is " in src and "typed: 'bid for {nation}, 500 gold'." in src
+        assert "A larger bid is " not in src
+        assert "chosen on the Cabinet row (F1 → {nation} → Bid" in src
 
 
 # ═══════════════════════════════════════════════════════════════════════════

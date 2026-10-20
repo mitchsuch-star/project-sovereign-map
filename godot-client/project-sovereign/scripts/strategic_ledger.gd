@@ -1029,7 +1029,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + legend + "[/color]\n"
 	var div_terms = adm.get("diversion_terms", [])
 	if div_terms is Array and div_terms.size() > 0:
-		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Grand Diversion[/color]  (\"order the diversion\")\n"
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Grand Diversion[/color]  (the button below)\n"
 		for term in div_terms:
 			if not (term is Dictionary):
 				continue
@@ -1042,7 +1042,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 	# copy at all. Rendered the same way, with per-term detail.
 	var exp_terms = adm.get("expedition_terms", [])
 	if exp_terms is Array and exp_terms.size() > 0:
-		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Expedition[/color]  (\"land <marshal> in <province>\")\n"
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Expedition[/color]  (a landing chip below, or click a coastal province)\n"
 		for term in exp_terms:
 			if not (term is Dictionary):
 				continue

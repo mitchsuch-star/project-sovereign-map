@@ -78,18 +78,18 @@ FAMILY_ACTIONS = {
     "propose_common_peace",
     "propose_white_peace",
     "request_terms",
-    # PC-X42 (S14 part 2, the user's rule: diplomacy is never typed): the
-    # war purpose has its Cabinet row (F1 → the court → Set War Purpose).
+    # PC-X42 … X44 (S14 part 2, the user's rule: diplomacy is never typed):
+    # each has its Cabinet row (F1 → the court → the row).
     "set_war_purpose",
+    "make_amends",
+    "repudiate_bargain",
+    # PC-X46: the Congress's sweetener has its row (while the Congress sits)
+    "recognition_sweetener",
 }
 
 # Documented exclusions — these reach the backend as they always did,
 # each for a reason recorded in the spec's family table.
 EXCLUDED_ACTIONS = {
-    # No wizard/panel home (§2 G1-11): redirecting them would make them
-    # unreachable outright (PC-X43 / X44 give them rows at S14 part 3's head).
-    "make_amends",
-    "repudiate_bargain",
     # Read-only counsel.
     "diplomatic_advisory",
     "diplomatic_feasibility",
@@ -131,11 +131,8 @@ def _row_class(row: dict) -> str:
     not_action = str(expected.get("not_action") or "")
     if not_action:
         return "order" if not_action.startswith("diplomatic") else "read_only"
-    # DDB-10 (S13b): a bid with its sum is a PRICED order the door lets
-    # through (the chips bid 100g; a larger bid is typed) — pinned on its own
-    # in `test_the_priced_bid_passes_the_door`.
-    if action == "diplomatic_bid" and _PRICED_SUM.search(str(row.get("utterance") or "").lower()):
-        return "priced_order"
+    # PC-X45 (S14 part 2): the priced bid is an order like any other — its
+    # sum is chosen on the Cabinet row (DDB-10's pass retired).
     if action in EXCLUDED_ACTIONS:
         return "read_only"
     if action in FAMILY_ACTIONS:
@@ -169,7 +166,6 @@ def gd() -> str:
 @pytest.fixture(scope="module")
 def lists(gd) -> dict:
     return {
-        "no_home": _extract_gd_list("DIPLO_NO_HOME_KEYWORDS", gd),
         "war_room": _extract_gd_list("DIPLO_WAR_ROOM_KEYWORDS", gd),
         "family": _extract_gd_list("DIPLO_FAMILY_KEYWORDS", gd),
         "nation_gated": _extract_gd_list("DIPLO_NATION_GATED_PREFIXES", gd),
@@ -241,13 +237,8 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
     if (len(words) > 1 and words[0] in lists["modal_starts"]
             and words[1] in lists["first_person"]):
         return ""
-    # No-home verbs first — precedence mirrors the parser's own.
-    for keyword in lists["no_home"]:
-        if keyword in lower:
-            return ""
-    # DDB-10 (Pre-Deploy S13b): the priced bid passes (`_is_priced_bid`).
-    if _is_priced_bid(lower, forms):
-        return ""
+    # PC-X42 … X45: no verb keeps a typed-only road (no no-home pass, no
+    # priced-bid pass) — the client door has neither.
     for keyword in lists["war_room"]:
         if keyword in lower:
             return "war_room"
@@ -460,25 +451,27 @@ class TestTheCorpusCensus:
                 f"a negated MILITARY order belongs to PARSE-NEG and must "
                 f"reach it untouched: {row['utterance']!r}")
 
-    def test_the_no_home_verbs_are_never_intercepted(self, corpus, lists,
-                                                     nation_forms):
-        """§2 G1-11 as a falsifiable negative: make_amends and
-        repudiate_bargain have NO wizard home yet, so redirecting them
-        would make them unreachable outright. Note
-        (set_war_purpose left this list with PC-X42 — its Cabinet row —
-        and is claimed now, `test_the_war_purpose_is_claimed_and_named`)."""
+    def test_no_diplomatic_verb_keeps_a_typed_only_road(self, corpus, lists,
+                                                         nation_forms):
+        """The user's rule (October 20, 2026): diplomacy is never typed. §2
+        G1-11 kept three verbs typed because they had no wizard home; each
+        has its Cabinet row now (PC-X42 Set War Purpose, PC-X43 Make Amends,
+        PC-X44 Repudiate the Bargain), so the door claims every one and the
+        no-home list is gone from the client."""
         checked = set()
         for row in corpus:
             action = (row.get("expected") or {}).get("action")
-            if action not in {"make_amends", "repudiate_bargain"}:
+            if action not in {"make_amends", "repudiate_bargain", "set_war_purpose"}:
                 continue
             checked.add(action)  # noqa: PERF401
             assert _redirect_verdict(
-                row["utterance"], lists, nation_forms) == "", (
-                f"{action} has no UI home and must stay typed: "
-                f"{row['utterance']!r}")
-        assert checked == {"make_amends", "repudiate_bargain"}, (
-            f"corpus coverage lost for the no-home verbs: {checked}")
+                row["utterance"], lists, nation_forms) == "cabinet", (action, row["utterance"])
+        assert checked == {"make_amends", "repudiate_bargain", "set_war_purpose"}, checked
+        gd = MAIN_GD.read_text(encoding="utf-8")
+        assert "DIPLO_NO_HOME_KEYWORDS" not in gd and "_is_priced_bid" not in gd
+        for control in ('["amends", "Make Amends"]', '["bargain", "Repudiate the Bargain"]',
+                        '["war purpose", "Set War Purpose"]'):
+            assert control in gd, control
 
     def test_the_war_purpose_is_claimed_and_named(self, corpus, lists, nation_forms):
         """PC-X42 (S14 part 2): the war purpose has its Cabinet row — the
@@ -869,7 +862,6 @@ class TestTheHelpTeachesTheDoor:
 
 READ_ONLY_PARSE_ACTIONS = {
     "diplomatic_advisory", "diplomatic_feasibility", "diplomatic_error",
-    "make_amends", "repudiate_bargain",
 }
 DIPLOMATIC_PARSE_ACTIONS = FAMILY_ACTIONS | READ_ONLY_PARSE_ACTIONS
 
@@ -1009,17 +1001,18 @@ class TestTheMirrorAgreesWithTheParser:
             f"the redirect stole a non-diplomatic order: {stolen}")
 
 
-class TestThePricedBidPassesTheDoor:
-    """DDB-10 (Pre-Deploy S13b, October 14, 2026): the typed bid the rail
-    itself echoes is a priced order and passes; a bare bid stays claimed
-    (the Cabinet's row bids 100g), and a buy-off stays claimed."""
+class TestThePricedBidIsClaimed:
+    """DDB-10 (Pre-Deploy S13b) let a typed priced bid pass because the
+    Cabinet's row could bid only 100g; PC-X45 (S14 part 2, the user's rule:
+    diplomacy is never typed) puts the sum on the row, so the priced bid is
+    claimed like every other diplomatic order and the door names the row."""
 
-    def test_the_priced_bid_passes_the_door(self, corpus, lists, nation_forms):
-        priced = [r for r in corpus if _row_class(r) == "priced_order"]
-        assert priced, "the corpus lost its priced bid — the pin is blind"
-        for row in priced:
-            assert _redirect_verdict(row["utterance"], lists, nation_forms) == ""
-        assert _redirect_verdict("bid for Sardinia, 1500 gold", lists, nation_forms) == ""
+    def test_the_priced_bid_is_claimed(self, corpus, lists, nation_forms):
+        assert _redirect_verdict("bid for Sardinia, 1500 gold", lists, nation_forms) == "cabinet"
+        gd = MAIN_GD.read_text(encoding="utf-8")
+        assert '"Bid for Their Allegiance (choose the sum on the row)"' in gd
+        assert "or type" not in gd[gd.index("const DIPLO_CABINET_CONTROLS"):
+                                   gd.index("func _cabinet_control_for")]
 
     def test_a_bare_bid_and_a_buy_off_stay_claimed(self, lists, nation_forms):
         assert _redirect_verdict("bid for Sardinia", lists, nation_forms) == "cabinet"

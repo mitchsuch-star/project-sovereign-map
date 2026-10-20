@@ -1832,9 +1832,10 @@ def _answer_fleet(world) -> str:
     # DDB-60 (Pre-Deploy S13b part 4): asked what postures she can take,
     # Berthier named only the present one (the sea #6). Both, what each
     # does, and the order for each — the Admiralty's own numbers.
-    line += (f" She keeps one of two postures, each an order of 1 action: "
-             f"'guard home waters' covers every crossing that touches our own "
-             f"coast; 'blockade the enemy' closes an at-war court's ports where "
+    line += (f" She keeps one of two postures, each an order of 1 action on "
+             f"THE ADMIRALTY (press T, then 7): Recall to home waters covers "
+             f"every crossing that touches our own coast; Blockade the enemy "
+             f"closes an at-war court's ports where "
              f"our sail outmatches hers {naval.BLOCKADE_RATIO:g} to 1 — her trade "
              f"halved — and leaves our own coast unguarded.")
     return line

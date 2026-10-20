@@ -156,6 +156,9 @@ TRANSIT_GATED_WIZARD_ACTIONS = frozenset({
     "cancel_mission",
     # DD-1 S8 Step 3: the two verbs' chips dispatch through the gate too.
     "ask_return_province", "bid_for_allegiance",
+    # PC-X43 / X44 (diplomacy is never typed): the reparations and the
+    # repudiation rows dispatch through it as their typed verbs always did.
+    "make_amends", "make_amends_grievance", "repudiate_bargain",
 })
 TRANSIT_DISABLED_REASON = "Talleyrand in transit"
 
@@ -379,8 +382,8 @@ class DiplomaticExecutor:
                     else " No ally holds a province of ours today.")
             return {
                 "success": False,
-                "message": (f"Which court shall I ask, Sire — e.g. 'ask Spain to return "
-                            f"Provence'?{tail}"),
+                "message": (f"Which court shall I ask, Sire? Its page in the Cabinet (F1) "
+                            f"carries an Ask Return row for each province.{tail}"),
             }
         raw_text = (diplomatic_data.get("raw_text") or diplomatic_data.get("raw_input")
                     or "")
@@ -418,8 +421,8 @@ class DiplomaticExecutor:
                     if open_now else " No court's allegiance is in play today.")
             return {
                 "success": False,
-                "message": (f"Which court's allegiance, Sire — e.g. 'bid for Denmark, "
-                            f"{int(DEFAULT_ALLEGIANCE_BID)} gold'?{tail}"),
+                "message": (f"Which court's allegiance, Sire? Its page in the Cabinet (F1) "
+                            f"carries Bid for Their Allegiance and its sums.{tail}"),
             }
         raw_text = (diplomatic_data.get("raw_text") or diplomatic_data.get("raw_input")
                     or "")
@@ -531,9 +534,9 @@ class DiplomaticExecutor:
                 # CX-BEHAV-1 (Step 7 slice 5b): the example names the
                 # design Prussia holds on the 1805 boot (Hanover) — the
                 # Austria form is refused there ("aimed at Hanover").
-                "message": ("Name the court to sponsor, Sire — e.g. "
-                            "'sponsor Prussia against Hanover, 200 gold' "
-                            "(0 gold licences their design instead)."),
+                "message": ("Which court, Sire? Its page in the Cabinet (F1) carries "
+                            "Sponsor Their Design — a subsidy, or a licence for no "
+                            "gold."),
             }
 
         raw_text = (command.get("raw_input")
@@ -670,8 +673,8 @@ class DiplomaticExecutor:
         if not target:
             return {
                 "success": False,
-                "message": ("Name the court to buy off, Sire — e.g. "
-                            "'buy off Prussia'."),
+                "message": ("Which court, Sire? Its page in the Cabinet (F1) carries "
+                            "Buy Off Their Design, with its price."),
             }
         # Review fix (the instant-self-renege trap): buying off a court
         # France is at war with would brand FRANCE the breaker on the
@@ -780,8 +783,8 @@ class DiplomaticExecutor:
             return error
         if not target:
             return {"success": False,
-                    "message": ("Name the court and the gold, Sire — e.g. "
-                                "'offer Prussia 1000 gold for recognition'.")}
+                    "message": ("Which court, Sire? Its page in the Cabinet (F1) "
+                                "carries Offer Gold for Recognition, with its sums.")}
         raw_text = (command.get("raw_input")
                     or command.get("original_command")
                     or command.get("raw_command") or "")
@@ -817,8 +820,8 @@ class DiplomaticExecutor:
         if not target:
             return {
                 "success": False,
-                "message": ("Name the court to guarantee, Sire — e.g. "
-                            "'guarantee Saxony'."),
+                "message": ("Which court, Sire? Its page in the Cabinet (F1) carries "
+                            "Guarantee Their Borders."),
             }
         player = getattr(world, "player_nation", "France")
         if world.is_at_war(player, target):
@@ -3736,6 +3739,12 @@ class DiplomaticExecutor:
                 if b.get("beneficiary") == target_nation:
                     bargain_id = str(b.get("id"))
                     break
+            if not bargain_id:
+                # PC-X44: the court named, and no bargain with it — said so
+                # (the Cabinet's row is offered only where one stands).
+                return {"success": False,
+                        "message": (f"We have struck no war bargain with {target_nation} "
+                                    f"to repudiate, Sire.")}
 
         if not bargain_id:
             live = _get_live_bargains(world)

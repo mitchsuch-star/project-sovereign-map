@@ -1311,8 +1311,8 @@ def _congress_summonable_candidates(world, player_nation: str,
     out = [("congress_summonable", f"congress_summonable:{world.current_turn}",
             (f"THE CONGRESS OF PARIS MAY BE SUMMONED — {have} of {need} titled "
              f"provinces are held and {capital} is ours. {table} "
-             f"Summon it from the Cabinet (F1), or type "
-             f"'{_congress.SUMMON_COMMAND}'.").replace("  ", " "))]
+             f"Summon it from the Cabinet (F1) — the Congress of Paris "
+             f"row.").replace("  ", " "))]
     for court in refusers:
         price = str(_congress.price(world, court, rows[court]).get("text") or "")
         if price:

@@ -141,7 +141,9 @@ class VassalExecutor:
         else:
             return {
                 "success": False,
-                "message": "Specify autonomy level: puppet, satellite, or autonomous."
+                "message": ("Choose the level on the court's page, Sire — F1 → the "
+                            "court → Increase / Decrease Autonomy (a jump of two "
+                            "is offered beneath).")
             }
 
         result = change_vassal_autonomy(world, target, new_level, actor=actor)

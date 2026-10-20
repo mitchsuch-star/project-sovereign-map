@@ -4193,8 +4193,9 @@ def process_allegiance_auctions(world) -> List[Dict]:
                 "action_label": f"Bid for {nation} ({int(DEFAULT_ALLEGIANCE_BID)}g, 1 DP)",
                 "action_detail": (f"Lay {int(DEFAULT_ALLEGIANCE_BID)} gold before the court "
                                   f"of {nation}; relations and standing patronage weigh "
-                                  f"beside it when the flip resolves. A larger bid is "
-                                  f"typed: 'bid for {nation}, 500 gold'."),
+                                  f"beside it when the flip resolves. Larger sums are "
+                                  f"chosen on the Cabinet row (F1 → {nation} → Bid "
+                                  f"for Their Allegiance)."),
             },
         ))
 
@@ -4330,7 +4331,8 @@ def allegiance_bid_refusal(world, suitor: str, nation: str, gold: int) -> str:
                 f"allegiance of a court one is fighting.")
     gold = int(gold or 0)
     if gold < 1:
-        return "Name a sum, Sire — e.g. 'bid for Denmark, 100 gold'."
+        return ("Name a sum, Sire — the Cabinet row offers them "
+                "(F1 → the court → Bid for Their Allegiance).")
     chest = int((getattr(world, "nation_gold", {}) or {}).get(suitor, 0) or 0)
     if chest < gold:
         return (f"The chest holds {chest} gold, Sire — not the {gold} the bid names.")

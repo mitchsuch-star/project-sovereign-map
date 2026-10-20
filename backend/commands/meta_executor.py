@@ -1161,20 +1161,21 @@ ECONOMY (Admin AP - the new imperial economy):
 
 THE ADMIRALTY (the wooden wall - press T, then 7; every order below
 is a button there, with its terms, so none of it need be typed):
-  build ships - "build ships" / "lay down a ship" (1 Admin AP +
-               400g). 2 keels/turn at most - 1 under blockade.
+  build ships - Lay down ships, on THE ADMIRALTY or a yard's map
+               chip (1 Admin AP + 400g). 2 keels/turn at most - 1 under blockade.
                New crews come aboard GREEN; only sea-time drills
                a navy. Ships are laid down in a yard we control.
-  blockade   - "blockade the enemy" (1 AP) - the fleet closes an
+  blockade   - Blockade the enemy (1 AP) - the fleet closes an
                at-war enemy's ports where our sail outmatches
                hers (1.25x her effective strength): her trade
                halves and her crews rot at anchor. A court we
                cannot outmatch is not closed, and a fleet that is
                itself blockaded does not drill. The Admiralty
                board names both, court by court.
-  guard      - "guard home waters" (1 AP) - cover every crossing
+  guard      - Recall to home waters (1 AP) - cover every crossing
                that touches our own coast.
-  land       - land <marshal> in <province> (2 AP) - a small
+  land       - a coastal province's landing chip on the map, or
+               THE ADMIRALTY's landings (2 AP) - a small
                expedition (15,000 men or fewer, embarking at one of
                our yards, or from any shore abroad or of ours across
                the water - an Irish beachhead) slips past the
@@ -1190,7 +1191,7 @@ is a button there, with its terms, so none of it need be typed):
         any hostile fleet watches the water, a hostile shore is
         taken by expedition or not at all. Sink the covering fleet
         and the crossing becomes an open ferry.
-  diversion  - "order the diversion" (1 AP) - the fleet draws the
+  diversion  - The Grand Diversion (1 AP) - the fleet draws the
                enemy off station: succeed and the Strait lies open
                two turns; fail and be brought to battle coming home.
                The odds are the fleet's readiness less 25 (45 at 70),
@@ -1208,9 +1209,11 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
   assess     - "Talleyrand, assess our situation" stays spoken
                (the war room - fronts, threats, counsel; free);
                "Talleyrand, assess Austria" for one nation.
-  vassals    - the VASSALS tab of the Strategic Ledger (T) carries
-               invest / autonomy / release chips per satellite;
-               ceding conquered land is in the Cabinet's court page.
+  vassals    - the VASSALS tab of the Diplomatic Ledger (D, tab 6)
+               carries invest / autonomy / release chips per
+               satellite; ceding conquered land, an autonomy jump of
+               two and Subjugate (a beaten court, at war) are in the
+               Cabinet's court page.
   war terms  - open the war banner on the left and press
                [Request Terms] to make the enemy name a price.
   THE COMPACTS - three instruments, each a row of the Cabinet
@@ -1229,9 +1232,13 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
                defend a border. Coveters read the pledge and want it
                less; abandon it and the grievance is ours to answer
                for.
-  bid        - F1 -> the court -> Bid for Their Allegiance (100g),
-               or type 'bid for Denmark, 200 gold' for a
-               larger sum, while a court's allegiance is in play.
+  bid        - F1 -> the court -> Bid for Their Allegiance -
+               choose 100, 250, 500 or 1,000 gold on the row, while
+               a court's allegiance is in play.
+  amends     - F1 -> the court -> Make Amends (a strike) or Make
+               Amends for the Abandoned Alliance (a grievance),
+               priced on the row; Repudiate the Bargain sits on an
+               ally's page while a war bargain stands.
   NOTE: a standing compact runs its TERM. There is no cancelling
         it - war on the court, or a pledge that contradicts it,
         is a RENEGE, and Europe remembers who broke a word.
@@ -1241,8 +1248,8 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
 
 THE CONGRESS OF PARIS (how the reign is WON - the table of the
 great powers is the Diplomatic Ledger's Congress tab, press D then 7):
-  summon     - "summon the congress" (1 Admin AP + ⟨SUMMON_DP⟩ DP), or the
-               Congress of Paris row atop the Cabinet (F1). It needs
+  summon     - the Congress of Paris row atop the Cabinet (F1)
+               (1 Admin AP + ⟨SUMMON_DP⟩ DP). It needs
                ⟨HOLD⟩ TITLED provinces - homeland, ceded by treaty, a
                client's soil, or held ⟨QUIET⟩ quiet turns - with Paris
                held, the Emperor free and no satellite on the brink.
@@ -1254,9 +1261,9 @@ great powers is the Diplomatic Ledger's Congress tab, press D then 7):
                or gone, the Imperial Peace is signed. Otherwise the
                Congress dissolves, and may be summoned again after
                ⟨COOLDOWN⟩ turns.
-  sweetener  - "offer Prussia 1000 gold for recognition" - offer
-               <court> <gold> gold for recognition, at the table
-               while the Congress sits (⟨SWEET_DP⟩ DP): +⟨SWEET⟩ for every 1,000
+  sweetener  - F1 -> the court -> Offer Gold for Recognition -
+               choose the sum on the row, at the table while the
+               Congress sits (⟨SWEET_DP⟩ DP): +⟨SWEET⟩ for every 1,000
                gold, at most +⟨SWEET_CAP⟩ a court. Gold past that is not taken.
   Ask before you act - "can we summon the congress?" names every
   term still unmet, and nothing is spent.

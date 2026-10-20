@@ -980,6 +980,29 @@ func _add_action_button(action: Dictionary):
 			region_btn.pressed.connect(_on_action_selected.bind(action_id, region_payload))
 			content_list.add_child(region_btn)
 
+	# PC-X45 (the user's rule: diplomacy is never typed): a row that needs a
+	# parameter carries `choices` — one indented button per choice, each
+	# sending the row's action with the choice's own fields (the bid's sum).
+	var choices = action.get("choices", [])
+	if available and choices is Array and choices.size() > 0:
+		for choice in choices:
+			if not (choice is Dictionary):
+				continue
+			var choice_btn = Button.new()
+			choice_btn.text = "    ↳ " + str(choice.get("label", ""))
+			choice_btn.custom_minimum_size = Vector2(0, 30)
+			choice_btn.theme_type_variation = &"CaptionButton"
+			var choice_payload = action.duplicate(true)
+			var extra = choice.get("payload", {})
+			if extra is Dictionary:
+				for key in extra.keys():
+					choice_payload[key] = extra[key]
+			# PC-X48 / X50: a choice may name its own action (a skip-ahead
+			# rung, an autonomy jump); the row's action otherwise.
+			var choice_action = str(choice.get("action", action_id))
+			choice_btn.pressed.connect(_on_action_selected.bind(choice_action, choice_payload))
+			content_list.add_child(choice_btn)
+
 
 func _on_action_selected(action_id: String, action_payload: Dictionary = {}):
 	"""Build command string and emit for main.gd to execute (§2 Step 3).
@@ -1098,7 +1121,28 @@ func _build_command(action_id: String, nation: String, action_payload: Dictionar
 			var ask_region = str(action_payload.get("region", ""))
 			return "ask " + nation + " to return " + ask_region
 		"bid_for_allegiance":
-			return "bid for " + nation + ", 100 gold"
+			# PC-X45: the sum chosen on the row (its `choices`); the chip's own 100 by default
+			var amount = int(float(action_payload.get("amount", 100)))
+			return "bid for " + nation + ", " + str(amount) + " gold"
+		# PC-X43 / X44 (diplomacy is never typed): the reparations and the
+		# bargain's repudiation, each from its Cabinet row.
+		"make_amends":
+			return "make amends with " + nation
+		"make_amends_grievance":
+			return "make amends with " + nation + " for the abandoned alliance"
+		"repudiate_bargain":
+			return "repudiate the bargain with " + nation
+		# PC-X46 / X47 / X50 (diplomacy is never typed): the Congress's
+		# sweetener (its sum from the row's choices), the beaten court's
+		# subjugation, and an autonomy jump of two levels.
+		"recognition_sweetener":
+			var amount = int(float(action_payload.get("amount", 1000)))
+			return "offer " + nation + " " + str(amount) + " gold for recognition"
+		"subjugate":
+			return "vassalize " + nation
+		"set_autonomy":
+			var level = str(action_payload.get("level", "satellite"))
+			return "set " + nation + " to " + level
 		# PC-X42 (S14 part 2): the war's purpose and its articles — the
 		# card's two steps open from this row (diplomacy is never typed).
 		"set_war_purpose":

@@ -4497,10 +4497,10 @@ def _command_ordinary_road(ctx: CommandContext):
                 refusal_msg = (
                     "Berthier sets the dispatch aside. \"The fleet is not a "
                     "corps, Sire — it cannot attack a province, and I have "
-                    "relayed nothing. A fleet sails on a posture ('fleet, "
-                    "blockade', 'guard home waters'), lands men ('land in "
-                    "Ireland') or makes a diversion; a province is attacked "
-                    "by a marshal — 'Ney, attack Swabia'.\"")
+                    "relayed nothing. A fleet takes a posture, lands men or "
+                    "makes a diversion from THE ADMIRALTY's buttons (press "
+                    "T, then 7); a province is attacked by a marshal — "
+                    "'Ney, attack Swabia'.\"")
             elif ctx.parsed["refusal"] == "no_letter_asks_for_men":
                 # DD0-20 (S5, October 11, 2026): "ask Bavaria for more
                 # troops" — a court's men are not asked for by letter.

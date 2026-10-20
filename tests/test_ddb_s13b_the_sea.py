@@ -281,8 +281,9 @@ class TestDDB60:
     def test_the_fleet_answer_names_both_postures(self, w):
         from backend.ai.state_desk import _answer_fleet
         answer = _answer_fleet(w)
-        assert "'guard home waters' covers every crossing" in answer
-        assert "'blockade the enemy' closes an at-war court's ports" in answer
+        # PC-X51 (S14 part 2): the postures by their Admiralty buttons
+        assert "Recall to home waters covers every crossing" in answer
+        assert "Blockade the enemy closes an at-war court's ports" in answer
         assert "1.25 to 1" in answer
 
 

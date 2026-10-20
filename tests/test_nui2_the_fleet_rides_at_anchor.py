@@ -583,8 +583,10 @@ class TestTheWordsTeachALandingThatSails:
         # The form is written UNQUOTED: every quoted string in the help is
         # parsed as a command by the CX-3 manual census, and `<marshal>` is
         # not a marshal (the /debug block's convention).
-        assert "land <marshal> in <province> (2 AP)" in section
-        assert '"land <marshal>' not in section
+        # PC-X51 (S14 part 2, the user's rule): the help names the landing
+        # CHIP, never a typed form.
+        assert "a coastal province's landing chip on the map" in section
+        assert "land <marshal>" not in section
         # Re-seated October 19, 2026 (DDB-21, Pre-Deploy S13b part 4): our
         # own shore across the water embarks too (the ONE embark rule).
         assert "our yards, or from any shore abroad or of ours across" in section
@@ -596,12 +598,13 @@ class TestTheWordsTeachALandingThatSails:
         naval_ex = M.executor._naval
         unnamed = naval_ex._execute_naval_expedition(
             {"marshal": ""}, {"world": M.world})["message"]
-        assert "'land <marshal> in <province>'" in unnamed
+        assert "click a coastal province on the map for its landing chip" in unnamed
+        assert "land <marshal>" not in unnamed
         assert "THE ADMIRALTY (press T, then 7)" in unnamed
         assert "Soult" not in unnamed
         nowhere = naval_ex._execute_naval_expedition(
             {"marshal": "Lannes", "target": ""}, {"world": M.world})["message"]
-        assert "'land Lannes in <a coastal province>'" in nowhere
+        assert "for Lannes's landing chip" in nowhere and "'land Lannes" not in nowhere
         assert "Soult" not in nowhere
 
 

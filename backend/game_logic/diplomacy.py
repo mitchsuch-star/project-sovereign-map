@@ -13591,6 +13591,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "dp_cost": 1,
             "available": inc_available,
             "disabled_reason": inc_reason,
+            # PC-X50: a puppet loosened straight to autonomous (one order, 1 DP)
+            "choices": ([{"label": "Straight to Autonomous (1 DP)", "action": "set_autonomy",
+                          "payload": {"level": "autonomous"}}]
+                        if autonomy == AUTONOMY_AUTONOMOUS - 2 else []),
         })
 
         # Decrease Autonomy
@@ -13606,6 +13610,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "dp_cost": 1,
             "available": dec_available,
             "disabled_reason": dec_reason,
+            # PC-X50: an autonomous court tightened straight to puppet
+            "choices": ([{"label": "Straight to Puppet (1 DP)", "action": "set_autonomy",
+                          "payload": {"level": "puppet"}}]
+                        if autonomy == AUTONOMY_PUPPET + 2 else []),
         })
 
         # Release Vassal
@@ -14198,6 +14206,18 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     # DD-1 S8 Step 3 (SFR-D40): the bid, when this court's allegiance is in
     # play — the auction's chip, read from the same gate the verb refuses on.
     actions.extend(_bid_actions(world, player, target_nation))
+    # PC-X43 / X44 (the user's rule: diplomacy is never typed): Make Amends
+    # and the bargain's repudiation, from the executors' own gates.
+    from backend.game_logic.cabinet_rows import (
+        amends_actions, recognition_actions, repudiate_actions, subjugate_actions,
+    )
+    actions.extend(amends_actions(world, player, target_nation))
+    actions.extend(repudiate_actions(world, player, target_nation))
+    # PC-X46 / X47: the Congress's sweetener and the conquest's vassalage
+    actions.extend(recognition_actions(world, player, target_nation))
+    actions.extend(subjugate_actions(world, player, target_nation))
+    # PC-X48: the ladder's higher rungs ride the next rung's row
+    _attach_skip_ahead(actions, state, _proposal_action)
 
     # DPF-2: Cancel mission — only if active mission targets THIS nation
     # (single source shared with the vassal branch, WO-D2/G1 contract 8).
@@ -14249,6 +14269,37 @@ def _ask_return_actions(world, player: str, target_nation: str) -> List[Dict]:
     return rows
 
 
+# PC-X48 (the user's rule: diplomacy is never typed): the treaty ladder —
+# the next rung is the row; every rung beyond it rides that row as a choice,
+# priced and judged by the row builder itself (the cumulative DP, the one
+# verdict), where the typed "propose alliance" used to be the only jump.
+_TREATY_LADDER = (
+    ("OPEN_BORDERS", "propose_open_borders", "Open Borders"),
+    ("NON_AGGRESSION", "propose_non_aggression", "Non-Aggression"),
+    ("DEFENSIVE_ALLIANCE", "propose_defensive_alliance", "Defensive Alliance"),
+    ("ALLIANCE", "propose_alliance", "Alliance"),
+)
+
+
+def _attach_skip_ahead(actions: List[Dict], state: str, proposal_action) -> None:
+    states = [s for s, _k, _l in _TREATY_LADDER]
+    if state != "PEACE" and state not in states[:-2]:
+        return
+    here = -1 if state == "PEACE" else states.index(state)
+    _nstate, next_key, _nlabel = _TREATY_LADDER[here + 1]
+    row = next((a for a in actions if a.get("action") == next_key), None)
+    if row is None:
+        return
+    skips = []
+    for target_state, key, label in _TREATY_LADDER[here + 2:]:
+        rung = proposal_action(key, f"Propose {label}", target_state)
+        if rung.get("available"):
+            skips.append({"label": f"Skip ahead: {label} ({int(rung.get('dp_cost', 0) or 0)} DP)",
+                          "action": key})
+    if skips:
+        row["choices"] = list(row.get("choices") or []) + skips
+
+
 def _bid_actions(world, player: str, target_nation: str) -> List[Dict]:
     """DD-1 S8 Step 3 (SFR-D40): the `bid_for_allegiance` chip, shown only
     while this court's allegiance is IN PLAY (`world.allegiance_auctions`),
@@ -14266,10 +14317,13 @@ def _bid_actions(world, player: str, target_nation: str) -> List[Dict]:
     standing = int((record.get("bids") or {}).get(player, 0) or 0)
     effect = (f"The flip resolves on turn {int(record.get('resolves_turn', 0) or 0)}"
               + (f" — our bid stands at {standing} gold" if standing else
-                 " — relations and standing patronage weigh beside the gold")
-              # DDB-10 (S13b): the chip bids 100g; a larger sum is typed.
-              + "; a larger bid is typed: 'bid for "
-              + _formed_display_name_for_bid(world, target_nation) + ", 500 gold'")
+                 " — relations and standing patronage weigh beside the gold"))
+    # PC-X45 (the user's rule: diplomacy is never typed): the sum is chosen
+    # on the row — one choice per sum the executor would take (its own
+    # gate, `allegiance_bid_refusal`), never "a larger bid is typed".
+    choices = [{"label": f"Bid {amount} gold", "payload": {"amount": int(amount)}}
+               for amount in ALLEGIANCE_BID_SUMS
+               if not allegiance_bid_refusal(world, player, target_nation, amount)]
     return [{
         "action": "bid_for_allegiance",
         "display_name": "Bid for Their Allegiance",
@@ -14282,7 +14336,13 @@ def _bid_actions(world, player: str, target_nation: str) -> List[Dict]:
         "likelihood": "",
         "standing_bid": standing,
         "resolves_turn": int(record.get("resolves_turn", 0) or 0),
+        "choices": choices,
     }]
+
+
+# PC-X45: the sums the bid row offers (the chip's own 100 first) — each shown
+# only where the executor would take it.
+ALLEGIANCE_BID_SUMS = (100, 250, 500, 1000)
 
 
 def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
@@ -14387,6 +14447,16 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
                 sponsor_detail,
                 gold_cost=amount, aim=aim, amount=amount,
             ))
+            # PC-X49 (diplomacy is never typed): the licence (no gold — the
+            # free hand the help names) and the larger subsidy are chosen on
+            # the row, each where the executor's purse rule takes it.
+            actions[-1]["choices"] = [
+                {"label": "Licence — a free hand, no gold", "payload": {"amount": 0}},
+            ] + [
+                {"label": f"{int(sum_)}g a turn", "payload": {"amount": int(sum_)}}
+                for sum_ in (amount, amount * 2)
+                if treasury >= int(sum_) * SPONSOR_SUSTAIN_MULT
+            ]
 
         # ── Buy off their design (D5-1) ──
         price = compute_buyoff_price(world, target_nation)

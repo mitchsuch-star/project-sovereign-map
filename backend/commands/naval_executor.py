@@ -54,7 +54,8 @@ def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
     who = marshal_title(world, marshal.name if marshal is not None else str(name))
     return {"success": False, "variable_action_cost": 0, "message": (
         f"The Admiralty takes its orders from the Emperor, Sire, not from "
-        f"{who} in the field. Say '{example}'.")}
+        f"{who} in the field — its orders are the buttons on "
+        f"THE ADMIRALTY (press T, then 7).")}
 
 
 def _green_crew_clause(outcome: Dict) -> str:
@@ -284,20 +285,22 @@ class NavalExecutor:
                 return {"success": False, "message": (
                     "The Admiralty takes its orders from the Emperor, Sire, "
                     "not from a marshal in the field — and a fleet cannot "
-                    "invest a city. Say 'blockade the enemy' or 'guard home "
-                    "waters'; to invest a place, march on it.")}
+                    "invest a city. Her posture is set on THE ADMIRALTY "
+                    "(press T, then 7) — Blockade the enemy, or Recall to home "
+                    "waters; to invest a place, march on it.")}
             if not naval.sentence_is_an_order(raw):
                 return {"success": False, "message": (
                     "I have noted it, Sire, but that is intelligence, not an "
                     "order — nothing has gone to the Admiralty. To move the "
-                    "fleet, say 'blockade the enemy' or 'guard home "
-                    "waters'.")}
+                    "fleet, use the posture buttons on THE ADMIRALTY (press T, "
+                    "then 7).")}
             posture = naval.derive_posture(raw) or ""
         if posture not in naval.POSTURES:
             return {"success": False, "message": (
-                "Give the Admiralty a posture, Sire: 'blockade the enemy' "
-                "(close the ports of every at-war enemy our sail can "
-                "outmatch) or 'guard home waters'.")}
+                "Give the Admiralty a posture, Sire, from its buttons (press "
+                "T, then 7): Blockade the enemy (close the ports of every "
+                "at-war enemy our sail can outmatch) or Recall to home "
+                "waters.")}
 
         previous = rec.get("posture", "guard")
         # (c) IDEMPOTENCE, on the TYPED path. Without it the row's own
@@ -405,9 +408,9 @@ class NavalExecutor:
             # transports' lift — the sentence taught an order that always
             # fails. The form, and where the buttons are.
             return {"success": False, "message": (
-                "Name the marshal who is to embark, Sire — 'land <marshal> "
-                "in <province>'. A corps of 15,000 or fewer sails; THE "
-                "ADMIRALTY (press T, then 7) names who can, and where.")}
+                "Choose who embarks, Sire — click a coastal province on the "
+                "map for its landing chip. A corps of 15,000 or fewer sails; "
+                "THE ADMIRALTY (press T, then 7) names who can, and where.")}
         if not naval.has_naval_layer(world):
             return {"success": False, "message": (
                 "This campaign has no naval theatre — there are no "
@@ -697,9 +700,9 @@ class NavalExecutor:
             name = best
         if not name:
             return {"success": False, "message": (
-                f"Name the landing, Sire — 'land {marshal.name} in <a coastal "
-                "province>'. THE ADMIRALTY (press T, then 7) lists the best "
-                "landings; any coastal province on the map offers its own.")}
+                f"Name the landing, Sire — click a coastal province on the map "
+                f"for {marshal.name}'s landing chip; THE ADMIRALTY (press T, "
+                "then 7) lists the best landings.")}
         if name == marshal.location:
             return {"success": False, "message":
                     f"{marshal.name} already stands at {name}."}

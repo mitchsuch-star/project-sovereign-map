@@ -1475,7 +1475,7 @@ func _render_vassals():
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]France holds no client states.[/color]\n\n"
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]Bind a minor power to the Empire: vassalize a court marked "
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]★ Vassalizable[/color][color=#" + Utils.COLOR_INFO + "] on the Nations tab "
-		bbcode += "('vassalize Saxony'), demand vassalage at the peace table, or propose it through Diplomacy (F1).[/color]\n"
+		bbcode += "once she is beaten (F1 → the court → Subjugate), demand vassalage at the peace table, or propose it through Diplomacy (F1).[/color]\n"
 		content_area.text = bbcode
 		return
 
@@ -1852,11 +1852,8 @@ func _congress_gate_block(c: Dictionary) -> String:
 	if cost != "":
 		out += "  [color=#" + Utils.COLOR_INFO + "]Cost: " + cost + " — once summoned, it cannot be recalled.[/color]\n"
 	if _ctrue(c.get("available", false)):
-		var command := _cstr(c, "command")
-		out += "  [color=#" + Utils.COLOR_SUCCESS + "]The powers may be summoned — the Cabinet (F1), 'The Congress of Paris'"
-		if command != "":
-			out += ", or type '" + command + "'"
-		out += ".[/color]\n"
+		# PC-X51: the Cabinet's row is the road — never a typed line
+		out += "  [color=#" + Utils.COLOR_SUCCESS + "]The powers may be summoned — the Cabinet (F1), 'The Congress of Paris'.[/color]\n"
 	else:
 		var why := _cstr(c, "unavailable_reason")
 		if why != "":
@@ -2022,7 +2019,6 @@ func _format_congress_court(ct: Dictionary, sitting: bool) -> String:
 		out += "    [color=#" + Utils.COLOR_INFO + "]Refusing " + Utils.plural(_cint(ct, "refusing_turns"), "turn") + " — it will not march: " + _bb_safe(_cstr(ct, "march_blocker")) + ".[/color]\n"
 	# The price's levers that are typed orders — the backend names the command
 	# (`levers[].command`). Gold is laid at the table only while it sits.
-	var orders: Array = []
 	# DDB-10 (S13b): a lever the Cabinet owns names its control ("F1 →
 	# Prussia → Buy Off Their Design"), never a typed line the door refuses.
 	var controls: Array = []
@@ -2031,17 +2027,13 @@ func _format_congress_court(ct: Dictionary, sitting: bool) -> String:
 		for lv in levers:
 			if not (lv is Dictionary):
 				continue
+			# PC-X51: each lever names its Cabinet control (the sweetener's
+			# only while the Congress sits); the typed line is never shown
+			if _cstr(lv, "key") == "sweetener" and not sitting:
+				continue
 			var control := _cstr(lv, "control")
 			if control != "":
 				controls.append(_bb_safe(control))
-			var order := _cstr(lv, "command")
-			if order == "":
-				continue
-			if _cstr(lv, "key") == "sweetener" and not sitting:
-				continue
-			orders.append("'" + _bb_safe(order) + "'")
-	if not orders.is_empty():
-		out += "    [color=#" + Utils.COLOR_INFO + "]Type " + " or ".join(PackedStringArray(orders)) + ".[/color]\n"
 	if not controls.is_empty():
 		out += "    [color=#" + Utils.COLOR_INFO + "]In the Cabinet: " + "; ".join(PackedStringArray(controls)) + ".[/color]\n"
 	if stance != "GONE" and nation != "":
