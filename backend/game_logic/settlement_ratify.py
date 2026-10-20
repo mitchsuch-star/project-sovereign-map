@@ -502,9 +502,11 @@ def _apply_settlement_terms(
                     world.invalidate_active_nations_cache()
                 # AI-4a step 5: the annexing/returning ACTOR's own slot.
                 if to_nation:
-                    from backend.game_logic.coalition import add_threat
-                    add_threat(world, 8 * len(transferred), "treaty_annex",
-                               target=to_nation)
+                    from backend.game_logic.coalition import (
+                        TREATY_ANNEX_ALARM_PER_PROVINCE, add_threat,
+                    )
+                    add_threat(world, TREATY_ANNEX_ALARM_PER_PROVINCE * len(transferred),
+                               "treaty_annex", target=to_nation)
                 if from_nation:
                     from backend.game_logic.coalition import reduce_threat
                     reduce_threat(world, 5 * len(transferred), "territory_return",
@@ -1722,6 +1724,12 @@ def ratify_settlement_confirm(
     _revanche_line = revanche_line_after(world, _punitive_written, applied_clauses)
     # PC-F52: what the ratifier could not carry is named, never silent.
     _dropped_clauses = take_dropped_clauses(world)
+    # PC-R7 (ii) part 2: each article declared at the war is settled — taken
+    # or dropped, a dropped one refunding half its alarm — and named.
+    from backend.game_logic.declared_goals import aftermath_lines, settle_at_peace
+    _articles_lines = aftermath_lines(world, settle_at_peace(
+        world, [str(p.get("pair") or "") for p in resolved_pairs], applied_clauses),
+        about=world.player_nation)
 
     # GE-1: once per ratification (never inside `_apply_settlement_terms`,
     # which the headless paths share) — titles for every SIGNED cession,
@@ -1853,6 +1861,8 @@ def ratify_settlement_confirm(
             str(d.get("display") or "") for d in _dropped_clauses) + "."
     if _revanche_line:
         result_message = result_message + " " + _revanche_line
+    if _articles_lines:
+        result_message = result_message + " " + " ".join(_articles_lines)
     # RS-D1: the recognition a capital-keeping peace just bought, on the
     # same summary line the status quo rides.
     _rec_lines = _ge.take_recognition_lines(world)

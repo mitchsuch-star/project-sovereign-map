@@ -4522,6 +4522,9 @@ def give_the_war_its_purpose(world, nation_a: str, nation_b: str) -> bool:
 
     if any(_live(side) for side in (nation_a, nation_b)):
         return False
+    # PC-X35: the old war's articles settle before its records are replaced
+    from backend.game_logic.declared_goals import settle_concluded_pair
+    settle_concluded_pair(world, key)
     for side, other in ((nation_a, nation_b), (nation_b, nation_a)):
         _auto_assign_defense_objective(world, side, other, key)
     return True
@@ -4750,7 +4753,11 @@ def conclude_war_objectives_of(world, diplo_key: str) -> None:
 
 
 def _cleanup_old_war_objectives(world) -> None:
-    """Remove concluded war objectives older than 10 turns."""
+    """Remove concluded war objectives older than 10 turns. PC-R7 (ii) part
+    2: first, a war that ended by a road with no treaty seam (a court's
+    fall, a capitulation, the Congress) settles its declared articles."""
+    from backend.game_logic.declared_goals import sweep_concluded
+    sweep_concluded(world)
     for diplo_key in list(world.war_objectives.keys()):
         nation_objs = world.war_objectives[diplo_key]
         all_concluded = True
@@ -5471,6 +5478,14 @@ def build_war_context_snapshot(
         _summary = objective_target_summary(world, player_nation, player_obj)
         if _summary:
             snapshot["war_objective"]["target_summary"] = _summary
+        # PC-R7 (ii) part 2: the war's declared articles, both sides
+        from backend.game_logic.declared_goals import declared_line as _declared_line
+        _declared = _declared_line(world, player_nation, target_nation)
+        if _declared:
+            snapshot["war_objective"]["declared_display"] = _declared
+            # the popups print the one sentence (`utils.gd` reads target_summary)
+            if _summary:
+                snapshot["war_objective"]["target_summary"] = f"{_summary} — {_declared}"
     else:
         snapshot["war_objective"] = None
 
@@ -5489,7 +5504,13 @@ def build_war_context_snapshot(
     from backend.game_logic import war_status as _war_status
     if (getattr(world, "sandbox_mode", False)):
         snapshot["settlement_tier_side"] = _war_status._tier_side(war_score)
-    snapshot["tier_mismatch_warnings"] = get_tier_mismatch_warnings(war_score, effective_terms)
+    # PC-R7 (ii) part 2: an article declared at the war is no surprise here
+    # either — the warning reads the demands without it.
+    from backend.game_logic.declared_goals import undeclared_demands as _undeclared
+    _warn_terms = dict(effective_terms or {})
+    _warn_terms["demands"] = _undeclared(world, player_nation, target_nation,
+                                         (effective_terms or {}).get("demands") or [])
+    snapshot["tier_mismatch_warnings"] = get_tier_mismatch_warnings(war_score, _warn_terms)
 
     # Armistice-specific fields
     if current_state == "ARMISTICE":
@@ -9886,6 +9907,7 @@ def declare_war(
     war_objective: str = None,
     ally_entry_decisions: Optional[Dict[str, Dict]] = None,
     suppress_unresolved_offensive_cascade: bool = False,
+    declared_terms: Optional[List[Dict]] = None,
 ) -> Dict:
     """Declare war: transition to WAR, apply penalties, handle cascade.
 
@@ -9895,6 +9917,9 @@ def declare_war(
         target: Nation being declared upon
         casus_belli: If True, halve relation penalties (R21 ultimatum rejection)
         war_objective: Optional objective type (conquest/subjugation/forced_alliance)
+        declared_terms: PC-R7 (ii) part 2 — up to two ARTICLES declared with
+            the objective (`declared_goals.declare_articles`: a province, an
+            indemnity, a client), priced in alarm on the declarer's slot
 
     Returns:
         {"success": bool, "message": str, "cascade": list of cascade entries,
@@ -10081,6 +10106,9 @@ def declare_war(
 
     # WPS-A: Create war objectives
     diplo_key_obj = world._make_diplo_key(aggressor, target)
+    # PC-X35: the old war's articles settle before its records are replaced
+    from backend.game_logic.declared_goals import settle_concluded_pair
+    settle_concluded_pair(world, diplo_key_obj)
     if war_objective and war_objective in OFFENSIVE_OBJECTIVE_TYPES:
         # World-scoped (item 7): with the legacy global, offensive objectives
         # vs Europe-only nations got empty target_regions → ticking never fired.
@@ -10106,6 +10134,14 @@ def declare_war(
             "target_regions": target_regions,
             "turn": int(world.current_turn),
         })
+
+    # PC-R7 (ii) part 2: the war's ARTICLES ride the objective record, priced
+    # at the declaration (the player's War Purpose card and the AI's design
+    # war through the one function — GR5).
+    _articles = {"articles": [], "alarm": 0, "display": ""}
+    if declared_terms and war_objective and war_objective in OFFENSIVE_OBJECTIVE_TYPES:
+        from backend.game_logic.declared_goals import declare_articles
+        _articles = declare_articles(world, aggressor, target, declared_terms)
 
     _auto_assign_defense_objective(world, target, aggressor, diplo_key_obj)
 
@@ -10400,6 +10436,9 @@ def declare_war(
                 f"in defense of {c['ally']}!"
             )
 
+    if _articles.get("display"):
+        messages.append(_articles["display"])
+
     return {
         "success": True,
         "message": " ".join(messages),
@@ -10408,6 +10447,7 @@ def declare_war(
         "war_id": war_id,
         "dp_cost": dp_cost,
         "relation_changes": relation_changes,
+        "declared_articles": list(_articles.get("articles") or []),
     }
 
 
@@ -12014,6 +12054,12 @@ def _process_armistice_expiration(world) -> List[Dict]:
             _titled_lines = [str(x) for x in (_sq_lines_for(world, _sq_entries, world.player_nation) or []) if x]
             # DDB-50: the prisoners this peace sent home.
             _titled_lines += released_prisoner_lines(world, [diplo_key], world.player_nation)
+            # PC-R7 (ii) part 2: the war's declared articles settle on the
+            # held line — the truce's stream that runs on (the treaty record
+            # persists, either exit) is the loser's indemnity (PC-X36).
+            from backend.game_logic.declared_goals import aftermath_lines, settle_at_peace
+            _titled_lines += aftermath_lines(world, settle_at_peace(world, [diplo_key]),
+                                             about=world.player_nation)
             _titled = " ".join(_titled_lines)
             if dictated:
                 _loser_name = str(exit_.get("loser") or "")

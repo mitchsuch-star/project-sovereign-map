@@ -57,17 +57,25 @@ DIALOGUE_ACTION_KEYWORDS: Dict[str, List[str]] = {
     # measured eight-deep confirm loop. confirm_pair_substitute rides
     # LAST: it never co-occurs with the other confirm actions.
     "confirm": ["confirm_settlement", "send_override", "execute_proposal",
-                "force_declare_war", "confirm_pair_substitute"],
+                "force_declare_war", "confirm_pair_substitute",
+                "declare_war_articles_done"],
     "ratify": ["confirm_settlement"],
     # W6-9: execute_suggestion rides LAST in each list — it only wins on
     # the advisory dialogue, whose only other option is dismiss.
     "proceed": ["confirm_settlement", "send_override", "execute_proposal",
                 "force_declare_war", "execute_suggestion",
-                "confirm_pair_substitute"],
+                "confirm_pair_substitute", "declare_war_articles_done"],
     "do it": ["execute_suggestion"],
     "yes": ["confirm_settlement", "execute_proposal", "accept_ai_proposal",
             "accept_ai_ultimatum", "force_declare_war", "execute_suggestion",
-            "confirm_pair_substitute"],
+            "confirm_pair_substitute", "declare_war_articles_done"],
+    # PC-R7 (ii) part 2: the War Purpose card's articles step — the
+    # objective's own name (the word that answered its first step) and "no
+    # articles" go on with the war; they bite only where that step is up.
+    "conquest": ["declare_war_articles_done"],
+    "forced alliance": ["declare_war_articles_done"],
+    "subjugation": ["declare_war_articles_done"],
+    "no articles": ["declare_war_articles_done"],
     "keep": ["keep_joint_settlement"],
     "reconsider": ["back_out_settlement", "reconsider",
                    "keep_joint_settlement"],

@@ -321,6 +321,13 @@ def _objective_block(world, france: str, opponent: str, coalition_members,
         # down, so those payloads stay byte-identical and each client
         # surface keeps its own list fallback.
         _summary = objective_target_summary(world, france, france_obj)
+        # PC-R7 (ii) part 2: the war's declared articles ride the one sentence
+        from backend.game_logic.declared_goals import declared_line as _declared_line
+        _declared = _declared_line(world, france, str(objective_against or opponent))
+        if _declared:
+            objective_info["declared_display"] = _declared
+            if _summary:
+                _summary = f"{_summary} — {_declared}"
         if _summary:
             objective_info["target_summary"] = _summary
 
@@ -332,6 +339,13 @@ def _objective_block(world, france: str, opponent: str, coalition_members,
             "type": eo_type,
             "type_display": OBJECTIVE_TYPE_DISPLAY.get(eo_type, eo_type),
         }
+        # PC-R7 (ii) part 2: what the enemy declared against us, on its purpose
+        from backend.game_logic.declared_goals import theirs_line as _theirs_line
+        _theirs = _theirs_line(world, france, str(enemy_objective_by or opponent))
+        if _theirs:
+            enemy_objective_info["declared_display"] = _theirs
+            enemy_objective_info["type_display"] = (
+                f"{enemy_objective_info['type_display']} — declared: {_theirs}")
     return objective_info, enemy_objective_info
 
 

@@ -261,6 +261,10 @@ class TestTheNetFallsBackNeutral:
         r = post(client, "declare war on Prussia")
         assert r.get("awaiting_diplomatic_response"), r.get("message")
         r = post(client, "1")                                   # the purpose
+        # PC-R7 (ii) part 2 (S14 part 2): the card's second step, the war's
+        # articles — its first button declares with none
+        assert "Name the articles of the war" in r.get("message", ""), r.get("message")
+        r = post(client, "1")
         assert "advise against" in r.get("message", ""), r.get("message")
         # The objection's own return carries the flag (the typed road's net).
         objection = M.executor._diplomatic._execute_diplomatic_declare_war(

@@ -727,8 +727,12 @@ def _declare_design_war(world, coveter: str, record: Dict,
 
     target = str(record.get("target") or "")
     casus = has_renege_grievance(world, coveter, target)
+    # PC-R7 (ii) part 2 (GR5): the design war declares its articles — the
+    # design's own provinces the target holds — priced as the player's are.
+    from backend.game_logic.declared_goals import design_articles
     result = declare_war(world, coveter, target,
-                         casus_belli=casus, war_objective="conquest")
+                         casus_belli=casus, war_objective="conquest",
+                         declared_terms=design_articles(world, coveter, target))
     if not result.get("success"):
         # The fail-safe arm — preview said yes, the authority said no.
         # The crisis stays open; the preview re-runs next turn (a crisis
@@ -776,7 +780,8 @@ def _declare_design_war(world, coveter: str, record: Dict,
         "stated_reason": record.get("want_title"),
         "message": (f"{humanize_entity_name(coveter)} declares war on "
                     f"{humanize_entity_name(target)} — "
-                    f"{record.get('want_title') or 'conquest'}."),
+                    f"{record.get('want_title') or 'conquest'}"
+                    + _declared_tail(world, result) + "."),
     })
 
     # The join arm (AI-2d / D5-3 enforcement made real): an AI guarantor
@@ -785,6 +790,14 @@ def _declare_design_war(world, coveter: str, record: Dict,
     # pledge is the player's choice; the ward's plea reaches the dispatch.
     _honour_guarantees(world, coveter, target, war_id, events)
     return True
+
+
+def _declared_tail(world, result: Dict) -> str:
+    """PC-R7 (ii) part 2: "; declaring Hanover" — the articles the design war
+    named at its declaration (`declared_goals`)."""
+    from backend.game_logic.declared_goals import articles_display
+    shown = articles_display(world, result.get("declared_articles") or [])
+    return f"; declaring {shown}" if shown else ""
 
 
 def _honour_guarantees(world, coveter: str, target: str, war_id: str,

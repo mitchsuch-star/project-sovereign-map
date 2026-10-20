@@ -144,6 +144,9 @@ _THREAT_SOURCE_LABELS = {
     # and floor — and an amount of 0: the alarm HELD).
     "armed_peace": "The courts re-arm",
     "armed_peace_watch": "Europe watches",
+    # PC-R7 (ii) part 2 (PC-X39): a war's articles, declared and dropped
+    "declared_articles": "Declared the articles of a war",
+    "declared_article_dropped": "A declared article dropped at the peace",
 }
 
 

@@ -2079,6 +2079,11 @@ def _answer_why_war(world, nation: str) -> str:
     _title_line = str(war_title_for_pair(world, player, nation).get("line") or "")
     if _title_line:
         line += " " + _title_line
+    # PC-R7 (ii) part 2: the articles declared at the war, both sides
+    from backend.game_logic.declared_goals import declared_line
+    _declared = declared_line(world, player, nation)
+    if _declared:
+        line += f" The articles of the war — {_declared}."
     intent = _intent_clause(world, nation)
     if intent:
         line += " " + intent

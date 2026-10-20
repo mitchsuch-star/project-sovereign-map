@@ -309,10 +309,13 @@ def _table_road(world, player: str, court: str, *, alone: bool,
         # K item 6: the table road is priced on the terms it will OPEN with —
         # the staged draft, or the white peace (no terms) — never on a
         # baseline the player has not seen; the open road applies these.
+        # PC-R7 (ii) part 2: with nothing staged, the road prices the
+        # articles declared at the war FIRST (`declared_when_empty`) — the
+        # draft the editor opens with; the white peace where none were.
         preview = _quiet(
             build_settlement_preview, world, war_id=war_id,
             settlement_terms=list(staged_terms or []), actor_nation=player,
-            ignore_active_dialogue=True,
+            ignore_active_dialogue=True, declared_when_empty=True,
             covered_enemy_participants=([court] if alone else None))
     except Exception as exc:
         report(exc, "counsel._table_road: build_settlement_preview")
@@ -320,11 +323,14 @@ def _table_road(world, player: str, court: str, *, alone: bool,
     road = "table_alone" if alone else "table_whole"
     # K item 6: a table priced with no terms is the WHITE PEACE road
     # (`propose_white_peace`, the only road that ratifies an empty package);
-    # with a staged draft it is the editor (`open_settlement`).
-    action = ROAD_ACTIONS[road] if staged_terms else "propose_white_peace"
+    # with a staged draft — or the declared articles — it is the editor.
+    _body0 = (preview.get("settlement_preview") or {}) if preview.get("success") else {}
+    declared = bool(_body0.get("declared_draft"))
+    action = ROAD_ACTIONS[road] if (staged_terms or declared) else "propose_white_peace"
     out: Dict[str, Any] = {
         "road": road, "action": action, "war_id": str(war_id),
         "label": ROAD_LABELS[road].format(court=_shown(world, court)),
+        "declared_draft": declared,
     }
     if not preview.get("success"):
         out.update({
@@ -373,10 +379,14 @@ def _table_road(world, player: str, court: str, *, alone: bool,
                     "label": (f"{_shown(world, str(holdout.get('nation')))}'s consent "
                               f"({str(holdout.get('top_blocker_display') or 'her court').lower()})")}
                    if holdout else None)
+    # the draft this road priced: the staged one, or the declared articles
+    _priced = list(staged_terms or []) or (list(out["priced_terms"]) if declared else [])
     if alone:
         from backend.game_logic.diplomacy import separate_peace_words
-        words = separate_peace_words(world, player, court, list(staged_terms or []))
+        words = separate_peace_words(world, player, court, _priced)
         trade = f"It costs {int(quote['cost'])} DP."
+        if declared:
+            trade = f"{trade} {_declared_words(world, war_id, player, _priced)}"
         if words:
             trade = f"{trade} {words['display']}"
         out["trade"] = trade
@@ -384,7 +394,7 @@ def _table_road(world, player: str, court: str, *, alone: bool,
         # Ruling K item 1's lever: the payment that would carry this court
         # alone, by the scorer's own credit (CONCESSION_GOLD_DIVISOR a point,
         # capped at CONCESSION_GOLD_CAP) — or none.
-        out["gold_to_carry"] = _gold_to_carry(world, war_id, player, court, mine, staged_terms)
+        out["gold_to_carry"] = _gold_to_carry(world, war_id, player, court, mine, _priced)
         # PC-F61 (S13e part 3): what the table CARRIES from a beaten court at
         # its score — the tier's name promises only what the scorer carries.
         out["carry_ladder"] = _carry_ladder(world, war_id, player, court, mine)
@@ -399,7 +409,19 @@ def _table_road(world, player: str, court: str, *, alone: bool,
                            for n, t in totals.items())
         out["trade"] = (f"Every covered court must reach {out['threshold']}; the table "
                         f"reads their mean ({mean}) — {parts}.")
+        if declared:
+            out["trade"] = f"{_declared_words(world, war_id, player, _priced)} {out['trade']}"
     return out
+
+
+def _declared_words(world, war_id: str, player: str, terms) -> str:
+    """PC-R7 (ii) part 2: the road says it was priced on the declared articles."""
+    from backend.game_logic.declared_goals import declared_in_package
+    inst = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    side = (inst.get("side_by_nation") or {}).get(player)
+    names = declared_in_package(world, terms, list(inst.get(side) or [player]) if side else [player])
+    return (f"Priced on the articles declared at the war: {', '.join(names)}." if names
+            else "Priced on the articles declared at the war.")
 
 
 def _carry_ladder(world, war_id: str, player: str, court: str, row) -> List[Dict[str, Any]]:

@@ -281,7 +281,9 @@ func show_dialogue(data: Dictionary):
 		# the shared string cannot tell the backend which one was clicked —
 		# bind the 1-based index (backend resolves options[choice-1] and reads
 		# that option's objective_type). Was: first-match always picked #1.
-		elif dtype == "war_purpose_selection" and action_str == "select_war_objective":
+		# PC-R7 (ii) part 2: the articles step's buttons share
+		# "declare_war_article" the same way — the index names the article.
+		elif dtype == "war_purpose_selection" and action_str in ["select_war_objective", "declare_war_article"]:
 			action_str = str(idx)
 		btn.pressed.connect(_on_option_selected.bind(action_str))
 		button_container.add_child(btn)
@@ -1530,7 +1532,9 @@ func _build_settlement_scope_replace_content(data: Dictionary) -> String:
 
 func _build_war_purpose_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")
-	var bbcode = "[b]WAR PURPOSE - %s[/b]\n\n" % Utils.display_nation_name(str(target))
+	# PC-R7 (ii) part 2: the card's second step names the war's articles.
+	var heading = "ARTICLES OF THE WAR" if str(data.get("stage", "")) == "articles" else "WAR PURPOSE"
+	var bbcode = "[b]%s - %s[/b]\n\n" % [heading, Utils.display_nation_name(str(target))]
 	var message = str(data.get("message", "Choose your war purpose."))
 	bbcode += message + "\n\n"
 

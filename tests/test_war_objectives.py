@@ -623,8 +623,19 @@ class TestWarPurposePopup:
             "confirm_set_war_purpose", selected, dialogue, world,
         )
         assert result["success"], result.get("message")
+        # PC-R7 (ii) part 2: the objective chosen opens the articles step;
+        # its first button sets the purpose with none declared.
+        articles = world.pending_diplomatic_dialogue
+        assert articles.get("stage") == "articles"
+        done = articles["options"][0]
+        assert done["action"] == "declare_war_articles_done"
+        result = exec_._process_dialogue_choice(
+            done["action"], done, articles, world,
+        )
+        assert result["success"], result.get("message")
         dk = _diplo_key(world, "France", "Austria")
         assert world.war_objectives[dk]["France"]["type"] == "conquest"
+        assert "declared_terms" not in world.war_objectives[dk]["France"]
 
     def test_player_attack_into_peace_war_stages_war_purpose(self):
         world = WorldState(player_nation="France")

@@ -3009,6 +3009,276 @@ class TestPCR7:
         assert "promised to Kingdom of Italy" in r["display"]
 
 
+    # ── (ii) part 2 — declared goals (Pre-Deploy S14 part 2, October 20,
+    #    2026; rules SYSTEMS_REFERENCE §134) ──────────────────────────────
+
+    def test_ii_declared_goals_land_and_the_bond_heads_part_3(self):
+        """(ii)'s second half was sized at S14 part 2's head: declared goals
+        and the table's articles land here; the coalition's no-separate-peace
+        bond heads S14 part 3 with its pin named in the row (GR9)."""
+        from backend.game_logic import declared_goals as DG
+        assert DG.MAX_DECLARED_ARTICLES == 2 and DG.DROPPED_REFUND_DIVISOR == 2
+        bug = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        row = next(ln for ln in bug.splitlines() if ln.startswith("| **PC-R7**"))
+        assert "OPEN" in row and "S14 part 3" in row and "bond" in row
+        assert "test_ii_the_bond_is_priced_and_biddable" in row
+        status = (REPO / "docs" / "STATUS.md").read_text(encoding="utf-8")
+        assert "S14 part 3" in status and "bond" in status
+
+    def test_ii_m_the_card_declares_the_wars_articles(self, w):
+        """The War Purpose card's second step: the objective chosen, up to two
+        articles named — a province of the target, an indemnity, a client —
+        each priced at the treaty annex's per-province alarm (8; a client 8 a
+        province it carves) on the declarer's slot, stored on the record and
+        kept by the save. Its first button is the harmless answer: no
+        articles, the declaration as it was."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import declared_goals as DG
+        from backend.game_logic.coalition import TREATY_ANNEX_ALARM_PER_PROVINCE
+        assert TREATY_ANNEX_ALARM_PER_PROVINCE == 8
+        ex = CommandExecutor()._diplomatic
+        plain = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+
+        def walk(world, answers):
+            world.threat_by_target["France"] = 10
+            world.diplomatic_points = 10
+            with _quiet():
+                ex._execute_diplomatic_declare_war({"target_nation": "Prussia"}, world)
+                seen = []
+                for a in answers:
+                    seen.append(dict(world.pending_diplomatic_dialogue or {}))
+                    ex.handle_diplomatic_dialogue_response(a, {"world": world})
+                guard = 0
+                while world.pending_diplomatic_dialogue and guard < 4:   # the ally review
+                    guard += 1
+                    ex.handle_diplomatic_dialogue_response("1", {"world": world})
+            return seen
+
+        seen = walk(w, ["1", "2", "2", "Conquest"])
+        card = seen[1]
+        assert card["stage"] == "articles" and card["objective_type"] == "conquest"
+        labels = [o["label"] for o in card["options"]]
+        assert labels == ["Declare war — Conquest, no articles", "Declare Berlin (+8 alarm)",
+                          "Declare an indemnity (+8 alarm)",
+                          "Declare Duchy of Warsaw (a client) (+8 alarm)", "Back Out"]
+        assert "Europe hears them now: 8 alarm a province" in card["message"]
+        assert [o["label"] for o in seen[3]["options"]] == [
+            "Declare war — Conquest, with Berlin and an indemnity", "Back Out"]   # two at most
+        k = w._make_diplo_key("France", "Prussia")
+        assert _state(w, "France", "Prussia") == "WAR"
+        rec = w.war_objectives[k]["France"]
+        assert [(a["kind"], a.get("region"), a["alarm"]) for a in rec["declared_terms"]] == [
+            ("province", "Berlin", 8), ("indemnity", None, 8)]
+        assert w.threat_by_target["France"] == 10 + D.declaration_alarm(False) + 16
+        assert any(r["source"] == DG.THREAT_SOURCE_DECLARED and r["amount"] == 16
+                   for r in w.threat_sources_this_turn)
+        ev = next(e for e in reversed(w.event_log) if e.get("type") == "war_articles_declared")
+        assert ev["display"] == ("France declares the articles of the war on Prussia: "
+                                 "Berlin and an indemnity (+16 alarm).")
+        # the save keeps them, deep
+        clone = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+        assert clone.war_objectives[k]["France"]["declared_terms"] == rec["declared_terms"]
+        dumped = w.to_dict()
+        dumped["war_objectives"][k]["France"]["declared_terms"][0]["settled"] = "x"
+        assert "settled" not in rec["declared_terms"][0]
+        # the harmless first button: no articles, the declaration as it was
+        walk(plain, ["1", "1"])
+        assert _state(plain, "France", "Prussia") == "WAR"
+        assert "declared_terms" not in plain.war_objectives[k]["France"]
+        assert plain.threat_by_target["France"] == 10 + D.declaration_alarm(False)
+
+    def test_ii_n_the_ai_design_war_declares_its_articles(self, w):
+        """GR5: the AI's design war declares its design's provinces the target
+        holds, through the same function and at the same price."""
+        from backend.game_logic import declared_goals as DG
+        from backend.game_logic.agendas import get_active_agenda
+        from backend.game_logic.war_council import _declare_design_war
+        assert DG.design_articles(w, "Prussia", "Hanover") == [
+            {"kind": "province", "from": "Hanover", "region": "Hanover"}]
+        design = get_active_agenda("Prussia", w)
+        events = []
+        with _quiet():
+            assert _declare_design_war(w, "Prussia", {"target": "Hanover", "design_id": design.id,
+                                                      "want_title": "The Hanoverian Prize"}, events)
+        rec = w.war_objectives[w._make_diplo_key("Prussia", "Hanover")]["Prussia"]
+        assert [(a["kind"], a["region"], a["alarm"]) for a in rec["declared_terms"]] == [
+            ("province", "Hanover", 8)]
+        assert any(r["source"] == DG.THREAT_SOURCE_DECLARED and r["target"] == "Prussia"
+                   and r["amount"] == 8 for r in w.threat_sources_this_turn)
+
+    def test_ii_o_a_declared_article_is_legitimate_at_the_table(self, vienna_held):
+        """At the table a declared article is no surprise: on the Vienna-held
+        board with the pair forced to +25 (favourable terms, ceiling 0.25),
+        Tyrol declared reads the tier legitimacy 0 where Moravia, undeclared,
+        reads -10 — the harshness the same; at +10 (a white peace's tier) -10
+        against -20. GR5: the same read serves an AI court's articles."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import declared_goals as DG
+        w = vienna_held
+        with _quiet():
+            res = CommandExecutor()._diplomatic._set_war_purpose_inner(
+                "Austria", "conquest", w,
+                declared_terms=[{"kind": "province", "region": "Tyrol"}, {"kind": "indemnity"}])
+        assert res["success"] and "Tyrol and an indemnity (+16 alarm)" in res["message"]
+
+        def legit(score, region):
+            _force_pair(w, "France", "Austria", score)
+            body = _preview(w, terms=[{"type": "territory_cede", "from": "Austria", "to": "France",
+                                       "region": region}], covered=["Austria"])
+            row = _row(body, "Austria")
+            return _comp(row, "settlement_tier_legitimacy"), _comp(row, "term_harshness_penalty")
+        assert legit(25, "Tyrol") == (0, legit(25, "Moravia")[1])
+        assert legit(25, "Moravia")[0] == -10
+        assert legit(10, "Tyrol")[0] == -10 and legit(10, "Moravia")[0] == -20
+        # the court's debug names what was declared
+        _force_pair(w, "France", "Austria", 25)
+        body = _preview(w, terms=[{"type": "territory_cede", "from": "Austria", "to": "Bavaria",
+                                   "region": "Tyrol"}], covered=["Austria"])
+        assert _comp(_row(body, "Austria"), "settlement_tier_legitimacy") == 0   # any recipient
+        # GR5: an AI court's declared article reads the same way, and only for its side
+        arts = DG.article_candidates(w, "Austria", "France")
+        first = next(a for a in arts if a["kind"] == "province")
+        rec = w.war_objectives[w._make_diplo_key("Austria", "France")]["Austria"]
+        rec["type"] = "conquest"
+        DG.declare_articles(w, "Austria", "France", [first])
+        cede = {"type": "territory_cede", "from": "France", "to": "Austria", "region": first["region"]}
+        assert DG.undeclared_terms(w, [cede], ["Austria", "Britain", "Russia"]) == []
+        assert DG.undeclared_terms(w, [cede], ["France", "Bavaria"]) == [cede]
+
+    def test_ii_p_the_table_opens_on_the_declared_draft_and_the_counsel_prices_it(
+            self, vienna_held, monkeypatch):
+        """Composable articles: the table opens on the declared articles (the
+        empty PROPOSE draft), a declared article struck from the draft LEADS
+        the court's guided rows ("Declared at the war: Tyrol") and adds back
+        through the add verb, and Talleyrand's table road prices that same
+        draft first — the road opens with the draft he priced (K item 6)."""
+        from fastapi.testclient import TestClient
+        from backend.commands.executor import CommandExecutor
+        w = vienna_held
+        with _quiet():
+            CommandExecutor()._diplomatic._set_war_purpose_inner(
+                "Austria", "conquest", w,
+                declared_terms=[{"kind": "province", "region": "Tyrol"}, {"kind": "indemnity"}])
+        declared = [{"type": "peace"},
+                    {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"},
+                    {"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 300}]
+        with _quiet():
+            reading = CS.read_counsel(w, "Austria")
+        road = next(r for r in reading["roads"] if r["road"] == "table_alone")
+        assert road["declared_draft"] is True and road["action"] == "open_settlement"
+        assert road["priced_terms"] == declared
+        assert road["trade"].startswith("It costs 3 DP. Priced on the articles declared at the war: "
+                                        "Tyrol, an indemnity.")
+        M = _swap_in(monkeypatch, w)
+        client = TestClient(M.app)
+        w.diplomatic_points = 9
+
+        def post(choice, dialogue, params):
+            with _quiet():
+                return client.post("/respond_to_diplomatic_dialogue", json={
+                    "choice": choice, "dialogue_id": dialogue.get("dialogue_id"),
+                    "action_params": params}).json()
+        with _quiet():
+            r = client.post("/command", json={"command": "propose common peace with Austria"}).json()
+        dialogue = r.get("diplomatic_dialogue") or {}
+        assert dialogue.get("type") == "settlement_confirm", r.get("message")
+        assert [t for t in dialogue["settlement_terms"] if t.get("type") != "peace"] == declared[1:]
+        idx = next(i for i, t in enumerate(dialogue["settlement_terms"]) if t.get("region") == "Tyrol")
+        out = post("settlement_demand_remove", dialogue, {"clause_index": idx,
+                                                          "expected_type": "territory_cede"})
+        assert out.get("success"), out.get("message") or out.get("error_display")
+        dialogue = out["diplomatic_dialogue"]
+        row = next(c for c in dialogue["per_court_acceptance"] if c["nation"] == "Austria")
+        lead = (row.get("demand_suggestions") or [])[0]
+        assert lead["label"] == "Declared at the war: Tyrol" and lead["declared"] is True
+        assert lead["group"] == "demand" and lead["action_params"]["region"] == "Tyrol"
+        assert "it is legitimate at the table" in lead["reason_display"]
+        out = post("settlement_demand_add", dialogue, dict(lead["action_params"]))
+        assert out.get("success"), out.get("message") or out.get("error_display")
+        assert any(t.get("region") == "Tyrol" for t in out["diplomatic_dialogue"]["settlement_terms"])
+
+    def test_ii_q_a_dropped_article_returns_half_its_alarm(self, vienna_held):
+        """At the peace each article settles once — taken (Tyrol: Austria no
+        longer holds it) or dropped (the indemnity the peace did not carry) —
+        and a dropped one returns half its alarm (4), named on the line."""
+        import unittest.mock as _m
+        from backend.campaign_log import format_event_oneliner
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import declared_goals as DG
+        from backend.game_logic import settlement_ratify as SR
+        from backend.game_logic import settlement_scoring as SS
+        from tests.test_common_peace_c2_ratification import _acceptance_always_passes, _stage_dialogue
+        w = vienna_held
+        with _quiet():
+            CommandExecutor()._diplomatic._set_war_purpose_inner(
+                "Austria", "conquest", w,
+                declared_terms=[{"kind": "province", "region": "Tyrol"}, {"kind": "indemnity"}])
+        k = w._make_diplo_key("France", "Austria")
+        with _m.patch.object(SS, "calculate_common_peace_acceptance", _acceptance_always_passes):
+            dialogue = _stage_dialogue(w, settlement_terms=[
+                {"type": "peace"},
+                {"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"}],
+                covered_enemy_participants=["Austria"], war_id="war_1")
+            with _quiet():
+                out = SR.ratify_settlement_confirm(w, dialogue)
+        assert out["success"]
+        assert ("The articles France declared at the war: Tyrol taken; an indemnity dropped — "
+                "half the dropped articles' alarm returned (4).") in out["message"]
+        arts = w.war_objectives[k]["France"]["declared_terms"]
+        assert [(a["kind"], a["settled"], a["refund"]) for a in arts] == [
+            ("province", "taken", 0), ("indemnity", "dropped", 4)]
+        assert any(r["source"] == DG.THREAT_SOURCE_REFUND and r["amount"] == -4 and r["target"] == "France"
+                   for r in w.threat_sources_this_turn)
+        ev = next(e for e in reversed(w.event_log) if e.get("type") == "war_articles_settled")
+        assert format_event_oneliner(ev).startswith("The articles France declared at the war: Tyrol taken")
+        # settled once: no second refund
+        n = len(w.threat_sources_this_turn)
+        assert DG.settle_at_peace(w, [k]) == [] and len(w.threat_sources_this_turn) == n
+
+    def test_ii_r_every_peace_road_settles_them(self, vienna_held):
+        """The bilateral ratifier (Tyrol handed back — dropped, refunded, on the
+        aftermath), the truce's dictated exit (the held line and the loser's
+        stream — both taken), and the sweep for a war ended by no treaty."""
+        from backend.commands.executor import CommandExecutor
+        ex = CommandExecutor()._diplomatic
+        tyrol_and_gold = [{"kind": "province", "region": "Tyrol"}, {"kind": "indemnity"}]
+        k = "Austria|France"
+        # (a) the bilateral peace returning Tyrol
+        w = vienna_held
+        with _quiet():
+            ex._set_war_purpose_inner("Austria", "conquest", w, declared_terms=tyrol_and_gold)
+            res = w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                                    "sweeteners": [{"type": "territory_cede", "value": 1, "regions": ["Tyrol"]}],
+                                    "demands": [], "clauses": []})
+        assert (res or {}).get("type") == "diplomatic_treaty_signed", res
+        arts = w.war_objectives[k]["France"]["declared_terms"]
+        assert [(a["settled"], a["refund"]) for a in arts] == [("dropped", 4), ("dropped", 4)]
+        aftermath = w.peace_ratification_log[-1]["political_aftermath"]
+        assert ("The articles France declared at the war: Tyrol dropped; an indemnity dropped — "
+                "half the dropped articles' alarm returned (8).") in aftermath
+        # (b) the truce's dictated exit
+        w2 = _board("turn6_vienna_held.json")
+        with _quiet():
+            ex._set_war_purpose_inner("Austria", "conquest", w2, declared_terms=tyrol_and_gold)
+        _truce(w2, proposer="Austria", target="France", sweeteners=[{"type": "gold_per_turn", "value": 80}])
+        _kill_hope(w2)
+        w2.nation_relations[k] = -80
+        w2.armistice_turns[k] = D.ARMISTICE_DURATION - 1
+        with _quiet():
+            events = D._process_armistice_expiration(w2)
+        ev = next(e for e in events if e["type"] == "armistice_expired_dictated")
+        assert "The articles France declared at the war: Tyrol taken; an indemnity taken." in ev["message"]
+        # (c) the sweep: a war concluded with no treaty seam
+        w3 = _board("turn6_vienna_held.json")
+        with _quiet():
+            ex._set_war_purpose_inner("Austria", "conquest", w3, declared_terms=tyrol_and_gold)
+        w3.regions["Tyrol"].controller = "Austria"
+        D.conclude_war_objectives_of(w3, k)
+        D._cleanup_old_war_objectives(w3)
+        arts = w3.war_objectives[k]["France"]["declared_terms"]
+        assert [(a["settled"], a["refund"]) for a in arts] == [("dropped", 4), ("dropped", 4)]
+
+
 class TestTheS14Part1Siblings:
     """PC-R7 (ii)'s sibling sweep (S14 part 1, October 20, 2026): the
     hand-off that dropped an offered province in silence (X28), the
@@ -3090,6 +3360,198 @@ class TestTheS14Part1Siblings:
                                "region": "Vienna"}],
             proposer_member_set={"France", "Prussia"}, episode_id="t")
         assert [o["kind"] for o in out] == ["bargain_breach_at_settlement"]
+
+
+class TestTheS14Part2Siblings:
+    """PC-R7 (ii) part 2's sibling sweep (S14 part 2, October 20, 2026): the
+    roads beside the declared articles that still read a declaration or a
+    peace without them."""
+
+    def test_x33_talleyrands_projection_hears_the_articles(self):
+        """The league-gathering projection Talleyrand reads before a
+        declaration counted the declaration's 20 and never its articles: at
+        30, a declaration naming Berlin and an indemnity carries Europe to 66
+        and he said nothing."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import coalition as C
+        from tests.test_iq3_the_league_is_spent import _europe, _hostile_minors
+        world = _europe()
+        world.active_coalition = None
+        world.coalition_brewing = None
+        world.threat_by_target["France"] = 30
+        _hostile_minors(world)
+        world.diplomatic_points = 5
+        assert C.declaration_would_gather_a_league(world, "France") is None
+        projection = C.declaration_would_gather_a_league(world, "France", extra_alarm=16)
+        assert projection and projection["to"] == 66
+        with _quiet():
+            out = CommandExecutor()._diplomatic._execute_diplomatic_declare_war(
+                {"target_nation": "Prussia", "war_objective": "conquest",
+                 "declared_terms": [{"kind": "province", "region": "Berlin"}, {"kind": "indemnity"}]},
+                world)
+        text = (out.get("diplomatic_objection_popup") or {}).get("objection_text") or ""
+        assert "would carry it to 66" in text, out.get("message")
+        assert world.get_diplomatic_state("France", "Prussia") != "WAR"
+        # the stashed context carries the articles through his objection
+        assert world._declare_war_objection_context["declared_terms"]
+
+    def test_x34_the_bilateral_preview_does_not_call_a_declared_article_unearned(self, vienna_held):
+        """The bilateral peace preview's tier warnings ("Your war score may
+        not support demanding 2 regions") counted a declared province as a
+        claim the field had not earned; it reads the demands without it."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import declared_goals as DG
+        w = vienna_held
+        with _quiet():
+            CommandExecutor()._diplomatic._set_war_purpose_inner(
+                "Austria", "conquest", w, declared_terms=[{"kind": "province", "region": "Tyrol"}])
+        demands = [{"type": "territory_cede", "value": 2, "regions": ["Tyrol", "Moravia"]}]
+        assert DG.undeclared_demands(w, "France", "Austria", demands) == [
+            {"type": "territory_cede", "value": 1, "regions": ["Moravia"]}]
+        assert D.get_tier_mismatch_warnings(25, {"demands": demands})
+        assert not D.get_tier_mismatch_warnings(
+            25, {"demands": DG.undeclared_demands(w, "France", "Austria", demands)})
+        # the surface: the war snapshot the peace popups read hands the
+        # warning the demands without the declared province
+        seen = []
+        real = D.get_tier_mismatch_warnings
+        import unittest.mock as _m
+        with _m.patch.object(D, "get_tier_mismatch_warnings",
+                             lambda score, terms: seen.append(terms) or real(score, terms)):
+            with _quiet():
+                D.build_war_context_snapshot(w, "France", "Austria", "peace",
+                                             terms={"type": "peace", "demands": demands,
+                                                    "sweeteners": [], "clauses": []})
+        assert seen and seen[-1]["demands"] == [
+            {"type": "territory_cede", "value": 1, "regions": ["Moravia"]}]
+
+
+    def test_x35_a_war_reopened_before_the_sweep_settles_the_old_articles_first(self, w):
+        """A pair back at war before the turn's sweep overwrote the old war's
+        record — its articles never settled, the alarm kept. The new war's
+        records are written only after the old articles settle."""
+        from backend.game_logic import declared_goals as DG
+        k = w._make_diplo_key("France", "Prussia")
+        with _quiet():
+            assert D.declare_war(w, "France", "Prussia", war_objective="conquest",
+                                 declared_terms=[{"kind": "province", "region": "Berlin"}]).get("success")
+        D.set_diplomatic_state(w, "France", "Prussia", "PEACE", "test")
+        D.conclude_war_objectives_of(w, k)
+        w.threat_sources_this_turn = []
+        with _quiet():
+            assert D.declare_war(w, "France", "Prussia", war_objective="conquest").get("success")
+        ev = next(e for e in reversed(w.event_log) if e.get("type") == "war_articles_settled")
+        assert [(r["article"]["region"], r["settled"], r["refund"]) for r in ev["rows"]] == [
+            ("Berlin", "dropped", 4)]
+        assert any(r["source"] == DG.THREAT_SOURCE_REFUND and r["amount"] == -4
+                   for r in w.threat_sources_this_turn)
+        assert "declared_terms" not in w.war_objectives[k]["France"]
+
+    def test_x36_what_was_signed_is_the_pairs_treaty_a_surety_goes_home(self, vienna_held):
+        """The bilateral seam read only the APPLIED clauses — a stream (never
+        "applied" at signing) or an empty chest's lump read the indemnity
+        "dropped" and refunded it; and a province held as the stream's surety
+        (home with the last payment) read "taken". The settlement reads the
+        pair's treaty in force: the stream is the indemnity, the surety is not
+        a cession. The truce's courted exit, whose stream runs on, the same."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import declared_goals as DG
+        ex = CommandExecutor()._diplomatic
+        k = "Austria|France"
+        w = vienna_held
+        with _quiet():
+            ex._set_war_purpose_inner("Austria", "conquest", w, declared_terms=[
+                {"kind": "province", "region": "Tyrol"}, {"kind": "indemnity"}])
+        w.active_treaties[k] = {"type": "peace", "clauses": [
+            {"type": "gold_per_turn", "from": "Austria", "to": "France", "amount": 80,
+             "surety_regions": ["Tyrol"]}]}
+        D.conclude_war_objectives_of(w, k)
+        rows = DG.settle_at_peace(w, [k])
+        assert [(r["article"]["kind"], r["settled"], r["refund"]) for r in rows] == [
+            ("province", "dropped", 4), ("indemnity", "taken", 0)]
+        # the truce's courted exit: the loser's stream runs on into the peace
+        w2 = _board("turn6_vienna_held.json")
+        with _quiet():
+            ex._set_war_purpose_inner("Austria", "conquest", w2,
+                                      declared_terms=[{"kind": "indemnity"}])
+        _truce(w2, proposer="Austria", target="France",
+               sweeteners=[{"type": "gold_per_turn", "value": 80}])
+        w2.nation_relations[k] = -50
+        w2.armistice_turns[k] = D.ARMISTICE_DURATION - 1
+        with _quiet():
+            events = D._process_armistice_expiration(w2)
+        ev = next(e for e in events if e["type"] == "armistice_expired_peace")
+        assert "The articles France declared at the war: an indemnity taken." in ev["message"]
+
+    def test_x37_the_wars_objective_reads_its_declared_articles(self):
+        """A war's objective read its own aims off `target_regions` alone: a
+        declared province the peace carried was "partial" under a subjugation
+        and a burdened great power's "major_uncovered" -10 fired on it. The
+        declared articles are the objective's aims."""
+        from backend.game_logic import settlement_scoring as SS
+        rec = D.create_war_objective("subjugation", "France", "Austria", ["Vienna"], 1)
+        terms = [{"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"}]
+        assert SS._classify_objective_alignment("subjugation", rec, "Austria", terms) == (
+            SS.ALIGN_PARTIAL, "partial")
+        assert not SS._term_matches_objective("Austria", rec, terms)
+        rec["declared_terms"] = [{"kind": "province", "from": "Austria", "region": "Tyrol", "alarm": 8}]
+        assert SS._classify_objective_alignment("subjugation", rec, "Austria", terms) == (
+            SS.ALIGN_SATISFY, "satisfies")
+        assert SS._term_matches_objective("Austria", rec, terms)
+        rec["declared_terms"][0]["settled"] = "dropped"      # a settled article is history
+        assert not SS._term_matches_objective("Austria", rec, terms)
+
+    def test_x38_every_surface_names_both_sides_articles(self, vienna_held):
+        """The articles reached the war panel's own sentence only: the peace
+        popups' sentence, the enemy's purpose, "what is the war for", and the
+        AI's declaration never named them."""
+        from backend.ai.state_desk import _answer_why_war
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import declared_goals as DG
+        from backend.game_logic.war_council import _declared_tail
+        from backend.game_logic.war_status import build_active_wars
+        w = vienna_held
+        with _quiet():
+            CommandExecutor()._diplomatic._set_war_purpose_inner(
+                "Austria", "conquest", w, declared_terms=[{"kind": "province", "region": "Tyrol"}])
+        rec = w.war_objectives[w._make_diplo_key("Austria", "France")]["Austria"]
+        rec["type"] = "conquest"
+        first = next(a for a in DG.article_candidates(w, "Austria", "France") if a["kind"] == "province")
+        DG.declare_articles(w, "Austria", "France", [first])
+        with _quiet():
+            snap = D.build_war_context_snapshot(w, "France", "Austria", "peace")
+            row = next(r for r in build_active_wars(w)["wars"] if r.get("status") == "war")
+        line = f"declared: Tyrol; Austria declared: {first['region']}"
+        assert snap["war_objective"]["target_summary"].endswith(line)
+        assert row["objective"]["target_summary"].endswith(line)
+        assert row["enemy_objective"]["type_display"].endswith(f"— declared: {first['region']}")
+        assert f"The articles of the war — {line}." in _answer_why_war(w, "Austria")
+        assert _declared_tail(w, {"declared_articles": [
+            {"kind": "province", "from": "Hanover", "region": "Hanover"}]}) == "; declaring Hanover"
+
+    def test_x39_the_threat_panel_names_the_articles(self, w):
+        from backend.game_logic.diplomatic_ledger import _threat_source_label
+        assert _threat_source_label(w, "declared_articles") == "Declared the articles of a war"
+        assert _threat_source_label(w, "declared_article_dropped") == (
+            "A declared article dropped at the peace")
+
+    def test_x40_the_ai_letter_asks_the_province_it_declared(self, vienna_held):
+        """GR5: France's table opens on France's articles; a court's dictated
+        letter asked its province by its own rules and never the one it
+        declared. It asks the declared one first while France still holds it."""
+        from backend.game_logic import declared_goals as DG
+        w = vienna_held
+        rec = w.war_objectives[w._make_diplo_key("Austria", "France")]["Austria"]
+        rec["type"] = "conquest"
+        capital = w.get_nation_capital("France")
+        before = AI.dictated_province(w, "Austria", "France")
+        assert before == "Normandy"                           # her own pick on the board
+        pick = next(a for a in DG.article_candidates(w, "Austria", "France")
+                    if a["kind"] == "province" and a["region"] not in (capital, before))
+        assert pick["region"] == "Vienna"                     # her own capital, France holds it
+        DG.declare_articles(w, "Austria", "France", [pick])
+        assert AI.dictated_province(w, "Austria", "France") == "Vienna"
+
 
 class TestPCF41:
     def test_every_peace_row_names_the_courts_it_addresses(self, vienna_held):

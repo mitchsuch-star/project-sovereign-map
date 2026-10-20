@@ -635,8 +635,10 @@ def apply_territory_compensate(world, clause: Mapping[str, Any], *,
         _ge.record_province_title(world, region, _ge.TITLE_TREATY, payer, comp)
         if hasattr(world, "invalidate_active_nations_cache"):
             world.invalidate_active_nations_cache()
-        from backend.game_logic.coalition import add_threat, reduce_threat
-        add_threat(world, 8, "treaty_annex", target=comp)
+        from backend.game_logic.coalition import (
+            TREATY_ANNEX_ALARM_PER_PROVINCE, add_threat, reduce_threat,
+        )
+        add_threat(world, TREATY_ANNEX_ALARM_PER_PROVINCE, "treaty_annex", target=comp)
         reduce_threat(world, 5, "territory_return", target=payer)
         bonds = I.record_peace_compensation(
             world, payer=payer, recipient=comp, design_ids=[""],

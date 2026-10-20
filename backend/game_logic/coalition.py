@@ -46,6 +46,11 @@ THREAT_BREWING_MIN = 60
 THREAT_INSTANT_MIN = 80
 THREAT_OVERRIDE_COOLDOWN_MIN = 90
 
+# The alarm a province annexed at a treaty adds to the annexing court's slot
+# (§2a) — ONE rate: both ratifiers and the paid compensation charge it, and
+# PC-R7 (ii) part 2 prices a declared article in it (`declared_goals`).
+TREATY_ANNEX_ALARM_PER_PROVINCE = 8
+
 # Brewing cancellation floor (§3c momentum rule)
 BREWING_CANCEL_THRESHOLD = 40
 
@@ -2825,7 +2830,8 @@ def league_spent_clause(world, target: str, spent: Dict[str, int]) -> str:
 
 def declaration_would_gather_a_league(world, aggressor: str,
                                       casus_belli: bool = False,
-                                      target: Optional[str] = None) -> Optional[Dict]:
+                                      target: Optional[str] = None,
+                                      extra_alarm: int = 0) -> Optional[Dict]:
     """IQ-3 rider: the projection Talleyrand reads before a declaration.
 
     Returns ``{"from", "to", "courts", "cooldown"}`` when no league against
@@ -2850,7 +2856,9 @@ def declaration_would_gather_a_league(world, aggressor: str,
         declaration_alarm, declaration_relation_penalties,
     )
     before = int(world.threat_by_target.get(aggressor, 0) or 0)
-    after = int(min(100, before + declaration_alarm(casus_belli)))
+    # PC-X33 (S14 part 2): the declaration's ARTICLES are heard with it
+    # (`declared_goals`) — the projection adds their alarm.
+    after = int(min(100, before + declaration_alarm(casus_belli) + max(0, int(extra_alarm))))
     if before >= THREAT_BREWING_MIN or after < THREAT_BREWING_MIN:
         return None
     _direct, indirect = declaration_relation_penalties(casus_belli)

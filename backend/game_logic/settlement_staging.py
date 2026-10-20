@@ -1222,6 +1222,14 @@ def _court_demand_suggestions(
             magnitude=_guided_magnitude_meta("gold_per_turn", amount, turns),
         ))
 
+    # PC-R7 (ii) part 2: the articles declared at the war LEAD the demands
+    # ("Declared at the war: Tyrol" — `declared_goals.guided_suggestions`).
+    from backend.game_logic.declared_goals import guided_suggestions as _declared_rows
+    demand_group = _declared_rows(
+        world, court=court, war_id=war_id, draft_key=draft_key, war_instance=war_instance,
+        proposer_side_participants=proposer_side_participants, proposer_leader=proposer_leader,
+        promised_regions=promised_regions, settlement_terms=settlement_terms) + demand_group
+
     # §3.3 — direction picks which group LEADS the flat list; the trailing
     # group renders collapsed. The dead-band keeps the written §3.1 order
     # (demands first) with neither pre-expanded (`lead_group` stays empty).
@@ -2130,13 +2138,16 @@ def build_settlement_preview(
     generate_baseline_when_empty: bool = False,
     previous_bands: Optional[Mapping[str, str]] = None,
     consenting_courts: Optional[Iterable[str]] = None,
+    declared_when_empty: bool = False,
 ) -> Dict[str, Any]:
     """Build the non-mutating settlement preview response.
 
     When ``generate_baseline_when_empty`` is True and no ``settlement_terms``
     are supplied, the PROPOSE landing draws a per-court Talleyrand baseline
     (``compute_settlement_baseline``) instead of an empty draft, so the
-    player never faces a blank form (Re-front Slice 1 / spec §3a).
+    player never faces a blank form (Re-front Slice 1 / spec §3a). PC-R7 (ii)
+    part 2: an empty draft first opens on the articles declared at the war
+    (also when ``declared_when_empty`` — the counsel's table road).
     """
     terms = [dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)]
     eligibility = evaluate_open_settlement_eligibility(
@@ -2165,6 +2176,15 @@ def build_settlement_preview(
 
     baseline_generated = False
     baseline_payload: Optional[Dict[str, Any]] = None
+    # PC-R7 (ii) part 2: an empty draft opens on the articles declared at the
+    # war (`declared_goals.declared_draft`) — the editor's opening draft and
+    # the counsel's table road read the one function (K item 6).
+    declared_generated = False
+    if (generate_baseline_when_empty or declared_when_empty) and not terms:
+        from backend.game_logic.declared_goals import declared_draft as _declared_draft
+        terms = _declared_draft(world, war_instance=instance, proposer_side=side,
+                                proposer_leader=proposer_leader, covered=covered)
+        declared_generated = bool(terms)
     if generate_baseline_when_empty and not terms:
         baseline_payload = compute_settlement_baseline(
             world,
@@ -2255,6 +2275,7 @@ def build_settlement_preview(
         "warnings_before_consent": list(warnings),
         "warnings": _warnings_after_consent(warnings, consenting_courts, covered),
         "baseline_generated": baseline_generated,
+        "declared_draft": declared_generated,
         "baseline_per_court": (
             baseline_payload.get("per_court_baseline") if baseline_payload else {}
         ),

@@ -978,6 +978,8 @@ class DiplomaticExecutor:
             return self._execute_diplomatic_declare_war(
                 {"target_nation": popup_target, "confirmed_objection": True,
                  "war_objective": popup_war_obj,
+                 # PC-R7 (ii) part 2: the war's articles ride the context
+                 "declared_terms": list(ctx.get("declared_terms") or []),
                  "_treaty_warning_resolved": popup_treaty_resolved},
                 world,
             )
@@ -2316,6 +2318,7 @@ class DiplomaticExecutor:
         origin_episode_id: str,
         opportunities: list,
         bargain_warnings: list,
+        declared_terms: Optional[list] = None,
     ) -> Dict:
         """Build the WB-C blocking ally-entry review in the proposal_confirm shell."""
         from backend.game_logic.diplomacy import generate_counter_bargain
@@ -2449,6 +2452,7 @@ class DiplomaticExecutor:
                     "staged_war_state_snapshot": world.get_diplomatic_state(world.player_nation, target_nation),
                     "turn_created": int(world.current_turn),
                     "war_objective": war_objective,
+                    "declared_terms": list(declared_terms or []),
                 },
             },
             "blocking": True,
@@ -2463,6 +2467,7 @@ class DiplomaticExecutor:
         pending = context.get("pending_declaration", {}) or {}
         target_nation = pending.get("target_nation") or dialogue.get("target_nation", "")
         war_objective = pending.get("war_objective") or dialogue.get("war_objective")
+        declared_terms = list(pending.get("declared_terms") or [])
         origin_episode_id = context.get("origin_episode_id", "")
         opportunities = context.get("join_opportunities", []) or []
 
@@ -2558,6 +2563,7 @@ class DiplomaticExecutor:
             {
                 "target_nation": target_nation,
                 "war_objective": war_objective,
+                "declared_terms": declared_terms,
                 "origin_episode_id": origin_episode_id,
                 "_treaty_warning_resolved": True,
                 "_ally_entry_resolved": True,
@@ -2734,6 +2740,7 @@ class DiplomaticExecutor:
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,
                 "war_objective": war_objective,
+                "declared_terms": list(diplomatic_data.get("declared_terms") or []),
                 "message": warning_text,
                 "talleyrand_text": warning_text,
                 "origin_episode_id": preview_episode_id,
@@ -2801,11 +2808,14 @@ class DiplomaticExecutor:
             from backend.game_logic.coalition import (
                 THREAT_BREWING_MIN, declaration_would_gather_a_league,
             )
+            from backend.game_logic.declared_goals import articles_alarm
             _projection = declaration_would_gather_a_league(
                 world, player,
                 casus_belli=bool(world.casus_belli.get(
                     world._make_diplo_key(player, target_nation), False)),
-                target=target_nation)
+                target=target_nation,
+                extra_alarm=articles_alarm(world, player, target_nation,
+                                           diplomatic_data.get("declared_terms")))
             if _projection:
                 from backend.game_logic.formations import formed_display_name
                 _names = [formed_display_name(world, c)
@@ -2896,6 +2906,7 @@ class DiplomaticExecutor:
                 world._declare_war_objection_context = {
                     "target_nation": target_nation,
                     "war_objective": war_objective,
+                    "declared_terms": list(diplomatic_data.get("declared_terms") or []),
                     "_treaty_warning_resolved": bool(
                         diplomatic_data.get("_treaty_warning_resolved")
                     ),
@@ -2988,6 +2999,7 @@ class DiplomaticExecutor:
                     preview_ep,
                     opportunities,
                     bargain_warnings,
+                    declared_terms=diplomatic_data.get("declared_terms"),
                 )
                 world.dialogue_manager.open_flow(dialogue)
                 return {
@@ -3014,6 +3026,7 @@ class DiplomaticExecutor:
             war_objective=war_objective,
             ally_entry_decisions=diplomatic_data.get("ally_entry_decisions", {}),
             suppress_unresolved_offensive_cascade=True,
+            declared_terms=list(diplomatic_data.get("declared_terms") or []),
         )
 
         if result.get("success"):
@@ -3041,8 +3054,10 @@ class DiplomaticExecutor:
                           or (cmd.get("diplomatic_data") or {}).get("objective_type"))
         return self._set_war_purpose_inner(target_nation, objective_type, world)
 
-    def _set_war_purpose_inner(self, target_nation: str, objective_type: str, world) -> Dict:
-        """Core set_war_purpose logic. 0 AP."""
+    def _set_war_purpose_inner(self, target_nation: str, objective_type: str, world,
+                               declared_terms: Optional[list] = None) -> Dict:
+        """Core set_war_purpose logic. 0 AP. PC-R7 (ii) part 2: the purpose
+        set mid-war declares its articles too (`declared_terms`)."""
         from backend.game_logic.diplomacy import (
             create_war_objective,
             get_available_war_objectives,
@@ -3142,12 +3157,74 @@ class DiplomaticExecutor:
             "turn": int(world.current_turn),
         })
 
+        from backend.game_logic.declared_goals import declare_articles
+        _articles = declare_articles(world, player, target_nation, declared_terms or [])
         from backend.game_logic.diplomacy import OBJECTIVE_TYPE_DISPLAY
         display = OBJECTIVE_TYPE_DISPLAY.get(objective_type, objective_type)
+        message = f"War purpose declared: {display} against {target_nation}."
+        if _articles.get("display"):
+            message = f"{message} {_articles['display']}"
         return {
             "success": True,
-            "message": f"War purpose declared: {display} against {target_nation}.",
+            "message": message,
+            "declared_articles": list(_articles.get("articles") or []),
         }
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # THE WAR'S ARTICLES (PC-R7 (ii) part 2 — ruling J's declared goals)
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _war_articles_stage(self, world, *, target_nation: str, objective_type: str,
+                            declared, is_defensive_set: bool) -> Dict:
+        """Open the War Purpose card's second step: the objective chosen,
+        name up to two articles (`declared_goals.articles_stage_dialogue`)."""
+        from backend.game_logic.declared_goals import articles_stage_dialogue
+        dialogue = articles_stage_dialogue(
+            world, declarer=world.player_nation, target=target_nation,
+            objective_type=objective_type, declared=list(declared or []),
+            is_defensive_set=is_defensive_set)
+        world.dialogue_manager.open_flow(dialogue)
+        return {
+            "success": True,
+            "message": dialogue["message"],
+            "war_purpose_popup": {
+                "target_nation": target_nation,
+                "objectives": dialogue["objectives"],
+                "stage": "articles",
+                "declared_terms": dialogue["declared_terms"],
+            },
+            "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+            "awaiting_diplomatic_response": True,
+        }
+
+    def _war_articles_choice(self, ctx) -> Dict:
+        """The objective chosen opens the articles step; an article chosen
+        re-opens it with the article declared (two at most); the first
+        button declares the war — or sets the purpose — with what is chosen."""
+        ctx.world.dialogue_manager.pop()
+        objective_type = (ctx.selected.get("objective_type")
+                          or ctx.dialogue.get("objective_type"))
+        obj_target = ctx.selected.get("target_nation") or ctx.dialogue.get("target_nation")
+        if not obj_target:
+            return {"success": False, "message": "No target nation specified."}
+        defensive = bool(ctx.dialogue.get("is_defensive_set")
+                         or ctx.action == "confirm_set_war_purpose")
+        declared = [dict(a) for a in (ctx.dialogue.get("declared_terms") or [])
+                    if isinstance(a, dict)]
+        if ctx.action == "declare_war_article":
+            article = ctx.selected.get("article")
+            if isinstance(article, dict):
+                declared.append(dict(article))
+        if ctx.action != "declare_war_articles_done":
+            return self._war_articles_stage(
+                ctx.world, target_nation=obj_target, objective_type=objective_type,
+                declared=declared, is_defensive_set=defensive)
+        if defensive:
+            return self._set_war_purpose_inner(obj_target, objective_type, ctx.world,
+                                               declared_terms=declared)
+        return self._execute_diplomatic_declare_war(
+            {"target_nation": obj_target, "war_objective": objective_type,
+             "declared_terms": declared}, ctx.world)
 
     # ════════════════════════════════════════════════════════════════════════════════
     # IMPERIAL SETTLEMENT — COMMON PEACE PROPOSAL (Slice C2 / spec §11)
@@ -4693,24 +4770,11 @@ class DiplomaticExecutor:
         elif ctx.action == "confirm_repudiate_bargain":
             return self._confirm_repudiate_bargain_from_dialogue(ctx.selected, ctx.dialogue, ctx.world)
 
-        elif ctx.action == "select_war_objective":
-            # WPS-A: Player selected objective from War Purpose popup
-            ctx.world.dialogue_manager.pop()
-            objective_type = ctx.selected.get("objective_type")
-            obj_target = ctx.selected.get("target_nation") or ctx.dialogue.get("target_nation")
-            if not obj_target:
-                return {"success": False, "message": "No target nation specified."}
-            if ctx.dialogue.get("is_defensive_set"):
-                return self._set_war_purpose_inner(obj_target, objective_type, ctx.world)
-            return self._execute_diplomatic_declare_war(
-                {"target_nation": obj_target, "war_objective": objective_type}, ctx.world)
-
-        elif ctx.action == "confirm_set_war_purpose":
-            # WPS-A: Player confirmed war purpose for defensive war
-            ctx.world.dialogue_manager.pop()
-            objective_type = ctx.selected.get("objective_type")
-            obj_target = ctx.selected.get("target_nation") or ctx.dialogue.get("target_nation")
-            return self._set_war_purpose_inner(obj_target, objective_type, ctx.world)
+        elif ctx.action in ("select_war_objective", "confirm_set_war_purpose",
+                            "declare_war_article", "declare_war_articles_done"):
+            # WPS-A: the objective chosen — then PC-R7 (ii) part 2's second
+            # step, the war's ARTICLES (`_war_articles_choice`).
+            return self._war_articles_choice(ctx)
 
         elif ctx.action == "force_declare_war":
             # Player confirmed war declaration despite existing treaty
@@ -4733,6 +4797,7 @@ class DiplomaticExecutor:
                 {
                     "target_nation": fw_target,
                     "war_objective": fw_objective,
+                    "declared_terms": list(ctx.dialogue.get("declared_terms") or []),
                     "origin_episode_id": (
                         ctx.dialogue.get("origin_episode_id")
                         or (ctx.dialogue.get("breach_preview") or {}).get("episode_id")

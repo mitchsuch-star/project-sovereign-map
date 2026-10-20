@@ -328,6 +328,9 @@ CAMPAIGN_LOG_TYPES = {
     # WPS-A — war objectives
     "war_objective_declared",
     "war_objective_ticking_started",
+    # PC-R7 (ii) part 2 — the war's declared articles, declared and settled
+    "war_articles_declared",
+    "war_articles_settled",
     # WPS-C — forced alliance + liberation
     "forced_alliance_imposed",
     "vassal_liberated",
@@ -652,6 +655,9 @@ CATEGORY_MAP = {
     # WPS-A — war objectives
     "war_objective_declared": "diplomacy",
     "war_objective_ticking_started": "diplomacy",
+    # PC-R7 (ii) part 2
+    "war_articles_declared": "diplomacy",
+    "war_articles_settled": "diplomacy",
     # WPS-C — forced alliance + liberation
     "forced_alliance_imposed": "diplomacy",
     "vassal_liberated": "diplomacy",
@@ -783,6 +789,7 @@ LOG_TIER_ROUTINE = frozenset({
     "sponsorship_granted", "sponsorship_reneged", "strategic_order",
     "substitutes_purchased", "vassal_auto_join_war", "war_entry_ledger",
     "war_objective_declared", "war_objective_ticking_started",
+    "war_articles_declared", "war_articles_settled",
 })
 
 LOG_TIERS = ("lead", "notable", "routine")
@@ -917,6 +924,15 @@ COURT_TO_COURT_EVENT_TYPES = (
 )
 
 
+# WPS-A's fog rule for a war's purpose — and PC-R7 (ii) part 2's articles,
+# declared and settled, which ride it: belligerents and close allies see
+# them; the declarations (and their settling) also reach any known court.
+_PURPOSE_EVENT_TYPES = ("war_objective_declared", "war_objective_ticking_started",
+                        "war_articles_declared", "war_articles_settled")
+_PURPOSE_KNOWN_COURT_TYPES = ("war_objective_declared", "war_articles_declared",
+                              "war_articles_settled")
+
+
 def filter_campaign_log(event_log: list, world_state) -> list:
     """
     Filter the full event log for the Campaign Log overlay.
@@ -1010,7 +1026,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
 
         # WPS-A: objective declarations are public to known courts; ticking
         # starts are visible to involved belligerents and their close treaty allies.
-        if event_type in ("war_objective_declared", "war_objective_ticking_started"):
+        if event_type in _PURPOSE_EVENT_TYPES:
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             declaring = event.get("declaring_nation", "")
             target = event.get("target_nation", "")
@@ -1023,7 +1039,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                 "WAR", "ALLIANCE", "DEFENSIVE_ALLIANCE"
             ):
                 visible = True
-            if event_type == "war_objective_declared":
+            if event_type in _PURPOSE_KNOWN_COURT_TYPES:
                 for nation in (declaring, target):
                     if nation and _get_nation_visibility(nation, world_state) in (FULL, PARTIAL):
                         visible = True
@@ -2595,6 +2611,11 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
         regions = ctx.event.get("target_regions", [])
         region_str = f" (target: {', '.join(regions)})" if regions else ""
         return f"{declaring} declares {obj_type} against {target}{region_str}"
+
+    # PC-R7 (ii) part 2: the articles declared, and settled at the peace —
+    # the event carries its own words (`declared_goals`).
+    if ctx.event_type in ("war_articles_declared", "war_articles_settled"):
+        return str(ctx.event.get("display") or "").rstrip(".")
 
     if ctx.event_type == "war_objective_ticking_started":
         declaring = ctx.event.get("declaring_nation", "Unknown")

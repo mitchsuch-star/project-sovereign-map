@@ -6707,6 +6707,11 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
         # PC-F38 (S13e part 3): this is THIS PAIR's tier — the court's own
         # pair is what the table scores it on (PC-R4) — labelled as the pair's.
         line_text += f"  |  Settlement (this pair): {tier_display} ({score:+d})"
+        # PC-R7 (ii) part 2: the articles declared at the war, both sides.
+        from backend.game_logic.declared_goals import declared_line as _declared_line
+        _declared = _declared_line(world, player_nation, target_nation)
+        if _declared:
+            line_text += f"  |  Articles {_declared}"
 
         lines.append({
             "text": line_text,

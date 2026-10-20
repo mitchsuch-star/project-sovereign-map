@@ -1161,6 +1161,11 @@ def _term_matches_objective(
     proposer-side objective against this enemy."""
     if not objective_record:
         return False
+    # PC-X37 (S14 part 2): the war's declared articles are its own aims
+    from backend.game_logic.declared_goals import objective_articles, term_matches_article
+    _arts = objective_articles(objective_record)
+    if _arts and any(term_matches_article(t, a) for t in settlement_terms for a in _arts):
+        return True
     target_regions = set(objective_record.get("target_regions") or [])
     obj_type = objective_record.get("type", "")
     for term in settlement_terms:
@@ -1430,6 +1435,10 @@ def _classify_objective_alignment(
     """
     target_regions = set(objective_record.get("target_regions") or [])
     proposer_set = {str(n) for n in (proposer_side_participants or []) if n}
+    # PC-X37 (S14 part 2): a term carrying an article the war declared is an
+    # objective concession, whatever the objective's type.
+    from backend.game_logic.declared_goals import objective_articles, term_matches_article
+    _arts = objective_articles(objective_record)
     has_objective_concession = False
     has_unrelated_harsh = False
     contradicts = False
@@ -1443,6 +1452,9 @@ def _classify_objective_alignment(
         # priced by `concession_credit`, never read here as a contradiction
         # or as harshness on an unrelated target.
         if from_n and from_n in proposer_set:
+            continue
+        if _arts and any(term_matches_article(term, a) for a in _arts):
+            has_objective_concession = True
             continue
 
         if objective_type == "conquest":
@@ -2439,10 +2451,22 @@ def calculate_common_peace_acceptance(
             proposer_side_participants=proposer_participants,
         )
     # PC-R4 (§46 E, decided): the tier legitimacy reads the court's OWN tier.
+    # PC-R7 (ii) part 2 (ruling J): an article the proposing side DECLARED at
+    # the war is legitimate — the ceiling's surprise reads the package
+    # without it (`declared_goals.undeclared_terms`); the harshness penalty
+    # and every other component still read the whole package.
+    from backend.game_logic import declared_goals as _dg
+    _legit_terms = _dg.undeclared_terms(world, settlement_terms, proposer_participants)
+    _legit_raw = raw_total_harshness
+    if _iter_terms(_legit_terms) != _iter_terms(settlement_terms):
+        _legit_raw = compute_settlement_package_raw_harshness(
+            _legit_terms, proposer_side_participants=proposer_participants)
     tier_debug = calculate_settlement_tier_legitimacy(
-        court_pressure_score, raw_total_harshness, settlement_terms,
+        court_pressure_score, _legit_raw, _legit_terms,
         proposer_side_participants=proposer_participants,
     )
+    tier_debug["declared_articles"] = _dg.declared_in_package(
+        world, settlement_terms, proposer_participants)
     harshness_debug = calculate_term_harshness_penalty(raw_total_harshness)
 
     # Step 6: leader_own_losses (RS-D1: a retained great-power capital is a

@@ -328,7 +328,12 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
             world, settlement_terms=terms, war_id=war_id,
             settlement_route_id=f"third_party:{war_id}:{turn}",
         )
-        settlement_ratify._resolve_pair_state_transitions(world, plan, terms)
+        _resolved, _fa = settlement_ratify._resolve_pair_state_transitions(world, plan, terms)
+    # PC-R7 (ii) part 2 (GR5): the articles declared at the war settle at
+    # the AI's peace exactly as at the player's.
+    from backend.game_logic.declared_goals import settle_at_peace
+    settle_at_peace(world, [str(p.get("pair") or "") for p in _resolved or []],
+                    list(applied_clauses or []) + list(_fa or []))
     settlement_ratify._record_common_peace_treaties(
         world, plan=plan, settlement_terms=terms)
     # AI-5b(i) (§3.6): an AI-dictated peace that strips the loser leaves
@@ -601,6 +606,9 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
         # applier the negotiated third-party path uses, so garrison /
         # cache / threat / event invariants are inherited.
         returned_regions = _return_unheld_homeland(world, war_id, a, b)
+        # PC-R7 (ii) part 2: the pair's declared articles settle on the held line.
+        from backend.game_logic.declared_goals import settle_at_peace
+        settle_at_peace(world, [pair_key])
         # PC15-D4 piece 1 — the truce floor (constant above).
         world.armistice_cooldowns[pair_key] = PAIR_EXIT_TRUCE_FLOOR_TURNS
         world._pair_exit_this_turn = int(world.current_turn)

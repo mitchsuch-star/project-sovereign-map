@@ -98,13 +98,17 @@ class TestTheChainIsTheOldChain:
         assert "Unknown dialogue action" in src
 
     def test_every_action_is_tested_once_across_the_stages(self):
-        """75 arms (and the chain's own `else`), each test reading
+        """74 arms (and the chain's own `else`), each test reading
         `ctx.action`; no action string is claimed by two arms (the first
         would shadow the second). DDB-1 (S13b, October 14, 2026) split the
         R42 arm: the suggestion APPLIES (`apply_suggestion`, and a legacy
         `send_suggested`), the override sends. S13b part 2 added two arms:
         `less_generous` (DDB-30, the previous round restored) and
-        `assess_terms` (DDB-25, the feasibility card on drafted terms)."""
+        `assess_terms` (DDB-25, the feasibility card on drafted terms).
+        PC-R7 (ii) part 2 (S14 part 2) folded the War Purpose card's two
+        arms (`select_war_objective`, `confirm_set_war_purpose`) into one
+        that also answers its articles step (`declare_war_article`,
+        `declare_war_articles_done`) — 75 -> 74."""
         seen = []
         arms = 0
         for name in STAGES:
@@ -114,7 +118,7 @@ class TestTheChainIsTheOldChain:
                 assert t.startswith("ctx.action "), (name, t)
                 seen += [c.value for c in ast.walk(ast.parse(t))
                          if isinstance(c, ast.Constant) and isinstance(c.value, str)]
-        assert arms == 75
+        assert arms == 74
         assert len(seen) == len(set(seen)), sorted({s for s in seen if seen.count(s) > 1})
 
 

@@ -1330,6 +1330,7 @@ class RatifyTreatyContext:
     _carried_in: Any = field(init=False)
     _carried_rewarded: Any = field(init=False)   # PC-F81's second road (S13e part 4)
     _bilateral_dropped: Any = field(init=False)  # PC-X21: a cession that could not carry, named
+    _articles_settled: Any = field(init=False)   # PC-R7 (ii) part 2: the war's declared articles
 
 
 
@@ -9043,8 +9044,10 @@ class WorldState:
             "commitment_paradox_popup": self.commitment_paradox_popup,
             "next_episode_id": int(getattr(self, 'next_episode_id', 1) or 1),
             "peace_ratification_log": [e.copy() for e in self.peace_ratification_log],
+            # PC-R7 (ii) part 2: a record carries nested `declared_terms`
+            # (the war's articles) — deep, so a saved copy never shares them.
             "war_objectives": {
-                k: {nation: obj.copy() for nation, obj in v.items()}
+                k: {nation: copy.deepcopy(obj) for nation, obj in v.items()}
                 for k, v in self.war_objectives.items()
             },
             "alliance_origins": {str(k): str(v) for k, v in self.alliance_origins.items()},
@@ -9902,7 +9905,7 @@ class WorldState:
             e.copy() for e in data.get("peace_ratification_log", [])
         ]
         world.war_objectives = {
-            k: {nation: obj.copy() for nation, obj in v.items()}
+            k: {nation: copy.deepcopy(obj) for nation, obj in v.items()}
             for k, v in data.get("war_objectives", {}).items()
         }
         world.alliance_origins = {
@@ -13196,9 +13199,11 @@ class WorldState:
                 # AI-4a step 5: keyed to the annexing ACTOR, any nation.
                 # DDB-X20: a recovered province is not annexed.
                 if to_nation and annexed_count > 0:
-                    from backend.game_logic.coalition import add_threat
-                    add_threat(self, 8 * annexed_count, "treaty_annex",
-                               target=to_nation)
+                    from backend.game_logic.coalition import (
+                        TREATY_ANNEX_ALARM_PER_PROVINCE, add_threat,
+                    )
+                    add_threat(self, TREATY_ANNEX_ALARM_PER_PROVINCE * annexed_count,
+                               "treaty_annex", target=to_nation)
                 # Threat reduction: -5 per region ACTUALLY returned (§2b)
                 if from_nation and transferred_count > 0:
                     from backend.game_logic.coalition import reduce_threat
@@ -13693,6 +13698,18 @@ class WorldState:
                 maybe_fire_volte_face,
             )
             maybe_fire_volte_face(self, ctx.proposer, ctx.target_nation)
+
+        # PC-R7 (ii) part 2: the articles declared at the war settle at the
+        # peace (a truce keeps them) — taken or dropped, a dropped one
+        # refunding half its alarm; the carried-in allies' pairs end here too.
+        ctx._articles_settled = []
+        if ctx.current_state in ("WAR", "ARMISTICE") and final_state not in ("WAR", "ARMISTICE"):
+            from backend.game_logic.declared_goals import settle_at_peace
+            _keys = [ctx.diplo_key] + [
+                self._make_diplo_key(str(r.get("ally")), str(r.get("court")))
+                for r in (getattr(ctx, "_carried_in", None) or [])]
+            ctx._articles_settled = settle_at_peace(
+                self, _keys, list(getattr(ctx, "applied_treaty_clauses", None) or []))
         return _NEXT_STAGE
 
     def _ratify_player_events(self, ctx: RatifyTreatyContext):
@@ -13931,6 +13948,11 @@ class WorldState:
                 # PC-X21: a cession the bilateral arm could not carry is named.
                 for _line in (getattr(ctx, "_bilateral_dropped", None) or []):
                     applied_penalties.append({"display": f"Not carried: {_line}."})
+                # PC-R7 (ii) part 2: the war's declared articles, settled.
+                from backend.game_logic.declared_goals import aftermath_lines as _art_lines
+                for _line in _art_lines(self, getattr(ctx, "_articles_settled", None) or [],
+                                        about=self.player_nation):
+                    applied_penalties.append({"display": _line})
                 # PC-R1 (ii): the allies whose wars this instrument ended —
                 # named on the aftermath in the one wording (§46 B + C).
                 _rewarded = {str(r.get("ally")): r for r in (getattr(ctx, "_carried_rewarded", None) or [])}

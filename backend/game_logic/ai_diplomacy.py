@@ -1157,6 +1157,12 @@ def dictated_province(world, nation: str, recipient: str,
     held = [r for r in (world.get_nation_regions(recipient) or []) if r not in skip]
     if not held:
         return ""
+    # PC-X40 (S14 part 2, GR5): the article the court declared at the war
+    # leads its ask, as the player's table opens on France's.
+    from backend.game_logic.declared_goals import declared_province_ask
+    _declared = declared_province_ask(world, nation, recipient, held)
+    if _declared:
+        return _declared
     if recipient == player:
         for r in _ultimatum_demandable_regions(nation, world):
             if r in held:

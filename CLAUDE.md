@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 20, 2026).** The three most recent landed rows:
-- **S14 part 1 (October 20, 2026) — PC-R7 (ii) the moderate peace — LANDED.** `territory_compensate` (`compensation.py`: paid / pointed), both scorers and ratifiers, the rows, the AI's letter: `SYSTEMS_REFERENCE.md` §133. **NEXT = S14 part 2 (declared goals, the bond).**
-- **S13b part 4 (October 19, 2026) — DD-B's voice, client and sea — LANDED; S13b COMPLETE** (§132).
-- **S13c part 4 (October 19, 2026) — CC-4 — LANDED; row CC COMPLETE** (§130).
+- **S14 part 2 (October 20, 2026) — PC-R7 (ii) declared goals — LANDED.** A war's articles (`declared_goals.py`): priced at the war, legitimate at the table, half refunded if dropped: `SYSTEMS_REFERENCE.md` §134. **NEXT = S14 part 3 (the bond).**
+- **S14 part 1 (October 20, 2026) — the moderate peace (`compensation.py`) — LANDED** (§133).
+- **S13b part 4 (October 19, 2026) — LANDED; S13b COMPLETE** (§132).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

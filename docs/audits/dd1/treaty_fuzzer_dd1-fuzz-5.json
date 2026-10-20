@@ -1,7 +1,7 @@
 {
  "seed": "dd1-fuzz-5",
  "steps": 1000,
- "seconds": 41.2,
+ "seconds": 40.4,
  "final_turn": 35,
  "verbs": {
   "make_vassal": 50,
