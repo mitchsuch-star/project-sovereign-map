@@ -3052,10 +3052,14 @@ class DiplomaticExecutor:
                          or (cmd.get("diplomatic_data") or {}).get("target_nation"))
         objective_type = (cmd.get("objective_type")
                           or (cmd.get("diplomatic_data") or {}).get("objective_type"))
-        return self._set_war_purpose_inner(target_nation, objective_type, world)
+        # PC-X41 (S14 part 2): a typed purpose that names its objective still
+        # reaches the card's articles step, the objective already chosen.
+        return self._set_war_purpose_inner(target_nation, objective_type, world,
+                                           ask_articles=True)
 
     def _set_war_purpose_inner(self, target_nation: str, objective_type: str, world,
-                               declared_terms: Optional[list] = None) -> Dict:
+                               declared_terms: Optional[list] = None,
+                               ask_articles: bool = False) -> Dict:
         """Core set_war_purpose logic. 0 AP. PC-R7 (ii) part 2: the purpose
         set mid-war declares its articles too (`declared_terms`)."""
         from backend.game_logic.diplomacy import (
@@ -3130,6 +3134,11 @@ class DiplomaticExecutor:
                 "message": availability.get("reason")
                 or f"{objective_type.replace('_', ' ').title()} is not available.",
             }
+
+        if ask_articles and declared_terms is None:
+            return self._war_articles_stage(
+                world, target_nation=target_nation, objective_type=objective_type,
+                declared=[], is_defensive_set=True)
 
         # World-scoped (1805 pre-slice item 7 family — same defect as the
         # declare_war objective path): legacy global → empty target_regions

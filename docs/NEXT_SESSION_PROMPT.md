@@ -4,7 +4,7 @@
 > goals" — the war's articles) landed** (commits through the hook — `git log -2`).
 >
 > **What part 2 delivered** (`SYSTEMS_REFERENCE.md` §134; the row `BUG_FIXES.md` §PC PC-R7 — OPEN for the bond, its
-> pin named; siblings PC-X33 … X40 FIXED; pins `tests/test_pc_rulings.py::TestPCR7::test_ii_m_*` … `test_ii_r_*`,
+> pin named; siblings PC-X33 … X41 FIXED; pins `tests/test_pc_rulings.py::TestPCR7::test_ii_m_*` … `test_ii_r_*`,
 > `TestTheS14Part2Siblings`):
 > - **`backend/game_logic/declared_goals.py`** is the ONE module: the War Purpose card's second step names up to two
 >   ARTICLES (a province of the target, an indemnity, a client), each priced at the declaration in

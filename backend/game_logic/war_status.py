@@ -1232,11 +1232,11 @@ def _objective_hint(objective_info, opponent: str, world=None) -> str:
             return ("The homeland is lost — the defensive purpose has "
                     "nothing left to hold.")
     if not objective_info:
-        return (f"No war purpose set — 'set war purpose against {opponent}' names one; "
-                f"until then the war ticks toward nothing.")
+        return (f"No war purpose set — 'set war purpose against {opponent}' names one, and "
+                f"the war's articles; until then the war ticks toward nothing.")
     if str(objective_info.get("type") or "") == "defense":
         return (f"A defensive purpose only (hold the homeland) — 'set war purpose against "
-                f"{opponent}' names a purpose of your own.")
+                f"{opponent}' names a purpose of your own, and the war's articles.")
     return ""
 
 

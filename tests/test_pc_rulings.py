@@ -3553,6 +3553,46 @@ class TestTheS14Part2Siblings:
         assert AI.dictated_province(w, "Austria", "France") == "Vienna"
 
 
+    def test_x41_the_wars_running_at_the_boot_name_their_articles_too(self, w):
+        """The 1805 boot opens at war with Austria, Britain and Russia, every
+        pair on the declaration's default `defense` purpose and no articles —
+        no card was ever shown. The purpose set is their road: the war panel's
+        hint names it, and the typed `set war purpose conquest against Austria`
+        (the objective named) reached no articles step at all; it opens the
+        step now with Conquest chosen, priced as at a declaration."""
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.parser import CommandParser
+        from backend.game_logic import declared_goals as DG
+        from backend.game_logic.war_status import _objective_hint
+        for court in ("Austria", "Britain", "Russia"):
+            recs = w.war_objectives[w._make_diplo_key("France", court)]
+            assert recs["France"]["type"] == "defense" and "declared_terms" not in recs["France"]
+        assert [(a["kind"], a.get("region") or a.get("tag")) for a in DG.article_candidates(
+            w, "France", "Britain")] == [("province", "London"), ("indemnity", None), ("client", "Ireland")]
+        assert "names a purpose of your own, and the war's articles" in _objective_hint(
+            {"type": "defense"}, "Austria", w)
+        ex = CommandExecutor()
+        parser = CommandParser(use_real_llm=False)
+        w.threat_by_target["France"] = 10
+
+        def typed(line):
+            with _quiet():
+                return ex.execute(parser.parse(line, game_state={"world": w}), {"world": w})
+        typed("set war purpose conquest against Austria")
+        step = w.pending_diplomatic_dialogue
+        assert step["stage"] == "articles" and step["objective_type"] == "conquest"
+        assert step["is_defensive_set"] is True
+        assert step["options"][0]["label"] == "Set the purpose — Conquest, no articles"
+        assert w.war_objectives[w._make_diplo_key("France", "Austria")]["France"]["type"] == "defense"
+        with _quiet():
+            ex._diplomatic.handle_diplomatic_dialogue_response("2", {"world": w})    # Vienna
+            ex._diplomatic.handle_diplomatic_dialogue_response("1", {"world": w})
+        rec = w.war_objectives[w._make_diplo_key("France", "Austria")]["France"]
+        assert rec["type"] == "conquest"
+        assert [(a["kind"], a["region"]) for a in rec["declared_terms"]] == [("province", "Vienna")]
+        assert w.threat_by_target["France"] == 18
+
+
 class TestPCF41:
     def test_every_peace_row_names_the_courts_it_addresses(self, vienna_held):
         with _quiet():
