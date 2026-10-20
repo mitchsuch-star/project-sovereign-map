@@ -1082,6 +1082,50 @@ def format_answer_words(choices) -> str:
     return ", ".join(words[:-1]) + " or " + words[-1]
 
 
+def tactical_objection_answers(objection: Optional[dict]) -> List[str]:
+    """ACH-X9: the words that answer a TACTICAL objection — 'compromise'
+    only when the objection carries a compromise, as the popup shows it
+    (`objection_dialog.gd` hides the button on a null one). ONE list for the
+    objection's own reply, the block that names its exits and the validator
+    that accepts them (the strategic route has read its quoted options since
+    WO-21). The three read "an alternative OR a compromise", so an objection
+    whose only compromise was the order itself (`Ney, defend Rhineland`, and
+    since ACH-F1 the bare `defend`) accepted a typed 'compromise' it never
+    offered and ran the order as given with no trust cost — an insist
+    without the insist's price."""
+    choices = ["trust", "insist"]
+    if isinstance(objection, dict) and objection.get("compromise"):
+        choices.append("compromise")
+    return choices
+
+
+def unpayable_answer_refusal(world, marshal_name: str, price: int, have: int,
+                             command: Optional[dict], parsed_command: Optional[dict],
+                             open_answers: List[str], *, lapses: bool = False,
+                             **question) -> dict:
+    """ACH-F3 / ACH-X10: the refusal of an objection's answer the pool cannot
+    pay, in the typed road's words for the order ("Not enough actions! Need
+    2, have 1 — Davout cannot pursue Mack today."), then the roads still
+    open: the answers the pool can pay and 'cancel' (nothing spent). The
+    objection stands and nothing is recorded — no trust, no authority, no
+    action. `lapses`: a strategic objection lapses at the turn's end.
+    `question`: the key that says the objection still waits
+    (`pending_objection` / `pending_strategic_objection`), so a tail relayed
+    behind it keeps waiting (`main._attach_answered_relay`, as RS-5's kept
+    objection does)."""
+    from backend.commands.executor import spent_day_sentence
+    waits = spent_day_sentence(world, command or {}, parsed_command or {})
+    roads = list(open_answers) + ["cancel"]
+    who = str(marshal_name or "The marshal")
+    message = (f"Not enough actions! Need {int(price)}, have {int(have)}"
+               + (f" — {waits}" if waits else ".")
+               + f" {who}'s objection stands — reply {format_answer_words(roads)}"
+               + ("; unanswered, it lapses at the turn's end." if lapses else "."))
+    return {"success": False, "message": message, "objection_kept": True,
+            "objection_resolved": False, "no_action_cost": True,
+            "choices": roads, "action_info": world.get_action_info(0), **question}
+
+
 # PT-A3: what the player is being asked, in words, so a hard stop can
 # name its own blocker the way an objection names the marshal who raised
 # it. Keyed on `DialogueManager.HARD_STOP_TYPES` — the only dialogues

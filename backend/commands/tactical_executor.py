@@ -166,15 +166,75 @@ def insist_terms(world, marshal, action: str):
     `_execute_fortify` charges, with the reason when it is more than the
     order's own price. `(1, "")` for every order that costs its face value;
     `(2, "he must first go defensive")` for a fortify from NEUTRAL, which is
-    exactly the executor's auto-shift and its message."""
+    exactly the executor's auto-shift and its message. ACH-X10: `(2, "he
+    must first abandon his aggressive posture")` for a defend from
+    AGGRESSIVE — `_execute_defend`'s two-step shift, which the popup never
+    quoted."""
     try:
         base = int(world.get_action_cost(action)) if world is not None else 1
     except Exception as exc:
         report(exc, "tactical_executor.insist_terms: int / world.get_action_cost")
         base = 1
-    if action == "fortify" and getattr(marshal, "stance", Stance.NEUTRAL) == Stance.NEUTRAL:
+    stance = getattr(marshal, "stance", Stance.NEUTRAL)
+    if action == "fortify" and stance == Stance.NEUTRAL:
         return (base + 1, "he must first go defensive")
+    if action == "defend" and stance == Stance.AGGRESSIVE:
+        return (stance_change_cost(stance, Stance.DEFENSIVE),
+                "he must first abandon his aggressive posture")
     return (base, "")
+
+
+# The words a stance order names, as the executor's pre-objection AP check
+# reads them.
+_STANCE_WORDS = {
+    "neutral": Stance.NEUTRAL, "defensive": Stance.DEFENSIVE,
+    "defense": Stance.DEFENSIVE, "defend": Stance.DEFENSIVE,
+    "aggressive": Stance.AGGRESSIVE, "attack": Stance.AGGRESSIVE,
+    "offense": Stance.AGGRESSIVE,
+}
+
+
+def stance_change_cost(current_stance, target_stance) -> int:
+    """The actions a stance change takes: any → NEUTRAL free, NEUTRAL → either
+    stance 1, DEFENSIVE ↔ AGGRESSIVE 2. ONE source — `_get_stance_change_cost`
+    reads it."""
+    if current_stance == target_stance or target_stance == Stance.NEUTRAL:
+        return 0
+    if current_stance == Stance.NEUTRAL:
+        return 1
+    return 2
+
+
+def order_price(world, marshal, order) -> int:
+    """ACH-X10: the actions carrying out the tactical `order` takes from this
+    marshal now — each verb at the figure its executor charges: the free
+    verbs nothing, a stance change its steps, a defend from AGGRESSIVE and a
+    fortify from NEUTRAL two (`insist_terms`), a cautious marshal's unfortify
+    and a counter-punch's strike nothing, a move beyond his reach the march
+    it becomes (`movement_executor`'s upgrade); the rest their table price.
+    An administrative verb's price is on the administrative pool. Read by
+    the objection's answer gate before the answer is recorded."""
+    order = order or {}
+    action = str(order.get("action") or "").lower()
+    if action in ("wait", "retreat", "break_square"):
+        return 0
+    stance = getattr(marshal, "stance", Stance.NEUTRAL)
+    if action == "stance_change":
+        target = _STANCE_WORDS.get(
+            str(order.get("target_stance") or order.get("target") or "").lower())
+        if target is not None:
+            return stance_change_cost(stance, target)
+    if action in ("defend", "fortify"):
+        return int(insist_terms(world, marshal, action)[0])
+    if action == "unfortify" and unfortify_is_free(marshal):
+        return 0
+    if action == "attack" and getattr(marshal, "has_counter_punch", lambda: False)():
+        return 0
+    if action == "move" and order.get("target"):
+        distance = world.get_distance(marshal.location, order["target"])
+        if distance is not None and distance > getattr(marshal, "movement_range", 1):
+            return int(marshal.strategic_order_ap(order_type="MOVE_TO"))
+    return int(world.get_action_cost(action))
 
 
 def unfortify_is_free(marshal) -> bool:
@@ -795,22 +855,9 @@ class TacticalExecutor:
             target_stance: Target stance to transition to
 
         Returns:
-            Action cost (0, 1, or 2)
+            Action cost (0, 1, or 2) — `stance_change_cost`, the one source.
         """
-        if current_stance == target_stance:
-            return 0  # No change needed
-
-        # Returning to neutral is always free
-        if target_stance == Stance.NEUTRAL:
-            return 0
-
-        # From neutral to any stance costs 1
-        if current_stance == Stance.NEUTRAL:
-            return 1
-
-        # Direct transition between defensive and aggressive costs 2
-        # (Defensive ↔ Aggressive without going through neutral)
-        return 2
+        return stance_change_cost(current_stance, target_stance)
 
     def _execute_stance_change(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -967,10 +1014,10 @@ class TacticalExecutor:
             return {"success": False, "message": "Game state error in _execute_restrain: world state unavailable"}
 
         # Look for marshal with pending charge
-        for m in world.marshals.values():
-            if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
-                # Found pending charge - route to respond handler
-                return self._executor._combat.respond_to_glorious_charge("restrain", world)
+        from backend.commands.combat_executor import pending_glorious_charge_marshal
+        if pending_glorious_charge_marshal(world) is not None:
+            # Found pending charge - route to respond handler
+            return self._executor._combat.respond_to_glorious_charge("restrain", world)
 
         return {
             "success": False,

@@ -36,6 +36,7 @@ from backend.commands.executor import CommandExecutor
 from backend.commands.dialogue_routing import (
     match_dialogue_answer,
     format_answer_words,
+    tactical_objection_answers,  # ACH-X9: the one list of an objection's answers
 )
 from backend.models.world_state import WorldState
 from backend.nation_config import DEFAULT_PLAYER_NATION, get_player_nation
@@ -4309,12 +4310,8 @@ def _command_ordinary_road(ctx: CommandContext):
                     "marshal", "A marshal")
                 # CA9 review round: same missing key as the
                 # executor block — see `OBJECTION_FREE_READS`'s
-                # neighbour there. Read the validator's own predicate.
-                _obj_choices = ["trust", "insist"]
-                if (world.pending_objection.get("suggested_alternative")
-                        or world.pending_objection.get("compromise")
-                        or world.pending_objection.get("alternative")):
-                    _obj_choices.append("compromise")
+                # neighbour there. ACH-X9: the validator's own list.
+                _obj_choices = tactical_objection_answers(world.pending_objection)
                 return build_base_response(
                     world, success=False,
                     message=(
@@ -4564,11 +4561,7 @@ def _command_ordinary_road(ctx: CommandContext):
                 from backend.commands.dialogue_routing import (
                     format_answer_words as _answer_words,
                 )
-                _choices = ["trust", "insist"]
-                if (_pending_obj.get("suggested_alternative")
-                        or _pending_obj.get("compromise")
-                        or _pending_obj.get("alternative")):
-                    _choices.append("compromise")
+                _choices = tactical_objection_answers(_pending_obj)  # ACH-X9
                 _objector = _pending_obj.get("marshal", "A marshal")
                 refusal_msg += (
                     f"\n\n{_objector} still awaits your answer, Sire. "
@@ -5162,8 +5155,10 @@ def get_pending_objection():
         "type": objection.get("type", "major"),
         "trigger": trigger,
         "trigger_display": ACTION_DISPLAY.get(trigger, (trigger or "").replace("_", " ")) if trigger else "",
-        "choices": ["trust", "insist", "compromise"] if objection.get("alternative") else ["trust", "insist"],
-        "alternative": objection.get("alternative"),
+        # ACH-X9: the one list. It read `alternative`, a key no producer
+        # writes (CA9's missed copy), so it never named a real compromise.
+        "choices": tactical_objection_answers(objection),
+        "alternative": objection.get("suggested_alternative") or objection.get("alternative"),
         "original_order": objection.get("original_order")
     }
 
@@ -5296,10 +5291,14 @@ def _attach_answered_relay(response: dict, result: dict, pending: Optional[dict]
     _question = (_result_carries_question(result)
                  or bool((result or {}).get("pending_objection"))
                  or bool((result or {}).get("pending_interrupt")))
+    # ACH-F3 / ACH-X10: an answer refused with the objection kept (the pool
+    # could not pay it; RS-5's refused Trust) answered nothing — the tail
+    # waits on behind the question, never "the first did not go out".
+    _kept = bool((result or {}).get("objection_kept"))
     relay = _relay.build_relay(
         world, parser, get_llm_game_state(), tail=pending["tail"],
         marshal_name=pending.get("marshal"), head_action=pending.get("head_action"),
-        result=result or {}, question=_question, answered=True)
+        result=result or {}, question=_question or _kept, answered=not _kept)
     _relay.attach(response, relay)
     _relay.append_note(response, relay, standalone=True)
     if relay["relay_kind"] == "question":
@@ -5835,8 +5834,26 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
             return _refusal_response(
                 world, message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
 
+        # ACH-F2 (the user's ruling, October 19, 2026): the button is the
+        # attack's answer and pays the attack's price — R18's table prices
+        # `charge` and `restrain` at 1, what the typed word already pays
+        # through the executor's charge stage. The pending charge blocks
+        # nothing, so the pool can fall while it waits: a press the pool
+        # cannot pay is refused in the typed road's words and the charge
+        # stays pending (it fought the battle for nothing).
+        from backend.commands.combat_executor import pending_glorious_charge_marshal
+        _price = int(world.get_action_cost(request.choice))
+        if (pending_glorious_charge_marshal(world) is not None
+                and world.actions_remaining < _price):
+            return _refusal_response(
+                world, message=(f"Not enough actions! Need {_price}, "
+                                f"have {int(world.actions_remaining)}."),
+                choice=request.choice, action_info=world.get_action_info(0))
+
         # Process the response through executor
         result = executor.respond_to_glorious_charge(request.choice, world)
+        _spent = (world.spend_actions(request.choice)["action_cost"]
+                  if result.get("success") else 0)
 
         # Non-draining (Aug 2026 health-check audit): main.gd's
         # _on_glorious_charge_response never routes popup keys, so a
@@ -5847,6 +5864,7 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
             message=result.get("message", "Charge processed"),
             events=result.get("events", []),
             choice=request.choice,
+            action_info=world.get_action_info(_spent),
             include_popup_passthroughs=False,
         )
         _fill_popup_keys_without_draining(response)

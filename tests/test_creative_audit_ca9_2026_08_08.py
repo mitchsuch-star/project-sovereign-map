@@ -486,10 +486,20 @@ class TestN5ObjectionStatesItsOptions:
             assert f"'{choice}'" in msg
 
     def test_a_third_road_is_named_when_it_exists(self, world, executor):
+        """Re-seated by ACH-X9 (October 19, 2026): the third road is a
+        compromise, and it exists only when the objection carries one — an
+        alternative alone named 'compromise' here, and the validator then
+        ran the order as given with no trust cost."""
         _pending_objection(world, alternative={"action": "scout"})
+        world.pending_objection["compromise"] = {"action": "defend"}
         result = self._blocked(world, executor, target="Bohemia")
         assert "'compromise'" in result["message"]
         assert result["choices"] == ["trust", "insist", "compromise"]
+
+        world.pending_objection["compromise"] = None
+        result = self._blocked(world, executor, target="Bohemia")
+        assert result["choices"] == ["trust", "insist"]
+        assert "'compromise'" not in result["message"]
 
     def test_free_reads_pass_the_block(self, world, executor):
         """A marshal standing on his dignity may not also stop the Emperor
@@ -3352,16 +3362,23 @@ class TestReviewObjectionOffersEveryLegalAnswer:
         return payload
 
     def test_shown_equals_accepted(self, world, executor):
+        """Re-seated by ACH-X9 (October 19, 2026): with an alternative and
+        NO compromise, 'compromise' was shown because the validator accepted
+        it — and accepted, it ran the order as given with no trust cost (an
+        insist without the insist's price). Shown == accepted still, on the
+        popup's own reading: neither names it now."""
         from backend.commands.meta_executor import MetaExecutor  # noqa: F401
         self._real_objection(
             world, suggested_alternative={"action": "scout"})
         result = executor.execute({"success": True, "command": {
             "type": "specific", "marshal": "Ney", "action": "attack",
             "target": "Bohemia"}}, {"world": world})
-        assert "'compromise'" in result["message"], (
-            f"a compromise the validator ACCEPTS is not offered: "
-            f"{result['message']!r}")
-        assert "compromise" in result["choices"]
+        assert "'compromise'" not in result["message"], result["message"]
+        assert result["choices"] == ["trust", "insist"]
+        refused = executor.handle_objection_response("compromise", {"world": world})
+        assert refused.get("success") is False
+        assert "not one of the roads open" in refused["message"]
+        assert world.pending_objection is not None, "a refused word keeps the objection"
 
     def test_the_compromise_key_alone_also_counts(self, world, executor):
         self._real_objection(world, compromise={"action": "wait"})
@@ -3381,22 +3398,28 @@ class TestReviewObjectionOffersEveryLegalAnswer:
 
     def test_the_offer_matches_the_validators_own_predicate(self, world):
         """The join, pinned: whatever the block offers, the handler must
-        accept — and vice versa."""
+        accept — and vice versa. Re-seated by ACH-X9 (October 19, 2026): the
+        predicate was re-derived here ("an alternative or a compromise") and
+        agreed with the phantom; the validator is DRIVEN now — an unoffered
+        'compromise' is refused by it, the objection kept."""
         from backend.commands.executor import CommandExecutor
         ex = CommandExecutor()
-        for extra in ({}, {"suggested_alternative": {"action": "scout"}},
-                      {"compromise": {"action": "wait"}}):
+        for extra, offers_compromise in (
+                ({}, False),
+                ({"suggested_alternative": {"action": "scout"}}, False),
+                ({"compromise": {"action": "wait"}}, True)):
             self._real_objection(world, **extra)
             blocked = ex.execute({"success": True, "command": {
                 "type": "specific", "marshal": "Ney", "action": "attack",
                 "target": "Bohemia"}}, {"world": world})
             offered = set(blocked["choices"])
-            accepted = {"trust", "insist"}
-            obj = world.pending_objection
-            if obj.get("suggested_alternative") or obj.get("compromise"):
-                accepted.add("compromise")
-            assert offered == accepted, (
-                f"offered {offered} but the validator accepts {accepted}")
+            assert offered == ({"trust", "insist", "compromise"} if offers_compromise
+                               else {"trust", "insist"}), (extra, offered)
+            if not offers_compromise:
+                refused = ex.handle_objection_response("compromise", {"world": world})
+                assert refused.get("success") is False, (extra, refused.get("message"))
+                assert "not one of the roads open" in refused["message"]
+                assert world.pending_objection is not None
 
 
 class TestReviewCaptureLineTakesItsArticle:

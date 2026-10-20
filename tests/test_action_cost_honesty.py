@@ -324,9 +324,11 @@ class TestTheAnswersSayTheirPrice:
 
     def test_a_short_pool_says_what_it_took(self, client):
         """ACH-X2: a strategic objection blocks nothing, so the pool can
-        fall while it waits; the tail charges what is left (the clamp — a
-        price question filed as ACH-F3, whose ruling re-seats the 1 here)
-        and said the price it was asked: 2 for the 1 it took."""
+        fall while it waits; the tail charged what was left (the clamp) and
+        said the price it was asked: 2 for the 1 it took. Re-seated by
+        ACH-F3's ruling (the user, October 19, 2026 — refuse the answer the
+        pool cannot pay, keep the objection): the Insist at one action is
+        refused, nothing taken, and says so (0)."""
         asked, _, _ = _order(client, "Davout, pursue Mack")
         assert M.world.pending_strategic_objection, asked.get("message")
         _order(client, "Ney, hold")
@@ -334,8 +336,11 @@ class TestTheAnswersSayTheirPrice:
         assert M.world.actions_remaining == 1
         assert M.world.pending_strategic_objection, "the objection still waits"
         reply, spent, _ = _post(client, "/respond_to_objection", {"choice": "insist"})
-        assert reply.get("success"), reply.get("message")
-        assert spent == 1
+        assert reply.get("success") is False, reply.get("message")
+        assert str(reply.get("message")).startswith("Not enough actions! Need 2, have 1"), \
+            reply.get("message")
+        assert M.world.pending_strategic_objection, "ACH-F3: the objection stands"
+        assert spent == 0
         _honest(reply, spent, "Davout, pursue Mack -> insist at 1")
 
     @pytest.mark.parametrize("line,choice,price", [

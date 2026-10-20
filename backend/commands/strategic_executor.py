@@ -196,6 +196,20 @@ def order_from_parsed(parsed_command, *, strategic_type, target, target_type,
     )
 
 
+def strategic_answer_price(choice: str, quoted: Dict, order_ap: int) -> int:
+    """ACH-F3: the actions an answer to a strategic objection costs — the
+    price its button quotes (`_build_strategic_options`' `ap_cost`, the
+    figure the objection's tail charges: WO-37). Trust is 1 whether or not
+    a preferred option is quoted (every trust arm charges 1); an unquoted
+    Insist or Compromise is the order's own price."""
+    if choice == "trust":
+        return int((quoted.get("preferred") or {}).get("ap_cost", 1))
+    if choice in ("insist", "compromise"):
+        key = "proceed" if choice == "insist" else "compromise"
+        return int((quoted.get(key) or {}).get("ap_cost", order_ap))
+    return 0
+
+
 def _defiant_verb(action: str) -> str:
     """Slice 17 review round (L2-11): the defiance notice's SECOND clause
     needs an infinitive ("chose to attack") and ACTION_DISPLAY is third
@@ -3245,6 +3259,33 @@ class StrategicExecutor:
                 "choices": list(_valid_choices),
             }
 
+        # ACH-F3 (the user's ruling, October 19, 2026): an answer the pool
+        # cannot pay is refused, in the typed road's words, and the
+        # objection stands — before the trust, the authority, the defiance
+        # roll and the order. A strategic objection blocks nothing, so the
+        # pool can fall while it waits; the tail below charged what was left
+        # (the 2-action PURSUE stood for 1, every answer for nothing at an
+        # empty pool). The gate is the price the pressed button quotes.
+        _order_ap = int(marshal.strategic_order_ap(order_type=strategic_type))
+        _price = strategic_answer_price(choice, _quoted, _order_ap)
+        if world.actions_remaining < _price:
+            from backend.commands.dialogue_routing import unpayable_answer_refusal
+            _have = int(world.actions_remaining)
+            # The sentence names the order the pressed answer would give:
+            # his own for Trust (none when he proposed nothing), ours else.
+            _pref = _quoted.get("preferred") or {}
+            _named, _named_parse = (
+                (({"marshal": marshal_name, "action": _pref.get("action"),
+                   "target": _pref.get("target")} if _pref.get("action") else {}),
+                 {"is_strategic": bool(_pref.get("strategic_type")),
+                  "strategic_type": _pref.get("strategic_type")})
+                if choice == "trust" else (original_command, parsed_command))
+            return unpayable_answer_refusal(
+                world, marshal_name, _price, _have, _named, _named_parse,
+                [c for c in _valid_choices
+                 if strategic_answer_price(c, _quoted, _order_ap) <= _have],
+                lapses=True, pending_strategic_objection=objection)
+
         # Add objection response and preferred/compromise data to command
         original_command["objection_response"] = strategic_response
         original_command["preferred_action"] = _quoted.get("preferred")
@@ -3542,7 +3583,8 @@ class StrategicExecutor:
             variable_cost = result.get("variable_action_cost", 2)
             if variable_cost > 0:
                 # ACH-1: the reply says what the charge took, not the price
-                # asked — the clamp below charges what is left of a short pool.
+                # asked. ACH-F3: an answer the pool cannot pay was refused at
+                # the head, so the clamp is a belt that no longer binds.
                 _charge = world.spend_actions(strategic_type or "strategic",
                                               min(variable_cost, world.actions_remaining))
                 result["action_info"] = world.get_action_info(_charge["action_cost"])

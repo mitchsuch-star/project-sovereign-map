@@ -264,6 +264,33 @@ def can_fortify(marshal, game_state) -> bool:
     return True
 
 
+# The verbs that act where the marshal stands: an order of one that names no
+# target is that order at his feet — the target the candidate builders below
+# stamp (`marshal.location`).
+_IN_PLACE_ACTIONS = ('defend', 'drill', 'fortify')
+
+
+def order_key(order: Optional[Dict], marshal=None) -> Tuple[str, str]:
+    """An order's (action, target), lower-cased: what Master Rule #2's "is
+    this the same order?" tests compare (`_find_compromise` and the
+    executor's `_actions_match`).
+
+    ACH-F1 (October 19, 2026): the parser stamps a bare verb's `target`
+    PRESENT with None, and `.get('target', '')` returns that None — `Ney,
+    aggressive stance` then `Ney, defend` crashed `/command` on `.lower()`.
+    Read with the `(d.get(key) or '')` idiom. And an in-place verb that names
+    no target acts where he stands, so it reads as his location — or a bare
+    `defend` and the compromise `defend` at his feet read as two orders and
+    the popup offers the order back as its own compromise.
+    """
+    order = order or {}
+    action = str(order.get('action') or '').lower()
+    target = order.get('target_stance') or order.get('target') or ''
+    if not target and marshal is not None and action in _IN_PLACE_ACTIONS:
+        target = getattr(marshal, 'location', '') or ''
+    return action, str(target).lower()
+
+
 def _can_execute_suggestion(marshal, action_dict, game_state) -> bool:
     """
     Master Rule #1: Validate whether a suggested alternative action is actually
@@ -278,7 +305,7 @@ def _can_execute_suggestion(marshal, action_dict, game_state) -> bool:
     Returns:
         True if the action would pass basic pre-validation
     """
-    action = action_dict.get('action', '').lower()
+    action = (action_dict.get('action') or '').lower()
     target = action_dict.get('target', '')
 
     # Attack: needs a valid target enemy
@@ -1066,7 +1093,7 @@ class DisobedienceSystem:
                 'retreat_recovery': True
             }
 
-        action = order.get('action', '').lower()
+        action = (order.get('action') or '').lower()
         personality = get_personality(marshal.personality)
 
         # Get valid actions for validation
@@ -1214,8 +1241,12 @@ class DisobedienceSystem:
         # Currently uses omniscient get_enemies_in_range/_get_strength_ratio_for_alternative.
         # V2 triggers already use fog-aware helpers — this creates a perception mismatch.
         """
-        orig_action = original.get('action', '').lower()
-        alt_action = (alternative.get('action', '') if alternative else '').lower()
+        # ACH-F1: one reading of "the same order" for every test below — a
+        # bare verb's target is present with None (`order_key`).
+        orig_key = order_key(original, marshal)
+        alt_key = order_key(alternative, marshal) if alternative else None
+        orig_action = orig_key[0]
+        alt_action = alt_key[0] if alt_key else ''
         personality = get_personality(marshal.personality)
 
         # Get context
@@ -1230,19 +1261,10 @@ class DisobedienceSystem:
                     continue
                 if not _can_execute_suggestion(marshal, c, game_state):
                     continue
-                c_action = c.get('action', '').lower()
-                c_target = (c.get('target_stance') or c.get('target', '')).lower()
-                # Must differ from original
-                if c_action == orig_action:
-                    # Same action type — check if target also matches
-                    orig_target = (original.get('target_stance') or original.get('target', '')).lower()
-                    if c_target == orig_target:
-                        continue
-                # Must differ from preferred alternative
-                if alternative and c_action == alt_action:
-                    alt_target = (alternative.get('target_stance') or alternative.get('target', '')).lower()
-                    if c_target == alt_target:
-                        continue
+                c_key = order_key(c, marshal)
+                # Must differ from original, and from the preferred alternative
+                if c_key == orig_key or c_key == alt_key:
+                    continue
                 return c
             return None
 
@@ -1327,15 +1349,8 @@ class DisobedienceSystem:
 
             # Validate the compromise is distinct from both original and preferred
             if c and _can_execute_suggestion(marshal, c, game_state):
-                c_action = c.get('action', '').lower()
-                c_target = (c.get('target_stance') or c.get('target', '')).lower()
-                orig_target = (original.get('target_stance') or original.get('target', '')).lower()
-                is_same_as_original = (c_action == orig_action and c_target == orig_target)
-                is_same_as_alt = False
-                if alternative:
-                    alt_target = (alternative.get('target_stance') or alternative.get('target', '')).lower()
-                    is_same_as_alt = (c_action == alt_action and c_target == alt_target)
-                if not is_same_as_original and not is_same_as_alt:
+                c_key = order_key(c, marshal)
+                if c_key != orig_key and c_key != alt_key:
                     return c
 
         # No valid distinct compromise found
@@ -1427,7 +1442,7 @@ class DisobedienceSystem:
 
         Phase 2: Uses templates. Phase 3+ will use LLM.
         """
-        action = order.get('action', '').lower()
+        action = (order.get('action') or '').lower()
         personality = marshal.personality.lower()
 
         # Find appropriate template
@@ -1447,7 +1462,7 @@ class DisobedienceSystem:
                 template_list = templates.get('fortify', [])
             # STANCE TRIGGERS (Phase 2.7)
             elif action == 'stance_change':
-                target_stance = order.get('target_stance', '').lower()
+                target_stance = (order.get('target_stance') or '').lower()
                 if target_stance in ('defensive', 'defense'):
                     template_list = templates.get('defensive_stance', [])
                 elif target_stance == 'neutral':
@@ -1458,7 +1473,7 @@ class DisobedienceSystem:
                 template_list = templates.get('attack_outnumbered', [])
             # STANCE TRIGGERS (Phase 2.7)
             elif action == 'stance_change':
-                target_stance = order.get('target_stance', '').lower()
+                target_stance = (order.get('target_stance') or '').lower()
                 if target_stance in ('aggressive', 'attack', 'offense'):
                     template_list = templates.get('aggressive_stance', [])
                     # Check if outnumbered for more specific template

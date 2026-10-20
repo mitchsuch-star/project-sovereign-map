@@ -37,6 +37,7 @@ from backend.commands.objection_v2 import (
     calculate_trust_gain, COMPROMISE_TRUST_GAIN,
     concern_to_legacy_severity,
 )
+from backend.commands.disobedience import order_key  # ACH-F1: Master Rule #2's "same order"
 
 
 from backend.commands.combat_executor import CombatExecutor, friendly_fire_refusal
@@ -1622,21 +1623,19 @@ class CommandExecutor:
 
         if (world.pending_objection is not None and not is_ai_command
                 and _early_command.get("action") not in OBJECTION_FREE_READS):
-            from backend.commands.dialogue_routing import format_answer_words
+            from backend.commands.dialogue_routing import (
+                format_answer_words, tactical_objection_answers)
             objecting = world.pending_objection.get("marshal", "A marshal")
             # CA9 review round: this read `alternative`, a key NO
             # producer in backend/ ever writes — both objection sites write
             # `suggested_alternative` + `compromise`. So the sentence could
             # structurally never name 'compromise', while
-            # `handle_objection_response` accepts it whenever either key is
-            # set: the popup showed a COMPROMISE button and the very next
-            # blocked command said "Reply 'trust' or 'insist'." Read the
-            # SAME predicate the validator uses, so shown == accepted.
-            _choices = ["trust", "insist"]
-            if (world.pending_objection.get("suggested_alternative")
-                    or world.pending_objection.get("compromise")
-                    or world.pending_objection.get("alternative")):
-                _choices.append("compromise")
+            # `handle_objection_response` accepts it: the popup showed a
+            # COMPROMISE button and the very next blocked command said
+            # "Reply 'trust' or 'insist'." ACH-X9: the ONE list the validator
+            # and the objection's reply read, so shown == accepted == the
+            # popup's buttons ('compromise' only when there is one).
+            _choices = tactical_objection_answers(world.pending_objection)
             return {
                 "success": False,
                 # CA9-N5: the block names the words that clear it. They were
@@ -1740,7 +1739,7 @@ class CommandExecutor:
         # Handled before marshal resolution, AP checks, objection checks.
         # ════════════════════════════════════════════════════════════
         if action == "meta_command":
-            raw_cmd = (command.get("raw_command") or parsed_command.get("raw_command", "")).strip()
+            raw_cmd = (command.get("raw_command") or parsed_command.get("raw_command") or "").strip()
             cmd_lower = raw_cmd.lower()
             if cmd_lower.startswith("save"):
                 save_name = raw_cmd[4:].strip() or f"Save - Turn {world.current_turn}"
@@ -2859,16 +2858,12 @@ class CommandExecutor:
                             # demote to MILD. Never show popup with fake choices.
                             # ═══════════════════════════════════════════════════
                             def _actions_match(a, b):
-                                """Check if two action dicts describe the same action."""
+                                """Check if two action dicts describe the same action
+                                (ACH-F1: `_find_compromise`'s one reading — a bare
+                                verb's target is present with None)."""
                                 if a is None or b is None:
                                     return a is None and b is None
-                                a_act = a.get('action', '').lower()
-                                b_act = b.get('action', '').lower()
-                                if a_act != b_act:
-                                    return False
-                                a_tgt = (a.get('target_stance') or a.get('target', '')).lower()
-                                b_tgt = (b.get('target_stance') or b.get('target', '')).lower()
-                                return a_tgt == b_tgt
+                                return order_key(a, marshal) == order_key(b, marshal)
 
                             should_demote = False
 
@@ -2958,6 +2953,7 @@ class CommandExecutor:
                                     if _comp_desc:
                                         compromise_action["description"] = _comp_desc
 
+                                from backend.commands.dialogue_routing import tactical_objection_answers
                                 objection = {
                                     # V2 fields
                                     "type": "major_objection",
@@ -2999,7 +2995,8 @@ class CommandExecutor:
                                     "state": "awaiting_player_choice",
                                     "message": message,
                                     "objection": objection,
-                                    "choices": ["trust", "insist", "compromise"] if objection.get("suggested_alternative") else ["trust", "insist"],
+                                    # ACH-X9: the one list (a compromise only when there is one).
+                                    "choices": tactical_objection_answers(objection),
                                     "marshal": marshal_name,
                                     "personality": marshal.personality,
                                     "concern_level": concern.name,

@@ -972,6 +972,16 @@ def charge_on_peace_soil(executor, marshal, enemy_marshal, world):
                                enemy_nation=enemy_marshal.nation)
 
 
+def pending_glorious_charge_marshal(world):
+    """The player's marshal whose CHARGE / RESTRAIN question stands, or None —
+    the one lookup the answer, the typed `charge` / `restrain` and the
+    popup's price gate read (ACH-F2)."""
+    for m in world.marshals.values():
+        if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
+            return m
+    return None
+
+
 def player_muster_gate_arms(marshal, odds_band: str) -> bool:
     """DDB-R2 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D2 — WIDEN
     THE GATE TO "POTENTIAL DISASTER"): the PLAYER's attack pauses on its
@@ -10809,11 +10819,9 @@ class CombatExecutor:
 
         # If no marshal specified, check for pending glorious charge
         if not marshal_name:
-            # Look for marshal with pending charge
-            for m in world.marshals.values():
-                if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
-                    # Found pending charge - route to respond handler
-                    return self.respond_to_glorious_charge("charge", world)
+            if pending_glorious_charge_marshal(world) is not None:
+                # Found pending charge - route to respond handler
+                return self.respond_to_glorious_charge("charge", world)
 
             return {"success": False, "message": "Charge requires a marshal. Try: 'Ney, charge Wellington'"}
 
@@ -11386,11 +11394,7 @@ class CombatExecutor:
             Result dict
         """
         # Find marshal with pending charge
-        pending_marshal = None
-        for m in world.marshals.values():
-            if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
-                pending_marshal = m
-                break
+        pending_marshal = pending_glorious_charge_marshal(world)
 
         if not pending_marshal:
             return {

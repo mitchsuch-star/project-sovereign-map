@@ -2196,10 +2196,12 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         alternative = objection.get("suggested_alternative") or objection.get("alternative")
         compromise = objection.get("compromise")
 
-        # Validate choice
-        valid_choices = ["trust", "insist"]
-        if alternative or compromise:
-            valid_choices.append("compromise")
+        # Validate choice — ACH-X9: 'compromise' only when the objection
+        # carries one (it read "an alternative or a compromise", so a typed
+        # 'compromise' to an objection with none ran the order as given with
+        # no trust cost); the one list the block and the reply read.
+        from backend.commands.dialogue_routing import tactical_objection_answers
+        valid_choices = tactical_objection_answers(objection)
         valid_choices.append("cancel")  # DDB-41: handled above
 
         if choice not in valid_choices:
@@ -2214,6 +2216,18 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     f"{format_answer_words(valid_choices)}."),
                 "choices": list(valid_choices),
             }
+
+        # ACH-X10 (ACH-F3's ruling on the tactical road): an answer the pool
+        # cannot pay is refused BEFORE it is recorded — the trust, the
+        # authority, the question — in the typed road's words, and the
+        # objection stands. The post-objection gates refused it only after
+        # `handle_response` had paid or penalised him and cleared the
+        # question: `Ney, defend` from the aggressive stance at one action
+        # lost 13 trust and did nothing; a compromise priced at two paid +3
+        # for nothing.
+        _unpayable = self._unpayable_tactical_answer(world, objection, choice)
+        if _unpayable is not None:
+            return _unpayable
 
         # Process the choice through disobedience system
         response_result = world.disobedience_system.handle_response(
@@ -2598,6 +2612,42 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             result["authority_event"] = authority_event
 
         return result
+
+    @staticmethod
+    def _unpayable_tactical_answer(world, objection: Dict, choice: str) -> Optional[Dict]:
+        """ACH-X10: the refusal of a tactical objection's answer the pool
+        cannot pay, or None. Each answer's order is priced as its executor
+        charges it (`tactical_executor.order_price`) against its own pool —
+        Trust his alternative, Insist the order given, Compromise the
+        compromise — and the refusal names the roads still open."""
+        from backend.commands.dialogue_routing import (
+            tactical_objection_answers, unpayable_answer_refusal)
+        from backend.commands.tactical_executor import order_price
+        marshal_name = objection.get("marshal")
+        marshal = world.get_marshal(marshal_name) if marshal_name else None
+        if marshal is None:
+            return None
+        orders = {"trust": (objection.get("suggested_alternative")
+                            or objection.get("alternative")),
+                  "insist": objection.get("original_order"),
+                  "compromise": objection.get("compromise")}
+
+        def _cost(answer):
+            order = orders.get(answer) or {}
+            pool = (world.admin_actions_remaining
+                    if str(order.get("action") or "").lower() in ADMIN_ACTIONS
+                    else world.actions_remaining)
+            return int(order_price(world, marshal, order)), int(pool)
+
+        price, have = _cost(choice)
+        if price <= have:
+            return None
+        open_answers = [a for a in tactical_objection_answers(objection)
+                        if _cost(a)[0] <= _cost(a)[1]]
+        order = dict(orders.get(choice) or {})
+        order.setdefault("marshal", marshal_name)
+        return unpayable_answer_refusal(world, marshal_name, price, have, order, {},
+                                        open_answers, pending_objection=True)
 
     def _execute_post_objection(self, parsed_command: Dict, game_state: Dict,
                                 marshal_name: str, charge_ap: bool = True) -> Dict:
