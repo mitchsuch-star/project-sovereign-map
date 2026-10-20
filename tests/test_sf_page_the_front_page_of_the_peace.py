@@ -723,6 +723,15 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               'backend.game_logic.naval:posture_blockade_answered=False',
               'backend.game_logic.settlement_third_party:silent_band_white_peace=False',
               'backend.game_logic.settlement_helpers:newcomer_joins_the_war=True',
+              # DDB-21 (Pre-Deploy S13b part 4, October 19, 2026): a corps on
+              # soil its court holds by title is home — on CMD-H Wellesley on
+              # Andalusia, titled to Britain by its peace, fortifies there at
+              # turn 12's enemy phase instead of walking the road home, and
+              # the campaign re-times from it (Murat taken at turn 30 where
+              # Massena was broken). Measured: the part's HEAD reproduces the
+              # Step 7 page turn for turn, and so does the tree with this seam
+              # alone held down (DDB-X26's seam moves nothing here).
+              "backend.game_logic.withdrawal:title_is_home=False",
               ]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

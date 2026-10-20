@@ -87,6 +87,11 @@ def _blockade_rot_clause(world, actor: str) -> str:
     three-clause paragraph about Continental-System trade closure, and its
     self-blockade clause never states the per-turn number. A shipbuilding
     receipt needs one clause and the figure the player can act on.
+
+    DDB-61 (Pre-Deploy S13b part 4): and what stops it — "that is the
+    number to fix" named no fix (the sea #9). The remedy is the Diversion
+    forecast's own sentence (`naval.window_remedy`), gated on the state it
+    names.
     """
     blockader = (naval.blockade_forecast(world, actor) or {}).get(
         "self_blockaded_by")
@@ -94,8 +99,27 @@ def _blockade_rot_clause(world, actor: str) -> str:
         return ""
     from backend.display_names import display_nation
     return (f", and {display_nation(blockader)}'s blockade rots her "
-            f"{naval.READINESS_TICK} a turn at anchor — that is the number "
-            f"to fix")
+            f"{naval.READINESS_TICK} a turn at anchor — "
+            f"{naval.window_remedy(world, actor)}")
+
+
+def _named_yard_clause(command: Dict, world, yards) -> str:
+    """DDB-62 (Pre-Deploy S13b part 4): the yard the line names, when it is
+    one of ours — "lay down a ship at Normandy" was receipted at Bordelais,
+    the first yard alphabetically, and the typed yard was read by nothing
+    (the sea #11). A keel joins the ONE fleet whichever yard lays it, and the
+    receipt says so; a province that is no yard of ours is named as such."""
+    raw = str((command or {}).get("raw_input") or (command or {}).get("original_command")
+              or (command or {}).get("raw_command") or "")
+    target = str((command or {}).get("target") or "")
+    for yard in yards:
+        if target.lower() == yard.lower() or re.search(
+                r"\b" + re.escape(yard) + r"\b", raw, re.IGNORECASE):
+            return f"{yard} — one fleet, whichever yard lays her keel"
+    if target and target in (getattr(world, "regions", {}) or {}):
+        return (f"{yards[0]} — {target} is no yard of ours, and the fleet is "
+                f"one whichever yard lays her keel")
+    return yards[0]
 
 
 def _detachment_echo(command: Dict) -> str:
@@ -191,7 +215,8 @@ class NavalExecutor:
         result = {
             "success": True,
             "message": (
-                f"A keel is laid at {yards[0]} ({naval.SHIP_COST}g). The fleet "
+                f"A keel is laid at {_named_yard_clause(command, world, yards)} "
+                f"({naval.SHIP_COST}g). The fleet "
                 f"stands at {outcome['ships']} sail — readiness "
                 f"{outcome['readiness']}{_green_crew_clause(outcome)}"
                 f"{_blockade_rot_clause(world, actor)}. "
@@ -324,13 +349,19 @@ class NavalExecutor:
             # rots at the boot is OURS.
             at_war = [n for n in world.get_nations_at_war_with(actor)
                       if naval.get_fleet(world, n) is not None]
+            # DDB-61: a fleet the enemy pins does not "stand out to sea" —
+            # she is ordered to blockade stations and still pinned in port.
+            _station = naval.posture_phrase(world, actor)
+            _head = ("The fleet stands out to sea on blockade. "
+                     if _station == "on blockade" else
+                     f"The fleet is {_station}. ")
             if not at_war:
-                message = ("The fleet stands out to sea on blockade. There "
+                message = (_head + "There "
                            "is no enemy at sea to close — we are at peace. "
                            "Our own coasts go unguarded.")
             else:
                 message = (
-                    "The fleet stands out to sea on blockade. "
+                    _head
                     + naval.blockade_forecast_sentence(world, actor)
                     + " Our own coasts go unguarded.")
         else:
@@ -409,7 +440,13 @@ class NavalExecutor:
             return {"success": False,
                     "message": naval.over_lift_refusal(world, marshal)
                     + _detachment_echo(command)}
-        if loc_controller == marshal.nation and location not in yards:
+        # DDB-21: "home soil" is the body of the realm a corps can march to
+        # (`naval.on_home_soil`), not every province we hold — Oudinot on
+        # Munster, titled to France by the peace, was sent to a yard across
+        # the water; our own shore across the water is a beach the
+        # transports take him off (the ONE rule, `naval.embark_position_ok`).
+        if location not in yards and naval.on_home_soil(
+                world, marshal.nation, location):
             if yards:
                 return {"success": False, "message": (
                     f"An expedition assembles at a dockyard, Sire — "
@@ -420,8 +457,7 @@ class NavalExecutor:
             return {"success": False, "message": (
                 "We control no dockyard from which to embark an expedition."
                 + (f" {_road[0].upper()}{_road[1:]}." if _road else ""))}
-        if (loc_controller != marshal.nation
-                and not getattr(loc_region, "is_coastal", False)):
+        if not naval.embark_position_ok(world, marshal, yards):
             return {"success": False, "message": (
                 f"{marshal.name} stands inland at {location} — the boats "
                 "cannot reach him. March to the coast first.")}

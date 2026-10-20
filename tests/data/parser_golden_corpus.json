@@ -8510,6 +8510,42 @@
       "mock_only": true,
       "source": "AO the army order (tests/test_ao_the_army_order.py)",
       "notes": "The collective head is the executor road's business (group_orders); the parser reads the march with no marshal named."
+    },
+    {
+      "id": "ddb47-join-two-names-is-one-order",
+      "utterance": "Soult, march to Rhineland to join Ney and Davout",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Soult"
+      },
+      "mock_only": true,
+      "source": "DDB-47 (Pre-Deploy S13b part 4, tests/test_ddb_s13b_the_voice.py)",
+      "notes": "A second name with no order verb after it is the sentence's object, never a boundary: the line was split at 'and Davout' and 'Davout' left on the command line as a second order."
+    },
+    {
+      "id": "ddb48-help-topic-is-help",
+      "utterance": "help navy",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "help"
+      },
+      "mock_only": true,
+      "source": "DDB-48 (Pre-Deploy S13b part 4, tests/test_ddb_s13b_the_voice.py)",
+      "notes": "help <topic> prints the reference's one section; it fell to 'this order eludes me'."
+    },
+    {
+      "id": "ddb45-two-questions-are-a-question",
+      "utterance": "how strong is Mack and where is Vienna?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "DDB-45 (Pre-Deploy S13b part 4, tests/test_ddb_s13b_the_voice.py)",
+      "notes": "A line joining two questions is split and each part answered (the compound question); it was read as one and answered a third question."
     }
   ]
 }

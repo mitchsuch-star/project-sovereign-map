@@ -1355,6 +1355,8 @@ func _on_command_input_gui_input(event):
 				_clear_suggestions()
 			elif _order_engaged():
 				_clear_order_selection()   # CC-3: then a selected corps (CC-5: or a group)
+			elif _escape_closes_topmost():
+				pass   # DDB-54: then the topmost thing open — the line keeps focus
 			else:
 				command_input.release_focus()  # Unfocus to allow camera controls
 			command_input.accept_event()
@@ -1557,43 +1559,53 @@ func _on_end_turn_pressed():
 	"""Handle End Turn button click."""
 	_execute_end_turn()
 
+func _escape_closes_topmost(include_selection: bool = false) -> bool:
+	"""Esc's "close the topmost thing" ladder — ONE ladder (DDB-54, Pre-Deploy
+	S13b part 4), read by the unfocused `_unhandled_input` below and by the
+	command line's own Esc, which ran only "release focus": after a typed
+	order the first Esc left the line and a second closed the screen (the
+	conquest #25, the sea #28). True when it closed something.
+
+	`include_selection`: the unfocused ladder clears a selected corps between
+	the screen and the region panel; the command line clears it itself, before
+	this ladder (CC-3)."""
+	# Close diplomacy wizard first (Fix 11)
+	if diplomacy_wizard and diplomacy_wizard.visible:
+		diplomacy_wizard._close_wizard()
+		return true
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+		return true
+	# CC-3: a selected corps swallows one Esc — the topmost thing on
+	# the map (the card's own Esc is the card's, read in its _input).
+	# CC-5: so does a Ctrl-click group.
+	if include_selection and _order_engaged() and not _is_modal_dialog_open():
+		_clear_order_selection()
+		return true
+	# UX pass July 16: an open Region Action Panel swallows one ESC
+	# before the pause menu OPENS — same "close the topmost thing"
+	# ladder. Review fix: never while a modal (incl. an already-open
+	# pause menu, layer 120) covers it — ESC must reach the modal, not
+	# silently close an invisible panel beneath it.
+	if region_panel and region_panel.visible and not _is_modal_dialog_open():
+		region_panel.close_panel()
+		return true
+	# UXR-D4: a screen pinned at the Side Desk — with no popup and
+	# nothing else open, Esc unpins and closes it (before the pause
+	# menu opens).
+	if top_bar and top_bar.has_method("is_pinned") and top_bar.is_pinned() \
+			and not _is_modal_dialog_open():
+		top_bar.unpin()
+		return true
+	return false
+
 func _unhandled_input(event):
 	"""Handle hotkeys when command input is not focused."""
 	if event is InputEventKey and event.pressed and not event.echo:
 		# ═══ ESC KEY: Smart context-aware (Phase 6.5 + Session A) ═══
 		# Priority: 1) release focus (gui_input), 2) close screen, 3) close pause, 4) open pause
 		if event.keycode == KEY_ESCAPE:
-			# Close diplomacy wizard first (Fix 11)
-			if diplomacy_wizard and diplomacy_wizard.visible:
-				diplomacy_wizard._close_wizard()
-				get_viewport().set_input_as_handled()
-				return
-			if top_bar and top_bar.is_screen_open():
-				top_bar.close_all_screens()
-				get_viewport().set_input_as_handled()
-				return
-			# CC-3: a selected corps swallows one Esc — the topmost thing on
-			# the map (the card's own Esc is the card's, read in its _input).
-			# CC-5: so does a Ctrl-click group.
-			if _order_engaged() and not _is_modal_dialog_open():
-				_clear_order_selection()
-				get_viewport().set_input_as_handled()
-				return
-			# UX pass July 16: an open Region Action Panel swallows one ESC
-			# before the pause menu OPENS — same "close the topmost thing"
-			# ladder. Review fix: never while a modal (incl. an already-open
-			# pause menu, layer 120) covers it — ESC must reach the modal, not
-			# silently close an invisible panel beneath it.
-			if region_panel and region_panel.visible and not _is_modal_dialog_open():
-				region_panel.close_panel()
-				get_viewport().set_input_as_handled()
-				return
-			# UXR-D4: a screen pinned at the Side Desk — with no popup and
-			# nothing else open, Esc unpins and closes it (before the pause
-			# menu opens).
-			if top_bar and top_bar.has_method("is_pinned") and top_bar.is_pinned() \
-					and not _is_modal_dialog_open():
-				top_bar.unpin()
+			if _escape_closes_topmost(true):
 				get_viewport().set_input_as_handled()
 				return
 			if pause_menu and pause_menu.visible:
@@ -1735,6 +1747,9 @@ func _setup_scalable_terminal() -> void:
 		scale_up_button.pressed.connect(_on_scale_up_pressed)
 
 	_create_resize_grip()
+	# DDB-57: a wheel notch over the command window moves three whole lines.
+	if output_scroll and not output_scroll.gui_input.is_connected(_on_output_wheel):
+		output_scroll.gui_input.connect(_on_output_wheel)
 
 	# Restore the persisted footprint — or, with nothing stored, the VIEWPORT
 	# FRACTION (UXR-1b, October 9, 2026): the 400x270 default was a 24-inch
@@ -1749,6 +1764,84 @@ func _setup_scalable_terminal() -> void:
 	else:
 		_apply_terminal_size(UiSettings.get_terminal_width(), UiSettings.get_terminal_height())
 	_update_text_size_readout()
+
+# ── DDB-57 (Pre-Deploy S13b part 4): a long reply can be read ─────────────
+# The command window showed about four lines and a wheel notch moved a
+# fraction of a small page (the engine's page / 8), so the reference — one
+# block of ~9,500 px — could not be read (the sea #5). A notch now moves
+# three whole lines; and a reply taller than the window opens at its FIRST
+# line, the window raised to its tallest (`MAX_TERMINAL_HEIGHT`, fitted to
+# the screen) until the next command, which puts it back. Never persisted:
+# the player's own size is the grip's.
+const OUTPUT_WHEEL_LINES := 3
+var _reply_from_paragraph := -1     # the open reply's first paragraph, -1 = none
+var _reply_raised := false          # the window stands raised for it
+var _reply_restore_height := 0.0    # the height it goes back to
+
+
+func _output_line_px() -> float:
+	"""One line of the command window's text, in px (font height + spacing)."""
+	if output_display == null:
+		return 20.0
+	var font: Font = output_display.get_theme_font("normal_font")
+	var font_size: int = output_display.get_theme_font_size("normal_font_size")
+	var sep: int = output_display.get_theme_constant("line_separation")
+	if font == null:
+		return 20.0
+	return maxf(1.0, font.get_height(font_size) + float(sep))
+
+
+func _on_output_wheel(event: InputEvent) -> void:
+	"""DDB-57: a wheel notch is three whole lines (the signal runs before the
+	ScrollContainer's own handling, which accepting the event skips)."""
+	if not (event is InputEventMouseButton) or not event.pressed:
+		return
+	var up: bool = event.button_index == MOUSE_BUTTON_WHEEL_UP
+	if not up and event.button_index != MOUSE_BUTTON_WHEEL_DOWN:
+		return
+	var notches: float = event.factor if event.factor > 0.0 else 1.0
+	var step := _output_line_px() * OUTPUT_WHEEL_LINES * notches
+	output_scroll.scroll_vertical = int(output_scroll.scroll_vertical + (-step if up else step))
+	output_scroll.accept_event()
+
+
+func _begin_reply() -> void:
+	"""DDB-57: a typed order's reply opens here — after the echo, at the send."""
+	_reply_from_paragraph = output_display.get_paragraph_count() if output_display else -1
+
+
+func _end_reply() -> void:
+	"""DDB-57: the next command closes the reply and puts the window back."""
+	_reply_from_paragraph = -1
+	if _reply_raised:
+		_reply_raised = false
+		_apply_terminal_size(_terminal_width, _reply_restore_height)
+
+
+func _reply_top_px() -> float:
+	if output_display == null or _reply_from_paragraph < 0:
+		return 0.0
+	var count: int = output_display.get_paragraph_count()
+	if _reply_from_paragraph >= count:
+		return float(output_display.get_content_height())
+	return float(output_display.get_paragraph_offset(_reply_from_paragraph))
+
+
+func _hold_tall_reply() -> bool:
+	"""DDB-57: true when an open reply is taller than the window — which is
+	then raised (once) and the view put on the reply's first line."""
+	if _reply_from_paragraph < 0 or output_display == null or not bottom_left_ui.visible:
+		return false
+	var reply_h: float = float(output_display.get_content_height()) - _reply_top_px()
+	if not _reply_raised:
+		if reply_h <= output_scroll.size.y:
+			return false
+		_reply_raised = true
+		_reply_restore_height = _terminal_height
+		_apply_terminal_size(_terminal_width, UiSettings.MAX_TERMINAL_HEIGHT)
+	output_scroll.scroll_vertical = int(_reply_top_px())
+	return true
+
 
 func _on_scale_down_pressed() -> void:
 	_step_ui_scale(-1)
@@ -1871,7 +1964,9 @@ func _resnap_output() -> void:
 	await get_tree().process_frame
 	await _snap_output_to_a_whole_line()
 	await get_tree().process_frame
-	if at_end:
+	if _reply_raised:
+		output_scroll.scroll_vertical = int(_reply_top_px())   # DDB-57: the reply's first line
+	elif at_end:
 		output_scroll.scroll_vertical = int(bar.max_value)
 
 
@@ -2042,6 +2137,7 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 					# UXR-1b: a dragged size is the player's — the viewport
 					# fraction stops following the screen from here.
 					_terminal_uses_default = false
+					_reply_raised = false   # DDB-57: his size stands, not the raise
 					UiSettings.set_terminal_size(_terminal_width, _terminal_height)
 	elif event is InputEventMouseMotion and _grip_dragging:
 		var mouse: Vector2 = event.global_position
@@ -2062,6 +2158,7 @@ func _reset_terminal_size() -> void:
 	# is CLEARED so the fraction follows the screen again.
 	UiSettings.clear_terminal_size()
 	_terminal_uses_default = true
+	_reply_raised = false   # DDB-57: the reset is the default, not the raise
 	var default_size := UiSettings.default_terminal_size(_hud_room())
 	_apply_terminal_size(default_size.x, default_size.y)
 
@@ -2074,7 +2171,11 @@ func _on_root_resized() -> void:
 	if _terminal_uses_default:
 		var default_size := UiSettings.default_terminal_size(_hud_room())
 		_terminal_width = clampf(default_size.x, UiSettings.MIN_TERMINAL_WIDTH, UiSettings.MAX_TERMINAL_WIDTH)
-		_terminal_height = clampf(default_size.y, UiSettings.MIN_TERMINAL_HEIGHT, UiSettings.MAX_TERMINAL_HEIGHT)
+		var default_h := clampf(default_size.y, UiSettings.MIN_TERMINAL_HEIGHT, UiSettings.MAX_TERMINAL_HEIGHT)
+		if _reply_raised:
+			_reply_restore_height = default_h   # DDB-57: the raise stands; it returns to the new default
+		else:
+			_terminal_height = default_h
 	_relayout_terminal()
 	# UXR-2 (October 12, 2026): the one live-refit road. Every clamped
 	# surface fitted the viewport only when it OPENED, so a scale change
@@ -2509,6 +2610,10 @@ func _execute_command():
 	# (observe-only — it reads the refusal of its own suggested order).
 	if tutorial_overlay:
 		tutorial_overlay.note_sent(command)
+
+	# DDB-57: the reply to this line opens here (a tall one is read from its
+	# first line; `set_input_enabled(false)` above closed the last one).
+	_begin_reply()
 
 	# Send to backend
 	api_client.send_command(command, _on_command_result, relayed)
@@ -5900,6 +6005,12 @@ func add_output(text: String):
 	# Ensure scroll to bottom
 	await get_tree().process_frame
 	_snap_output_to_a_whole_line()
+	# DDB-57: a reply taller than the window stands on its first line.
+	if _hold_tall_reply():
+		await get_tree().process_frame
+		if _reply_raised:
+			output_scroll.scroll_vertical = int(_reply_top_px())
+		return
 	output_scroll.scroll_vertical = output_scroll.get_v_scroll_bar().max_value
 
 
@@ -6009,6 +6120,8 @@ func set_input_enabled(enabled: bool):
 	# Only a world swap (Load / New Campaign) lifts it.
 	if enabled and _campaign_over:
 		enabled = false
+	if not enabled:
+		_end_reply()   # DDB-57: a send closes the last reply, the window back
 	command_input.editable = enabled
 	_input_open = enabled
 	_refresh_send_button()

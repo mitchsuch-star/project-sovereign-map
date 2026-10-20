@@ -1843,6 +1843,10 @@ def ratify_settlement_confirm(
     # RS-D1: the recognition a capital-keeping peace just bought, on the
     # same summary line the status quo rides.
     _rec_lines = _ge.take_recognition_lines(world)
+    # DDB-50: the prisoners this peace sent home, on the same line.
+    _rec_lines = list(_rec_lines) + _ge.released_prisoner_lines(
+        world, [str(p.get("pair") or "") for p in resolved_pairs],
+        world.player_nation)
     if _rec_lines:
         result_message = result_message + " " + " ".join(_rec_lines)
         _sq_lines = list(_sq_lines) + list(_rec_lines)

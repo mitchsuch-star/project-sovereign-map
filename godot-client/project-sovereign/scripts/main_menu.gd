@@ -21,6 +21,7 @@ const PAINTINGS_DIR := "res://assets/ui/paintings/"
 
 const SLIDE_SECONDS := 13.0     # hold per painting (motion runs the whole time)
 const FADE_SECONDS := 2.8       # crossfade overlap
+const CAPTION_SWAP_AT := 0.5    # DDB-55: the caption changes at the fade's midpoint
 const KB_SCALE_FROM := 1.03     # Ken Burns drift: gentle push-in
 const KB_SCALE_TO := 1.115
 const POLL_SECONDS := 2.5       # backend reachability poll while down
@@ -746,7 +747,17 @@ func _advance_slide() -> void:
 	if outgoing.texture != null:
 		tw.tween_property(outgoing, "modulate:a", 0.0, FADE_SECONDS)
 
-	_caption.text = str(SLIDES[_slide_index].get("caption", "")) + "  ·  public domain"
+	# DDB-55 (Pre-Deploy S13b part 4): the caption changes at the crossfade's
+	# MIDPOINT — set when the fade began, it named the next painting while
+	# the outgoing one, drawn on top, was still nearly opaque (diplomacy-first
+	# #1). The first painting (nothing to cross from) is captioned at once.
+	var caption := str(SLIDES[_slide_index].get("caption", "")) + "  ·  public domain"
+	if outgoing.texture != null:
+		var cap_tw := create_tween()
+		cap_tw.tween_interval(FADE_SECONDS * CAPTION_SWAP_AT)
+		cap_tw.tween_callback(_set_caption.bind(caption))
+	else:
+		_set_caption(caption)
 
 	# pre-warm the next painting, drop the ones behind us (VRAM hygiene)
 	var next_i := (_slide_index + 1) % SLIDES.size()
@@ -756,6 +767,12 @@ func _advance_slide() -> void:
 			_tex_cache.erase(k)
 
 	_slide_timer.start(SLIDE_SECONDS)
+
+
+func _set_caption(text: String) -> void:
+	"""DDB-55: the painting's credit, swapped at the crossfade's midpoint."""
+	if _caption != null and not _leaving:
+		_caption.text = text
 
 
 func _slide_texture(i: int) -> Texture2D:

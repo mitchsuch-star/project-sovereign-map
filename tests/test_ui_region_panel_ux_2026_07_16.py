@@ -126,11 +126,14 @@ class TestDismissLadder:
         assert "current_region()" in handler
 
     def test_escape_closes_panel_before_pause(self):
+        # Re-seated October 19, 2026 (DDB-54, Pre-Deploy S13b part 4): the
+        # rung lives in the ONE ladder `_escape_closes_topmost`, which the
+        # unfocused Esc reads before the pause menu opens.
         src = _read(SCRIPTS / "main.gd")
-        esc = src.split("KEY_ESCAPE:", 2)[2]
-        panel_close = esc.index("region_panel.close_panel()")
-        pause_open = esc.index("pause_menu.open_menu()")
-        assert panel_close < pause_open
+        ladder = src.split("func _escape_closes_topmost", 1)[1].split("\nfunc ", 1)[0]
+        assert "region_panel.close_panel()" in ladder
+        esc = src.split("func _unhandled_input", 1)[1].split("KEY_ESCAPE:", 1)[1]
+        assert esc.index("_escape_closes_topmost(true)") < esc.index("pause_menu.open_menu()")
 
     def test_panel_exposes_current_region(self):
         assert "func current_region" in _read(SCRIPTS / "region_panel.gd")
@@ -145,7 +148,8 @@ class TestReviewFixes:
         open over the panel, the first ESC closed the INVISIBLE panel and
         appeared to do nothing. The rung is now modal-gated."""
         src = _read(SCRIPTS / "main.gd")
-        esc = src.split("KEY_ESCAPE:", 2)[2]
+        # Re-seated October 19, 2026 (DDB-54): the ONE ladder holds the rung.
+        esc = src.split("func _escape_closes_topmost", 1)[1].split("\nfunc ", 1)[0]
         idx = esc.index("region_panel.close_panel()")
         guard = esc[:idx]
         assert "region_panel.visible and not _is_modal_dialog_open()" in guard

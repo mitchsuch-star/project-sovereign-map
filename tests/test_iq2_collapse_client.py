@@ -193,8 +193,11 @@ class TestEnemyPhaseCaptures:
         body = _func_body(_code_only("enemy_phase_dialog.gd"), "func _format_action(")
         # IQ-2 review round: the line that DOES the work, not a neighbour —
         # swapping it for `Utils.COLOR_TEXT` left the old pins green.
+        # Re-seated October 19, 2026 (DDB-56, Pre-Deploy S13b part 4): the
+        # march arm reads the ONE helper (ours, or a friend's, the backend's
+        # `captured_from_alignment` stamp), which carries the lever.
         assert re.search(
-            r"if OUR_LOSS_READS_AS_LOSS and taken_from == _PLAYER_NATION:\n\s*line_color = COLOR_ERROR\b",
+            r"if _taken_from_player\(taken_event\):\n\s*line_color = COLOR_ERROR\b",
             body), body
         assert '"[color=#" + line_color + "]- " + action_str' in body
         assert "var line_color = Utils.COLOR_TEXT" in body, "neutral stays the default"

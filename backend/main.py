@@ -1653,12 +1653,19 @@ def _stamp_battle_standing(cleaned_phase: dict, world) -> dict:
             stamped_events = []
             for event in events:
                 if isinstance(event, dict) and (event.get("attacker_nation")
-                                                or event.get("defender_nation")):
+                                                or event.get("defender_nation")
+                                                or event.get("captured_from")):
                     event = dict(event)
                     for role in ("attacker", "defender"):
                         side = event.get(f"{role}_nation")
                         if side:
                             event[f"{role}_alignment"] = battle_standing(world, side)
+                    # DDB-56 (Pre-Deploy S13b part 4): a capture says whose
+                    # province it took, as a battle says its sides — an
+                    # ally's province lost read in the good-news green.
+                    if event.get("captured_from"):
+                        event["captured_from_alignment"] = battle_standing(
+                            world, event.get("captured_from"))
                 stamped_events.append(event)
             action = dict(action)
             action["events"] = stamped_events

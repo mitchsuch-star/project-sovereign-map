@@ -844,17 +844,14 @@ def build_active_wars(world) -> Dict[str, Any]:
 def _naval_line(world, nation: str) -> str:
     """DEF-5 naval §9: the belligerent's fleet in one line — ships, readiness,
     posture, blockade state. Empty for fleet-less nations / worlds."""
-    from backend.game_logic.naval import get_fleet, is_blockaded
+    from backend.game_logic.naval import get_fleet, posture_phrase
     rec = get_fleet(world, nation)
     if not rec or int(rec.get("ships", 0) or 0) <= 0:
         return ""
-    posture = str(rec.get("posture", "guard"))
-    line = (f"{int(rec['ships'])} sail of the line — readiness "
-            f"{int(rec.get('readiness', 0))}, "
-            f"{'on blockade' if posture == 'blockade' else 'guarding home waters'}")
-    if is_blockaded(world, nation):
-        line += " (UNDER BLOCKADE — pinned in port)"
-    return line
+    # DDB-61: ONE phrase for the station, honest about a blockade on her —
+    # "on blockade (UNDER BLOCKADE — pinned in port)" said both at once.
+    return (f"{int(rec['ships'])} sail of the line — readiness "
+            f"{int(rec.get('readiness', 0))}, {posture_phrase(world, nation)}")
 
 
 def _build_foreign_wars(world) -> List[Dict[str, Any]]:

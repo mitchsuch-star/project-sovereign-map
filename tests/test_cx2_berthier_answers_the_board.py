@@ -293,9 +293,15 @@ class TestTheRouter:
 
     def test_a_syntax_question_keeps_the_manual(self, ask):
         """"how do I attack?" asks about the game's GRAMMAR, and the
-        reference genuinely is the answer. Unchanged."""
-        for text in ("how do I attack?", "how does recruiting work?"):
-            assert COMMAND_REFERENCE in (ask(text).get("message") or ""), text
+        reference genuinely is the answer — since DDB-48 (Pre-Deploy S13b
+        part 4) the ONE section its nouns name, not the whole 9,500 px of
+        it; a question that names no section keeps the whole reference."""
+        for text, heading in (("how do I attack?", "MILITARY COMMANDS"),
+                              ("how does recruiting work?", "MILITARY COMMANDS")):
+            message = ask(text).get("message") or ""
+            assert message.startswith(heading), text
+            assert COMMAND_REFERENCE not in message, text
+        assert COMMAND_REFERENCE in (ask("how do I sing?").get("message") or "")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

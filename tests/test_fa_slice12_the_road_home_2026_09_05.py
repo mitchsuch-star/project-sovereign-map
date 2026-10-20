@@ -807,13 +807,18 @@ class TestAQuietBreakStillRingsTheBell:
             "a foreign lord's satellite leaving is not a banner on OUR rail")
 
     def test_the_war_exit_keeps_its_own_critical(self, world):
-        """Untouched: exactly one alert, and it is the war one."""
+        """Untouched: exactly one alert, and it is the war one. Re-seated
+        October 19, 2026 (DDB-46, Pre-Deploy S13b part 4): a one-shot event
+        posts at HIGH and ages out after its turn — the rebellion's war is
+        the war banner's to stand for (the rail had led with it for good)."""
         from backend.notifications import NotificationPriority
         _plant_satellite_corps(world, "Switzerland")
         _break(world, "Switzerland")
         mine = [r for r in world.notifications.get_pending()
                 if "Switzerland" in (r.get("title") or "")]
-        assert any(r["priority"] == NotificationPriority.CRITICAL for r in mine)
+        assert len(mine) == 1
+        assert mine[0]["priority"] == NotificationPriority.HIGH
+        assert mine[0]["expires_after_turn"] == int(world.current_turn)
 
     def test_the_mechanical_tail_is_not_doubled(self, world):
         """Slice 11's own hazard, re-pinned at the new caller: the four

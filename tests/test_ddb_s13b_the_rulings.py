@@ -1463,3 +1463,72 @@ class TestDDBX25:
         assert "Fights to destruction" not in r["message"]
         assert "it lays down its arms below 500, and" in r["message"]
         assert "capitulates whole to an assault at 4:1 odds." in r["message"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DDB-X6 — the sea's state changes, on the rail (Pre-Deploy S13b part 4)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _sea_rows(world) -> list:
+    from backend.notifications import NAVAL_STATE_CHANGED
+    return [n for n in world.notifications.get_pending()
+            if n["type"] == NAVAL_STATE_CHANGED]
+
+
+def _naval_tick(world) -> None:
+    from backend.game_logic import naval as NV
+    with contextlib.redirect_stdout(io.StringIO()):
+        NV.process_naval_turn(world)
+
+
+class TestDDBX6:
+    """NAVAL_SPEC §17.3 / §18.4 recorded these alerts and never built them:
+    the sea player's "the rules kept shifting" was state changes no notice
+    named. Each is HIGH, ages out after its turn, names its cause and the
+    Admiralty line that explains it."""
+
+    def test_a_blockade_on_france_begins(self, w):
+        from backend.game_logic import naval as NV
+        from backend.notifications import NotificationPriority
+        assert NV.is_blockaded(w, "France")
+        NV._meta(w)["blockaded"] = []          # the tick before: open water
+        _naval_tick(w)
+        rows = _sea_rows(w)
+        assert [r["title"] for r in rows] == ["Blockade — Britain closes our ports"]
+        assert rows[0]["priority"] == int(NotificationPriority.HIGH)
+        assert rows[0]["expires_after_turn"] == int(w.current_turn)
+        assert "outmatches ours 1.25 to 1" in rows[0]["message"]
+        assert "THE ADMIRALTY (press T, then 7) — the Blockade Board." in rows[0]["message"]
+
+    def test_a_standing_blockade_says_nothing_new(self, w):
+        _naval_tick(w)
+        _naval_tick(w)
+        assert not [r for r in _sea_rows(w) if "closes our ports" in r["title"]
+                    and r.get("repeat_count", 1) > 1]
+
+    def test_the_blockade_lifts_with_its_cause(self, w):
+        _naval_tick(w)                          # the store learns who holds it
+        with contextlib.redirect_stdout(io.StringIO()):
+            D.set_diplomatic_state(w, "France", "Britain", "PEACE", "peace_ratified")
+        _naval_tick(w)
+        lifts = [r for r in _sea_rows(w) if r["title"] == "The blockade on our ports lifts"]
+        assert lifts, [r["title"] for r in _sea_rows(w)]
+        assert lifts[0]["message"].startswith("The peace with Britain lifts the blockade:")
+
+    def test_our_window_opens_and_shuts(self, w, monkeypatch):
+        from backend.game_logic import naval as NV
+        monkeypatch.setattr(NV, "_pct_roll", lambda *a, **k: True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            out = NV.resolve_diversion(w, "France")
+        assert out.get("window"), out
+        titles = [r["title"] for r in _sea_rows(w)]
+        assert f"The Strait lies open — {NV.WINDOW_TURNS} turns" in titles
+        NV.get_fleet(w, "France")["window_turns"] = 1
+        _naval_tick(w)
+        assert "The Strait shuts again" in [r["title"] for r in _sea_rows(w)]
+
+    def test_the_rail_carries_the_type(self):
+        src = (REPO / "godot-client" / "project-sovereign" / "scripts"
+               / "notification_bar.gd").read_text(encoding="utf-8")
+        assert '"naval_state_changed": "SEA"' in src
+        assert '"naval_state_changed": "map-trifold"' in src

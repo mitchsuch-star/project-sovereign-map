@@ -551,12 +551,15 @@ class TestTheQuestionDesk:
 
     def test_a_syntax_question_keeps_the_command_reference(self, board, client):
         """"how do I attack?" is a question about the game's GRAMMAR, and the
-        reference is the honest answer to it. Unchanged by CX-2."""
+        reference is the honest answer to it. Unchanged by CX-2; since DDB-48
+        (Pre-Deploy S13b part 4) the answer is the ONE section the question
+        names — a question naming none keeps the whole reference."""
         for text in ("how do I attack?", "how do I attack Mack?",
                      "how does recruiting work?"):
             r = post(client, text)
-            assert COMMAND_REFERENCE in r["message"], text
+            assert r["message"].startswith("MILITARY COMMANDS"), text
             assert not r.get("battle_report"), text
+        assert COMMAND_REFERENCE in post(client, "how do I sing?")["message"]
 
     def test_feasibility_now_gets_the_router_not_the_manual(self, board, client):
         """⚠ CONSCIOUS PIN FLIP (CX-2), on ruling R7's OWN re-open condition:

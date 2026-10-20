@@ -188,7 +188,9 @@ SCREEN_FETCH = {
 # and the Fall unpin as well (`close_everything`). A new site must be
 # classified here, or this census fails.
 CLOSE_SITES = {
-    "_unhandled_input": ["close_all_screens"],               # Esc: an open screen first
+    # DDB-54 (Pre-Deploy S13b part 4): the Esc ladder is ONE function, read
+    # by `_unhandled_input` and by the command line's own Esc.
+    "_escape_closes_topmost": ["close_all_screens"],         # Esc: an open screen first
     "_show_pending_ending": ["close_everything",              # the Fall
                              "close_all_screens"],            # a marked ending: a card
     "_on_campaign_over": ["close_everything"],                # the Fall
@@ -265,8 +267,12 @@ class TestTheKeys:
         main = G.read(SCRIPTS / "main.gd")
         body = G.func_body(main, "_unhandled_input")
         esc = body[body.index("if event.keycode == KEY_ESCAPE:"):body.index("# Block all hotkeys while pause menu is open")]
-        assert esc.index("region_panel.close_panel()") < esc.index("top_bar.unpin()") < esc.index("pause_menu.open_menu()")
-        assert re.search(r"top_bar\.is_pinned\(\) \\\s*\n\s*and not _is_modal_dialog_open\(\)", esc)
+        # Re-seated October 19, 2026 (DDB-54): the rungs live in the ONE
+        # ladder, `_escape_closes_topmost`, read before the pause menu opens.
+        ladder = G.func_body(main, "_escape_closes_topmost")
+        assert ladder.index("region_panel.close_panel()") < ladder.index("top_bar.unpin()")
+        assert esc.index("_escape_closes_topmost(true)") < esc.index("pause_menu.open_menu()")
+        assert re.search(r"top_bar\.is_pinned\(\) \\\s*\n\s*and not _is_modal_dialog_open\(\)", ladder)
 
     def test_the_war_room_leavers_unpin(self):
         main = G.read(SCRIPTS / "main.gd")

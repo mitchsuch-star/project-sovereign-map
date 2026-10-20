@@ -1815,6 +1815,18 @@ def _realm_candidates(world, player_nation: str) -> List[Dict[str, Any]]:
                     soon is not None and int(soon["turns_left"]) <= 2)):
                 moved = ("" if count == told else
                          (" — up from " if count > told else " — down from ") + f"{told}")
+                # DDB-53 (Pre-Deploy S13b part 4): the change names its
+                # titles — "41 → 40" never said Vienna was the one lost (the
+                # sea #25). The names were remembered with the count.
+                _told_names = set((memory.get("realm") or {}).get("names") or []) \
+                    if isinstance(memory.get("realm"), dict) else set()
+                if moved and _told_names:
+                    _now = set(view.get("titled") or [])
+                    _lost, _won = sorted(_told_names - _now), sorted(_now - _told_names)
+                    _bits = ([f"{_join_places(_lost)} lost"] if _lost else []) + \
+                            ([f"{_join_places(_won)} titled"] if _won else [])
+                    if _bits:
+                        moved += " (" + "; ".join(_bits) + ")"
                 line = (f"our titled provinces stand at {count}{moved}, of the "
                         f"{needed} the Congress of Paris requires")
                 if soon is not None:
@@ -1849,7 +1861,9 @@ def _front_page_candidates(world, player_nation: str, candidates, window,
                 if not isinstance(memory, dict):
                     memory = {}
                     world.headline_lead_memory = memory
-                memory["realm"] = {"titled": int(_congress.titled(world)["count"])}
+                _view = _congress.titled(world)
+                memory["realm"] = {"titled": int(_view["count"]),
+                                   "names": sorted(_view.get("titled") or [])}  # DDB-53
         except Exception as exc:
             report(exc, "dispatch._front_page_candidates: import backend.game_logic")
 
@@ -1921,6 +1935,34 @@ def _front_page_order(world, player_nation: str, candidates, memory,
                   "stakes": stakes_now}
     new_window = (window + [lead["class"]])[-(FRONT_PAGE_ROTATION_WINDOW - 1):]
     return ordered, new_family, new_window
+
+
+_SIEGE_CLASSES = ("garrison_held", "garrison_stormed")
+_PROVINCE_LOST_CLASSES = ("region_lost", "region_lost_estate", "home_captured",
+                          "capital_lost")
+
+
+def _collapse_sieges(candidates: List[Dict[str, Any]]) -> None:
+    """DDB-53 (Pre-Deploy S13b part 4): one province's siege is ONE story —
+    its latest outcome. Kutuzov's assaults on Vienna printed "the garrison
+    of Vienna is destroyed", "Vienna holds … 10,000 of ours are still under
+    arms" and "Vienna has been taken by Russia" as three bullets (the sea
+    #25): the two garrison classes share a per-province identity, but the
+    CA8-5 dedupe keys on (class, identity), and the page sorts by weight,
+    not time. The LATEST garrison candidate per province stands (candidates
+    are added in the event log's order); a province lost the same morning
+    lets its garrison lines go — the loss is the outcome. In place."""
+    lost = {str(c.get("identity", "")).split(":", 1)[-1] for c in candidates
+            if c.get("class") in _PROVINCE_LOST_CLASSES}
+    latest: Dict[str, int] = {}
+    for i, c in enumerate(candidates):
+        if c.get("class") in _SIEGE_CLASSES:
+            latest[str(c.get("identity", ""))] = i
+    candidates[:] = [
+        c for i, c in enumerate(candidates)
+        if not (c.get("class") in _SIEGE_CLASSES
+                and (i != latest.get(str(c.get("identity", "")))
+                     or str(c.get("identity", "")).split(":", 1)[-1] in lost))]
 
 
 def _build_headline(world, player_nation: str,
@@ -2605,14 +2647,16 @@ def _build_headline(world, player_nation: str,
             # (the Emperor escorted home in the same advance kept the
             # warning "no nearer home … 0 turns" beside his return) or no
             # longer standing abroad at all.
-            # "Home" is the body of his realm (the corridor's own home zone
-            # — a corps cut off in a French enclave is still stranded).
+            # "Home" is the corridor's own `is_home_at`: the body of his
+            # realm, or soil France holds by title (DDB-21) — a corps cut off
+            # in a HELD French enclave is still stranded.
             _lm = world.marshals.get(str(e.get("marshal", "")))
             if _lm is not None and not getattr(_lm, "captured_by", ""):
+                from backend.game_logic.withdrawal import get_home_zone, is_home_at
                 if _home_zone is None:
-                    from backend.game_logic.withdrawal import get_home_zone
                     _home_zone = set(get_home_zone(world, player_nation) or [])
-                _abroad = _lm.location not in _home_zone
+                _abroad = not is_home_at(world, player_nation, _lm.location,
+                                         _home_zone)
             else:
                 _abroad = False
             if e.get("nation") == player_nation and _abroad:
@@ -2943,6 +2987,7 @@ def _build_headline(world, player_nation: str,
         candidates[:] = [c for c in candidates
                          if not (c["class"] == "region_taken"
                                  and c["identity"].split(":", 1)[1] in _victory_locs)]
+    _collapse_sieges(candidates)
 
     for _name, _arc in _build_marshal_arcs(world, player_nation,
                                            cap=None).items():
@@ -4481,6 +4526,11 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         "turn_events": _build_turn_events(tactical_events or [], player_nation,
                                           world=world),
     }
+    # DDB-50: a marshal France held, released by a peace, returns to the
+    # field — said (his release rides his own court's nation, which the
+    # turn events drop, and a peace signed at the table is no turn event).
+    if not boot:
+        dispatch["turn_events"].extend(_released_from_our_keeping(world, player_nation))
 
     # Diplomatic events (Session 8D) — built BEFORE the headline (Step 7b):
     # a quiet morning's front page leads with the biggest of these rows.
@@ -5610,6 +5660,39 @@ _DISPATCH_EVENT_TYPES = {
     # filtered out by the relevance gate below exactly as before.
     "client_petition_answered",
 }
+
+
+def _released_from_our_keeping(world, player_nation: str) -> List[Dict[str, Any]]:
+    """DDB-50: the marshals our captivity released since the last morning
+    (`marshal_released` with the player as captor — a peace, a ransom), each
+    one line: "Mack, our prisoner, is released under the peace and returns
+    to Vienna — an Austrian commander back in the field." Read from the
+    event log's last-turn window (the headline's own window)."""
+    from backend.display_names import humanize_entity_name, nation_adjective
+    rows: List[Dict[str, Any]] = []
+    seen = set()
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for e in (getattr(world, "event_log", None) or []):
+        if (e.get("type") != "marshal_released" or e.get("captor") != player_nation
+                or e.get("nation") == player_nation
+                or int(e.get("turn", 0) or 0) < turn - 1):
+            continue
+        name = str(e.get("marshal") or "")
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        marshal = (getattr(world, "marshals", None) or {}).get(name)
+        home = str(getattr(marshal, "location", "") or "")
+        reason = str(e.get("reason") or "")
+        how = {"peace_treaty": "under the peace",
+               "ransom": "for his ransom"}.get(reason, f"({reason.replace('_', ' ')})")
+        adj = nation_adjective(str(e.get("nation") or "")) or str(e.get("nation") or "")
+        rows.append({
+            "message": (f"{humanize_entity_name(name)}, our prisoner, is released {how} "
+                        f"and returns to {home} — {('an' if adj[:1].lower() in 'aeiou' else 'a')} "
+                        f"{adj} commander back in the field."),
+            "severity": "warning", "type": "marshal_released", "_source": e})
+    return rows
 
 
 def _build_turn_events(

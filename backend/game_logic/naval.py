@@ -358,6 +358,41 @@ def has_fleet(world, nation: str) -> bool:
     return bool(rec) and int(rec.get("ships", 0) or 0) > 0
 
 
+ADMIRALTY_POINTER = "THE ADMIRALTY (press T, then 7)"
+
+
+def _naval_notice(world, kind: str, title: str, message: str) -> None:
+    """DDB-X6 (Pre-Deploy S13b part 4): the sea's state changes on the rail
+    — HIGH, a one-shot event that ages out after its turn
+    (`notifications.EVENT_NOTICE_TYPES`). The sea player's "the rules kept
+    shifting" was state changes no notice named (`docs/audits/dd_b/sea/
+    player_notes.md`). Player-facing only: the caller passes the player's
+    own changes."""
+    collector = getattr(world, "notifications", None)
+    if collector is None:
+        return
+    from backend.notifications import (NAVAL_STATE_CHANGED, NotificationPriority,
+                                       create_notification)
+    collector.add(create_notification(
+        NAVAL_STATE_CHANGED, NotificationPriority.HIGH, title, message,
+        int(getattr(world, "current_turn", 0) or 0),
+        details={"kind": kind, "nation": str(getattr(world, "player_nation", "") or "")}))
+
+
+def _lift_cause(world, nation: str, blockader: str) -> str:
+    """DDB-X6: why a blockade on `nation` lifted — the peace, the squadrons
+    called home, or our own sail holding them off."""
+    from backend.display_names import display_nation
+    if not blockader:
+        return "The enemy squadrons have left our coast"
+    shown = display_nation(blockader)
+    if not world.is_at_war(nation, blockader):
+        return f"The peace with {shown} lifts the blockade"
+    if (get_fleet(world, blockader) or {}).get("posture") != "blockade":
+        return f"{shown}'s squadrons have been called home to guard her own waters"
+    return f"Our fleet now holds {shown}'s squadrons off our coast"
+
+
 def _meta(world) -> dict:
     """The derived-state memory record (created on first use)."""
     fleets = getattr(world, "fleets", None)
@@ -586,6 +621,41 @@ def controlled_dockyards(world, nation: str) -> List[str]:
         prov for prov in all_dockyard_provinces(world)
         if _controller(world, prov) == nation
     )
+
+
+def on_home_soil(world, nation: str, location: str) -> bool:
+    """The embark rule's "home soil" (DDB-21): `nation`'s own province on
+    the body of its realm a corps can MARCH to — the Road Home's home zone
+    walked by land (`withdrawal.cached_home_zone(by_land=True)`). From home
+    soil an expedition assembles at a yard; anywhere else a coastal shore
+    serves."""
+    if _controller(world, location) != nation:
+        return False
+    from backend.game_logic.withdrawal import cached_home_zone
+    return location in cached_home_zone(world, nation, by_land=True)
+
+
+def embark_position_ok(world, marshal, yards=None) -> bool:
+    """The ONE embark rule — read by the executor (`naval_expedition`), the
+    Admiralty's expedition terms, the region panel's landing chips and their
+    blocked reasons (four copies before DDB-21, each reading "own soil →
+    a yard").
+
+    From home soil an expedition assembles at a yard we control; from abroad
+    — or from our own province across the water, cut off from the body of
+    the realm (DDB-21: Munster titled to France by the peace with Britain;
+    and the §4.3 "same verb from the beachhead" while the war runs, a captured
+    Irish beach being our soil) — any coastal shore serves, the transports
+    taking the corps off the beach. An inland province never does."""
+    location = getattr(marshal, "location", None)
+    if yards is None:
+        yards = controlled_dockyards(world, marshal.nation)
+    if location in yards:
+        return True
+    region = world.regions.get(location)
+    if region is None or not getattr(region, "is_coastal", False):
+        return False
+    return not on_home_soil(world, marshal.nation, location)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -865,6 +935,26 @@ def blockade_forecast(world, actor: str) -> Dict[str, Any]:
         # board, and it is the one rotting.
         "self_blockaded_by": blockader_against(world, actor)[0],
     }
+
+
+def posture_phrase(world, nation: str) -> str:
+    """DDB-61 (Pre-Deploy S13b part 4): the fleet's station in ONE phrase,
+    honest about a blockade on her. A blockaded fleet may still take the
+    blockade posture, and the war banner printed "on blockade (UNDER
+    BLOCKADE — pinned in port)" — she stands out to sea and is pinned in port
+    at once (the sea #10). Read by the war banner and the posture order."""
+    from backend.display_names import display_nation
+    rec = get_fleet(world, nation) or {}
+    posture = str(rec.get("posture", "guard"))
+    pinner = blockader_against(world, nation)[0] if is_blockaded(world, nation) else None
+    if posture == "blockade":
+        if pinner:
+            return (f"ordered to blockade stations — {display_nation(pinner)} "
+                    f"still pins her in port")
+        return "on blockade"
+    if pinner:
+        return f"guarding home waters — pinned in port by {display_nation(pinner)}"
+    return "guarding home waters"
 
 
 def _name_list(nations: List[str]) -> str:
@@ -1323,11 +1413,27 @@ def closed_ports_against(world, target: str, extra_members=()) -> int:
     or, with `extra_members`, as if those courts kept the System too (the
     Tilsit clause's row reads "closes 14 → 15 of 26 ports" off it). A pure
     read; `closure_against` is this divided by the Continent's ports."""
+    return sum(ports for _nation, ports, closed
+               in ports_by_court_against(world, target, extra_members) if closed)
+
+
+# DDB-58 (Pre-Deploy S13b part 4): the rule, in the Admiralty's one sentence.
+PORT_CLOSURE_RULE = ("A court's ports are shut to {target} while it is at war "
+                     "with her, keeps the System as a member, is a satellite of "
+                     "a lord at war with her, or has its capital held by a "
+                     "power at war with her.")
+
+
+def ports_by_court_against(world, target: str, extra_members=()) -> List[Tuple[str, int, bool]]:
+    """DDB-58: every continental court with ports, as (court, ports, closed
+    against `target`) — the ONE per-court reading `closed_ports_against`
+    sums and the Admiralty's open-courts line lists (the payload counted the
+    closed ports and never said which were open, the diplomacy-first #22)."""
     from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
     vassals = getattr(world, "vassals", {}) or {}
     members = set(getattr(world, "continental_system_members", []) or [])
     members |= set(extra_members or ())
-    closed = 0
+    rows: List[Tuple[str, int, bool]] = []
     for nation, rec in get_fleets(world).items():
         if nation == META_KEY or nation == target or not isinstance(rec, dict):
             continue
@@ -1372,9 +1478,21 @@ def closed_ports_against(world, target: str, extra_members=()) -> int:
                 if (holder and holder != nation
                         and world.is_at_war(holder, target)):
                     counted = True
-        if counted:
-            closed += ports
-    return closed
+        rows.append((nation, ports, counted))
+    return rows
+
+
+def open_ports_line(world, target: str) -> str:
+    """DDB-58: "Open to Britain: Denmark (1 port) and Portugal (2 ports)" —
+    the courts whose ports `target`'s trade still uses — or "" when none."""
+    from backend.display_names import display_nation
+    rows = sorted((n, p) for n, p, closed in ports_by_court_against(world, target)
+                  if not closed)
+    if not rows:
+        return ""
+    shown = [f"{display_nation(n)} ({p} port{'s' if p != 1 else ''})" for n, p in rows]
+    joined = shown[0] if len(shown) == 1 else ", ".join(shown[:-1]) + " and " + shown[-1]
+    return f"Open to {display_nation(target)}: {joined}"
 
 
 def cs_closure_tier(closure: float) -> int:
@@ -2237,6 +2355,72 @@ def camp_staged(world, nation: str) -> bool:
     return bool(rec) and int(rec.get("camp_turns", 0) or 0) >= DESCENT_CAMP_STAGED_TURNS
 
 
+def camp_line(world, nation: str) -> str:
+    """DDB-59 (Pre-Deploy S13b part 4): the camp is a STATE the turn's end
+    counts, not an order — "staged" read as a thing to do (the sea #4 /
+    #13). Two end-of-turn checks with DESCENT_CAMP_MIN_TROOPS in the camp
+    while at war with an island power stage it (`_camp_tick`), any truce
+    resets the count; this says the count, and why no army is staged.
+    "" where no camp is authored."""
+    from backend.display_names import display_nation
+    rec = get_fleet(world, nation) or {}
+    provinces = list(rec.get("camp_provinces") or [])
+    if not provinces:
+        return ""
+    enemies = _island_war_enemies(world, nation)
+    where = ", ".join(provinces)
+    if not enemies:
+        return (f"No army is staged: the camp ({where}) stages only while we "
+                f"stand at war with an island power — no order needed.")
+    foe = display_nation(enemies[0])
+    strength = camp_strength(world, nation)
+    turns = int(rec.get("camp_turns", 0) or 0)
+    need = int(DESCENT_CAMP_STAGED_TURNS)
+    if strength < DESCENT_CAMP_MIN_TROOPS:
+        return (f"No army is staged: {strength:,} of the "
+                f"{DESCENT_CAMP_MIN_TROOPS:,} men a descent requires stand in "
+                f"the camp ({where}) — it stages after {need} turns there at "
+                f"war with {foe}, no order needed.")
+    if turns >= need:
+        return (f"Staged: {strength:,} men have stood {turns} turns in the camp "
+                f"at war with {foe} — no order needed.")
+    return (f"Staged after {need} turns standing at war with {foe} "
+            f"({turns} of {need}) — no order needed.")
+
+
+def pooled_sail_clause(world, nation: str) -> str:
+    """DDB-59: pooling is no order — an ally at war with the same foe adds
+    POOL_ALLIED of her sail on her own (`_is_pooled_partner`); the legend
+    said a crossing "opens by building or pooling a fleet" (the sea #4).
+    "Spain's 30 sail already count" — read against the island foes, the
+    crossings' usual holders."""
+    from backend.display_names import display_nation
+    foes = _island_war_enemies(world, nation) or sorted(
+        n for n, _rec in iter_fleets(world) if world.is_at_war(nation, n))
+    counted: List[str] = []
+    for partner, rec in sorted(iter_fleets(world), key=lambda kv: kv[0]):
+        ships = int(rec.get("ships", 0) or 0)
+        if ships <= 0:
+            continue
+        if any(_is_pooled_partner(world, nation, partner, foe) for foe in foes):
+            counted.append(f"{display_nation(partner)}'s {ships} sail")
+    if not counted:
+        return "an ally at war with the same foe would add her sail on her own"
+    joined = counted[0] if len(counted) == 1 else ", ".join(counted[:-1]) + " and " + counted[-1]
+    return f"an ally at war with the same foe adds her sail on her own ({joined} already count)"
+
+
+def rot_line(world, nation: str) -> str:
+    """DDB-61: what stops the readiness rot — "" when she does not rot."""
+    if not is_blockaded(world, nation):
+        return ""
+    from backend.display_names import display_nation
+    pinner = blockader_against(world, nation)[0]
+    return (f"{display_nation(pinner) if pinner else 'The enemy'}'s blockade rots her crews "
+            f"{READINESS_TICK} a turn at anchor, to {READINESS_BLOCKADE_FLOOR} — "
+            f"{window_remedy(world, nation)}.")
+
+
 def has_naval_war(world, nation: str) -> bool:
     """Is a court WITH A FLEET at war with this nation?
 
@@ -2447,6 +2631,22 @@ def resolve_diversion(world, nation: str) -> Dict:
                      f"{nation_adjective(hostile)} fleet off station — "
                      f"{WINDOW_TURNS} turns of open water"),
         }, "always")
+        # DDB-X6: the window opens — on the rail when it is ours, or when
+        # it is drawn off OUR fleet (GR5: an AI's diversion on us).
+        _player = getattr(world, "player_nation", None)
+        if nation == _player:
+            _naval_notice(
+                world, "window_open", f"The Strait lies open — {WINDOW_TURNS} turns",
+                (f"Our diversion drew the {nation_adjective(hostile)} fleet off "
+                 f"station: for {WINDOW_TURNS} turns a crossing she covered is "
+                 f"open to us. {ADMIRALTY_POINTER} — the Crossings, gold."))
+        elif hostile == _player:
+            _naval_notice(
+                world, "window_open_against_us",
+                f"{display_nation(nation)} draws our fleet off station",
+                (f"{display_nation(nation)}'s diversion has drawn our squadrons "
+                 f"away: for {WINDOW_TURNS} turns her army may cross the water "
+                 f"we covered. {ADMIRALTY_POINTER} — the Crossings."))
         return {
             "success": True, "window": True, "against": hostile,
             "window_turns": int(WINDOW_TURNS), "odds": int(odds),
@@ -2830,6 +3030,13 @@ def _render_pair(key: str) -> str:
     return f"{a}-{b}"
 
 
+def window_remedy(world, actor: str) -> str:
+    """The ONE remedy sentence for a rotting fleet (DDB-61: read by the
+    Diversion forecast, the keel receipt and the Admiralty's readiness
+    line)."""
+    return _window_remedy(world, actor)
+
+
 def _window_remedy(world, actor: str) -> str:
     """What to actually DO about a window that would open nothing.
 
@@ -3055,6 +3262,13 @@ def process_naval_turn(world) -> List[Dict]:
         window = int(rec.get("window_turns", 0) or 0)
         if window > 0:
             rec["window_turns"] = int(window - 1)
+            # DDB-X6: the window shuts — said on the rail when it is ours.
+            if window == 1 and nation == getattr(world, "player_nation", None):
+                _naval_notice(
+                    world, "window_shut", "The Strait shuts again",
+                    (f"The enemy squadrons are back on station: the crossings "
+                     f"our diversion opened are shut again. {ADMIRALTY_POINTER} "
+                     f"— the Crossings."))
         rec["built_this_turn"] = 0
         # FA-N83: "once per war" now means the NAVAL war it was spent in.
         # This read `get_nations_at_war_with` — ANY war — while the gate term
@@ -3127,6 +3341,16 @@ def process_naval_turn(world) -> List[Dict]:
                 "nation": nation, "blockader": blockader or "the enemy",
                 "trade_words": trade_words,
             }, "always")
+            if nation == getattr(world, "player_nation", None):
+                from backend.display_names import display_nation
+                _naval_notice(
+                    world, "blockade_begins",
+                    f"Blockade — {display_nation(blockader) if blockader else 'the enemy'} closes our ports",
+                    (f"{display_nation(blockader) if blockader else 'The enemy'}'s fleet now outmatches "
+                     f"ours {BLOCKADE_RATIO:g} to 1 off our coast: our trade is {trade_words}, "
+                     f"our crews rot {READINESS_TICK} a turn at anchor and the yards lay one "
+                     f"keel a turn. {ADMIRALTY_POINTER} — the Blockade Board."))
+    _prev_blockaders = dict(meta.get("blockaders", {}) or {})
     for nation in prev_blockaded:
         if nation not in now_blockaded and get_fleet(world, nation) is not None:
             event = {
@@ -3137,7 +3361,16 @@ def process_naval_turn(world) -> List[Dict]:
             events.append(event)
             queue_dispatch_event(world, "blockade_broken",
                                  {"nation": nation}, "always")
+            if nation == getattr(world, "player_nation", None):
+                _naval_notice(
+                    world, "blockade_lifted", "The blockade on our ports lifts",
+                    (f"{_lift_cause(world, nation, str(_prev_blockaders.get(nation) or ''))}: "
+                     f"our trade runs whole again and the crews recover. "
+                     f"{ADMIRALTY_POINTER} — the Blockade Board."))
     meta["blockaded"] = list(now_blockaded)
+    # DDB-X6: who held each blockade, so its lifting can name the cause.
+    meta["blockaders"] = {n: str(blockader_against(world, n)[0] or "")
+                          for n in now_blockaded}
 
     # 7. strait verdict flips (player-relevant links).
     verdicts = link_verdicts(world)
@@ -3475,6 +3708,12 @@ def build_admiralty_report(world) -> Dict:
             "camp_turns": int(own.get("camp_turns", 0) or 0),
             "camp_strength": int(camp_strength(world, player)),
             "camp_provinces": list(own.get("camp_provinces") or []),
+            # DDB-61: her station in one phrase, honest about a blockade on
+            # her; and what stops the rot, when she rots.
+            "posture_phrase": posture_phrase(world, player),
+            "rot_line": rot_line(world, player),
+            # DDB-59: the camp is a STATE, not an order — its count and why.
+            "camp_line": camp_line(world, player),
         }
     else:
         report["own_fleet"] = None
@@ -3536,6 +3775,9 @@ def build_admiralty_report(world) -> Dict:
             # The Tilsit clause's slice: the courts that keep the System as
             # members, named with their ports.
             "members_line": _members_line(world, target),
+            # DDB-58: how a port closes, and which courts are still open.
+            "rule_line": PORT_CLOSURE_RULE.format(target=_name_list([target])),
+            "open_line": open_ports_line(world, target),
         }
         # SR5B-D1 (ruled September 28, 2026): what the System's endgame use
         # takes — the Congress of Paris's SHUT OUT reading — and which of her
@@ -3560,10 +3802,12 @@ def build_admiralty_report(world) -> Dict:
     # over per-row remedy tails — same clarity, less noise; §16 records the
     # deviation). The remedy copy previously fired ONLY on an attempted
     # march.
+    # DDB-59: pooling is no order — an ally at war with the same foe adds
+    # her sail on her own, and the legend says whose already counts.
     report["crossings_legend"] = (
         "crimson = shut · amber = defended shore · gold = window. A shut "
-        "crossing opens by building or pooling a fleet — or a small "
-        "expedition slips past it.")
+        "crossing opens by building ships — " + pooled_sail_clause(world, player)
+        + " — or a small expedition slips past it.")
 
     # Honest gate terms IN ORDER (the §11.6 idiom) for the two gambles.
     own_ships = int((own or {}).get("ships", 0) or 0)
@@ -3590,13 +3834,9 @@ def build_admiralty_report(world) -> Dict:
     # from ABROAD any coastal shore serves (the §4.3 beachhead return). The
     # old yards-only read told a player whose corps stood on a foreign
     # beach "march a corps to a yard" while the region panel offered him
-    # the landing chip.
+    # the landing chip. DDB-21: the ONE rule, `embark_position_ok`.
     def _embark_ok(m) -> bool:
-        loc = world.regions.get(m.location)
-        ctrl = getattr(loc, "controller", None)
-        if ctrl == m.nation:
-            return m.location in yards
-        return bool(getattr(loc, "is_coastal", False))
+        return embark_position_ok(world, m, yards)
 
     ready_corps = sorted(
         (m for m in player_corps
@@ -3657,7 +3897,7 @@ def build_admiralty_report(world) -> Dict:
                     "take one" + (f", or {yard_road_clause(world, player)}"
                                   if yard_road_clause(world, player) else ""))},
         {"text": (f"a corps of {EXPEDITION_MAX_TROOPS:,} men or fewer at a "
-                  "yard, or on a foreign shore"),
+                  "yard, or on a shore abroad or of ours across the water"),
          "met": bool(ready_corps), "detail": corps_detail},
     ]
     report["expedition_terms"] = expedition_terms
@@ -3729,6 +3969,16 @@ def build_admiralty_report(world) -> Dict:
                          f"{_r['ours']:.0f}")
             else:
                 _note = ""
+            # DDB-61 (Pre-Deploy S13b part 4): the order's price BEFORE the
+            # order — the rot and the unguarded coast were said only once it
+            # was spent (the sea #10).
+            _price = ["our own coasts go unguarded"]
+            if _fc.get("self_blockaded_by"):
+                _price.append(
+                    f"{_name_list([_fc['self_blockaded_by']])} still pins her — "
+                    f"her crews rot {READINESS_TICK} a turn at anchor whatever "
+                    f"her station")
+            _note = "; ".join([p for p in [_note] + _price if p])
             chips.append({
                 "command": "blockade the enemy",
                 "label": "Blockade the enemy",
@@ -3991,10 +4241,7 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
     yards = set(controlled_dockyards(world, nation))
     corps = [m for m in world.get_marshals_by_nation(nation)
              if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
-             and (m.location in yards
-                  or (_controller(world, m.location) != nation
-                      and getattr(world.regions.get(m.location), "is_coastal",
-                                  False)))]
+             and embark_position_ok(world, m, yards)]
     if not corps:
         return {}
     options: Dict[str, List[Dict]] = {}
@@ -4073,10 +4320,7 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
     all_corps = list(world.get_marshals_by_nation(nation))
     eligible = [m for m in all_corps
                 if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
-                and (m.location in yards
-                     or (_controller(world, m.location) != nation
-                         and getattr(world.regions.get(m.location),
-                                     "is_coastal", False)))]
+                and embark_position_ok(world, m, yards)]
     # The one region-independent near-miss, computed once: a corps in an
     # embark-legal position but over the transports' lift. Verify-fleet
     # correction (Aug 2026): the near-miss reads the SAME embark predicate
@@ -4084,10 +4328,7 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
     # a player whose only corps was oversized on a foreign beach to "march
     # one to a yard" when the executor's real refusal is "detach the excess".
     def _embark_position_ok(m) -> bool:
-        return (m.location in yards
-                or (_controller(world, m.location) != nation
-                    and getattr(world.regions.get(m.location),
-                                "is_coastal", False)))
+        return embark_position_ok(world, m, yards)
 
     no_corps_reason = ""
     if not eligible:
@@ -4111,8 +4352,8 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
         elif yards:
             no_corps_reason = (
                 f"no corps of {EXPEDITION_MAX_TROOPS:,} or fewer stands at "
-                f"a yard ({', '.join(sorted(yards))}) or on a foreign "
-                f"shore — march one there")
+                f"a yard ({', '.join(sorted(yards))}) or on a shore abroad "
+                f"or of ours across the water — march one there")
         else:
             _road = yard_road_clause(world, nation)
             no_corps_reason = ("we control no dockyard to embark from"

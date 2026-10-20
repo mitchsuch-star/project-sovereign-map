@@ -983,6 +983,83 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
                                    regions=regions, nations=nations, bench=bench)
 
 
+# DDB-45 (Pre-Deploy S13b part 4): "how strong is Mack and where is Vienna"
+# is TWO questions. Every classifier read a line as one: the how-many
+# pattern captured "Mack and where is Vienna", found two names and stood
+# aside, and the state desk then built `enemy_at` with the place Vienna —
+# "No, Sire — Mack stands at Swabia, not Vienna". A line joining two
+# questions with " and " + a question word is split, and each part is
+# classified and answered on its own.
+# DDB-X28 (found by DDB-45's sweep): "where is Mack and is he fortified?"
+# answered the first and dropped the second in silence — a yes/no tail
+# ("and is / are / does / can …") joins a second question too, and its
+# pronoun is the first part's subject.
+_COMPOUND_SPLIT_RE = re.compile(
+    r"\s*,?\s+and\s+(?=(?:where|who|whom|whose|how|what|which|is|are|does|do"
+    r"|did|can|could|will|would|has|have)\b)", re.IGNORECASE)
+_PRONOUN_RE = re.compile(r"\b(he|him|she|her|they|them|it|his|their|its)\b",
+                         re.IGNORECASE)
+
+
+def split_compound_question(text: str) -> List[str]:
+    """The questions a line joins (" and " + where / who / how / what /
+    which, or a yes/no auxiliary), each as typed; a single question comes
+    back alone."""
+    parts = [p.strip(" ,;") for p in _COMPOUND_SPLIT_RE.split(text or "")]
+    parts = [p for p in parts if p]
+    return parts if len(parts) > 1 else [text]
+
+
+def _name_the_pronoun(part: str, previous: Optional[Dict]) -> str:
+    """DDB-X28: "… and is he fortified" — the pronoun is the previous part's
+    subject (a marshal, a foe, a province, a court); otherwise the part is
+    left as typed."""
+    subject = str((previous or {}).get("subject") or "")
+    if not subject or (previous or {}).get("subject_type") not in (
+            "marshal", "enemy", "region", "nation"):
+        return part
+    name = _display(subject)
+
+    def _swap(match) -> str:
+        word = match.group(1).lower()
+        return name + "'s" if word in ("his", "their", "its") else name
+    return _PRONOUN_RE.sub(_swap, part, count=1)
+
+
+def classify_compound_question(text: str, marshals: Iterable[str] = (),
+                               enemies: Iterable[str] = (),
+                               regions: Iterable[str] = (),
+                               nations: Iterable[str] = (),
+                               bench: Iterable[str] = ()) -> Optional[Dict]:
+    """DDB-45: the `compound` question — one entry per part, each classified
+    as the line alone would be (the five fact kinds first, then the board's);
+    a part neither desk can take is carried as `unanswered` with its words.
+    None when the line is one question, or when no part can be answered (the
+    caller's own road then answers the line)."""
+    parts = split_compound_question(text)
+    if len(parts) < 2:
+        return None
+    marshals, enemies, regions = list(marshals), list(enemies), list(regions)
+    nations, bench = list(nations), list(bench)
+    out: List[Dict] = []
+    for part in parts:
+        part = _name_the_pronoun(part, out[-1] if out else None)
+        q = classify_question(part, marshals=marshals, enemies=enemies,
+                              regions=regions)
+        if q is None:
+            q = classify_board_question(part, marshals=marshals,
+                                        enemies=enemies, regions=regions,
+                                        nations=nations, bench=bench)
+        out.append(q or {"kind": "unanswered", "subject": "",
+                         "subject_type": "none", "asked": part})
+    if all(p.get("kind") == "unanswered" for p in out):
+        return None
+    return {"kind": "compound",
+            "subject": " / ".join(str(p.get("subject") or p.get("asked") or "")
+                                  for p in out),
+            "subject_type": "compound", "parts": out, "asked": text}
+
+
 def _classify_the_weighed(groups, marshals, enemies, regions):
     """F2: the what-if's subject and object. The subject is the corps the
     question NAMES (a name the desk cannot place ends the classification —

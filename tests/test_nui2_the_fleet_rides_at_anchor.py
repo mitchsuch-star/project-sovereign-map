@@ -585,7 +585,9 @@ class TestTheWordsTeachALandingThatSails:
         # not a marshal (the /debug block's convention).
         assert "land <marshal> in <province> (2 AP)" in section
         assert '"land <marshal>' not in section
-        assert "our yards or from a foreign shore" in section
+        # Re-seated October 19, 2026 (DDB-21, Pre-Deploy S13b part 4): our
+        # own shore across the water embarks too (the ONE embark rule).
+        assert "our yards, or from any shore abroad or of ours across" in section
         assert "the Emperor does not sail" in section
         assert "land Soult" not in text
 

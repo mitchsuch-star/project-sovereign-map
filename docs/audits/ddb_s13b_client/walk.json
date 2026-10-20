@@ -1,0 +1,68 @@
+{
+  "backend": "http://127.0.0.1:8007",
+  "booted": true,
+  "ms": 16495,
+  "steps": [
+    {
+      "frame": "DDB_1_tall_reply_2026_10_19.jpg",
+      "height_before": 312.640014648438,
+      "height_raised": 900.0,
+      "note": "`help`: the reference from its first line, the window raised",
+      "raised": true,
+      "reply_top": 731,
+      "saved": true,
+      "scroll": 731,
+      "scroll_max": 9066,
+      "step": "1_tall_reply"
+    },
+    {
+      "frame": "DDB_2_wheel_2026_10_19.jpg",
+      "line_px": 21.8181819915771,
+      "moved": 65,
+      "note": "one notch down: three whole lines",
+      "saved": true,
+      "step": "2_wheel"
+    },
+    {
+      "frame": "DDB_3_short_reply_2026_10_19.jpg",
+      "height": 312.640014648438,
+      "note": "the window back; two answers on two lines",
+      "raised": false,
+      "saved": true,
+      "step": "3_short_reply",
+      "tail": "ERY (2-4 turns - command skill drives The Rally):\n  After retreating, marshals are demoralized.\n  BLOCKED: attack, fortify, drill, scout\n  ALLOWED: move, recruit, defend, wait, change stance\n\n═══════════════════════════════════════\n\n\n► how strong is Mack and where is Vienna?\nMack of Austria was reported at Swabia — large force.\nVienna (held by Austria) adjoins Dresden, Bohemia, Moravia, Hungary.\n\n"
+    },
+    {
+      "frame": "DDB_4_screen_esc_2026_10_19.jpg",
+      "line_focused": true,
+      "line_text": "Ney, fortify",
+      "note": "Esc on the line: the ledger closes, the draft stays on the focused line",
+      "saved": true,
+      "screen_open_after": false,
+      "screen_open_before": true,
+      "step": "4_screen_esc"
+    },
+    {
+      "frame": "DDB_5_ally_loss_2026_10_19.jpg",
+      "note": "Munich taken from Bavaria, our ally — red, not the conquest green",
+      "saved": true,
+      "staged": true,
+      "step": "5_ally_loss"
+    },
+    {
+      "caption": "François Gérard — The Battle of Austerlitz, 1805  ·  public domain",
+      "first": "François Gérard — The Battle of Austerlitz, 1805  ·  public domain",
+      "frame": "DDB_6_caption_start_2026_10_19.jpg",
+      "note": "0.3 s into the crossfade: the outgoing painting and its own caption",
+      "saved": true,
+      "step": "6_caption_start"
+    },
+    {
+      "caption": "Jacques-Louis David — Bonaparte Crossing the Alps  ·  public domain",
+      "frame": "DDB_7_caption_mid_2026_10_19.jpg",
+      "note": "past the midpoint: the new painting's caption",
+      "saved": true,
+      "step": "7_caption_mid"
+    }
+  ]
+}

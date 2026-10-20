@@ -1669,6 +1669,36 @@ def province_title_kind(world, region_name: str, leader: str) -> str:
     return "held"
 
 
+def holds_by_title(world, region_name: str, nation: str) -> bool:
+    """DDB-21 (Pre-Deploy S13b part 4): does `nation` hold this province by
+    right — its own homeland, a signature (a treaty's cession or the status
+    quo's retention, SR-1a), or a conquest past its quiet clock?
+
+    The Road Home's "is he home" (`withdrawal.title_is_home`): a corps on
+    soil its own court holds by title is home wherever the frontier runs —
+    the sea #21 player's Oudinot stood on Munster, titled to France by the
+    peace with Britain, and was told to walk home through Britain or be
+    interned. The court's OWN record, not the bloc's count:
+    `province_title_kind` reads the leader's house and a satellite's loyalty
+    for the Congress; a court's corps on its own titled soil is home
+    whoever its lord is. GR5: every court alike. Pure read."""
+    region = getattr(world, "regions", {}).get(region_name)
+    if region is None or not nation or region.controller != nation:
+        return False
+    if _is_homeland(world, region_name, nation):
+        return True
+    rec = (getattr(world, "province_title", {}) or {}).get(region_name) or {}
+    if str(rec.get("holder") or "") != nation:
+        return False
+    if rec.get("kind") == TITLE_TREATY:
+        return True
+    if rec.get("kind") != TITLE_CONQUEST:
+        return False
+    title_turns = int(cfg(world, "title_turns", TITLE_TURNS_DEFAULT))
+    return (int(getattr(world, "current_turn", 0) or 0)
+            - int(rec.get("since", 0) or 0)) >= title_turns
+
+
 def titled_provinces(world, leader: str) -> Dict[str, List[str]]:
     """The bloc's provinces split titled / held-unsettled — the count GE-3's
     Congress summons on. Reads the per-turn cached region index per bloc
@@ -1825,6 +1855,41 @@ def reconciled_regions(world, nation: str) -> set:
 # ════════════════════════════════════════════════════════════════════════
 # The ratification seams — title, totals, and the Humbled Peace.
 # ════════════════════════════════════════════════════════════════════════
+
+def released_prisoner_lines(world, pairs: Iterable[str], speaker: str) -> List[str]:
+    """DDB-50 (Pre-Deploy S13b part 4): the marshals this peace sent home,
+    from `speaker`'s chair — this turn's `marshal_released` (the setter's
+    `release_mutual_prisoners`, reason `peace_treaty`) for the ratifier's own
+    pairs. The peace with Austria released Mack and no surface said so
+    (diplomacy-first #33): the event carried Austria's nation and the
+    dispatch drops foreign rows. Pure read of the event log."""
+    from backend.display_names import humanize_entity_name, nation_adjective
+    wanted = {str(p) for p in (pairs or []) if p}
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    lines: List[str] = []
+    for event in reversed(list(getattr(world, "event_log", None) or [])):
+        if int(event.get("turn", -1) or -1) != turn:
+            break
+        if event.get("type") != "marshal_released" or event.get("reason") != "peace_treaty":
+            continue
+        nation, captor = str(event.get("nation") or ""), str(event.get("captor") or "")
+        if wanted and world._make_diplo_key(nation, captor) not in wanted:
+            continue
+        if speaker not in (nation, captor):
+            continue
+        name = humanize_entity_name(str(event.get("marshal") or ""))
+        marshal = (getattr(world, "marshals", None) or {}).get(str(event.get("marshal") or ""))
+        home = str(getattr(marshal, "location", "") or "")
+        if captor == speaker:
+            adj = nation_adjective(nation) or nation
+            article = "an" if adj[:1].lower() in "aeiou" else "a"
+            lines.append(f"Prisoners: {name}, our captive, goes home to {home} under "
+                         f"this peace — {article} {adj} commander back in the field.")
+        else:
+            lines.append(f"Prisoners: {name} comes home to {home} under this peace.")
+    lines.reverse()
+    return lines
+
 
 def take_recognition_lines(world) -> List[str]:
     """RS-D1: the recognition lines the last ratification wrote, read once

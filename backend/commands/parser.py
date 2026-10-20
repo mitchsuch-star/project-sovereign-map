@@ -243,8 +243,13 @@ def promote_tactical_move_with_arrival_tail(command_text: str) -> str:
 #
 # Two patterns, because they need different evidence.
 _SEMICOLON_SPLIT_RE = re.compile(r'\s*;\s*')
-# `and <Marshal>, <verb>` — a second marshal named outright.
-_AND_MARSHAL_SPLIT_RE_TEMPLATE = r'\s+and\s+(?={names}\b)'
+# `and <Marshal>, <verb>` — a second marshal named outright. DDB-47 (Pre-Deploy
+# S13b part 4): an order verb must follow the name, as the comma template
+# requires — "Soult, march to Rhineland to join Ney and Davout" split at "and
+# Davout" and left "Davout" on the line as a second order; a name with no
+# order after it is the sentence's object, never a boundary.
+_AND_MARSHAL_SPLIT_RE_TEMPLATE = (r'\s+and\s+(?=(?:{honorific})?(?:{names})\b'
+                                  r'\s*[,:]?\s*(?:{verbs})\b)')
 # SF-CMD-1 W5 / CRT-11: `, <Marshal> <verb>` — the comma before a second
 # marshal and his verb (the ADDRESS comma "Ney, attack" has no name after
 # it; "Ney, Davout, attack" is the collective address, read elsewhere).
@@ -590,8 +595,10 @@ def _split_sequential_orders(command_text: str, game_state=None):
         names = _player_marshal_names(game_state)
         if names:
             pattern = _AND_MARSHAL_SPLIT_RE_TEMPLATE.format(
+                honorific=HONORIFIC,
                 names="|".join(re.escape(n) for n in sorted(names, key=len,
-                                                            reverse=True)))
+                                                            reverse=True)),
+                verbs=_second_order_verbs())
             match = re.search(pattern, command_text, re.IGNORECASE)
             # SF-CMD-1 W5 / CRT-11 (Oct 3, 2026): ", Davout support him" —
             # a comma before a SECOND marshal of ours and an order verb is

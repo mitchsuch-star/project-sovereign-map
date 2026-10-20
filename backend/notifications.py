@@ -159,6 +159,11 @@ DIPLOMATIC_MISSION = "diplomatic_mission"            # NORMAL/HIGH: mission
 ARMISTICE_EXPIRED = "armistice_expired"              # HIGH/CRITICAL: truce ran out
 MARSHAL_LAST_STAND = "marshal_last_stand"            # CRITICAL: encircled, decide
 VINDICATION_EXPIRED = "vindication_expired"          # NORMAL: window passed
+# DDB-X6 (Pre-Deploy S13b part 4; NAVAL_SPEC §17.3 / §18.4's recorded alerts):
+# the sea's state changes, said on the rail — a blockade on France begins or
+# lifts, a diversion window opens or shuts — each with its cause and the
+# Admiralty line that explains it. Producer: `naval._naval_notice`.
+NAVAL_STATE_CHANGED = "naval_state_changed"          # HIGH: the sea changed
 
 
 # ── The rail-exempt set (REV-V3) ────────────────────────────────────────────
@@ -183,6 +188,33 @@ RAIL_EXEMPT_TYPES = {
 }
 
 
+# ── One-shot events age out (DDB-46, Pre-Deploy S13b part 4) ───────────────
+# The rail is a list of things still true. A STATE card ends with its state
+# (the deficit card on the chest's recovery, the brewing card when the
+# coalition forms); an EVENT is true on the turn it happened, and these were
+# posted at CRITICAL — which the cap never evicts and the rail sorts first —
+# so "Armistice Collapsed" and "Ney orders lost" led the rail for fifteen
+# turns (conquest #9 / #33, the sea #8). Every type here is stamped by
+# `create_notification` with `expires_after_turn` (its turn) and retired by
+# `NotificationCollector.retire_aged_events` at the start of the advance
+# after the turn it is read: a notice of turn N stands through turn N+1's
+# morning, then goes. The campaign log keeps every one. A spec-routed
+# family keeps its spec's priority (`commitments_routing`); the others post
+# at HIGH.
+EVENT_NOTICE_TYPES = frozenset({
+    FORCED_RETREAT_ORDER_VOIDED,      # "<marshal> orders lost" (HIGH)
+    ARMISTICE_EXPIRED,                # "Armistice Collapsed" / the peace exit (HIGH)
+    RECKLESS_CAVALRY_ACTION,          # "<marshal> acting alone!" (HIGH)
+    VASSAL_REBELLION,                 # "<court> REBELLED! / DEFECTS!" (HIGH)
+    BARGAIN_BREACHED,                 # commitments routing
+    CALL_TO_ARMS_REFUSED_OFFENSIVE,   # commitments routing
+    CALL_TO_ARMS_REFUSED_DEFENSIVE,   # commitments routing
+    CALL_TO_ARMS_HONORED_COSTLY,      # commitments routing
+    BALANCE_OF_EUROPE_SHIFTED,        # commitments routing (a band crossed)
+    NAVAL_STATE_CHANGED,              # DDB-X6: the sea changed (HIGH)
+})
+
+
 def create_notification(
     notification_type: str,
     priority: NotificationPriority,
@@ -195,7 +227,7 @@ def create_notification(
 
     All numeric values are int()-wrapped per CLAUDE.md rule.
     """
-    return {
+    out = {
         "id": str(uuid.uuid4()),
         "type": notification_type,
         "priority": int(priority),
@@ -211,6 +243,9 @@ def create_notification(
         "base_title": title,
         "repeat_count": 1,
     }
+    if notification_type in EVENT_NOTICE_TYPES:
+        out["expires_after_turn"] = int(turn_created)  # DDB-46
+    return out
 
 
 NOTIFICATION_CAP = 50  # Max notifications before auto-dismissing oldest NORMAL
@@ -293,9 +328,22 @@ class NotificationCollector:
                                        int(notification.get("priority", 0)))
             if notification.get("details"):
                 existing["details"] = notification["details"]
+            if "expires_after_turn" in notification:  # DDB-46: a repeat is news again
+                existing["expires_after_turn"] = int(notification["expires_after_turn"])
             return
         self._pending.append(notification)
         self._enforce_cap()
+
+    def retire_aged_events(self, current_turn: int) -> int:
+        """DDB-46: drop every one-shot event notice whose turn has passed —
+        `expires_after_turn` below `current_turn` (the turn ending, read at
+        the start of the advance). Returns the count retired."""
+        before = len(self._pending)
+        self._pending = [
+            n for n in self._pending
+            if n.get("expires_after_turn") is None
+            or int(n.get("expires_after_turn")) >= int(current_turn)]
+        return before - len(self._pending)
 
     @staticmethod
     def _currency(notification: Dict[str, Any]) -> int:

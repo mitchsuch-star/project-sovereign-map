@@ -5925,7 +5925,7 @@ class CombatExecutor:
                     )
                     world.notifications.add(create_notification(
                         notification_type=FORCED_RETREAT_ORDER_VOIDED,
-                        priority=NotificationPriority.CRITICAL,
+                        priority=NotificationPriority.HIGH,  # DDB-46: an event
                         title=f"{_shown_name(marshal.name)} orders lost",
                         message=f"{_shown_name(marshal.name)} was forced to retreat to {retreat_to}. Their {cmd_type} order has been cancelled.",
                         turn_created=int(world.current_turn),
@@ -6016,7 +6016,7 @@ class CombatExecutor:
                     )
                     world.notifications.add(create_notification(
                         notification_type=FORCED_RETREAT_ORDER_VOIDED,
-                        priority=NotificationPriority.CRITICAL,
+                        priority=NotificationPriority.HIGH,  # DDB-46: an event
                         title=f"{_shown_name(marshal.name)} orders lost",
                         message=f"{_shown_name(marshal.name)}'s army was shattered at {old_loc}. Their {cmd_type} order is void.",
                         turn_created=int(world.current_turn),

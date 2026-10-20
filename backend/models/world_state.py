@@ -5221,11 +5221,19 @@ class WorldState:
         self.retire_letters_of_a_dead_court(nation)
 
         # Set all diplomatic states to PEACE (R2: centralized setter)
-        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.game_logic.diplomacy import (
+            conclude_war_objectives_of, set_diplomatic_state,
+        )
         for key in list(self.diplomatic_states.keys()):
             parts = key.split("|")
             if nation in parts and len(parts) == 2:
                 set_diplomatic_state(self, parts[0], parts[1], "PEACE", "nation_eliminated")
+                # DDB-51 (Pre-Deploy S13b part 4): the war is over —
+                # absolutely — so its purposes are concluded ("War Purpose:
+                # … vs Austria" stood in the dispatch after Austria fell,
+                # diplomacy-first #33). The rest of `cleanup_war_end` stays
+                # unrun here, as the EC-W2 note below records.
+                conclude_war_objectives_of(self, key)
 
         # EC-W2 (review finding #2): elimination ends wars WITHOUT the
         # cleanup_war_end path, so mirror the R49 rule here — any nation the
@@ -8492,6 +8500,12 @@ class WorldState:
             # Reset tier tracker when bankruptcy ends
             if nation == self.player_nation:
                 self.last_bankruptcy_notification_tier = 0
+                # DDB-46 (Pre-Deploy S13b part 4): the deficit card is a
+                # STATE card — it ends with the deficit ("Treasury in
+                # deficit" stood on the rail turns after the chest
+                # recovered, the sea #8).
+                from backend.notifications import BANKRUPTCY_ESCALATION
+                self.notifications.dismiss_by_type(BANKRUPTCY_ESCALATION)
             return {"bankrupt": False, "messages": [], "desertions": []}
 
 
@@ -11566,6 +11580,9 @@ class WorldState:
         # CF-4: nor does the order a remedy answered (`remedy.py`).
         self._pending_remedy = None
         self._last_advanced_turn = self.current_turn
+        # DDB-46: a one-shot event notice ages out after its turn
+        # (`notifications.EVENT_NOTICE_TYPES`).
+        self.notifications.retire_aged_events(int(self.current_turn))
 
         # A3 §7.5: archive terminal war_instances whose 10-turn retention
         # window has elapsed. Runs at turn start so all subsequent readers
@@ -13946,8 +13963,13 @@ class WorldState:
                 _sq_lines = status_quo_summary_lines(self, _sq_entries, self.player_nation)
                 # RS-D1: "Recognition: Austria will recognize the order at the
                 # Congress — Vienna stays ours by this treaty."
-                from backend.game_logic.game_end import take_recognition_lines
+                from backend.game_logic.game_end import (
+                    released_prisoner_lines, take_recognition_lines,
+                )
                 _sq_lines = list(_sq_lines) + take_recognition_lines(self)
+                # DDB-50: the prisoners this peace sent home.
+                _sq_lines += released_prisoner_lines(self, [ctx.diplo_key],
+                                                     self.player_nation)
                 if _sq_lines:
                     peace_ratification_summary.setdefault("terms_ratified", []).extend(_sq_lines)
                 # PC-X22: what each holder still holds after the instrument's
@@ -15900,7 +15922,7 @@ class WorldState:
                     )
                     self.notifications.add(create_notification(
                         notification_type=RECKLESS_CAVALRY_ACTION,
-                        priority=NotificationPriority.CRITICAL,
+                        priority=NotificationPriority.HIGH,  # DDB-46: an event
                         title=f"{_shown_name(marshal.name)} acting alone!",
                         message=f"{_shown_name(marshal.name)} has gone reckless and charged {_shown_name(enemy.name)} at {enemy.location} without orders!",
                         turn_created=int(self.current_turn),
@@ -15992,7 +16014,7 @@ class WorldState:
                         )
                         self.notifications.add(create_notification(
                             notification_type=RECKLESS_CAVALRY_ACTION,
-                            priority=NotificationPriority.CRITICAL,
+                            priority=NotificationPriority.HIGH,  # DDB-46: an event
                             title=f"{_shown_name(marshal.name)} acting alone!",
                             message=f"{_shown_name(marshal.name)} has gone reckless and advanced toward {_shown_name(enemy.name)} without orders!",
                             turn_created=int(self.current_turn),

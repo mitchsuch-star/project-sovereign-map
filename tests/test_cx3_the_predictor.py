@@ -454,9 +454,12 @@ class TestTheCompletionSurface:
         source = _gd_source()
         assert "if not _suggestions.is_empty():" in source
         block = source[source.index("elif event.keycode == KEY_ESCAPE:"):]
-        block = block[:400]
+        # Re-seated October 19, 2026 (DDB-54): the arm grew a rung (the
+        # close-the-topmost ladder before the focus goes) — read to its end.
+        block = block[:block.index("command_input.accept_event()")]
         assert "_clear_suggestions()" in block
         assert "release_focus" in block
+        assert block.index("_clear_suggestions()") < block.index("release_focus")
 
     def test_tab_is_the_accept_key_and_was_free(self):
         """`KEY_TAB` was handled only with `alt_pressed` before CX-3, so

@@ -1725,7 +1725,7 @@ def check_vassal_rebellion(world) -> List[dict]:
             # Italy". The R7 table, at the producer.
             world.notifications.add(_cr_notif(
                 _VR_CONST,
-                _NP.CRITICAL,
+                _NP.HIGH,  # DDB-46: an event
                 f"{display_nation(vassal_name)} REBELLED!",
                 f"{display_nation(vassal_name)} has rebelled against "
                 f"{display_nation(lord)}! War declared.",
@@ -5227,7 +5227,7 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
             )
             world.notifications.add(create_notification(
                 VASSAL_REBELLION,
-                NotificationPriority.CRITICAL,
+                NotificationPriority.HIGH,  # DDB-46: an event
                 f"{display_nation(vassal_name)} DEFECTS!",
                 message,
                 int(world.current_turn),

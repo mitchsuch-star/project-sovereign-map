@@ -120,6 +120,22 @@ def _find_names(norm: str, names: Iterable[str]) -> List[str]:
     return [n for _, n in hits]
 
 
+def _place_after_foe(norm: str, foe: str, places: Iterable[str]) -> str:
+    """DDB-45: the province a question puts the foe IN — "is Mack (still /
+    dug in) at Ulm" — or "" when no "at / in <place>" follows his name."""
+    if not foe:
+        return ""
+    for place in places:
+        for foe_form in _forms(foe):
+            for place_form in _forms(place):
+                if foe_form and place_form and re.search(
+                        r"(?:^|\s)" + re.escape(foe_form) + r"(?:'s)?(?:\s+[a-z]+){0,3}?"
+                        r"\s+(?:at|in)\s+(?:the\s+)?" + re.escape(place_form) + r"(?:\s|$)",
+                        norm):
+                    return place
+    return ""
+
+
 def _demonyms(nation: str) -> List[str]:
     from backend.display_names import nation_adjective
     adj = _norm(nation_adjective(nation))
@@ -642,7 +658,11 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
     if first_foe and has(r"\bfortified\b|\bentrenched\b|\bdug in\b|\bstance\b|\bstill (?:at|in)\b|\bstill (?:sitting|standing)\b|\bmoved\b|\bmoving\b|\bdoing\b|\bup to\b|\bwhere is\b|\bat\b|\bin\b"):
         if has(r"\bwhat did\b|\blast turn\b|\byesterday\b|\bhas .* moved\b|\bdid .* (?:move|attack|advance|march)\b"):
             return q("enemy_moves", first_foe, "enemy")
-        return q("enemy_at", first_foe, "enemy", place=first_place,
+        # DDB-45: a place only when "at / in <place>" follows the foe —
+        # "how strong is Mack … where is Vienna" read Vienna as Mack's
+        # place ("No, Sire — Mack stands at Swabia, not Vienna").
+        return q("enemy_at", first_foe, "enemy",
+                 place=_place_after_foe(norm, first_foe, places),
                  fortified=has(r"\bfortified\b|\bentrenched\b|\bdug in\b"))
     if has(r"\bhow many (?:enemy|enemies|hostile|foes?|foreign)\b|\benemy (?:marshals|corps|armies|forces) (?:are )?(?:near|around|next to|adjacent|close to)\b|\bwho is (?:near|around|next to|adjacent to|threatening)\b") and first_place:
         return q("enemies_near", first_place, "region")
@@ -674,6 +694,13 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
             return q("marshal_can", first_marshal, "marshal", verb=verb)
     if len(ours) >= 2 and has(r"\bget on\b|\bget along\b|\bthink of\b|\bthinks of\b|\bfeel about\b|\bdislike|\blike\b|\bhate|\brelation|\bfriends?\b|\brivals?\b|\bquarrel|\bfeud|\bon terms\b|\btrust\b"):
         return q("relationship", ours[0], "marshal", other=ours[1])
+    # DDB-X29 (found by DDB-45's sweep): "how many men do Ney and Davout
+    # have" answered Ney alone, and "what are Ney and Davout doing" shrugged
+    # — two of our marshals asked of at once are each answered, as "where
+    # are Ney and Davout" always was.
+    if len(ours) >= 2 and not foes and has(
+            r"^where|^how (?:many men|strong|big)\b|^what (?:are|is)\b.*\b(?:doing|up to)\b"):
+        return q("roster", "", "board", only=ours)
     if first_marshal and has(r"\bhow many men\b|\bhow strong\b|\bhow big\b|\bhow large\b|\bstrength of\b") and not foes:
         return q("marshal_state", first_marshal, "marshal", asked=text)
     if first_marshal and has(r"\btrust\b|\bloyal|\breliab|\bfaithful\b|\bobey\b|\bdepend on\b|\bcount on\b"):
@@ -690,8 +717,6 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
     if (first_marshal and has(r"\bpersonality\b|\btemperament\b|\bcharacter\b|\bwhat kind of (?:man|marshal|general)\b|\bwhat sort of\b")) or has(
             r"\bwho is the (?:cautious|aggressive|literal|bold|careful|reckless|rash) one\b|\bwhich (?:of my )?marshals? (?:is|are) (?:cautious|aggressive|literal|bold|careful|reckless|rash)\b|\bwho (?:is|are) (?:cautious|aggressive|literal|reckless|careful)\b"):
         return q("personality", first_marshal, "marshal" if first_marshal else "board")
-    if len(ours) >= 2 and has(r"^where"):
-        return q("roster", "", "board", only=ours)
     if has(r"\bwho (?:is|are) (?:fortified|drilling|entrenched|dug in|broken|retreating|recovering|engaged|idle|free|under orders|moving|marching)\b"):
         word = re.search(r"\bwho (?:is|are) (fortified|drilling|entrenched|dug in|broken|retreating|recovering|engaged|idle|free|under orders|moving|marching)\b", norm).group(1)
         return q("anyone_state", word, "state")
@@ -1789,17 +1814,29 @@ def _answer_fleet(world) -> str:
     summary = naval.player_naval_summary(world) or {}
     if not summary.get("active"):
         return "France keeps no fleet in commission on this board, Sire."
+    # DDB-61: her station in the ONE phrase (honest about a blockade on her).
     line = (f"The fleet musters {_plural(int(summary.get('ships') or 0), 'sail')} at readiness "
-            f"{int(summary.get('readiness') or 0)}, posture {summary.get('posture') or 'guard'}, "
+            f"{int(summary.get('readiness') or 0)}, {naval.posture_phrase(world, world.player_nation)}, "
             f"under {summary.get('admiral') or 'the Admiralty'}, Sire.")
-    fleet = naval.get_fleet(world, world.player_nation) or {}
-    ports = int(fleet.get("ports") or 0)
-    if ports:
-        line += f" It lies across {_plural(ports, 'dockyard')}."
-    if summary.get("blockaded_by"):
-        line += f" {summary['blockaded_by']} blockades us."
-    if summary.get("line"):
-        line += f" {summary['line']}"
+    # DDB-X32 (found by DDB-60's sweep): "It lies across 4 dockyards" read
+    # the System's PORT count as dockyards — the yards are named instead.
+    yards = naval.controlled_dockyards(world, world.player_nation)
+    if yards:
+        line += f" Her yards: {', '.join(yards)}."
+    # The crossings, counted (the compact strip's own figures, not its
+    # line — which restated the sentence above with no stop after it).
+    shut, window = int(summary.get("shut") or 0), int(summary.get("window") or 0)
+    if shut or window:
+        line += (f" {_plural(shut, 'crossing')} shut to us"
+                 + (f", {_plural(window, 'window')} open" if window else "") + ".")
+    # DDB-60 (Pre-Deploy S13b part 4): asked what postures she can take,
+    # Berthier named only the present one (the sea #6). Both, what each
+    # does, and the order for each — the Admiralty's own numbers.
+    line += (f" She keeps one of two postures, each an order of 1 action: "
+             f"'guard home waters' covers every crossing that touches our own "
+             f"coast; 'blockade the enemy' closes an at-war court's ports where "
+             f"our sail outmatches hers {naval.BLOCKADE_RATIO:g} to 1 — her trade "
+             f"halved — and leaves our own coast unguarded.")
     return line
 
 

@@ -219,6 +219,7 @@ func _format_action(action: Dictionary) -> String:
 			# for the wrong expression. Read the event.
 			var taken_from = ""
 			var fate = ""
+			var taken_event: Dictionary = {}
 			for mv in action.get("events", []):
 				if typeof(mv) != TYPE_DICTIONARY:
 					continue
@@ -228,9 +229,11 @@ func _format_action(action: Dictionary) -> String:
 					continue
 				taken_from = str(mv.get("captured_from", ""))
 				fate = str(mv.get("capture_choice", ""))
+				taken_event = mv
 				break
 			if taken_from != "":
-				if OUR_LOSS_READS_AS_LOSS and taken_from == _PLAYER_NATION:
+				# DDB-56: ours or a friend's (`_taken_from_player`).
+				if _taken_from_player(taken_event):
 					line_color = COLOR_ERROR
 				action_str += " — " + target + " falls"
 				action_str += " (was " + Utils.display_nation_name(taken_from) + ")"
@@ -886,11 +889,17 @@ func _get_nation_color(nation: String) -> String:
 func _taken_from_player(event: Dictionary) -> bool:
 	"""IQ-2: true when this capture took a province FROM the player — read off
 	the event's own `captured_from` stamp, never guessed from the battle's
-	sides (a French corps can fall on an ally's soil). Lever-gated."""
+	sides (a French corps can fall on an ally's soil). Lever-gated.
+	DDB-56 (Pre-Deploy S13b part 4): or from a FRIEND of ours — the backend
+	stamps `captured_from_alignment` as it stamps a battle's sides
+	(`main.battle_standing`); an ally's lost province read in the green of
+	good news (diplomacy-first #7)."""
 	if not OUR_LOSS_READS_AS_LOSS:
 		return false
 	var taken = event.get("captured_from", "")
-	return taken is String and taken == _PLAYER_NATION
+	if taken is String and taken == _PLAYER_NATION:
+		return true
+	return str(event.get("captured_from_alignment", "")) in ["player", "friend"]
 
 func _reinforcement_side(action: Dictionary) -> String:
 	"""IQ-5 review (G): whose reinforcements the lines describe — "player",

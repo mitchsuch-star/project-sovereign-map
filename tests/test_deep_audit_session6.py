@@ -307,7 +307,10 @@ class TestFix12ArmisticeExpirationNotification:
         assert arm_dispatches[0]["type"] == "diplomatic_armistice_expired_peace"
 
     def test_armistice_war_creates_critical_notification(self):
-        """Armistice collapsing to war produces CRITICAL notification."""
+        """Armistice collapsing to war produces a notification — HIGH since
+        DDB-46 (Pre-Deploy S13b part 4): a one-shot event posts at HIGH and
+        ages out after its turn, where it had led the rail for fifteen turns
+        at CRITICAL."""
         from backend.game_logic.diplomacy import _process_armistice_expiration
         world = _make_world(current_turn=10)
         world.player_nation = "France"
@@ -326,8 +329,9 @@ class TestFix12ArmisticeExpirationNotification:
         pending = world.notifications.get_pending()
         armistice_notifs = [n for n in pending if n.get("type") == "armistice_expired"]
         assert len(armistice_notifs) == 1
-        # CRITICAL priority = 2
-        assert armistice_notifs[0]["priority"] == 2
+        # HIGH priority = 1 (DDB-46), and it carries its turn to age out
+        assert armistice_notifs[0]["priority"] == 1
+        assert armistice_notifs[0]["expires_after_turn"] == 10
 
 
 # ═══════════════════════════════════════════════════════════

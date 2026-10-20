@@ -158,6 +158,10 @@ const TYPE_ICONS = {
 	# IQ-4 "The Cabinet Is Visible": Talleyrand's running mission — one row
 	# per mission, refreshed while it runs, re-issued on each change of state.
 	"diplomatic_mission": "MSN",
+
+	# DDB-X6 (Pre-Deploy S13b part 4): the sea's state changes — a blockade
+	# on France begins or lifts, a diversion window opens or shuts.
+	"naval_state_changed": "SEA",
 }
 
 # UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-
@@ -265,6 +269,9 @@ const TYPE_ICON_SVGS = {
 
 	# IQ-4: Talleyrand's mission — his book of instructions.
 	"diplomatic_mission": "book-open",
+
+	# DDB-X6: the sea — the map of its crossings.
+	"naval_state_changed": "map-trifold",
 }
 
 const ROUTE_ICON_SVGS = {

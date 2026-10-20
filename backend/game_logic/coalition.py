@@ -2461,6 +2461,10 @@ def form_coalition(qualifying_nations: List[str], world,
     # R84: Dismiss superseded TENSION/MURMURS notifications on coalition formation
     world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
     world.notifications.dismiss_by_type(COALITION_MURMURS)
+    # DDB-46 (Pre-Deploy S13b part 4): and the brewing card — its state
+    # ended here ("Coalition Brewing — 1 turn" stood beside the declaration
+    # it had counted down to, conquest #9).
+    world.notifications.dismiss_by_type(COALITION_BREWING)
 
     # 8. Notification. Stage D review fix [r6]: an ECLIPSE coalition names
     # its target and drops to NORMAL priority — the copy must never imply

@@ -283,22 +283,40 @@ def _corridor_is_for(world, nation: str, location: str) -> bool:
     belt-and-braces: the bloc invalidation is not guaranteed to fire on a
     bare turn advance.
     """
+    cache = _direction_cache(world)
+    key = (nation, location)
+    hit = cache["stranded"].get(key)
+    if hit is not None:
+        return hit
+    home = cached_home_zone(world, nation)
+    value = is_stranded_at(world, nation, location, home)
+    cache["stranded"][key] = value
+    return value
+
+
+def _direction_cache(world) -> Dict:
+    """The transient per-turn memo `_corridor_is_for` reads (flushed by
+    `invalidate_bloc_members_cache` and at every corridor write)."""
     cache = getattr(world, "_evac_direction_cache", None)
     turn = int(world.current_turn)
     if not isinstance(cache, dict) or cache.get("turn") != turn:
         cache = {"turn": turn, "zones": {}, "stranded": {}}
         world._evac_direction_cache = cache
-    key = (nation, location)
-    hit = cache["stranded"].get(key)
-    if hit is not None:
-        return hit
-    home = cache["zones"].get(nation)
+    return cache
+
+
+def cached_home_zone(world, nation: str, by_land: bool = False) -> Set[str]:
+    """`get_home_zone`, memoised per board state in the direction cache — the
+    read for a caller that asks it per corps (DDB-21: the embark rule, on the
+    Admiralty's report and the panel's landing chips). GR8: one flood fill per
+    nation per board state, never per region."""
+    slot = _direction_cache(world).setdefault(
+        "land_zones" if by_land else "zones", {})
+    home = slot.get(nation)
     if home is None:
-        home = get_home_zone(world, nation)
-        cache["zones"][nation] = home
-    value = is_stranded_at(world, nation, location, home)
-    cache["stranded"][key] = value
-    return value
+        home = get_home_zone(world, nation, by_land=by_land)
+        slot[nation] = home
+    return home
 
 
 def revoke_evacuation_grant(world, nation_a: str, nation_b: str) -> bool:
@@ -351,13 +369,19 @@ def _passable(world, nation: str, region_name: str,
                                ignore_evacuation=not with_grant)
 
 
-def get_home_zone(world, nation: str) -> Set[str]:
+def get_home_zone(world, nation: str, by_land: bool = False) -> Set[str]:
     """The provinces of `nation` that its army can actually get back to.
 
     A flood fill from the seat of government over soil the nation may cross
     WITHOUT the corridor, intersected with the provinces it controls.  A
     captured enclave on the far side of a closed frontier is deliberately NOT
     home — that is the whole point of the measured defect.
+
+    `by_land=True` (DDB-21) walks no sea link: the body of the realm a corps
+    can MARCH to, which is the embark rule's "home soil" — a corps on his own
+    province across the water (an Irish beachhead, at war or at peace) is
+    taken off the beach by the transports rather than sent to a yard he
+    cannot walk to (`naval.embark_position_ok`).
 
     One bounded graph walk (<= 126 nodes on the shipped map), run once per
     signatory per tick and only while a grant stands.  Not a hot path.
@@ -375,6 +399,10 @@ def get_home_zone(world, nation: str) -> Set[str]:
     if not seed:
         return set()
 
+    water = set()
+    if by_land:
+        from backend.game_logic.naval import get_sea_link_pairs
+        water = get_sea_link_pairs(world)
     seen = {seed}
     queue = deque([seed])
     while queue:
@@ -384,6 +412,8 @@ def get_home_zone(world, nation: str) -> Set[str]:
             continue
         for adjacent in region.adjacent_regions:
             if adjacent in seen or adjacent not in world.regions:
+                continue
+            if water and frozenset((current, adjacent)) in water:
                 continue
             if not _passable(world, nation, adjacent, with_grant=False):
                 continue
@@ -453,12 +483,34 @@ def is_stranded_at(world, nation: str, location: str,
     """
     if home is None:
         home = get_home_zone(world, nation)
-    if location in home:
+    if is_home_at(world, nation, location, home):
         return False
     if not _passable(world, nation, location, with_grant=False):
         return True
     return distance_home_from(world, nation, location, home,
                               with_grant=False) is None
+
+
+def is_home_at(world, nation: str, location: str, home: Set[str]) -> bool:
+    """Is a corps of `nation` standing at `location` HOME — on the body of
+    its realm, or (DDB-21) on soil its court holds by title? The ONE "is he
+    home" of the Road Home: the stranded predicate, the tick's arrival, the
+    AI's next step, the dispatch's lapse filter."""
+    return location in home or title_is_home(world, nation, location)
+
+
+def title_is_home(world, nation: str, location: str) -> bool:
+    """DDB-21 (Pre-Deploy S13b part 4): a corps on a province his court holds
+    by title (`game_end.holds_by_title` — the homeland, a signature, a quiet
+    conquest) is home, wherever the frontier runs: no road home is handed
+    to him, no warning, no internment. Measured on the 1805 board before the
+    fix: Lannes on Munster, titled to France by the peace with Britain, was
+    put on an eight-march road through Britain, warned three times and
+    interned on the fourth tick ("failed to quit  soil" — nobody's). His way
+    back is the sea (`naval.embark_position_ok`). The series seam (down →
+    False)."""
+    from backend.game_logic.game_end import holds_by_title
+    return holds_by_title(world, location, nation)
 
 
 def _evacuating_marshals(world, nation: str, home: Set[str]) -> List:
@@ -923,7 +975,7 @@ def next_step_home(world, marshal) -> Optional[str]:
     path, so a corps knocked off its route still knows the way.
     """
     home = get_home_zone(world, marshal.nation)
-    if not home or marshal.location in home:
+    if not home or is_home_at(world, marshal.nation, marshal.location, home):
         return None
     destination = _nearest_home_region(world, marshal, home)
     if not destination:
@@ -1168,9 +1220,12 @@ def process_evacuation_grants(world) -> List[Dict]:
         # processor; the AI's have nothing that would, so the order would
         # otherwise sit on them forever and keep re-triggering the P1.2 rung.
         for marshal in world.marshals.values():
-            if marshal.nation == nation and marshal.location in home:
+            if (marshal.nation == nation
+                    and is_home_at(world, nation, marshal.location, home)):
                 # FA-N61: he is home; the next treaty finds him with a clean
                 # slate rather than remembering a road he declined a war ago.
+                # DDB-21: home by title too — a road handed out before the
+                # signature titled his province is done with.
                 marshal.road_home_offered = False
                 if is_road_home_order(getattr(marshal, "strategic_order",
                                               None)):
@@ -1206,6 +1261,14 @@ def process_evacuation_grants(world) -> List[Dict]:
                 # Cut off (§5 / gate Q4): v1 refuses to invent a rescue — and
                 # refuses just as firmly to intern a corps for failing to walk
                 # a road that does not exist.
+                continue
+            if _nobody_to_intern_him(world, marshal):
+                # DDB-X26: his own soil with no foreign power at its edge —
+                # an island enclave held through a truce. Nobody stands near
+                # enough to disarm him, so he is neither warned of an
+                # internment nor interned ("failed to quit  soil", the
+                # sentence with nobody's name in it); the road stays offered
+                # and the transports can take him off (DDB-21).
                 continue
             if _is_immobile(marshal):
                 # A rout is bounded (0-3 stages) and pre-slice, so it still
@@ -1253,6 +1316,15 @@ def process_evacuation_grants(world) -> List[Dict]:
             grants.pop(key, None)
 
     return events
+
+
+def _nobody_to_intern_him(world, marshal) -> bool:
+    """DDB-X26: he stands on his own court's soil and no foreign power holds
+    a province beside it (`_encircling_power` finds nobody), so the interning
+    power `_intern` would name is nobody at all."""
+    region = world.regions.get(marshal.location)
+    return (region is not None and region.controller == marshal.nation
+            and not _encircling_power(world, marshal))
 
 
 def _encircling_power(world, marshal) -> Optional[str]:

@@ -347,6 +347,21 @@ def alarm_road(world) -> str:
     decay_clause = (f"{decay} of decay (one, plus one for each court at peace "
                     f"with us, at most three{cs})")
     fc = _co.forecast_alarm_tick(world)
+    # DDB-52 (Pre-Deploy S13b part 4): the decay the Armed Peace holds back
+    # is named, with why — the line read "holding … 3 of decay" and the
+    # sum it printed fell (diplomacy-first #34). The forecast's own figures.
+    held = int(fc.get("decay_held", 0) or 0)
+    if held > 0:
+        armed = fc.get("armed_peace") or {}
+        lapsed = int(armed.get("rise", 0) or 0) > 0
+        floor = int(armed.get("gate" if lapsed else "watch",
+                              _co.THREAT_BREWING_MIN if lapsed else _co.ARMED_PEACE_WATCH))
+        pct = int(round(float(armed.get("share", 0.0) or 0.0) * 100))
+        applied = int(fc.get("decay_applied", 0) or 0)
+        decay_clause += (
+            f" — {'all of it' if applied <= 0 else f'{held} of it'} held: the Armed Peace "
+            f"holds the alarm at {floor} while our bloc leads {pct}% of Europe's power"
+            + (" and the courts re-arm" if lapsed else ""))
     net = int(fc.get("net", 0))
     gains = [f"{label} +{int(amount)}" for label, amount in fc.get("gains") or []
              if int(amount) > 0]

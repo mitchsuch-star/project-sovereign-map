@@ -32,6 +32,15 @@ the code-health ratchet forbids a new lever):
     N = garrison_report.detachment_capitulates   (DDB-R3: a detachment at >= 4:1 taken whole; down -> False)
     L = naval_executor.landing_garrison_fights   (DDB-X1: the landing reads garrison_fights; down -> its own copy)
     Z = enemy_ai.ai_retreat_soil_is_friendly     (DDB-X3: the AI's first tier reads AAR-D4's set; down -> own soil)
+  Part 4 (October 19, 2026 — the voice, the client and the sea):
+    E = withdrawal.title_is_home          (DDB-21: a corps on soil its court holds by title is home; down -> False)
+    I = withdrawal._nobody_to_intern_him  (DDB-X26: no internment by nobody; down -> False)
+    M = diplomacy.conclude_war_objectives_of (DDB-51: elimination concludes the war's purposes; down -> None)
+    Every other part-4 change is the player's road or a display read (the
+    question desk, the help, the rail, the dispatch, the Admiralty's lines,
+    the client): no seam here.
+    The corridor now opens after the status quo's titles at the setter (DDB-21);
+    with E down nothing reads a title there, so arm 0 measures the move itself.
 
 DDB-1, DDB-4, DDB-5, DDB-7 … 11 and DDB-X8 / X10 are the player's own roads
 (the passive France never proposes, counters or opens a table) or display
@@ -92,6 +101,9 @@ LEVERS = {
           " and (bool(getattr(a[0], 'garrison_detachment', False))"
           " or int(a[0].garrison_strength) >= 5000))"),
     "Z": ("backend.ai.enemy_ai", "ai_retreat_soil_is_friendly", "a[2] == a[1]"),
+    "E": ("backend.game_logic.withdrawal", "title_is_home", "False"),
+    "I": ("backend.game_logic.withdrawal", "_nobody_to_intern_him", "False"),
+    "M": ("backend.game_logic.diplomacy", "conclude_war_objectives_of", "None"),
 }
 ARMS = {"0": set(), **{k: {k} for k in LEVERS}, "ALL": set(LEVERS),
         "X17OFF": set(LEVERS) - {"Q", "V"}}
@@ -230,6 +242,33 @@ def _rsf(world, nation, controller):
         _c["ai_retreat_onto_ally|" + str(nation) + "|" + str(controller)] += 1
     return out
 EAM.ai_retreat_soil_is_friendly = _rsf
+import backend.game_logic.withdrawal as WDM
+_o_tih = WDM.title_is_home
+def _tih(world, nation, location):
+    out = _o_tih(world, nation, location)
+    if out:
+        _c["title_is_home|" + str(nation) + "|" + str(location)] += 1
+    return out
+WDM.title_is_home = _tih
+_o_nob = WDM._nobody_to_intern_him
+def _nob(world, marshal):
+    out = _o_nob(world, marshal)
+    if out:
+        _c["nobody_to_intern|" + str(getattr(marshal, "name", ""))] += 1
+    return out
+WDM._nobody_to_intern_him = _nob
+_o_open = WDM.open_evacuation_corridor
+def _open(world, a, b):
+    out = _o_open(world, a, b)
+    if out:
+        _c["corridor_opened|" + str(world._make_diplo_key(a, b))] += 1
+    return out
+WDM.open_evacuation_corridor = _open
+_o_cwo = DP.conclude_war_objectives_of
+def _cwo(world, diplo_key):
+    _c["elimination_concludes|" + str(diplo_key)] += 1
+    return _o_cwo(world, diplo_key)
+DP.conclude_war_objectives_of = _cwo
 
 def _dump():
     print("REACH=" + repr(dict(_c)))

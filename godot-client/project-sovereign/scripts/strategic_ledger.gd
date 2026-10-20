@@ -906,11 +906,21 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 	if fleet is Dictionary:
 		var posture = str(fleet.get("posture", "guard"))
 		var posture_line = "blockade — every enemy port watched" if posture == "blockade" else "guard — home waters covered"
+		# DDB-61 (Pre-Deploy S13b part 4): the backend's ONE phrase, honest
+		# about a blockade on her ("ordered to blockade stations — Britain
+		# still pins her in port"); the old line is the fallback.
+		var phrase = str(fleet.get("posture_phrase", ""))
+		if phrase != "":
+			posture_line = phrase
 		bbcode += "  Fleet: " + str(int(fleet.get("ships", 0))) + " sail of the line — readiness " + str(int(fleet.get("readiness", 0)))
 		var admiral = str(fleet.get("admiral", ""))
 		if admiral != "":
 			bbcode += "  (Adm. " + admiral + ")"
 		bbcode += "\n  Posture: " + posture_line + "\n"
+		# DDB-61: what stops the rot, when she rots.
+		var rot = str(fleet.get("rot_line", ""))
+		if rot != "":
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]" + rot + "[/color]\n"
 		var yards = fleet.get("yards", [])
 		if yards is Array and yards.size() > 0:
 			var laid = int(fleet.get("laid_this_turn", 0))
@@ -921,7 +931,12 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]THE STRAIT LIES OPEN — " + Utils.plural(int(window), "turn") + (" remains" if int(window) == 1 else " remain") + "[/color]\n"
 		var camp_strength = int(fleet.get("camp_strength", 0))
 		var camp_required = int(adm.get("camp_required", 40000))
-		if camp_strength >= camp_required:
+		# DDB-59 (Pre-Deploy S13b part 4): the camp is a state the turn's
+		# end counts — the backend's line says the count and why, no order.
+		var camp_line = str(fleet.get("camp_line", ""))
+		if camp_line != "":
+			bbcode += "  The Camp: " + camp_line + "\n"
+		elif camp_strength >= camp_required:
 			var camp_turns = int(fleet.get("camp_turns", 0))
 			bbcode += "  The Camp: " + _format_number(camp_strength) + " men on the invasion coast"
 			if camp_turns >= 2:
@@ -953,6 +968,14 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			# Say so, and say what closes the next one.
 			cs_line += " — [color=#" + Utils.COLOR_INFO + "]not yet biting[/color]"
 		bbcode += cs_line + "\n"
+		# DDB-58 (Pre-Deploy S13b part 4): how a port closes, in one
+		# sentence, and the courts still open, with their ports.
+		var rule_line = str(cs.get("rule_line", ""))
+		if rule_line != "":
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + rule_line + "[/color]\n"
+		var open_line = str(cs.get("open_line", ""))
+		if open_line != "":
+			bbcode += "  " + open_line + ".\n"
 		# The Tilsit clause (Score Finish Step 7 slice 4): the courts that
 		# keep the System as members, named with their ports.
 		var members_line = str(cs.get("members_line", ""))

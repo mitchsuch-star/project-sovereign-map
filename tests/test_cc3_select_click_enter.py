@@ -335,15 +335,21 @@ class TestTheCardIsTheGesturesOwn:
 
     def test_the_esc_ladder_lets_the_selection_go_before_the_panel(self):
         src = _src(MAIN_GD)
-        ladder = _func(src, "_unhandled_input")
         # Re-seated October 18, 2026 (row CC, CC-5): the step reads
         # `_order_engaged()` — a Ctrl-click group is let go by the same Esc.
+        # Re-seated October 19, 2026 (DDB-54, Pre-Deploy S13b part 4): the
+        # ladder is ONE function, `_escape_closes_topmost`, which the
+        # unfocused `_unhandled_input` reads with the selection step and the
+        # command line's own Esc reads after clearing the selection itself.
+        ladder = _func(src, "_escape_closes_topmost")
+        assert "_escape_closes_topmost(true)" in _func(src, "_unhandled_input")
         assert (ladder.index("top_bar.close_all_screens()")
-                < ladder.index("if _order_engaged() and not _is_modal_dialog_open():")
+                < ladder.index("if include_selection and _order_engaged() and not _is_modal_dialog_open():")
                 < ladder.index("region_panel.close_panel()"))
         line_esc = _func(src, "_on_command_input_gui_input")
         esc = line_esc[line_esc.index("elif event.keycode == KEY_ESCAPE:"):]
         assert (esc.index("_clear_suggestions()") < esc.index("_clear_order_selection()")
+                < esc.index("_escape_closes_topmost()")
                 < esc.index("command_input.release_focus()"))
 
     def test_every_send_lets_the_selection_go(self):

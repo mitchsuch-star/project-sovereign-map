@@ -164,6 +164,73 @@ def _resolve_cheat_name(raw_name: str, valid_names) -> str | None:
 # reads +8.
 _MISSIONS_HELP_ANCHOR = "[Request Terms] to make the enemy name a price.\n"
 
+# DDB-48 (Pre-Deploy S13b part 4): the reference had no word on ports, the
+# Continental System, the fleet's postures or readiness (the sea #1 / #9).
+# The section is spliced after THE ADMIRALTY, its figures read from the
+# constants the resolvers read (shown = applied).
+_PORTS_HELP_ANCHOR = "    AMBER: that shore is taken by expedition, never by marching.\n\n"
+
+
+def _ports_help_block() -> str:
+    """The PORTS AND THE CONTINENTAL SYSTEM section (DDB-48)."""
+    from backend.game_logic import naval as N
+    notches = sorted(N.CS_WE_TIERS)
+    first = notches[0]
+    rest = "; ".join(f"{int(round(pct * 100))}% +{we}" for pct, we in notches[1:])
+    return (
+        "PORTS AND THE CONTINENTAL SYSTEM (the Admiralty's System line -\n"
+        "press T, then 7):\n"
+        "  shut       - a court's ports are SHUT to the sea power (Britain)\n"
+        "               while it is at war with her, keeps the System as a\n"
+        "               member, is a satellite of a lord at war with her\n"
+        "               (every client, under the Berlin Decree), or has its\n"
+        "               capital held by a power at war with her. Every other\n"
+        "               court's ports are OPEN - the Admiralty names them,\n"
+        "               court by court, with their ports.\n"
+        f"  notches    - shut {int(round(first[0] * 100))}% of the Continent's ports and she\n"
+        f"               wears +{first[1]} war-weariness a turn; {rest}.\n"
+        "  postures   - the fleet keeps ONE of two, each an order of 1 AP:\n"
+        "               guard home waters - she covers every crossing that\n"
+        "               touches our own coast; blockade the enemy - she\n"
+        "               closes an at-war court's ports where our sail\n"
+        f"               outmatches hers {N.BLOCKADE_RATIO:g} to 1, and our own coast goes\n"
+        "               unguarded.\n"
+        "  readiness  - a fleet's effective strength is sail x readiness.\n"
+        f"               On blockade at war she rises +{N.READINESS_TICK} a turn to "
+        f"{N.READINESS_MAX};\n"
+        f"               blockaded by the enemy she ROTS -{N.READINESS_TICK} a turn to "
+        f"{N.READINESS_BLOCKADE_FLOOR},\n"
+        "               until that blockade lifts; otherwise she rises\n"
+        f"               +{N.READINESS_TICK} a turn to {N.NAVY_DRILL_CEILING} while a "
+        "stronger enemy fleet is\n"
+        f"               at sea ({N.READINESS_MAX} if none). A new keel comes aboard green\n"
+        f"               ({N.NEW_SHIP_READINESS}) and pulls the fleet's readiness down.\n"
+        "\n")
+
+
+def _congress_help_figures(help_text: str, world) -> str:
+    """DDB-49: the CONGRESS block's figures, read where the Congress reads
+    them (`congress.hold_titled` and its siblings — the scenario's
+    `campaign_end` block, else the module's numbers)."""
+    from backend.game_logic import congress as C
+    from backend.game_logic import game_end as GE
+    if world is not None:
+        hold, turns = C.hold_titled(world), C.congress_turns(world)
+        cooldown = C.cooldown_turns(world)
+        quiet = int(GE.cfg(world, "title_turns", GE.TITLE_TURNS_DEFAULT))
+        sweet = C._int(world, "sweetener_per_1000", C.SWEETENER_PER_1000)
+        cap = C._int(world, "sweetener_cap", C.SWEETENER_CAP)
+    else:
+        hold, turns, cooldown = C.HOLD_TITLED, C.CONGRESS_TURNS, C.CONGRESS_COOLDOWN
+        quiet, sweet, cap = GE.TITLE_TURNS_DEFAULT, C.SWEETENER_PER_1000, C.SWEETENER_CAP
+    for token, value in (("⟨HOLD⟩", hold), ("⟨TURNS⟩", turns),
+                         ("⟨COOLDOWN⟩", cooldown), ("⟨QUIET⟩", quiet),
+                         ("⟨SWEET⟩", sweet), ("⟨SWEET_CAP⟩", cap),
+                         ("⟨SUMMON_DP⟩", C.SUMMON_DP_COST),
+                         ("⟨SWEET_DP⟩", C.SWEETENER_DP_COST)):
+        help_text = help_text.replace(token, str(int(value)))
+    return help_text
+
 # PB-2 (the release build, Sept 23 2026): spliced into `help` only when debug
 # mode is on, so a player's reference never lists orders that answer "not
 # available in this build".
@@ -673,6 +740,14 @@ class MetaExecutor:
         # line by the question desk, fog-honestly; anything it cannot answer
         # falls through to the full report.
         question = command.get("question")
+        if question and str(question.get("kind") or "") == "compound":
+            # DDB-45: "how strong is Mack and where is Vienna" — each part
+            # answered on its own line, in the order asked.
+            lines = [self._answer_one_question(part, game_state, world)
+                     for part in (question.get("parts") or [])]
+            return {"success": True, "free_action": True,
+                    "message": "\n".join(line for line in lines if line),
+                    "question_answered": True}
         if question:
             from backend.ai.question_desk import (answer_board_question,
                                                   answer_question)
@@ -715,6 +790,25 @@ class MetaExecutor:
             "message": report["report_text"],
             "intel_report": report,
         }
+
+    def _answer_one_question(self, question: Dict, game_state: Dict,
+                             world) -> str:
+        """DDB-45: one part of a compound question, answered by the desk that
+        owns its kind (the five facts, then the board); a part neither desk
+        takes is said so in one line, naming where its answer lies."""
+        from backend.ai.question_desk import (answer_board_question,
+                                              answer_question)
+        if str(question.get("kind") or "") != "unanswered":
+            answer = (answer_question(world, question)
+                      or answer_board_question(world, question))
+            if answer:
+                return answer
+        asked = str(question.get("asked") or question.get("subject") or "").strip()
+        from backend.ai.counsel import surface_pointer
+        topic = self.question_topic(asked) if asked else None
+        pointer = surface_pointer(topic) if topic else None
+        return (f"As to “{asked.rstrip('?').strip()}”, I cannot answer that from the "
+                f"dispatches, Sire" + (f" — it is in {pointer}." if pointer else "."))
 
 
     # ── CX-2: the router ──────────────────────────────────────────────────
@@ -985,6 +1079,9 @@ STRATEGIC COMMANDS (multi-turn; 2 AP, support 1 AP):
                the marshals march only on your own word, one by one)
   hold       - "Davout, hold Swabia" - hold ground (artillery auto-fires)
   cancel     - "cancel Ney" / "halt Ney" (1 AP)
+  muster     - an attack brings every corps of ours in reach to the
+               field beside its lead - ask "what if Ney attacks Mack"
+               first: who marches, who will not and why. It is free.
 
 TWO ORDERS IN ONE LINE:
   then attack - "Ney, march to Swabia then attack Mack" - he marches,
@@ -1079,7 +1176,8 @@ is a button there, with its terms, so none of it need be typed):
                that touches our own coast.
   land       - land <marshal> in <province> (2 AP) - a small
                expedition (15,000 men or fewer, embarking at one of
-               our yards or from a foreign shore) slips past the
+               our yards, or from any shore abroad or of ours across
+               the water - an Irish beachhead) slips past the
                patrols at QUOTED odds; Ireland is reachable, an
                army is not. At the 1805 opening only the Guard is
                under the lift, and the Emperor does not sail - a
@@ -1143,23 +1241,23 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
 
 THE CONGRESS OF PARIS (how the reign is WON - the table of the
 great powers is the Diplomatic Ledger's Congress tab, press D then 7):
-  summon     - "summon the congress" (1 Admin AP + 2 DP), or the
+  summon     - "summon the congress" (1 Admin AP + ⟨SUMMON_DP⟩ DP), or the
                Congress of Paris row atop the Cabinet (F1). It needs
-               50 TITLED provinces - homeland, ceded by treaty, a
-               client's soil, or held 12 quiet turns - with Paris
+               ⟨HOLD⟩ TITLED provinces - homeland, ceded by treaty, a
+               client's soil, or held ⟨QUIET⟩ quiet turns - with Paris
                held, the Emperor free and no satellite on the brink.
-               It cannot be undone. For 8 turns every great power
+               It cannot be undone. For ⟨TURNS⟩ turns every great power
                answers - RECOGNIZES, REFUSES, SUES, SHUT OUT or GONE -
-               with its reason and its PRICE. Keep the 50, Paris and
+               with its reason and its PRICE. Keep the ⟨HOLD⟩, Paris and
                the Emperor's freedom, and declare no war: on the
-               eighth turn, with every great power won over, shut out
+               last turn, with every great power won over, shut out
                or gone, the Imperial Peace is signed. Otherwise the
                Congress dissolves, and may be summoned again after
-               10 turns.
+               ⟨COOLDOWN⟩ turns.
   sweetener  - "offer Prussia 1000 gold for recognition" - offer
                <court> <gold> gold for recognition, at the table
-               while the Congress sits (1 DP): +10 for every 1,000
-               gold, at most +20 a court. Gold past that is not taken.
+               while the Congress sits (⟨SWEET_DP⟩ DP): +⟨SWEET⟩ for every 1,000
+               gold, at most +⟨SWEET_CAP⟩ a court. Gold past that is not taken.
   Ask before you act - "can we summon the congress?" names every
   term still unmet, and nothing is spent.
 
@@ -1228,6 +1326,32 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             help_text = help_text.replace(
                 _MISSIONS_HELP_ANCHOR,
                 _MISSIONS_HELP_ANCHOR + _missions_help_block(_world), 1)
+        # DDB-49: the Congress's figures are the Congress's own (the body
+        # printed "50 TITLED" while the hold reads 45), and DDB-48: the
+        # ports and the System have a section, its numbers the Admiralty's.
+        help_text = _congress_help_figures(help_text, _world)
+        help_text = help_text.replace(
+            _PORTS_HELP_ANCHOR, _PORTS_HELP_ANCHOR + _ports_help_block(), 1)
+
+        # DDB-48: "how do I build ships?" / "help navy" — the ONE section the
+        # line names; a line that names none keeps the whole reference.
+        from backend.ai.help_topics import (help_request_section,
+                                            reference_section, section_for)
+        _typed = str((command or {}).get("raw_command")
+                     or (command or {}).get("_raw_input") or "")
+        _heading = help_request_section(_typed)
+        if _heading is None and _typed:
+            from backend.ai.llm_client import _SYNTAX_QUESTION_RE
+            if _SYNTAX_QUESTION_RE.match(_typed.strip()):
+                _heading = section_for(_typed)
+        _section = reference_section(help_text, _heading) if _heading else None
+        if _section:
+            return {"success": True, "free_action": True,
+                    "message": (_section + "\n\nThat is the reference's "
+                                "section on it, Sire - type 'help' for the "
+                                "whole of it."),
+                    "help_section": _heading,
+                    "events": [{"type": "help", "command": "help"}]}
 
         return {
             "success": True,

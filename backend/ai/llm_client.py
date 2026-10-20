@@ -3197,6 +3197,7 @@ class LLMClient:
             # advice, "how do I…" — keeps the COMMAND REFERENCE, which stays
             # CR-8's advisory desk to replace on its own gate.
             from .question_desk import (classify_board_question,
+                                         classify_compound_question,
                                          classify_question)
             _marshals = list(_game_state_dict(game_state, "marshals"))
             # CRT-7 / DESK-15: our own FALLEN marshals are askable —
@@ -3214,12 +3215,25 @@ class LLMClient:
                 report(exc, "llm_client.LLMClient._chain_question: import question_desk")
             _enemies = _askable_enemy_names(game_state)
             _regions = list(_game_state_dict(game_state, "map_data"))
-            _question = classify_question(
+            # DDB-45: a line joining two questions is answered part by part —
+            # never read whole (the how-many pattern swallowed "Mack and
+            # where is Vienna" and the state desk answered a third question).
+            from .question_desk import split_compound_question
+            _compound = len(split_compound_question(original_text)) > 1
+            _question = classify_compound_question(
                 original_text,
                 marshals=_marshals,
                 enemies=_enemies,
-                regions=_regions)
-            if _question is None:
+                regions=_regions,
+                nations=_known_nation_names(game_state),
+                bench=_bench_names(game_state))
+            if _question is None and not _compound:
+                _question = classify_question(
+                    original_text,
+                    marshals=_marshals,
+                    enemies=_enemies,
+                    regions=_regions)
+            if _question is None and not _compound:
                 # CX-2: the BOARD questions — the treasury, the war score,
                 # a court's design, whether a corps can reach a province,
                 # what an attack would look like, what may be built and
@@ -3489,7 +3503,12 @@ class LLMClient:
                 raw_command=original_text,
                 question={"kind": "end_turn_asked", "subject": "", "subject_type": "board"},
             )
+        from .help_topics import help_request_section
         if _desk_text in ("help", "help me", "i need help", "commands", "what can i do") or _desk_text == "?":
+            action = "help"
+        # DDB-48: "help navy" / "help with the fleet" — one section of the
+        # reference (a topic word after `help`; "help Davout" stays an order).
+        elif help_request_section(_desk_text):
             action = "help"
         # FA-6: the BARE form only. This arm sits above every order verb,
         # so a substring test made any sentence mentioning one of the three

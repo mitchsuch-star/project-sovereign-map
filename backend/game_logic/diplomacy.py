@@ -1550,6 +1550,15 @@ def _process_betrayal_decay(world) -> None:
                 "turn": current_turn,
                 "speaker_attribution": "foreign_office",
             }, "partial_on_nation")
+            # DDB-X31 (found by DDB-46's sweep): the posture's CRITICAL card
+            # is a state card — it ends with the posture (it stood beside
+            # its own "cleared" notice, the rail leading with a hostility
+            # that had lapsed).
+            world.notifications.dismiss_by_type(
+                "hard_reject_posture_triggered",
+                filter_fn=lambda n, a=actor, v=victim: (
+                    (n.get("details") or {}).get("perpetrator_nation") == a
+                    and (n.get("details") or {}).get("victim_nation") == v))
             _emit_commitments_notification(
                 world, "hard_reject_posture_cleared", payload,
             )
@@ -2900,34 +2909,6 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
                         _counterpart, world,
                         by_treaty=(reason not in UNILATERAL_PEACE_REASONS))
 
-    # WIN-D3 "The Road Home" (WAR_WITHDRAWAL_SPEC §3.1). Sited HERE and not
-    # in `cleanup_war_end` for exactly PT-J1's reason: typed conquest-
-    # vassalization and the forced-alliance ARMISTICE arm never reach that
-    # function, and those are the endings most likely to leave armies parked
-    # abroad. One write, every ending.
-    #
-    # The mirrored arm below is §3.4's pin: a peace instrument cannot outlive
-    # the peace, so re-entering WAR revokes the corridor at the same seam.
-    if old_state == "WAR" and new_state != "WAR":
-        from backend.game_logic.withdrawal import open_evacuation_corridor
-        open_evacuation_corridor(world, nation_a, nation_b)
-    # Aug 30, 2026 review: ...and again when the TRUCE becomes a peace. The
-    # arm above fires on WAR->ARMISTICE (§5's pin: a truce strands an army
-    # exactly as a peace does), but that grant expires — or is rolled back
-    # outright when nobody was stranded yet — and it is the PEACE, signed
-    # turns later, whose cession clauses actually cut the road home. The
-    # truce-then-treaty route is the one IGR-X3 encourages, so this was the
-    # common case, not the corner: measured shape is a corps in captured
-    # Volhynia whose only road runs through captured Podolia, which the peace
-    # hands back. Cheap when nothing is stranded: the opener re-derives from
-    # the live map and rolls its own provisional grant back.
-    elif old_state == "ARMISTICE" and new_state not in ("WAR", "ARMISTICE"):
-        from backend.game_logic.withdrawal import open_evacuation_corridor
-        open_evacuation_corridor(world, nation_a, nation_b)
-    elif new_state == "WAR" and old_state != "WAR":
-        from backend.game_logic.withdrawal import revoke_evacuation_grant
-        revoke_evacuation_grant(world, nation_a, nation_b)
-
     # War start tracking. PC-R2 (ruling D item 2): the war's age survives
     # a TRUCE — WAR → ARMISTICE keeps the stamp and ARMISTICE → WAR (the
     # collapse) keeps the ORIGINAL stamp, so the −65 war-age penalty does
@@ -3020,6 +3001,37 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         from backend.game_logic.game_end import title_status_quo_retentions
         title_status_quo_retentions(world, nation_a, nation_b,
                                     old_state, new_state, reason)
+
+    # WIN-D3 "The Road Home" (WAR_WITHDRAWAL_SPEC §3.1). Sited HERE and not
+    # in `cleanup_war_end` for exactly PT-J1's reason: typed conquest-
+    # vassalization and the forced-alliance ARMISTICE arm never reach that
+    # function, and those are the endings most likely to leave armies parked
+    # abroad. One write, every ending. DDB-21 (Pre-Deploy S13b part 4): AFTER
+    # the status quo's titles — a corps on soil the signature just titled to
+    # his court is home (`withdrawal.title_is_home`), and the corridor judged
+    # before the ink dried put him on a road through the enemy's country.
+    #
+    # The mirrored arm below is §3.4's pin: a peace instrument cannot outlive
+    # the peace, so re-entering WAR revokes the corridor at the same seam.
+    if old_state == "WAR" and new_state != "WAR":
+        from backend.game_logic.withdrawal import open_evacuation_corridor
+        open_evacuation_corridor(world, nation_a, nation_b)
+    # Aug 30, 2026 review: ...and again when the TRUCE becomes a peace. The
+    # arm above fires on WAR->ARMISTICE (§5's pin: a truce strands an army
+    # exactly as a peace does), but that grant expires — or is rolled back
+    # outright when nobody was stranded yet — and it is the PEACE, signed
+    # turns later, whose cession clauses actually cut the road home. The
+    # truce-then-treaty route is the one IGR-X3 encourages, so this was the
+    # common case, not the corner: measured shape is a corps in captured
+    # Volhynia whose only road runs through captured Podolia, which the peace
+    # hands back. Cheap when nothing is stranded: the opener re-derives from
+    # the live map and rolls its own provisional grant back.
+    elif old_state == "ARMISTICE" and new_state not in ("WAR", "ARMISTICE"):
+        from backend.game_logic.withdrawal import open_evacuation_corridor
+        open_evacuation_corridor(world, nation_a, nation_b)
+    elif new_state == "WAR" and old_state != "WAR":
+        from backend.game_logic.withdrawal import revoke_evacuation_grant
+        revoke_evacuation_grant(world, nation_a, nation_b)
 
     debug_print(f"DIPLO STATE: {nation_a}-{nation_b}: {old_state} -> {new_state}"
                 f"{' (' + reason + ')' if reason else ''}")
@@ -4718,6 +4730,13 @@ def _conclude_war_objectives(world, diplo_key: str) -> None:
     for nation, obj in objectives.items():
         if obj.get("concluded_turn") is None:
             obj["concluded_turn"] = int(world.current_turn)
+
+
+def conclude_war_objectives_of(world, diplo_key: str) -> None:
+    """DDB-51: the public door to `_conclude_war_objectives` — a war that
+    ends by a road `cleanup_war_end` does not walk (a court's elimination)
+    still concludes its purposes. The series seam (down → a no-op)."""
+    _conclude_war_objectives(world, diplo_key)
 
 
 def _cleanup_old_war_objectives(world) -> None:
@@ -11964,7 +11983,10 @@ def _process_armistice_expiration(world) -> List[Dict]:
                     "pair": client_key, "current_state_before": "ARMISTICE", "final_state": "PEACE"}])
                 count_peace(world, x, y)
             from backend.game_logic.game_end import status_quo_summary_lines as _sq_lines_for
+            from backend.game_logic.game_end import released_prisoner_lines
             _titled_lines = [str(x) for x in (_sq_lines_for(world, _sq_entries, world.player_nation) or []) if x]
+            # DDB-50: the prisoners this peace sent home.
+            _titled_lines += released_prisoner_lines(world, [diplo_key], world.player_nation)
             _titled = " ".join(_titled_lines)
             if dictated:
                 _loser_name = str(exit_.get("loser") or "")
@@ -12066,7 +12088,7 @@ def _process_armistice_expiration(world) -> List[Dict]:
                 ARMISTICE_EXPIRED, create_notification, NotificationPriority,
             )
             world.notifications.add(create_notification(
-                ARMISTICE_EXPIRED, NotificationPriority.CRITICAL,
+                ARMISTICE_EXPIRED, NotificationPriority.HIGH,  # DDB-46: an event
                 "Armistice Collapsed",
                 f"The armistice with {nation_b if nation_a == world.player_nation else nation_a} has collapsed. War resumes!",
                 int(world.current_turn),
