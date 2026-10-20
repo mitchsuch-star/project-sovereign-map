@@ -364,7 +364,8 @@ def _the_pre_step5_bloc_reading(monkeypatch):
 @pytest.fixture(scope="module")
 def courted():
     """The committed courting script, to just past the beat (the court
-    signs at t21 on the landing measurement)."""
+    signed at t21 on the landing measurement; t20 since PC-R7 (ii)'s
+    compensated peace)."""
     return _drive("volte_court_austria.json", 23, "courted", levers=_PRE_SR1D_LEAGUE)
 
 
@@ -530,10 +531,18 @@ class TestT2TheOrdinaryGeometry:
 
     def test_the_measured_geometry(self, courted):
         """The landing measurement, pinned. A later slice that moves the
-        board re-measures this consciously; the derived pins above stay."""
+        board re-measures this consciously; the derived pins above stay.
+
+        Re-measured by PC-R7 (ii) (Pre-Deploy S14 part 1, October 20, 2026):
+        the coalition's letter the driver accepts at turn 4 now carries
+        Austria's compensation ask — her design pointed east, licensed by
+        France, the D5 bonds' relation bonuses with it — so the court is
+        receptive a turn sooner (20 -> 19) and the beat fires at 20 (21).
+        Attributed: the drive with the letter's seam
+        `compensation.letter_compensation_ask` held down reproduces 20 / [21]."""
         assert courted.peace_row()["turn"] == 4
-        assert courted.first_receptive()["turn"] == 20
-        assert [f["turn"] for f in courted.fires if f["fired"]] == [21]
+        assert courted.first_receptive()["turn"] == 19
+        assert [f["turn"] for f in courted.fires if f["fired"]] == [20]
 
 
 class TestT2Negatives:

@@ -5622,7 +5622,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: the War for Franconia — the table with Austria + Britain + Russia (7 pairs resolved). Status quo: Franconia and Swabia stay Austrian by the treaty."
+    "message": "Settlement Ratified: the War for Franconia — the table with Austria + Britain + Russia (7 pairs resolved). Status quo: Franconia and Swabia stay Austrian by the treaty. Prisoners: Mack, our captive, goes home to Vienna under this peace — an Austrian commander back in the field."
    },
    "arm": "SEED-dd1-two",
    "clause": ""
@@ -5655,7 +5655,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: the War for Franconia — the table with Austria + Britain + Russia (7 pairs resolved). Status quo: Franconia and Swabia stay Austrian by the treaty."
+    "message": "Settlement Ratified: the War for Franconia — the table with Austria + Britain + Russia (7 pairs resolved). Status quo: Franconia and Swabia stay Austrian by the treaty. Prisoners: Mack, our captive, goes home to Vienna under this peace — an Austrian commander back in the field."
    },
    "arm": "SEED-dd1-two",
    "clause": ""
@@ -19564,9 +19564,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 8.52,
+ "clone_ms_mean": 8.14,
  "clones": 577,
- "seconds": 35.6,
+ "seconds": 33.1,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

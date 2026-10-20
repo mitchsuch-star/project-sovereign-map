@@ -689,6 +689,17 @@ def _apply_settlement_terms(
                     add_threat(world, int(_CS), "continental_system",
                                target=cs_to)
                     applied.append(dict(term))
+        elif ttype == "territory_compensate":
+            # PC-R7 (ii): the compensation clause — the ONE apply arm both
+            # ratifiers call (`compensation.apply_territory_compensate`); the
+            # rule re-read on the board as it stands, a drop named.
+            from backend.game_logic.compensation import apply_territory_compensate
+            comp_clause, comp_dropped = apply_territory_compensate(
+                world, term, war_instance=_instance)
+            if comp_clause is not None:
+                applied.append(comp_clause)
+            elif comp_dropped is not None:
+                _dropped.append(comp_dropped)
         elif ttype == "liberation":
             lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
             lib_from = str(term.get("lord_nation") or term.get("to") or "")
@@ -1702,8 +1713,10 @@ def ratify_settlement_confirm(
         collect_cessions_from_clauses, record_punitive_cessions,
         revanche_line_after,
     )
+    from backend.game_logic.compensation import compensation_offsets
     _punitive_written = record_punitive_cessions(
-        world, collect_cessions_from_clauses(applied_clauses))
+        world, collect_cessions_from_clauses(applied_clauses),
+        offsets=compensation_offsets(applied_clauses))
     # PC-R1 (v) item 5: "Revanche stands" / "Revanche lapses" — one line on
     # the aftermath, read from the seam the AI reads.
     _revanche_line = revanche_line_after(world, _punitive_written, applied_clauses)

@@ -2846,6 +2846,14 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
     if ctx.event_type == "design_bought_off":
         payer = display_nation(ctx.event.get("payer", "Unknown"))
         recipient = display_nation(ctx.event.get("recipient", "Unknown"))
+        if ctx.event.get("clause") == "territory_compensate":
+            # PC-R7 (ii): the compensation clause, struck at the peace.
+            region = str(ctx.event.get("region") or "")
+            if ctx.event.get("form") == "pointed":
+                title = str(ctx.event.get("design_title") or "its design")
+                return (f"The peace points {recipient} elsewhere: {payer} licenses "
+                        f"{title} ({region}) — her other designs sleep")
+            return f"The peace compensates {recipient} with {region}, {payer}'s"
         return f"{payer} buys off {recipient}'s design — the want sleeps"
 
     if ctx.event_type == "bargain_reneged":

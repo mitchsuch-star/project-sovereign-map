@@ -338,8 +338,10 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     from backend.game_logic.emergent_designs import (
         collect_cessions_from_clauses, record_punitive_cessions,
     )
+    from backend.game_logic.compensation import compensation_offsets
     record_punitive_cessions(
-        world, collect_cessions_from_clauses(applied_clauses))
+        world, collect_cessions_from_clauses(applied_clauses),
+        offsets=compensation_offsets(applied_clauses))
     world.invalidate_war_instance_indexes()
     world.invalidate_bloc_members_cache()
     world.invalidate_active_nations_cache()

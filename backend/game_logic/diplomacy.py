@@ -205,8 +205,10 @@ PERSONALITY_MODIFIERS = {
 # ═══════ SPECIAL ACCEPTANCE BONUSES (§6d) ═══════
 # Checked against proposal clauses
 SPECIAL_BONUSES = {
-    "Prussia": {"territory_saxony": 10},
-    "Austria": {"territory_bavaria": 8},
+    # PC-X30 (S14 part 1): each legacy key beside its 1805 province (Saxony's
+    # seat is Dresden, Bavaria's Munich) — the desire read on both maps.
+    "Prussia": {"territory_saxony": 10, "territory_dresden": 10},
+    "Austria": {"territory_bavaria": 8, "territory_munich": 8},
     "Britain": {"continental_system_lifted": 15},
     "Saxony": {"protection_promised": 10},
 }
@@ -225,6 +227,10 @@ SWEETENER_VALUES = {
     "territory_cede": 8,           # +8 per region (alias for ratification path)
     "open_borders": 3,             # +3 flat
     "protection": 5,               # +5 flat
+    # PC-R7 (ii): the compensation clause — a province paid at the cession
+    # sweetener's rate, a design pointed at protection's (the walk reads
+    # `compensation.bilateral_value`); the registry row keeps the type known.
+    "territory_compensate": 8,
 }
 SWEETENER_CAP = 60                 # R146: was 30, raised to 60 so escalated offers improve acceptance
 
@@ -278,6 +284,7 @@ _MATERIAL_WITHOUT_SCALAR = frozenset({
     "territory", "territory_cede", "create_client", "prisoner_return",
     "forced_alliance", "liberation",
     "continental_system_join",  # the Tilsit clause: a material demand
+    "territory_compensate",  # PC-R7 (ii): a compensation asked is material
 })
 
 
@@ -369,6 +376,9 @@ DEMAND_VALUES = {
     # nothing). In-band tunable; measured at the build: a court at an even
     # war score refuses it, a beaten one signs.
     "continental_system_join": -10,
+    # PC-R7 (ii): a compensation demanded of the target — registry marker;
+    # the value lives in the walk (`compensation.bilateral_value`).
+    "territory_compensate": -5,
 }
 # IGR-D, blessed and in-band tunable. The carve's REAL cost has always been
 # `harshness_penalty`, which already charges it a steep premium (a measured
@@ -5696,8 +5706,11 @@ def build_peace_ratification_summary(
     gold_paid = 0
     for clause in treaty.get("clauses", []):
         ctype = clause.get("type", "")
-        if ctype == "territory_cede":
-            regions = clause.get("regions", [])
+        if ctype == "territory_cede" or (ctype == "territory_compensate"
+                                          and not clause.get("design")):
+            # PC-R7 (ii): a province PAID as compensation is soil moved,
+            # like a cession (the pointed form moves none).
+            regions = clause.get("regions") or ([clause["region"]] if clause.get("region") else [])
             if clause.get("to") == player:
                 territory_gained.extend(regions)
             elif clause.get("from") == player:
@@ -5725,6 +5738,12 @@ def build_peace_ratification_summary(
     # British trade — and a peace that carries only that is no white peace.
     any_system_joined = any(
         clause.get("type") == CONTINENTAL_SYSTEM_JOIN_CLAUSE
+        for clause in treaty.get("clauses", [])
+    )
+    # PC-R7 (ii): a design pointed elsewhere moves no soil, and is still a
+    # material term — no white peace.
+    any_system_joined = any_system_joined or any(
+        clause.get("type") == "territory_compensate" and clause.get("design")
         for clause in treaty.get("clauses", [])
     )
     if war_score >= 30:
@@ -8738,7 +8757,11 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         stype = s.get("type", "")
         svalue = s.get("value", 0)
         rate = SWEETENER_VALUES.get(stype, 0)
-        if stype in ("territory_cede", "territory"):
+        if stype == "territory_compensate":
+            # PC-R7 (ii): a province paid or a design pointed — one price.
+            from backend.game_logic.compensation import bilateral_value as _comp_v
+            sweetener_total += _comp_v(s)
+        elif stype in ("territory_cede", "territory"):
             # Capital regions worth double (+16 vs +8)
             regions = s.get("regions", [])
             if not regions and svalue is None:
@@ -8780,6 +8803,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         rate = DEMAND_VALUES.get(dtype, 0)
         if dtype in ("territory_cede", "territory"):
             continue  # Handled by territory_penalty above
+        elif dtype == "territory_compensate":
+            # PC-R7 (ii): the target pays the proposer a compensation.
+            from backend.game_logic.compensation import bilateral_value as _comp_v
+            demand_total += _comp_v(d, as_demand=True)
         elif dtype == "prisoner_return":
             # W6-7: releasing a prisoner ≈ handing back 500g of leverage
             # (a MAJOR nation's marshal 800g), valued at the gold_lump

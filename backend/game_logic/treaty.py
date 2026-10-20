@@ -215,6 +215,18 @@ def proposal_of(letter: Dict[str, Any], player: str = "") -> Dict[str, Any]:
 # (a) The treaty
 # ═══════════════════════════════════════════════════════════════════════════
 
+def _carry_compensation_stamp(term: Dict[str, Any], clause_entry: Dict[str, Any]) -> None:
+    """PC-R7 (ii): a compensation carries its province and its stamp (the
+    design it points at, the holder) into the clause the ratifier applies."""
+    if term.get("type") != "territory_compensate":
+        return
+    for key in ("region", "design", "design_title", "holder"):
+        if term.get(key):
+            clause_entry[key] = term[key]
+    if not clause_entry.get("regions") and term.get("region"):
+        clause_entry["regions"] = [term["region"]]
+
+
 def treaty_clauses_of(proposal: Dict[str, Any], proposer: str, target: str) -> List[Dict[str, Any]]:
     """The clause list the ratifier builds from a proposal's sweeteners and
     demands — ONE builder, read by the ratifier (which applies them) and by
@@ -228,12 +240,13 @@ def treaty_clauses_of(proposal: Dict[str, Any], proposer: str, target: str) -> L
             "to": target,
             "amount": int(s.get("value", 0) or 0),
         }
-        if s.get("type") == "territory_cede" and "regions" in s:
+        if s.get("type") in ("territory_cede", "territory_compensate") and "regions" in s:
             clause_entry["regions"] = s["regions"]
         # W6-7: `marshal` rides prisoner_return clauses.
         for extra_key in ("named_enemy", "claim_region", "claim_holder", "marshal", "marshals"):
             if extra_key in s:
                 clause_entry[extra_key] = s[extra_key]
+        _carry_compensation_stamp(s, clause_entry)
         treaty_clauses.append(clause_entry)
     for d in proposal.get("demands", []) or []:
         clause_entry = {
@@ -242,8 +255,9 @@ def treaty_clauses_of(proposal: Dict[str, Any], proposer: str, target: str) -> L
             "to": proposer,
             "amount": int(d.get("value", 0) or 0),
         }
-        if d.get("type") == "territory_cede" and "regions" in d:
+        if d.get("type") in ("territory_cede", "territory_compensate") and "regions" in d:
             clause_entry["regions"] = d["regions"]
+        _carry_compensation_stamp(d, clause_entry)
         # WPS-C: Carry over extra fields for forced_alliance/liberation
         if "from_nation" in d:
             clause_entry["from"] = d["from_nation"]

@@ -626,7 +626,12 @@ def _evaluate_proposer_side_reactions(
                 world, war_id, proposer_side, ally, settlement_terms,
             )
         )
-        if standing == "no_standing":
+        # PC-R7 (ii): a province of this ally PAYS the compensation (the
+        # leader's article in the ally's coin — Würzburg at Pressburg).
+        paid_regions = [str(t.get("region") or "") for t in settlement_terms or []
+                        if isinstance(t, Mapping) and t.get("type") == "territory_compensate"
+                        and str(t.get("from") or "") == ally and not t.get("design")]
+        if standing == "no_standing" and not paid_regions:
             # Spec §14.4: minor / no-standing participants only react when
             # survival, capital, promise, or territory directly named.
             continue
@@ -679,7 +684,14 @@ def _evaluate_proposer_side_reactions(
             standing == "seat" or material_share >= 0.20
         ) and not zero_material_major
 
-        if zero_material_major:
+        if paid_regions:
+            # PC-R7 (ii): made to pay the enemy's compensation with nothing
+            # gained by the same peace — the major shut-out, named. (Paid AND
+            # rewarded — the Pressburg exchange — took the beneficiary arm.)
+            relation_hit = RELATION_SHUT_OUT_MAJOR_HIT
+            severity = "paid_for_the_peace"
+            grievance_flag_added = True
+        elif zero_material_major:
             relation_hit = RELATION_ZERO_MATERIAL_MAJOR_HIT
             severity = "minor_shut_out_major_zero_material"
             grievance_flag_added = False
@@ -725,6 +737,7 @@ def _evaluate_proposer_side_reactions(
         reactions.append({
             "kind": "ally_shut_out",
             "ally": ally,
+            "paid_regions": list(paid_regions),
             "standing_level": standing,
             "severity": severity,
             "relation_delta": relation_hit,
@@ -846,7 +859,13 @@ def _evaluate_bargain_outcomes(
     for term in settlement_terms or []:
         if term.get("type") != "territory_cede":
             continue
-        for region in term.get("regions") or []:
+        # PC-X32 (S14 part 1): the table's canonical cession carries a
+        # SINGULAR `region` — reading only the `regions` list left every
+        # table award of a claim province to the wrong court unseen.
+        regions = list(term.get("regions") or [])
+        if term.get("region") and term.get("region") not in regions:
+            regions.append(term.get("region"))
+        for region in regions:
             awarded_by_region[str(region)] = term
     if not awarded_by_region:
         return out

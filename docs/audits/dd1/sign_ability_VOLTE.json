@@ -5099,7 +5099,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: the War for Bohemia — the table with Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty."
+    "message": "Settlement Ratified: the War for Bohemia — the table with Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty. Prisoners: Mack, our captive, goes home to Vienna under this peace — an Austrian commander back in the field. Prisoners: Teulie comes home to Paris under this peace."
    },
    "arm": "VOLTE",
    "clause": ""
@@ -5131,7 +5131,7 @@
      "France|Russia"
     ],
     "verdict": "signed",
-    "message": "Settlement Ratified: the War for Bohemia — the table with Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty."
+    "message": "Settlement Ratified: the War for Bohemia — the table with Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia stays ours by the treaty — titled. Status quo: Carniola, Hungary, Moravia and Tyrol stay Bavarian by the treaty. Prisoners: Mack, our captive, goes home to Vienna under this peace — an Austrian commander back in the field. Prisoners: Teulie comes home to Paris under this peace."
    },
    "arm": "VOLTE",
    "clause": ""
@@ -17445,9 +17445,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 8.42,
+ "clone_ms_mean": 8.27,
  "clones": 476,
- "seconds": 36.3,
+ "seconds": 34.7,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

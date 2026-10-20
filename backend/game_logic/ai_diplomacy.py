@@ -1299,6 +1299,10 @@ def dictated_letter_words(world, demands: List[Dict]) -> str:
             bits.append(f"an alliance imposed by {_fdn(world, str(d.get('to_nation') or ''))}")
         elif d.get("type") == "continental_system_join":
             bits.append("the Continental System kept")
+        elif d.get("type") == "territory_compensate":
+            # PC-R7 (ii)
+            from backend.game_logic.compensation import compensation_words
+            bits.append(compensation_words(d))
     return "; ".join(bits)
 
 
@@ -1322,6 +1326,8 @@ def settlement_terms_words(world, terms: List[Dict]) -> str:
             demands.append({"type": "forced_alliance", "value": 1, "to_nation": str(t.get("to") or "")})
         elif tt == "continental_system_join":
             demands.append({"type": "continental_system_join", "value": 1})
+        elif tt == "territory_compensate":
+            demands.append(dict(t))
     return dictated_letter_words(world, demands)
 
 
@@ -5097,6 +5103,21 @@ def _settlement_offer_build_terms(
             "to": payee,
             "amount": int(amount),
         })
+
+    # PC-R7 (ii) — GR5: the beaten court's letter TO THE PLAYER asks for the
+    # compensation the player's own table may write — its design pointed
+    # elsewhere, where its desire profile prizes territory (Austria's Eastern
+    # Question; Russia's Gulf and Straits — Tilsit's free hand). The player
+    # answers it as any clause (accept, revise, strike). The AI-to-AI suit
+    # does not carry it: there the winner signs any suit past P1 unpriced, so
+    # an ask would be granted free (`compensation.letter_compensation_ask`
+    # is the seam the series attribution holds down).
+    if (world is not None and payer == proposer_nation
+            and accepter == getattr(world, "player_nation", None)):
+        from backend.game_logic.compensation import letter_compensation_ask
+        ask = letter_compensation_ask(world, writer=proposer_nation, payer=accepter)
+        if ask is not None:
+            terms.append(ask)
 
     # NA-6c §11.6-6 (the Normandy mirror): when the AI is the DECISIVE
     # victor, it may also erect a client state out of the player's soil —

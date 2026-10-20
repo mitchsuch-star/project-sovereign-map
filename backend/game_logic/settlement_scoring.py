@@ -141,6 +141,18 @@ CANONICAL_CLAUSE_TYPES = {
     # the name three reaction sets had already reserved for it
     # (`settlement_reactions`, `settlement_offers`, `settlement_presentation`).
     "continental_system_join": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
+    # PC-R7 (ii) — ruling J's compensation clause (`compensation.py`, the ONE
+    # module that owns it): from = the court that PAYS, to = the court
+    # compensated, `region` = the province — paid (it changes hands: a third
+    # party's province the payer holds) or pointed (a court outside the war
+    # holds it: the compensated court's design is recognised and licensed).
+    # `design` / `design_title` / `holder` are the denormalised stamp the
+    # world-less consumers read (the price, the words); the ratifiers re-read
+    # the board (the create_client idiom).
+    "territory_compensate": {
+        "required": {"type", "from", "to", "region"},
+        "optional": {"authored_by", "design", "design_title", "holder"},
+    },
 }
 
 # G2-Slice-1 live MVP clause types.
@@ -173,10 +185,14 @@ GOLD_PER_TURN_MIN_AMOUNT = 10
 GOLD_PER_TURN_MIN_TURNS = 1
 GOLD_PER_TURN_MAX_TURNS = 20
 
+# PC-R7 (ii) (S14 part 1, October 20, 2026): the compensation clause.
+SETTLEMENT_COMPENSATION_CLAUSE_TYPES = frozenset({"territory_compensate"})
+
 SETTLEMENT_LIVE_CLAUSE_TYPES = frozenset(
     SETTLEMENT_MVP_CLAUSE_TYPES
     | SETTLEMENT_DEPENDENCY_CLAUSE_TYPES
     | SETTLEMENT_RECURRING_GOLD_CLAUSE_TYPES
+    | SETTLEMENT_COMPENSATION_CLAUSE_TYPES
 )
 
 CLAUSE_CONTROL_SCHEMA = {
@@ -644,6 +660,7 @@ _BURDEN_TERM_TYPES = (
     "vassal_transfer",  # VS-5: burdens `from` (the lord losing the vassal)
     "create_client",    # NA-6c: burdens `from` (the court whose soil is carved)
     "continental_system_join",  # the Tilsit clause: burdens `from` (the court that joins)
+    "territory_compensate",  # PC-R7 (ii): burdens `from` (the court that pays)
 )
 
 
@@ -684,7 +701,11 @@ def _term_regions(term: Mapping[str, Any]) -> List[str]:
 # cession that happens to erect a flag on the way out; `create_client` keys
 # its provinces as `provinces` rather than `region`/`regions`, which is why
 # three separate `!= "territory_cede"` guards silently skipped it.
-CESSION_SHAPED_CLAUSE_TYPES = frozenset({"territory_cede", "create_client"})
+CESSION_SHAPED_CLAUSE_TYPES = frozenset({"territory_cede", "create_client",
+                                         # PC-R7 (ii): a province paid leaves
+                                         # the payer's hands (an estate on it
+                                         # is warned like a cession's)
+                                         "territory_compensate"})
 
 
 def cession_shaped_regions(term: Mapping[str, Any]) -> List[str]:
@@ -729,7 +750,7 @@ def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]],
             return True
         if ttype in ("forced_alliance", "liberation", "vassalage",
                      "subjugation", "vassal_transfer", "create_client",
-                     "continental_system_join"):
+                     "continental_system_join", "territory_compensate"):
             return True
         # Any concrete numeric demand counts as non-trivial.
         if t.get("amount") or t.get("value"):
@@ -1315,6 +1336,10 @@ def _select_relevant_objective(
                 # its soil and its sovereignty, and gives up its British
                 # trade) — the harshness accumulator's own 0.2.
                 enemy_costs[from_n] += 0.2
+            elif ttype == "territory_compensate":
+                # PC-R7 (ii): the accumulator's own weight on the payer.
+                from backend.game_logic.compensation import harshness as _ch
+                enemy_costs[from_n] += _ch(term)
     harshest_target: Optional[str]
     if any(v > 0 for v in enemy_costs.values()):
         harshest_target = max(enemy_costs.items(), key=lambda kv: (kv[1], kv[0]))[0]
@@ -1603,6 +1628,12 @@ def _concession_credit_for_term(
                 + CONCESSION_DEPENDENCY_CREDIT)
     if ttype == "forced_alliance":
         return CONCESSION_FORCED_ALLIANCE_CREDIT
+    if ttype == "territory_compensate":
+        # PC-R7 (ii): a province paid is a province gained (the offer's
+        # rate); a design pointed is a promise (that rate at the promise
+        # ratio) — `compensation.table_credit`, the one price.
+        from backend.game_logic.compensation import table_credit
+        return table_credit(term)
     return 0
 
 

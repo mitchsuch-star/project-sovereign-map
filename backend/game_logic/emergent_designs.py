@@ -177,7 +177,8 @@ EMERGENT_DESIGN_TITLE = "Revanche"
 
 # ═══════════════════ the durable punitive record ═════════════════════════
 
-def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]]) -> List[Dict]:
+def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]],
+                             offsets: Optional[Dict[str, int]] = None) -> List[Dict]:
     """Write durable `punitive_settlement` memories for every victim whose
     losses in ONE settlement meet the punitive bar. `cessions` maps
     victim -> ordered (province, receiver) pairs; the recorded author is
@@ -194,8 +195,15 @@ def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]]) 
     another must blame the court that took the homeland — the record is
     durable and feeds the volte-face foreclosure forever).
 
+    PC-R7 (ii): `offsets` (`compensation.compensation_offsets` over the
+    same applied clauses) — each compensation the victim receives in the
+    instrument strikes one ceded homeland province from the count, never the
+    capital: a compensated cession is not a partition (Pressburg's Salzburg
+    for Tyrol).
+
     Called from all three ratify seams. Returns the records written."""
     from backend.game_logic.settlement_reactions import _add_settlement_memory
+    from backend.game_logic.compensation import net_of_compensation
     written: List[Dict] = []
     for victim, pairs in cessions.items():
         if not victim or not pairs:
@@ -203,6 +211,11 @@ def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]]) 
         homeland = set((getattr(world, "nation_starting_regions", {}) or {})
                        .get(victim, []) or [])
         homeland_pairs = [(p, r) for p, r in pairs if p in homeland]
+        if not homeland_pairs:
+            continue
+        netted = set(net_of_compensation(
+            world, victim, [p for p, _r in homeland_pairs], int((offsets or {}).get(victim, 0) or 0)))
+        homeland_pairs = [(p, r) for p, r in homeland_pairs if p in netted]
         if not homeland_pairs:
             continue
         provinces = [p for p, _r in homeland_pairs]
@@ -261,21 +274,43 @@ def revanche_line_for_terms(world, terms) -> str:
     "Revanche stands". A smaller confirmed cession RECONCILES the Revanche
     while the treaty holds: "Revanche lapses". '' with no cession."""
     from backend.display_names import humanize_entity_name as _h
+    from backend.game_logic.compensation import compensation_offsets, compensation_phrase, net_of_compensation
+    offsets = compensation_offsets(terms)
+    paid = _compensation_words_by_court(terms, compensation_phrase)
     lines: List[str] = []
     for victim, provinces in sorted(_cession_victims(world, terms).items()):
         capital = world.get_nation_capital(victim)
-        punitive = (len(set(provinces)) >= PUNITIVE_SETTLEMENT_MIN_PROVINCES
-                    or (capital and capital in provinces))
+        ceded = sorted(set(provinces))
+        net = net_of_compensation(world, victim, ceded, int(offsets.get(victim, 0) or 0))
+        punitive = (len(set(net)) >= PUNITIVE_SETTLEMENT_MIN_PROVINCES
+                    or (capital and capital in net))
         if punitive:
             lines.append(
                 f"Revanche stands: this peace strips {_h(victim)} of "
-                f"{', '.join(sorted(set(provinces)))} — a punitive record; her volte-face "
-                f"is foreclosed and her Revanche is promoted.")
+                f"{', '.join(ceded)} — a punitive record; her volte-face "
+                f"is foreclosed and her Revanche is promoted."
+                + (" The compensation does not undo it." if paid.get(victim) else ""))
+        elif paid.get(victim):
+            # PC-R7 (ii): the moderate peace — the cession paid for.
+            lines.append(
+                f"Revanche lapses: {_h(victim)}'s cession of {', '.join(ceded)} is compensated "
+                f"{'; '.join(paid[victim])} — her Revanche is reconciled while the treaty holds.")
         else:
             lines.append(
-                f"Revanche lapses: {_h(victim)}'s cession of {', '.join(sorted(set(provinces)))} "
+                f"Revanche lapses: {_h(victim)}'s cession of {', '.join(ceded)} "
                 f"reconciles her Revanche while the treaty holds.")
     return " ".join(lines)
+
+
+def _compensation_words_by_court(terms, words) -> Dict[str, List[str]]:
+    """court -> the words of every compensation it receives (PC-R7 ii)."""
+    out: Dict[str, List[str]] = {}
+    for t in terms or []:
+        if isinstance(t, dict) and t.get("type") == "territory_compensate":
+            court = str(t.get("to") or t.get("to_nation") or "")
+            if court:
+                out.setdefault(court, []).append(words(t))
+    return out
 
 
 def revanche_line_after(world, written: List[Dict], applied_clauses) -> str:
@@ -294,8 +329,17 @@ def revanche_line_after(world, written: List[Dict], applied_clauses) -> str:
                 f"Revanche stands: the peace stripped {_h(victim)} of "
                 f"{', '.join(provinces)} — a punitive record; her volte-face is "
                 f"foreclosed and her Revanche is promoted.")
+    from backend.game_logic.compensation import compensation_phrase
+    paid = _compensation_words_by_court(applied_clauses, compensation_phrase)
     for victim, provinces in sorted(_cession_victims(world, applied_clauses).items()):
         if victim in punished:
+            continue
+        if paid.get(victim):
+            # PC-R7 (ii): the moderate peace, as written.
+            lines.append(
+                f"Revanche lapses: {_h(victim)}'s cession of {', '.join(sorted(set(provinces)))} "
+                f"is compensated {'; '.join(paid[victim])} — her Revanche is reconciled "
+                f"while the treaty holds.")
             continue
         lines.append(
             f"Revanche lapses: {_h(victim)}'s cession of {', '.join(sorted(set(provinces)))} "

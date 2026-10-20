@@ -861,6 +861,7 @@ _DEMAND_ADDABLE_CLAUSE_TYPES = frozenset({
     "vassal_transfer",  # VS-5 (July 16, 2026) — demand-only
     "create_client",    # NA-6c (July 19, 2026) — demand-only
     "continental_system_join",  # the Tilsit clause (Score Finish Step 7) — demand-only
+    "territory_compensate",  # PC-R7 (ii) — offer-only (the victor's side pays)
 })
 
 
@@ -869,6 +870,7 @@ _DEMAND_ADDABLE_CLAUSE_TYPES = frozenset({
 # cannot force the victor; France self-vassalage is not a player verb).
 _DEMAND_OFFERABLE_CLAUSE_TYPES = frozenset({
     "territory_cede", "gold_indemnity", "gold_per_turn",
+    "territory_compensate",  # PC-R7 (ii): paid to a court, never demanded of it
 })
 
 
@@ -936,6 +938,10 @@ def _demand_clause_label(clause: Mapping[str, Any]) -> str:
     if ttype == "continental_system_join":
         # The Tilsit clause.
         return f"{clause.get('from')}'s entry into the Continental System"
+    if ttype == "territory_compensate":
+        # PC-R7 (ii).
+        from backend.game_logic.compensation import short_label
+        return short_label(clause)
     return ttype.replace("_", " ") or "the clause"
 
 
@@ -1216,6 +1222,13 @@ def _handle_settlement_demand_action(
             "That term can only be demanded of a court, Sire — never "
             "offered.",
         )
+    if group == "demand" and clause_type == "territory_compensate":
+        # PC-R7 (ii): the compensation flows from the side that dictates to
+        # the side that cedes.
+        return _fail(
+            "compensation_is_paid",
+            "A compensation is paid to a court, Sire — never demanded of it.",
+        )
 
     promised = _promised_regions_in_terms(terms)
     proposer_participants = [
@@ -1492,6 +1505,18 @@ def _handle_settlement_demand_action(
             "provinces": list(template_provinces(get_template(world, template_id))),
             "client_display_name": str(identity.get("display_name") or template_id),
         }
+    elif clause_type == "territory_compensate":
+        # PC-R7 (ii): MUST sit above the trailing `else` (liberation). The
+        # payer is the province's holder (paid) or our leader (pointed) —
+        # `compensation.author_clause`, the rule's own reading.
+        from backend.game_logic.compensation import author_clause
+        comp_clause, comp_code, comp_display = author_clause(
+            world, court=court, region=str(action_params.get("region") or ""),
+            war_instance=war_instance, proposer_participants=proposer_participants,
+            proposer_leader=proposer_leader, promised=promised)
+        if comp_clause is None:
+            return _fail(comp_code, comp_display)
+        clause = comp_clause
     elif clause_type == "continental_system_join":
         # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6):
         # the court keeps the System — no alliance. MUST sit above the

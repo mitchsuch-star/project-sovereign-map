@@ -161,13 +161,17 @@ class TestClauseControlSchema:
         # pre-G2-Slice-9 invariant
         # `SETTLEMENT_LIVE_CLAUSE_TYPES == MVP | DEPENDENCY`
         # is inverted to also include the recurring-gold set.
+        # PC-R7 (ii) (Pre-Deploy S14 part 1, October 20, 2026): the
+        # compensation clause joins the live set as its own family.
         from backend.game_logic.settlement_scoring import (
+            SETTLEMENT_COMPENSATION_CLAUSE_TYPES,
             SETTLEMENT_RECURRING_GOLD_CLAUSE_TYPES,
         )
         assert SETTLEMENT_LIVE_CLAUSE_TYPES == (
             SETTLEMENT_MVP_CLAUSE_TYPES
             | SETTLEMENT_DEPENDENCY_CLAUSE_TYPES
             | SETTLEMENT_RECURRING_GOLD_CLAUSE_TYPES
+            | SETTLEMENT_COMPENSATION_CLAUSE_TYPES
         )
 
     def test_gold_per_turn_is_live_after_sc33(self):

@@ -444,6 +444,8 @@ CLAUSE_TYPE_DISPLAY = {
     "create_client": "Client state erected",
     # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6).
     "continental_system_join": "Joins the Continental System",
+    # PC-R7 (ii): ruling J's compensation clause.
+    "territory_compensate": "Compensation",
     # GE-3: a beaten great power's peace offer during the sitting carries
     # the recognition clause (`ai_diplomacy`, the Congress sue arm) — the
     # popup reads "Clause: Recognition of the Congress of Paris", never the
@@ -1055,6 +1057,27 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
     "clause_side_mismatch": "A clause's giving and receiving courts must be on opposite sides of the war.",
     # PC-F52: a cession the ceder no longer holds, and no court of the receiving side holds either.
     "ceder_does_not_hold": "The ceding court no longer holds that province, and no court on the receiving side holds it — the cession cannot carry.",
+    # PC-R7 (ii): the compensation clause's refusals (`compensation.compensation_reading`
+    # carries the named sentence; these are the generic fallbacks).
+    "compensation_region_unknown": "Name a province to pay the compensation in.",
+    "compensation_parties_invalid": "A compensation is paid by one court to another.",
+    "compensation_capital": "No court pays a peace in a capital.",
+    "compensation_is_a_return": "That province is the compensated court's own soil — offer it back with a cession.",
+    "compensation_already_held": "The compensated court already holds that province.",
+    "compensation_same_side": "A compensation is paid across the war — the two courts stand on one side.",
+    "compensation_holder_is_theirs": "That province is held on the compensated court's own side.",
+    "compensation_payer_does_not_hold": "Only the court that holds a province can pay it.",
+    "compensation_victors_own_soil": "That province is the victor's own soil — offer it with a cession.",
+    "compensation_not_on_her_frontier": "A court is paid where it can hold it — that province does not border its soil.",
+    "compensation_no_design": "The compensated court has no design on that province.",
+    "compensation_licence_is_the_leaders": "Only the side's leader can license a design.",
+    "compensation_design_asleep": "That design is already bought off.",
+    "compensation_aim_guaranteed": "We guarantee the court that holds that province.",
+    "compensation_aim_is_ours": "That province is held under our own hand.",
+    "compensation_form_mismatch": "The board no longer reads this compensation as it was written.",
+    "compensation_no_candidate": "There is nothing to pay the compensation in.",
+    "compensation_is_paid": "A compensation is paid to a court, never demanded of it.",
+    "compensation_promised_by_bargain": "That province is promised to an ally by our war bargain.",
     # SC-3/SC-4 ratification gate codes
     "acceptance_rejected": "The accepting side has rejected these terms.",
     "acceptance_blocked": "A hard stop prevents ratification of these terms.",
@@ -1709,6 +1732,11 @@ def _format_clause_detail(clause) -> str:
 
 
 def _format_popup_clause_line(prefix: str, clause_type: str, clause) -> str:
+    if clause_type == "territory_compensate" and isinstance(clause, dict):
+        # PC-R7 (ii): the clause's own words — the pointed form names its
+        # design (the generic detail would read it as a province paid).
+        from backend.game_logic.compensation import compensation_words
+        return f"{prefix}: {compensation_words(clause)}"
     label = clause_display_name(clause_type)
     detail = _format_clause_detail(clause)
     term = stream_term_phrase(clause)  # DDB-23
@@ -1814,6 +1842,10 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
             # closes its ports to British trade — no alliance.
             lines.append(f"{target_label} joins the Continental System "
                          f"(its ports close to British trade; no alliance)")
+        elif demand_type == "territory_compensate":
+            # PC-R7 (ii): the compensation asked of the target.
+            from backend.game_logic.compensation import compensation_words
+            lines.append(compensation_words(demand))
         else:
             detail = _format_clause_detail(demand)
             detail_suffix = f" ({detail})" if detail else ""
@@ -1837,6 +1869,12 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
             lines.append(f"France provides {int(value)} artillery reserves")
         elif sweetener_type == "ap_per_turn":
             lines.append(f"France concedes {int(value)} AP/turn{stream_term_phrase(sweetener)}")
+        elif sweetener_type == "territory_compensate":
+            # PC-R7 (ii): the compensation France pays.
+            from backend.game_logic.compensation import compensation_words
+            lines.append(compensation_words(dict(sweetener, **{
+                "from": sweetener.get("from") or terms.get("proposer_nation") or "France",
+                "to": sweetener.get("to") or target_nation or terms.get("target_nation") or ""})))
         else:
             detail = _format_clause_detail(sweetener)
             detail_suffix = f" ({detail})" if detail else ""
@@ -1868,6 +1906,10 @@ def format_proposal_summary(terms: dict) -> str:
             parts.append(f"  - {proposer} grants open borders")
         elif sweetener_type == "protection":
             parts.append(f"  - {proposer} offers protection guarantee")
+        elif sweetener_type == "territory_compensate":
+            # PC-R7 (ii)
+            from backend.game_logic.compensation import compensation_words
+            parts.append("  - " + compensation_words(dict(sweetener, **{"from": proposer, "to": target})))
         else:
             detail = _format_clause_detail(sweetener)
             label = clause_display_name(sweetener_type).lower()
@@ -1887,6 +1929,11 @@ def format_proposal_summary(terms: dict) -> str:
             detail = _format_clause_detail(demand)
             suffix = detail if detail else "territory"
             parts.append(f"  - {proposer} demands {suffix}")
+        elif demand_type == "territory_compensate":
+            # PC-R7 (ii): the compensation the proposer asks of the target
+            from backend.game_logic.compensation import compensation_words
+            parts.append("  - " + compensation_words(dict(demand, **{
+                "from": demand.get("from_nation") or target, "to": demand.get("to_nation") or proposer})))
         else:
             detail = _format_clause_detail(demand)
             label = clause_display_name(demand_type).lower()
@@ -1922,6 +1969,9 @@ def summarize_proposal(proposal: dict) -> str:
             parts.append(f"{int(demand.get('value', 1))} AP/turn{stream_term_phrase(demand)}")
         elif demand_type == "unit_trade":
             parts.append(f"{int(demand.get('value', 0))} units")
+        elif demand_type == "territory_compensate":
+            from backend.game_logic.compensation import compensation_words
+            parts.append(compensation_words(demand))  # PC-R7 (ii)
         else:
             detail = _format_clause_detail(demand)
             label = clause_display_name(demand_type).lower()
@@ -1934,6 +1984,9 @@ def summarize_proposal(proposal: dict) -> str:
         sweetener_type = str(sweetener.get("type", "")).strip().lower()
         if sweetener_type == "gold_per_turn":
             parts.append(f"offer {int(sweetener.get('value', 0))} gold/turn")
+        elif sweetener_type == "territory_compensate":
+            from backend.game_logic.compensation import compensation_words
+            parts.append("offer " + compensation_words(sweetener))  # PC-R7 (ii)
         else:
             detail = _format_clause_detail(sweetener)
             label = clause_display_name(sweetener_type).lower()

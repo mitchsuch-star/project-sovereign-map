@@ -3160,7 +3160,11 @@ NATION_DESIRE_PROFILES = {
         "weakness": "overextension",
     },
     "Austria": {
-        "covets_regions": ["Bavaria", "Tyrol", "Bohemia"],
+        # PC-X30 (S14 part 1): "Bavaria" is the legacy 19-region map's
+        # province; on the 1805 map the electorate's seat is Munich — both
+        # kept, so each world reads its own (the legacy fixtures and the
+        # live campaign).
+        "covets_regions": ["Bavaria", "Munich", "Tyrol", "Bohemia"],
         "values_gold": "medium",
         "values_territory": "high",
         "values_ap": "low",
@@ -3168,7 +3172,9 @@ NATION_DESIRE_PROFILES = {
         "weakness": "pride",
     },
     "Britain": {
-        "covets_regions": ["Netherlands", "Hanover"],
+        # PC-X30: "Netherlands" is the legacy map's; the 1805 map's Scheldt
+        # is Brabant (Antwerp) — the Low Countries design's own province.
+        "covets_regions": ["Netherlands", "Brabant", "Hanover"],
         "values_gold": "low",
         "values_territory": "medium",
         "values_ap": "medium",
@@ -4684,6 +4690,11 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             # the court keeps its soil and its sovereignty and gives up its
             # British trade.
             harshness += 0.2
+        elif ctype == "territory_compensate":
+            # PC-R7 (ii): on the court that PAYS — a province paid weighs a
+            # cession's 0.3, a licence 0.1 (`compensation.harshness`).
+            from backend.game_logic.compensation import harshness as _comp_h
+            harshness += _comp_h(clause)
         elif ctype == "gold_lump":
             # FA-N45 (slice 10): the four types below were priced in the
             # DEMANDS dialect and fell through unmatched in the CLAUSES one —
@@ -4745,6 +4756,11 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             harshness += (0.3 * _create_client_province_count(demand)) + 0.15
         elif dtype == "continental_system_join":
             harshness += 0.2  # the Tilsit clause — mirrors the clause branch above
+        elif dtype == "territory_compensate":
+            # PC-R7 (ii) — mirrors the clause branch above (the G4F-1 rule:
+            # a type registered in one dialect only prices at zero in the other).
+            from backend.game_logic.compensation import harshness as _comp_h
+            harshness += _comp_h(demand)
     return harshness
 
 
@@ -4886,6 +4902,9 @@ _TERM_DISPLAY_LABELS = {
     # W6-7 Marshal Fates: ransom clause summary. Marshal-name-free — the
     # shared label formatter only carries nation/detail/value kwargs.
     "prisoner_return": "{from_nation} releases {detail} to {to_nation}",
+    # PC-R7 (ii): the compensation clause — `annotate_peace_terms` writes the
+    # pointed form's words over this (`compensation.compensation_words`).
+    "territory_compensate": "{to_nation} compensated with {detail} ({from_nation}'s)",
 }
 
 
@@ -5030,6 +5049,12 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                 stype, proposer_nation, target_nation, regions, value, vassal_nation,
                 turns=_safe_int(sweetener.get("turns", 0))),
         })
+        if stype == "territory_compensate":
+            # PC-R7 (ii): the clause's own words (the pointed form names
+            # the design it recognises).
+            from backend.game_logic.compensation import compensation_words
+            annotated[-1]["display_label"] = compensation_words(
+                dict(sweetener, **{"from": proposer_nation, "to": target_nation}))
 
     for demand in terms.get("demands", []):
         if not isinstance(demand, dict):
@@ -5060,6 +5085,10 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
                 target_nation, _to_display, regions, value, vassal_nation,
                 turns=_safe_int(demand.get("turns", 0))),
         })
+        if dtype == "territory_compensate":
+            from backend.game_logic.compensation import compensation_words
+            annotated[-1]["display_label"] = compensation_words(
+                dict(demand, **{"from": target_nation, "to": _to_display}))
 
     for clause in terms.get("clauses", []):
         if isinstance(clause, str):

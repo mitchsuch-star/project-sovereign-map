@@ -355,6 +355,7 @@ SUBSTANTIVE_NON_INDEMNITY_TYPES: frozenset = frozenset(
         "create_client",
         "vassal_transfer",
         "gold_per_turn",
+        "territory_compensate",  # PC-R7 (ii)
     }
 )
 
@@ -2825,6 +2826,10 @@ def offer_substance_clause(world: Any, settlement_terms: Iterable[Mapping[str, A
             parts.append(f"{_fdn(world, frm)} cedes {region}" + (f" to {_fdn(world, to)}" if to else ""))
         elif ttype == "continental_system_join":
             parts.append(f"{_fdn(world, frm)} enters the Continental System")
+        elif ttype == "territory_compensate":
+            # PC-R7 (ii): the moderate peace's article, named on the rail
+            from backend.game_logic.compensation import compensation_words
+            parts.append(compensation_words(term))
         elif ttype == "forced_alliance":
             parts.append(f"{_fdn(world, frm)} is bound in alliance to {_fdn(world, to)}")
         elif ttype in ("vassalage", "subjugation"):

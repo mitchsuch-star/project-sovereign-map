@@ -822,7 +822,11 @@ def _proposal_territory_content(proposal: Dict) -> Tuple[set, set]:
     def _regions_of(item) -> List[str]:
         if not isinstance(item, dict):
             return []
-        if item.get("type") not in ("territory_cede", "territory"):
+        if item.get("type") not in ("territory_cede", "territory") and not (
+                # PC-R7 (ii): a province PAID as compensation is soil the
+                # target receives (a design pointed is priced by its credit,
+                # never read as soil).
+                item.get("type") == "territory_compensate" and not item.get("design")):
             return []
         names = list(item.get("regions") or [])
         single = item.get("region")
@@ -1165,6 +1169,12 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
     territory_kinds = ("territory", "territory_cede", "territory_return",
                        "create_client")
 
+    def _soil_term(term) -> bool:
+        # PC-R7 (ii): a province PAID as compensation moves soil (the
+        # pointed form is a promise, priced by its credit — never soil).
+        return term.get("type") in territory_kinds or (
+            term.get("type") == "territory_compensate" and not term.get("design"))
+
     def _regions_of(term) -> List[str]:
         regions = term.get("regions")
         if isinstance(regions, (list, tuple)) and regions:
@@ -1188,7 +1198,7 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
 
     # ── ADVANCE ── (only the LIVE design — nothing left to advance on a won one)
     for term in terms if view is not None else ():
-        if term.get("type") not in territory_kinds:
+        if not _soil_term(term):
             continue
         to_nation = term.get("to_nation") or term.get("to")
         matched = [targets_lower[n.lower()] for n in _regions_of(term)
@@ -1212,7 +1222,7 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
     for won_view in won:
         strip_lower.update({r.lower(): r for r in won_view.regions})
     for term in terms:
-        if term.get("type") not in territory_kinds:
+        if not _soil_term(term):
             continue
         from_nation = term.get("from_nation") or term.get("from")
         if from_nation != court:

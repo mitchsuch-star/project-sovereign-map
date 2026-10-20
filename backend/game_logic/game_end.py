@@ -1959,7 +1959,10 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
     # a carve counts only from the APPLIED list.
     for term in signed + applied:
         ttype = term.get("type")
-        if ttype in ("territory_cede", "territory"):
+        # PC-R7 (ii): a province PAID as compensation is ceded / gained like
+        # a cession (the pointed form moves no soil).
+        if ttype in ("territory_cede", "territory") or (
+                ttype == "territory_compensate" and not term.get("design")):
             names = _territory_term_regions(term)
             if term.get("from") == player:
                 ceded.update(r for r in names if not _ours(r))

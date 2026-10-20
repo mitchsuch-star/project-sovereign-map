@@ -1147,7 +1147,10 @@ _CROSS_SIDE_TRANSFER_CLAUSE_TYPES = frozenset(
      "create_client",
      # The Tilsit clause: the court that joins and the court that imposes
      # the System stand on opposite sides, like a forced alliance.
-     "continental_system_join"}
+     "continental_system_join",
+     # PC-R7 (ii): the court that pays and the court compensated stand on
+     # opposite sides — the victor's side pays the loser.
+     "territory_compensate"}
 )
 
 
@@ -1371,7 +1374,8 @@ def validate_settlement_terms(
     seen_regions: Dict[str, int] = {}
     for idx, clause in enumerate(terms):
         ctype = clause.get("type")
-        if ctype == "territory_cede":
+        if ctype in ("territory_cede", "territory_compensate"):
+            # PC-R7 (ii): a province paid (or pointed at) is promised too.
             regions = [str(clause.get("region") or "")]
         elif ctype == "create_client":
             raw = clause.get("provinces")
@@ -1615,6 +1619,19 @@ def validate_settlement_terms(
                         or _error_display(
                             str(eligibility.get("refusal_code") or "dependency_invalid")
                         ),
+                    }
+            elif ctype == "territory_compensate":
+                # PC-R7 (ii): THE rule (`compensation.clause_reading`) — the
+                # form read from the province's holder, its stamp checked.
+                from backend.game_logic.compensation import clause_reading
+                reading = clause_reading(world, clause, war_instance)
+                if not reading.get("ok"):
+                    return {
+                        "valid": False,
+                        "error": str(reading.get("code") or "compensation_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": str(reading.get("display") or "")
+                        or _error_display(str(reading.get("code") or "compensation_invalid")),
                     }
             elif ctype == "create_client":
                 # NA-6c: from = the court whose soil is carved, to = the

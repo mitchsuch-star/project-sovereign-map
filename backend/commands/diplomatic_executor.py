@@ -678,11 +678,15 @@ class DiplomaticExecutor:
         # next pass — the mint refuses honestly instead.
         player = getattr(world, "player_nation", "France")
         if world.is_at_war(player, target):
+            # PC-X29 (S14 part 1): the peace-table road named where it
+            # exists — the promise had no table road behind it.
+            from backend.game_logic.compensation import peace_table_road
+            road = peace_table_road(world, payer=player, court=target)
             return {
                 "success": False,
                 "message": (f"Talleyrand: \"We are at WAR with {target}, "
-                            f"Sire. Designs are bought off at the peace "
-                            f"table, not across a battlefield.\""),
+                            f"Sire — not across a battlefield: "
+                            f"{road}.\""),
             }
 
         view = get_nation_intent(target, world)

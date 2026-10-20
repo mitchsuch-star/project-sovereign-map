@@ -13204,6 +13204,21 @@ class WorldState:
                     from backend.game_logic.coalition import reduce_threat
                     reduce_threat(self, 5 * transferred_count, "territory_return",
                                   target=from_nation)
+            elif ctype == "territory_compensate":
+                # PC-R7 (ii): the compensation clause through the ONE apply
+                # arm the table's ratifier calls too (GR5); a drop is named.
+                from backend.game_logic.compensation import apply_territory_compensate
+                from backend.game_logic.settlement_helpers import (
+                    _find_active_war_instance_for_pair as _fawi_c,
+                )
+                _wid_c = _fawi_c(self, self._make_diplo_key(ctx.proposer, ctx.target_nation))
+                _inst_c = (getattr(self, "war_instances", {}) or {}).get(_wid_c or "") or None
+                _comp, _comp_dropped = apply_territory_compensate(
+                    self, clause, war_instance=_inst_c)
+                if _comp is not None:
+                    ctx.applied_treaty_clauses.append(_comp)
+                elif _comp_dropped is not None:
+                    ctx._bilateral_dropped.append(str(_comp_dropped.get("display") or ""))
         return _NEXT_STAGE
 
     def _ratify_alliances_and_carves(self, ctx: RatifyTreatyContext):
@@ -13440,8 +13455,10 @@ class WorldState:
         from backend.game_logic.emergent_designs import (
             collect_cessions_from_clauses, record_punitive_cessions,
         )
+        from backend.game_logic.compensation import compensation_offsets
         record_punitive_cessions(
-            self, collect_cessions_from_clauses(ctx.applied_treaty_clauses))
+            self, collect_cessions_from_clauses(ctx.applied_treaty_clauses),
+            offsets=compensation_offsets(ctx.applied_treaty_clauses))
 
         # GE-1: once per ratification — titles for every SIGNED cession
         # (occupied provinces included), the player's peace and cessions
@@ -13468,7 +13485,9 @@ class WorldState:
         # R81: Check for elimination after territory cessions
         ceded_from = set()
         for clause in ctx.treaty_clauses:
-            if clause.get("type") == "territory_cede":
+            # PC-R7 (ii): a province PAID as compensation can be a payer's last
+            if clause.get("type") == "territory_cede" or (
+                    clause.get("type") == "territory_compensate" and not clause.get("design")):
                 fn = clause.get("from", "")
                 if fn and fn != self.player_nation:
                     ceded_from.add(fn)
@@ -13723,14 +13742,23 @@ class WorldState:
 
                 # BPH-D: Classify war outcome for log one-liner
                 _ws = int(ctx._pre_cleanup_data.get("war_score", 0))
+                # PC-R7 (ii): a province PAID as compensation moves soil like
+                # a cession (the pointed form moves none).
+                _soil = ("territory_cede",)
                 _terr_gained = [
-                    c.get("regions", []) for c in ctx.applied_treaty_clauses
-                    if c.get("type") == "territory_cede" and c.get("to") == self.player_nation
+                    c.get("regions", []) or ([c["region"]] if c.get("region") else [])
+                    for c in ctx.applied_treaty_clauses
+                    if (c.get("type") in _soil or (c.get("type") == "territory_compensate"
+                                                   and c.get("form") == "paid"))
+                    and c.get("to") == self.player_nation
                 ]
                 _terr_gained_flat = [r for rs in _terr_gained for r in rs]
                 _terr_lost = [
-                    c.get("regions", []) for c in ctx.applied_treaty_clauses
-                    if c.get("type") == "territory_cede" and c.get("from") == self.player_nation
+                    c.get("regions", []) or ([c["region"]] if c.get("region") else [])
+                    for c in ctx.applied_treaty_clauses
+                    if (c.get("type") in _soil or (c.get("type") == "territory_compensate"
+                                                   and c.get("form") == "paid"))
+                    and c.get("from") == self.player_nation
                 ]
                 _terr_lost_flat = [r for rs in _terr_lost for r in rs]
                 # NA-6c / IGR-D: a carve is NOT a territorial gain for the

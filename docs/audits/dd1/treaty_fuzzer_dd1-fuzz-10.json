@@ -1,7 +1,7 @@
 {
  "seed": "dd1-fuzz-10",
  "steps": 1000,
- "seconds": 53.8,
+ "seconds": 51.9,
  "final_turn": 55,
  "verbs": {
   "common_peace": 73,

@@ -1434,6 +1434,14 @@ def _swap_in(monkeypatch, world):
 
 
 TYROL_TO_BAVARIA = {"type": "territory_cede", "from": "Austria", "to": "Bavaria", "region": "Tyrol"}
+# PC-R7 (ii) (S14 part 1): the moderate Pressburg's two articles — Franconia,
+# Bavaria's coin (Würzburg's place in the exchange that gave Austria Salzburg),
+# and Talleyrand's own plan, Austria pointed east.
+FRANCONIA_FOR_TYROL = {"type": "territory_compensate", "from": "Bavaria", "to": "Austria",
+                       "region": "Franconia", "holder": "Bavaria"}
+THE_EASTERN_QUESTION = {"type": "territory_compensate", "from": "France", "to": "Austria",
+                        "region": "Albania", "holder": "Ottoman", "design": "the_eastern_question",
+                        "design_title": "The Eastern Question"}
 
 
 class TestPCR1TheBill:
@@ -2516,8 +2524,12 @@ class TestPCR7:
     """PC-R7 (i) — ruling J: the war's PURPOSE is its title on every surface
     ("War for Bohemia", never "vs Britain"); the table titles the same
     object (`backend/game_logic/war_title.py`, the ONE builder). (ii) — the
-    compensation clause — was sized at the part's head and HEADS S14 (the
-    row stays OPEN; the pin below holds its home)."""
+    compensation clause `territory_compensate` (`compensation.py`) — LANDED
+    in S14 part 1: validated, priced by both scorers, ratified by both
+    ratifiers, authored from the guided rows, carried by the hand-off and
+    asked by the AI's letter; the moderate Pressburg carries on the
+    Vienna-held board (the `test_ii_*` pins). The composed terms and the
+    ally's bond are S14 part 2 (the row stays OPEN and names them)."""
 
     def test_a_the_vienna_held_war_is_the_war_for_bohemia(self, vienna_held):
         from backend.game_logic.war_title import war_title
@@ -2627,20 +2639,457 @@ class TestPCR7:
         assert "war_title.to_upper()" in popup and 'w.get("war_title_line", "")' in popup
         assert 'data.get("war_title", "")' in wizard
 
-    def test_ii_the_compensation_clause_heads_s14(self):
-        """(ii), sized at the part's head (a clause type through the
-        validator, the scorers, the ratifiers, the AI producer and the
-        guided rows; declared goals; the ally's bond — §40 J's two sessions)
-        and NOT built here: the row stays OPEN, homed at S14's head with its
-        completion, its STATUS line and this class (GR9)."""
-        from backend.game_logic.settlement_scoring import CANONICAL_CLAUSE_TYPES
-        assert "territory_compensate" not in CANONICAL_CLAUSE_TYPES
+    # ── (ii) part 1 — the compensation clause (Pre-Deploy S14 part 1,
+    #    October 20, 2026; rules SYSTEMS_REFERENCE §133) ──────────────────
+
+    def test_ii_the_compensation_clause_lands_and_part_2_is_named(self):
+        """(ii) was split at S14 part 1's head: the clause lands here; the
+        composed terms (declared goals, the refund) and the ally's bond are
+        S14 part 2 — the row stays OPEN and names them (GR9)."""
+        from backend.game_logic.settlement_scoring import (
+            CANONICAL_CLAUSE_TYPES, SETTLEMENT_LIVE_CLAUSE_TYPES,
+        )
+        assert "territory_compensate" in CANONICAL_CLAUSE_TYPES
+        assert "territory_compensate" in SETTLEMENT_LIVE_CLAUSE_TYPES
         bug = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
         row = next(ln for ln in bug.splitlines() if ln.startswith("| **PC-R7**"))
-        assert "OPEN" in row and "S14" in row and "TestPCR7" in row
+        assert "OPEN" in row and "TestPCR7" in row
+        assert "S14 part 2" in row and "bond" in row and "declared goals" in row
         status = (REPO / "docs" / "STATUS.md").read_text(encoding="utf-8")
-        assert "PC-R7 (ii)" in status and "heads S14" in status
+        assert "S14 part 2" in status
 
+    def test_ii_a_the_rule_reads_the_form_from_the_holder(self, vienna_held):
+        """ONE rule: the form is read from who holds the province — paid where
+        the paying court holds a third party's frontier province, pointed
+        where a court outside the war holds a province of the compensated
+        court's own design; everything else refused in words."""
+        from backend.game_logic import compensation as CO
+        w = vienna_held
+        war = w.war_instances["war_1"]
+
+        def read(payer, region):
+            return CO.compensation_reading(w, payer=payer, compensated="Austria",
+                                           region=region, war_instance=war)
+        paid = read("Bavaria", "Franconia")
+        assert paid["ok"] and paid["form"] == CO.FORM_PAID and paid["holder"] == "Bavaria"
+        pointed = read("France", "Albania")
+        assert pointed["ok"] and pointed["form"] == CO.FORM_POINTED
+        assert (pointed["design"], pointed["holder"]) == ("the_eastern_question", "Ottoman")
+        refusals = {
+            ("France", "Vienna"): "compensation_capital",
+            ("France", "Moravia"): "compensation_is_a_return",
+            ("France", "Lorraine"): "compensation_victors_own_soil",
+            ("Spain", "Andalusia"): "compensation_not_on_her_frontier",
+            ("France", "Franconia"): "compensation_payer_does_not_hold",
+            ("Bavaria", "Albania"): "compensation_licence_is_the_leaders",
+        }
+        for (payer, region), code in refusals.items():
+            r = read(payer, region)
+            assert not r["ok"] and r["code"] == code, (payer, region, r)
+            assert r["display"], (payer, region)
+        # the guided rows read the same rule: the frontier's one paid province
+        assert CO.paid_candidates(w, compensated="Austria", payer_side_members=war["attackers"],
+                                  war_instance=war) == [("Franconia", "Bavaria")]
+        assert [r["region"] for r in CO.pointed_candidates(
+            w, compensated="Austria", payer="France", war_instance=war)] == ["Albania", "Rumelia"]
+
+    def test_ii_b_the_harsh_pressburg_refused_the_moderate_carries(self, vienna_held):
+        """THE done-when: the harsh Pressburg (Tyrol to Bavaria) reads 36 of
+        50 and does not carry; the moderate Pressburg carries — Tyrol for
+        Franconia ("Salzburg for Tyrol": Würzburg's place in the exchange,
+        the compensation paid in Bavaria's coin) and Talleyrand's own plan
+        (Austria pointed east: the Eastern Question). The credit is derived:
+        a province gained at the offer's rate, a promise at the bilateral's
+        protection-to-province ratio."""
+        from backend.game_logic import compensation as CO
+        from backend.game_logic.settlement_scoring import CONCESSION_TERRITORY_PER_REGION
+        w = vienna_held
+
+        def carry(terms):
+            body = _preview(w, terms=terms, covered=["Austria"])
+            return (int(body["acceptance"]["score"]), bool(body["overall_acceptance"]["carries"]),
+                    body["validation"], body.get("revanche_line", ""))
+        harsh = carry([TYROL_TO_BAVARIA])
+        assert harsh[:2] == (36, False)
+        paid = carry([TYROL_TO_BAVARIA, FRANCONIA_FOR_TYROL])
+        pointed = carry([TYROL_TO_BAVARIA, THE_EASTERN_QUESTION])
+        assert paid[2] == {"valid": True} and pointed[2] == {"valid": True}
+        assert paid[:2] == (36 + CONCESSION_TERRITORY_PER_REGION, True)
+        assert CO.table_credit(THE_EASTERN_QUESTION) == round(CONCESSION_TERRITORY_PER_REGION * 5 / 8) == 22
+        assert pointed[:2] == (36 + 22, True)
+        assert paid[3] == ("Revanche lapses: Austria's cession of Tyrol is compensated with "
+                           "Franconia, Bavaria's — her Revanche is reconciled while the treaty holds.")
+        assert pointed[3].startswith("Revanche lapses: Austria's cession of Tyrol is compensated — her "
+                                     "design pointed elsewhere: The Eastern Question (Albania")
+
+    def test_ii_c_the_validator_refuses_what_the_board_contradicts(self, vienna_held):
+        from backend.game_logic.settlement_validation import validate_settlement_terms
+        w = vienna_held
+        war = w.war_instances["war_1"]
+
+        def verdict(terms):
+            return validate_settlement_terms(
+                terms, actor_nation="France", player_nation="France", proposer_side="attackers",
+                world=w, war_instance=war, covered_enemy_participants=["Austria"],
+                enforce_solvency=False)
+        assert verdict([TYROL_TO_BAVARIA, FRANCONIA_FOR_TYROL]) == {"valid": True}
+        tampered = verdict([dict(THE_EASTERN_QUESTION, design="")])
+        assert tampered["error"] == "compensation_form_mismatch"
+        twice = verdict([TYROL_TO_BAVARIA, dict(FRANCONIA_FOR_TYROL, region="Tyrol")])
+        assert twice["error"] == "region_double_promised"
+        same_side = verdict([{"type": "territory_compensate", "from": "Bavaria", "to": "France",
+                              "region": "Franconia"}])
+        assert same_side["error"] == "clause_side_mismatch"
+
+    def test_ii_d_the_table_ratifies_both_forms(self, vienna_held):
+        """Paid: Franconia to Austria, titled by the treaty, the hostage bond
+        minted. Pointed (with Vienna offered back): Austria's three designs
+        ahead of the Eastern Question SLEEP, France LICENSES it (the D5
+        licence, 0 gold), the Porte is sold out (−15) — and once Vienna is
+        hers again the Eastern Question is her design: pointed elsewhere."""
+        import unittest.mock as _m
+        from backend.campaign_log import format_event_oneliner
+        from backend.game_logic import settlement_ratify as SR
+        from backend.game_logic import settlement_scoring as SS
+        from backend.game_logic.agendas import get_active_agenda
+        from tests.test_common_peace_c2_ratification import _acceptance_always_passes, _stage_dialogue
+        w = vienna_held
+        with _m.patch.object(SS, "calculate_common_peace_acceptance", _acceptance_always_passes):
+            dialogue = _stage_dialogue(w, settlement_terms=[TYROL_TO_BAVARIA, FRANCONIA_FOR_TYROL],
+                                       covered_enemy_participants=["Austria"], war_id="war_1")
+            with _quiet():
+                out = SR.ratify_settlement_confirm(w, dialogue)
+        assert out["success"] and out["dropped_clauses"] == [], out
+        assert w.regions["Franconia"].controller == "Austria"
+        assert w.province_title["Franconia"]["kind"] == "treaty"
+        bond = [b for b in w.compensation_bargains if (b.get("granted") or {}).get("region") == "Franconia"]
+        assert len(bond) == 1 and bond[0]["payer"] == "Bavaria" and bond[0]["design_id"] == ""
+        assert "compensated with Franconia, Bavaria's" in out["revanche_line"]
+        event = next(e for e in reversed(w.event_log) if e.get("type") == "design_bought_off")
+        assert format_event_oneliner(event) == "The peace compensates Austria with Franconia, Bavaria's"
+
+        w2 = _board("turn6_vienna_held.json")
+        ott = int(w2.nation_relations.get(w2._make_diplo_key("France", "Ottoman"), 0))
+        vienna_back = {"type": "territory_cede", "from": "France", "to": "Austria", "region": "Vienna"}
+        with _m.patch.object(SS, "calculate_common_peace_acceptance", _acceptance_always_passes):
+            dialogue = _stage_dialogue(w2, settlement_terms=[TYROL_TO_BAVARIA, vienna_back,
+                                                             THE_EASTERN_QUESTION],
+                                       covered_enemy_participants=["Austria"], war_id="war_1")
+            with _quiet():
+                out = SR.ratify_settlement_confirm(w2, dialogue)
+        assert out["success"] and out["dropped_clauses"] == [], out
+        asleep = sorted(b["design_id"] for b in w2.compensation_bargains if b["recipient"] == "Austria")
+        assert asleep == ["primacy_germany", "redeem_italy", "revanche_austria"]
+        licence = [s for s in w2.directed_sponsorships if s["payer"] == "France" and s["recipient"] == "Austria"]
+        assert len(licence) == 1 and licence[0]["aim"] == "Ottoman" and licence[0]["amount_per_turn"] == 0
+        assert int(w2.nation_relations[w2._make_diplo_key("France", "Ottoman")]) == ott - 15
+        w2.invalidate_bloc_members_cache()
+        assert get_active_agenda("Austria", w2).id == "the_eastern_question"
+
+    def test_ii_e_the_bilateral_prices_and_ratifies_it(self, vienna_held):
+        """The second scorer and the second ratifier: a pointed compensation
+        France offers is the protection sweetener (+5) on Austria's answer,
+        a demand at the promise ratio (−3), a province the cession's ±8/−5;
+        `_ratify_treaty` applies it through the one apply arm."""
+        from backend.game_logic import compensation as CO
+        w = vienna_held
+        sweet = dict(THE_EASTERN_QUESTION, value=1, regions=["Albania"])
+        base = {"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                "sweeteners": [], "clauses": [],
+                "demands": [{"type": "territory_cede", "value": 1, "regions": ["Tyrol"],
+                             "to": "Bavaria", "to_nation": "Bavaria"}]}
+        with _quiet():
+            without = D.calculate_acceptance(base, w)["score"]
+            with_it = D.calculate_acceptance(dict(base, sweeteners=[sweet]), w)["score"]
+        assert with_it - without == 5
+        assert CO.bilateral_value(sweet, as_demand=True) == -3
+        assert CO.bilateral_value(FRANCONIA_FOR_TYROL) == 8
+        assert CO.bilateral_value(FRANCONIA_FOR_TYROL, as_demand=True) == -5
+        with _quiet():
+            res = w._ratify_treaty(dict(base, sweeteners=[sweet]))
+        assert (res or {}).get("type") == "diplomatic_treaty_signed", res
+        assert any(s["payer"] == "France" and s["recipient"] == "Austria" and s["aim"] == "Ottoman"
+                   for s in w.directed_sponsorships)
+        assert sorted(b["design_id"] for b in w.compensation_bargains if b["recipient"] == "Austria") == [
+            "primacy_germany", "redeem_italy", "revanche_austria"]
+
+    def test_ii_f_the_guided_rows_author_it_through_the_table(self, vienna_held, monkeypatch):
+        """Authorable from the rows: "Offers to Austria" carries the paid row
+        (the payer is the holder — Bavaria) and the pointed row, each with its
+        price beside it; the add verb writes the clause the rule reads; the
+        demand group refuses it in words; the moderate Pressburg submits,
+        confirms and ratifies through the real endpoint."""
+        from fastapi.testclient import TestClient
+        w = vienna_held
+        M = _swap_in(monkeypatch, w)
+        client = TestClient(M.app)
+        w.diplomatic_points = 9
+
+        def post(choice, dialogue, params):
+            with _quiet():
+                return client.post("/respond_to_diplomatic_dialogue", json={
+                    "choice": choice, "dialogue_id": dialogue.get("dialogue_id"),
+                    "action_params": params}).json()
+        with _quiet():
+            r = client.post("/command", json={"command": "propose common peace with Austria"}).json()
+        dialogue = r.get("diplomatic_dialogue") or {}
+        assert dialogue.get("type") == "settlement_confirm", r.get("message")
+        for court in ("Britain", "Russia"):
+            out = post("settlement_cover_drop", dialogue, {"nation": court})
+            assert out.get("success"), out.get("message") or out.get("error_display")
+            dialogue = out["diplomatic_dialogue"]
+        row = next(c for c in dialogue["per_court_acceptance"] if c["nation"] == "Austria")
+        comp = [s for s in row.get("demand_suggestions") or []
+                if s.get("clause_type") == "territory_compensate"]
+        assert [s["group"] for s in comp] == ["offer", "offer"]
+        assert comp[0]["label"] == "Compensate Austria with Franconia — Bavaria's"
+        assert comp[0]["terms_display"].startswith("+35 to Austria's answer · Bavaria gives up Franconia")
+        assert comp[1]["label"] == "Point Austria elsewhere — The Eastern Question (Albania)"
+        assert comp[1]["region_options"] == ["Albania", "Rumelia"]
+        assert "a licence for 15 turns" in comp[1]["terms_display"]
+        refused = post("settlement_demand_add", dialogue, {
+            "nation": "Austria", "group": "demand", "clause_type": "territory_compensate",
+            "region": "Franconia"})
+        assert refused.get("success") is False
+        assert "never demanded" in str(refused.get("error_display") or refused.get("message"))
+        out = post("settlement_demand_add", dialogue, {
+            "nation": "Austria", "group": "demand", "clause_type": "territory_cede",
+            "region": "Tyrol", "to": "Bavaria"})
+        assert out.get("success"), out.get("message") or out.get("error_display")
+        dialogue = out["diplomatic_dialogue"]
+        out = post("settlement_demand_add", dialogue, dict(comp[0]["action_params"]))
+        assert out.get("success"), out.get("message") or out.get("error_display")
+        dialogue = out["diplomatic_dialogue"]
+        written = [t for t in dialogue["settlement_terms"] if t.get("type") == "territory_compensate"]
+        assert written and (written[0]["from"], written[0]["to"], written[0]["region"]) == (
+            "Bavaria", "Austria", "Franconia")
+        assert written[0].get("authored_by") == "player"
+        out = post("submit_settlement_for_review", dialogue, {})
+        assert out.get("success"), out.get("message") or out.get("error_display")
+        out = post("confirm_settlement", out["diplomatic_dialogue"], {})
+        assert out.get("success"), out.get("message") or out.get("error_display")
+        assert w.regions["Tyrol"].controller == "Bavaria" and w.regions["Franconia"].controller == "Austria"
+        assert _state(w, "France", "Austria") == "PEACE"
+
+    def test_ii_g_the_hand_off_carries_the_leaders_and_names_an_allys(self):
+        """The separate peace road: France's compensation travels as a
+        sweetener with its stamp; one Bavaria pays cannot ride a bilateral
+        letter and is named, the separate peace disabled with its reason."""
+        from backend.game_logic.settlement_staging import (
+            _pair_substitute_seed_terms, pair_substitute_settlement_tier_block,
+        )
+        seed = _pair_substitute_seed_terms([TYROL_TO_BAVARIA, THE_EASTERN_QUESTION],
+                                           target="Austria", proposer_leader="France")
+        sweet = next(s for s in seed["sweeteners"] if s["type"] == "territory_compensate")
+        assert (sweet["region"], sweet["design"], sweet["holder"]) == ("Albania", "the_eastern_question", "Ottoman")
+        assert any("The Eastern Question" in c for c in seed["carried"])
+        block = pair_substitute_settlement_tier_block([TYROL_TO_BAVARIA, FRANCONIA_FOR_TYROL],
+                                                      target="Austria", proposer_leader="France")
+        assert "Franconia from Bavaria (an ally's province)" in block
+
+    def test_ii_h_the_ai_letter_asks_it_where_its_desire_profile_fits(self, vienna_held):
+        """GR5: the beaten court's letter to the player carries what the
+        player's table may — Austria (values territory highly) asks France to
+        point her east beside her indemnity; Britain (a trading court) asks
+        nothing; the player's acceptance ratifies the licence."""
+        from backend.game_logic import compensation as CO
+        from backend.game_logic import settlement_ratify as SR
+        from backend.game_logic.settlement_offers import handle_incoming_settlement_offer_action
+        w = vienna_held
+        assert CO.letter_compensation_ask(w, writer="Britain", payer="France") is None
+        with _quiet():
+            offer = AI._emit_settlement_offer_for_war(
+                w, "war_1", w.war_instances["war_1"], player="France",
+                current_turn=w.current_turn, pending=[], cooldowns={})
+        assert offer and offer["proposer_nation"] == "Austria"
+        ask = next(t for t in offer["settlement_terms"] if t["type"] == "territory_compensate")
+        assert (ask["from"], ask["to"], ask["region"], ask["design"]) == (
+            "France", "Austria", "Albania", "the_eastern_question")
+        assert ask["authored_by"] == "Austria"
+        w.pending_settlement_dialogues = [offer]
+        with _quiet():
+            staged = handle_incoming_settlement_offer_action(w, action="accept_settlement_offer",
+                                                             dialogue=offer)
+            assert staged.get("success"), staged
+            out = SR.ratify_settlement_confirm(w, w.pending_diplomatic_dialogue)
+        assert out.get("success"), out
+        assert any(s["payer"] == "France" and s["recipient"] == "Austria" and s["aim"] == "Ottoman"
+                   for s in w.directed_sponsorships)
+
+    def test_ii_i_a_compensated_cession_is_not_a_partition(self, vienna_held):
+        """The memory: two homeland provinces ceded write the punitive record
+        ("Revanche stands"); one of them compensated nets it to one — the
+        Revanche lapses; a capital ceded stays punitive whatever is paid."""
+        from backend.game_logic import emergent_designs as ED
+        from backend.game_logic.compensation import compensation_offsets
+        w = vienna_held
+        bohemia = dict(TYROL_TO_BAVARIA, to="France", region="Bohemia")
+        assert ED.revanche_line_for_terms(w, [TYROL_TO_BAVARIA, bohemia]).startswith("Revanche stands")
+        moderate = [TYROL_TO_BAVARIA, bohemia, FRANCONIA_FOR_TYROL]
+        assert ED.revanche_line_for_terms(w, moderate).startswith(
+            "Revanche lapses: Austria's cession of Bohemia, Tyrol is compensated with Franconia")
+        cessions = ED.collect_cessions_from_clauses(moderate)
+        assert ED.record_punitive_cessions(w, cessions, offsets=compensation_offsets(moderate)) == []
+        vienna = dict(TYROL_TO_BAVARIA, to="France", region="Vienna")
+        line = ED.revanche_line_for_terms(w, [vienna, FRANCONIA_FOR_TYROL])
+        assert line.startswith("Revanche stands") and "does not undo it" in line
+
+    def test_ii_j_an_ally_made_to_pay_is_shut_out_one_who_trades_is_rewarded(self, vienna_held):
+        """Bavaria paying Franconia with nothing gained is the major shut-out,
+        named ("paid_for_the_peace"); Bavaria paying it for Tyrol (the
+        Pressburg exchange) is the rewarded beneficiary."""
+        from backend.game_logic.settlement_reactions import _evaluate_proposer_side_reactions
+        w = vienna_held
+        war = w.war_instances["war_1"]
+
+        def react(terms):
+            return _evaluate_proposer_side_reactions(
+                w, war_id="war_1", proposer_side="attackers", war_instance=war,
+                settlement_terms=terms, applied_clauses=terms, episode_id="t",
+                pre_cleanup_standings={"Bavaria": "seat"}, pre_cleanup_members=["France", "Bavaria"])
+        alone = next(r for r in react([FRANCONIA_FOR_TYROL]) if r.get("ally") == "Bavaria")
+        assert alone["kind"] == "ally_shut_out" and alone["severity"] == "paid_for_the_peace"
+        assert alone["paid_regions"] == ["Franconia"] and alone["grievance_flag_added"] is True
+        traded = next(r for r in react([TYROL_TO_BAVARIA, FRANCONIA_FOR_TYROL]) if r.get("ally") == "Bavaria")
+        assert traded["kind"] == "ally_rewarded"
+
+    def test_ii_k_every_surface_names_it(self, vienna_held):
+        """The census of every reader a compensation passes through: the
+        peace's summary counts a PAID province as soil moved and a design
+        pointed as a material term (no white peace); the ledger, the letter's
+        clause lines, the sabotage summary and the beneficiaries name it; the
+        agendas read a paid province as soil the court receives."""
+        from backend.display_names import build_proposal_popup_clauses, summarize_proposal
+        from backend.game_logic.settlement_presentation import _beneficiaries_from_terms
+        w = vienna_held
+        paid_clause = dict(FRANCONIA_FOR_TYROL, regions=["Franconia"], amount=1)
+        summary = D.build_peace_ratification_summary(
+            w, "France", "Austria", {"clauses": [dict(paid_clause, **{"from": "France", "to": "Austria"})]},
+            [], [], [], {"war_score": 10, "war_duration": 6})
+        assert summary["territory_lost"] == ["Franconia"]
+        pointed = D.build_peace_ratification_summary(
+            w, "France", "Austria", {"clauses": [dict(THE_EASTERN_QUESTION, regions=["Albania"], amount=1)]},
+            [], [], [], {"war_score": 10, "war_duration": 6})
+        assert pointed["war_outcome"] != "white_peace" and pointed["territory_gained"] == []
+        terms = {"type": "peace", "proposer_nation": "Austria", "target_nation": "France",
+                 "demands": [dict(THE_EASTERN_QUESTION, value=1, regions=["Albania"],
+                                  from_nation="France", to_nation="Austria")],
+                 "sweeteners": [], "clauses": []}
+        lines = build_proposal_popup_clauses(terms)
+        assert any("design pointed elsewhere: The Eastern Question (Albania" in ln for ln in lines), lines
+        assert "The Eastern Question" in summarize_proposal(terms)
+        assert "Austria" in _beneficiaries_from_terms([FRANCONIA_FOR_TYROL])
+        w.active_treaties[w._make_diplo_key("France", "Austria")] = {
+            "nations": ["France", "Austria"], "type": "peace", "turn_signed": 6,
+            "clauses": [dict(THE_EASTERN_QUESTION, amount=1)]}
+        from backend.game_logic.diplomatic_ledger import _build_treaties
+        with _quiet():
+            rows = json.dumps(_build_treaties(w), default=str)
+        assert "Territory Compensate" not in rows and "The Eastern Question" in rows
+        from backend.game_logic.agendas import _proposal_territory_content
+        ceded, _ = _proposal_territory_content({"sweeteners": [dict(FRANCONIA_FOR_TYROL, value=1)],
+                                                "demands": [], "clauses": []})
+        assert ceded == {"Franconia"}
+        ceded, _ = _proposal_territory_content({"sweeteners": [dict(THE_EASTERN_QUESTION, value=1)],
+                                                "demands": [], "clauses": []})
+        assert ceded == set()
+
+    def test_ii_l_a_province_promised_by_a_war_bargain_cannot_pay_it(self, vienna_held):
+        from backend.game_logic import compensation as CO
+        from backend.game_logic.diplomacy import _mark_live_bargain_indexes_dirty
+        w = vienna_held
+        w.diplomatic_commitments["wb_x"] = {
+            "id": "wb_x", "kind": "war_bargain", "status": "active", "promiser": "France",
+            "beneficiary": "KingdomOfItaly", "target_enemy": "Austria",
+            "claim_term": {"claim_region": "Franconia"}, "created_turn": 3, "war_id": "war_1"}
+        _mark_live_bargain_indexes_dirty(w)
+        r = CO.compensation_reading(w, payer="Bavaria", compensated="Austria", region="Franconia",
+                                    war_instance=w.war_instances["war_1"])
+        assert not r["ok"] and r["code"] == "compensation_promised_by_bargain"
+        assert "promised to Kingdom of Italy" in r["display"]
+
+
+class TestTheS14Part1Siblings:
+    """PC-R7 (ii)'s sibling sweep (S14 part 1, October 20, 2026): the
+    hand-off that dropped an offered province in silence (X28), the
+    refusal that promised a peace-table road no verb had (X29), and the
+    desire profiles that named the legacy map's provinces (X30)."""
+
+    def test_x28_an_offered_province_travels_to_the_separate_peace(self, vienna_held):
+        from backend.game_logic.settlement_staging import (
+            _pair_substitute_seed_terms, pair_substitute_dropped_clause_labels,
+        )
+        w = vienna_held
+        vienna_back = {"type": "territory_cede", "from": "France", "to": "Austria", "region": "Vienna"}
+        terms = [TYROL_TO_BAVARIA, vienna_back]
+        seed = _pair_substitute_seed_terms(terms, target="Austria", proposer_leader="France")
+        assert {"type": "territory_cede", "value": 1, "regions": ["Vienna"]} in seed["sweeteners"]
+        assert "Vienna to Austria" in seed["carried"]
+        assert pair_substitute_dropped_clause_labels(terms, target="Austria", proposer_leader="France") == []
+        with _quiet():
+            res = w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                                    "sweeteners": seed["sweeteners"], "demands": seed["demands"],
+                                    "clauses": []})
+        assert (res or {}).get("type") == "diplomatic_treaty_signed", res
+        assert w.regions["Vienna"].controller == "Austria" and w.regions["Tyrol"].controller == "Bavaria"
+
+    def test_x29_the_peace_table_road_is_named_where_it_exists(self, vienna_held):
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic.instruments import buy_off_refusal
+        w = vienna_held
+        w.diplomatic_points = 5
+        assert buy_off_refusal(w, "France", "Austria") == (
+            "we are at war — at the peace table her design can be pointed elsewhere — "
+            "The Eastern Question (Albania)")
+        assert buy_off_refusal(w, "France", "Britain").endswith(
+            "looks nowhere a peace could point her")
+        with _quiet():
+            out = CommandExecutor()._diplomatic._execute_buy_off_design(
+                {"action": "buy_off_design", "target": "Austria", "raw_input": "buy off Austria"},
+                {"world": w})
+        assert out["success"] is False
+        assert "The Eastern Question (Albania)" in out["message"]
+        assert "bought off at the peace table" not in out["message"]
+
+    def test_x30_the_desire_profiles_name_provinces_of_the_map_they_read(self):
+        from backend.game_logic.diplomacy import SPECIAL_BONUSES
+        from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
+        from backend.models.region import REGIONS_DATA, create_europe_regions
+        europe, legacy = set(create_europe_regions()), set(REGIONS_DATA)
+        for nation, profile in NATION_DESIRE_PROFILES.items():
+            for region in profile.get("covets_regions", []):
+                assert region in europe or region in legacy, (nation, region)
+        # each legacy-only name stands beside its 1805 province
+        assert "Munich" in NATION_DESIRE_PROFILES["Austria"]["covets_regions"]
+        assert "Brabant" in NATION_DESIRE_PROFILES["Britain"]["covets_regions"]
+        assert "Dresden" in NATION_DESIRE_PROFILES["Prussia"]["covets_regions"]
+        assert SPECIAL_BONUSES["Prussia"]["territory_dresden"] == SPECIAL_BONUSES["Prussia"]["territory_saxony"]
+        assert SPECIAL_BONUSES["Austria"]["territory_munich"] == SPECIAL_BONUSES["Austria"]["territory_bavaria"]
+
+    def test_x31_the_ledger_names_every_clause_type(self, w):
+        from backend.game_logic.diplomatic_ledger import _build_treaties
+        w.active_treaties[w._make_diplo_key("France", "Prussia")] = {
+            "nations": ["France", "Prussia"], "type": "peace", "turn_signed": 1,
+            "clauses": [{"type": "create_client", "from": "Prussia", "to": "France", "amount": 1},
+                        {"type": "continental_system_join", "from": "Prussia", "to": "France", "amount": 1}]}
+        with _quiet():
+            row = next(t for t in _build_treaties(w) if "Prussia" in (t.get("nation_a"), t.get("nation_b"))
+                       or "Prussia" in json.dumps(t))
+        text = json.dumps(row)
+        assert "Client state erected (Prussia -> France)" in text
+        assert "Joins the Continental System (Prussia -> France)" in text
+        assert "Create Client" not in text and "Continental System Join" not in text
+
+    def test_x32_a_table_award_of_a_claim_province_to_another_court_is_a_breach(self):
+        from backend.game_logic.settlement_reactions import _evaluate_bargain_outcomes
+        from tests.test_settlement_slice_h_ally_petitions import _seed_bargain_world
+        world = _seed_bargain_world()
+        out = _evaluate_bargain_outcomes(
+            world, war_id="war_1",
+            settlement_terms=[{"type": "territory_cede", "from": "Austria", "to": "Bavaria",
+                               "region": "Vienna"}],
+            proposer_member_set={"France", "Prussia"}, episode_id="t")
+        assert [o["kind"] for o in out] == ["bargain_breach_at_settlement"]
 
 class TestPCF41:
     def test_every_peace_row_names_the_courts_it_addresses(self, vienna_held):

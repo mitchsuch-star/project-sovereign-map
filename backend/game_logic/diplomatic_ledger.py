@@ -919,8 +919,21 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
                         "non_aggression": "Non-aggression",
                         "protection_promised": "Military protection",
                     }
-                    label = _CLAUSE_LABELS.get(ctype, ctype.replace("_", " ").title())
-                    if amount and c_from:
+                    # PC-X31 (S14 part 1): a clause type the table never
+                    # listed read as its title-cased key ("Create Client: 1",
+                    # "Continental System Join: 1") — the display map names it.
+                    from backend.display_names import clause_display_name
+                    label = _CLAUSE_LABELS.get(ctype) or clause_display_name(ctype)
+                    if ctype == "territory_compensate":
+                        # PC-R7 (ii): the clause's own words; its `amount` is
+                        # the bilateral walk's unit, never a sum.
+                        from backend.game_logic.compensation import compensation_words
+                        desc = compensation_words(clause)
+                    elif ctype in ("create_client", "continental_system_join", "forced_alliance",
+                                   "vassal_transfer", "liberation") and c_from:
+                        # PC-X31: the same `amount: 1` unit — the parties, no sum
+                        desc = f"{label} ({c_from} -> {c_to})"
+                    elif amount and c_from:
                         desc = f"{label}: {int(amount)} ({c_from} -> {c_to})"
                     elif amount:
                         desc = f"{label}: {int(amount)}"

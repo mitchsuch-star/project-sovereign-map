@@ -557,6 +557,11 @@ def _term_display(term: Mapping[str, Any]) -> str:
     # The Tilsit clause: the court joins the System — named, with no "to".
     if ttype == "continental_system_join" and t_from:
         return f"{base}: {t_from} closes its ports to British trade"
+    # PC-R7 (ii): the compensation clause's own words (the pointed form
+    # names the design it recognises; "region from A to B" would not).
+    if ttype == "territory_compensate":
+        from backend.game_logic.compensation import compensation_words
+        return f"{base}: {compensation_words(term)}"
     if region and t_from and t_to:
         return f"{base}: {region} from {t_from} to {t_to}"
     if t_from and t_to:
@@ -1086,6 +1091,16 @@ def build_applied_clauses_preview(
             differential = differentials_by_index.get(term_index)
             if differential is not None:
                 row["continental_toggle_differential"] = differential
+        elif ttype == "territory_compensate":
+            # PC-R7 (ii): what will mutate — the province paid changes hands,
+            # or the designs ahead of the one pointed at sleep and the leader
+            # licenses it (`compensation.apply_territory_compensate`).
+            from backend.game_logic.compensation import FORM_POINTED, FORM_PAID, compensation_words, is_pointed
+            row["from"] = str(term.get("from") or "")
+            row["to"] = str(term.get("to") or "")
+            row["region"] = str(term.get("region") or "")
+            row["form"] = FORM_POINTED if is_pointed(term) else FORM_PAID
+            row["terms_display"] = compensation_words(term)
         elif ttype == "continental_system_join":
             # The Tilsit clause (§6.6): what will mutate — the court joins
             # the System through THE membership write and the System's
@@ -1198,6 +1213,10 @@ def build_beneficiaries_preview(
         ttype = str(clause.get("type") or "")
         if ttype == "territory_cede":
             _record(clause.get("to", ""), "Receives ceded territory")
+        elif ttype == "territory_compensate":
+            # PC-R7 (ii): the court compensated is a beneficiary of the peace
+            _record(clause.get("to", ""), "Design pointed elsewhere" if clause.get("design")
+                    else "Receives a province in compensation")
         elif ttype in ("gold_lump", "gold_indemnity", "gold_per_turn"):
             _record(clause.get("to", ""), "Receives gold")
         elif ttype == "forced_alliance":
@@ -2104,7 +2123,8 @@ def _beneficiaries_from_terms(terms: Iterable[Mapping[str, Any]]) -> set:
         if not isinstance(term, Mapping):
             continue
         ttype = str(term.get("type", "") or "")
-        if ttype in ("territory_cede", "liberation"):
+        if ttype in ("territory_cede", "liberation", "territory_compensate"):
+            # PC-R7 (ii): the court compensated is advanced by the terms
             recipient = str(term.get("to", "") or term.get("recipient", "") or "")
             if recipient:
                 beneficiaries.add(recipient)
@@ -2231,6 +2251,7 @@ def is_material_loss_term(term: Mapping[str, Any]) -> bool:
         "forced_alliance",
         "liberation",
         "continental_system_join",
+        "territory_compensate",  # PC-R7 (ii): a province paid or a design licensed
     }
 
 

@@ -1870,6 +1870,16 @@ def _court_direction_summary(
         elif ttype == "continental_system_join":
             if frm == court:
                 demanded_other.append("joins the Continental System")
+        elif ttype == "territory_compensate":
+            # PC-R7 (ii): the moderate peace's article, from both chairs.
+            from backend.game_logic.compensation import is_pointed
+            region = str(term.get("region") or "")
+            if to == court:
+                conceded_other.append(f"its design pointed at {region}" if is_pointed(term)
+                                      else f"compensated with {region}")
+            elif frm == court:
+                demanded_other.append(f"licenses a design on {region}" if is_pointed(term)
+                                      else f"pays {region} in compensation")
         elif ttype in ("vassalage", "subjugation"):
             if frm == court:
                 demanded_other.append("submits as a client")

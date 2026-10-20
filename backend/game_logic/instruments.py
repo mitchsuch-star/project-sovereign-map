@@ -430,7 +430,9 @@ def buy_off_refusal(world, payer: str, court: str) -> str:
     if int(getattr(world, "diplomatic_points", 0) or 0) < INSTRUMENT_DP_COST:
         return f"it costs {INSTRUMENT_DP_COST} DP and we hold none"
     if world.is_at_war(payer, court):
-        return "we are at war — designs are bought off at the peace table"
+        # PC-X29: the road named only where it exists (`compensation`).
+        from backend.game_logic.compensation import peace_table_road
+        return f"we are at war — {peace_table_road(world, payer=payer, court=court)}"
     from backend.game_logic.intent import get_nation_intent
     view = get_nation_intent(court, world)
     if view.want_id is None:
@@ -477,6 +479,39 @@ def create_compensation_bargain(world, *, payer: str, recipient: str,
     }
     world.log_event(event)
     return {"success": True, "record": record, "event": event}
+
+
+def record_peace_compensation(world, *, payer: str, recipient: str,
+                              design_ids: List[str], granted: Dict) -> List[Dict]:
+    """PC-R7 (ii) — the compensation clause (`compensation.py`) strikes its
+    bargain AT THE PEACE TABLE: one record per design it puts to sleep (the
+    designs ahead of the one it points the court at), or one record with no
+    design for a province paid (the hostage bond — retaking it is
+    reneging). One relation bonus for the instrument, and no log line: the
+    clause's apply arm logs the one event the peace wrote. The same records
+    `create_compensation_bargain` mints — the per-turn pass reads them
+    unchanged."""
+    records = getattr(world, "compensation_bargains", None)
+    if records is None:
+        records = world.compensation_bargains = []
+    minted = []
+    for design_id in design_ids or [""]:
+        record = {
+            "id": (f"bargain:{payer}:{recipient}:"
+                   f"{int(world.current_turn)}:{_next_seq(records)}"),
+            "payer": payer,
+            "recipient": recipient,
+            "design_id": str(design_id or ""),
+            "granted": dict(granted),
+            "turn": int(world.current_turn),
+            "expires_turn": int(world.current_turn) + COMPENSATION_TERM_TURNS,
+        }
+        records.append(record)
+        minted.append(record)
+    world.compensation_bargains = records
+    world.modify_nation_relation(payer, recipient, BUYOFF_RELATION_BONUS)
+    world.invalidate_bloc_members_cache()
+    return minted
 
 
 def design_suspended(world, nation: str, design_id: str) -> bool:
@@ -889,6 +924,16 @@ def build_instruments_line(world, nation: str) -> Optional[str]:
                 f"({amount}g/turn)")
     for record in getattr(world, "compensation_bargains", []) or []:
         if nation not in (record.get("payer"), record.get("recipient")):
+            continue
+        granted = record.get("granted") or {}
+        if granted.get("clause") == "territory_compensate":
+            # PC-R7 (ii): a peace-table compensation is ONE compact however
+            # many designs it put to sleep.
+            words = (f"{display_nation(record.get('payer'))} compensated "
+                     f"{display_nation(record.get('recipient'))} at the peace "
+                     f"({granted.get('region')})")
+            if words not in pieces:
+                pieces.append(words)
             continue
         pieces.append(
             f"{display_nation(record.get('payer'))} bought off "

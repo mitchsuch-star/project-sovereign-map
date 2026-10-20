@@ -318,6 +318,9 @@ PAIR_SUBSTITUTE_CARRIED_TYPES = frozenset({
     # the peace that enrols a beaten court in the System is the separate
     # one — Prussia and Russia at Tilsit, 1807, while Britain fought on.
     "continental_system_join",
+    # PC-R7 (ii): the compensation the leader pays travels as a sweetener
+    # (Pressburg itself was a bilateral peace); one an ALLY pays is named.
+    "territory_compensate",
 })
 
 # Player-facing names for the settlement-tier clauses, for the honest warning.
@@ -371,6 +374,17 @@ def pair_substitute_dropped_clause_labels(
         if not isinstance(term, Mapping):
             continue
         ttype = str(term.get("type") or "")
+        # PC-X28 (S14 part 1): a province PAID by a third court of our side —
+        # an ally's cession or its compensation — has no bilateral dialect
+        # (a sweetener is the proposer's own): named, never carried in silence.
+        _frm = str(term.get("from") or "")
+        if (ttype in ("territory_cede", "territory_compensate") and proposer_leader
+                and str(term.get("to") or "") == target and _frm not in (target, proposer_leader)):
+            region = str(term.get("region") or "")
+            label = f"{region} from {_frm} (an ally's province)" if region else f"{_frm}'s province"
+            if label not in labels:
+                labels.append(label)
+            continue
         if ttype in PAIR_SUBSTITUTE_CARRIED_TYPES:
             if not (ttype in _CARRIED_ONLY_FOR_THE_PROPOSER and proposer_leader
                     and str(term.get("to") or "") != proposer_leader):
@@ -639,6 +653,11 @@ def _guided_line_display(term: Mapping[str, Any], court: str) -> Tuple[str, str]
         # VS-5 never added its arm either — same literal-string leak.
         display = (f"Yield {term.get('vassal')}" if frm == court
                    else f"{frm} yields {term.get('vassal')}")
+    elif ttype == "territory_compensate":
+        # PC-R7 (ii): the clause's own words, on the payer's and the
+        # compensated court's rows alike.
+        from backend.game_logic.compensation import compensation_words
+        display = compensation_words(term)
     else:
         display = ttype.replace("_", " ") or "Clause"
     return tag, display
@@ -1169,6 +1188,13 @@ def _court_demand_suggestions(
             params={"region": region},
             region_options=[str(r) for r in offer_regions],
         ))
+    # PC-R7 (ii): the compensation clause — a province paid, a design
+    # pointed (`compensation.guided_suggestions`, valid by construction).
+    from backend.game_logic.compensation import guided_suggestions as _comp_rows
+    offer_group.extend(_comp_rows(
+        world, court=court, war_id=war_id, draft_key=draft_key, war_instance=war_instance,
+        proposer_side_participants=proposer_side_participants,
+        proposer_leader=proposer_leader, promised_regions=promised_regions))
     recurring_offer = _gold_per_turn_prefill(
         world,
         payer=proposer_leader,
@@ -2716,6 +2742,7 @@ def _pair_substitute_seed_terms(
     carried: List[str] = []
     dropped: List[str] = []
     ally_regions: Dict[str, List[str]] = {}
+    offered_regions: List[str] = []
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
             continue
@@ -2746,6 +2773,33 @@ def _pair_substitute_seed_terms(
                 carried.append(f"{region} to {to}")
             elif region:
                 demanded_regions.append(region)
+        elif ttype == "territory_cede" and frm == proposer_leader and to == target:
+            # PC-X28 (S14 part 1): a province we OFFER travels as the
+            # bilateral cession sweetener (the ratifier transfers it; the walk
+            # prices it, a capital double). It was dropped in silence while
+            # the chooser said "your drafted terms carry".
+            region = str(term.get("region") or "")
+            if region:
+                offered_regions.append(region)
+                carried.append(f"{region} to {target}")
+        elif ttype == "territory_compensate" and frm == proposer_leader and to == target:
+            # PC-R7 (ii): the leader's compensation, as a sweetener with its
+            # stamp (the ratifier re-reads the rule on the board).
+            region = str(term.get("region") or "")
+            if region:
+                sweeteners.append(dict({k: term[k] for k in ("design", "design_title", "holder")
+                                        if term.get(k)},
+                                       type="territory_compensate", value=1,
+                                       regions=[region], region=region))
+                from backend.game_logic.compensation import compensation_words
+                carried.append(compensation_words(term))
+        elif ttype == "territory_compensate" and frm == target and to == proposer_leader:
+            region = str(term.get("region") or "")
+            if region:
+                demands.append(dict({k: term[k] for k in ("design", "design_title", "holder")
+                                     if term.get(k)},
+                                    type="territory_compensate", value=1,
+                                    regions=[region], region=region))
         elif ttype == "create_client" and frm == target and to == proposer_leader:
             # BOTH directions are checked, unlike the money arms: a joint
             # draft may carry a carve an ALLY makes out of this same court
@@ -2799,6 +2853,9 @@ def _pair_substitute_seed_terms(
             "to": ally,
             "to_nation": ally,
         })
+    if offered_regions:
+        sweeteners.append({"type": "territory_cede", "value": len(offered_regions),
+                           "regions": list(offered_regions)})
     return {"demands": demands, "sweeteners": sweeteners,
             "carried": carried, "dropped": dropped}
 

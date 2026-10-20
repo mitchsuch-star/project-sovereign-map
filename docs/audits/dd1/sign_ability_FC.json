@@ -1083,7 +1083,7 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 6.64,
+ "clone_ms_mean": 6.23,
  "clones": 47,
  "seconds": 5.1,
  "counts": {

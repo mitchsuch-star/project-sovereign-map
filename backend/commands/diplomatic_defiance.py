@@ -188,6 +188,11 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
             # dialects) prices at 0.15. Registered in every dialect: the
             # IGR-D lesson (an unscored demand reads as "too generous").
             harshness += 0.15
+        elif dtype == "territory_compensate":
+            # PC-R7 (ii) — the other dialects' weight at this dialect's
+            # cession scale (0.2 against their 0.3).
+            from backend.game_logic.compensation import harshness as _comp_h
+            harshness += _comp_h(demand) * (0.2 / 0.3)
 
     # A package that dismembers its target into a client state can never be
     # "too generous", whatever is offered alongside it. Without this floor
