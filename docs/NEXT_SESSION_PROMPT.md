@@ -1,61 +1,67 @@
-# NEXT SESSION PROMPT — Pre-Deploy S13b part 4: "the voice, the client and the sea"
+# NEXT SESSION PROMPT — Pre-Deploy S14 part 1: PC-R7 (ii) "the moderate peace"
 
-> Overwritten each time a session hands off. Current hand-over: **October 19, 2026, after S13c part 4 (CC-4
-> "Chained orders") landed — row CC is COMPLETE** (two commits on master through the hook: `d6a0cd8d` the head,
-> then the builds).
+> Overwritten each time a session hands off. Current hand-over: **October 19, 2026, after S13b part 4 ("the voice,
+> the client and the sea") landed — S13b is COMPLETE** (two commits on master through the hook: `94ce4c44` the code,
+> then the close).
 >
-> **What part 4 delivered** (`SYSTEMS_REFERENCE.md` §130; pins `tests/test_cc4_chained_orders.py`, 72; the Mode C
-> walk `tools/cc4_mode_c_walk.gd`, frames `docs/audits/cc4_client/`):
-> - **The head:** CC-X6 (the until-then tail named), CC-X7 (Compromise keeps the typed condition, whichever comes
->   first — `StrategicCondition.cap_turns`), CC-X9 / X19 (no pursuit or support outlives its man —
->   `strategic.quarry_fate`, `support_friend_fallen`), CC-X17 (every further name relayed in turn), CC-X18.
-> - **D7 the arrival verb (CF-5):** `StrategicOrder.arrival_verb` — `march to X then fortify | hold | drill | defend`,
->   done free on arrival (`strategic._handle_move_to_arrival`, `run_arrival_verb`, `install_arrival_hold`; the
->   first-step arrival `strategic_executor._arrive_on_the_first_step`); CC-X22 a `move to` head with such a tail is
->   the march (`parser._arrival_verb_boundary`); CC-X20 the order's identity counts its arrival
->   (`strategic.order_arrival_matches`, ONE rule for F10, stage 5, the quote and the reach).
-> - **D6 the contradiction asked first:** `relay.reorder_suggestion` on `/command`'s ordinary road — a head that
->   leaves the corps standing with a tail that moves or attacks sends NOTHING and offers the order that gives both
->   in the remedy slot, only where it is coherent (`_strikes_now`, `_has_a_road`; never a pursuit tail).
-> - **D8 the standing contingency:** `StrategicOrder.contingency` — `Ney, if Mack advances, fall back to Lorraine` /
->   `… if the enemy comes within reach, attack` (`condition_grammar.extract_contingency`, restated as a HOLD before
->   any reader); watched on the hold province and the neighbours we SEE (`strategic.contingency_trigger`); fired
->   free at the head of the order pass (`StrategicOrderProcessor._fire_contingency`); CC-X21 a conditional line is
->   never an interrupt's answer (`main._line_is_a_contingency`).
-> - **CC-X23 / X24:** a cautious holder's works now rise at the turn's end (the gate D7 relaxed), and the hold's and
->   the sally's reports read what the executor answered.
+> **What part 4 delivered** (`SYSTEMS_REFERENCE.md` §132; rows `BUG_FIXES.md` §DD-B; pins
+> `tests/test_ddb_s13b_the_sea.py`, `the_voice.py`, `the_client.py`, `the_rulings.py::TestDDBX6`):
+> - **DDB-21 (the P2):** a corps on soil its court holds by title is home (`withdrawal.is_home_at`,
+>   `game_end.holds_by_title`); the corridor is judged after the peace's titles; ONE embark rule
+>   (`naval.embark_position_ok`, the home zone walked by land). Siblings X26 (no internment by nobody), X27 (the
+>   beachhead return while the war runs).
+> - **The voice:** the compound question (`question_desk.classify_compound_question`, X28's yes/no tail, X29's two
+>   marshals); the rail's state cards end with their state and its one-shot events age out
+>   (`notifications.EVENT_NOTICE_TYPES`, X30, X31); "… to join Ney and Davout" one order; one reference section per
+>   "how do I …" and `help <topic>` (`backend/ai/help_topics.py`, the new PORTS AND THE CONTINENTAL SYSTEM
+>   section); the Congress's own figures; a released prisoner named; a fallen court's purposes concluded; the Armed
+>   Peace's hold named; one siege, one outcome.
+> - **The client:** one Esc ladder (`main._escape_closes_topmost`); the caption at the crossfade's midpoint; an
+>   ally's loss in red (`captured_from_alignment`); three lines a notch and the tall reply raised until the next
+>   command. Driven by `tools/ddb_s13b_client_harness.gd`; walked by `tools/ddb_s13b_mode_c_walk.gd`
+>   (`docs/audits/ddb_s13b_client/`).
+> - **The sea:** the Admiralty's port rule and open courts (`naval.ports_by_court_against`), whose sail counts and
+>   the camp's count, both postures named, the rot's remedy and the blockade's price before the order
+>   (`naval.posture_phrase`, `window_remedy`), the named yard, and the rail's sea notices (`naval_state_changed`).
+> - **The instruments:** the series byte-identical with every part-4 seam up and down
+>   (`tools/_ddb_s13b4_series_arms_final.json`); the CMD-H-DOWN driven arm re-seated with DDB-21's title seam named.
 >
 > **Traps part 4 paid for:**
-> - The bash heredoc collapses `\\` to `\` and turns `\b` into a backspace byte in a payload — write every script
->   (Python or GDScript) with the Write tool, then run it.
-> - The interrupt route (`main._command_interrupt_answer`) reads answer KEYWORDS before any parse: a new line shape
->   that carries "attack", "hold", "march to"… must be checked against a pending question (CC-X21 was that).
-> - An aggressive marshal answers the guns of his own accord (the cannon-fire redirect): a Mode C walk that needs a
->   march to ARRIVE uses a literal man (Soult). The terminal is trimmed — read a block by its heading
->   ("--- Strategic Order Updates ---"), never by a character offset.
-> - A "before" measurement without touching the shared checkout: `git archive HEAD backend <the maps dir> | tar -x
->   -C <scratch>` and run the probe with that dir first on `sys.path` (never stash, never reset).
-> - Patch the executor at its type (`type(M.executor).execute`), never the instance (the singleton-shadow trap).
+> - The bash heredoc mangles backslashes in a payload — two edits broke on it again (a regex move, a test pin).
+>   Every script and every multi-line edit through the Write / Edit tools.
+> - A full parallel run reads the working tree: a driver subprocess imported `naval.py` BETWEEN two edits of one
+>   refactor (an `UnboundLocalError`) and six driven pins failed. Never edit backend files while a full run plays;
+>   re-run a failing module on the settled tree before believing it.
+> - The client's "before": a HEAD copy of the Godot project in the scratchpad (`cp -r godot-client/project-sovereign`
+>   with its `.godot` cache, then `git show HEAD:<script>` over the edited scripts) and the harness run with
+>   `--path` there. A field the HEAD client lacks must be read defensively (`_main.get(x) == true`,
+>   `has_method`), or the harness dies on `bool(null)`.
+> - The Mode C backend: `Start-Process … -m backend.main` with `$env:SOVEREIGN_PORT = "8007"`,
+>   `LLM_MODE=mock` (the .env says anthropic) and `INK_IRON_SAVE_DIR` in the scratchpad; stop the PID that LISTENS
+>   on 8007 (`netstat -ano`) — the Start-Process PID can be a launcher. 8005 is the player's game: never touched.
+> - A new notification type needs the rail's TWO maps (`TYPE_ICONS`, `TYPE_ICON_SVGS` in `notification_bar.gd`) —
+>   the REV-V3 census reads them. A notice posted INSIDE the advance (post-increment) stands one morning more than
+>   one posted in the player's turn or the enemy phase.
+> - The help body is executed by CX-3's census (every double-quoted string is typed): new reference text quotes
+>   only orders that run.
+> - Line endings: `git ls-files --eol` is the authority (a `grep -c $'\r$'` read here was not to be trusted).
 > - `CLAUDE.md` stands within ~150 bytes of its 62,000-byte cap: swap its live-state rows, never grow them.
-> - `TaskStop` leaves a backgrounded backend alive: stop the PID that LISTENS on 8007 (`netstat -ano`, check its
->   command line is `backend.main`), never 8005 (the player's game) or 8006.
 >
-> **Nothing waits on the user before S13b part 4** (UXR-4, the code-signing certificate and AO's three questions
-> are theirs before S15; PC-R7 (ii) heads S14). Paste everything below the line as the opening message of a fresh
-> session.
+> **Nothing waits on the user before S14** (UXR-4, the code-signing certificate and AO's three questions are theirs
+> before S15). Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-Pre-Deploy S13b part 4 — "the voice, the client and the sea" — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (S13c is complete; read `git log -1` for the head).
+Pre-Deploy S14 part 1 — PC-R7 (ii) "the moderate peace", half one — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (S13b is complete; read `git log -1` for the head).
 
-Read first: `docs/STATUS.md` ▶ NEXT UP (the S13b part 4 block), `docs/BUG_FIXES.md` §DD-B (DDB-21, DDB-45 … 62 and DDB-X6 — their filed fix shapes), `docs/audits/DD_B_RULINGS_2026_10_14.md`, `docs/SYSTEMS_REFERENCE.md` §115–§118, and `docs/NAVAL_SPEC.md` §17–§18 for the sea rows.
+Read first: `docs/STATUS.md` ▶ NEXT UP (the S14 block), `docs/PRE_DEPLOY_PLAN.md` §2 S14, `docs/BUG_FIXES.md` §PC row PC-R7 (its completion line), `docs/audits/PEACE_CONUNDRUM_2026_10_15.md` §40 J (the design) and §46 J (the decision, "built in two halves"), `docs/SYSTEMS_REFERENCE.md` §122–§127 (the peace rulings as built) and the settlement contracts named in `CLAUDE.md`'s "Peace Deals" row (`SETTLEMENT_GUIDED_TERMS_SPEC.md`, `SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md`).
 
-Scope, in order:
-1. **The P2 first — DDB-21:** a corps standing in a province the peace just titled to France is "stranded" and faces internment. Reproduce on the 1805 board, fix at the home-zone rule, sweep its class.
-2. **The voice (S13b-4):** DDB-45 (a two-part question read as one), DDB-46 (the rail keeps stale cards), DDB-47 ("… to join Ney and Davout" split into a second order — mind CC-X17's relay and CQ-8), DDB-48 ("How do I …?" dumps the whole reference), DDB-49 (the reference's developer note and stale Congress count — the help body is CX-3's census), DDB-50 (a released enemy marshal returns unannounced), DDB-51 (a war purpose against an eliminated court), DDB-52 (the Armed Peace's alarm "holds" while the sum falls), DDB-53 (one siege, three contradicting dispatch lines).
-3. **The client (S13b-5):** DDB-54 (the first Escape only leaves the line), DDB-55 (the title caption names the next painting early), DDB-56 (an ally's lost province in good-news colour), DDB-57 (the command window too short to read a long reply).
-4. **The sea (S13b-6):** DDB-58 … 61 (the Admiralty's closed ports, its automatic states read as orders, the postures question, the readiness rot and the blockade's price before the order), DDB-62 ("lay down a ship at Normandy" lays it at Bordelais), DDB-X6 (the blockade's start and end and a diversion window never announced).
+Scope — PC-R7 (ii) is two sessions (§40 J); this part takes the clause end to end:
+1. **Size it at the head** against the seams the row names (`settlement_validation`'s canonical clause types, `settlement_scoring.compute_settlement_package_raw_harshness`, both scorers, both ratifiers, the guided rows, the AI producer `ai_diplomacy` settlement catalogue, `agendas.py` — Austria's Eastern Question, `diplomatic_templates` desire profiles) and write the split into the row before building.
+2. **`territory_compensate`** — the loser paid in a third party's province, or its design pointed elsewhere: validated (`settlement_validation`), scored by BOTH scorers (the table's and the bilateral), ratified by BOTH ratifiers (the settlement table and the bilateral treaty), authorable from the guided rows, and offered by the AI producer where its desire profile fits (GR5: the AI's letter carries what the player's may).
+3. **The moderate Pressburg** (Salzburg for Tyrol) authorable and carrying on the Vienna-held board (`tests/fixtures/pc_boards/`), pinned in `tests/test_pc_rulings.py::TestPCR7` beside (i)'s pins; `::TestPCR7::test_ii_the_compensation_clause_heads_s14` re-seated to what lands.
+4. **Part 2 (the next session, named in the row):** declared goals at the declaration plus composable articles at the table (a declared term dropped at the peace refunds part of its cost), and the coalition's no-separate-peace bond priced (Chaumont); then SF-RR7 (SFR-B3 "Europe waits on Paris", with DDB-X4).
 
-Rules: reproduce each row before its fix; the sibling sweep after every fix (CLAUDE.md Rule 10 — each sibling filed and fixed in this part or heading the next); pins `tests/test_ddb_s13b_<slice>.py::TestDDB<n>`; where a fix reaches the AI, the driven attribution arms byte-identical to `BASELINE_SERIES` or each movement attributed and named; the Godot parse harness for the client rows and a Mode C walk on `SOVEREIGN_PORT=8007` (never 8005 / 8006; `INK_IRON_SAVE_DIR` in the scratchpad) for DDB-54 … 57. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
+Rules: reproduce the gap on the board before building; the sibling sweep after every fix (CLAUDE.md Rule 10 — each sibling filed and fixed in this part or heading the next); a fix that reaches the AI — and this one does, through the producer — runs the attribution arms (`tools/_pc_s13e4_series_arms.py`'s idiom: function seams, never a new lever) with `BASELINE_SERIES` byte-identical or every movement attributed and named; the DD-1 sign-ability sweep and the treaty fuzzer re-run where `can_sign` or a ratifier moves; the Godot parse harness if a `.gd` changes. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
 
-Done when every row above is FIXED with its test and 0 §DD-B rows homed to S13b remain OPEN (DD-B's re-measure is S14e). Close with `docs/STATUS.md` ▶ NEXT UP naming S14 (PC-R7 (ii) at its head) and this file overwritten for it.
+Done when the compensation clause is validated, scored, ratified and offered end to end, the moderate Pressburg carries on the Vienna-held board with its pins, and PC-R7's row names what part 2 still owes. Close with `docs/STATUS.md` ▶ NEXT UP naming S14 part 2 and this file overwritten for it.

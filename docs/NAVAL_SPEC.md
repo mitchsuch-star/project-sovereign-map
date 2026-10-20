@@ -1798,7 +1798,7 @@ two-command road gained the `top_bar_admiralty` shot and the
 
 ### 17.3 Recorded, not built
 
-> **⚑ October 14, 2026:** the rail alerts recorded here (a blockade on France begins or lifts; a diversion window opens or shuts) are **brought before the deploy as `BUG_FIXES.md` DDB-X6, Pre-Deploy S13b part 4** — the sea road of the fresh-eyes campaign named the unannounced state changes. Drawing enemy fleets at sea stays an idea (`ROADMAP.md` §"Where the future work lives" §3).
+> **✅ BUILT October 19, 2026 (DDB-X6, Pre-Deploy S13b part 4; `SYSTEMS_REFERENCE.md` §132.5):** `naval._naval_notice` — `naval_state_changed`, HIGH, aged out after its turn, each naming its cause and the Admiralty line. **⚑ October 14, 2026:** the rail alerts recorded here (a blockade on France begins or lifts; a diversion window opens or shuts) are **brought before the deploy as `BUG_FIXES.md` DDB-X6, Pre-Deploy S13b part 4** — the sea road of the fresh-eyes campaign named the unannounced state changes. Drawing enemy fleets at sea stays an idea (`ROADMAP.md` §"Where the future work lives" §3).
 
 - Naval rows on the notice rail (a blockade beginning, a window opening):
   the chip is the STANDING indicator and the dispatch carries the beat; a
@@ -2026,7 +2026,7 @@ and the unquoted form above fixed it.
 
 ### 18.4 Recorded, not built
 
-> **⚑ October 14, 2026:** see §17.3's note — the alerts are DDB-X6 (Pre-Deploy S13b part 4); the rest stays an idea with its home in `ROADMAP.md` §"Where the future work lives".
+> **✅ BUILT October 19, 2026** (DDB-X6; §17.3's note). **⚑ October 14, 2026:** see §17.3's note — the alerts are DDB-X6 (Pre-Deploy S13b part 4); the rest stays an idea with its home in `ROADMAP.md` §"Where the future work lives".
 
 - **DEF-14 "The Names Match the Map" — ✅ LANDED the same day** (September 24,
   2026; record `MAP_IMPLEMENTATION_PLAN.md` DEF-14): nine provinces renamed so

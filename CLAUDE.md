@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 19, 2026).** The three most recent landed rows:
-- **S13c part 4 (October 19, 2026) — CC-4 "Chained orders" — LANDED; row CC COMPLETE.** Arrival verbs, asked-first contradictions, the standing contingency: `SYSTEMS_REFERENCE.md` §130. **NEXT = S13b part 4.**
+- **S13b part 4 (October 19, 2026) — DD-B's voice, client and sea — LANDED; S13b COMPLETE.** The title is home (DDB-21), the compound question, the aging rail, one Esc ladder: `SYSTEMS_REFERENCE.md` §132. **NEXT = S14 (PC-R7 (ii)).**
+- **S13c part 4 (October 19, 2026) — CC-4 — LANDED; row CC COMPLETE** (§130).
 - **S13c part 3 (October 18, 2026) — CC-5 — LANDED** (§129).
-- **S13c part 2 (October 17, 2026) — CC-3 — LANDED** (§128).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

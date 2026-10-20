@@ -236,6 +236,37 @@ class TestDDB46:
                 "reckless_cavalry_action", "vassal_rebellion"} <= EVENT_NOTICE_TYPES
 
 
+class TestDDBX30:
+    """Found by DDB-46's sweep of every CRITICAL producer: the other one-shot
+    events never aged out either. The reckless charge and the rebellions post
+    at HIGH (`TestDDB46::test_the_one_shot_events_post_at_high` reads their
+    producers); the commitments family keeps its spec's priority and ages."""
+
+    def test_the_commitments_family_ages_with_its_own_priority(self):
+        from backend.notifications import (BALANCE_OF_EUROPE_SHIFTED, BARGAIN_BREACHED,
+                                           CALL_TO_ARMS_HONORED_COSTLY,
+                                           CALL_TO_ARMS_REFUSED_DEFENSIVE,
+                                           CALL_TO_ARMS_REFUSED_OFFENSIVE)
+        for kind in (BARGAIN_BREACHED, CALL_TO_ARMS_REFUSED_OFFENSIVE,
+                     CALL_TO_ARMS_REFUSED_DEFENSIVE, CALL_TO_ARMS_HONORED_COSTLY,
+                     BALANCE_OF_EUROPE_SHIFTED):
+            row = create_notification(kind, NotificationPriority.CRITICAL, "x", "y", 9)
+            assert row["expires_after_turn"] == 9, kind
+            assert row["priority"] == int(NotificationPriority.CRITICAL), kind
+
+    def test_the_reckless_charge_and_the_rebellion_age_too(self):
+        from backend.notifications import RECKLESS_CAVALRY_ACTION, VASSAL_REBELLION
+        assert {RECKLESS_CAVALRY_ACTION, VASSAL_REBELLION} <= EVENT_NOTICE_TYPES
+
+    def test_a_decision_and_a_state_never_age(self):
+        """The last stand is a question awaiting an answer; the defeat warning
+        and the save failure are states retired by their own producers."""
+        from backend.notifications import (DEFEAT_IMMINENT_WARNING, MARSHAL_LAST_STAND,
+                                           SAVE_FAILED)
+        assert not ({MARSHAL_LAST_STAND, DEFEAT_IMMINENT_WARNING, SAVE_FAILED}
+                    & EVENT_NOTICE_TYPES)
+
+
 class TestDDBX31:
     def test_the_posture_card_ends_with_the_posture(self, w):
         from backend.game_logic.diplomacy import _process_betrayal_decay
