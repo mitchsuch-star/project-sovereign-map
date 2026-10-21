@@ -204,7 +204,8 @@ SHOTS: list[dict] = [
         "scene": "res://scenes/marshal_management.tscn",
         "mode": "api_stub", "method": "open", "api_method": "get_marshal_overview",
         "must_show": "the character sheets: skill bars, the glory ladder, GLORY & GRIEVANCES, "
-                     "no raw tag, nothing clipped at scale 2.0",
+                     "no raw tag, nothing clipped at scale 2.0; the reading fills its panel — no "
+                     "dead band hiding the Emperor's portrait at 2.0 (RR5-X4)",
     },
     # ── the morning dispatch ────────────────────────────────────────────────
     {
@@ -635,7 +636,9 @@ SHOTS: list[dict] = [
         "scene": "res://scenes/marshal_petition_dialog.tscn",
         "mode": "call", "method": "show_petition",
         "must_show": "the whole body above the fold (no clipped second line); the closed arm's "
-                     "reason as ONE line under the header; no reason printed twice under a button",
+                     "reason as ONE line under the header, never twice; SFR-B11 (SF-RR5): every "
+                     "answer and Later in the row under the letter, above the fold at BOTH scales, "
+                     "what each answer does read in the letter",
     },
     {
         "id": "wizard_step1",
@@ -671,7 +674,9 @@ SHOTS: list[dict] = [
                 {"call": "refit", "args": []},
                 {"wait": 4},
             ],
-            "must_show": must,
+            # EA-E5 (SF-RR5): at both scales Talleyrand's counsel opens above the
+            # assessment's fold, the chips scrolling under their "more below".
+            "must_show": must + "; Talleyrand's counsel opens above the fold at BOTH scales (EA-E5)",
         }
         for court, note, must in [
             ("Austria", "at war", "every chip WRAPPED inside the panel — no horizontal scrollbar; a "
@@ -688,8 +693,8 @@ SHOTS: list[dict] = [
         "scene": "res://scenes/proposal_confirm_popup.tscn",
         "mode": "call", "method": "show_dialogue",
         "must_show": "one row per court in the Press/Ease/Drop block — Austria, Britain AND Russia, "
-                     "none clipped; the block sits under the table, not over the 'Allies and "
-                     "Standing' heading",
+                     "none clipped, at BOTH scales (EA-E6); the four actions in one row; the block "
+                     "sits under the table, not over the 'Allies and Standing' heading",
     },
     {
         "id": "campaign_log_glyphs",
@@ -934,8 +939,10 @@ SHOTS += [
         "payload": "proclamation_warsaw",
         "scene": "res://scenes/proclamation_popup.tscn",
         "mode": "call", "method": "show_proclamation",
-        "must_show": "A NATION IS PROCLAIMED over the Duchy of Warsaw's flag; 'By your hand.'; no struck old "
-                     "name (nothing died to make it); the engraved forms line; one Acknowledge; no raw tag",
+        "must_show": "A NATION IS PROCLAIMED over the Duchy of Warsaw's flag; 'By your hand.' under the "
+                     "body, above Acknowledge; no struck old name (nothing died to make it); the "
+                     "engraved forms line and the three terms seen at both scales (SFR-B11); one "
+                     "Acknowledge; no raw tag",
     },
     {
         # EA-E8 (the economy gate, October 5, 2026): this row was staged as
@@ -1259,7 +1266,7 @@ SHOTS += [
         "must_show": "MASSENA'S CONCERN in the tone's colour; his objection in his own words; "
                      "personality, trust, track record and authority; three answers — trust him "
                      "(his alternative named), proceed as ordered, compromise — each with its "
-                     "trust price",
+                     "trust price, and Cancel; at 2.0 both rows wrap inside the window (RR5-X1)",
     },
     {
         "id": "capture_choice",
@@ -1282,6 +1289,26 @@ SHOTS += [
         "steps": [{"wait": 6}],
         "must_show": "TALLEYRAND OBJECTS with its STRONG level; his reason (the alarm at 70); the "
                      "defiance risk and what it regards; Proceed Anyway / Modify / Cancel",
+    },
+]
+
+
+# ═══ SF-RR5 "the frames at both scales" (October 21, 2026) ═══════════════════
+# The sweep's decision modal no row had shot: the reward a marshal is offered
+# from the Generals screen, on the flagship board's Ney (an estate, a rente to
+# re-size, a rente to revoke) — `cap_user_saves`' staged save, so it shoots on
+# a machine that holds `saves/flagship_visual_t12.json`.
+SHOTS += [
+    {
+        "id": "reward_dialog",
+        "surface": "Reward a marshal — the estate and the rente (RR5-X5)",
+        "payload": "marshal_overview_flagship_t12",
+        "scene": "res://scenes/reward_dialog.tscn",
+        "mode": "call", "method": "show_reward",
+        "args": ["$payload.marshals.0"],
+        "must_show": "REWARD MARSHAL NEY; what he expects and what an estate and a rente are; "
+                     "every choice — Endow …, Re-size rente, Revoke his rente — and Cancel above "
+                     "the fold at both scales",
     },
 ]
 

@@ -372,16 +372,22 @@ def cap_collapse():
                staging=staging,
                facts={"tier_sides": {w.get("opponent"): w.get("settlement_tier_side")
                                      for w in (wars.get("wars") or [])}})
-        losing = next((w for w in (wars.get("wars") or [])
-                       if w.get("settlement_tier_side") == "theirs"), None)
-        if losing is not None:
-            record(f"war_detail_collapse_{tag}",
-                   {"war": losing, "coalition": wars.get("coalition")},
-                   source="GET /test → the first war with settlement_tier_side == 'theirs'",
-                   staging=staging,
-                   facts={"opponent": losing.get("opponent"), "war_score": losing.get("war_score"),
-                          "settlement_tier": losing.get("settlement_tier"),
-                          "settlement_tier_side": losing.get("settlement_tier_side")})
+        # RR5-X8 (SF-RR5, October 21, 2026): the war France is losing WORST.
+        # The row read the first war whose tier side was "theirs"; since S13d
+        # (October 16) the tier is the peace table's pressure, where this
+        # board's −60 war with Britain reads a white peace — no war matched,
+        # and both frames went unshot without a word.
+        losing = min((w for w in (wars.get("wars") or []) if w.get("status") == "war"),
+                     key=lambda w: int(w.get("war_score", 0) or 0), default=None)
+        if losing is None:
+            raise RuntimeError("the collapse board has no war to shoot the detail of")
+        record(f"war_detail_collapse_{tag}",
+               {"war": losing, "coalition": wars.get("coalition")},
+               source="GET /test → the war with the lowest war_score (France losing worst)",
+               staging=staging,
+               facts={"opponent": losing.get("opponent"), "war_score": losing.get("war_score"),
+                      "settlement_tier": losing.get("settlement_tier"),
+                      "settlement_tier_side": losing.get("settlement_tier_side")})
 
     # S11's cooldown arm: the league gone, the cooldown running, the collapse standing.
     with _quiet():
@@ -1923,8 +1929,9 @@ def cap_popups_s12():
     * `talleyrand_objection` — the declaration road the deep-audit pins
       (`tests/test_deep_audit_session6.py` Fix 1) on the UNSTAGED 1805 boot:
       France is at peace with Prussia and Europe's alarm stands at 70, so
-      "declare war on Prussia" and the war purpose (1, Conquest) bring
-      Talleyrand's STRONG objection."""
+      "declare war on Prussia", the war purpose (1, Conquest) and the
+      articles card's first answer (declare with none) bring Talleyrand's
+      STRONG objection."""
     import pytest
     T = test_module("test_b4b_the_one_tail")
     with pytest.MonkeyPatch.context() as mp:
@@ -1952,9 +1959,18 @@ def cap_popups_s12():
                   "pending_capture_choice": insisted.get("pending_capture_choice")})
     world, c = fresh()             # the adopt swaps the world, the parser and the client together
     cmd(c, "declare war on Prussia")
+    cmd(c, "1")                    # the war purpose: Conquest
+    # RR5-X2 (SF-RR5, October 21, 2026): S14 part 2 put the war's ARTICLES
+    # between the purpose and the objection (`declared_goals.
+    # articles_stage_dialogue`), and this road stopped one answer short — the
+    # frame shot blank. The articles card's first answer declares with none.
     answer = cmd(c, "1")
+    if not answer.get("diplomatic_objection"):
+        raise RuntimeError("the declaration road no longer reaches Talleyrand's objection: "
+                           + str(answer.get("message", ""))[:200])
     record("talleyrand_objection", answer,
-           source="POST /command 'declare war on Prussia', then POST /command '1' (Conquest)",
+           source="POST /command 'declare war on Prussia', then '1' (Conquest), then '1' "
+                  "(the articles card: declare with none)",
            staging="the unstaged 1805 boot: France at peace with Prussia, threat 70 (> 50)",
            facts={"diplomatic_objection": answer.get("diplomatic_objection")})
     fresh()

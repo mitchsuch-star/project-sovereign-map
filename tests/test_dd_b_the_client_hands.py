@@ -36,6 +36,8 @@ import time
 
 import pytest
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
+
 REPO = pathlib.Path(__file__).resolve().parents[1]
 CLIENT = REPO / "tools" / "dd_b_client.gd"
 PLAY = REPO / "tools" / "dd_b_play.py"
@@ -369,8 +371,8 @@ class TestTheRecords:
 
     def test_every_cause_is_a_tagged_ledger_row_with_its_frames(self):
         rec = self._causes()
-        bugs = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
-        design = (REPO / "docs" / "DESIGN_REFINEMENT.md").read_text(encoding="utf-8")
+        bugs = doc_text("BUG_FIXES.md")
+        design = doc_text("DESIGN_REFINEMENT.md")
         for c in rec["causes"]:
             text = design if c["id"].startswith("DDB-D") else bugs
             line = next(ln for ln in text.splitlines() if ln.startswith(f"| **{c['id']}** |"))

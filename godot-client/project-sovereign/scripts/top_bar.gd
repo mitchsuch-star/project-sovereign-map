@@ -87,7 +87,13 @@ const HOTKEY_HINTS := {
 	"event_log": "L", "ledger": "T", "generals": "G",
 	"diplomatic_ledger": "D", "dispatch": "R", "gazette": "N",
 }
+# EA-E9 (SF-RR5, October 21, 2026): a second while-typing key where a common
+# overlay takes the first — NVIDIA's and AMD's overlays both default to Alt+R
+# (main.gd _SCREEN_HOTKEYS carries the binding).
+const SECOND_HOTKEYS := {"dispatch": "B"}
 var _nav_full_text := {}
+# EA-E1: each nav button's glyph, shown only on the compact bar.
+var _nav_icons := {}
 var _compact := false
 
 func _ready():
@@ -166,14 +172,21 @@ func _ready():
 		# IQ10-X1: the tooltip names the SCREEN too, because in the compact
 		# bar the button's own text is gone and the icon is all that shows.
 		var screen_title: String = button_map[sname].text.split(" (")[0]
-		button_map[sname].tooltip_text = (
-			screen_title + " — " + key + ", or Alt+" + key + " while typing")
+		var tip := screen_title + " — " + key + ", or Alt+" + key + " while typing"
+		if SECOND_HOTKEYS.has(sname):
+			var second: String = SECOND_HOTKEYS[sname]
+			tip += " (Alt+%s where a graphics overlay keeps Alt+%s)" % [second, key]
+		button_map[sname].tooltip_text = tip
 
 	# Apply normal style to all buttons
 	for btn in button_map.values():
 		btn.add_theme_stylebox_override("normal", _normal_style)
 
-	# UI-3: a tinted leading icon per nav button (labels + hotkey hints kept).
+	# UI-3: a tinted glyph per nav button. EA-E1 (SF-RR5): it is the COMPACT
+	# bar's face — `_fit_bar` shows it where the words go and takes it off the
+	# full bar, which keeps its words and hotkeys (every frame since UI-3 shows
+	# them so: the leading glyph never drew beside them, and there it would
+	# push the compact threshold past 1,180).
 	Utils.apply_button_icon(event_log_btn, Utils.ICON_PHOSPHOR + "list.svg")
 	Utils.apply_button_icon(ledger_btn, Utils.ICON_PHOSPHOR + "map-trifold.svg")
 	Utils.apply_button_icon(generals_btn, Utils.ICON_PHOSPHOR + "users-three.svg")
@@ -182,6 +195,8 @@ func _ready():
 	# (no newspaper glyph in the curated set — the open book reads as
 	# the periodical's archive)
 	Utils.apply_button_icon(gazette_btn, Utils.ICON_PHOSPHOR + "book-open.svg")
+	for sname in button_map:
+		_nav_icons[sname] = button_map[sname].icon
 
 	# UI-6: nav hover/pressed match the flat bar look — without these the
 	# theme's gold-bordered navy stylebox flashed in on hover (style-jump).
@@ -615,6 +630,12 @@ func _update_button_highlights():
 				btn.add_theme_color_override("font_color", Utils.UI_WARNING)
 			else:
 				btn.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
+		# RR5-X6 (SF-RR5): the compact bar's glyph carries the antechamber's
+		# amber too — its words, and their "(1)", are gone there.
+		var waiting: bool = (sname == "generals" and _audience_marshal != ""
+				and sname != active_screen and sname != pinned_screen)
+		btn.add_theme_color_override("icon_normal_color",
+				Utils.UI_WARNING if waiting else Utils.UI_GOLD)
 
 
 # =============================================================================
@@ -936,12 +957,14 @@ func _fit_bar():
 	_fit_applied = true
 	for sname in button_map:
 		var btn: Button = button_map[sname]
+		var glyph: Texture2D = _nav_icons.get(sname, null)
 		if compact:
-			# Icon-only — or the hotkey letter where no icon loaded, so the
-			# bar never shows a blank square (the capture harness has no
-			# icon imports and showed six).
-			btn.text = "" if btn.icon != null else str(HOTKEY_HINTS.get(sname, ""))
+			# The glyph alone, at its own width (EA-E1) — or the hotkey letter
+			# where no glyph loaded, so the bar never shows a blank square.
+			btn.icon = glyph
+			btn.text = "" if glyph != null else str(HOTKEY_HINTS.get(sname, ""))
 		else:
+			btn.icon = null
 			btn.text = str(_nav_full_text.get(sname, btn.text))
 	if talleyrand_label:
 		talleyrand_label.visible = not compact

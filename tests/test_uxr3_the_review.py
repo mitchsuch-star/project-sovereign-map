@@ -32,6 +32,8 @@ import sys
 
 import pytest
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
+
 REPO = pathlib.Path(__file__).resolve().parents[1]
 RECORDS = REPO / "docs" / "audits" / "uxr3"
 CHECKLIST = REPO / "docs" / "UX_CHECKLIST_V1.json"
@@ -117,7 +119,7 @@ class TestTheReadingIsWhole:
 class TestEveryFailIsFiled:
     @pytest.fixture(scope="class")
     def section(self) -> str:
-        text = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        text = doc_text("BUG_FIXES.md")
         m = re.search(r"(?ms)^## UXR-3 — the review.*?(?=^## |\Z)", text)
         assert m, "BUG_FIXES.md has no '## UXR-3 — the review' section"
         return m.group(0)

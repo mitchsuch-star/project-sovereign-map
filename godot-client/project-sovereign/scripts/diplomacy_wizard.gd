@@ -188,6 +188,29 @@ func _lay_out_prompt(step: int) -> void:
 		assessment_panel.custom_minimum_size.y = 56.0
 
 
+# EA-E5 (SF-RR5, October 21, 2026): step 2's assessment keeps Talleyrand's
+# counsel in view. Its share of the panel (half the chip list's) was 75 px at
+# Interface Scale 2.0 — the heading and the status line, the counsel below its
+# own fold. Its floor is its first ASSESSMENT_FLOOR_LINES lines (the heading,
+# the status, the space, the counsel's opening two), never more than the text
+# it holds; the chip list scrolls under its "more below".
+const ASSESSMENT_FLOOR_LINES := 5
+
+
+func _fit_assessment() -> void:
+	await get_tree().process_frame
+	if assessment_panel == null or not visible or _current_step != 2:
+		return
+	var lines: int = assessment_panel.get_line_count()
+	var upto: float = float(assessment_panel.get_content_height())
+	if lines > ASSESSMENT_FLOOR_LINES:
+		upto = float(assessment_panel.get_line_offset(ASSESSMENT_FLOOR_LINES))
+	var box: StyleBox = assessment_panel.get_theme_stylebox("normal")
+	var top: float = box.get_margin(SIDE_TOP) if box else 0.0
+	assessment_panel.custom_minimum_size.y = maxf(56.0, ceilf(upto + top + 6.0))
+	refit()
+
+
 func _close_wizard():
 	if visible:
 		AudioManager.play("panel_close")
@@ -803,6 +826,7 @@ func _render_preview(data: Dictionary):
 			break
 
 	assessment_panel.text = bbcode
+	call_deferred("_fit_assessment")
 
 	# Build action buttons
 	var actions = data.get("actions", [])

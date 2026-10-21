@@ -738,6 +738,14 @@ fix slice. **Nothing deploys over an open UXR-4 no.**
 
 **What SF-RR4 homed here (October 21, 2026).** Two client lines the walk's battle stop reads (yes/no; no open row): the objection dialog's Trust and Compromise buttons naming their price when it is more than the order's face ("Trust Davout: fortify current position (2 AP — he must first go defensive, +3 trust)", `objection_dialog.gd`), and the battle report's capture line ("Munich falls to Lannes. The last 2,000 of the garrison at Munich give way.", `main.gd` / `enemy_phase_dialog.gd`). Rules `SYSTEMS_REFERENCE.md` §139.1 / §139.4.
 
+**What SF-RR5 homed here (October 21, 2026).** The re-shot frames of "the frames at both scales", for the walk's yes/no beside its own stops (rules `SYSTEMS_REFERENCE.md` §140; no open row). Each is `docs/audits/<stem>_2026_10_21.png` at Interface Scale 1.0 and `<stem>_X2_2026_10_21.png` at 2.0 (an 800 × 450 logical window — the hardest case, a laptop at 150 % comes near it):
+- **The battle diorama** — `IQ10_DIORAMA_DADJ`, `IQ10_DIORAMA_AADJ`: the rear standard below the forward portrait, Replay and Close clear of the filigree (SFR-B10, closed by its reproduction).
+- **The 2.0 decision modals** — `IQ10_PETITION_COMMAND_CLOSED` (the answers stand in a row under the letter, what each costs read in the letter), `IQ10_PROCLAMATION_WARSAW` ("By your hand." under the body, above Acknowledge), `IQ10_OBJECTION_DIALOG` (both rows wrap inside the window), `IQ10_TALLEYRAND_OBJECTION` (shot again), `IQ10_SETTLEMENT_THREE_COURTS` (every court's Press / Ease / Drop row, the four actions in one row), `IQ10_REWARD_DIALOG` (every choice and Not now).
+- **The wizard** — `IQ10_WIZARD_STEP2_AUSTRIA` (Talleyrand's counsel above the fold) and `IQ10_WIZARD_FORMABLES_ENTRY` (the agendas C6 re-shoot).
+- **The top bar and the war room** — `IQ10_TOP_BAR_BOOT`, `IQ10_TOP_BAR_ADMIRALTY` (the compact bar's six gold glyphs; the crimson blockade border), `IQ10_WAR_ROOM_BOOT` (the compact bar in place; the map's zoom chips in gold), `IQ10_RAIL_T20` (the notice rail's glyphs white on their pills).
+- **The Generals** — `IQ10_GENERALS_BOOT` (no dead band under the reading at 2.0; the Emperor's portrait shows).
+- **Two rulings for your eye** (§140.3 / §140.2): the full top bar keeps its words without glyphs, the glyphs being the compact bar's face; and a panel too tall for a short window stands under the bar instead of centred — reversible by one constant each.
+
 ## What this plan does not do
 
 - No visual redesign. The theme, the palette, the fonts and the war-table

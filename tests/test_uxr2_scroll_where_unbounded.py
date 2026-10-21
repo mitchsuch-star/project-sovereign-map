@@ -43,6 +43,9 @@ ALLOW_SCRIPT = {
     # Pre-Deploy S12 (UXR3-62): two fixed lines over the proclamation's name —
     # the heading and the struck old name; the body below stays in its scroll.
     ("proclamation_popup.gd", "head_label"): "two fixed lines",
+    # SF-RR5 (SFR-B11, October 21, 2026): the perspective line ("By your
+    # hand.") — one fixed line under the body's scroll, above Acknowledge.
+    ("proclamation_popup.gd", "subtitle_label"): "one fixed line",
 }
 # ScrollContainers that declare no height floor: a floorless list is squeezed
 # to a strip by fixed chrome (the IGR-F letter-book shape). It may only fall.

@@ -14,6 +14,10 @@ extends CanvasLayer
 signal reward_command(command: String)
 signal cancelled()
 
+# RR5-X5: the choices the dialog keeps in view, and one choice's height.
+const REWARD_ROWS_SEEN := 4
+const REWARD_ROW_PX := 42.0
+
 # UX23-R1: the player this dialog started, silenced when it closes.
 var _own_cue = null
 
@@ -26,6 +30,9 @@ var _own_cue = null
 func _ready():
 	if cancel_button:
 		cancel_button.pressed.connect(_on_cancel)
+	# RR5-X5: the explainer is the dialog's reading scroll now that the
+	# choices keep their rows — it rests on whole lines (UXR3-F3).
+	Utils.keep_whole_lines(info_label)
 	hide()
 
 
@@ -160,6 +167,16 @@ func show_reward(card: Dictionary):
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		options_container.add_child(label)
 
+	# RR5-X5 (SF-RR5, October 21, 2026): the choices are answers — their
+	# scroll keeps up to REWARD_ROWS_SEEN of them whole at any Interface Scale
+	# (the relax pass never takes it below them); the explainer above yields
+	# first and scrolls. At 2.0 the two shared 222 px half and half, and Ney's
+	# third choice, revoking his rente, sat below the fold.
+	var scroll: ScrollContainer = $PanelContainer/VBoxContainer/ScrollContainer
+	var rows := mini(maxi(option_count, 1), REWARD_ROWS_SEEN)
+	scroll.custom_minimum_size.y = maxf(120.0, float(rows) * (REWARD_ROW_PX + 8.0) + 2.0)
+	scroll.set_meta("relax_floor", scroll.custom_minimum_size.y)
+
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
@@ -171,7 +188,7 @@ func show_reward(card: Dictionary):
 func _add_option(label_text: String, command: String, font_color: Color):
 	var btn = Button.new()
 	btn.text = label_text
-	btn.custom_minimum_size = Vector2(0, 42)
+	btn.custom_minimum_size = Vector2(0, REWARD_ROW_PX)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", font_color)
 	btn.clip_text = true

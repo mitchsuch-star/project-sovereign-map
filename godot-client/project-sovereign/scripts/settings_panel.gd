@@ -444,7 +444,8 @@ func _update_scale_value_label(value: float) -> void:
 func _build_controls_section() -> void:
 	_add_header("CONTROLS")
 	_add_hint("Screens — L Event Log · T Ledger · G Generals · D Diplomacy · R Dispatch "
-		+ "· N Moniteur (Alt+key while typing) · F1 the Cabinet · Esc close / pause. "
+		+ "· N Moniteur (Alt+key while typing; Alt+B for the Dispatch where a graphics "
+		+ "overlay keeps Alt+R) · F1 the Cabinet · Esc close / pause. "
 		+ "The ledgers' books: 1–8.")
 	_add_hint("The day — E End Turn · Tab show or hide the command window (Alt+` while "
 		+ "typing) · Up / Down the command history · Tab completes a half-typed order.")

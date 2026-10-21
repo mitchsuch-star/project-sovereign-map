@@ -575,17 +575,27 @@ static func apply_icon_only_button(btn, icon_path: String) -> void:
 	btn.add_theme_color_override("icon_focus_color", UI_GOLD_BRIGHT)
 
 
+# EA-E1 (SF-RR5, October 21, 2026): a glyph's own drawn width. `expand_icon`
+# sized the glyph from what the button's words LEFT of its content box — none
+# in a button sized to its words, none in an empty one — so the compact top
+# bar's six buttons drew blank boxes. A fixed `icon_max_width` scales the
+# 256-px source and counts in the button's minimum (the mission row's idiom,
+# UXR3-1), so the glyph always has its room.
+const NAV_ICON_PX := 18
+
+
 static func apply_button_icon(btn, icon_path: String) -> void:
-	"""Add a tinted leading icon to a text button (keeps the label + its styling).
-	`expand_icon` scales the icon to the button height so the bar layout is not
-	blown out by the 256px source."""
+	"""A tinted glyph NAV_ICON_PX wide that counts in the button's minimum
+	size: a leading glyph beside words, or the whole face of a button without
+	them (the compact top bar)."""
 	if btn == null:
 		return
 	var tex = load(icon_path)
 	if tex == null:
 		return
 	btn.icon = tex
-	btn.expand_icon = true
+	btn.expand_icon = false
+	btn.add_theme_constant_override("icon_max_width", NAV_ICON_PX)
 	btn.add_theme_color_override("icon_normal_color", UI_GOLD)
 	btn.add_theme_color_override("icon_hover_color", UI_GOLD_BRIGHT)
 	btn.add_theme_color_override("icon_pressed_color", UI_GOLD_BRIGHT)
@@ -1136,6 +1146,22 @@ static func shrink_centered_panel_to_content(panel: Control) -> void:
 # the newest line.
 const WHOLE_LINE_EDGE := 2.0
 const WHOLE_LINE_MAX_BOX := 120.0
+# RR5-X4 (SF-RR5, October 21, 2026): and never more than a quarter of the
+# window. At Interface Scale 2.0 the Generals' window was 278 px and the
+# Emperor's 104-px portrait counted as a "line": the pad hid it behind an
+# 82-px dead band. The wizard's chip list did the same at 1.0, and its spacer
+# took the height from the assessment beside it, whose own snap then hid
+# Talleyrand's counsel. A dead band the snap opens is bounded the same way.
+const WHOLE_LINE_MAX_SHARE := 0.25
+# A row of text or a one-line chip (a 46-px button with the box's edges) is
+# always a "line" whatever the window: the bound above is for the TALL boxes
+# — a portrait, a two-line chip — not for the lines it protects.
+const WHOLE_LINE_TEXT_ROW := 52.0
+
+
+static func _whole_line_max_box(view_h: float) -> float:
+	return minf(WHOLE_LINE_MAX_BOX,
+			maxf(WHOLE_LINE_TEXT_ROW, maxf(view_h, 0.0) * WHOLE_LINE_MAX_SHARE))
 
 
 static func keep_whole_lines(node: Control) -> void:
@@ -1265,11 +1291,13 @@ static func snap_whole_lines(host: Control) -> void:
 		boxes = _whole_line_boxes(sc, v)
 	if boxes.is_empty():
 		return
+	# RR5-X4: a box taller than this is cut, not hidden
+	var max_box := _whole_line_max_box(view_h)
 	# the top edge: rest on a line's start, the way the scroll was moving
 	var last_v: float = rec["last_v"]
 	var top_max: float = maxf(float(bar.max_value - bar.page), 0.0)
 	for b in boxes:
-		if b.x < v - WHOLE_LINE_EDGE and b.y > v + WHOLE_LINE_EDGE and b.y - b.x <= WHOLE_LINE_MAX_BOX:
+		if b.x < v - WHOLE_LINE_EDGE and b.y > v + WHOLE_LINE_EDGE and b.y - b.x <= max_box:
 			var to: float
 			if last_v < 0.0:
 				to = b.x if v - b.x <= b.y - v else b.y
@@ -1289,12 +1317,23 @@ static func snap_whole_lines(host: Control) -> void:
 	# the bottom edge: pad away the part of a line that would show cut
 	var bottom := v + view_h
 	var cut_at := INF
+	var cut_h := 0.0
 	for b in boxes:
 		if b.x > v + 1.0 and b.x < bottom - WHOLE_LINE_EDGE and b.y > bottom + WHOLE_LINE_EDGE \
-				and b.y - b.x <= WHOLE_LINE_MAX_BOX:
-			cut_at = minf(cut_at, b.x)
+				and b.y - b.x <= max_box and b.x < cut_at:
+			cut_at = b.x
+			cut_h = b.y - b.x
 	# whole pixels, and one more: the layout rounds sizes to the pixel
 	var pad := 0.0 if cut_at == INF else ceilf(bottom - cut_at) + 1.0
+	# RR5-X4: nor may the dead band a spacer opens for a TALL box (the pad
+	# over the share the scroll gives up) exceed it — then the box is cut
+	# instead; a row of text is always padded whole. A floored scroll gives
+	# its pad to its neighbours and opens no band.
+	if spacer != null and pad > 0.0 and cut_h > WHOLE_LINE_TEXT_ROW:
+		var floored: bool = float(rec["floor0"]) >= 0.0 \
+				or (host as ScrollContainer).custom_minimum_size.y >= view_h - 0.5
+		if not floored and pad / maxf(float(rec["share"]), 0.2) > max_box:
+			pad = 0.0
 	if own:
 		if not is_equal_approx(box.content_margin_bottom, base + pad):
 			box.content_margin_bottom = base + pad
@@ -1427,6 +1466,19 @@ static func clamp_centered_panel(panel: Control) -> void:
 	panel.offset_right = w / 2.0
 	panel.offset_top = -h / 2.0
 	panel.offset_bottom = h / 2.0
+	# SF-RR5 (October 21, 2026): a panel taller than the centred band stands
+	# in the band BELOW the bar instead — its top at the bar + HUD_MARGIN, its
+	# bottom CLAMP_EDGE from the window's edge (the side inset). Centring kept
+	# the bar's 44 px twice, once at the bottom where nothing stands: at
+	# Interface Scale 2.0 that was 32 px of every height-limited panel, the
+	# room the decision modals' answers needed. A panel that fits the centred
+	# band stays centred, byte for byte.
+	var below_top: float = TOP_BAR_HEIGHT + HUD_MARGIN + top_bar_growth()
+	var below_h: float = view.y - below_top - CLAMP_EDGE
+	if design.y > h and below_h > h:
+		h = minf(design.y, below_h)
+		panel.offset_top = below_top - view.y / 2.0
+		panel.offset_bottom = panel.offset_top + h
 	_relax_child_minimums(panel, h)
 
 
@@ -1439,6 +1491,10 @@ static func clamp_centered_panel(panel: Control) -> void:
 # 2 x (36 + 8)). The layout-law census pins each authored number to it.
 const TOP_BAR_HEIGHT := 36.0
 const HUD_MARGIN := 8.0
+# SF-RR5: a height-limited centred panel's bottom inset — the clamp's own
+# side inset (`view.x - 24.0`, 12 a side), so a grip's 24-px square stays on
+# screen (clamp_centered_panel).
+const CLAMP_EDGE := 12.0
 # UXR-D1 (Pre-Deploy S9b): the bar's DRAWN height, published by top_bar.gd.
 # Its one line of buttons grows with Text size (45 px at 150 %), so every
 # number above clears TOP_BAR_HEIGHT + top_bar_growth(); 0 at 100 %.
@@ -1706,6 +1762,9 @@ static func _relax_child_minimums(panel: Control, budget: float) -> void:
 		return
 	for control in flexible:
 		control.custom_minimum_size.y = float(control.get_meta("authored_min_y"))
+	# SF-RR5 (EA-E6): a control may carry a floor of its own (`relax_floor`):
+	# a block of click targets keeps its rows (the settlement table's Press /
+	# Ease / Drop), a secondary reading region may give up to one line.
 
 	for _round in range(_RELAX_ROUNDS):
 		var excess: float = panel.get_combined_minimum_size().y - budget
@@ -1724,7 +1783,7 @@ static func _relax_child_minimums(panel: Control, budget: float) -> void:
 		for control in flexible:
 			if control.has_meta("relax_last"):
 				continue
-			var headroom: float = control.custom_minimum_size.y - _RELAX_FLOOR
+			var headroom: float = control.custom_minimum_size.y - _relax_floor(control)
 			if headroom > 0.5:
 				givers.append(control)
 				room += headroom
@@ -1732,7 +1791,7 @@ static func _relax_child_minimums(panel: Control, budget: float) -> void:
 			for control in flexible:
 				if not control.has_meta("relax_last"):
 					continue
-				var headroom: float = control.custom_minimum_size.y - _RELAX_FLOOR
+				var headroom: float = control.custom_minimum_size.y - _relax_floor(control)
 				if headroom > 0.5:
 					givers.append(control)
 					room += headroom
@@ -1740,13 +1799,17 @@ static func _relax_child_minimums(panel: Control, budget: float) -> void:
 			break
 		var take: float = minf(excess, room)
 		for control in givers:
-			var headroom: float = control.custom_minimum_size.y - _RELAX_FLOOR
+			var headroom: float = control.custom_minimum_size.y - _relax_floor(control)
 			var share: float = take * (headroom / room)
 			control.custom_minimum_size.y = maxf(
-				_RELAX_FLOOR, control.custom_minimum_size.y - share)
+				_relax_floor(control), control.custom_minimum_size.y - share)
 			# Record our OWN output, so the next open can tell a value this pass
 			# wrote apart from one the caller re-derived (see _collect_flexible).
 			control.set_meta("relaxed_min_y", control.custom_minimum_size.y)
+
+
+static func _relax_floor(control: Control) -> float:
+	return float(control.get_meta("relax_floor", _RELAX_FLOOR))
 
 
 static func _collect_flexible(node: Node, out: Array) -> void:

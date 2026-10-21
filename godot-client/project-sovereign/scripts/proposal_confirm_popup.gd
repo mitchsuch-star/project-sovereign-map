@@ -46,6 +46,14 @@ const COLOR_RED = "#e66262"
 # applies to dtype settlement_confirm ONLY (set per-open, removed for every
 # other dtype); clamp_centered_panel still shrinks it to fit small viewports.
 const SETTLEMENT_CEILING := Vector2(1160, 980)
+# EA-E6 (SF-RR5, October 21, 2026): at a short window (Interface Scale 2.0)
+# the table's three reading regions and its Press / Ease / Drop rows could not
+# all stand: the relax pass took every region to its 48-px floor — four
+# stacked scroll thumbs — and Britain's and Russia's rows fell under the fold.
+# The rows are answers and keep their height (`relax_floor`); the header and
+# the footer may give up to one line each; the four actions stand in one row.
+const SETTLEMENT_LINE_FLOOR := 26.0
+const SETTLEMENT_ACTION_COLUMNS := 4
 # GT-Slice-3: client-side magnitude step for the per-line gold controls
 # (mirrors the backend SETTLEMENT_DIAL_GOLD_STEP; the server clamps and
 # revalidates every value — this is presentation-side convenience only).
@@ -231,6 +239,14 @@ func show_dialogue(data: Dictionary):
 				320.0, maxf(120.0, _vp.get_visible_rect().size.y * 0.35))
 	if footer_label:
 		footer_label.visible = is_settlement_table
+	for region in [content_label, footer_label]:
+		if region == null:
+			continue
+		if is_settlement_table:
+			region.set_meta("relax_floor", SETTLEMENT_LINE_FLOOR)
+		elif region.has_meta("relax_floor"):
+			region.remove_meta("relax_floor")
+	button_container.columns = 3
 	# Hidden by default; _add_settlement_tier2_buttons turns it on only when it
 	# actually mints affordances (it early-returns outside PROPOSE mode).
 	if tier2_scroll:
@@ -313,6 +329,29 @@ func show_dialogue(data: Dictionary):
 	Utils.clamp_centered_panel($PanelContainer)
 	if is_settlement_table:
 		_fit_settlement_document()
+
+
+func _fit_action_columns() -> bool:
+	"""EA-E6: the settlement table's actions stand in ONE row when that row
+	fits the panel (Harsher terms / More generous / Submit / Back Out) — a
+	second row was 53 px a short window could not spare — and keep the
+	shared three columns when it does not (a holdout review's long roads).
+	A grid's minimum is the sum of its widest cells, so the row is measured,
+	not assumed. True when the columns changed."""
+	var n := 0
+	for child in button_container.get_children():
+		if not child.is_queued_for_deletion():
+			n += 1
+	if n <= 3:
+		return false
+	var cols: int = mini(n, SETTLEMENT_ACTION_COLUMNS)
+	var room: float = ($PanelContainer.offset_right - $PanelContainer.offset_left) \
+		- $PanelContainer.get_theme_stylebox("panel").get_minimum_size().x
+	button_container.columns = cols
+	if button_container.get_combined_minimum_size().x > room + 0.5:
+		button_container.columns = 3
+		return false
+	return true
 
 func _add_settlement_tier2_buttons(data: Dictionary):
 	# UX-2 (GT-Slice-3): REVIEW is a frozen staged-decision surface — no
@@ -404,6 +443,8 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			cap = maxf(96.0, vp.get_visible_rect().size.y * 0.30)
 		tier2_scroll.custom_minimum_size.y = clampf(
 			float(court_rows.size()) * 42.0 + 10.0, 96.0, cap)
+		# EA-E6: the rows are answers — the relax pass keeps them whole.
+		tier2_scroll.set_meta("relax_floor", tier2_scroll.custom_minimum_size.y)
 
 func _is_default_builder(dtype: String, data: Dictionary) -> bool:
 	"""PC-F34: true when `show_dialogue`'s match fell to `_build_content`
@@ -934,6 +975,10 @@ func _fit_settlement_document() -> void:
 	await get_tree().process_frame
 	if not is_instance_valid(panel) or not visible:
 		return
+	# EA-E6: the actions take one row where it fits — measured once the last
+	# open's buttons are gone — and the clamp refits to it.
+	if _fit_action_columns():
+		Utils.clamp_centered_panel(panel)
 	var have: float = panel.offset_bottom - panel.offset_top
 	var need_panel: float = panel.get_combined_minimum_size().y
 	var shares: Array = []

@@ -67,8 +67,17 @@ vertical_alignment = 1
 [node name="HSeparator2" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="StatsContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+; RR5-X1 (SF-RR5, October 21, 2026): both rows WRAP. An HBox's minimum width is
+; the SUM of its children, so the four answers (SF-RR4's priced Trust arm the
+; longest) held the panel ~1,050 px wide at any Interface Scale: at 2.0 the
+; dialog ran off both edges of an 800-px window, half of Trust and of Cancel
+; off-screen. A flow row's minimum is its widest child; the war-detail
+; popup's row took the same cure on July 18, 2026.
+[node name="StatsContainer" type="HFlowContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
+alignment = 1
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 2
 
 [node name="PersonalityLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
 layout_mode = 2
@@ -105,9 +114,11 @@ horizontal_alignment = 1
 [node name="HSeparator3" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+alignment = 1
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
 
 [node name="TrustButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(0, 50)

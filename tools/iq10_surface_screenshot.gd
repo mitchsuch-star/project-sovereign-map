@@ -784,25 +784,13 @@ func _out_path(suffix: String) -> String:
 func _capture(suffix: String) -> void:
 	var path := _out_path(suffix)
 	var frame := {"suffix": suffix, "png": path}
-	if path == "":
-		_note_error("no output path for scale " + _scale_key())
+	# SF-RR5 (October 21, 2026): a RECORD-ONLY spec keeps the frame's record
+	# and draws no picture — the layout a HEADLESS pin reads
+	# (`tests/test_sf_rr5_the_frames.py`); a headless run has no image.
+	if bool(_spec.get("record_only", false)):
+		frame["record_only"] = true
+	elif not _save_png(path, frame):
 		return
-	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
-	var img: Image = root.get_texture().get_image()
-	if img == null or img.is_empty():
-		_note_error("viewport returned no image (is the run --headless?)")
-		return
-	var down := float(_shot().get("downscale", _spec.get("downscale", 1.0)))
-	if down > 0.0 and down < 1.0:
-		img.resize(maxi(1, int(img.get_width() * down)), maxi(1, int(img.get_height() * down)),
-				Image.INTERPOLATE_LANCZOS)
-	var err := img.save_png(path)
-	if err != OK:
-		_note_error("save_png failed (%d): %s" % [err, path])
-		return
-	frame["image_size"] = [img.get_width(), img.get_height()]
-	frame["bytes"] = FileAccess.get_file_as_bytes(path).size()
-	frame["blank"] = _is_blank(img)
 	var view: Vector2 = root.get_visible_rect().size
 	frame["logical_viewport"] = [view.x, view.y]
 	frame["texts"] = _collect_texts()
@@ -817,6 +805,8 @@ func _capture(suffix: String) -> void:
 	frame["grips"] = _grips_and_ornaments()
 	# S12 part 2 (UXR3-F3): a line cut at a scroll's edge.
 	frame["cut_lines"] = _cut_lines()
+	# SF-RR5: the words a reader SEES, above every fold.
+	frame["seen_text"] = _seen_text()
 	# S12b (UXR-X28): the place names the map drew, and what its furniture
 	# layout moved or hid (the map-tier text rows carry their own rects).
 	frame["map_labels"] = _map_labels()
@@ -837,9 +827,32 @@ func _capture(suffix: String) -> void:
 		if s is ApiStub:
 			stub_calls.append_array(s.calls)
 	frame["api_calls"] = stub_calls
-	if frame["blank"]:
+	if frame.get("blank", false):
 		_note_error("frame is a single flat colour — nothing rendered")
 	_current["frames"].append(frame)
+
+
+func _save_png(path: String, frame: Dictionary) -> bool:
+	if path == "":
+		_note_error("no output path for scale " + _scale_key())
+		return false
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var img: Image = root.get_texture().get_image()
+	if img == null or img.is_empty():
+		_note_error("viewport returned no image (is the run --headless?)")
+		return false
+	var down := float(_shot().get("downscale", _spec.get("downscale", 1.0)))
+	if down > 0.0 and down < 1.0:
+		img.resize(maxi(1, int(img.get_width() * down)), maxi(1, int(img.get_height() * down)),
+				Image.INTERPOLATE_LANCZOS)
+	var err := img.save_png(path)
+	if err != OK:
+		_note_error("save_png failed (%d): %s" % [err, path])
+		return false
+	frame["image_size"] = [img.get_width(), img.get_height()]
+	frame["bytes"] = FileAccess.get_file_as_bytes(path).size()
+	frame["blank"] = _is_blank(img)
+	return true
 
 
 func _is_blank(img: Image) -> bool:
@@ -1369,6 +1382,59 @@ func _cut_lines() -> Array:
 	return out
 
 
+# ── what the reader SEES (SF-RR5, October 21, 2026) ─────────────────────────
+# Per visible text node, the words inside the window that shows them: a
+# RichTextLabel's whole lines inside its scroll (or its own scrollbar) and the
+# viewport; a Label or a Button whole inside both. A must_show is then read as
+# SEEN, not merely present below a fold (`tests/test_sf_rr5_the_frames.py`).
+func _seen_text() -> Array:
+	var out: Array = []
+	var view := root.get_visible_rect()
+	for n in _all_nodes(root):
+		if n == _backdrop or not (n is Control) or not _shown(n) or _inside_subviewport(n):
+			continue
+		var c := n as Control
+		var sc := _scroll_ancestor(c)
+		var win := view if sc == null else view.intersection(sc.get_global_rect())
+		var seen := ""
+		if c is RichTextLabel:
+			seen = _rtl_seen(c as RichTextLabel, win)
+		elif c is Label or (c is BaseButton and ("text" in c)):
+			if win.grow(1.0).encloses(c.get_global_rect()):
+				seen = str(c.text)
+		if seen.strip_edges() != "":
+			out.append({"path": str(root.get_path_to(c)), "seen": seen})
+	return out
+
+
+func _rtl_seen(rtl: RichTextLabel, win: Rect2) -> String:
+	var box: StyleBox = rtl.get_theme_stylebox("normal")
+	var m_top: float = box.get_margin(SIDE_TOP) if box else 0.0
+	var m_bottom: float = box.get_margin(SIDE_BOTTOM) if box else 0.0
+	var r := rtl.get_global_rect()
+	var text_top := r.position.y + m_top
+	if _scroll_ancestor(rtl) == null:
+		win = win.intersection(Rect2(r.position.x, r.position.y + m_top,
+				r.size.x, r.size.y - m_top - m_bottom))
+		if rtl.scroll_active:
+			text_top -= float(rtl.get_v_scroll_bar().value)
+	var count := rtl.get_line_count()
+	var lines := {}
+	for i in range(count):
+		var y0 := text_top + float(rtl.get_line_offset(i))
+		var y1 := text_top + (float(rtl.get_line_offset(i + 1)) if i + 1 < count else float(rtl.get_content_height()))
+		if y0 >= win.position.y - 2.0 and y1 <= win.end.y + 2.0:
+			lines[i] = true
+	if lines.is_empty():
+		return ""
+	var parsed := rtl.get_parsed_text()
+	var seen := ""
+	for ci in range(parsed.length()):
+		if lines.has(rtl.get_character_line(ci)):
+			seen += parsed[ci]
+	return seen
+
+
 func _grips_and_ornaments() -> Array:
 	# A ResizeGrip (its hit square, centred on its panel's corner), a node in
 	# the `corner_ornaments` group and a bar's centre tick (`bar_ticks`), each
@@ -1406,6 +1472,8 @@ func _visible_buttons() -> Array:
 		var row := {"path": str(root.get_path_to(b)), "class": b.get_class(),
 				"text": (str(n.text) if ("text" in n) else "").left(60), "disabled": b.disabled,
 				"tooltip": str(b.tooltip_text).left(120), "layer": _layer_of(b),
+				# SF-RR5 (EA-E1): whether the button carries a glyph at all
+				"icon": b is Button and (b as Button).icon != null,
 				"rect_raw": [r.position.x, r.position.y, r.size.x, r.size.y]}
 		var scroll := _scroll_ancestor(b)
 		if scroll != null:

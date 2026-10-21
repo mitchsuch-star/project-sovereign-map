@@ -53,6 +53,7 @@ from backend.game_logic import ai_diplomacy as AI
 from backend.game_logic import counsel as CS
 from backend.game_logic import diplomacy as D
 from backend.models.world_state import WorldState
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 
 REPO = Path(__file__).resolve().parents[1]
 SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
@@ -2651,14 +2652,13 @@ class TestPCR7:
         )
         assert "territory_compensate" in CANONICAL_CLAUSE_TYPES
         assert "territory_compensate" in SETTLEMENT_LIVE_CLAUSE_TYPES
-        bug = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        bug = doc_text("BUG_FIXES.md")
         row = next(ln for ln in bug.splitlines() if ln.startswith("| **PC-R7**"))
         # S14 part 3 (October 20, 2026): the bond landed and the row CLOSED.
         assert "CLOSED" in row and "TestPCR7" in row
         assert "S14 part 2" in row and "bond" in row and "declared goals" in row
         # SF-RR4 (October 21, 2026): the docs diet moved S14 part 2's entry to
         # the quarter's archive verbatim — the ledger reads both (`_ledgers`).
-        from tests._ledgers import doc_text
         assert "S14 PART 2" in doc_text("STATUS.md").upper()
 
     def test_ii_a_the_rule_reads_the_form_from_the_holder(self, vienna_held):
@@ -3021,12 +3021,14 @@ class TestPCR7:
         bond heads S14 part 3 with its pin named in the row (GR9)."""
         from backend.game_logic import declared_goals as DG
         assert DG.MAX_DECLARED_ARTICLES == 2 and DG.DROPPED_REFUND_DIVISOR == 2
-        bug = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        bug = doc_text("BUG_FIXES.md")
         row = next(ln for ln in bug.splitlines() if ln.startswith("| **PC-R7**"))
         # S14 part 3 (October 20, 2026): the bond landed and the row CLOSED.
         assert "CLOSED" in row and "S14 part 3" in row and "bond" in row
         assert "test_ii_the_bond_is_priced_and_biddable" in row
-        status = (REPO / "docs" / "STATUS.md").read_text(encoding="utf-8")
+        # The docs diet's idiom (tests/_ledgers.py): S14 part 3's STATUS entry
+        # moved to docs/archive/STATUS_2026_Q4.md when SF-RR5 landed.
+        status = doc_text("STATUS.md")
         assert "S14 part 3" in status and "bond" in status
 
     def test_ii_m_the_card_declares_the_wars_articles(self, w):

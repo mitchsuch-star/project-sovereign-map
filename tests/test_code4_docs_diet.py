@@ -99,6 +99,23 @@ class TestTheDietHolds:
         # line-ending-blind: a fresh Windows worktree is CRLF on disk (CODE-X1)
         assert text_bytes(DOCS / "STATUS.md") <= 200_000
 
+    def test_no_pin_reads_a_quarterly_ledger_without_its_archives(self):
+        """RR5-X9 (SF-RR5's sibling sweep, October 21, 2026): a pin that reads
+        `BUG_FIXES.md`, `DESIGN_REFINEMENT.md` or `STATUS.md` straight off the
+        disk sees the current quarter only, and goes red the day the diet
+        moves its row — as one did when SF-RR5 archived S14 part 3's entry.
+        Every pin reads them through `tests/_ledgers.doc_text`; this file's
+        own shape and size readings measure the live file on purpose."""
+        direct = re.compile(r'"(?:docs/)?(?:BUG_FIXES|DESIGN_REFINEMENT|STATUS)\.md"\)\s*\.read_(?:text|bytes)')
+        offenders = []
+        for path in sorted((REPO / "tests").glob("*.py")):
+            if path.name == Path(__file__).name:
+                continue
+            for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if direct.search(line):
+                    offenders.append(f"{path.name}:{n}")
+        assert not offenders, offenders
+
     def test_claude_md_names_the_routing_authority_on_one_screen(self):
         text = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
         head = text.index("## Current Phase")

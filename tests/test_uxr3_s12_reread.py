@@ -25,6 +25,8 @@ import sys
 
 import pytest
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
+
 REPO = pathlib.Path(__file__).resolve().parents[1]
 REC = REPO / "docs" / "audits" / "uxr3_s12"
 BEFORE = REPO / "docs" / "audits" / "uxr3"
@@ -139,7 +141,7 @@ class TestEveryCrossOfTheReReadIsFiled:
         """Filed OPEN for S12 part 2; part 2's closing re-read
         (`tests/test_uxr3_s12b_reread.py`) then moves each one on: FIXED by
         part 2, or re-homed to UXR-4 with what still reads ✗."""
-        text = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        text = doc_text("BUG_FIXES.md")
         for r in json.loads((REC / "new_rows.json").read_text(encoding="utf-8")):
             head = f"| **{r['id']}** | {r['sev']} | "
             assert any(head + state in text for state in LATER_STATES + ("OPEN — owner S12 part 2",)), r["id"]
@@ -147,7 +149,7 @@ class TestEveryCrossOfTheReReadIsFiled:
                 assert f"`{sid}`" in text, (r["id"], sid)
 
     def test_a_flipped_row_is_fixed_in_the_ledger_and_an_open_one_is_not(self):
-        text = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        text = doc_text("BUG_FIXES.md")
         for r in _load("reread.json")["rows"]:
             line = next(ln for ln in text.splitlines() if ln.startswith(f"| **{r['id']}** |"))
             if r["state"] == "FIXED":

@@ -123,6 +123,7 @@ ENGINE_GROUP_MODULES = frozenset({
     "test_sf7_s8_the_screen_says",
     "test_sf7_s9_the_frames",
     "test_sf_page_the_front_page_of_the_peace",
+    "test_sf_rr5_the_frames",
     "test_tutorial_unbreakable_2026_09_23",
     "test_ui_visual_foundation",
     "test_uxr0_readability",

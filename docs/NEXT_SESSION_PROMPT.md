@@ -1,50 +1,54 @@
-# NEXT SESSION PROMPT — the Score Finish residue, its fourth session: SF-RR5 "the frames at both scales"
+# NEXT SESSION PROMPT — the Score Finish residue, its fifth session: SF-RR6 "the instrument reads what the player sees"
 
-> Overwritten each time a session hands off. Current hand-over: **October 21, 2026, after SF-RR4 "war, truce and
-> the standing order" landed** (commits through the hook — `git log -2`).
+> Overwritten each time a session hands off. Current hand-over: **October 21, 2026, after SF-RR5 "the frames at both
+> scales" landed** (commits through the hook — `git log -2`).
 >
-> **What the session delivered** (`SYSTEMS_REFERENCE.md` §139; rows `BUG_FIXES.md` §Score Finish Step 8 SFR-D3, D4,
-> D5, D6, D22, D29, D31, D35, B14 FIXED and SFR-D18 CLOSED by its reproduction, §The Economy Gate EG-X5 FIXED, §RR4
-> RR4-X1 … X12 FIXED, `DESIGN_REFINEMENT.md` EG-D3 BUILT; pins `tests/test_sf_rr4_war_truce_and_the_standing_order.py`, 53):
-> - **Reproduced first:** four read-only investigators (Sonnet), one per family; their boards became the pins. SFR-D18
->   (DDB-19 had fixed it) and the organic SFR-B14 (0 lapses on every CMD arm) did not reproduce as written.
-> - **The fixes:** the Trust arm names its price; the contact interrupt reads the muster's figure; the quotes name the
->   man the cover rule puts in the field; trusting Ney issues his chase; a HOLD keeps its post; only a court at war
->   harasses; the AI no longer hops back; the AI repeals before a lapse; the road home names the enclave and the desk
->   answers it; a field win names the works it took.
-> - **The bench:** Spain's La Romana, Blake, Cuesta; Sweden's Toll, Adlercreutz; Bavaria's Wrede — each court commissions
->   from it at war on the CMD arms; `BASELINE_SERIES` re-recorded once (`tools/_sf_rr4_series_arms_final.json`), the old
->   series kept as `SERIES_BEFORE_THE_BENCH`.
-> - **The reading (CMD arms):** combat legibility C3 ✗ → ✓; AI aliveness C1 0 lapses (its 13–18 band ✗ at 19–20 on both
->   trees — EG-D1's re-band, SF-RR6's), C6 ✓; living balance F1 ✓.
+> **What the session delivered** (`SYSTEMS_REFERENCE.md` §140; rows `BUG_FIXES.md` §Score Finish Step 8 SFR-B11 FIXED
+> and SFR-B10 CLOSED by its reproduction, §The Economy Audit EA-E1, E2, E5, E6, E9 FIXED and EA-E3, E7 CLOSED by their
+> reproduction, §RR5 RR5-X1 … X9 FIXED; pins `tests/test_sf_rr5_the_frames.py`; frames `docs/audits/IQ10_*_2026_10_21.png`,
+> listed at `UX_UI_REVIEW_PLAN.md` §UXR-4):
+> - **Reproduced first** on the whole IQ-10 table at both Interface Scales; S12 part 2 had already fixed three rows.
+> - **The 2.0 decision modals:** every answer of every modal in the table stands above the fold at both scales, inside
+>   the window — the petition's answers in a row under its letter, the Proclamation's closing line under its body, the
+>   objection's rows wrapping, the settlement table's court rows kept, the reward dialog's choices kept; a tall panel
+>   stands under the bar at a short window (`Utils.clamp_centered_panel`), a block of answers keeps its rows
+>   (`relax_floor`).
+> - **The top bar, the glyphs, the snap, the key:** the compact bar draws its glyphs (the full bar keeps its words —
+>   ruled); 62 curated glyphs whitened (`tools/ui_icons_white.py`); the whole-line snap cuts a tall box rather than hide
+>   it behind a dead band; Alt+B opens the Dispatch where an overlay keeps Alt+R (the Mode C session pressed it).
 >
 > **Traps this session paid for:**
-> - **An attribution tool must prove its levers bite.** `tools/_sf_rr4_series_arms.py` first checked each seam in the
->   PARENT (`importlib` from `tools/` cannot see `backend`), silently dropped all seven code levers, and arm 0 still
->   vetoed three backtracks. Read arm 0's reach counters as well as its series.
-> - **A data change can be held down through a function seam:** the front page's `SEAMS_DOWN` holds the bench down with
->   `recruitment:get_marshal_pool=…` (the driver's `--seam` takes callables only).
-> - **A pin that relied on a defect re-stages honestly:** the ACH-F / action-cost / CA9 pins needed the pursuit's
->   objection, which RR4-X1 made read the muster — their boards now stage a Mack the muster cannot carry (400,000).
-> - `_build_muster_preview` sits at 494 lines (the ratchet caps functions over 500 at 28); `CLAUDE.md` at 61,893 of 62,000.
-> - Run pytest with `env -u PYTHONDONTWRITEBYTECODE` or two `test_fa_slice8` bytecode pins fail spuriously.
-> - `score_run.py check` prints ✓/✗ as "?" on this console; read `checklist.json` in the run dir.
+> - **The IQ-10 harness runs HEADLESS in record-only mode** (`record_only: true` in the spec): the layout record is the
+>   windowed one's (measured), with no picture — pins and before/after comparisons use it; pictures still need
+>   `--windowed`.
+> - **A relative `--png-dir` lands under the Godot project** (`godot-client/project-sovereign/docs/audits/`) — pass an
+>   absolute path.
+> - **Capture roads drift silently** when the backend adds a step: the Talleyrand objection (S14 part 2's articles card)
+>   and the collapse war detail (S13d's tier) had shot blank or not at all for days. Both captures now raise; read a
+>   manifest's empty facts after any backend change to a staged road.
+> - **After changing an SVG, run `--headless --import`** or the harness draws the stale imported texture.
+> - **The heredoc backslash trap again:** a `\\n` inside a quoted heredoc became a real newline in a test file — write
+>   scripts with the Write tool.
+> - Harness logs carry "Lambda capture at index 0 was freed" engine ERRORs on every run (teardown noise, 32 on the entry
+>   tree) — not SCRIPT ERRORs.
+> - `CLAUDE.md` sits at 61,900 of 62,000 bytes.
 >
-> **Nothing waits on the user before S15** (UXR-4, the code-signing certificate and AO's three questions are theirs).
+> **Nothing waits on the user before S15** (UXR-4 — now with SF-RR5's frames and two rulings — the code-signing
+> certificate and AO's three questions are theirs).
 > Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-The Score Finish residue, its fourth session — SF-RR5 "the frames at both scales" — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -2` for the head).
+The Score Finish residue, its fifth session — SF-RR6 "the instrument reads what the player sees" — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -2` for the head).
 
-Read first: `docs/STATUS.md` ▶ NEXT UP, `docs/SCORE_FINISH_SPEC.md` §3 Step 9 (the SF-RR5 row — its rows, done-when and test), `docs/BUG_FIXES.md` §Score Finish Step 8 (SFR-B10, B11) and §The Economy Audit (EA-E1, E2, E3, E5, E6, E7, E9; `tools/defect_census.py --open` lists them), `docs/UX_UI_REVIEW_PLAN.md` (the frames and UXR-4), and the IQ-10 capture tools (`tools/iq10_capture_payloads.py`, `tools/iq10_run_captures.py`; the memory note on the Godot harness: screenshots need `--windowed`, never `--headless`).
+Read first: `docs/STATUS.md` ▶ NEXT UP, `docs/SCORE_FINISH_SPEC.md` §3 Step 9 (the SF-RR6 row — its rows, done-when and test), §4 (the instrument and its frozen-reader rule) and §6 row 23, `docs/BUG_FIXES.md` §Score Finish Step 8 (SFR-I2, I4, I5, I6, I7), §The Economy Audit (EA-2) and §The Economy Gate (EG-X4) — `tools/defect_census.py --open` lists them — `docs/DESIGN_REFINEMENT.md` EG-D1 (ruled: re-band), and the instrument (`tools/score_run.py`, `tools/score_reread.py`, `tools/_score_probes.py`, `tools/playtest_driver.py`, `docs/SCORE_CHECKLIST_V1_1.json`).
 
 Scope — the design is the spec's; rule the details at the head, measured, and flag any reversal:
 0. **The user's rule (October 20, 2026): diplomacy is never typed.** No new line teaches a typed diplomatic order.
-1. **SF-RR5 "the frames at both scales":** SFR-B10 (the diorama's standard over a portrait, the Close button over the frame — IQ10_DIORAMA_DADJ at both scales), SFR-B11 (the Proclamation and the petition push their choices below a scroll fold at Interface Scale 2.0), the agendas C6 re-shoot, and the economy audit's client rows EA-E1 (the compact top bar's blank navigation buttons — supersedes SFR-I3), EA-E2 (gear / book icons draw black), EA-E3 (the Admiralty chip's blockade border), EA-E5 (the wizard's step-2 assessment shrinks at 2.0), EA-E6 (SETTLEMENT_THREE_COURTS_X2's must_show), EA-E7 (the Generals screen's filigree over scrolled text), EA-E9 (an advertised hotkey eaten by a common overlay). **Reproduce each on its frame first** (shoot the entry tree; a row whose frame is clean today is closed by its reproduction, named); fix each at its one seam in the client (the `.gd` and its layout law, UXR-2); re-shoot at both scales.
-2. **Done when** the diorama and the 2.0 decision modals re-shot clean, every row's pin in `tests/test_sf_rr5_the_frames.py` flips with its fix (a layout census or the IQ-10 frame's `must_show`), the re-shot frames are listed in `docs/UX_UI_REVIEW_PLAN.md` §UXR-4 for the user's eye, the Godot parse harness EXIT 0.
-3. **If the session has room:** SF-RR6 "the instrument reads what the player sees" (SFR-I2 … I7, EA-2, EG-X4, EG-D1's re-band of AI aliveness C1 in `docs/SCORE_CHECKLIST_V1_2.json`) — sized at RR5's close; otherwise it heads the next session, named in STATUS with its pin.
+1. **SF-RR6 "the instrument reads what the player sees":** SFR-I2 with SFR-I7 (the digest marks or drops the enemy-phase text the client never renders — `enemy_phase_dialog.gd` rebuilds every line from structured fields — and combat legibility C5 reads rendered text), SFR-I4 (drama C5 reads both copies of an unmet claim; the driver records the dispatch's Unmet Marshals block and its `expectation_rises`), SFR-I5 (AI aliveness C6 counts France's wars — a war France joins through its client too — never another court's declaration), SFR-I6 (the DL arm stages its preconditions — actions spent on the right turn, the levy on French ground — and the driver flags SCRIPT PRECONDITION when one fails), EA-2 (economy F1 sees an off-books flow: the chest's measured change across the end turn, less the Butcher's Bill and the one-shot purchases, against the applied Net), EG-X4 (trace which store is stale on the gate's CMD-M turn-20 board — the dispatch's intel row or the store's last sighting — and fix the stale one at its seam; narration C4 ✓ with the cause recorded), and EG-D1's re-band (a new `docs/SCORE_CHECKLIST_V1_2.json` whose AI aliveness C1 reads "the rival courts enact at least 13 of their decks' 20 laws, with 0 lapses"; the AI's purse untouched). **Reproduce each first** (every reader misread shown on the archived digest that carries it); fix each at its one seam in the instrument.
+2. **The frozen reading stands as measured** (§4): the corrected readers never rewrite a past mark — both archives (the baseline's and the final reading's, and the latest CMD arms) are re-read by `tools/score_reread.py` beside their records and the deltas published, the frozen marks kept.
+3. **Done when** every row's pin in `tests/test_sf_rr6_the_instrument.py` flips with its lever, the re-reads and their deltas are published (the memo beside the archives), `docs/SCORE_CHECKLIST_V1_2.json` carries the re-band and both archives read it the same way, and STATUS ▶ NEXT UP names S14b.
 
-Rules: reproduce each gap on its frame before building; the sibling sweep after every fix (CLAUDE.md Rule 10 — each sibling filed and fixed in this session or heading the next); a change that reaches the AI runs the attribution arms (`tools/_sf_rr4_series_arms.py`'s idiom) with `BASELINE_SERIES` byte-identical or every movement attributed; the Godot parse harness for every `.gd` changed; edit CRLF `.gd` files with a script that preserves line endings. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
+Rules: reproduce each gap on its archived digest before building; the sibling sweep after every fix (CLAUDE.md Rule 10 — each sibling filed and fixed in this session or heading the next); a change that reaches the AI or the backend runs the attribution arms (`tools/_sf_rr4_series_arms.py`'s idiom) with `BASELINE_SERIES` byte-identical or every movement attributed; the Godot parse harness for every `.gd` changed; edit CRLF files with a script that preserves line endings (`objection_dialog.gd`, `popup_base.gd`, `proposal_confirm_popup.gd/.tscn`, two map scripts and `deploy/README_TESTER.txt` are CRLF). Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
 
-Done when SF-RR5's rows are FIXED (or closed by their reproduction) with their pins and frames, STATUS ▶ NEXT UP names what follows (SF-RR6, then S14b), and this file is overwritten for it.
+Done when SF-RR6's rows are FIXED (or closed by their reproduction) with their pins and re-reads, STATUS ▶ NEXT UP names what follows (S14b, VP-1), and this file is overwritten for it.

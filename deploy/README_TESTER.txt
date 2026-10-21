@@ -120,7 +120,9 @@ HOTKEYS:
   T / Alt+T — Strategic Ledger (forces, economy, Admiralty, orders)
   G / Alt+G — Generals (marshal cards, glory, rewards, commissions)
   D / Alt+D — Diplomatic Ledger (nations, treaties, Talleyrand)
-  R / Alt+R — Morning Dispatch (re-read the turn briefing)
+  R / Alt+R / Alt+B — Morning Dispatch (re-read the turn briefing;
+              Alt+B is there because the NVIDIA and AMD graphics
+              overlays take Alt+R before the game sees it)
   L / Alt+L — Campaign Log (history of events)
   N / Alt+N — Le Moniteur (the gazette — the press writes your war)
   E / Alt+E — End Turn

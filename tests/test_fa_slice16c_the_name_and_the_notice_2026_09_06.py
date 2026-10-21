@@ -22,6 +22,7 @@ import pytest
 from backend.commands.capture_executor import _estate_holder_display
 from backend.commands.tactical_executor import _square_break_infinitive
 from backend.models.world_state import WorldState
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 SCENARIO = str(REPO / "godot-client" / "project-sovereign" / "assets" /
@@ -471,8 +472,7 @@ class TestTheUnrestBeatNamesTheRemedy:
 class TestTwoRowsAreRulingsNotBuilds:
 
     def test_fa44_is_filed_with_the_floor_question(self):
-        gate = (REPO / "docs" / "DESIGN_REFINEMENT.md").read_text(
-            encoding="utf-8")
+        gate = doc_text("DESIGN_REFINEMENT.md")
         assert "### FA-S16-D3" in gate
         block = gate[gate.index("### FA-S16-D3"):]
         block = block[:block.index("### FA-S16-D4")]
@@ -482,8 +482,7 @@ class TestTwoRowsAreRulingsNotBuilds:
         assert "**Owner:**" in block and "**Done when**" in block
 
     def test_fa98_is_filed_with_the_beat_question(self):
-        gate = (REPO / "docs" / "DESIGN_REFINEMENT.md").read_text(
-            encoding="utf-8")
+        gate = doc_text("DESIGN_REFINEMENT.md")
         assert "### FA-S16-D4" in gate
         block = gate[gate.index("### FA-S16-D4"):]
         assert "gate the STATE, not the beats" in block, (

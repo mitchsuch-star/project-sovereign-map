@@ -38,6 +38,12 @@ const SCREEN_KEYS := [
 	[KEY_L, "event_log"], [KEY_T, "ledger"], [KEY_G, "generals"],
 	[KEY_D, "diplomatic_ledger"], [KEY_R, "dispatch"], [KEY_N, "gazette"],
 ]
+# EA-E9 (SF-RR5, October 21, 2026): a screen's SECOND key, Alt-only, where a
+# common overlay takes the first (NVIDIA's and AMD's take Alt+R) — pressed in
+# both states; its bare letter is no key and types while typing.
+const SECOND_KEYS := [
+	[KEY_B, "dispatch"],
+]
 const ORDERS := [
 	"Davout, fortify",
 	"what can I do",
@@ -362,6 +368,29 @@ func _hotkey_census(when: String) -> void:
 		if _screen() != "":
 			_main.get("top_bar").close_all_screens()
 			await _frames(2)
+
+	# EA-E9: the second keys — Alt+<key> opens the screen in both states.
+	for pair in SECOND_KEYS:
+		var code2: int = pair[0]
+		var screen2: String = pair[1]
+		var letter2 := OS.get_keycode_string(code2)
+		for focused in [false, true]:
+			await _focus(focused)
+			cmd.text = ""
+			await _key(code2, true)
+			var opened2 := _screen() == screen2
+			_check("%s: Alt+%s opens %s (%s)" % [when, letter2, screen2,
+				"typing" if focused else "unfocused"], opened2 and cmd.text == "",
+				"active: '%s', text: '%s'" % [_screen(), cmd.text] if not opened2 or cmd.text != "" else "")
+			_main.get("top_bar").close_all_screens()
+			await _frames(2)
+		await _focus(true)
+		cmd.text = ""
+		await _key(code2, false, letter2.to_lower().unicode_at(0))
+		_check("%s: a bare %s while typing types the letter" % [when, letter2],
+			cmd.text == letter2.to_lower() and _screen() == "",
+			"text: '%s', screen: '%s'" % [cmd.text, _screen()])
+		cmd.text = ""
 
 	# The two ledgers' tabs: bare digits unfocused, Alt+digit while typing.
 	for pair in [[KEY_T, "ledger", "strategic_ledger", 8], [KEY_D, "diplomatic_ledger", "diplomatic_ledger", 7]]:

@@ -25,6 +25,10 @@ signal dismissed
 # (the heading and the struck old name), above the scrolling body.
 var head_label: RichTextLabel
 var name_label: Label
+# SFR-B11 (SF-RR5, October 21, 2026): the perspective line ("By your hand.")
+# closes the card UNDER the scrolling body, above Acknowledge — at Interface
+# Scale 2.0 it sat below the body's fold, the card's own signature unread.
+var subtitle_label: RichTextLabel
 
 
 func _ready():
@@ -60,6 +64,14 @@ func _build_head() -> void:
 		name_label.add_theme_font_override("font", bold)
 	vbox.add_child(name_label)
 	vbox.move_child(name_label, scroll.get_index())
+	subtitle_label = RichTextLabel.new()
+	subtitle_label.name = "SubtitleLabel"
+	subtitle_label.bbcode_enabled = true
+	subtitle_label.fit_content = true
+	subtitle_label.scroll_active = false
+	subtitle_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_child(subtitle_label)
+	vbox.move_child(subtitle_label, scroll.get_index() + 1)
 
 
 func show_proclamation(data: Dictionary):
@@ -117,14 +129,16 @@ func show_proclamation(data: Dictionary):
 	if fury != "":
 		bbcode += "%s\n" % Utils.bbcode_color(fury, Utils.COLOR_WARNING)
 
-	# Perspective-aware subtitle: witness vs author.
+	# Perspective-aware subtitle: witness vs author — under the body, never
+	# below its fold (SFR-B11).
 	var subtitle := str(data.get("subtitle", ""))
-	if subtitle != "":
-		bbcode += "\n[center]%s[/center]" % Utils.bbcode_color(
-			"[i]%s[/i]" % subtitle, Utils.COLOR_INFO)
+	subtitle_label.text = "" if subtitle == "" else "[center]%s[/center]" % Utils.bbcode_color(
+		"[i]%s[/i]" % Utils.humanize_nation_keys_in_text(subtitle), Utils.COLOR_INFO)
+	subtitle_label.visible = subtitle != ""
 
-	# S12: through `text`, never append_text (the instrument reads the label's text)
-	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
+	# S12: through `text`, never append_text (the instrument reads the label's text).
+	# SFR-B11: no trailing blank line spends the body's last visible row.
+	content_label.text = Utils.humanize_nation_keys_in_text(bbcode.strip_edges(false, true))
 	# PopupBase.close_popup() permanently disables every Button, so a second
 	# proclamation would open with a dead Acknowledge — re-enable on show.
 	acknowledge_btn.disabled = false

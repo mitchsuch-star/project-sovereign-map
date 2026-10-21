@@ -30,8 +30,10 @@ signal petition_deferred
 # the fold, where the player reads it before the options scroll.
 @onready var gate_label = $PanelContainer/VBoxContainer/GateLabel
 @onready var body_label = $PanelContainer/VBoxContainer/BodyLabel
-@onready var options_container = $PanelContainer/VBoxContainer/ScrollContainer/OptionsContainer
-@onready var later_button = $PanelContainer/VBoxContainer/LaterButton
+# SFR-B11 (SF-RR5): the answers are a row that wraps under the letter, Later
+# last in it — never a scroll (see the scene).
+@onready var options_container = $PanelContainer/VBoxContainer/OptionsContainer
+@onready var later_button = $PanelContainer/VBoxContainer/OptionsContainer/LaterButton
 
 const KIND_TITLES = {
 	"jealousy_confrontation": "A MARSHAL SEEKS AN AUDIENCE",
@@ -46,9 +48,13 @@ func _ready():
 	if later_button:
 		later_button.pressed.connect(_on_later)
 	# LV-5: the body is the petition — clamp_centered_panel's relax pass
-	# shrinks the options list first and the man's words last.
+	# shrinks the man's words last (since SFR-B11 the answers are a row of
+	# buttons the pass never shrinks; the letter is the one region that yields).
 	if body_label:
 		body_label.set_meta("relax_last", true)
+		# SFR-B11: the letter is now the card's one scroll — it rests on
+		# whole lines like every reading scroll (UXR3-F3).
+		Utils.keep_whole_lines(body_label)
 	hide()
 
 
@@ -76,7 +82,6 @@ func show_petition(petition: Dictionary):
 		body += "[color=#" + Utils.COLOR_GOLD + "]" \
 			+ Utils.humanize_nation_keys_in_text(spoken) + "[/color]\n\n"
 	body += "[color=#d0c0b0]" + str(petition.get("body", "")) + "[/color]"
-	body_label.text = body
 	# The scene authors BodyLabel at a bounded 120px with scroll_active so
 	# `Utils.clamp_centered_panel` can shrink it (an unbounded fit_content
 	# RichTextLabel cannot be clamped). The spoken line adds two lines, so
@@ -86,15 +91,19 @@ func show_petition(petition: Dictionary):
 		body_label.custom_minimum_size.y = 170.0
 
 	for child in options_container.get_children():
-		child.queue_free()
+		if child != later_button:
+			child.queue_free()
 
 	var options = petition.get("options", [])
 	var closed_lines: Array = []
+	var prices: Array = []
 	if options is Array:
 		for option in options:
 			if not (option is Dictionary):
 				continue
-			_add_option(option)
+			var price := _add_option(option)
+			if price != "":
+				prices.append(price)
 			# LV-5: a closed arm names its reason ABOVE the fold. The backend
 			# always sends one (`unavailable_reason`) for a refused arm; an
 			# arm shut only by the action-point purse names the price.
@@ -110,6 +119,14 @@ func show_petition(petition: Dictionary):
 	if gate_label:
 		gate_label.text = "\n".join(PackedStringArray(closed_lines))
 		gate_label.visible = not closed_lines.is_empty()
+	# SFR-B11: what each answer costs is read in the letter, under his words
+	# (and on each button's tooltip) — the client's petition and the envoy's
+	# letter read the same way; the answers stand as buttons below.
+	if not prices.is_empty():
+		body += "\n\n[color=#" + Utils.COLOR_HEADER + "]What each answer does[/color]\n" \
+			+ "\n".join(PackedStringArray(prices))
+	body_label.text = body
+	options_container.move_child(later_button, -1)
 
 	# Fontainebleau and war-weary petitions demand an answer NOW — the
 	# moment does not keep. Grievance/rivalry petitions (and NP-3's
@@ -132,8 +149,9 @@ func show_petition(petition: Dictionary):
 func _fit_body() -> void:
 	"""LV-5 (row EP F3): the body sizes to `get_content_height()` (bounded)
 	so the petition's second line no longer falls below the fold with only
-	a thin scrollbar as the cue; the options list yields first (relax_last
-	on the body), and the clamp still fits the whole panel to the viewport."""
+	a thin scrollbar as the cue, and the clamp still fits the whole panel to
+	the viewport: the letter is what yields (relax_last), the row of answers
+	never does (SFR-B11 — buttons are click targets)."""
 	await get_tree().process_frame
 	if body_label == null or not visible:
 		return
@@ -148,7 +166,9 @@ func refit() -> void:
 	_fit_body()
 
 
-func _add_option(option: Dictionary):
+func _add_option(option: Dictionary) -> String:
+	"""The answer's button in the row; returns its line for the letter (what
+	it does), or "" when there is nothing to say twice."""
 	var btn = Button.new()
 	var label = str(option.get("label", "?"))
 	var cost_note = str(option.get("cost_note", ""))
@@ -172,17 +192,17 @@ func _add_option(option: Dictionary):
 	var detail = str(option.get("detail", ""))
 	var reason = str(option.get("unavailable_reason", ""))
 	# LV-5 (row EP F3): the reason renders above the fold (GateLabel, see
-	# show_petition); under the button only the detail — and never the reason
+	# show_petition); the letter carries only the detail — and never the reason
 	# twice (the backend sends `detail == reason` for a non-AP refusal).
 	if not is_enabled and reason != "" and detail == reason:
 		detail = ""
-	if detail != "":
-		var detail_label = Label.new()
-		detail_label.text = "    " + detail
-		detail_label.theme_type_variation = &"Caption"
-		detail_label.add_theme_color_override("font_color", Utils.UI_REASON_GREY)
-		detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		options_container.add_child(detail_label)
+	if detail == "":
+		return ""
+	var named := str(option.get("label", "?"))
+	if cost_note != "":
+		named += " (" + cost_note + ")"
+	var hue := Utils.COLOR_GOLD if is_enabled else Utils.UI_CLOSED_ARM.to_html(false)
+	return "• [color=#" + hue + "]" + named + "[/color] — " + detail
 
 
 func _on_option_pressed(choice_id: String):

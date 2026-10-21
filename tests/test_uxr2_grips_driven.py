@@ -146,7 +146,15 @@ class TestTheRefitRoadAndTheReset:
         # leaves (Reset layout returns the scale to the derivation too)
         aw, ah = driven["ledger_authored"]
         vw, vh = driven["reset_view"]
-        want = (min(aw, max(320.0, vw - 24.0)), min(ah, max(240.0, vh - 88.0)))
+        # SF-RR5 (October 21, 2026), re-seated consciously: a panel taller than
+        # the centred band (vh - 88, the bar's 44 px kept twice) stands in the
+        # band below the bar instead — 44 at the top, CLAMP_EDGE 12 at the foot
+        # (`Utils.clamp_centered_panel`, SYSTEMS_REFERENCE §140.2). This
+        # board's ledger is one: 554 → 586 in a 642-px window.
+        h = min(ah, max(240.0, vh - 88.0))
+        if ah > h and vh - 56.0 > h:
+            h = min(ah, vh - 56.0)
+        want = (min(aw, max(320.0, vw - 24.0)), h)
         assert _near(driven["ledger_after_reset"], want), (driven["ledger_after_reset"], want)
 
     def test_the_command_window_keeps_its_grip(self, driven):

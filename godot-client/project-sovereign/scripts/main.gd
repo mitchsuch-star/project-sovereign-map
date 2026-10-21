@@ -1272,6 +1272,9 @@ const _SCREEN_HOTKEYS := {
 	KEY_G: "generals",
 	KEY_D: "diplomatic_ledger",
 	KEY_R: "dispatch",
+	# EA-E9 (SF-RR5): the Dispatch's second while-typing key — NVIDIA's and
+	# AMD's overlays both default to Alt+R and eat it before the game sees it.
+	KEY_B: "dispatch",
 	KEY_N: "gazette",
 }
 
@@ -1667,7 +1670,9 @@ func _unhandled_input(event):
 					top_bar.toggle_screen("diplomatic_ledger")
 				get_viewport().set_input_as_handled()
 			return
-		if event.keycode == KEY_R:
+		# EA-E9 (SF-RR5): Alt+B is the Dispatch's second key, off the line as
+		# on it, where a graphics overlay keeps Alt+R; the bare B is no key.
+		if event.keycode == KEY_R or (event.keycode == KEY_B and event.alt_pressed):
 			if not _is_hotkey_blocked():
 				if top_bar:
 					top_bar.toggle_screen("dispatch")
