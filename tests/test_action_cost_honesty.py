@@ -313,6 +313,10 @@ class TestTheAnswersSayTheirPrice:
         ("Davout, march to Swabia", "cancel", 0),
     ])
     def test_the_answer_says_what_it_spent(self, client, line, choice, price):
+        if "pursue Mack" in line:
+            # RE-STAGED by SF-RR4 (RR4-X1), consciously: the pursuit's objection
+            # weighs the muster; a Mack it cannot carry keeps the objection.
+            M.world.get_marshal("Mack").strength = 400000
         asked, spent, _ = _order(client, line)
         assert M.world.pending_objection or M.world.pending_strategic_objection, \
             (line, asked.get("message"))
@@ -329,6 +333,7 @@ class TestTheAnswersSayTheirPrice:
         ACH-F3's ruling (the user, October 19, 2026 — refuse the answer the
         pool cannot pay, keep the objection): the Insist at one action is
         refused, nothing taken, and says so (0)."""
+        M.world.get_marshal("Mack").strength = 400000   # RR4-X1: beyond the muster
         asked, _, _ = _order(client, "Davout, pursue Mack")
         assert M.world.pending_strategic_objection, asked.get("message")
         _order(client, "Ney, hold")

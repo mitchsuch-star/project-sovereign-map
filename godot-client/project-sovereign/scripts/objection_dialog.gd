@@ -121,6 +121,12 @@ static func data_from_response(response: Dictionary) -> Dictionary:
 		"trust_gain_modifier": objection.get("trust_gain_modifier", response.get("trust_gain_modifier", 1.0)),
 		"insist_ap_cost": objection.get("insist_ap_cost", response.get("insist_ap_cost", 0)),
 		"insist_note": objection.get("insist_note", response.get("insist_note", "")),
+		# SFR-D3 (SF-RR4): the trust and compromise arms' prices, the insist
+		# arm's shape — present only when the answer costs more than its face.
+		"trust_ap_cost": objection.get("trust_ap_cost", response.get("trust_ap_cost", 0)),
+		"trust_note": objection.get("trust_note", response.get("trust_note", "")),
+		"compromise_ap_cost": objection.get("compromise_ap_cost", response.get("compromise_ap_cost", 0)),
+		"compromise_note": objection.get("compromise_note", response.get("compromise_note", "")),
 	}
 
 func show_from_response(response: Dictionary):
@@ -186,7 +192,14 @@ func show_objection(objection_data: Dictionary):
 		if has_alternative:
 			var alt = objection_data.suggested_alternative
 			var alt_desc = _describe_order(alt)
-			trust_button.text = "Trust %s: %s (%+d trust)" % [current_marshal, alt_desc, trust_gain]
+			# SFR-D3: trusting him names its price when it is more than the
+			# order's face value (a fortify from NEUTRAL is two actions).
+			if str(objection_data.get("trust_note", "")) != "":
+				trust_button.text = "Trust %s: %s (%d AP — %s, %+d trust)" % [
+					current_marshal, alt_desc, int(objection_data.get("trust_ap_cost", 2)),
+					str(objection_data.get("trust_note", "")), trust_gain]
+			else:
+				trust_button.text = "Trust %s: %s (%+d trust)" % [current_marshal, alt_desc, trust_gain]
 		else:
 			trust_button.text = "Trust %s's Judgment (%+d trust)" % [current_marshal, trust_gain]
 
@@ -204,7 +217,12 @@ func show_objection(objection_data: Dictionary):
 		if has_compromise:
 			var comp = objection_data.compromise
 			var comp_desc = _describe_order(comp)
-			compromise_button.text = "Compromise: %s (%+d trust)" % [comp_desc, compromise_gain]
+			if str(objection_data.get("compromise_note", "")) != "":
+				compromise_button.text = "Compromise: %s (%d AP — %s, %+d trust)" % [
+					comp_desc, int(objection_data.get("compromise_ap_cost", 2)),
+					str(objection_data.get("compromise_note", "")), compromise_gain]
+			else:
+				compromise_button.text = "Compromise: %s (%+d trust)" % [comp_desc, compromise_gain]
 			compromise_button.visible = true
 		else:
 			compromise_button.visible = false

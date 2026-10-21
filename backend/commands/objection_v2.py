@@ -1658,6 +1658,17 @@ def _check_enemies_adjacent_to_region(region_name: str, marshal_nation: str, wor
     return False
 
 
+def pursue_muster_totals(marshal, target_marshal, world):
+    """RR4-X1 (SF-RR4, October 21, 2026 — SFR-D18's live sibling): a PURSUE
+    is weighed as DDB-19 weighs the attack — the muster's committed totals,
+    ours against his — so the cautious marshal's "The odds are not in our
+    favor" no longer reads one corps against one army while the battle the
+    chase ends in is fought with the muster (on the boot, `Davout, pursue
+    Mack` objected 31 times in 40 on a solo 2.1 while the muster read the
+    field at 0.48). None when no muster can be read."""
+    return muster_expected_totals(marshal, target_marshal, world)
+
+
 def _get_pursue_target_ratio(marshal, target_name: str, world) -> float:
     """
     Get strength ratio for PURSUE target (fog-aware).
@@ -1688,6 +1699,12 @@ def _get_pursue_target_ratio(marshal, target_name: str, world) -> float:
 
     # Fog check: visibility determines strength accuracy
     visibility = get_target_intel_level(target_name, marshal, world)
+
+    # RR4-X1: a seen army is weighed as the muster weighs it (DDB-19's idiom).
+    if visibility in (_FULL, _PARTIAL):
+        totals = pursue_muster_totals(marshal, target_marshal, world)
+        if totals is not None:
+            return totals[1] / totals[0]
 
     if visibility == _FULL:
         return target_marshal.strength / marshal.strength

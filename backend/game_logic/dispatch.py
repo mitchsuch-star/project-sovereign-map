@@ -604,10 +604,9 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # sentence above would have told the player the war had just ended
     # every time the treaty picked somebody up.
     "road_home_mid_treaty": "Sire — under the {treaty} with {other}. {line}",
-    "passage_lapsing": ("Sire — {who} {is_are} no nearer home, and the safe "
+    "passage_lapsing": ("Sire — {who} {is_are} no nearer home{why}, and the safe "
                         "passage {passage_clause}. After "
-                        "that {his_their} corps will be interned where "
-                        "{it_they}."),
+                        "that {his_their} corps will be interned {interned}."),
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
     "estate_eroding": "Sire — {marshal}'s household goes unpaid. His patience erodes with his purse.",
     # CA8-11: the headline names a price and a place, so it must also name
@@ -1590,6 +1589,34 @@ def _declaration_is_news(world, key: str) -> bool:
     the same morning still tells them."""
     told = (getattr(world, "headline_lead_memory", None) or {}).get("declared_told") or {}
     return key not in told or int(told[key]) == int(getattr(world, "current_turn", 0) or 0)
+
+
+def lapsing_reading_key(row) -> tuple:
+    """RR4-X12: which of a corps' passage warnings in the page's two-turn
+    window the page reads — the newest turn's, the most urgent within a
+    turn (lower sorts first)."""
+    return (-int(row.get("turn") or 0), int(row.get("turns_left") or 0))
+
+
+def _passage_why(world, row) -> str:
+    """SFR-D29: the lapsing beat's clause for a cut-off conquest, off the
+    warning's own record (`cut_off_by` / `frontier`, stamped by
+    `withdrawal._warn`); "" on foreign soil."""
+    if not row.get("cut_off_by"):
+        return ""
+    from backend.game_logic.withdrawal import stranding_clause
+    return stranding_clause(
+        world, {"power": row["cut_off_by"], "frontier": row.get("frontier") or []},
+        str(row.get("region") or row.get("location") or "?"))
+
+
+def _passage_interned(row, count: int) -> str:
+    """SFR-D29: who interns them — the power that encloses a cut-off
+    conquest — else where they stand, as before."""
+    if row.get("cut_off_by"):
+        from backend.display_names import display_nation, with_definite_article
+        return f"by {with_definite_article(display_nation(row['cut_off_by']))}"
+    return "where it stands" if count == 1 else "where they stand"
 
 
 def _one_war_one_line(world, declarations, _add) -> None:
@@ -3016,13 +3043,16 @@ def _build_headline(world, player_nation: str,
         # The window is two turns wide, so a corps still dawdling appears
         # twice and the first cut of this beat read "Davout, Soult, Davout
         # and Soult". One row per marshal, the most urgent reading kept.
+        # RR4-X12 (SFR-D29's sibling): the NEWEST reading first — "no turn
+        # to spare" stood two mornings running after a top-up had given him
+        # two, because the most urgent row of the window won; the most
+        # urgent breaks only a tie within one turn (`lapsing_reading_key`).
         _freshest: Dict[str, Dict[str, Any]] = {}
         for _row in _lapsing:
             _key = str(_row.get("marshal", "?"))
             _prev = _freshest.get(_key)
             if (_prev is None
-                    or int(_row.get("turns_left") or 0)
-                    < int(_prev.get("turns_left") or 0)):
+                    or lapsing_reading_key(_row) < lapsing_reading_key(_prev)):
                 _freshest[_key] = _row
         _lapsing = sorted(_freshest.values(),
                           key=lambda x: (int(x.get("turns_left") or 0),
@@ -3053,6 +3083,10 @@ def _build_headline(world, player_nation: str,
              is_are="is" if len(_names) == 1 else "are",
              his_their="his" if len(_names) == 1 else "their",
              it_they="it stands" if len(_names) == 1 else "they stand",
+             # SFR-D29: a cut-off conquest says why our own ground is not
+             # home, and who would intern them (`withdrawal.stranding_clause`).
+             why=_passage_why(world, _lapsing[0]),
+             interned=_passage_interned(_lapsing[0], len(_names)),
              region=_lapsing[0].get("region")
              or _lapsing[0].get("location", "?"),
              turns_left=_turns_left,

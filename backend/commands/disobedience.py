@@ -1518,7 +1518,7 @@ class DisobedienceSystem:
         from backend.display_names import humanize_entity_name
         action = (order.get('action') or '').lower()
         target = order.get('target') or ''
-        if action in ('attack', 'move', 'advance', 'probe', 'scout') and target and world is not None:
+        if action in ('attack', 'move', 'advance', 'probe', 'scout', 'pursue') and target and world is not None:
             marshals = getattr(world, "marshals", {}) or {}
             enemy = marshals.get(target)
             if enemy is None:
@@ -1529,8 +1529,16 @@ class DisobedienceSystem:
             if enemy is not None:
                 shown = humanize_entity_name(enemy.name)
                 where = getattr(enemy, "location", "") or ""
+                if action == 'attack':
+                    # SFR-D6: the man the battle will put in his place.
+                    from backend.commands.combat_executor import answering_defender
+                    stands = answering_defender(world, enemy)
+                    if stands is not enemy:
+                        return (f"attack {humanize_entity_name(stands.name)} at {where} "
+                                f"as he covers {shown}'s retreat")
                 verb = {"attack": "attack", "move": "march on", "advance": "advance on",
-                        "probe": "probe", "scout": "scout toward"}[action]
+                        "probe": "probe", "scout": "scout toward",
+                        "pursue": "pursue"}[action]
                 return f"{verb} {shown} at {where}" if where else f"{verb} {shown}"
         return self._describe_order(order)
 
@@ -2298,8 +2306,13 @@ def check_strategic_objection(
 
         if target_marshal and target_marshal.strength > 0:
             if target_visibility == FULL_VIS:
-                # FULL visibility: object on exact odds as before
+                # FULL visibility: object on exact odds as before —
+                # RR4-X1: the muster's, as the V2 trigger reads them.
                 ratio = target_marshal.strength / max(marshal.strength, 1)
+                from backend.commands.objection_v2 import pursue_muster_totals
+                _totals = pursue_muster_totals(marshal, target_marshal, world)
+                if _totals is not None:
+                    ratio = _totals[1] / _totals[0]
 
                 if ratio >= 1.2:
                     severity = calculate_strategic_severity(

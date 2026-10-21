@@ -912,6 +912,8 @@ class AttackContext:
     _removed: Any = field(init=False)
     forced_retreat_msg: Any = field(init=False)
     conquered: Any = field(init=False)
+    # EG-X5 (SF-RR4): the works a field win walked into, for the report.
+    capture_note: Any = field(init=False)
     advance_losses: Any = field(init=False)
     # DDB-37 (Pre-Deploy S13b part 2): the province the victor advanced
     # into, on the battle event — the enemy phase said so only in prose.
@@ -1006,6 +1008,93 @@ def player_muster_gate_arms(marshal, odds_band: str) -> bool:
             or getattr(marshal, "personality", None) == "sovereign"):
         return False
     return odds_band == MUSTER_GATE_BAND
+
+
+def covering_ally(world, enemy):
+    """The ALLY COVERS RETREAT rule (`_attack_cover_flank_charge`): a
+    target that retreated this turn is covered by the strongest man of his
+    nation in his province who did not retreat too — None when he stands
+    exposed, or did not retreat. ONE source: the swap reads it, and so does
+    every quote of the battle (`answering_defender`)."""
+    if not getattr(enemy, 'retreated_this_turn', False):
+        return None
+    candidates = [
+        m for m in world.marshals.values()
+        if m.location == enemy.location
+        and m.nation == enemy.nation
+        and m.name != enemy.name
+        and m.strength > 0
+        and not getattr(m, 'retreated_this_turn', False)
+    ]
+    return max(candidates, key=lambda m: m.strength) if candidates else None
+
+
+def answering_defender(world, enemy):
+    """SFR-D6 (SF-RR4, October 21, 2026): the man who will stand in the
+    battle. `Massena, fortify` → "(Trust him and he will attack Mack at
+    Tyrol instead.)", the muster "vs Mack (small force) — favorable", and
+    the battle was fought against the Archduke Charles, stepping in to
+    cover Mack's retreat (Massena lost 9,127 to his 1,659): every quote
+    read the named target, the swap ran after them. The muster and the
+    Trust arm's words read the man the swap will put in the field."""
+    return covering_ally(world, enemy) or enemy
+
+
+def holds_a_post(marshal) -> bool:
+    """SFR-D5 (SF-RR4, October 21, 2026): a marshal standing on the post a
+    HOLD order gave him does not march to another man's battle —
+    MULTI_MARSHAL_SPEC §Reinforcement rule 8 ("HOLD order blocks
+    reinforcement. Player uses HOLD to prevent unwanted relocation"). The
+    rule read only `holding_position`, which a LITERAL marshal's hold sets
+    alone, so `Massena, hold Milan` — an aggressive man's hold — left him
+    free to be drawn: the Emperor's muster named Massena and Teulie, Milan
+    stood bare, and fell on turn 5. A hold not yet reached is a march, and
+    marches as before."""
+    if getattr(marshal, 'holding_position', False):
+        return True
+    order = getattr(marshal, 'strategic_order', None)
+    return bool(order is not None
+                and getattr(order, 'command_type', '') == "HOLD"
+                and getattr(order, 'target', None) == getattr(marshal, 'location', None))
+
+
+def muster_row_hint(m, lead, code: str, will_join: bool, battle_region) -> str:
+    """The muster row's road for the player, or "": the standing order that
+    would bring a man who will not come (§6.3, MC-1), the HOLD he keeps
+    (SFR-D5 — and the order that moves him off it), and the march a joiner
+    sets aside for the day (RR4-X11: said at the muster, not only at the
+    next tick's "answered the guns … resumes next turn")."""
+    if code == "literal_awaits_orders":
+        return f"— order '{m.name}, support {lead.name}' and he will march"
+    if code == "eyes_on_a_crown":
+        # MC-1: the counter-lever must be discoverable — put the order in
+        # writing and he mostly comes.
+        return (f"— a written order ('{m.name}, support {lead.name}') "
+                f"would likely bring him")
+    if code == "holding_position" and m.location:
+        return (f"at {m.location} — order '{m.name}, support {lead.name}' "
+                f"and he leaves it to march")
+    standing = getattr(m, "strategic_order", None)
+    if (will_join and standing is not None
+            and getattr(standing, "command_type", "") in ("MOVE_TO", "PURSUE", "SUPPORT")
+            and getattr(standing, "target", None) not in (lead.name, battle_region)):
+        from backend.commands.executor import set_aside_clause
+        what = set_aside_clause(m, standing).split("'s ", 1)[-1].replace(" is set aside.", "")
+        return f"— his {what} waits a day"
+    return ""
+
+
+def staff_muster_reading(combat, marshal, enemy, world) -> dict:
+    """SFR-D4 (SF-RR4, October 21, 2026): the contact interrupt's staff note
+    reads the muster's own figure and band. It summed the joiners without
+    the coordination the muster prices (`_priced_coordination`), so one
+    corps read "35,833 with the muster committed … Odds unfavorable" at the
+    interrupt and "expect about 42,734 … favorable" at the muster a click
+    later. `{"committed": float, "band": str | None}` — `muster_odds`, the
+    reading the preview prints and the gates read."""
+    odds = combat.muster_odds(marshal, enemy, world)
+    return {"committed": float(odds.get("committed_attacker", 0.0) or 0.0),
+            "band": odds.get("band")}
 
 
 def what_if_line(marshal, enemy) -> str:
@@ -1933,8 +2022,8 @@ class CombatExecutor:
         # Rule 7: NOT fortified
         if getattr(marshal, 'fortified', False):
             return False
-        # Rule 8: NOT on HOLD
-        if getattr(marshal, 'holding_position', False):
+        # Rule 8: NOT on HOLD (SFR-D5: any man on his hold's post)
+        if holds_a_post(marshal):
             return False
         # Rule 9: NOT engaged (no enemy in their region)
         marshal_region_enemies = [
@@ -2043,7 +2132,7 @@ class CombatExecutor:
             return False, "broken_recovering"
         if getattr(candidate, 'fortified', False):
             return False, "fortified_static"
-        if getattr(candidate, 'holding_position', False):
+        if holds_a_post(candidate):
             return False, "holding_position"
         if getattr(candidate, 'drilling', False) \
                 or getattr(candidate, 'drilling_locked', False):
@@ -2185,6 +2274,8 @@ class CombatExecutor:
         "joining"}; drift against the preview is pinned."""
         from backend.commands.objection_v2 import (
             inferred_attack_effective_ratio, inferred_attack_odds_band)
+        # SFR-D6: the man who will stand in the battle, as the preview reads.
+        enemy_marshal = answering_defender(world, enemy_marshal)
         battle_region = enemy_marshal.location
         nation = marshal.nation
         region = world.get_region(battle_region)
@@ -2367,6 +2458,9 @@ class CombatExecutor:
         from backend.display_names import MUSTER_REASON_DISPLAY
         from backend.models.intel import FULL
 
+        # SFR-D6: the muster prices the man who will stand in the battle.
+        covered = enemy_marshal
+        enemy_marshal = answering_defender(world, enemy_marshal)
         battle_region = enemy_marshal.location
         nation = marshal.nation
 
@@ -2413,18 +2507,9 @@ class CombatExecutor:
                     if THE_MUSTER_NAMES_THE_LEAD
                     else MUSTER_REASON_DISPLAY.get(code, code)),
             }
-            if code == "literal_awaits_orders":
-                # §6.3: surface the standing order that already exists.
-                row["standing_order_hint"] = (
-                    f"— order '{m.name}, support {marshal.name}' and he will march"
-                )
-            if code == "eyes_on_a_crown":
-                # MC-1: the counter-lever must be discoverable — put the
-                # order in writing and he mostly comes.
-                row["standing_order_hint"] = (
-                    f"— a written order ('{m.name}, support {marshal.name}') "
-                    f"would likely bring him"
-                )
+            _hint = muster_row_hint(m, marshal, code, will_join, battle_region)
+            if _hint:
+                row["standing_order_hint"] = _hint
             if code == "shares_the_field":
                 shared_casualty_note = (
                     f"{m.name} shares the field at {battle_region} — his men "
@@ -2633,6 +2718,8 @@ class CombatExecutor:
             "rows": rows,
             "shared_casualty_note": shared_casualty_note,
         }
+        if enemy_marshal is not covered:
+            preview["target"]["covering"] = humanize_entity_name(covered.name)
 
         # ══════════════════════════════════════════════════════════════
         # WO slice 8 — "The Panel States Its Terms" (G3 + the price).
@@ -2905,15 +2992,16 @@ class CombatExecutor:
                 will_join.append(m)
         if not will_join:
             return ""
-        # PT-A2: the third preview surface, weighted like the other two.
-        committed = self._committed_reinforcement_strength(
-            marshal, will_join, world, expected_at=battle_region)
+        # PT-A2: the third preview surface, weighted like the other two —
+        # SFR-D4: and priced like them, off the muster's own reading.
+        reading = staff_muster_reading(self, marshal, enemy, world)
+        committed = reading["committed"]
         if committed <= 0:
             return ""
         # Same prose form the coordination observations use — one source for
-        # "A", "A and B", "A, B and C".
+        # "A", "A and B", "A, B and C". RR4-X3: by the men's printed names.
         from backend.game_logic.battle_report import _join_names
-        names = _join_names([m.name for m in will_join])
+        names = _join_names([humanize_entity_name(m.name) for m in will_join])
         joint = int(marshal.strength + committed)
         # ════════════════════════════════════════════════════════════════
         # CA8-4 (creative audit, Aug 4 2026): this is the game's FIRST
@@ -2932,10 +3020,13 @@ class CombatExecutor:
         # so a fogged enemy reads as its band and never as a leak.
         # ════════════════════════════════════════════════════════════════
         target_display = self._fog_banded_strength(enemy, world)
+        band = reading.get("band")
+        weighed = (f" — weighed together, the balance of force looks {band}"
+                   if band else "")
         return (f" Berthier adds: {names} would answer the guns — "
-                f"{marshal.name} {int(marshal.strength):,}, "
+                f"{humanize_entity_name(marshal.name)} {int(marshal.strength):,}, "
                 f"{joint:,} with the muster committed, against "
-                f"{enemy.name} ({target_display}).")
+                f"{humanize_entity_name(enemy.name)} ({target_display}){weighed}.")
 
     @staticmethod
     def _fog_banded_strength(enemy_marshal, world) -> str:
@@ -2996,8 +3087,10 @@ class CombatExecutor:
             f"MUSTER — {humanize_entity_name(preview['attacker']['name'])} "
             f"({attacker_display}) vs "
             f"{humanize_entity_name(preview['target']['name'])} "
-            f"({preview['target']['strength_display']}) at "
-            f"{preview['target']['location']} — the balance of force looks "
+            f"({preview['target']['strength_display']})"
+            + (f", covering {preview['target']['covering']}'s retreat,"
+               if preview['target'].get('covering') else "")
+            + f" at {preview['target']['location']} — the balance of force looks "
             f"{preview['odds_band']}"
             + (f" — {preview['odds_note']}" if preview.get("odds_note") else "")
             + "."
@@ -7975,32 +8068,24 @@ class CombatExecutor:
 
         if getattr(ctx.enemy_marshal, 'retreated_this_turn', False):
             # Target retreated this turn - check for covering allies
-            covering_candidates = [
-                m for m in ctx.world.marshals.values()
-                if m.location == ctx.enemy_marshal.location  # Same region
-                and m.nation == ctx.enemy_marshal.nation     # Same nation
-                and m.name != ctx.enemy_marshal.name         # Not the target itself
-                and m.strength > 0                       # Has troops
-                and not getattr(m, 'retreated_this_turn', False)  # Didn't also retreat
-            ]
+            # (SFR-D6: the rule is `covering_ally`, which the quotes read too).
+            _cover = covering_ally(ctx.world, ctx.enemy_marshal)
 
-            if covering_candidates:
-                # Pick the strongest ally to cover
-                covering_ally = max(covering_candidates, key=lambda m: m.strength)
+            if _cover is not None:
                 original_target = ctx.enemy_marshal
-                ctx.enemy_marshal = covering_ally  # Swap defender
+                ctx.enemy_marshal = _cover  # Swap defender
 
                 # LV-2 (row EP F2, Sept 25 2026): these two lines rode
                 # `covering_message` into the strategic dialog with the
                 # roster KEY ("ArchdukeCharles is EXPOSED"). The humaniser
                 # is the one source for a man's printed name (R7).
-                _cover_name = humanize_entity_name(covering_ally.name)
+                _cover_name = humanize_entity_name(_cover.name)
                 _covered_name = humanize_entity_name(original_target.name)
                 ctx.covering_message = (
                     f"[Shield] {_cover_name} steps forward to cover {_covered_name}'s retreat! "
                     f"\"{_covered_name} is in no condition to fight - I'll handle this!\"\n\n"
                 )
-                print(f"  [ALLY COVER] {covering_ally.name} covers for retreating {original_target.name}")
+                print(f"  [ALLY COVER] {_cover.name} covers for retreating {original_target.name}")
             else:
                 # No covering ally - target is EXPOSED
                 ctx.covering_message = (
@@ -8480,10 +8565,19 @@ class CombatExecutor:
                             f"{ctx.pursuit_block['owner']} — choose our purpose, "
                             f"or let the province stand.")
                 elif not ctx.remaining_defenders:
+                    _bomb_region = ctx.world.get_region(ctx.battle_region_name)
+                    _bomb_from = getattr(_bomb_region, "controller", "") or ""
+                    _bomb_garrison = int(getattr(_bomb_region, "garrison_strength", 0) or 0)
                     ctx.capture_result = self._attempt_region_capture(
                         ctx.marshal, ctx.battle_region_name, ctx.world, ctx.game_state, had_garrison=True)
                     if ctx.capture_result.get("captured"):
                         ctx.conquest_msg = f" {ctx.battle_region_name} captured by {ctx.marshal.nation}!"
+                        # RR4-X10 (EG-X5's sibling): the works, named.
+                        from backend.game_logic.garrison_report import capture_garrison_line
+                        _bomb_line = capture_garrison_line(
+                            ctx.world, ctx.battle_region_name, _bomb_garrison, _bomb_from)
+                        if _bomb_line:
+                            ctx.conquest_msg += f" {_bomb_line}"
 
             preamble = "\n".join(ctx.auto_bombardment_messages)
             if auto_kill_removed:
@@ -9636,6 +9730,7 @@ class CombatExecutor:
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
         ctx.conquered = False
         ctx.conquest_msg = ""
+        ctx.capture_note = ""
         movement_msg = ""
         ctx.capture_result = None  # IGR-X8: read by the event-parity block below
         # IQ-2: who held the field before the capture — the battle event
@@ -9800,11 +9895,18 @@ class CombatExecutor:
             # If no defenders left, attempt capture (may start occupation if fortified)
             elif not ctx.remaining_defenders:
                 conquest_from = ctx.target_region.controller or ""
+                _garrison_before = int(ctx.target_region.garrison_strength or 0)
                 ctx.capture_result = self._attempt_region_capture(
                     ctx.marshal, ctx.target_location, ctx.world, ctx.game_state, had_garrison=True)
                 if ctx.capture_result["captured"]:
                     ctx.conquered = True
                     ctx.conquest_msg = f" {ctx.target_location} has been captured by {ctx.marshal.nation}!"
+                    # EG-X5: the works the field win walked into, named.
+                    from backend.game_logic.garrison_report import capture_garrison_line
+                    ctx.capture_note = capture_garrison_line(
+                        ctx.world, ctx.target_location, _garrison_before, conquest_from)
+                    if ctx.capture_note:
+                        ctx.conquest_msg += f" {ctx.capture_note}"
                 elif ctx.capture_result["occupation_started"]:
                     ctx.conquest_msg = f" {ctx.capture_result['message']}"
         elif (sortie_stands_off and ctx.target_region
@@ -10216,6 +10318,12 @@ class CombatExecutor:
                 ctx.world, ctx.marshal, ctx.enemy_marshal, ctx._iq5_faith)
             if _trust_note:
                 ctx.result["battle_report"]["trust_note"] = _trust_note
+        # EG-X5: the capture after the field win names the works it took.
+        if (getattr(ctx, "capture_note", "")
+                and isinstance(ctx.result.get("battle_report"), dict)):
+            ctx.result["battle_report"]["capture_note"] = (
+                f"{ctx.target_location} falls to {humanize_entity_name(ctx.marshal.name)}. "
+                f"{ctx.capture_note}")
 
         # Auto-bombardment data (Session 68): pass through for Godot display
         if ctx.auto_bombardment_results:
@@ -11261,12 +11369,19 @@ class CombatExecutor:
                         conquest_msg = _cw
                 elif not remaining_defenders and marshal.location == charge_battle_region:
                     charge_conquest_from = target_region.controller or ""
+                    _charge_garrison = int(getattr(target_region, "garrison_strength", 0) or 0)
                     capture_result = self._attempt_region_capture(
                         marshal, charge_battle_region, world, game_state, had_garrison=True
                     )
                     if capture_result["captured"]:
                         conquered = True
                         conquest_msg = f" {charge_battle_region} has been captured by {marshal.nation}!"
+                        # RR4-X10 (EG-X5's sibling): the works, named.
+                        from backend.game_logic.garrison_report import capture_garrison_line
+                        _charge_line = capture_garrison_line(
+                            world, charge_battle_region, _charge_garrison, charge_conquest_from)
+                        if _charge_line:
+                            conquest_msg += f" {_charge_line}"
                     elif capture_result.get("occupation_started"):
                         conquest_msg = f" {capture_result['message']}"
 

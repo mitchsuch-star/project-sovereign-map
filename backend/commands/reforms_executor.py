@@ -203,6 +203,10 @@ class ReformsExecutor:
         if unresolved:
             return {"success": False, "message": unresolved}
         admin = command.get("_admin_actions")
+        # RR4-X8 (SFR-B14's sibling): an AI court's repeal reads its own
+        # admin loop's budget, as its enactment does — never the player's pool.
+        if admin is None and actor != getattr(world, "player_nation", None):
+            admin = reforms.ADMIN_ACTIONS_PER_ACT   # the AI loop holds one
         refusal = reforms.repeal_refusal(world, actor, str(row.get("id")),
                                          admin_actions=admin)
         if refusal:

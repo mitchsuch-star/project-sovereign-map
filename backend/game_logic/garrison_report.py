@@ -224,6 +224,27 @@ def assault_muster_line(world, marshal, region, attacker_effective: int,
     return (lead + tail).replace(";  ", "; ").strip()
 
 
+def capture_garrison_line(world, region_name: str, garrison_before: int,
+                          old_controller: str = "") -> str:
+    """EG-X5 (SF-RR4, October 21, 2026): what became of the works when a
+    province changes hands without an assault. On the gate's CMD-H arm
+    Lannes's field win at Munich took Bavaria's capital from Austria — its
+    works held 2,000 (Austria's own capture had emptied them three turns
+    before) — and the report said only "Munich has been captured by
+    France!" (combat legibility C3). `WorldState.capture_region` clears the
+    loser's garrison (AAR4-X1) in silence at every exit; each one now says
+    so: the last N under the collapse line give way (SF7-X31's words), or
+    a capital's works stood empty. "" when there were no works to name."""
+    garrison = int(garrison_before or 0)
+    if garrison > 0:
+        return f"The last {garrison:,} of the garrison at {region_name} give way."
+    capital = (world.get_nation_capital(old_controller)
+               if world is not None and old_controller else None)
+    if capital and capital == region_name:
+        return f"{region_name}'s works stood empty — no garrison held them."
+    return ""
+
+
 def garrison_fights(region) -> bool:
     """The attack's own rule (`CombatExecutor._execute_attack`): a garrison
     stands and must be assaulted when it is a detachment (it fights to the

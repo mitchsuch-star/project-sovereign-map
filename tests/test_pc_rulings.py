@@ -2656,8 +2656,10 @@ class TestPCR7:
         # S14 part 3 (October 20, 2026): the bond landed and the row CLOSED.
         assert "CLOSED" in row and "TestPCR7" in row
         assert "S14 part 2" in row and "bond" in row and "declared goals" in row
-        status = (REPO / "docs" / "STATUS.md").read_text(encoding="utf-8")
-        assert "S14 part 2" in status
+        # SF-RR4 (October 21, 2026): the docs diet moved S14 part 2's entry to
+        # the quarter's archive verbatim — the ledger reads both (`_ledgers`).
+        from tests._ledgers import doc_text
+        assert "S14 PART 2" in doc_text("STATUS.md").upper()
 
     def test_ii_a_the_rule_reads_the_form_from_the_holder(self, vienna_held):
         """ONE rule: the form is read from who holds the province — paid where

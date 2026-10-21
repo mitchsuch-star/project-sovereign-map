@@ -90,8 +90,11 @@ def objecting_board(monkeypatch):
                                   strength=30000, personality="cautious")
     murat = MarshalFactory.infantry(name="Murat", location="Paris",
                                     strength=30000, personality="aggressive")
+    # RE-STAGED by SF-RR4 (RR4-X1, October 21, 2026), consciously: the
+    # pursuit's objection weighs the muster, and Murat's 30,000 marching to
+    # the guns made 60,000 an even fight — a force that dwarfs Ney's muster.
     mack = MarshalFactory.enemy(name="Mack", location="Belgium",
-                                nation="Austria", strength=60000,
+                                nation="Austria", strength=150000,
                                 personality="cautious")
     world = WorldFactory.with_marshals([ney, murat, mack])
     _war(world)

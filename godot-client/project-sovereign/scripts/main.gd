@@ -4740,6 +4740,13 @@ func _display_berthier_report(report: Dictionary):
 	if tr_note is String and tr_note != "":
 		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + tr_note + "[/color]")
 
+	# EG-X5 (SF-RR4): a field win that takes a province names the works it
+	# took — "Munich falls to Lannes. The last 2,000 of the garrison at
+	# Munich give way." Backend-composed; absent when no works were named.
+	var cap_note = report.get("capture_note", "")
+	if cap_note is String and cap_note != "":
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + cap_note + "[/color]")
+
 	# SR-7d DC-3b (DOCTRINES_SPEC RV-7, RV-16): a doctrine-decided arrival or
 	# no-show named ("The corps system brought Davout in"), Berthier's "the
 	# corps marched apart and arrived together", and the morale line of a

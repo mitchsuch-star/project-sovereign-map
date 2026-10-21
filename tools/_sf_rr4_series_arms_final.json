@@ -1,0 +1,1190 @@
+{
+ "prior": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  47,
+  44,
+  41,
+  38,
+  35,
+  32,
+  29,
+  26,
+  23,
+  20,
+  17,
+  4,
+  1,
+  0,
+  0,
+  2,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "levers": {
+  "R": "backend.game_logic.reforms.ai_repeal_before_lapse",
+  "P": "backend.game_logic.reforms.ai_holds_the_purse",
+  "J": "backend.ai.enemy_ai.ai_hop_backtracks",
+  "V": "backend.ai.enemy_ai.ai_records_the_visit",
+  "H": "backend.commands.movement_executor.harassment_losses",
+  "A": "backend.commands.combat_executor.answering_defender",
+  "O": "backend.commands.combat_executor.holds_a_post",
+  "B": "data (the boot undone in the child)",
+  "N": "data (the boot undone in the child)"
+ },
+ "arm_levers": {
+  "0": [],
+  "B": [
+   "B"
+  ],
+  "N": [
+   "N"
+  ],
+  "R": [
+   "R"
+  ],
+  "P": [
+   "P"
+  ],
+  "J": [
+   "J"
+  ],
+  "V": [
+   "V"
+  ],
+  "H": [
+   "H"
+  ],
+  "A": [
+   "A"
+  ],
+  "O": [
+   "O"
+  ],
+  "ALL": [
+   "A",
+   "B",
+   "H",
+   "J",
+   "N",
+   "O",
+   "P",
+   "R",
+   "V"
+  ]
+ },
+ "arms": {
+  "0": {
+   "levers_up": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "B": {
+   "levers_up": [
+    "B"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    45,
+    42,
+    39,
+    36,
+    33,
+    30,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    9,
+    14,
+    16,
+    21,
+    18,
+    15,
+    12,
+    9,
+    9,
+    11,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 7,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "France": 14,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Britain": 11,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 4,
+    "Switzerland": 1,
+    "Hanover": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 3,
+     "commission|Spain": 2,
+     "commission|Sweden": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ],
+     [
+      6,
+      "Spain",
+      "Cuesta"
+     ],
+     [
+      7,
+      "Sweden",
+      "Toll"
+     ],
+     [
+      11,
+      "Spain",
+      "Blake"
+     ],
+     [
+      21,
+      "Russia",
+      "Bagration"
+     ],
+     [
+      30,
+      "Russia",
+      "Dokhturov"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 13
+  },
+  "N": {
+   "levers_up": [
+    "N"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "R": {
+   "levers_up": [
+    "R"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "P": {
+   "levers_up": [
+    "P"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "J": {
+   "levers_up": [
+    "J"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    13,
+    20,
+    20,
+    17,
+    14,
+    11,
+    8,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 14,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "Britain": 25,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 4,
+    "Switzerland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1,
+     "backtrack_vetoed": 3
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "V": {
+   "levers_up": [
+    "V"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "H": {
+   "levers_up": [
+    "H"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "A": {
+   "levers_up": [
+    "A"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "O": {
+   "levers_up": [
+    "O"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    44,
+    41,
+    38,
+    35,
+    32,
+    29,
+    26,
+    23,
+    20,
+    17,
+    4,
+    1,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 26,
+    "Britain": 27,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1,
+    "Hanover": 1,
+    "France": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 2,
+     "commission|Russia": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": 7
+  },
+  "ALL": {
+   "levers_up": [
+    "A",
+    "B",
+    "H",
+    "J",
+    "N",
+    "O",
+    "P",
+    "R",
+    "V"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    45,
+    42,
+    39,
+    36,
+    33,
+    30,
+    27,
+    24,
+    21,
+    18,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 7,
+   "provinces": {
+    "Russia": 11,
+    "Ottoman": 14,
+    "Prussia": 11,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 23,
+    "France": 15,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Britain": 12,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 4,
+    "Switzerland": 1,
+    "Hanover": 1
+   },
+   "reach": {
+    "counts": {
+     "lapsed": 0,
+     "commission|Britain": 3,
+     "commission|Russia": 1,
+     "commission|Spain": 2,
+     "backtrack_vetoed": 4,
+     "commission|Sweden": 1
+    },
+    "commissions": [
+     [
+      3,
+      "Britain",
+      "Paget"
+     ],
+     [
+      5,
+      "Russia",
+      "Bennigsen"
+     ],
+     [
+      6,
+      "Britain",
+      "Wellesley"
+     ],
+     [
+      6,
+      "Spain",
+      "Cuesta"
+     ],
+     [
+      7,
+      "Sweden",
+      "Toll"
+     ],
+     [
+      12,
+      "Spain",
+      "Blake"
+     ],
+     [
+      14,
+      "Britain",
+      "Shrapnel"
+     ]
+    ]
+   },
+   "first_divergence_vs_all": null
+  }
+ }
+}

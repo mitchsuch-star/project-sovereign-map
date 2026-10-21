@@ -8606,6 +8606,54 @@
       "mock_only": true,
       "source": "SF-RR2 (Score Finish Step 9, tests/test_sf_rr2_the_desk_answers.py)",
       "notes": "SFR-H12: the last line's own refusal, said again; it was the desk's shrug."
+    },
+    {
+      "id": "sfrr4-why-must-massena-go-home",
+      "utterance": "why must Massena go home?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR4 (Score Finish Step 9, tests/test_sf_rr4_war_truce_and_the_standing_order.py)",
+      "notes": "SFR-D29: the road home and internment asked of (the desk's road_home kind); it was the shrug."
+    },
+    {
+      "id": "sfrr4-what-is-internment",
+      "utterance": "what is internment?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR4 (Score Finish Step 9, tests/test_sf_rr4_war_truce_and_the_standing_order.py)",
+      "notes": "SFR-D29: the rule in the engine's terms, and every corps on the road home."
+    },
+    {
+      "id": "sfrr4-what-does-the-truce-mean",
+      "utterance": "what does the truce with Austria mean?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR4 (Score Finish Step 9, tests/test_sf_rr4_war_truce_and_the_standing_order.py)",
+      "notes": "SFR-D29: the truce's terms, its clock and the road home (truce_terms)."
+    },
+    {
+      "id": "sfrr4-how-long-does-the-truce-last",
+      "utterance": "how long does the truce with Austria last?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR4 (Score Finish Step 9, tests/test_sf_rr4_war_truce_and_the_standing_order.py)",
+      "notes": "RR4-X6: the verb after the truce; the truce_clock arm read 'does … last' only before it."
     }
   ]
 }

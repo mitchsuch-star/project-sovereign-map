@@ -668,6 +668,27 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         r"|who\s+(?:stands|is|fights)\s+with\s+(?:us|me)"
         r"|(?:what|which)\s+(?:courts?|nations?|powers?)\s+(?:are|is)\s+"
         r"(?:on\s+our\s+side|with\s+us|our\s+allies))" + _TAIL, re.IGNORECASE)),
+    # SFR-D29 (SF-RR4, Oct 21, 2026): the road home asked of — "why must
+    # Massena go home?", "what is internment?", "is Murat safe from
+    # internment?", "how long is the safe passage?". Read before `safe`.
+    ("road_home", re.compile(
+        _LEAD + r"(?:why\s+(?:must|does|do|should|has|have|is|are)\s+(?P<who>.+?)\s+"
+        r"(?:(?:have|has|need|needs|got)\s+to\s+|going\s+to\s+|to\s+)?"
+        r"(?:go|march|get|return|head|be\s+sent|being\s+sent|leave\s+for)\s+home"
+        r"|why\s+(?:is|are)\s+(?P<who4>.+?)\s+(?:stranded|cut\s+off|trapped|marooned)"
+        r"|what\s+(?:is|does|means?)\s+(?:an?\s+)?internment(?:\s+mean)?"
+        r"|what\s+(?:is\s+it\s+to\s+be|happens\s+(?:when|if)\s+(?:a\s+corps\s+is|he\s+is|they\s+are))\s+interned"
+        r"|(?:is|are)\s+(?P<who2>.+?)\s+(?:safe\s+from|in\s+danger\s+of|at\s+risk\s+of|threatened\s+with)\s+internment"
+        r"|(?:will|would|could)\s+(?P<who3>.+?)\s+be\s+interned"
+        r"|how\s+(?:long|many\s+turns)\s+(?:is|does|remains?\s+(?:on|of)|(?:is|are)\s+left\s+(?:on|of))\s+"
+        r"(?:the|our|his|their)\s+safe\s+passage(?:\s+(?:last|run|hold))?"
+        r"|what\s+is\s+(?:the\s+|a\s+)?(?:safe\s+passage|road\s+home))" + _TAIL, re.IGNORECASE)),
+    # SFR-D29: "what does the truce with Austria mean?" — its terms, its
+    # clock and the road home it grants.
+    ("truce_terms", re.compile(
+        _LEAD + r"what\s+(?:does|do|will)\s+(?:the|an?|our|this)\s+(?:armistice|truce|cease-?fire)"
+        r"(?:\s+with\s+(?:the\s+)?(?P<name>[A-Za-z][\w' -]*?))?\s+mean(?:\s+for\s+us)?"
+        + _TAIL, re.IGNORECASE)),
     # "is Vienna safe?" / "is Rhineland in danger" / "is Paris threatened"
     ("safe", re.compile(
         _LEAD + r"(?:is|are)\s+(?:the\s+)?(?P<name>.+?)\s+"
@@ -687,7 +708,11 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         r"(?:\s+with\s+(?:the\s+)?(?P<name2>[A-Za-z][\w' -]*?))?\s+"
         r"(?:expire|end|lapse|run\s+out|over|up)"
         r"|(?:is|are)\s+(?:we|i)\s+(?:in|under)\s+(?:an?\s+)?"
-        r"(?:armistice|truce|cease-?fire)(?:\s+with\s+(?:the\s+)?(?P<name3>.+?))?)"
+        r"(?:armistice|truce|cease-?fire)(?:\s+with\s+(?:the\s+)?(?P<name3>.+?))?"
+        # RR4-X6 (SF-RR4): "how long does the truce with Austria last?" —
+        # the verb after the truce, which the "does … last" arm never read.
+        r"|how\s+long\s+(?:does|will|is)\s+(?:the\s+|our\s+)?(?:armistice|truce|cease-?fire)"
+        r"(?:\s+with\s+(?:the\s+)?(?P<name4>[A-Za-z][\w' -]*?))?\s+(?:last|hold|run|go\s+on))"
         + _TAIL, re.IGNORECASE)),
     # "how is the war effort" / "how weary are we" / "what is our war
     # exhaustion" — the NATIONAL exhaustion, ours and every court's at war
@@ -991,8 +1016,26 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
             if not where:
                 continue
             return {"kind": kind, "subject": where[0], "subject_type": "region"}
+        if kind == "road_home":
+            phrase = next((groups.get(k) for k in ("who", "who2", "who3", "who4")
+                           if groups.get(k)), "")
+            if not phrase or re.fullmatch(
+                    r"\s*(?:we|they|our\s+(?:corps|men|army|armies|troops|marshals)"
+                    r"|the\s+(?:corps|men|army|troops))\s*", phrase, re.IGNORECASE):
+                return {"kind": kind, "subject": "", "subject_type": "board"}
+            found = _resolve(phrase, marshals, (), (), kind="road_home")
+            if found is None:
+                continue
+            return {"kind": kind, "subject": found[0], "subject_type": "marshal"}
+        if kind == "truce_terms":
+            phrase = groups.get("name") or ""
+            nation = _resolve_nation(phrase, nations) if phrase else None
+            if phrase and not nation:
+                continue
+            return {"kind": kind, "subject": nation or "",
+                    "subject_type": "nation" if nation else "board"}
         if kind == "truce_clock":
-            phrase = next((groups.get(k) for k in ("name", "name2", "name3")
+            phrase = next((groups.get(k) for k in ("name", "name2", "name3", "name4")
                            if groups.get(k)), "")
             nation = _resolve_nation(phrase, nations) if phrase else None
             if phrase and not nation:
@@ -2366,6 +2409,87 @@ def _answer_truce_clock(world, player: str, nation: str) -> Optional[str]:
     return " ".join(_line(c) for c in sorted(courts))
 
 
+_ROAD_HOME_RULE = (
+    "A peace or a truce gives every corps standing on the other court's "
+    "ground — or in a conquest its ground cuts off from home — a safe "
+    "passage home: a free march order and the right of way. A corps still "
+    "off home ground when the passage runs out is interned: disarmed, and "
+    "its marshal lost to us; the Emperor alone is escorted home, without "
+    "his corps.")
+
+
+def _road_home_line(world, row: Dict) -> str:
+    """One corps on the road home, as the tick will judge him."""
+    from backend.display_names import display_nation, plural, with_definite_article
+    from backend.game_logic.withdrawal import stranding_clause
+    shown = _display(row["marshal"])
+    where = row["location"]
+    clause = stranding_clause(world, row.get("cause"), where)
+    if row.get("distance") is None:
+        return (f"{shown} stands at {where}{clause}, and no land road leads "
+                f"home even through the passage — his way home must be won "
+                f"at the table.")
+    host = ((row.get("cause") or {}).get("power")
+            or getattr(world.regions.get(where), "controller", "") or "")
+    by = f" by {with_definite_article(display_nation(host))}" if host else ""
+    spare = int(row.get("turns_to_spare") or 0)
+    if spare < 0:
+        tail = f"the passage cannot carry him home in time — his corps will be interned{by} when this turn ends"
+    elif spare == 0:
+        tail = f"no turn to spare — he must march today, or his corps is interned{by}"
+    else:
+        tail = f"{plural(spare, 'turn')} to spare before his corps is interned{by}"
+    return (f"{shown} stands at {where}{clause}: "
+            f"{plural(int(row['distance']), 'march')} home through the passage, and {tail}.")
+
+
+def _answer_road_home(world, player: str, marshal_name: str) -> Optional[str]:
+    """SFR-D29 (SF-RR4, October 21, 2026): "why must Massena go home?",
+    "what is internment?", "is Murat safe from internment?", "how long is
+    the safe passage?" — all shrugged while the morning page threatened the
+    corps with internment. The rule in the engine's terms and, for every
+    corps that needs the road home, the reading the tick will judge
+    (`withdrawal.passage_reading`)."""
+    from backend.game_logic.withdrawal import passage_reading
+    reading = passage_reading(world, player)
+    running = reading["turns_left"] is not None
+    rows = reading["rows"] if running else []
+    if marshal_name:
+        row = next((r for r in rows if r["marshal"] == marshal_name), None)
+        if row is not None:
+            return f"{_road_home_line(world, row)} {_ROAD_HOME_RULE}"
+        marshal = (getattr(world, "marshals", {}) or {}).get(marshal_name)
+        where = getattr(marshal, "location", "") if marshal is not None else ""
+        if not running:
+            return (f"No safe passage is running, Sire, so no internment threatens "
+                    f"{_display(marshal_name)}. {_ROAD_HOME_RULE}")
+        return (f"{_display(marshal_name)} stands on home ground"
+                f"{f' at {where}' if where else ''}, Sire — no passage runs out on "
+                f"him and no internment threatens him. {_ROAD_HOME_RULE}")
+    if not running:
+        return f"No safe passage is running, Sire. {_ROAD_HOME_RULE}"
+    if not rows:
+        return (f"Every corps of ours stands on home ground, Sire — no passage "
+                f"runs out on any of them. {_ROAD_HOME_RULE}")
+    return " ".join(_road_home_line(world, r) for r in rows) + f" {_ROAD_HOME_RULE}"
+
+
+def _answer_truce_terms(world, player: str, nation: str) -> Optional[str]:
+    """SFR-D29: "what does the truce with Austria mean?" — the truce's terms
+    (the war paused, not over: neither army may strike the other or cross
+    onto its ground), its clock (`_answer_truce_clock`) and the road home it
+    grants, corps by corps."""
+    clock = _answer_truce_clock(world, player, nation) or ""
+    if nation and world.get_diplomatic_state(player, nation) != "ARMISTICE":
+        return clock
+    if not nation and clock.startswith("No armistice"):
+        return clock
+    terms = ("A truce pauses the war, Sire; it does not end it — while it holds, "
+             "neither army may strike the other or cross onto its ground.")
+    road = _answer_road_home(world, player, "") or ""
+    return f"{terms} {clock} {road}".strip()
+
+
 def _answer_war_effort(world, player: str) -> Optional[str]:
     """AAR-17 / DESK-8: "how is the war effort" — the NATIONAL war weariness
     (`world.war_exhaustion`, the figure the Charges of Empire and the peace
@@ -2761,6 +2885,10 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_safe(world, player, subject)
         if kind == "truce_clock":
             return _answer_truce_clock(world, player, subject)
+        if kind == "road_home":
+            return _answer_road_home(world, player, subject)
+        if kind == "truce_terms":
+            return _answer_truce_terms(world, player, subject)
         if kind == "war_effort":
             return _answer_war_effort(world, player)
         if kind == "news":

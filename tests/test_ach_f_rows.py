@@ -336,7 +336,17 @@ class TestACHF2TheChargeIsPaid:
 # ACH-F3 — a strategic answer the pool cannot pay is refused
 # ═══════════════════════════════════════════════════════════════════════
 
+# RE-STAGED by SF-RR4 (RR4-X1, October 21, 2026), consciously: the pursuit's
+# objection now weighs the muster (DDB-19's idiom), and on the boot board
+# the muster carries Davout's chase of Mack (0.48) — no objection. These
+# pins price the ANSWERS, so the board stages a Mack the muster cannot
+# carry either, and the objection fires on genuine odds.
+_MACK_BEYOND_THE_MUSTER = 400000
+
+
 def _davouts_objection(client, line="Davout, pursue Mack"):
+    if "pursue Mack" in line:
+        M.world.get_marshal("Mack").strength = _MACK_BEYOND_THE_MUSTER
     asked, spent, _ = _order(client, line)
     assert M.world.pending_strategic_objection, asked.get("message")
     assert spent == 0

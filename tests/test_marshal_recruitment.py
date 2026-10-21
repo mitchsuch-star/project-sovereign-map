@@ -51,8 +51,11 @@ def _commission(executor, world, name, nation=None):
 
 class TestPoolAuthoring:
     def test_pool_loads_at_boot(self, world):
+        # RE-SEATED by SF-RR4 (EG-D3, October 21, 2026): the secondaries'
+        # bench — Spain, Sweden and Bavaria commission at war too.
         assert set(world.marshal_pool.keys()) == \
-            {"France", "Austria", "Russia", "Prussia", "Britain"}
+            {"France", "Austria", "Russia", "Prussia", "Britain",
+             "Spain", "Sweden", "Bavaria"}
         assert [c["name"] for c in world.marshal_pool["France"]] == \
             ["Mortier", "Grouchy", "Suchet", "Oudinot", "Augereau",
              "Marmont", "Senarmont"]  # Marmont + Senarmont = France's guns
@@ -133,7 +136,8 @@ class TestCommissionGate:
         assert "Candidates" in result["message"]
 
     def test_nation_without_pool_refused(self, world, executor):
-        result = _commission(executor, world, "Anyone", nation="Sweden")
+        # RE-SEATED by SF-RR4 (EG-D3): Sweden has a bench now; Denmark has none.
+        result = _commission(executor, world, "Anyone", nation="Denmark")
         assert not result["success"]
         assert "bench is empty" in result["message"]
 

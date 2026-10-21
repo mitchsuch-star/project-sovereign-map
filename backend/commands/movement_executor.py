@@ -201,6 +201,26 @@ def move_open(world, marshal) -> list:
     return out
 
 
+def harassment_losses(world, marshal, region) -> int:
+    """SFR-D31 (SF-RR4, October 21, 2026): an ENEMY's works harass a
+    marching corps — a fortification 4%, a garrison detachment 2%. The test
+    read only "another court holds it", so Davout lost 469 men "to enemy
+    harassment" crossing Swabia, which Bavaria — France's ally — held with a
+    detachment, while the only enemy near was Austria, under the truce. A
+    court at war with the marcher harasses him; an ally, a satellite, a
+    neutral or a truce partner does not."""
+    if not (region and region.controller and region.controller != marshal.nation):
+        return 0
+    if not world.is_at_war(marshal.nation, region.controller):
+        return 0
+    losses = 0
+    if region.has_building("fortification"):
+        losses = int(marshal.strength * 0.04)
+    if region.garrison_detachment and region.garrison_strength > 0:
+        losses += int(marshal.strength * 0.02)
+    return losses
+
+
 def corps_takes_no_ground(marshal) -> bool:
     """True when the mover may march but may not annex: the recovery window."""
     in_recovery = getattr(marshal, "in_retreat_recovery", None)
@@ -355,23 +375,17 @@ class MovementExecutor:
                 depot_bonus = True
 
         losses = 0 if is_friendly_stable else int(marshal.strength * rate)
-        harassment_losses = 0
+        # Harassment from an enemy's fortification and garrison detachment
+        # (SFR-D31: an enemy's — `harassment_losses`).
+        harassment = harassment_losses(world, marshal, region)
 
-        # Harassment from enemy fortification
-        if region and region.controller and region.controller != marshal.nation:
-            if region.has_building("fortification"):
-                harassment_losses = int(marshal.strength * 0.04)
-            # Harassment from enemy garrison detachment (smaller than fort — 2%)
-            if region.garrison_detachment and region.garrison_strength > 0:
-                harassment_losses += int(marshal.strength * 0.02)
-
-        total_losses = losses + harassment_losses
+        total_losses = losses + harassment
         if total_losses > 0:
             marshal.strength = max(0, marshal.strength - total_losses)
 
         return {
             "march_losses": int(losses),
-            "harassment_losses": int(harassment_losses),
+            "harassment_losses": int(harassment),
             "total_losses": int(total_losses),
             "destination": destination_region,
             "depot_bonus": depot_bonus,
@@ -1024,6 +1038,7 @@ class MovementExecutor:
             # unanswered question at every producer — and this path simply
             # states its own march policy: an automated hop auto-secures even
             # when the slot is free.
+            _walk_in_garrison = int(getattr(dest_region, "garrison_strength", 0) or 0)
             capture_result = self._executor._combat._attempt_region_capture(
                 marshal, target_name, world, game_state, had_garrison=False,
                 auto_secure=bool(strategic_execution))
@@ -1031,6 +1046,12 @@ class MovementExecutor:
                 captured_on_move = True
                 move_message += (f". {target_name} falls to {marshal.nation}! "
                                  f"(was {_old_controller})")
+                # RR4-X10 (EG-X5's sibling): the works the march walked into.
+                from backend.game_logic.garrison_report import capture_garrison_line
+                _walk_in_line = capture_garrison_line(
+                    world, target_name, _walk_in_garrison, _old_controller)
+                if _walk_in_line:
+                    move_message += f" {_walk_in_line}"
                 # During an automated strategic march, AUTO-SECURE this province
                 # (like the AI) instead of queueing a per-hop plunder/secure
                 # popup the player cannot answer mid-turn.

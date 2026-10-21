@@ -184,6 +184,36 @@ def insist_terms(world, marshal, action: str):
     return (base, "")
 
 
+def answer_terms(world, marshal, order):
+    """SFR-D3 (SF-RR4, October 21, 2026): what TRUSTING him — or taking the
+    compromise — costs, the Insist arm's twin. The answer gate charges each
+    answer's order at `order_price`, but only Insist ever said so: on the
+    boot "Davout, attack Mack" → "(Trust him and he will fortify current
+    position instead.)" took two actions (the auto-shift to DEFENSIVE
+    first) and the next order met "Not enough actions! Need 1, have 0".
+    `(price, note)` — the note only when the order costs more than its face
+    value, in the executor's own words; `(0, "")` with no order."""
+    order = order or {}
+    action = str(order.get("action") or "").lower()
+    if not action:
+        return (0, "")
+    price = int(order_price(world, marshal, order))
+    try:
+        face = int(world.get_action_cost(action)) if world is not None else price
+    except Exception as exc:
+        report(exc, "tactical_executor.answer_terms: int / world.get_action_cost")
+        face = price
+    if price <= face:
+        return (price, "")
+    if action in ("fortify", "defend"):
+        return (price, insist_terms(world, marshal, action)[1])
+    if action == "stance_change":
+        return (price, "the stance swings across, through neutral")
+    if action == "move":
+        return (price, "the province is beyond one step, so it is a march")
+    return (price, "")
+
+
 # The words a stance order names, as the executor's pre-objection AP check
 # reads them.
 _STANCE_WORDS = {

@@ -414,6 +414,14 @@ def set_aside_clause(marshal, order) -> str:
         what = f"support of {humanize_entity_name(target)}"
     else:
         what = "standing order"
+    # RR4-X7 (SFR-D29's sibling): the treaty's road home set aside by a
+    # drill or a fortify — the safe passage still counts down, and the
+    # clause said nothing of it.
+    from backend.game_logic.withdrawal import is_road_home_order
+    if is_road_home_order(order):
+        return (f"{name}'s march home to {target} is set aside — the safe "
+                f"passage still counts down, and a corps off home ground when "
+                f"it runs out is interned.")
     return f"{name}'s {what} is set aside."
 
 
@@ -2944,9 +2952,18 @@ class CommandExecutor:
                                 # typed route and the digest read it too.
                                 _alt_desc = world.disobedience_system.describe_alternative(
                                     suggested_alt, world) if suggested_alt else ""
+                                # SFR-D3: and what trusting him COSTS, when it
+                                # is more than its face value (`answer_terms`
+                                # — the answer gate's own price).
+                                from backend.commands.tactical_executor import answer_terms
+                                _trust_ap, _trust_note = answer_terms(world, marshal, suggested_alt)
+                                _comp_ap, _comp_note = answer_terms(world, marshal, compromise_action)
                                 if suggested_alt and _alt_desc:
                                     suggested_alt["description"] = _alt_desc
-                                    message = f"{message} (Trust him and he will {_alt_desc} instead.)"
+                                    _trust_price = (f" Trusting costs {_trust_ap} actions — "
+                                                    f"{_trust_note}." if _trust_note else "")
+                                    message = (f"{message} (Trust him and he will {_alt_desc} "
+                                               f"instead.{_trust_price})")
                                 if compromise_action:
                                     _comp_desc = world.disobedience_system.describe_alternative(
                                         compromise_action, world)
@@ -2984,6 +3001,14 @@ class CommandExecutor:
                                 if _insist_note:
                                     objection["insist_ap_cost"] = int(_insist_ap)
                                     objection["insist_note"] = _insist_note
+                                # SFR-D3: the trust and compromise arms' prices,
+                                # the same shape (absent at face value).
+                                if suggested_alt and _trust_note:
+                                    objection["trust_ap_cost"] = int(_trust_ap)
+                                    objection["trust_note"] = _trust_note
+                                if compromise_action and _comp_note:
+                                    objection["compromise_ap_cost"] = int(_comp_ap)
+                                    objection["compromise_note"] = _comp_note
 
                                 # Store pending objection
                                 world.pending_objection = objection

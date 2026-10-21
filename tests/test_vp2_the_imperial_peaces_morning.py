@@ -378,7 +378,11 @@ class TestDDBX4:
 
     def test_the_dormancy_proof_re_reads_byte_identical(self):
         rec = json.loads((REPO / "tools" / "_ge3_series_arms.json").read_text(encoding="utf-8"))
-        baseline = _baseline()
+        # RE-SEATED by SF-RR4 (October 21, 2026): this record was taken on the
+        # standing series of its day — the series before the bench moved it
+        # (`SERIES_BEFORE_THE_BENCH`, the SF-RR4 record's `prior`).
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_THE_BENCH
+        baseline = list(SERIES_BEFORE_THE_BENCH)
         assert rec["recorded"] == baseline
         assert set(rec["arms"]) >= {"0", "S", "W", "T", "Y", "ALL"}
         assert rec["arm_levers"]["0"] == [] and set(rec["arm_levers"]["ALL"]) == set(_tool().LEVERS)

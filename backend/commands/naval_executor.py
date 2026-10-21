@@ -607,15 +607,25 @@ class NavalExecutor:
                 elif not defenders:
                     # DDB-X1: the surrender is said, as the attack says it
                     # (the capture clears the loser's garrison, AAR4-X1).
-                    if _garrison_report.detachment_surrenders(target_region):
+                    _surrenders = _garrison_report.detachment_surrenders(target_region)
+                    if _surrenders:
                         message += (f" The detachment of "
                                     f"{int(target_region.garrison_strength):,} at "
                                     f"{target} lays down its arms.")
+                    _landing_garrison = int(target_region.garrison_strength or 0)
+                    _landing_from = target_region.controller or ""
                     # The existing land game takes over (§4.3): undefended
                     # soil falls through the SAME capture pipeline every
                     # march uses (capture-choice, estates, EC-W1 — all free).
                     capture = self._executor._combat._attempt_region_capture(
                         marshal, target, world, game_state)
+                    # RR4-X10 (EG-X5's sibling): a capital's works, named.
+                    if (isinstance(capture, dict) and capture.get("captured")
+                            and not _surrenders):
+                        _landing_line = _garrison_report.capture_garrison_line(
+                            world, target, _landing_garrison, _landing_from)
+                        if _landing_line:
+                            message += f" {_landing_line}"
                 else:
                     message += (
                         f" Enemy forces under {defenders[0].name} hold the "

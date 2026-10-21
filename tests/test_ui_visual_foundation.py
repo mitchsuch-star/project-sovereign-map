@@ -47,6 +47,9 @@ UI1_FONTS = [
 PORTRAIT_EXEMPT = {
     "Abdurrahman",
     "Senarmont", "Smola", "Kutaisov", "Holtzendorff", "Shrapnel",
+    # SF-RR4 (EG-D3, October 21, 2026): the secondaries' bench — no PD
+    # likeness curated in-repo; the gold monogram, as the gunners.
+    "LaRomana", "Blake", "Cuesta", "Toll", "Adlercreutz", "Wrede",
 }
 PORTRAIT_EXTS = (".jpg", ".png", ".jpeg", ".webp")
 

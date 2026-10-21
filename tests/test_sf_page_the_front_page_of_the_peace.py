@@ -761,6 +761,26 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               "backend.game_logic.dispatch:_brewing_is_news=True",
               "backend.game_logic.dispatch:_declaration_is_news=True",
               "backend.game_logic.dispatch:_one_war_one_line=[a[2]('war_touches_us', line=d['line']) for d in a[1]] and None",
+              # SF-RR4 "war, truce and the standing order" (October 21, 2026):
+              # every seam that re-times CMD-H or moves a page line, held down
+              # — the bench (EG-D3: the three courts' pools read empty), the
+              # Trust arm's chase (SFR-D22), the answering defender (D6), the
+              # HOLD's post (D5), the pursuit's muster (RR4-X1), the war-gated
+              # harassment (D31), the backtrack veto and its visits (D35), the
+              # repeal rung and the purse (B14, RR4-X9), the enclave's words
+              # (D29) and the passage beat's newest reading (RR4-X12).
+              "backend.game_logic.recruitment:get_marshal_pool=([] if a[1] in ('Spain', 'Sweden', 'Bavaria') else list((getattr(a[0], 'marshal_pool', {}) or {}).get(a[1], []) or []))",
+              "backend.commands.strategic_executor:objection_already_answered=False",
+              "backend.commands.combat_executor:answering_defender=a[1]",
+              "backend.commands.combat_executor:holds_a_post=bool(getattr(a[0], 'holding_position', False))",
+              "backend.commands.objection_v2:pursue_muster_totals=None",
+              "backend.commands.movement_executor:harassment_losses=(0 if not (a[2] and a[2].controller and a[2].controller != a[1].nation) else (int(a[1].strength * 0.04) if a[2].has_building('fortification') else 0) + (int(a[1].strength * 0.02) if (a[2].garrison_detachment and a[2].garrison_strength > 0) else 0))",
+              "backend.ai.enemy_ai:ai_hop_backtracks=False",
+              "backend.ai.enemy_ai:ai_records_the_visit=(a[0] or {}).get('action') in ('move', 'retreat')",
+              "backend.game_logic.reforms:ai_repeal_before_lapse=None",
+              "backend.game_logic.reforms:ai_holds_the_purse=False",
+              "backend.game_logic.withdrawal:stranding_cause=None",
+              "backend.game_logic.dispatch:lapsing_reading_key=(0, int(a[0].get('turns_left') or 0))",
               ]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",
@@ -1106,7 +1126,11 @@ class TestTheEdges:
         world = _boot()
         ney = world.marshals["Ney"]
         msg = W._warn(world, ney, "France", 2, 0)["message"]
-        assert "no turn to spare on the safe passage before his corps is interned." in msg
+        # RE-SEATED by SF-RR4 (SFR-D29), consciously: Rhineland is France's and
+        # Hessian ground encloses it, so the warning names the enclave and the
+        # power that would intern him; the slack clause is unchanged.
+        assert "no turn to spare on the safe passage before his corps is interned by Hesse." in msg
+        assert "Rhineland is ours, but Hessian ground at Frankfurt and Nassau" in msg
         monkeypatch.setattr(W, "THE_PASSAGE_COUNTS_ITS_SLACK", False)
         assert "0 turns of safe passage left" in W._warn(world, ney, "France", 2, 0)["message"]
 

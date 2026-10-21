@@ -260,8 +260,15 @@ class TestTheCoveringLinesNameTheMen:
         # Found while driving this slice: "vs ArchdukeJohn (substantial force)".
         for key in ("capture", "defence", "cover"):
             msg = str(payloads[key]["message"])
-            head = msg[msg.find("MUSTER"):msg.find("MUSTER") + 160]
-            assert "vs Archduke John (" in head, head
+            head = msg[msg.find("MUSTER"):msg.find("MUSTER") + 200]
+            if key == "cover":
+                # RE-SEATED by SF-RR4 (SFR-D6), consciously: the muster prices
+                # the man the cover rule puts in the field, and names both.
+                assert "vs Archduke Charles (" in head, head
+                assert "covering Archduke John's retreat" in head, head
+                assert "ArchdukeCharles" not in head, head
+            else:
+                assert "vs Archduke John (" in head, head
             assert "ArchdukeJohn" not in head, head
 
     def test_the_humaniser_is_the_module_level_name_in_the_combat_executor(self):

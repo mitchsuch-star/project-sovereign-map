@@ -460,7 +460,9 @@ class TestNPC12TheKeyNeverReachesTheReader:
 
     def test_the_keys_are_derived_from_the_world(self, shipped):
         _, world = shipped
-        assert NC.derive_keys(world) == ["ArchdukeCharles", "ArchdukeJohn"]
+        # RE-SEATED by SF-RR4 (EG-D3): Spain's bench seats La Romana by the
+        # key "LaRomana" (the ArchdukeCharles idiom), so the census reads it too.
+        assert NC.derive_keys(world) == ["ArchdukeCharles", "ArchdukeJohn", "LaRomana"]
 
     def test_the_driven_census(self, tmp_path):
         """Twelve loops of the commanded arm, in-process with the census on:
@@ -481,7 +483,7 @@ class TestNPC12TheKeyNeverReachesTheReader:
         assert meta_path.is_file(), proc.stderr[-2000:]
         census = json.loads(meta_path.read_text(encoding="utf-8"))["name_census"]
         assert census["verdict"] == "PASS", census
-        assert census["keys"] == ["ArchdukeCharles", "ArchdukeJohn"]
+        assert census["keys"] == ["ArchdukeCharles", "ArchdukeJohn", "LaRomana"]  # SF-RR4: Spain's bench
         assert census["display_seen"] > 0 and census["responses"] > 0
         assert census["by_method"].get("GET", 0) > 0, census["by_method"]  # the log, the ledger
 

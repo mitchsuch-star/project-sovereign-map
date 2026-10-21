@@ -736,6 +736,8 @@ fix slice. **Nothing deploys over an open UXR-4 no.**
 - **PC-F46** — the armistice letter shows 327 of 966 px; the truce's cost is below the fold under Accept (and the war popup's peace table sits at its fold at 1080p).
 - **PC-F47** — tooltips stand on Godot's default translucent panel and never wrap: a 452-character refusal runs off a 1920 window.
 
+**What SF-RR4 homed here (October 21, 2026).** Two client lines the walk's battle stop reads (yes/no; no open row): the objection dialog's Trust and Compromise buttons naming their price when it is more than the order's face ("Trust Davout: fortify current position (2 AP — he must first go defensive, +3 trust)", `objection_dialog.gd`), and the battle report's capture line ("Munich falls to Lannes. The last 2,000 of the garrison at Munich give way.", `main.gd` / `enemy_phase_dialog.gd`). Rules `SYSTEMS_REFERENCE.md` §139.1 / §139.4.
+
 ## What this plan does not do
 
 - No visual redesign. The theme, the palette, the fonts and the war-table

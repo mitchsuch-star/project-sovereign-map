@@ -1494,7 +1494,29 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # gold on the Subsidies line) diverges at [21] and EQUALS the shipped ALL —
 # the bond's gold moves France's alarm 2 from [25]/[28] to [21].
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-PINNED by SF-RR4 "war, truce and the standing order" (Score Finish
+# residue 3, October 21, 2026; `BUG_FIXES.md` §RR4, `SYSTEMS_REFERENCE.md`
+# §139; `DESIGN_REFINEMENT.md` EG-D3): two changes move the ambient board,
+# attributed by `tools/_sf_rr4_series_arms.py`
+# (`tools/_sf_rr4_series_arms_final.json`, eleven arms). Arm 0 (every rule
+# down) reproduces the old series byte for byte; the bench (B — Spain's La
+# Romana, Blake and Cuesta, Sweden's Toll and Adlercreutz, Bavaria's Wrede
+# in `marshal_pool`) diverges at [7] — Spain commissions Cuesta at turn 6
+# and Blake at 12, Sweden Toll at 7, and Spain's generals fight Britain's
+# descents on French soil (France keeps 15 provinces at turn 40, not 1);
+# the backtrack veto (J, SFR-D35 — an AI corps does not hop back onto
+# ground it stood on this phase) diverges at [14] alone (three vetoes);
+# the contingents' re-cast (N), the repeal rung (R), the purse hold (P),
+# the visit record (V), the war-gated harassment (H), the answering
+# defender (A) and the HOLD's post (O) are byte-identical alone (unreached
+# on the passive board). ALL is the shipped tree and the standing series.
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 45, 42, 39, 36, 33, 30, 27, 24, 21, 18, 5, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# The standing series of every attribution record through SF-RR3 — the
+# series before the bench moved it (the SF-RR4 record's `prior`). The
+# historical records' links read this, never the live BASELINE_SERIES.
+SERIES_BEFORE_THE_BENCH = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The standing series of every attribution record through S14 part 2 — the
 # series before the bond moved it (the bond record's `prior`). The historical
 # records' links (each part's ALL arm was the standing series in its day) read

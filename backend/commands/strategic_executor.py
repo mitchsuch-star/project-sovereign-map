@@ -90,6 +90,35 @@ A_REFUSED_TRUST_KEEPS_THE_OBJECTION = True
 THE_PURSUIT_STATES_ITS_TERMS = True
 
 
+def objection_already_answered(command) -> bool:
+    """SFR-D22 (SF-RR4, October 21, 2026): trusting a strategic objection
+    whose preferred order is itself strategic (an aggressive marshal's
+    PURSUE) re-entered the command carrying `objection_response:
+    "preferred"` — the L2 marker meant "skip re-evaluation", but stage 7 read
+    any response as an answer to handle, found no proposal on the nested
+    command and declined it: "Ney is spared the order — the Pursue order is
+    not issued", an order spent, Ney idle at Rhineland and his +3 trust paid
+    twice. The nested command now carries `_objection_answered`, and stage 7
+    lets it straight through to its order."""
+    return bool((command or {}).get("_objection_answered"))
+
+
+def strategic_trust_clause(world, options) -> str:
+    """SFR-D22: what TRUSTING him does, in the sentence of the strategic
+    objection — the tactical route's "(Trust him and he will … instead.)"
+    clause (VP-R1 (d)), which this route never carried: "Give me a battle
+    of my own." named no alternative while its Trust arm sent Ney after
+    Archduke John. A marshal who proposes nothing has the order not issued,
+    and says so."""
+    preferred = next((o for o in options or [] if o.get("type") == "preferred"), None)
+    if preferred is None:
+        return ""
+    if str(preferred.get("action") or "").lower() in ("", "cancel"):
+        return "(Trust him and the order is not issued.)"
+    desc = world.disobedience_system.describe_alternative(preferred, world)
+    return f"(Trust him and he will {desc} instead.)" if desc else ""
+
+
 def _capture_tail(move_result) -> str:
     """The capture sentence(s) a first-step move stamped on its result."""
     if not THE_MARCH_REPORTS_ITS_CAPTURE:
@@ -1452,6 +1481,8 @@ class StrategicExecutor:
         # CC-X8: the square breaks HERE, once every refusal of stages 2-6 has
         # passed — the objection reads the broken square exactly as before.
         self._executor._auto_break_square(ctx.marshal, ctx.strategic_type or "strategic order")
+        if objection_already_answered(ctx.command):
+            return _NEXT_STAGE
         # ── Strategic objection check (V2a) ───────────────────────────
         # Check if marshal objects to this strategic command BEFORE creating order
         # Uses V2 evaluate_strategic_situation() (deterministic ConcernLevel triggers)
@@ -1687,6 +1718,11 @@ class StrategicExecutor:
                         for _opt in v1_options:
                             if _opt.get("type") == "preferred":
                                 _opt["trust_change"] = trust_gain
+
+                        # SFR-D22: the sentence names what trusting him does.
+                        _trust_clause = strategic_trust_clause(ctx.world, v1_options)
+                        if _trust_clause:
+                            message = f"{message} {_trust_clause}"
 
                         objection = {
                             # V2 fields
@@ -2453,6 +2489,7 @@ class StrategicExecutor:
                         "action": pref_action,
                         "target": pref_target,
                         "objection_response": "preferred",  # L2 fix: skip re-evaluation
+                        "_objection_answered": True,  # SFR-D22: ... and stage 7's answer handler
                     },
                     "is_strategic": True,
                     "strategic_type": pref_strategic_type,

@@ -1753,6 +1753,11 @@ class Digest:
             _trust_note = report.get("trust_note")
             if isinstance(_trust_note, str) and _trust_note.strip():
                 head += f" — {' '.join(_trust_note.split())}"
+            # EG-X5 (SF-RR4): the works a field win took, as the report
+            # (and the client) names them.
+            _capture_note = report.get("capture_note")
+            if isinstance(_capture_note, str) and _capture_note.strip():
+                head += f" — {' '.join(_capture_note.split())}"
             # SR-7d DC-3b: the report's doctrine lines and morale line ride the
             # digest (T10's census reads them; a doctrine moment the digest
             # cannot show is the IGR-B trap one instrument over).

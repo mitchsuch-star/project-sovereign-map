@@ -149,6 +149,35 @@ THE_COURT_ARMS_WITH_ITS_PURSE = True
 #     the straight reading. One reverse BFS per decision (GR8: 126 nodes).
 THE_LEAGUE_AIMS_AT_ITS_ENEMY = True
 THE_MARCH_READS_THE_LAWFUL_ROAD = True
+
+
+# SFR-D35 (SF-RR4, October 21, 2026): "Paget drives a forced march —
+# Piedmont → Lyonnais → Piedmont → Lyonnais". The oscillation guard
+# (`_marshal_visited_locations`) was read by the advancing rungs but never by
+# the retreat or the supply-pressure move, and it recorded a province only
+# after a move — so an ally-support advance was undone by the P8 retreat the
+# same phase, and an attack's advance never counted. Measured on a 25-turn
+# fuzz of three seeds: 2–3 bounces a run, each spending two or three of the
+# court's four orders. The urgent rungs — engagement, recovery, survival and
+# the threat response (below P4) — may still fall back to where he stood.
+AI_BACKTRACK_EXEMPT_BELOW = 4
+
+
+def ai_hop_backtracks(visited, action: Dict, action_priority) -> bool:
+    """SFR-D35: a march or retreat back onto a province this corps already
+    stood on this phase, at a non-urgent rung — vetoed."""
+    if (action or {}).get("action") not in ("move", "retreat"):
+        return False
+    if action_priority is not None and action_priority < AI_BACKTRACK_EXEMPT_BELOW:
+        return False
+    return (action or {}).get("target") in (visited or set())
+
+
+def ai_records_the_visit(action: Dict) -> bool:
+    """SFR-D35: which successful orders mark the province he then stands on
+    as visited — every one (an attack that advanced into the beaten
+    province counts), not the march and the retreat alone."""
+    return bool((action or {}).get("action"))
 # EA-7's recovery path (the economy gate): a court left with no marshal runs
 # the Marshalate's commission rung alone (`execute_commission_only`).
 A_COURT_WITHOUT_A_GENERAL_MAY_COMMISSION = True
@@ -1502,8 +1531,9 @@ class EnemyAI:
             if selected_action["action"] == "garrison":
                 self._garrison_placed_this_turn = True
 
-            # Track locations visited after successful moves (oscillation fix)
-            if selected_action["action"] in ("move", "retreat") and result.get("success"):
+            # Track locations visited after successful moves (oscillation fix;
+            # SFR-D35: after any successful order — `ai_records_the_visit`)
+            if ai_records_the_visit(selected_action) and result.get("success"):
                 marshal_name = selected_action["marshal"]
                 new_loc = world.get_marshal(marshal_name)
                 if new_loc:
@@ -1729,6 +1759,13 @@ class EnemyAI:
 
                 # Skip actions on cross-turn cooldown (failed recently)
                 if self._is_action_on_cooldown(marshal.name, action.get("action", "")):
+                    continue
+
+                # SFR-D35: no hop back onto ground he stood on this phase
+                if ai_hop_backtracks(
+                        getattr(self, '_marshal_visited_locations', {}).get(marshal.name),
+                        action, action_priority):
+                    ai_debug(f"  [SKIP] {marshal.name} would backtrack to {action.get('target')}")
                     continue
 
                 # Skip stance changes for marshals who already changed this turn
@@ -6495,6 +6532,18 @@ class EnemyAI:
         """
         skip_actions = skip_actions or set()
         treasury = world.nation_gold.get(nation, 0)
+
+        # Priority 0.5: SAVE THE SLATE (SFR-B14, GR5). A law that would lapse
+        # at this turn's end: repeal the one the player's own lever names
+        # ("Repeal X instead"), and spend no gold on anything else while the
+        # lapse looms (RR4-X9) — the unspent orders earn their gold as ever.
+        from backend.game_logic.reforms import ai_holds_the_purse, ai_repeal_before_lapse
+        if ai_holds_the_purse(world, nation):
+            if "repeal_law" not in skip_actions:
+                repeal = ai_repeal_before_lapse(world, nation, admin_ap)
+                if repeal:
+                    return repeal
+            return None
 
         # Priority 1: Recruit for weakest marshal
         if "recruit" not in skip_actions:

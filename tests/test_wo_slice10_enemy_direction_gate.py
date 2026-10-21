@@ -1609,7 +1609,15 @@ class TestTheAiIsNotFrozenInstead:
         # wars from index 21. With the bond's mint held down in the child
         # S13e part 3's figure returns (`tools/_pc_s14p3_wo_attribution.py`,
         # measured: 2 / 3, and 3 with every bond seam down).
-        assert cooldowns["gated"] == 2, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond)
+        # SF-RR4 (Score Finish residue 3, October 21, 2026): 2 -> 13 — the
+        # secondaries' bench (Spain's generals fight Britain's descents from
+        # turn 6) and the backtrack veto (an AI corps no longer hops back onto
+        # ground it stood on) re-time the gated board (the re-pinned standing
+        # series board). With every SF-RR4 seam down in the child S14 part
+        # 3's figure returns (`tools/_sf_rr4_wo_attribution.py`, measured: 13
+        # shipped, 8 with the bench down, 0 with the veto down, 2 with every
+        # seam down).
+        assert cooldowns["gated"] == 13, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 -> 13 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond; SF-RR4: the bench and the backtrack veto)
 
 
 _COOLDOWN_PROBE = r'''

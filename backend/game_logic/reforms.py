@@ -1154,6 +1154,43 @@ def ai_purse_refusal(world, nation: str, row: Dict,
     return ""
 
 
+def ai_repeal_before_lapse(world, nation: str, admin_ap: int) -> Optional[Dict]:
+    """SFR-B14 (SF-RR4, October 21, 2026): an AI court repeals before a law
+    lapses — the player's one lever against the lapse (§8b, the forecast's
+    "Repeal X instead"), through the same verb (GR5). CMD-M (marengo) read
+    "Austria cannot pay for the Landwehr — the law lapses" and two turns
+    later "… the Generalissimus — the law lapses"; the rung never repealed
+    (it read the purse only at enactment). It fires only when a repeal KEEPS
+    the doomed law (`repeal_plan`): a lapse refunds the turn's charge and
+    leaves a half-price restoration (R8), a repeal does neither, so a repeal
+    that saves nothing would only be dearer. The plan's first law, when the
+    admin budget carries the whole plan; else None."""
+    if not nation or nation == getattr(world, "player_nation", None):
+        return None
+    forecast = lapse_forecast(world, nation)
+    if not forecast:
+        return None
+    doomed = find_law(world, nation, str(forecast.get("law") or ""))
+    if doomed is None:
+        return None
+    plan = repeal_plan(world, nation, doomed, int(forecast.get("shortfall") or 0))
+    if not plan or int(admin_ap) < len(plan) * ADMIN_ACTIONS_PER_ACT:
+        return None
+    return {"action": "repeal_law", "target": str(plan[0].get("id") or "")}
+
+
+def ai_holds_the_purse(world, nation: str) -> bool:
+    """SFR-B14's sibling (RR4-X9): a court whose law would lapse at this
+    turn's end spends no gold on anything else this admin phase — the
+    spending rungs (the levy, the works, a commission, a new law) never read
+    the forecast, so a court on the edge spent itself over it (the staged
+    board: Austria built, and both its laws lapsed). The repeal rung still
+    runs first; the unspent orders earn their gold as ever."""
+    if not nation or nation == getattr(world, "player_nation", None):
+        return False
+    return lapse_forecast(world, nation) is not None
+
+
 def find_ai_enactment(world, nation: str, treasury: int,
                       admin_ap: int) -> Optional[Dict]:
     """§7 THE RUNG: the order an AI court gives this admin phase, or None —

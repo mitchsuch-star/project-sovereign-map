@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** The Score Finish residue
-> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9): SF-RR1 … RR3 done, SF-RR4 next.
+> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9): SF-RR1 … RR4 done, SF-RR5 next.
 
 **▶ LIVE STATE (October 21, 2026).** The three most recent landed rows:
-- **Score Finish residue 2 (October 21, 2026) — SF-RR3, the page and the copy — LANDED** (20 rows + RR3-X1…X15, one seam each; C6 10/10): `SYSTEMS_REFERENCE.md` §138. **NEXT = SF-RR4.**
-- **Score Finish residue 1 (October 21, 2026) — SF-RR1 (ii) re-read; SF-RR2, the desk answers — LANDED** (§137).
-- **S14 part 4 (October 20, 2026) — SF-RR7, the morning of the peace — LANDED** (§136).
+- **Score Finish residue 3 (Oct 21) — SF-RR4, war, truce and the standing order — LANDED** (10 rows + RR4-X1…X12; EG-D3's bench built; series re-pinned): `SYSTEMS_REFERENCE.md` §139. **NEXT = SF-RR5.**
+- **Score Finish residue 2 (Oct 21) — SF-RR3, the page and the copy — LANDED** (§138).
+- **Score Finish residue 1 (Oct 21) — SF-RR1 (ii) re-read; SF-RR2 — LANDED** (§137).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

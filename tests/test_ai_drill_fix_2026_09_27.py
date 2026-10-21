@@ -336,7 +336,7 @@ class TestTheMeasuredArms:
         fix's arm 1 is now the prior record SR-5a's arm 0 (the pre-slice
         scenario, every lever down) reproduces byte for byte; SR-5a's arm 1
         is the standing series (`tools/_sr5a_series_arms.json`)."""
-        from tests.test_ai_intent_threat_migration import BASELINE_SERIES
+        from tests.test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_THE_BENCH
         drill = arms
         # RE-SEATED by SR-5a "The chest" (September 28, 2026): one more link —
         # the drill fix's arm 1 is the prior record SR-5a's arm 0 (the
@@ -441,4 +441,13 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert ddb["arms"]["ALL"]["series"] == bond["prior"]
         assert bond["arms"]["0"]["series"] == bond["prior"]
-        assert BASELINE_SERIES == bond["arms"]["ALL"]["series"]
+        assert SERIES_BEFORE_THE_BENCH == bond["arms"]["ALL"]["series"]
+        # SF-RR4 (October 21, 2026): one more link — the bond record's ALL
+        # arm is the prior the SF-RR4 arm 0 (every rule down in the child)
+        # reproduces byte for byte, and its ALL arm (the bench and the
+        # backtrack veto) is the standing series.
+        rr4 = json.loads((ROOT / "tools" / "_sf_rr4_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert rr4["prior"] == bond["arms"]["ALL"]["series"]
+        assert rr4["arms"]["0"]["series"] == rr4["prior"]
+        assert BASELINE_SERIES == rr4["arms"]["ALL"]["series"]

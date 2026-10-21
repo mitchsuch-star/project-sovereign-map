@@ -88,6 +88,7 @@ from typing import Dict, List, Optional, Set
 
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+from backend.display_names import display_nation, with_definite_article  # SFR-D29
 
 
 def treaty_word(world, nation_a: str, nation_b: str) -> str:
@@ -1432,11 +1433,92 @@ def _offer_event(world, offer: Dict, counterpart: str,
             f"Berthier has put him on the road home to {offer['to']}; he has "
             f"{_plural(int(turns_left), 'turn')} of safe passage."),
     }
+    # RR4-X4 (SFR-D29's sibling): on ground his own court holds, nothing
+    # changed hands under him — the clause says what did cut him off.
+    _marshal = (getattr(world, "marshals", {}) or {}).get(offer["marshal"])
+    _cause = stranding_cause(world, _marshal) if _marshal is not None else None
+    if _cause:
+        event["message"] = (
+            f"{_shown(offer['marshal'])} stands at {offer['from']}, Sire"
+            f"{stranding_clause(world, _cause, offer['from'])}. Berthier has put "
+            f"him on the road home to {offer['to']}; he has "
+            f"{_plural(int(turns_left), 'turn')} of safe passage.")
     world.log_event(dict(event))
     return event
 
 
+def stranding_cause(world, marshal) -> Optional[Dict]:
+    """SFR-D29 (SF-RR4, October 21, 2026): why ground his own court holds is
+    not home. A corps in a cut-off conquest is stranded under a truce as
+    under a peace (WAR_WITHDRAWAL_SPEC §5 — the rule stands), but the
+    warning said only "no nearer home … interned where they stand" about
+    Milan, which France held — the player read a false alarm. On his own
+    court's soil this names the power whose ground encloses it and the
+    provinces that do (`{"power", "frontier"}`); None on foreign soil, where
+    "no nearer home" is the whole truth."""
+    region = world.regions.get(marshal.location)
+    if region is None or region.controller != marshal.nation:
+        return None
+    power = _encircling_power(world, marshal)
+    if not power:
+        return None
+    frontier = sorted(
+        adjacent for adjacent in region.adjacent_regions
+        if getattr(world.regions.get(adjacent), "controller", None) == power)
+    return {"power": power, "frontier": frontier}
+
+
+def stranding_clause(world, cause: Optional[Dict], location: str) -> str:
+    """The clause the warning and the morning page splice in for a cut-off
+    enclave ("" on foreign soil): " — Milan is ours, but Austrian ground at
+    Munich, Piedmont and Tyrol cuts it off from home"."""
+    if not cause:
+        return ""
+    from backend.display_names import nation_adjective
+    frontier = _names_in_prose(cause.get("frontier") or [])
+    ground = f"{nation_adjective(cause['power'])} ground"
+    return (f" — {location} is ours, but {ground}"
+            + (f" at {frontier}" if frontier else "")
+            + " cuts it off from home")
+
+
+def passage_reading(world, nation: str) -> Dict:
+    """SFR-D29's desk half: the road home as the tick will judge it, for
+    the question desk ("why must Massena go home?" shrugged, and so did
+    "what is internment?", "how long is the safe passage?"). The most
+    generous standing passage (`process_evacuation_grants`' own rule), and
+    for every corps that needs it: where he stands, the marches home through
+    the corridor, the turns to spare and the stranding cause. Read-only."""
+    grants = getattr(world, "evacuation_grants", None) or {}
+    current = int(getattr(world, "current_turn", 0) or 0)
+    best, counterpart = None, ""
+    for key in sorted(grants):
+        parts = str(key).split("|")
+        if len(parts) != 2 or nation not in parts:
+            continue
+        if world.get_diplomatic_state(parts[0], parts[1]) == "WAR":
+            continue
+        if best is None or int(grants[key]) > best:
+            best = int(grants[key])
+            counterpart = parts[1] if parts[0] == nation else parts[0]
+    home = get_home_zone(world, nation)
+    rows = []
+    for marshal in _evacuating_marshals(world, nation, home):
+        dist = distance_home(world, marshal, home)
+        rows.append({
+            "marshal": marshal.name,
+            "location": marshal.location,
+            "distance": dist,
+            "turns_to_spare": (None if best is None or dist is None
+                               else (best - current) - int(dist)),
+            "cause": stranding_cause(world, marshal),
+        })
+    return {"turns_left": None if best is None else best - current,
+            "counterpart": counterpart, "rows": rows}
+
+
 def _warn(world, marshal, nation: str, distance: int, surplus: int) -> Dict:
+    cause = stranding_cause(world, marshal)
     event = {
         "type": "evacuation_lapsing",
         "marshal": marshal.name,
@@ -1451,19 +1533,27 @@ def _warn(world, marshal, nation: str, distance: int, surplus: int) -> Dict:
         # it tracks whether he can still reach home in the time left — so
         # that is what the sentence says.
         "message": (
-            f"{marshal.name} is no nearer home — {_plural(int(distance), 'march')} still "
+            f"{marshal.name} is no nearer home"
+            + stranding_clause(world, cause, marshal.location)
+            + f" — {_plural(int(distance), 'march')} still "
             f"to go from {marshal.location}, and "
             + ((("no turn" if int(surplus) <= 0 else _plural(int(surplus), 'turn'))
                 + " to spare on the safe passage")
                if THE_PASSAGE_COUNTS_ITS_SLACK else
                f"{_plural(int(surplus), 'turn')} of safe passage left")
-            + " before his corps is interned."),
+            + " before his corps is interned"
+            + (f" by {with_definite_article(display_nation(cause['power']))}"
+               if cause else "") + "."),
     }
+    if cause:
+        event["cut_off_by"] = cause["power"]
+        event["frontier"] = list(cause["frontier"])
     world.log_event(dict(event))
     return event
 
 
-def _escort_sovereign_home(world, marshal, host: str, location: str) -> Dict:
+def _escort_sovereign_home(world, marshal, host: str, location: str,
+                           failed_to: str = "") -> Dict:
     """The Emperor at a court he is at peace with: his corps is interned,
     he is escorted to the frontier with an escort and sent home — through
     the release seam's own hygiene (home via `find_safe_spawn`, the stance
@@ -1500,7 +1590,8 @@ def _escort_sovereign_home(world, marshal, host: str, location: str) -> Dict:
         "location": location,
         "host": host,
         "message": (
-            f"{marshal.name} failed to quit {nation_adjective(host)} soil before "
+            f"{marshal.name} failed to "
+            f"{failed_to or f'quit {nation_adjective(host)} soil'} before "
             f"his safe passage expired. His corps is interned at {location}; "
             f"the Emperor himself is escorted to the frontier and sent home "
             f"to {marshal.location}."),
@@ -1530,12 +1621,16 @@ def _intern(world, marshal, nation: str) -> Dict:
     region = world.regions.get(marshal.location)
     host = (region.controller if region is not None and region.controller
             else "")
+    # RR4-X5 (SFR-D29's sibling): read before the removal, on his own ground.
+    cut_off = host == marshal.nation
     if host == marshal.nation:
         host = _encircling_power(world, marshal) or ""
     name = marshal.name
     location = marshal.location
+    failed_to = (f"reach home from {location}, cut off by {_soil(host)} ground,"
+                 if cut_off and host else f"quit {_soil(host)} soil")
     if (getattr(marshal, "is_sovereign", False) and host and not world.is_at_war(marshal.nation, host)):
-        return _escort_sovereign_home(world, marshal, host, location)
+        return _escort_sovereign_home(world, marshal, host, location, failed_to)
     # Aug 30, 2026 review: `destroy_marshal` returns False when it CAPTURES
     # instead of removing — the sovereign death-guard converts every removal
     # of a standing Emperor into a capture (NP-4: the road to the Eagle in
@@ -1553,7 +1648,7 @@ def _intern(world, marshal, nation: str) -> Dict:
             "location": location,
             "host": host,
             "message": (
-                f"{name} failed to quit {_soil(host)} soil before his safe "
+                f"{name} failed to {failed_to} before his safe "
                 f"passage expired — the Emperor is taken."),
         }
     return {
@@ -1563,6 +1658,11 @@ def _intern(world, marshal, nation: str) -> Dict:
         "location": location,
         "host": host,
         "message": (
+            f"{name}'s corps, cut off at {location} by {_soil(host)} ground, "
+            f"could not reach home before its safe passage expired. "
+            f"{with_definite_article(display_nation(host), capitalize=True)} "
+            f"has disarmed and interned it."
+            if cut_off and host else
             f"{name}'s corps failed to quit {_soil(host)} soil before its "
             f"safe passage expired. It has been disarmed and interned."),
     }

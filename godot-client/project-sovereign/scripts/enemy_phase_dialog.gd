@@ -747,6 +747,12 @@ func _format_berthier_report(report: Dictionary) -> String:
 	if tr_note is String and tr_note != "":
 		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
 			+ Utils.humanize_nation_keys_in_text(tr_note) + "[/color]\n")
+	# EG-X5 (SF-RR4): the works an enemy field win took, named (main.gd's
+	# twin — the whitelist reads every report key it renders).
+	var cap_note = report.get("capture_note", "")
+	if cap_note is String and cap_note != "":
+		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
+			+ Utils.humanize_nation_keys_in_text(cap_note) + "[/color]\n")
 
 	# SF-DC-1 "Nothing unnamed" (Score Finish Step 7, October 4, 2026): the
 	# doctrine lines and the morale line — "The Hofkriegsrat's orders reached

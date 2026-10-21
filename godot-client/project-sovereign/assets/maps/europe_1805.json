@@ -458,7 +458,7 @@
             "biography": "Kadi Abdurrahman Pasha, governor of Karaman, with the Nizam-i Cedid new-model troops - the Porte's reformed army, far from Europe's quarrel."
         }
     },
-    "_marshal_pool_comment": "Marshal Recruitment (docs/MARSHAL_RECRUITMENT_SPEC.md): commissionable candidates per nation, authored quality order (the AI takes the first affordable). No location/strength - the corps is raised at commission (5,000 infantry from the pool). cost = gold. Relationship seeds apply symmetrically to marshals in service.",
+    "_marshal_pool_comment": "Marshal Recruitment (docs/MARSHAL_RECRUITMENT_SPEC.md): commissionable candidates per nation, authored quality order (the AI takes the first affordable). No location/strength - the corps is raised at commission (5,000 infantry from the pool). cost = gold. Relationship seeds apply symmetrically to marshals in service. The secondaries' benches (EG-D3, ruled October 13, 2026; built in SF-RR4): Spain's La Romana, Blake and Cuesta, Sweden's Toll and Adlercreutz, Bavaria's Wrede - each court at war commissions from its own, as the great powers do.",
     "marshal_pool": {
         "France": [
             {
@@ -696,9 +696,75 @@
                 "biography": "Henry Shrapnel - Royal Artillery officer whose spherical case-shot bursts above a line and scythes it down; Britain's guns are few but deadly.",
                 "relationships": {}
             }
+        ],
+        "Spain": [
+            {
+                "name": "LaRomana",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 5, "logistics": 6, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3500,
+                "biography": "Pedro Caro, Marquis of La Romana - he spirited the Spanish division Napoleon had borrowed home from Denmark aboard British ships in 1808, and kept the Army of the Left alive in the Galician hills.",
+                "relationships": {}
+            },
+            {
+                "name": "Blake",
+                "personality": "literal",
+                "skills": { "tactical": 5, "shock": 4, "defense": 6, "logistics": 5, "administration": 7, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Joaquin Blake - born in Malaga to an Irish family, the founder of Spain's general staff: brave, methodical, and beaten at Medina de Rioseco, Espinosa and Sagunto.",
+                "relationships": {}
+            },
+            {
+                "name": "Cuesta",
+                "personality": "aggressive",
+                "skills": { "tactical": 3, "shock": 6, "defense": 4, "logistics": 3, "administration": 3, "command": 5 },
+                "tactical_skill": 3,
+                "trust": { "value": 60 },
+                "cost": 2500,
+                "biography": "Gregorio Garcia de la Cuesta - the old captain-general of Castile, near seventy; he never refused a battle, quarrelled with Blake at Medina de Rioseco, and was ridden down at Medellin.",
+                "relationships": { "Blake": -1 }
+            }
+        ],
+        "Sweden": [
+            {
+                "name": "Toll",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 4, "defense": 6, "logistics": 6, "administration": 7, "command": 6 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3500,
+                "biography": "Johan Christopher Toll - Gustav III's soldier-administrator and the governor of Swedish Pomerania, who brought the army off Rugen by treaty when Stralsund fell in 1807.",
+                "relationships": {}
+            },
+            {
+                "name": "Adlercreutz",
+                "personality": "aggressive",
+                "skills": { "tactical": 6, "shock": 6, "defense": 5, "logistics": 4, "administration": 4, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "cost": 3500,
+                "biography": "Carl Johan Adlercreutz - the victor of Siikajoki and Revolax in the Finnish War, and in 1809 the officer who arrested his own king.",
+                "relationships": {}
+            }
+        ],
+        "Bavaria": [
+            {
+                "name": "Wrede",
+                "personality": "aggressive",
+                "skills": { "tactical": 6, "shock": 6, "defense": 5, "logistics": 5, "administration": 5, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "cost": 3500,
+                "biography": "Carl Philipp von Wrede - the Bavarian army's field commander from Ulm to Wagram, Deroy's rival for the King's favour; he led the Bavarians into Russia in 1812 and against Napoleon at Hanau in 1813.",
+                "relationships": { "Deroy": -1 }
+            }
         ]
     },
-    "_contingents_comment": "VD-C 'The Contingent' (docs/VASSAL_DEEPENING_SPEC.md section 9.1): the commanders a satellite sends at the head of its contingent when it shares its lord's war - the first who is not serving, not fallen and not on any bench; past the list, '<Adjective> Contingent'. The bench's candidate shape, never commissioned (no cost). Authored for the boot satellites and the courts most likely to become one, each a general who led his court's contingent beside the French: Dumonceau's Batavian division with Marmont in 1805, Teulie's Italians the same year, Amey's Swiss at the Berezina, Wrede's Bavarians, Thielmann's Saxons, Poniatowski's Poles, La Romana's Spaniards in Denmark (who walked out in 1808), Grawert's Prussian auxiliary corps of 1812.",
+    "_contingents_comment": "VD-C 'The Contingent' (docs/VASSAL_DEEPENING_SPEC.md section 9.1): the commanders a satellite sends at the head of its contingent when it shares its lord's war - the first who is not serving, not fallen and not on any bench; past the list, '<Adjective> Contingent'. The bench's candidate shape, never commissioned (no cost). Authored for the boot satellites and the courts most likely to become one, each a general who led his court's contingent beside the French: Dumonceau's Batavian division with Marmont in 1805, Teulie's Italians the same year, Amey's Swiss at the Berezina, Raglovich's Bavarians in Saxony in 1813, Thielmann's Saxons, Poniatowski's Poles, Kindelan's Spaniards in Denmark (who stayed when La Romana walked out in 1808), Grawert's Prussian auxiliary corps of 1812. Wrede and La Romana sit their own courts' benches (EG-D3), so a court's commission and its contingent never share a man.",
     "contingents": {
         "Holland": [
             {
@@ -764,12 +830,12 @@
         ],
         "Bavaria": [
             {
-                "name": "Wrede",
-                "personality": "aggressive",
-                "skills": { "tactical": 6, "shock": 6, "defense": 5, "logistics": 5, "administration": 5, "command": 6 },
-                "tactical_skill": 6,
+                "name": "Raglovich",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
                 "trust": { "value": 60 },
-                "biography": "Carl Philipp von Wrede - the Bavarian army's field commander from Ulm to Wagram; he led the Bavarians into Russia in 1812 and against Napoleon at Hanau in 1813."
+                "biography": "Clemens von Raglovich - he kept the Bavarian division under the eagles through the Saxon campaign of 1813, until his King changed sides at Ried."
             }
         ],
         "Saxony": [
@@ -802,12 +868,12 @@
         ],
         "Spain": [
             {
-                "name": "La Romana",
+                "name": "Kindelan",
                 "personality": "cautious",
-                "skills": { "tactical": 5, "shock": 5, "defense": 5, "logistics": 6, "administration": 5, "command": 5 },
+                "skills": { "tactical": 5, "shock": 4, "defense": 5, "logistics": 5, "administration": 5, "command": 5 },
                 "tactical_skill": 5,
                 "trust": { "value": 60 },
-                "biography": "Pedro Caro, Marquis of La Romana - he led the Spanish division lent to Napoleon to Denmark in 1807, and spirited it home aboard British ships in 1808."
+                "biography": "Juan Kindelan - La Romana's second in Denmark in 1808, who stayed with the French when the division sailed home."
             }
         ],
         "Denmark": [
