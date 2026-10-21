@@ -242,8 +242,10 @@ its subject's Wikipedia article, marked public domain on Commons, re-encoded in-
 `LaRomana.jpg` — Pedro Caro y Sureda, Marquis of La Romana, Vicente López Portaña, Museo del Prado,
 `Pedro Caro y Sureda, marqués de la Romana (Museo del Prado).jpg`;
 `Blake.jpg` — Joaquín Blake y Joyes, by Manuel Ojeda, `El general Joaquín Blake y Joyes, por Manuel Ojeda.jpg`;
-`Cuesta.jpg` — Gregorio García de la Cuesta, 19th-century portrait at the Casona de Tudanca,
-`Gregorio García de la Cuesta.png` (the only painted likeness on Commons, 200 × 268);
+`Cuesta.jpg` — Gregorio García de la Cuesta, 19th-century portrait at the Casona de Tudanca (his
+birthplace), `Gregorio García de la Cuesta.png` — the only painted likeness found on Commons, Europeana
+or the Biblioteca Nacional de España (whose one print, an 1808 profile engraving, idealizes a younger
+man), shipped upscaled 3× in-repo (Lanczos, a light unsharp mask) from its 200 × 268 original;
 `Toll.jpg` — Johan Christopher Toll, by Johan Way, Nationalmuseum Stockholm (NMGrh 39749),
 the Commons 1,280-px rendering of `Johan Kristoffer Toll, 1743-1817 (Johan Way) - Nationalmuseum - 39749.tif`;
 `Adlercreutz.jpg` — Carl Johan Adlercreutz, after Carl Frederik von Breda (1846), Nationalmuseum Stockholm
