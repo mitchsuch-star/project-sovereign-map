@@ -7696,7 +7696,11 @@ the two arms DRIVEN through the real driver) and `tests/test_ge3_the_client.py`
   byte-for-byte and count ZERO writes to `world.congress` — the ambient board
   never summons or ratifies a France–great-power peace, so the arms measure
   DORMANCY, not an attribution of the live hooks (those are pinned by the
-  driven arms). No re-record.
+  driven arms). No re-record. **DDB-X4 (October 20, 2026, §136.5):** the
+  first cut's levers had been folded away and its arms flipped nothing; the
+  tool now holds fourteen LIVE seams down (the old levers' functions and
+  SF-RR7's three) and counts the Congress's writes and the new rules' bites —
+  zero on every arm, the series byte-identical.
 
 
 ## 67. The Fortunes of War — the generals' mortality (VP-M1, GE-D1 RULED + landed September 25, 2026 in GE-V)
@@ -11381,5 +11385,54 @@ Found in passing by CC-4 and measured on the shipped 1805 boot through the real 
 - **PC-X65 (ruled):** a member the league's bond binds writes no separate P8 dictated letter (`bond.holds_her_letter`); her paymaster's own letter is untouched (ruling I, the ulm pin).
 - **PC-X66:** the league's letter could carry a bonded court without her paymaster — her readiness is no consent to a letter leaving the payer at war (`bond.consent_held`), and a letter covering her keeps her payer on it (`bond.letter_keeps_payers`).
 - **PC-X67:** a client taken out of a war by her lord's peace lapses the bond (`followed_her_lord`), never reneges. **PC-X68:** the state desk's weariness answer names the bond's line.
-- **PC-X69 (OPEN, heads S14 part 4):** the Congress's forced suit (`congress.court_must_sue`) ignores the bond — the Congress's own slice (SF-RR7) rules what its suit is for a bonded court.
+- **PC-X69 (FIXED in S14 part 4, §136.4):** the Congress's forced suit (`congress.court_must_sue`) ignored the bond — ruled her priced separate peace: the sue line reads the bond's depth, every surface tells it, the renege stands.
 - **Ruled, not siblings:** the exhaustion clock's subsidy term (−2) stays the war subsidy's — the bond's gold relieves through the chest (the finance term); `standing_sponsorship_amount` and the outbid read count sponsorships only (a bond is not patronage of a design); the Congress of Paris ends every great power's war together (the common peace — honoured); a truce never breaks a bond; the battle-weariness dispatch ("nears breaking point" at 20 … 80) names thresholds of weariness, not the league's line; the coalition's "left the coalition" notice beside a broken bond is followed by the renege arm's own line the same pass.
+
+## 136. THE MORNING OF THE PEACE — EUROPE WAITS ON PARIS (SF-RR7: SFR-B3, PC-X69, DDB-X4; Pre-Deploy S14 part 4, October 20, 2026)
+
+*`BUG_FIXES.md` SFR-B3 (the Score Finish table — ruled October 14, 2026, `docs/audits/DD_B_RULINGS_2026_10_14.md` §2 "Europe waits on Paris"), PC-X69 (§PC — the Congress's forced suit and the bond, ruled at this part's head) and DDB-X4 (§DD-B — the Congress's series arms), with the siblings the sweeps found (§136.6, RR7-X1 … X9, all FIXED). Pins `tests/test_vp2_the_imperial_peaces_morning.py` (`TestTheHold`, `TestTheSigning`, `TestThePage`, `TestPCX69`, `TestDDBX4`, and `TestTheMorningOfThePeace` — the PRESS arm driven, shipped and with the rule held down). The gap, measured first on the PRESS arm (the econ_gate archive's `arms/PRESS` and today's tree alike): the Ottoman Empire, Sweden and Sardinia began to brew on the Congress's fifth day (alarm 65), declared on its eighth, and the Imperial Peace was proclaimed the next end turn beside "A coalition has formed against France!" — Europe's alarm 76 the morning after. Now: no league forms, the alarm reads 45, the page names what the peace bought. The series: every new read is gated on a sitting or signed Congress, which the ambient board never reaches — `tools/_ge3_series_arms.py` (§136.5) re-reads `BASELINE_SERIES` byte for byte on six arms; M1–M7 likewise (no AI-reaching change outside a Congress). The Godot parse harness EXIT 0 (`campaign_end.gd`, `dispatch_view.gd`, `main.gd`, `diplomatic_ledger.gd`).*
+
+### 136.1 The hold — no new league declares while the Congress sits
+
+- **`congress.league_waits_on_paris(world, target)`** — the ONE predicate (and the seam): while the Congress sits and fewer than two great powers refuse it (`coalition_gate` is None), no new league declares against the summoner. Returns the reason ("Europe waits on Paris — no league declares while the Congress sits") or `""` — at once whenever no Congress sits.
+- **The coalition tick** (`process_coalition_turn`, read once at the head of step 6): a brewing league's countdown decrements to its last turn and **holds at 1**; the instant bar (≥ 80) during a brew does not declare; step 7's instant bar **brews instead** (its normal countdown, then held). The cancel rule (alarm below 40, no court left) still runs. The eclipse pass (7b) is untouched — the hold is France's.
+- **The two-refuser lowered gate is untouched:** with two refusers the hold is off and the league declares at 40 as before (GE-3 §2.5's teeth).
+- **The turn order makes it whole:** the coalition tick runs inside the advance, before the Congress's own tick — so the eighth day's tick is still held, and the Congress then signs (§136.2) or dissolves; a dissolved Congress lifts the hold and a brew held at 1 **declares the next end turn** (`congress.hold_lifts_in` — the first tick that can lift it).
+- **Ruled:** a court joining a league that already stands (the War of the Congress's refuser, `join_coalition`) is not a new league; the debug `trigger_coalition` cheat is not a road; a declaration by France breaks the hold condition ("declare no war") and the Congress with it.
+
+### 136.2 The signing — the alarm spent to the watch, the brew dismissed
+
+- **`congress.the_signing_spends(world)`** (the seam), from `_proclaim` on the Congress's route only: Europe's alarm against the summoner falls to the Armed Peace's watch (`coalition.ARMED_PEACE_WATCH`, **45** — never raised: 30 stays 30) as a named source (`imperial_peace`, "The powers signed at Paris" on the threat panel), and any league brewing against her is dismissed — its card retired, `coalition_brewing_cancelled` logged with `reason: "the_imperial_peace"` and its courts ("The Imperial Peace dismisses the league brewing among Naples, Ottoman Empire, Sardinia and Sweden — the lesser courts signed nothing").
+- The ending's detail carries `alarm_spent` (`{alarm_from, alarm_to, dismissed}`) and `bought_line`.
+- **E1, the Universal Monarchy, is not a signature:** no court signed, and its alarm stays as the conquest made it.
+- After the signing the Armed Peace reads as ever (the Congress no longer sits): the watch holds the alarm at 45, the fuse lights after its quiet turns — "a peace buys time, not immunity".
+
+### 136.3 The page — what the peace buys
+
+- **`congress.bought_line`**, composed once at the stamp: "A peace buys time, not immunity, Sire: it bought the signatures of Britain, Russia, Austria and Prussia, and Europe's alarm spent from 76 to 45 — the Armed Peace's watch. The league brewing among … is dismissed, but the lesser courts signed nothing and keep their grievances." (with no brew: "The lesser courts signed nothing and keep their grievances.").
+- Read on the end screen's Congress block (`summary_block["bought_line"]` → `campaign_end.gd`), the morning dispatch's Imperial Peace beat (`dispatch._imperial_peace_line`), and the state desk's concluded Congress (`congress.stamped_bought_line`). The summons names the hold it buys (§136.6 X8).
+- **Not taken (ruled):** the minor courts signing with their patron (Tilsit bound Russia to bring Sweden in) — a rule change to §2.3's four courts.
+
+### 136.4 PC-X69 — the Congress's forced suit reads the league's bond
+
+- **Ruled: her suit is her PRICED separate peace** (not the league's common act — the payer is not beaten, and the Congress asks each great power alone, §2.4). **`congress.sue_line(world, court)`** (the seam): the sue line is `sue_score` (−40) read deeper by the bond's own break-ranks depth (`bond.break_ranks_depth`, the ONE read P1's lines take — GR5): under Britain's 200-gold bond on the boot board Austria sues at **−49** (9 deeper), under a 400-gold bond at −58. `court_must_sue` and the table's projection read it; **a held capital still forces her suit** (a purse buys no capital back).
+- **Told on every surface it moves:** the table's REFUSES row ("at war with us (our war score +45 — it sues at +49: Britain's bond holds her 9 deeper)"), the price ("win the war to +49 (now +45) — Britain's bond holds her 9 deeper · … · sign a peace with Austria — Britain's bond costs her 40 at the table (6 in a bilateral peace); 1,000 gold to her pays it (F1 → Austria → Outbid Britain's Bond)"), the SUES row ("…; she breaks Britain's bond to sue — a broken bargain Britain will hold against her"), and her letter (`bond.letter_line` — a clause on the popup and a line in the text: "Austria breaks Britain's bond to sue — a separate peace inside its term (200g a turn, 10 turns left) is a broken bargain Britain will hold against her").
+- **The renege stands:** her signed suit is a separate peace inside the term — `bargain_reneged` against her (§135.3), and the signature latches her recognition as any Congress peace does.
+
+### 136.5 DDB-X4 — the dormancy arms flip live seams
+
+- **`tools/_ge3_series_arms.py`** rebuilt on the DD-B seam idiom: fourteen seams, each the live function of an old lever — S `process_end_of_turn` (THE_CONGRESS_SITS), H `refusal_weight` and R `revanche_weight` (HARDENS_REFUSERS), G `coalition_gate`, Q `refuser_qualifies` and P `spared_from_coalition` (LOWERS_THE_GATE), L `_london_pays`, D `peace_dividend`, K `petition_stakes` and U `grudge_contributions` (the bills), E `no_great_power_stands` (E1) — and this part's W `league_waits_on_paris`, T `the_signing_spends`, Y `sue_line`. The child counts every Congress write, every read of the hold and every bite of the new rules.
+- **The record** (`tools/_ge3_series_arms.json`): arms 0 (every seam down), S, W, T, Y and ALL each re-read `BASELINE_SERIES` byte for byte, with **zero** Congress writes, the hold read on every coalition turn that reaches it (32 reads) and **zero** bites — the dormancy proof measured, not asserted.
+
+### 136.6 The siblings (RR7-X1 … X9, all FIXED)
+
+- **RR7-X1:** the brewing card counted down to a declaration the hold forbids ("Coalition Brewing — 1 turn … 1 turns until declaration") — a held brew's card says it waits on Paris (`coalition.brewing_notice_title` / `brewing_notice_body`, and `details.waits_on_paris`).
+- **RR7-X2:** the dispatch's coalition section, the terminal's coalition block and the Balance of Europe printed "Coalition forming in 1 turns!" / "Brewing — 1 turns until formation" for a held brew — the payloads carry the hold (`brewing.waits_on_paris`, `brewing_waits_on_paris`) and the three client surfaces say "A coalition brews — Europe waits on Paris …".
+- **RR7-X3:** the league clock (`league_clock`, `league_forecast`, `league_summary_line`) read the held countdown as the declaration — the declaration is the deadline if the Congress fails (`max(countdown, hold_lifts_in)`), named: "The courts consult now and wait on Paris — no league declares while the Congress sits; if it fails, they declare on turn N".
+- **RR7-X4:** a refuser's march blocker said "a league brews and declares in 1 turn" while the Congress held it.
+- **RR7-X5:** the state desk's coalition answer said "One is brewing." and nothing of the hold.
+- **RR7-X6:** the campaign log called the signing's dismissal "Coalition threat has subsided".
+- **RR7-X7:** the desk's concluded Congress said Europe recognized the order and nothing of what the peace did not buy.
+- **RR7-X8:** the summons named the two-refuser lowered gate and never the hold its sitting buys.
+- **RR7-X9 (PC-X69's class):** any separate peace letter from a bonded court — P1's and the captor's terms as well as the Congress's suit — said nothing of the bond it breaks; `bond.letter_line` reads every peace letter (a truce letter breaks nothing). **Ruled:** the captor's terms stay (the Emperor's release is R1's guaranteed exit; the letter now names the bond she breaks to offer them).
+- **Ruled, not siblings:** subjugation's war-score line (`vassal.SUBJUGATION_WAR_SCORE`, the Congress's own −40) is France's act against a beaten court, not her suit, and reads no bond; the debug `/debug/coalition_status` endpoint's `brewing_turns` is a debug read; the eclipse brew's countdown is not France's and has no hold.

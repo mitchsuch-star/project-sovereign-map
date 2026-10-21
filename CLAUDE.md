@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** The Score Finish residue
-> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
+> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) resumes now, S14's head done.
 
 **▶ LIVE STATE (October 20, 2026).** The three most recent landed rows:
-- **S14 part 3 (October 20, 2026) — the bond (`bond.py`) — LANDED; PC-R7 CLOSED.** Chaumont: the paymaster's no-separate-peace bond, priced and biddable: `SYSTEMS_REFERENCE.md` §135. **NEXT = S14 part 4 (SF-RR7).**
+- **S14 part 4 (October 20, 2026) — SF-RR7, the morning of the peace — LANDED; SFR-B3, PC-X69, DDB-X4 FIXED.** Europe waits on Paris (`congress.league_waits_on_paris`), the signing spends the alarm to 45: `SYSTEMS_REFERENCE.md` §136. **NEXT = SF-RR1 (ii).**
+- **S14 part 3 (October 20, 2026) — the bond (`bond.py`) — LANDED; PC-R7 CLOSED** (§135).
 - **S14 part 2 (October 20, 2026) — declared goals (`declared_goals.py`) — LANDED** (§134).
-- **S14 part 1 (October 20, 2026) — the moderate peace (`compensation.py`) — LANDED** (§133).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

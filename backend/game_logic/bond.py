@@ -499,6 +499,23 @@ def log_line(event_type: str, event: Mapping[str, Any]) -> str:
     return ""
 
 
+def letter_line(world: Any, court: str, enemy: str) -> str:
+    """PC-X69: a peace letter from a court the league's bond binds against
+    `enemy` is her separate peace — the letter says so ("Austria breaks
+    Britain's bond to sue — a separate peace inside its term (400g a turn,
+    6 turns left) is a broken bargain Britain will hold against her"). The
+    Congress's forced suit is one such letter; P1's is another. "" with no
+    bond."""
+    record = bond_on(world, court, enemy)
+    if record is None:
+        return ""
+    payer = _shown(world, str(record.get("payer")))
+    turns = _turns_left(world, record)
+    return (f"{_shown(world, court)} breaks {payer}'s bond to sue — a separate peace inside "
+            f"its term ({int(record.get('amount_per_turn', 0))}g a turn, {turns} turn"
+            f"{'s' if turns != 1 else ''} left) is a broken bargain {payer} will hold against her")
+
+
 def binds_clause(world: Any, payer: str) -> str:
     """"binds Austria to the war (no separate peace; 400g a turn, 6 turns
     left)" for every live bond `payer` pays — "" with none. The paymaster's

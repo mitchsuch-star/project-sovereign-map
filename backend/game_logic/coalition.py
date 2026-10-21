@@ -131,6 +131,26 @@ THE_FORECAST_READS_THE_TICKS_CLOCK = True
 # Brewing countdown (§3c)
 BREWING_COUNTDOWN = 3
 
+
+def brewing_notice_title(turns: int, waits_on_paris: bool = False) -> str:
+    """The brewing card's title — SF-RR7: a league the Congress holds says so
+    instead of counting down to a declaration it cannot make."""
+    if waits_on_paris:
+        return "Coalition Brewing — it waits on Paris"
+    return f"Coalition Brewing — {_plural(int(turns), 'turn')}"
+
+
+def brewing_notice_body(qualifying: List[str], turns: int,
+                        waits_on_paris: bool = False) -> str:
+    """The brewing card's body (the countdown, or SF-RR7's hold named)."""
+    head = f"Nations consulting: {', '.join(qualifying)}. "
+    if waits_on_paris:
+        return (head + "They wait on Paris: no league declares while the Congress "
+                "sits — a signed peace dismisses them; a Congress that fails lets "
+                "them declare the turn after.")
+    return head + f"{int(turns)} turns until declaration."
+
+
 # Decay cap (§2b)
 DECAY_CAP = 3
 
@@ -3553,6 +3573,13 @@ def process_coalition_turn(world) -> List[Dict]:
                 "reason": "the_greater_danger",
             })
 
+    # SF-RR7 (SFR-B3, "Europe waits on Paris"): while the Congress sits and
+    # fewer than two great powers refuse it, no new league declares against
+    # France — the brew's countdown holds at its last turn (6) and the
+    # instant bar brews instead (7). '' whenever no Congress sits.
+    from backend.game_logic.congress import league_waits_on_paris
+    _paris = league_waits_on_paris(world, france)
+
     # ────────── 6. Brewing check (§3c) ──────────
     if world.coalition_brewing and not world.active_coalition:
         brewing = world.coalition_brewing
@@ -3580,11 +3607,14 @@ def process_coalition_turn(world) -> List[Dict]:
             # Decrement countdown
             brewing["turns_remaining"] = brewing.get("turns_remaining", 1) - 1
             brewing["qualifying_nations"] = qualifying
+            _held = bool(_paris and brewing_target == france)
+            if _held:
+                brewing["turns_remaining"] = max(1, int(brewing["turns_remaining"]))
 
             # Check instant override (§3d: threat ≥80 during brewing).
             # Pin 16(c): a NON-player target never instant-forms — the
             # countdown is the structural guarantee of ≥1 brewing turn.
-            if brewing_threat >= THREAT_INSTANT_MIN and brewing_target == france:
+            if brewing_threat >= THREAT_INSTANT_MIN and brewing_target == france and not _held:
                 result = form_coalition(qualifying, world)
                 if result.get("success"):
                     events.append({
@@ -3615,13 +3645,13 @@ def process_coalition_turn(world) -> List[Dict]:
                 world.notifications.add(create_notification(
                     COALITION_BREWING,
                     NotificationPriority.CRITICAL,
-                    f"Coalition Brewing — {_plural(int(brewing['turns_remaining']), 'turn')}",
-                    f"Nations consulting: {', '.join(qualifying)}. "
-                    f"{int(brewing['turns_remaining'])} turns until declaration.",
+                    brewing_notice_title(int(brewing["turns_remaining"]), _held),
+                    brewing_notice_body(qualifying, int(brewing["turns_remaining"]), _held),
                     int(world.current_turn),
                     details={
                         "qualifying_nations": qualifying,
                         "turns_remaining": int(brewing["turns_remaining"]),
+                        **({"waits_on_paris": True} if _held else {}),
                     },
                 ))
 
@@ -3637,8 +3667,9 @@ def process_coalition_turn(world) -> List[Dict]:
         if world.coalition_cooldown <= 0:
             qualifying = get_qualifying_nations(world)
 
-            if threat >= THREAT_INSTANT_MIN and qualifying:
-                # §3d: Instant declaration at 80+
+            if threat >= THREAT_INSTANT_MIN and qualifying and not _paris:
+                # §3d: Instant declaration at 80+ (SF-RR7: while the Congress
+                # holds the league, the instant bar brews instead, below)
                 result = form_coalition(qualifying, world)
                 if result.get("success"):
                     events.append({
@@ -3658,14 +3689,14 @@ def process_coalition_turn(world) -> List[Dict]:
                 world.notifications.add(create_notification(
                     COALITION_BREWING,
                     NotificationPriority.CRITICAL,
-                    f"Coalition Brewing — {BREWING_COUNTDOWN} turns",
-                    f"A coalition is brewing against France. "
-                    f"Nations consulting: {', '.join(qualifying)}. "
-                    f"{BREWING_COUNTDOWN} turns until declaration.",
+                    brewing_notice_title(BREWING_COUNTDOWN, bool(_paris)),
+                    "A coalition is brewing against France. "
+                    + brewing_notice_body(qualifying, BREWING_COUNTDOWN, bool(_paris)),
                     int(world.current_turn),
                     details={
                         "qualifying_nations": qualifying,
                         "turns_remaining": BREWING_COUNTDOWN,
+                        **({"waits_on_paris": True} if _paris else {}),
                     },
                 ))
                 world.log_event({
@@ -3927,10 +3958,18 @@ def league_clock(world, target: Optional[str] = None,
     coalition = getattr(world, "active_coalition", None)
     if coalition and (coalition.get("target_nation") or player) == tgt:
         return {"consult": 0, "declare": 0}
+    # SF-RR7: while the Congress holds the league, no declaration falls
+    # before the tick after the sitting's last (`congress.hold_lifts_in`) —
+    # the deadline if the Congress fails; a signed one dismisses the brew.
+    lift = 0
+    if tgt == player:
+        from backend.game_logic import congress as _congress
+        if _congress.league_waits_on_paris(world, tgt):
+            lift = int(_congress.hold_lifts_in(world))
     brewing = getattr(world, "coalition_brewing", None)
     if brewing and (brewing.get("target_nation") or player) == tgt:
         return {"consult": 0,
-                "declare": int(max(1, int(brewing.get("turns_remaining", 1) or 1)))}
+                "declare": int(max(1, int(brewing.get("turns_remaining", 1) or 1), lift))}
     if tgt != player or first_joiner is None:
         return out
     if no_court_left_to_alarm(world, tgt):
@@ -3959,9 +3998,9 @@ def league_clock(world, target: Optional[str] = None,
         may_brew = (k >= cooldown or after >= THREAT_OVERRIDE_COOLDOWN_MIN)
         if may_brew and k >= int(first_joiner):
             if after >= THREAT_INSTANT_MIN:
-                return {"consult": k, "declare": k}
+                return {"consult": k, "declare": max(k, lift)}
             if after >= gate:
-                return {"consult": k, "declare": k + int(BREWING_COUNTDOWN)}
+                return {"consult": k, "declare": max(k + int(BREWING_COUNTDOWN), lift)}
         level = after
     return out
 
@@ -4037,7 +4076,8 @@ def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
     out: Dict[str, Any] = {"target": tgt, "courts": [], "joiners": [],
                            "consult_turns": None, "consult_turn": None,
                            "declare_turns": None, "declare_turn": None,
-                           "armed_peace": {}, "brewing": None, "formed": False}
+                           "armed_peace": {}, "brewing": None, "formed": False,
+                           "waits_on_paris": ""}
     if not THE_LEAGUE_IS_SEEN or world is None or not tgt:
         return out
     key = _league_signature(world, tgt)
@@ -4143,6 +4183,8 @@ def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
         out[f"{name}_turns"] = value
         out[f"{name}_turn"] = turn + int(value) if value is not None else None
     out["armed_peace"] = dict(armed_peace_reading(world)) if is_player else {}
+    # SF-RR7: the Congress's hold on the league, named (the clock reads it).
+    out["waits_on_paris"] = _congress.league_waits_on_paris(world, tgt) if is_player else ""
     brewing = getattr(world, "coalition_brewing", None)
     if brewing and (brewing.get("target_nation") or player) == tgt:
         out["brewing"] = {"turns_remaining": int(brewing.get("turns_remaining", 0) or 0)}
@@ -4347,11 +4389,22 @@ def league_summary_line(world, target: Optional[str] = None,
         tail = (f" Bound for now by a fresh peace: "
                 f"{_join([r['display'] for r in bound])}.")
     tail += truce_tail
+    # SF-RR7: while the Congress holds the league, the declaration is the
+    # deadline if the Congress fails — named as such.
+    paris = bool(forecast.get("waits_on_paris"))
     if forecast.get("brewing"):
-        when = (f"The courts consult now and declare on turn {int(declare)}"
-                if declare is not None else "The courts consult now")
+        if paris and declare is not None:
+            when = (f"The courts consult now and wait on Paris — no league declares "
+                    f"while the Congress sits; if it fails, they declare on turn {int(declare)}")
+        else:
+            when = (f"The courts consult now and declare on turn {int(declare)}"
+                    if declare is not None else "The courts consult now")
         return f"{lead}{when}: {who} would march.{tail}"
     if consult is not None:
+        if paris:
+            return (f"{lead}At this pace the courts consult on turn {int(consult)} and "
+                    f"wait on Paris — if the Congress fails, they declare on turn "
+                    f"{int(declare)}: {who} would march.{tail}")
         return (f"{lead}At this pace the courts consult on turn {int(consult)} "
                 f"and declare on turn {int(declare)}: {who} would march.{tail}")
     if joiners:

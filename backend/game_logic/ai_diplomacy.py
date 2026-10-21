@@ -3226,6 +3226,18 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             f"frees the Emperor"]
         popup_payload["captor_terms"] = True
 
+    # PC-X69 (S14 part 4): a peace letter from a court the league's bond
+    # binds is her separate peace — the Congress's forced suit among them;
+    # the letter says what she breaks to send it.
+    bond_note = ""
+    if str(terms.get("type") or "") == "peace":
+        from backend.game_logic.bond import letter_line as _bond_letter_line
+        _broken = _bond_letter_line(world, nation, getattr(world, "player_nation", "France"))
+        if _broken:
+            bond_note = f"\n\n  {_broken}."
+            popup_payload = dict(popup_payload)
+            popup_payload["clauses"] = list(popup_payload.get("clauses") or []) + [_broken]
+
     dialogue = {
         "type": "incoming_proposal",
         "target_nation": nation,
@@ -3234,6 +3246,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             f"{spoken}"
             f"\n\n  {proposal_summary}"
             f"{release}"
+            f"{bond_note}"
             f"\n\n{assessment}"
         ),
         "options": [

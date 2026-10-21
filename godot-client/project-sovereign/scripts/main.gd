@@ -5595,7 +5595,12 @@ func _display_morning_dispatch(data: Dictionary):
 			var brewing = coalition_status.get("brewing", null)
 			if brewing != null and brewing is Dictionary:
 				var brew_turns = int(brewing.get("turns_remaining", 0))
-				add_output("[color=#" + Utils.COLOR_ERROR + "]  Coalition forming in " + str(brew_turns) + " turns![/color]")
+				# SF-RR7: a brew the Congress holds waits on Paris — no countdown.
+				var brew_paris = str(brewing.get("waits_on_paris", ""))
+				if brew_paris != "":
+					add_output("[color=#" + Utils.COLOR_BATTLE + "]  A coalition brews — " + brew_paris + ".[/color]")
+				else:
+					add_output("[color=#" + Utils.COLOR_ERROR + "]  Coalition forming in " + str(brew_turns) + " turns![/color]")
 			var active_coal = coalition_status.get("active_coalition", null)
 			if active_coal != null and active_coal is Dictionary:
 				var coal_name = str(active_coal.get("name", "Coalition"))

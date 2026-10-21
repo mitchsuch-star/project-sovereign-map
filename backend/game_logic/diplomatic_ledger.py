@@ -139,6 +139,8 @@ _THREAT_SOURCE_LABELS = {
     # once, and each court that would not sign keeps a ten-turn grudge.
     "congress_dissolved": "Summoned a Congress that failed",
     "congress_grudge": "Courts that would not sign at Paris",
+    # SF-RR7: the Imperial Peace's signing spends the alarm to the watch.
+    "imperial_peace": "The powers signed at Paris",
     # SR-G7 / PB-D1 "The Armed Peace" (Score Finish Step 3): the fuse's rise
     # and the watch (the watch row carries its own composed label — share
     # and floor — and an amount of 0: the alarm HELD).
@@ -148,6 +150,12 @@ _THREAT_SOURCE_LABELS = {
     "declared_articles": "Declared the articles of a war",
     "declared_article_dropped": "A declared article dropped at the peace",
 }
+
+
+def _brewing_waits_on_paris(world) -> str:
+    """SF-RR7: the Congress's hold on France's brewing league, named."""
+    from backend.game_logic.congress import league_waits_on_paris
+    return league_waits_on_paris(world)
 
 
 def _threat_source_label(world, source_key: str) -> str:
@@ -1412,6 +1420,8 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "active_coalition": active_coalition_data,
         "brewing_turns_remaining": int(brewing.get("turns_remaining", 0) or 0)
         if brewing else None,
+        # SF-RR7: a brew the Congress holds waits on Paris (the reason, or "").
+        "brewing_waits_on_paris": _brewing_waits_on_paris(world) if brewing else "",
         "cooldown_turns_remaining": int(cooldown) if cooldown > 0 else None,
         "coalition_cooldown": int(cooldown),
         "threat_level": int(threat_level),

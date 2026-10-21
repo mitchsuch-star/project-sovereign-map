@@ -1073,7 +1073,13 @@ func _render_balance_of_europe():
 			turns_str = str(int(brewing_turns))
 		else:
 			turns_str = "?"
-		bbcode += "  [color=#" + COLOR_AMBER + "]Brewing — " + turns_str + " turns until formation[/color]\n"
+		# SF-RR7: a brew the Congress holds waits on Paris — no countdown.
+		var brewing_paris_v = boe.get("brewing_waits_on_paris")
+		var brewing_paris: String = brewing_paris_v if brewing_paris_v is String else ""
+		if brewing_paris != "":
+			bbcode += "  [color=#" + COLOR_AMBER + "]Brewing — " + brewing_paris + "[/color]\n"
+		else:
+			bbcode += "  [color=#" + COLOR_AMBER + "]Brewing — " + turns_str + " turns until formation[/color]\n"
 	else:
 		var coalition_cooldown = int(boe.get("coalition_cooldown", 0))
 		if coalition_cooldown > 0:

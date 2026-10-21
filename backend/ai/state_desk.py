@@ -1982,6 +1982,10 @@ def _answer_coalition(world) -> str:
         line = "No coalition stands against us today, Sire."
         if getattr(world, "coalition_brewing", False):
             line += " One is brewing."
+            # SF-RR7: and the Congress holds it, named.
+            from backend.game_logic.congress import league_waits_on_paris
+            if league_waits_on_paris(world):
+                line += " It waits on Paris — no league declares while the Congress sits."
         if pay:
             line += f" {_court(world, pay)} is the paymaster of Europe."
         return line

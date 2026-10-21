@@ -386,9 +386,11 @@ def _congress_answer(asked: str, world) -> str:
             return ("The Imperial Peace is proclaimed, Sire — no great power "
                     "remained to contest the order, and there is no Congress "
                     "left to summon." + relayed)
+        # SF-RR7: what the peace bought, as its page stamped it.
+        bought = congress.stamped_bought_line(world)
         return ("The Imperial Peace is signed, Sire — Europe recognized the "
                 "new order at the Congress of Paris, and there is no Congress "
-                "left to summon." + relayed)
+                "left to summon." + (f" {bought}" if bought else "") + relayed)
     if phase == "ended":
         return ("The campaign has ended, Sire — no Congress will sit." + relayed)
     from backend.game_logic import game_end

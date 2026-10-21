@@ -416,6 +416,11 @@ func _congress_block(congress, style: Dictionary) -> String:
 		# satellites), while THE RECORD's realm line counts France alone —
 		# the card says so rather than print 50 beside 43 unexplained.
 		out += str(_n(congress, "titled")) + " of " + str(hold) + " titled provinces in the Empire and its satellites.\n"
+	# SF-RR7: the page names what the peace buys — the great powers'
+	# signatures, not the lesser courts' grievances (stamped with the ending).
+	var bought_v = congress.get("bought_line")
+	if bought_v is String and bought_v != "":
+		out += Utils.bbcode_color(_esc(bought_v), Utils.COLOR_INFO) + "\n"
 	var sitting = congress.get("sitting")
 	if sitting is Array and not (sitting as Array).is_empty():
 		out += "\n" + _heading("THE SITTING", style)

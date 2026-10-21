@@ -632,6 +632,10 @@ def summon(world) -> Dict[str, Any]:
     warning = league_warning(world, table)
     if warning:
         message += f" {warning[:1].upper()}{warning[1:]}."
+    elif league_waits_on_paris(world):
+        # SF-RR7: the hold the sitting buys, named at the summons.
+        message += (" Europe waits on Paris: while the Congress sits and fewer than "
+                    "two great powers refuse it, no new league declares against us.")
     if bills:
         message += " " + " ".join(bills)
     return {"success": True, "message": message, "congress": number,
@@ -774,18 +778,47 @@ def _state(world, court: str, overrides: Optional[Dict] = None) -> str:
     return str(world.get_diplomatic_state(court, _player(world)) or "PEACE")
 
 
+def sue_line(world, court: str) -> Dict[str, Any]:
+    """PC-X69 (S14 part 4): the pair war score at which `court` sues the
+    Congress — `sue_score` (−40), read deeper while the league's bond binds
+    her against the summoner, by the bond's own break-ranks depth
+    (`bond.break_ranks_depth`, the ONE read P1's lines take — GR5): under a
+    400-gold bond she sues at −58. Her suit is then her PRICED separate
+    peace — told on the table, the price and her letter, and reneged against
+    her payer as any separate peace inside the term is. A capital held still
+    forces it (a purse buys no capital back). `{"score", "base", "depth",
+    "payer"}`. The series attribution holds it down (`--seam
+    backend.game_logic.congress:sue_line={"score": -40, "base": -40,
+    "depth": 0, "payer": ""}`; `tools/_ge3_series_arms.py` arm Y reads
+    `sue_score` itself)."""
+    base = int(sue_score(world))
+    from backend.game_logic import bond as _bond
+    depth = _bond.break_ranks_depth(world, court, _player(world))
+    deeper = max(0, int(depth.get("score", 0) or 0))
+    return {"score": base - deeper, "base": base, "depth": deeper,
+            "payer": str(depth.get("payer") or "") if deeper else ""}
+
+
+def _bond_held_clause(world, line: Dict[str, Any]) -> str:
+    """"Britain's bond holds her 18 deeper" — "" with no bond."""
+    if not int(line.get("depth", 0) or 0) or not line.get("payer"):
+        return ""
+    return f"{_display(str(line['payer']))}'s bond holds her {int(line['depth'])} deeper"
+
+
 def court_must_sue(world, court: str, overrides: Optional[Dict] = None) -> bool:
     """A great power at WAR with France sues once its war score reaches
-    `sue_score` (−40) or France holds its capital (§2.4) — the ONE
-    predicate the P1 Congress rung and the SUES stance both read. The pair
-    score it tests is the one the table prints (shown = applied)."""
+    `sue_score` (−40 — deeper under the league's bond, `sue_line`) or France
+    holds its capital (§2.4) — the ONE predicate the P1 Congress rung and the
+    SUES stance both read. The pair score it tests is the one the table
+    prints (shown = applied)."""
     if not sitting(world) or court not in great_powers(world):
         return False
     if court_gone(world, court):
         return False
     if _state(world, court, overrides) != "WAR":
         return False
-    return (_war_score(world, court, overrides) <= sue_score(world)
+    return (_war_score(world, court, overrides) <= int(sue_line(world, court)["score"])
             or _capital_taken(world, court, overrides))
 
 
@@ -1210,8 +1243,11 @@ def answer(world, court: str, overrides: Optional[Dict] = None) -> Dict[str, Any
         row["war_score"] = int(score)
         ours = _our_score_text(world, court, score, ov)
         row["our_war_score"] = -int(score)
+        line = sue_line(world, court)
+        held = _bond_held_clause(world, line)
+        row["sue_line"] = int(line["score"])
         projected = not sitting(world) and (
-            score <= sue_score(world) or _capital_taken(world, court, ov))
+            score <= int(line["score"]) or _capital_taken(world, court, ov))
         if court_must_sue(world, court, ov) or projected:
             taken = _capital_taken(world, court, ov)
             reason = (f"we hold {world.get_nation_capital(court)}" if taken
@@ -1225,11 +1261,19 @@ def answer(world, court: str, overrides: Optional[Dict] = None) -> Dict[str, Any
                 # RS-D1: the SUES projection names the road the ruling opened.
                 reason += (f"; a peace that leaves {world.get_nation_capital(court)} "
                            f"in our hands recognizes the order")
+            if line.get("payer"):
+                # PC-X69: her suit is her separate peace — the bond told.
+                reason += (f"; she breaks {_display(str(line['payer']))}'s bond to sue "
+                           f"— a broken bargain {_display(str(line['payer']))} will hold "
+                           f"against her")
+                row["bond_payer"] = str(line["payer"])
             row.update(stance=SUES, by="war", reason=reason, projected=bool(projected))
         else:
             row.update(stance=REFUSES, by="war",
-                       reason=f"at war with us ({ours} — it sues at "
-                              f"+{-sue_score(world)})")
+                       reason=(f"at war with us ({ours} — it sues at "
+                               f"+{-int(line['score'])}" + (f": {held}" if held else "") + ")"))
+            if held:
+                row["bond_payer"] = str(line["payer"])
         return row
     c = record(world) or {}
     withdrawn = (c.get("withdrawn") or {}).get(court) if sitting(world) else None
@@ -1516,9 +1560,12 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     if row.get("by") == "war":
         score = int(row.get("war_score", 0) or 0)
         capital = world.get_nation_capital(court) or ""
+        line = sue_line(world, court)
+        held = _bond_held_clause(world, line)
         levers.append({"key": "war", "value": None,
-                       "text": (f"win the war to {_signed(-sue_score(world))} "
-                                f"(now {_signed(-score)})")})
+                       "text": (f"win the war to {_signed(-int(line['score']))} "
+                                f"(now {_signed(-score)})"
+                                + (f" — {held}" if held else ""))})
         # GE-V §4 nits (SR quick win, September 26, 2026): the seat is
         # display and the capital is the map's, so the lever names it as
         # the capital ("its capital, Vilna" under a "(St Petersburg)" seat);
@@ -1532,7 +1579,16 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
         if island and ports is not None:
             levers.append(ports)
         levers.append(capital_lever)
-        levers.append(_peace_lever(f"sign a peace with {_display(court)}"))
+        # PC-X69: a peace with her alone is her separate peace — the bond's
+        # price and France's bid named, with the Cabinet row that stages it.
+        bond_words = ""
+        if line.get("payer"):
+            from backend.game_logic import bond as _bond
+            bond_words = _bond.price_line(world, court, _player(world)).rstrip(".")
+        levers.append(_peace_lever(
+            f"sign a peace with {_display(court)}"
+            + (f" — {bond_words} (F1 → {_display(court)} → Outbid "
+               f"{_display(str(line['payer']))}'s Bond)" if bond_words else "")))
         if ports is not None and not island:
             levers.append(ports)
         out["levers"] = levers
@@ -2230,6 +2286,10 @@ def march_blocker(world, court: str) -> str:
             # RS-10: a league already brews — the row says when it declares
             # instead of "no coalition stands" while one gathers.
             from backend.display_names import plural
+            if league_waits_on_paris(world):
+                # SF-RR7: the hold, named — it declares on no countdown.
+                return ("no coalition stands against us yet — a league brews and "
+                        "waits on Paris: no league declares while the Congress sits")
             return (f"no coalition stands against us yet — a league brews and "
                     f"declares in {plural(int(brewing.get('turns_remaining', 0) or 0), 'turn')} "
                     f"(alarm {_alarm(world)} against a gate of {brewing_gate(world)})")
@@ -2330,6 +2390,12 @@ def _proclaim(world, turn_ended: int, *, route: str,
     # strip rides the card (never a dissolved one's, ending in ✗).
     strip = ([dict(s) for s in (c.get("strip") or []) if int(s.get("day", 0)) >= 1]
              if (route == "congress" or c.get("status") == SITTING) else [])
+    # SF-RR7: the signing spends Europe's alarm to the watch and dismisses
+    # any brewing league — the Congress's route only (E1 is a conquest, not
+    # a signature: no court signed, and its alarm stays as the conquest made it).
+    spent: Dict[str, Any] = {}
+    if route == "congress" and not imperial_peace_signed(world):
+        spent = dict(the_signing_spends(world) or {})
     detail = {
         "route": route,
         "number": int(c.get("number", 0) or 0),
@@ -2340,6 +2406,9 @@ def _proclaim(world, turn_ended: int, *, route: str,
         "sitting": strip,
         "moniteur_line": moniteur,
     }
+    if route == "congress":
+        detail["alarm_spent"] = spent
+        detail["bought_line"] = bought_line(world, table, spent)
     rec = game_end.record_ending(world, "victory", game_end.CAUSE_IMPERIAL_PEACE,
                                  detail=detail, turn=int(turn_ended))
     if rec is None:
@@ -2711,6 +2780,99 @@ def coalition_gate(world, target: Optional[str] = None) -> Optional[int]:
     if len(live_refusers(world)) < 2:
         return None
     return _int(world, "congress_alarm_gate", CONGRESS_ALARM_GATE)
+
+
+def league_waits_on_paris(world, target: Optional[str] = None) -> str:
+    """SF-RR7 (SFR-B3, ruled October 14, 2026 — "Europe waits on Paris"):
+    while the Congress sits and fewer than two great powers refuse it, no
+    new league declares against the summoner — a brewing league's countdown
+    holds at its last turn (`coalition.process_coalition_turn` step 6), and
+    the instant bar brews instead of declaring (step 7). The two-refuser
+    lowered gate (`coalition_gate`) is untouched: with two refusers the
+    league declares as before. Returns the reason ('' when the hold is off
+    — dormant whenever no Congress sits, so `BASELINE_SERIES` and M1–M7
+    cannot move). The series attribution holds it down (`--seam
+    backend.game_logic.congress:league_waits_on_paris=lambda *a, **k: ""`)."""
+    tgt = target or _player(world)
+    if tgt != _player(world) or not sitting(world):
+        return ""
+    if coalition_gate(world, tgt) is not None:
+        return ""
+    return "Europe waits on Paris — no league declares while the Congress sits"
+
+
+def hold_lifts_in(world) -> int:
+    """The first end-turn tick (1 = this turn's end) at which the hold can
+    lift: the tick after the sitting's last — the coalition turn runs inside
+    the advance, before the Congress's own tick, so the eighth day's tick is
+    still held. A brew held at its last turn declares then if the Congress
+    has dissolved; a signed one has dismissed it."""
+    c = record(world) or {}
+    ends = int(c.get("ends_turn", _turn(world)) or _turn(world))
+    return max(1, ends - _turn(world) + 2)
+
+
+def the_signing_spends(world) -> Dict[str, Any]:
+    """SF-RR7: the Imperial Peace's signing (`_proclaim`, the Congress's
+    route) spends Europe's alarm against the summoner to the Armed Peace's
+    watch (`coalition.ARMED_PEACE_WATCH`, 45 — never raising it) and
+    dismisses any league brewing against her. What the peace buys is the
+    great powers' signatures, not the lesser courts' grievances: the
+    dismissed courts are named on the page, and nothing binds them after.
+    Returns `{"alarm_from", "alarm_to", "dismissed": [courts]}`. The series
+    attribution holds it down (`--seam
+    backend.game_logic.congress:the_signing_spends=lambda *a, **k: {}`)."""
+    from backend.game_logic import coalition as _coalition
+    player = _player(world)
+    before = int((getattr(world, "threat_by_target", {}) or {}).get(player, 0) or 0)
+    watch = int(_coalition.ARMED_PEACE_WATCH)
+    if before > watch:
+        _coalition.reduce_threat(world, before - watch, "imperial_peace")
+    after = int((getattr(world, "threat_by_target", {}) or {}).get(player, 0) or 0)
+    dismissed: List[str] = []
+    brewing = getattr(world, "coalition_brewing", None) or {}
+    if brewing and (brewing.get("target_nation") or player) == player:
+        dismissed = sorted(str(n) for n in (brewing.get("qualifying_nations") or []) if n)
+        world.coalition_brewing = None
+        from backend.notifications import COALITION_BREWING
+        world.notifications.dismiss_by_type(COALITION_BREWING)
+        world.log_event({"type": "coalition_brewing_cancelled",
+                         "reason": "the_imperial_peace",
+                         "qualifying_nations": list(dismissed)})
+    return {"alarm_from": before, "alarm_to": after, "dismissed": dismissed}
+
+
+def bought_line(world, table: Dict[str, Dict[str, Any]],
+                spent: Optional[Dict[str, Any]]) -> str:
+    """The Imperial Peace's page names what the peace buys (SFR-B3): the
+    great powers' signatures, not the lesser courts' grievances — "a peace
+    buys time, not immunity". Composed once, at the stamp."""
+    from backend.campaign_log import and_join
+    signed = [_display(k) for k, v in table.items()
+              if v.get("stance") in (RECOGNIZES, SHUT_OUT)]
+    spent = spent or {}
+    line = (f"A peace buys time, not immunity, Sire: it bought the signatures of "
+            f"{and_join(signed) if signed else 'the great powers'}")
+    if int(spent.get("alarm_from", 0) or 0) > int(spent.get("alarm_to", 0) or 0):
+        line += (f", and Europe's alarm spent from {int(spent['alarm_from'])} to "
+                 f"{int(spent['alarm_to'])} — the Armed Peace's watch")
+    line += "."
+    lesser = [_display(n) for n in (spent.get("dismissed") or [])]
+    if lesser:
+        line += (f" The league brewing among {and_join(lesser)} is dismissed, but the "
+                 f"lesser courts signed nothing and keep their grievances.")
+    else:
+        line += " The lesser courts signed nothing and keep their grievances."
+    return line
+
+
+def stamped_bought_line(world) -> str:
+    """The stamped Imperial Peace's `bought_line` — "" before the signing or
+    for E1 (read from the ending, never re-derived from live state)."""
+    from backend.game_logic import game_end
+    rec = next((r for r in game_end.endings(world)
+                if r.get("cause") == game_end.CAUSE_IMPERIAL_PEACE), None)
+    return str(((rec or {}).get("detail") or {}).get("bought_line") or "")
 
 
 def refuser_qualifies(world, nation: str, target: Optional[str]) -> bool:
@@ -3318,6 +3480,7 @@ def summary_block(detail: Dict[str, Any]) -> Dict[str, Any]:
         "hold_titled": int(detail.get("hold_titled") or 0),
         "sitting": [dict(x) for x in (detail.get("sitting") or [])],
         "moniteur_line": str(detail.get("moniteur_line") or ""),
+        "bought_line": str(detail.get("bought_line") or ""),
     }
 
 

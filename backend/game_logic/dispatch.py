@@ -1088,8 +1088,11 @@ def _imperial_peace_line(world) -> str:
     if gone:
         parts.append(f"{and_join(gone)} {'is' if len(gone) == 1 else 'are'} gone")
     table = ("; ".join(parts) + ". ") if parts else ""
+    # SF-RR7: the page names what the peace buys (stamped with the ending).
+    bought = str(detail.get("bought_line") or "")
     return (f"THE IMPERIAL PEACE — Europe signs at Paris. {table}The order "
-            f"the Emperor made is the order Europe recognizes.")
+            f"the Emperor made is the order Europe recognizes."
+            + (f" {bought}" if bought else ""))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -6824,6 +6827,12 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
                 "qualifying_nations": brewing.get("qualifying_nations", []),
                 "turns_remaining": int(brewing.get("turns_remaining", 0)),
             }
+            # SF-RR7: a brew the Congress holds counts down to nothing —
+            # the client says it waits on Paris instead.
+            from backend.game_logic.congress import league_waits_on_paris
+            _paris = league_waits_on_paris(world, _player)
+            if _paris:
+                section["brewing"]["waits_on_paris"] = _paris
 
     # Active coalition details — France's own coalition only (an eclipse
     # coalition against another power surfaces via its own dispatch lines).

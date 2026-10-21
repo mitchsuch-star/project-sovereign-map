@@ -3374,6 +3374,12 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         return f"Coalition brewing — {nations_str} alarmed (threat: {threat})"
 
     if ctx.event_type == "coalition_brewing_cancelled":
+        if ctx.event.get("reason") == "the_imperial_peace":
+            # SF-RR7: the signing dismisses the brew — and buys no more.
+            courts = [display_nation(n) for n in (ctx.event.get("qualifying_nations") or [])]
+            among = f" among {and_join(courts)}" if courts else ""
+            return (f"The Imperial Peace dismisses the league brewing{among} — "
+                    f"the lesser courts signed nothing")
         return "Coalition threat has subsided"
 
     if ctx.event_type == "counter_offer_accepted":
