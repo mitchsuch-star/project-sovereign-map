@@ -8558,6 +8558,54 @@
       "mock_only": true,
       "source": "DDB-45 (Pre-Deploy S13b part 4, tests/test_ddb_s13b_the_voice.py)",
       "notes": "A line joining two questions is split and each part answered (the compound question); it was read as one and answered a third question."
+    },
+    {
+      "id": "sfrr2-talleyrand-peace-question-is-the-desks",
+      "utterance": "Talleyrand, would Austria take a white peace right now?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR2 (Score Finish Step 9, tests/test_sf_rr2_the_desk_answers.py)",
+      "notes": "SFR-D26: a peace's chances put to Talleyrand is the desk's estimate in words (the white peace against the line a signature needs, and his reading); it was the advisory's generic brief of the court."
+    },
+    {
+      "id": "sfrr2-talleyrand-mission-question-is-the-desks",
+      "utterance": "Talleyrand, how is the Prussian mission going?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR2 (Score Finish Step 9, tests/test_sf_rr2_the_desk_answers.py)",
+      "notes": "SFR-D16: the mission's progress is the mission's own status; it was the advisory's generic brief of the court."
+    },
+    {
+      "id": "sfrr2-action-points-is-a-count",
+      "utterance": "how many action points do I have?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR2 (Score Finish Step 9, tests/test_sf_rr2_the_desk_answers.py)",
+      "notes": "SFR-D19: the AP the help names are the day's orders, counted; it printed the rules of the day."
+    },
+    {
+      "id": "sfrr2-why-did-that-fail-is-a-question",
+      "utterance": "why did that fail",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "SF-RR2 (Score Finish Step 9, tests/test_sf_rr2_the_desk_answers.py)",
+      "notes": "SFR-H12: the last line's own refusal, said again; it was the desk's shrug."
     }
   ]
 }

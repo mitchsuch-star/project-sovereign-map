@@ -4768,6 +4768,29 @@ class LLMClient:
             question)
         if shared_question:
             is_question = True
+        # SFR-D16 / SFR-D26 (SF-RR2, Oct 21, 2026): the desk answers the
+        # questions put to Talleyrand that it owns — his mission's progress
+        # and a peace's chances — which the advisory answered with a generic
+        # brief of the court. Every other question keeps the advisory.
+        if is_question:
+            from .state_desk import classify_talleyrand_question
+            _desk_question = classify_talleyrand_question(command_text, target_nation)
+            if _desk_question:
+                return ParseResult(
+                    matched=True,
+                    command_type="tactical",
+                    marshals=[],
+                    action="status",
+                    target=None,
+                    ambiguity=5,
+                    strategic_score=0,
+                    interpretation=f"Question — {_desk_question['kind']} {_desk_question['subject']}",
+                    confidence=0.9,
+                    mode="mock",
+                    key_source=self.key_source,
+                    raw_command=command_text,
+                    question=_desk_question,
+                )
 
         # Check for military keywords directed at Talleyrand (error case)
         military_keywords = ["attack", "charge", "move to", "march to", "defend",

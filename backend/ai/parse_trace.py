@@ -208,6 +208,27 @@ def result_summary(result: Any) -> Dict[str, Any]:
     return out
 
 
+def read_as_a_question(trace_rows: List[Dict[str, Any]]) -> bool:
+    """SFR-H12: whether the trace's line was read as a question (the desk's
+    `status` / `help` roads, or a row carrying the classified question) —
+    a question's reply is never "the last order"."""
+    for row in trace_rows or []:
+        detail = row.get("detail")
+        if isinstance(detail, dict) and (detail.get("question")
+                                         or detail.get("action") in ("status", "help")):
+            return True
+    return False
+
+
+def question_kind(trace_rows: List[Dict[str, Any]]) -> str:
+    """The classified question's kind on the trace ("" when none)."""
+    for row in trace_rows or []:
+        detail = row.get("detail")
+        if isinstance(detail, dict) and detail.get("question"):
+            return str(detail.get("question"))
+    return ""
+
+
 def rows() -> List[Dict[str, Any]]:
     t = _TRACE.get()
     return list(t.rows) if t is not None else []

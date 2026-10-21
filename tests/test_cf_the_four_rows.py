@@ -459,7 +459,8 @@ class TestCF8TheOptions:
     @pytest.mark.parametrize("ask,expect", [
         ("can Ney fortify", "Yes, Sire — Ney can fortify today; it costs 1 action."),
         ("can Ney retreat", "Yes, Sire — Ney can fall back today; it is free."),
-        ("can Massena garrison", "Not today, Sire — Massena: not our soil."),
+        # SFR-H4 (SF-RR2, Oct 21, 2026): the refusal names the verb it refuses.
+        ("can Massena garrison", "Not today, Sire — Massena cannot garrison: not our soil."),
         ("could Davout march", "Yes, Sire — Davout can march today; it costs 2 actions."),
     ])
     def test_the_per_verb_sibling(self, client, ask, expect):

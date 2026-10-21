@@ -83,6 +83,10 @@ STATE_KINDS = frozenset({
     # CF-7 / CF-8 (Oct 17, 2026): the march priced by the panel's own quote,
     # the per-marshal options from the state probe, the per-verb "can he".
     "march_cost", "marshal_options", "marshal_can",
+    # SF-RR2 (Oct 21, 2026): the rows the final reading filed.
+    "what_if_verb", "strike_rank", "strength_figure", "why_failed",
+    "happened_at", "court_holds", "trust_all", "vassal_candidates", "in_play",
+    "war_over", "mission",
 })
 
 _APOS = "['’]"
@@ -134,6 +138,27 @@ def _place_after_foe(norm: str, foe: str, places: Iterable[str]) -> str:
                         norm):
                     return place
     return ""
+
+
+def _destination(norm: str, places: List[str]) -> Tuple[str, str]:
+    """SFR-H8: (destination, origin) of a march question — the province
+    after "to / into / toward / reach", never the one after "from"
+    ("… march from Rhineland to Lorraine" goes to Lorraine). One place, or
+    the lever down, keeps the first place named."""
+    if not places:
+        return "", ""
+    if len(places) < 2:
+        return places[0], ""
+
+    def _after(words: str, place: str) -> bool:
+        return any(re.search(r"\b(?:" + words + r")\s+(?:the\s+)?" + re.escape(form) + r"(?:'s)?(?:\s|$)", norm)
+                   for form in _forms(place))
+    origin = next((p for p in places if _after("from", p)), "")
+    dest = next((p for p in places if p != origin
+                 and _after("to|into|toward|towards|reach|reaching|get to|as far as", p)), "")
+    if not dest:
+        dest = next((p for p in places if p != origin), places[0])
+    return dest, origin
 
 
 def _demonyms(nation: str) -> List[str]:
@@ -325,8 +350,10 @@ _ASKED_VERBS: List[Tuple[str, str]] = [
     ("support", r"\bsupport|\breinforce\b|\bback up\b"),
     ("march", r"\bmarch|\badvance\b"),
     ("move", r"\bmove\b"),
-    ("hold", r"\bhold\b|\bstand\b"),
-    ("defend", r"\bdefend\b|\bdefensive\b"),
+    # RR2-X5 (SF-RR2's sweep): the inflections — "what if Soult holds
+    # Lorraine", "what happens if Ney defends" read no verb at all.
+    ("hold", r"\bhold(?:s|ing)?\b|\bstands?\b|\bstanding\b"),
+    ("defend", r"\bdefend(?:s|ing)?\b|\bdefensive\b"),
     ("attack", r"\battack|\bstrike\b|\bfight\b|\bengage\b"),
 ]
 
@@ -357,6 +384,188 @@ def _looks_like_a_rule_question(norm: str) -> bool:
     return bool(re.search(
         r"\b(?:do|does|mean|work|works|for|happen|happens|get|give|gives|cost|costs"
         r"|is it|are they|good for|effect)\b", norm))
+
+
+# ── SF-RR2 (October 21, 2026; rules SYSTEMS_REFERENCE.md §137): the rows the
+# final reading filed. Each row's reading is ONE SEAM — a live function the
+# classifier asks in turn, returning the question or None — so a pin holds a
+# row down by patching its seam (`lambda asked: None`), the DD-B idiom: no
+# module lever (CODE-1's ratchet). `asked` is the classifier's own reading
+# of the line (the normalised text and the subjects it resolved).
+
+def _q(kind: str, subject: str = "", subject_type: str = "board", **extra) -> Dict:
+    out = {"kind": kind, "subject": subject, "subject_type": subject_type}
+    out.update(extra)
+    return out
+
+
+def _asked(norm: str, text: str, ours, foes, places, courts, marshals, enemies) -> Dict:
+    """The classifier's reading of the line, as the row seams take it."""
+    return {"norm": norm, "text": text, "ours": ours, "foes": foes, "places": places,
+            "courts": courts, "marshals": marshals, "enemies": enemies,
+            "first_marshal": ours[0] if ours else "", "first_foe": foes[0] if foes else "",
+            "first_place": places[0] if places else "", "first_court": courts[0] if courts else ""}
+
+
+def _has(asked: Dict, pattern: str) -> bool:
+    return re.search(pattern, asked["norm"]) is not None
+
+
+def _why_question(asked: Dict) -> Optional[Dict]:
+    """SFR-H12: "why did that fail" — the last line's own refusal, kept on
+    the world by the reply that carried it (`main._close_parse_trace`); and
+    RR2-X6: "why can't Davout attack?" — the per-verb verdict."""
+    a = asked
+    if not (a["ours"] or a["foes"] or a["places"] or a["courts"]) and _has(a,
+            r"^(?:so |and |but )?why (?:did|was|has|didn't|wasn't|won't|wouldn't|couldn't|can't|isn't|hasn't) "
+            r"(?:that|it|this|the (?:last )?order|my (?:last )?order|the command|my command"
+            r"|(?:my|our|the) (?:last )?(?:attack|assault|march|move|levy|recruitment|build|scout|order|orders))\b"
+            r"|^what went wrong\b|^why (?:the|that) refusal\b|^why (?:was|were) (?:i|we) refused\b"
+            r"|^why (?:no|not)\b.*\b(?:order|that)\b$"):
+        return _q("why_failed")
+    if a["first_marshal"] and not a["foes"] and _has(a,
+            r"^(?:so |and |but )?why (?:can't|cannot|can not|won't|wouldn't|couldn't|isn't|doesn't|didn't) "):
+        verb = _asked_verb(a["norm"])
+        if verb:
+            return _q("marshal_can", a["first_marshal"], "marshal", verb=verb)
+    return None
+
+
+def _strength_figure_question(asked: Dict) -> Optional[Dict]:
+    """SFR-H11 (ii): "the dispatch says enemy strength is 44% of ours — does
+    that count the Russians?"; RR2-X8: "does the 44% count …?" — a bare
+    percentage asked what it counts (never "what does +25% defence mean")."""
+    a = asked
+    named = _has(a, r"\benemy strength\b|\bstrength (?:ratio|figure|estimate)\b"
+                    r"|\b\d+ (?:percent |per cent )?of (?:ours|our (?:strength|army|forces|own))\b"
+                    r"|\bthat (?:figure|number|estimate|percentage|ratio)\b") and _has(a,
+        r"\bcount|\binclude|\bmean\b|\bbased on\b|\bmade (?:up )?of\b|\bmeasure|\bonly\b|\breliable\b|\baccurate\b|\btrue\b")
+    bare = bool(re.search(r"\b\d+\s*(?:%|percent\b|per cent\b)", a["text"] or "")) and _has(a, r"\bcount|\binclude")
+    if named or bare:
+        return _q("strength_figure", a["first_court"], "nation" if a["first_court"] else "board")
+    return None
+
+
+def _strike_question(asked: Dict) -> Optional[Dict]:
+    """SFR-H10: "which of my marshals can get at Mack soonest?", "who can
+    stop Paget?" — every corps of ours ranked by when it can strike him; a
+    man the parser's roster does not hold is answered by the desk's own fog
+    rule (`_visible_foe`), never shrugged and never substituted."""
+    a = asked
+    if a["first_foe"] and not a["ours"] and _has(a,
+            r"\b(?:which|who|whom)\b.*\b(?:can|could|would|will|might)\b.*\b(?:get at|get to|reach|stop|catch|intercept|strike"
+            r"|hit|attack|engage|block|hold off|fight|beat|deal with|face|meet)\b"
+            r"|\b(?:soonest|first|fastest|quickest|earliest)\b.*\b(?:get at|get to|reach|strike|attack|hit|engage)\b"
+            r"|\b(?:get at|get to|reach|strike|attack|hit|engage)\b.*\b(?:soonest|first|fastest|quickest|earliest)\b"):
+        return _q("strike_rank", a["first_foe"], "enemy")
+    if not (a["first_foe"] or a["ours"] or a["places"] or a["courts"]):
+        m = re.search(r"^\s*(?:berthier,\s*)?(?:which|who|whom)\b.*?\b(?:get at|reach|stop|catch|intercept|strike|attack"
+                      r"|engage|block|hold off|beat|deal with)\s+(?:the\s+)?([A-Z][\w'’-]+(?:\s+[A-Z][\w'’-]+)?)",
+                      a["text"] or "")
+        if m and _norm(m.group(1)) not in _STOP and _norm(m.group(1)) not in _GAME_TERMS:
+            return _q("strike_rank", m.group(1), "enemy", unrostered=True)
+    return None
+
+
+def _coalition_named_question(asked: Dict) -> Optional[Dict]:
+    """SFR-H11 (i): "who's in the Third Coalition besides Britain?" — the
+    coalition by its name, the courts the question names set aside."""
+    if _has(asked, r"\bwho(?:'s| is| are| else is)? (?:in|part of|members of|inside|with) the (?:[a-z]+ )?(?:coalition|league)\b"
+                   r"|\b(?:third|fourth|fifth|sixth|seventh) coalition\b.*\b(?:who|which|members?|besides|apart from|other than|beyond)\b"
+                   r"|\b(?:who|which (?:courts|nations|powers)) (?:else )?(?:is|are) (?:in|with) (?:it|them|the coalition)\b"):
+        return _q("coalition", besides=list(asked["courts"]))
+    return None
+
+
+def _plain_question(asked: Dict) -> Optional[Dict]:
+    """SFR-D2: the plain questions the depth campaign asked and the desk
+    shrugged at — each answered by a builder some surface already prints."""
+    a = asked
+    has = lambda pattern: _has(a, pattern)  # noqa: E731
+    first_place, first_court, first_marshal = a["first_place"], a["first_court"], a["first_marshal"]
+    # "who are we STILL at war with?" / "are we still at war with Britain?"
+    if has(r"\bwho (?:are|am) (?:we|i) still (?:at war with|fighting)\b|\bwho is still at war with (?:us|me)\b"):
+        return _q("wars_leader")
+    if first_court and has(r"^(?:are|am) (?:we|i) still at war with\b|^is france still at war with\b"):
+        return _q("at_war", first_court, "nation")
+    # "what happened at Swabia?" — the record at the place.
+    if first_place and has(r"^(?:so |and )?what (?:happened|has happened|went on|took place|occurred|is happening|was that) (?:at|in|near|around|over)\b"
+                           r"|\bany (?:battles?|fighting) (?:at|in|near)\b|\bwhat (?:battles?|fighting) (?:at|in)\b"):
+        return _q("happened_at", first_place, "region")
+    # "who holds Bavaria?" — Bavaria is a court, not a province.
+    if first_court and not first_place and has(r"\bwho (?:holds|controls|owns|rules|governs|has)\b|\bwhat does .* hold\b|\bwhich provinces does\b"):
+        return _q("court_holds", first_court, "nation")
+    # "how loyal are my marshals?" — every man's trust, the lowest first.
+    if not first_marshal and has(
+            r"\bhow (?:loyal|faithful|reliable|trustworthy|obedient)\b.*\b(?:marshals|generals|commanders|officers)\b"
+            r"|\b(?:my|our|the) (?:marshals|generals)'? (?:loyalty|trust)\b|\btrust of (?:my|our|the) (?:marshals|generals)\b"
+            r"|\bwhich (?:of my )?(?:marshals|generals) (?:can|do|should) (?:i|we) trust\b|\bwho (?:can|do|should) (?:i|we) trust\b"
+            r"|\bwho is (?:loyal|disloyal|unreliable)\b|\bare (?:my|our) (?:marshals|generals) (?:loyal|faithful|reliable)\b"):
+        return _q("trust_all")
+    # "who deserves a reward?" — who is owed (the expectation board).
+    if not first_marshal and has(r"\bwho (?:deserves|has earned|merits|should get|ought to get|is due|has a claim to)\b"
+                                 r"|\bwho (?:needs|wants|expects) (?:an? )?(?:reward|estate|rente)\b"):
+        return _q("expectation", deserve=True)
+    # "who could become our vassal?" — the Cabinet's Propose Vassal row.
+    if has(r"\bwho (?:could|can|might|would) (?:become|be made|be turned into|be) (?:our|a|my) (?:vassal|satellite|client|puppet)s?\b"
+           r"|\bwhich (?:courts?|nations?|states?|powers?) (?:could|can|might|would) (?:become|be made) (?:our |a |my )?(?:vassals?|satellites?|clients?)\b"
+           r"|\bwho (?:can|could) (?:we|i) (?:vassali[sz]e|subjugate|make (?:a|our|into a) vassal)\b|\bvassal candidates\b|\bpossible vassals\b"):
+        return _q("vassal_candidates")
+    # "is Sardinia still in play?" — the allegiance auction's record.
+    if first_court and has(r"\bin play\b|\ballegiance\b|\bup for grabs\b|\bauction\b|\bstill (?:open|biddable)\b"):
+        return _q("in_play", first_court, "nation")
+    # "is the war with Austria over?" — the pair's state, said.
+    if first_court and has(r"\b(?:is|has) the war (?:with|against) .*\b(?:over|ended|done|finished|won|lost)\b"
+                           r"|\bis .* still at war with (?:us|me|france)\b"
+                           r"|\bhas .* (?:made|signed) (?:the )?peace\b|\bis (?:the )?war .* (?:over|done|finished)\b"):
+        return _q("war_over", first_court, "nation")
+    # "will Bernadotte actually obey me?" — the trust answer, with the rule
+    # and his gift (`_obey_tail`).
+    if first_marshal and has(r"\bobey|\bmarch for me\b|\bfollow (?:my )?orders\b|\bdo as (?:i|he is) (?:say|told)\b|\bdefy\b|\bdisobey"):
+        return _q("trust", first_marshal, "marshal", obey=True)
+    return None
+
+
+def _mission_question(asked: Dict) -> Optional[Dict]:
+    """SFR-D16: "how is the Prussian mission going?" — Talleyrand's mission."""
+    if _has(asked, r"\bmission\b|\bembassy\b|\bhis envoy\b") and _has(asked,
+            r"\bhow (?:is|goes|are|far|long)\b|\bgoing\b|\bprogress\b|\bstatus\b|\bwhat(?:'s| is)\b"
+            r"|\bany (?:news|word|progress|result)\b|\bwhere (?:is|does)\b|\bdone\b|\bworking\b|\bresult"):
+        court = asked["first_court"]
+        return _q("mission", court, "nation" if court else "board")
+    return None
+
+
+def _what_if_question(asked: Dict) -> Optional[Dict]:
+    """SFR-H9: "what happens if I order Davout to fortify in the Rhineland"
+    read as a MARCH to the Rhineland — a what-if naming a verb that is not a
+    march is that verb's (`what_if_verb`). RR2-X5: "what if I have Murat
+    charge Mack?" — a what-if blow at a foe is the odds."""
+    a = asked
+    whatif = _has(a, r"\bwhat (?:happens|would happen|will happen) if\b|\bwhat if\b")
+    if a["first_marshal"] and a["first_foe"] and whatif and _has(
+            a, r"\b(?:attack|charge|engage|assault|strike|hit|fall on|fight|storm)"):
+        return _q("odds_natural", a["first_foe"], "enemy", marshal=a["first_marshal"])
+    if a["first_marshal"] and not a["foes"] and (whatif or _has(
+            a, r"\bif (?:i|we) (?:order|tell|have|let|get|ask|make)\b")):
+        verb = _asked_verb(a["norm"])
+        if verb and verb not in ("march", "move", "attack", "pursue", "support", "follow"):
+            return _q("what_if_verb", a["first_marshal"], "marshal", verb=verb, place=a["first_place"])
+    return None
+
+
+# The rows asked in turn, right after the HOLD arm's own shapes (names, so a
+# patched seam is the one asked).
+_THE_ROWS_THE_READING_FILED = ("_why_question", "_strength_figure_question", "_strike_question",
+                               "_coalition_named_question", "_plain_question", "_mission_question")
+
+
+def _ask_the_rows(asked: Dict) -> Optional[Dict]:
+    for name in _THE_ROWS_THE_READING_FILED:
+        found = globals()[name](asked)
+        if found:
+            return found
+    return None
 
 
 def classify_state_question(text: str, marshals: Iterable[str] = (),
@@ -460,7 +669,8 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
             and has(r"\bmarch|\bmove|\bsend|\bgo\b|\bget\b|\breach|\btake\b|\badvance|\border")
             and not has(r"\brecruit|\blev(?:y|ies)|\braise|\bconscript|\binfantry\b|\bcavalry\b|\bartillery\b"
                         r"|\bship|\bkeel|\bfleet|\bbuild|\bcommission|\bhire|\bdepot|\bfort\b|\bmarket|\bstable|\btower|\byard|\bestate|\brente|\bpension")):
-        return q("march_cost", first_place, "region", marshal=first_marshal)
+        dest, origin = _destination(norm, places)
+        return q("march_cost", dest, "region", marshal=first_marshal, origin=origin)
     # "how much does scouting cost" / "what does a march cost" — the verb's
     # price in actions, not a levy.
     if has(r"\bcost|\bprice|\bhow much\b") and not has(
@@ -486,6 +696,11 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
         return q("who_is", first_foe, "enemy")
     if has(r"\bwho (?:are|am) (?:we|i) (?:at war with|fighting)\b|\bwho is at war with (?:us|me)\b"):
         return q("wars_leader")
+    # SF-RR2 (Oct 21, 2026): the rows the final reading filed, each its own seam.
+    asked = _asked(norm, text, ours, foes, places, courts, marshals, enemies)
+    found = _ask_the_rows(asked)
+    if found:
+        return found
     if first_place and has(r"\bsafe\b|\bin danger\b|\bthreatened\b|\bgetting close\b|\bsecure\b"):
         return q("safe_natural", first_place, "region")
     if first_place and has(r"\bwhat(?:'s| is) in\b|\bwho(?:'s| is) in\b|\bwhat stands in\b|\bwhat is at\b|\bwhat(?:'s| is) (?:standing )?(?:in|at)\b"):
@@ -611,8 +826,10 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
             if first_marshal and has(r"\barriv|\bwhen\b") and not first_place and not has(r"\bhow long\b"):
                 return q("eta", first_marshal, "marshal")
             if places or first_marshal:
-                return q("how_long", first_place, "region", marshal=first_marshal,
-                         places=places)
+                dest, origin = _destination(norm, places)
+                ordered = ([dest] + [p for p in places if p != dest]) if dest else places
+                return q("how_long", dest or first_place, "region", marshal=first_marshal,
+                         places=ordered, origin=origin)
     if first_marshal and has(r"\bwhen (?:does|will|do|would) " + re.escape(_norm(first_marshal).split()[-1]) + r" (?:arrive|reach|get)\b"):
         return q("eta", first_marshal, "marshal")
     if first_foe and has(r"\b(?:can|could|will|would|might)\b.*\b(?:reach|get to|make it to|arrive at|march to)\b") and first_place and not ours:
@@ -635,6 +852,10 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
         return q("what_if_defence", first_foe, "enemy", marshal=first_marshal)
     if first_marshal and has(r"\b(?:hold|keep|defend|retain|hang on to)\b") and first_place and has(r"\bcan\b|\bcould\b|\bwill\b|\bwould\b|\bable\b"):
         return q("hold_region", first_place, "region", marshal=first_marshal)
+    # SFR-H9 / RR2-X5: a what-if naming a verb, or a blow at a foe.
+    found = _what_if_question(asked)
+    if found:
+        return found
     if first_marshal and first_place and has(r"\b(?:if|should|were) (?:i|we)? ?(?:march|move|send|push|advance|order)\b|\bwhat (?:would|will) happen if\b|\bwhat if\b"):
         return q("what_if_march", first_place, "region", marshal=first_marshal)
 
@@ -846,6 +1067,76 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
     return None
 
 
+def _talleyrand_mission(norm: str, target_nation: Optional[str]) -> Optional[Dict]:
+    """SFR-D16 (the seam): "Talleyrand, how is the Prussian mission going?"."""
+    if re.search(r"\bmission\b|\bembassy\b", norm) and re.search(
+            r"\bhow (?:is|goes|are|far|long)\b|\bgoing\b|\bprogress\b|\bstatus\b|\bwhat(?:'s| is)\b"
+            r"|\bany (?:news|word|progress|result)\b|\bdone\b|\bworking\b|\bresult", norm):
+        return _q("mission", target_nation or "", "nation" if target_nation else "board")
+    return None
+
+
+def _talleyrand_peace(norm: str, target_nation: Optional[str]) -> Optional[Dict]:
+    """SFR-D26 (the seam): "Talleyrand, would Austria take a white peace right
+    now?" / "… what are Austria's chances of making peace?"."""
+    if not target_nation:
+        return None
+    has = lambda pattern: re.search(pattern, norm) is not None  # noqa: E731
+    if ((has(r"\b(?:accept|take|agree to|sign|consider|entertain|settle for|go for)\b")
+         and has(r"\bpeace\b|\barmistice\b|\btruce\b|\bcease ?fire\b|\bterms\b")
+         and has(r"\bwould\b|\bwill\b|\bmight\b|\bcould\b|\bwhat\b")
+         and not has(r"\bterms of (?:the|our|their|its)\b"))
+            or has(r"\b(?:chances?|odds|likel(?:y|ihood)|prospects?)\b.*\b(?:peace|armistice|truce|terms)\b")):
+        return _q("peace_forecast", target_nation, "nation",
+                  want="armistice" if has(r"\barmistice\b|\btruce\b|\bcease") else "peace")
+    return None
+
+
+def _talleyrand_board(text: str, target_nation: Optional[str]) -> Optional[Dict]:
+    """RR2-X7 (the seam): the rest of the desk's diplomacy put to him —
+    "Talleyrand, who could become our vassal?", "… is Sardinia still in
+    play?", "… what does Austria want?" — read by the board's own classifier
+    with the address stripped; only `TALLEYRANDS_DESK_KINDS` leave the
+    advisory."""
+    from backend.ai.question_desk import classify_board_question
+    stripped = re.sub(r"^\s*(?:monsieur\s+|prince\s+)?(?:talleyrand|minister|diplomat)\s*,?\s*", "",
+                      text, flags=re.IGNORECASE)
+    try:
+        found = classify_board_question(stripped, nations=[target_nation] if target_nation else [])
+    except Exception as exc:
+        report(exc, "state_desk._talleyrand_board: classify_board_question")
+        return None
+    return found if found and found.get("kind") in TALLEYRANDS_DESK_KINDS else None
+
+
+def classify_talleyrand_question(text: str, target_nation: Optional[str] = None) -> Optional[Dict]:
+    """SFR-D16 / SFR-D26 / RR2-X7: a question put to Talleyrand that the desk
+    owns — his mission, a peace's chances, the rest of the desk's diplomacy
+    — which the diplomatic parse sent to the advisory's generic brief of the
+    court. Pure (the court the parse extracted, no world); None for every
+    other question, which keeps the advisory — his assessments of a court
+    and of Europe, and "can we …" (his feasibility card, FEASIBILITY_KEYWORDS)."""
+    if not STATE_DESK_ACTIVE or not text:
+        return None
+    norm = _norm(text)
+    found = _talleyrand_mission(norm, target_nation)
+    if found:
+        return found
+    from backend.game_logic.diplomatic_dialogue import FEASIBILITY_KEYWORDS
+    if any(kw in text.lower() for kw in FEASIBILITY_KEYWORDS):
+        return None
+    return _talleyrand_peace(norm, target_nation) or _talleyrand_board(text, target_nation)
+
+
+# RR2-X7: the desk kinds a question put to Talleyrand is answered by.
+TALLEYRANDS_DESK_KINDS = frozenset({
+    "peace_forecast", "mission", "coalition", "in_play", "war_over", "vassal_candidates",
+    "vassals", "treaties", "buyoff_price", "agenda", "wants", "demanded", "league",
+    "keep_out", "alarm", "alarm_natural", "allies", "wars", "truce_clock", "at_war",
+    "points", "why_war",
+})
+
+
 # ── the executor-side half ────────────────────────────────────────────────
 
 def _display(name: str) -> str:
@@ -929,8 +1220,12 @@ def _visible_foe(world, name: str):
         from backend.ai.question_desk import _last_report_of
         last = _last_report_of(world, name)
         if last:
+            # RR2-X1 (SF-RR2's sweep): a report filed this turn is not
+            # "0 turns ago".
+            when = ("in today's report" if int(last[1]) <= 0
+                    else f"{_plural(last[1], 'turn')} ago")
             return None, (f"Our last word of {shown} placed him at {last[0]}, "
-                          f"{_plural(last[1], 'turn')} ago — nothing since. Scout for him.")
+                          f"{when} — nothing since. Scout for him.")
         return None, f"We have no word of {shown}'s whereabouts, Sire. Scout for him."
     return enemy, shown
 
@@ -1025,12 +1320,18 @@ def _answer_force_limit(world) -> str:
     head = int(status.get("headroom") or 0)
     upkeep = world.calculate_turn_upkeep(world.player_nation) or {}
     surcharge = int(upkeep.get("surcharge") or 0)
+    # SF-RR2 (the HOLD's "how do I get it higher?"): the limit's own rule,
+    # read off the constants `WorldState.get_force_limit` sums.
+    from backend.models.world_state import FORCE_LIMIT_BASE, FORCE_LIMIT_PER_REGION
+    grows = (f" It grows with the Empire: {_money(FORCE_LIMIT_BASE)} men, and "
+             f"{_money(FORCE_LIMIT_PER_REGION)} more for every province we hold "
+             f"({len(world.get_nation_regions(world.player_nation) or [])} today).")
     if over > 0:
         return (f"The force limit is {_money(limit)} men and we field {_money(strength)} — "
                 f"{_money(over)} over it, Sire. The over-limit surcharge is {_money(surcharge)} "
-                f"gold a turn, and the levy is priced at war rates above the limit.")
+                f"gold a turn, and the levy is priced at war rates above the limit." + grows)
     return (f"The force limit is {_money(limit)} men and we field {_money(strength)}, "
-            f"Sire — {_money(head)} of headroom before the surcharge bites.")
+            f"Sire — {_money(head)} of headroom before the surcharge bites." + grows)
 
 
 def _answer_upkeep(world) -> str:
@@ -1303,7 +1604,16 @@ def _quote_sentences(world, q: Dict, me) -> str:
     return (" " + " ".join(tail)) if tail else ""
 
 
-def _answer_march_cost(world, place: str, marshal_name: str) -> str:
+def _from_elsewhere(me, origin: str) -> str:
+    """SFR-H8: a march asked "from X" while the corps stands at Y is read
+    from where he stands, and said so."""
+    if origin and origin != me.location:
+        return (f"{_display(me.name)} stands at {me.location}, not {origin}, Sire — "
+                f"reckoned from where he stands: ")
+    return ""
+
+
+def _answer_march_cost(world, place: str, marshal_name: str, origin: str = "") -> str:
     """CF-7 (Oct 17, 2026): "what would it cost to march Davout to Vienna"
     — the figures are the province panel's own quote
     (`order_quotes.march_quote`: the state probe, CRT-4's road reader, the
@@ -1317,17 +1627,18 @@ def _answer_march_cost(world, place: str, marshal_name: str) -> str:
     shown = _display(me.name)
     if me.location == place:
         return f"{shown} already stands at {place}, Sire — the march would cost nothing and go nowhere."
+    lead = _from_elsewhere(me, origin)
     q = march_quote(world, me, place)
     if not q.get("ok"):
         why = str(q.get("refusal") or "the order would be refused")
-        return f"'{q.get('command')}' would be refused today, Sire — {why}."
+        return lead + f"'{q.get('command')}' would be refused today, Sire — {why}."
     if q.get("already"):
-        return f"{str(q.get('note') or '').rstrip('.')}, Sire — nothing more to pay."
+        return lead + f"{str(q.get('note') or '').rstrip('.')}, Sire — nothing more to pay."
     road = list(q.get("road") or [])
     turns = int(q.get("turns") or 0)
     clock = ("he arrives this very turn" if turns == 0
              else f"he arrives in {_plural(turns, 'turn')}")
-    return (f"'{q.get('command')}' costs {_plural(int(q.get('ap') or 0), 'action')}, Sire, and "
+    return (lead + f"'{q.get('command')}' costs {_plural(int(q.get('ap') or 0), 'action')}, Sire, and "
             f"{clock} — the road runs {' -> '.join([me.location] + road)}."
             + _quote_sentences(world, q, me))
 
@@ -1389,6 +1700,13 @@ def _answer_marshal_options(world, marshal_name: str) -> str:
     return head
 
 
+def _refusal_sentence(shown: str, said: str, why: str) -> str:
+    """SFR-H4 (the seam): the per-verb refusal names the verb it refuses —
+    "could Soult drill his corps today?" → "Not today, Sire — Soult cannot
+    drill: Mack is at Swabia, one region away." (it read "Soult: Mack is …")."""
+    return f"Not today, Sire — {shown} cannot {said}: {why}."
+
+
 def _answer_marshal_can(world, marshal_name: str, verb: str) -> str:
     """CF-8's sibling: "can Ney fortify" — the probe's own verdict for his
     STATE and the day's actions (the target is each order's own business:
@@ -1401,7 +1719,7 @@ def _answer_marshal_can(world, marshal_name: str, verb: str) -> str:
     said, typed = _VERB_SAID.get(verb, (verb, verb))
     why = order_state_refusal(world, me, verb)
     if why:
-        return f"Not today, Sire — {shown}: {why}."
+        return _refusal_sentence(shown, said, why)
     ap = int(order_price(world, me, verb))
     price = "it is free" if ap == 0 else f"it costs {_plural(ap, 'action')}"
     return (f"Yes, Sire — {shown} can {said} today; {price}. "
@@ -1436,7 +1754,11 @@ def _answer_how_long(world, question: Dict) -> str:
                     + (f" — {reason}" if reason else "") + ".")
         road = list(road or [])
         turns = march_turns(len(road), int(getattr(me, "movement_range", 1) or 1))
-        return (f"{_display(me.name)} reaches {dest} in {_plural(turns, 'turn')} from {me.location}, "
+        # RR2-X3: a march that arrives at once is "this very turn" (the
+        # quote's own word), never "in 0 turns".
+        clock = "this very turn" if turns <= 0 else f"in {_plural(turns, 'turn')}"
+        return (_from_elsewhere(me, str(question.get("origin") or ""))
+                + f"{_display(me.name)} reaches {dest} {clock} from {me.location}, "
                 f"Sire — the road runs {' -> '.join([me.location] + road)}.")
     if len(places) >= 2:
         a, b = places[0], places[1]
@@ -1476,6 +1798,17 @@ def _answer_trust(world, name: str) -> str:
     if getattr(me, "jealous_of", ""):
         line += f" He nurses a grievance against {_display(me.jealous_of)}."
     return line
+
+
+def _obey_tail(world, name: str) -> str:
+    """SFR-D2 (the HOLD's "will Bernadotte actually obey me?"): the rule the
+    trust figure is read against, and his own gift."""
+    rule = _rule_text(world, "trust_rule", False).split(": ", 1)[-1]
+    text = " " + rule[:1].upper() + rule[1:]
+    me = _own(world, name)
+    if me is not None and not getattr(me, "is_sovereign", False):
+        text += " " + _answer_ability(world, name)
+    return text + " His card on the Generals screen (G) shows both."
 
 
 def _answer_morale(world, name: str) -> str:
@@ -1974,9 +2307,17 @@ def _answer_relation(world, nation: str) -> str:
     return _answer_stance_nation(world, nation)
 
 
-def _answer_coalition(world) -> str:
+def _answer_coalition(world, besides: Optional[List[str]] = None) -> str:
     from backend.game_logic.agendas import get_paymaster_nation
     coalition = getattr(world, "active_coalition", None)
+    # SFR-H11 (i): "who's in the Third Coalition besides Britain?" — the
+    # members the question did not name, then the whole league as before.
+    named = [b for b in (besides or []) if b in ((coalition or {}).get("members") or [])]
+    if coalition and named:
+        others = [_court(world, m) for m in (coalition.get("members") or []) if m not in named]
+        lead = (f"Besides {_join([_court(world, b) for b in named])}: "
+                f"{_join(others) if others else 'no one'}, Sire. ")
+        return lead + _answer_coalition(world)
     pay = get_paymaster_nation(world)
     if not coalition:
         line = "No coalition stands against us today, Sire."
@@ -2107,6 +2448,26 @@ def _answer_why_war(world, nation: str) -> str:
     return line
 
 
+def _verdict_words(outcome: str) -> str:
+    """SFR-D26 (the seam): the scorer's verdict in the court's words — it
+    read "scores 30 — COUNTER_OFFER, Sire"."""
+    return {"ACCEPT": "she would sign it",
+            "COUNTER_OFFER": "she would haggle over it rather than sign",
+            "REJECT": "she would refuse it"}.get(outcome, "her answer cannot be read")
+
+
+def _talleyrands_reading(world, nation: str) -> str:
+    """SFR-D26 (the seam): Talleyrand's own reading of the court — the
+    wizard's one builder (`counsel.read_counsel` + `compose_counsel_line`),
+    composed with no memory written."""
+    try:
+        from backend.game_logic.counsel import compose_counsel_line, read_counsel
+        return str((compose_counsel_line(read_counsel(world, nation), None) or {}).get("line") or "")
+    except Exception as exc:
+        report(exc, "state_desk._talleyrands_reading: counsel")
+        return ""
+
+
 def _answer_peace_forecast(world, nation: str, want: str) -> str:
     from backend.game_logic.diplomacy import calculate_acceptance
     player = world.player_nation
@@ -2121,8 +2482,14 @@ def _answer_peace_forecast(world, nation: str, want: str) -> str:
         ptype = "peace"
     if ptype in ("peace", "armistice") and state not in ("WAR", "ARMISTICE"):
         return f"We are not at war with {court}, Sire — there is no peace to ask for."
+    scored = ptype
+    if ptype == "armistice":
+        # RR2-X11: the truce is scored as the Cabinet's own row scores it —
+        # the variant the war's sign makes it (`armistice_variant_for`).
+        from backend.game_logic.diplomacy import armistice_variant_for
+        scored = armistice_variant_for(world, player, nation)
     try:
-        verdict = calculate_acceptance({"type": ptype, "proposer_nation": player,
+        verdict = calculate_acceptance({"type": scored, "proposer_nation": player,
                                         "target_nation": nation, "terms": {}}, world) or {}
     except Exception as exc:
         report(exc, "state_desk._answer_peace_forecast: calculate_acceptance")
@@ -2135,11 +2502,24 @@ def _answer_peace_forecast(world, nation: str, want: str) -> str:
         fb = " ".join(str(f) for f in feedback[:2])
     elif feedback:
         fb = str(feedback)
-    line = f"A bare {ptype} put to {court} today scores {score} — {outcome or 'uncertain'}, Sire."
-    if fb:
+    # SFR-D26: the scorer's verdict in words, never its code word
+    # (`_verdict_words`), the figure against the line a signature needs, and
+    # Talleyrand's own reading of the court (`_talleyrands_reading`).
+    from backend.game_logic.diplomacy import ACCEPT_SCORE
+    said = _verdict_words(outcome)
+    noun = {"peace": "A white peace", "armistice": "A truce", "alliance": "An alliance"}.get(ptype, f"A {ptype}")
+    line = (f"{noun} put to {court} today reads {score} of the {int(ACCEPT_SCORE)} a signature "
+            f"needs — {said}, Sire.")
+    counsel = _talleyrands_reading(world, nation) if (ptype == "peace" and state in ("WAR", "ARMISTICE")) else ""
+    if counsel:
+        # his reading names the obstacle itself; the scorer's sentence would repeat it
+        line += f" Talleyrand's reading: {counsel}"
+    elif fb:
         line += " " + fb
-    if ptype == "peace" and state == "WAR":
-        line += " The settlement table (F1) prices the terms; a white peace asks the least."
+    if ptype == "peace" and state in ("WAR", "ARMISTICE"):
+        line += f" The Cabinet (F1 → {court}) sends it; the settlement table prices the terms."
+    elif ptype in ("armistice", "alliance"):
+        line += f" The Cabinet (F1 → {court}) sends it."
     return line
 
 
@@ -2987,6 +3367,376 @@ def _answer_end_turn_asked(world) -> str:
 
 # the dispatcher ───────────────────────────────────────────────────────────
 
+# ── SF-RR2 (October 21, 2026): the rows the final reading filed ───────────
+
+# The what-if's verb → the rule paragraph that says what it does.
+_VERB_RULE_KEY = {"fortify": "fortify", "unfortify": "unfortify", "drill": "drill",
+                  "scout": "scout", "garrison": "garrison", "retreat": "retreat",
+                  "hold": "hold"}
+# The verbs done where the corps stands (a place elsewhere means a march first).
+_DONE_WHERE_HE_STANDS = frozenset({"fortify", "unfortify", "drill", "garrison", "defend", "hold"})
+
+
+def _answer_what_if_verb(world, marshal_name: str, verb: str, place: str) -> str:
+    """SFR-H9: "what happens if I order Davout to fortify in the Rhineland" —
+    the state probe's verdict and price for that verb (the chips' reader),
+    the rule paragraph the desk prints for it, and his own gift where the
+    roster ties it to the verb (`marshal_overview._build_ability`)."""
+    from backend.commands.state_probe import order_price, order_state_refusal
+    from backend.game_logic.marshal_overview import _build_ability
+    me = _own(world, marshal_name)
+    if me is None:
+        return f"{_display(marshal_name)} leads no corps of ours, Sire."
+    shown = _display(me.name)
+    said = _VERB_SAID.get(verb, (verb, verb))[0]
+    parts = []
+    if place and place != me.location and verb in _DONE_WHERE_HE_STANDS:
+        parts.append(f"{shown} stands at {me.location}, not {place}, Sire — he would {said} where he "
+                     f"stands; to {said} at {place} he must march there first.")
+    # RR2-X5: a scout reaches a neighbouring province, a retreat goes away
+    # from the enemy — neither is done "at" where he stands.
+    if verb == "scout":
+        dist = world.get_distance(me.location, place) if place else None
+        if place and dist is not None and int(dist) > 1:
+            parts.append(f"{place} lies {_plural(int(dist), 'march')} from {me.location}, Sire — "
+                         f"a scout reveals only a neighbouring province.")
+        done = f"scout {place}" if place and (dist is None or int(dist) <= 1) else "scout a neighbouring province"
+    elif verb == "retreat":
+        done = "fall back"
+    else:
+        done = f"{said} at {me.location}"
+    why = order_state_refusal(world, me, verb)
+    who = "He" if parts else shown
+    sire = "" if parts else ", Sire"
+    if why:
+        parts.append(f"{who} cannot {said} today{sire}: {why}.")
+    else:
+        ap = int(order_price(world, me, verb))
+        price = "free" if ap == 0 else _plural(ap, "action")
+        parts.append(f"{who} would {done} today{sire} — {price}.")
+    key = _VERB_RULE_KEY.get(verb)
+    if key:
+        parts.append(_rule_text(world, key, False))
+    try:
+        ab = _build_ability(me, world) or {}
+        stem = {"fortify": "fortif", "unfortify": "fortif", "drill": "drill",
+                "scout": "scout", "retreat": "retreat", "defend": "defen", "hold": "hold"}.get(verb, verb)
+        said_of = " ".join(str(ab.get(k) or "") for k in ("ability_trigger", "ability_description", "ability_effect")).lower()
+        # a gift that names the verb only to exclude it ("(not defending)") is not his gift for it
+        if ab.get("ability_name") and re.search(r"(?<!not )\b" + re.escape(stem), said_of):
+            gift = str(ab.get("ability_effect") or ab.get("ability_description") or "").strip()
+            parts.append(f"His gift — {ab['ability_name']}: {gift}".rstrip(".") + ".")
+    except Exception as exc:
+        report(exc, "state_desk._answer_what_if_verb: _build_ability")
+    parts.append("Nothing has been ordered.")
+    return " ".join(parts)
+
+
+def _answer_strike_rank(world, foe: str) -> str:
+    """SFR-H10: "which of my marshals can get at Mack soonest?" — every corps
+    of ours by when it can strike him: within the attack's own reach today
+    (`movement_range`, the range check `_attack_range_check` makes) unless
+    the state probe holds it, else the march's own clock to him
+    (`strategic.march_road` + `march_turns`, the reach answer's readers)."""
+    from backend.commands.state_probe import order_state_refusal
+    from backend.commands.strategic import march_road, march_turns
+    enemy, shown = _visible_foe(world, foe)
+    if enemy is None:
+        return shown
+    where = enemy.location
+    today, held, later = [], [], []
+    for m in _standing(world):
+        reach = int(getattr(m, "movement_range", 1) or 1)
+        dist = world.get_distance(m.location, where)
+        if dist is not None and 0 <= int(dist) <= reach:
+            why = order_state_refusal(world, m, "attack")
+            (held if why else today).append((m, why))
+            continue
+        road, refusal, _kind = march_road(world, m, where, "MOVE_TO")
+        if refusal is not None:
+            continue
+        later.append((int(march_turns(len(road or []), reach)), m))
+    lines = [f"{shown} stands at {where}, Sire."]
+    if today:
+        today.sort(key=lambda r: -int(r[0].strength))
+        names = _join([f"{_display(m.name)} ({_money(m.strength)}) at {m.location}" for m, _ in today])
+        lines.append(f"{names} can strike him today — he is within "
+                     f"{'his' if len(today) == 1 else 'their'} reach.")
+    if held:
+        lines.append("Within reach but held today: " + "; ".join(
+            f"{_display(m.name)} — {why}" for m, why in held) + ".")
+    if later:
+        later.sort(key=lambda r: (r[0], -int(r[1].strength)))
+        lines.append(("Next" if (today or held) else "Soonest") + ": " + _join(
+            [f"{_display(m.name)} from {m.location}, {_plural(t, 'turn')} to {where}" for t, m in later[:3]]) + ".")
+    if not (today or held or later):
+        lines.append("No corps of ours has a lawful road to him.")
+    lines.append("Nothing has been ordered.")
+    return " ".join(lines)
+
+
+def _answer_strength_figure(world, nation: str) -> str:
+    """SFR-H11 (ii): what the morning's "enemy strength is N% of ours" counts
+    — the dispatch's own estimator walk (`dispatch._enemy_strength_estimate_
+    detail`, its qualifier `_enemy_strength_note`), the courts at war with
+    no corps in it named, a named court answered by name."""
+    from backend.game_logic.dispatch import (_enemy_strength_estimate_detail,
+                                             _enemy_strength_note,
+                                             _get_nation_total_strength)
+    player = world.player_nation
+    ours = int(_get_nation_total_strength(world, player) or 0)
+    detail = _enemy_strength_estimate_detail(world, player)
+    total = int(detail.get("total", 0))
+    pct = f"{int(round(total * 100 / ours))}%" if ours > 0 else "no figure"
+    note = _enemy_strength_note(detail).strip("()")
+    counted = [n for n, _court_tag in detail.get("names") or []]
+    in_it = sorted({c for _n, c in detail.get("names") or [] if c})
+    line = (f"The dispatch's figure ({pct}) weighs the enemy corps in our intelligence — "
+            f"{_join([_display(n) for n in counted]) or 'none'}, about {_money(total)} men — against "
+            f"our {_money(ours)}, Sire: {note}.")
+    at_war = sorted(str(n) for n in (world.get_nations_at_war_with(player) or []))
+    if nation:
+        if nation in in_it:
+            line += f" {_court(world, nation)}'s corps in view are in it."
+        else:
+            army = re.sub(r"^Sire\s*—\s*", "", _answer_nation_army(world, nation))
+            line += f" {_court(world, nation)} is not in it — {army}"
+    else:
+        missing = [n for n in at_war if n not in in_it]
+        if missing:
+            line += f" Not in it: {_join([_court(world, n) for n in missing])} — no corps of theirs in view."
+    return line
+
+
+# A question's answer that is itself a refusal ("can Davout attack Mack" —
+# "The order would be refused, Sire: …").
+_HYPOTHETICAL_REFUSAL_RE = re.compile(
+    r"\bwould be refused\b|^Not today\b|\bcannot\b|\bcould not\b|\bno lawful road\b", re.IGNORECASE)
+
+
+def _answer_why_failed(world) -> str:
+    """SFR-H12: "why did that fail" — the last line's own reply, as the wire
+    carried it: a refused order, or a question whose answer was a refusal
+    ("can Davout attack Mack" → "the order would be refused"); else the last
+    order's. `main._close_parse_trace` keeps both on the transient
+    `world._last_reply` / `_last_order_reply` (display only, never saved)."""
+    last = getattr(world, "_last_reply", None) or {}
+    said = str(last.get("message") or "")
+    if not (last.get("rule") == "refused" or (
+            last.get("question") and _HYPOTHETICAL_REFUSAL_RE.search(said)
+            and "cannot answer that from the dispatches" not in said)):
+        last = getattr(world, "_last_order_reply", None) or {}
+    line = str(last.get("line") or "")
+    if not line:
+        return ("No order of yours is on record this session, Sire — the campaign log "
+                "(press L) keeps what has been done.")
+    message = str(last.get("message") or "").strip()
+    when = "" if int(last.get("turn", -1)) == int(world.current_turn) else " (an earlier day's)"
+    if last.get("question"):
+        return (f"'{line}' was a question{when}, Sire, and nothing was spent — the answer was a refusal: "
+                f"{message}")
+    if last.get("rule") == "refused":
+        return f"Your last order{when} — '{line}' — was refused, Sire: {message}"
+    if last.get("rule") == "asked":
+        return f"Your last order{when} — '{line}' — did not fail, Sire: it waits on a question. {message}"
+    return f"Your last order{when} — '{line}' — did not fail, Sire: {message}"
+
+
+def _answer_happened_at(world, place: str) -> str:
+    """SFR-D2 "what happened at Swabia?" — the campaign log's rows that
+    name the place (`filter_campaign_log`, the log screen's fog filter;
+    `format_event_oneliner`, its lines), the latest first."""
+    from backend.campaign_log import filter_campaign_log, format_event_oneliner
+    rows = list(getattr(world, "event_log", None) or [])[-400:]
+    try:
+        rows = list(filter_campaign_log(rows, world) or [])
+    except Exception as exc:
+        report(exc, "state_desk._answer_happened_at: filter_campaign_log")
+        rows = []
+    forms = _forms(place)
+    hits = []
+    for r in reversed(rows):
+        kind = str(r.get("type") or "")
+        if kind.startswith(("relationship", "glory", "grievance")):
+            continue  # the battle's own ledger rows; the battle says it
+        blob = _norm(" ".join(str(v) for v in r.values() if isinstance(v, str)))
+        if any(_contains(blob, f) for f in forms):
+            hits.append(r)
+        if len(hits) >= 12:
+            break
+    # the battles first, then the rest, each latest first
+    hits = sorted(hits, key=lambda r: (0 if "battle" in str(r.get("type") or "") else 1,
+                                       -int(r.get("turn", 0) or 0)))[:3]
+    region = world.get_region(place)
+    holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+    tail = f" {place} is {_court(world, holder)}'s." if holder else ""
+    if not hits:
+        return f"Nothing at {place} is on our record, Sire.{tail}"
+    lines = []
+    for r in hits:
+        try:
+            text = str(format_event_oneliner(r, world=world))
+        except Exception as exc:
+            report(exc, "state_desk._answer_happened_at: format_event_oneliner")
+            text = str(r.get("message") or r.get("type"))
+        lines.append(f"turn {int(r.get('turn', 0) or 0)}: {text}")
+    return f"At {place}, Sire — " + "; ".join(lines) + "." + tail
+
+
+def _answer_court_holds(world, nation: str) -> str:
+    """SFR-D2 "who holds Bavaria?" — Bavaria is a court: what it holds
+    (the cached `get_nation_regions`, GR8) and where it stands with us."""
+    court = _court(world, nation)
+    held = sorted(world.get_nation_regions(nation) or [])
+    if not held:
+        return f"{court} holds no province today, Sire."
+    cap = str(world.get_nation_capital(nation) or "")
+    shown = held[:6] + ([f"{len(held) - 6} more"] if len(held) > 6 else [])
+    line = (f"{court} is a court, Sire, not a province — it holds {_plural(len(held), 'province')}: "
+            f"{_join(shown)}" + (f", its capital {cap}" if cap and cap in held else "") + ".")
+    return line + " " + _answer_stance_nation(world, nation).split(", Sire.")[0].replace(
+        f"{court} is ", "It is ", 1) + "."
+
+
+def _answer_trust_all(world) -> str:
+    """SFR-D2 "how loyal are my marshals?" — every man's trust (the Generals
+    screen's figure and label), the lowest first."""
+    rows = []
+    for m in _standing(world):
+        if getattr(m, "is_sovereign", False):
+            continue
+        trust = getattr(m, "trust", None)
+        value = int(getattr(trust, "value", 0) or 0)
+        try:
+            label = str(trust.get_label())
+        except Exception as exc:
+            report(exc, "state_desk._answer_trust_all: trust.get_label")
+            label = ""
+        rows.append((value, _display(m.name), label))
+    if not rows:
+        return "No marshal of ours stands in the field, Sire."
+    rows.sort()
+    low = [n for v, n, _l in rows if v < 40]
+    line = "Their trust, Sire: " + "; ".join(f"{n} {v}" + (f" ({lab})" if lab else "") for v, n, lab in rows) + "."
+    if low:
+        line += f" Below 40, {_join(low)} may object to an order and defy it."
+    return line + " Each card on the Generals screen (G) shows why."
+
+
+def _answer_vassal_candidates(world) -> str:
+    """SFR-D2 "who could become our vassal?" — the Cabinet's Propose Vassal
+    row (`diplomacy.get_available_diplomatic_actions`, its one verdict and
+    band), asked of each court whose page could carry it."""
+    from backend.game_logic.diplomacy import VASSAL_MIN_STATES, get_available_diplomatic_actions
+    player = world.player_nation
+    vassals = set((getattr(world, "vassals", {}) or {}).keys())
+    open_rows, near, shut, at_war = [], [], [], []
+    for nation in sorted(world.get_active_nations()):
+        if nation == player or nation in vassals:
+            continue
+        state = world.get_diplomatic_state(player, nation)
+        if state not in VASSAL_MIN_STATES:
+            shut.append(nation)
+            continue
+        if state == "WAR":
+            at_war.append(nation)   # the WAR page carries no such row: a dictated peace does it
+            continue
+        row = next((r for r in get_available_diplomatic_actions(world, nation)
+                    if r.get("action") == "propose_vassal"), None)
+        if row is None:
+            continue
+        if row.get("available"):
+            open_rows.append((-int(row.get("likelihood_score") or 0), nation, str(row.get("likelihood") or "")))
+        else:
+            # RR2-X10: a court the state gate lets through but the row shuts
+            # is named with its own reason, never folded into the commonest.
+            near.append((nation, str(row.get("disabled_reason_display") or row.get("disabled_reason") or "shut")))
+    if open_rows:
+        open_rows.sort()
+        line = ("The Cabinet's Propose Vassal row is open today for " + _join(
+            [f"{_court(world, n)} ({band.lower() or 'unread'}, {-s})" for s, n, band in open_rows[:6]])
+            + ", Sire (F1 → the court → Propose Vassal).")
+    else:
+        line = "No court's Propose Vassal row is open today, Sire."
+    if near:
+        line += " Shut today: " + "; ".join(f"{_court(world, n)} — {why.rstrip('.')}" for n, why in near[:4]) + "."
+    if at_war:
+        line += (f" At war with us: {_join([_court(world, n) for n in at_war])} — a court at war "
+                 f"is made a vassal only by a dictated peace.")
+    if shut:
+        line += (f" The other {_plural(len(shut), 'court')} stand below open borders with us — "
+                 f"the row needs open borders or better.")
+    return line
+
+
+def _answer_in_play(world, nation: str) -> str:
+    """SFR-D2 "is Sardinia still in play?" — the allegiance auction's own
+    record (`world.allegiance_auctions`), or its last word in the log."""
+    from backend.game_logic.ai_diplomacy import open_allegiance_auctions
+    court = _court(world, nation)
+    record = (getattr(world, "allegiance_auctions", {}) or {}).get(nation)
+    if record:
+        left = max(0, int(record.get("resolves_turn", 0) or 0) - int(world.current_turn))
+        bids = record.get("bids") or {}
+        ours = int(bids.get(world.player_nation, 0) or 0)
+        line = (f"Yes, Sire — {court}'s allegiance is in play; the flip resolves in "
+                f"{_plural(left, 'turn')} (turn {int(record.get('resolves_turn', 0) or 0)}).")
+        line += (f" We have laid {_money(ours)} gold before it." if ours else " We have laid no bid.")
+        return line + " Its Cabinet row (F1 → the court → Bid for Their Allegiance) lays a sum."
+    last = next((e for e in reversed(getattr(world, "event_log", None) or [])
+                 if str(e.get("type", "")).startswith("allegiance_auction") and e.get("nation") == nation), None)
+    others = [c for c in open_allegiance_auctions(world) if c != nation]
+    line = f"No, Sire — {court}'s allegiance is not in play today."
+    if last:
+        line += f" Its last auction ({str(last.get('type')).replace('allegiance_auction_', '')}) was on turn {int(last.get('turn', 0) or 0)}."
+    if others:
+        line += f" In play: {_join([_court(world, c) for c in others])}."
+    return line
+
+
+def _answer_war_over(world, nation: str) -> str:
+    """SFR-D2 "is the war with Austria over?" — the pair's state, by the
+    war desk's own answers (`_answer_at_war`, `_answer_truce_clock`)."""
+    from backend.ai.question_desk import _answer_at_war, _answer_truce_clock
+    player = world.player_nation
+    state = str(world.get_diplomatic_state(player, nation) or "PEACE")
+    if state == "WAR":
+        return "Not yet, Sire — " + str(_answer_at_war(world, player, nation) or "").replace(
+            "Yes, Sire — ", "", 1)
+    if state == "ARMISTICE":
+        return "Not yet, Sire — a truce holds. " + str(_answer_truce_clock(world, player, nation) or "")
+    return f"Yes, Sire — there is no war with {_court(world, nation)}. " + str(
+        _answer_at_war(world, player, nation) or "").replace("No, Sire. ", "")
+
+
+def _answer_mission(world, nation: str) -> str:
+    """SFR-D16: "Talleyrand, how is the Prussian mission going?" — the
+    mission's own status (`diplomatic_dialogue.mission_status`, what the
+    ledger, the rail and the Talleyrand tab read) in the rail's words."""
+    from backend.game_logic.diplomatic_dialogue import _mission_message, mission_status
+    from backend.game_logic.ledger import last_mission_record
+    status = mission_status(world)
+    if status is None:
+        last = last_mission_record(world)
+        line = "Talleyrand has no mission running, Sire"
+        if last:
+            line += (f" — the last, {last['type_display']} to {last['target_display']}, "
+                     f"{last.get('reason_phrase') or 'ended'}")
+        return line + ". The Cabinet (F1 → a court) sends him."
+    lead = ""
+    if nation and nation != status["target"]:
+        lead = (f"Talleyrand has no mission at {_court(world, nation)}, Sire — he is at "
+                f"{status['target_display']} ({status['type_display']}). ")
+    body = _mission_message(world, "running", status, dict(world.active_diplomatic_mission or {}), {})
+    since = (f" Begun on turn {status['started_turn']}: {_plural(status['turns_active'], 'turn')}, "
+             f"{status['dp_spent']} DP, relations {status['initial_relation']:+d} to {status['current_relation']:+d}.")
+    if status["type"] == "GATHER_INTEL":
+        since = f" Begun on turn {status['started_turn']}: {_plural(status['turns_active'], 'turn')}, {status['dp_spent']} DP."
+    head = lead or f"{status['type_display']} — {status['target_display']}, Sire: "
+    recall = " The Cabinet's Recall ends it." if status.get("recall_command") else ""
+    return head + body + since + recall
+
+
 def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
     if not STATE_DESK_ACTIVE or not question or world is None:
         return None
@@ -2995,6 +3745,30 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
     try:
         if kind == "unknown_name":
             return _answer_unknown_name(world, question)
+        # SF-RR2 (Oct 21, 2026)
+        if kind == "what_if_verb":
+            return _answer_what_if_verb(world, subject, str(question.get("verb") or ""),
+                                        str(question.get("place") or ""))
+        if kind == "strike_rank":
+            return _answer_strike_rank(world, subject)
+        if kind == "strength_figure":
+            return _answer_strength_figure(world, subject)
+        if kind == "why_failed":
+            return _answer_why_failed(world)
+        if kind == "happened_at":
+            return _answer_happened_at(world, subject)
+        if kind == "court_holds":
+            return _answer_court_holds(world, subject)
+        if kind == "trust_all":
+            return _answer_trust_all(world)
+        if kind == "vassal_candidates":
+            return _answer_vassal_candidates(world)
+        if kind == "in_play":
+            return _answer_in_play(world, subject)
+        if kind == "war_over":
+            return _answer_war_over(world, subject)
+        if kind == "mission":
+            return _answer_mission(world, subject)
         if kind == "reward":
             return _answer_reward(world, subject)
         if kind == "end_turn_asked":
@@ -3074,13 +3848,17 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
         if kind == "how_long":
             return _answer_how_long(world, question)
         if kind == "march_cost":
-            return _answer_march_cost(world, subject, str(question.get("marshal") or ""))
+            return _answer_march_cost(world, subject, str(question.get("marshal") or ""),
+                                      str(question.get("origin") or ""))
         if kind == "marshal_options":
             return _answer_marshal_options(world, subject)
         if kind == "marshal_can":
             return _answer_marshal_can(world, subject, str(question.get("verb") or ""))
         if kind == "trust":
-            return _answer_trust(world, subject)
+            text = _answer_trust(world, subject)
+            if question.get("obey"):
+                text += _obey_tail(world, subject)
+            return text
         if kind == "morale":
             return _answer_morale(world, subject)
         if kind == "ability":
@@ -3127,7 +3905,12 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
         if kind == "jealous":
             return _answer_jealous(world, subject)
         if kind == "expectation":
-            return _answer_expectation(world, subject)
+            text = _answer_expectation(world, subject)
+            if question.get("deserve"):
+                # SFR-D2 "who deserves a reward?": who is owed, then who has
+                # won the most (the glory ladder's own answer).
+                text += " " + _answer_glory(world, "")
+            return text
         if kind == "army_total":
             return _answer_army_total(world)
         if kind == "authority":
@@ -3147,7 +3930,7 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
         if kind in ("stance_nation", "relation"):
             return _answer_stance_nation(world, subject)
         if kind == "coalition":
-            return _answer_coalition(world)
+            return _answer_coalition(world, list(question.get("besides") or []))
         if kind == "alarm_natural":
             return _answer_alarm_natural(world)
         if kind == "buyoff_price":

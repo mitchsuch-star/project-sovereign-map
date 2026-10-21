@@ -831,6 +831,21 @@ def _close_parse_trace(world, response: dict) -> None:
     trace.rows.append({"stage": "reply", "rule": _rule, "detail": _detail})
     if not trace.preserve_last:
         world._last_parse_trace = {"line": trace.line, "rows": list(trace.rows)}
+        # SFR-H12 (SF-RR2): the last line's reply and the last ORDER's,
+        # kept for "why did that fail" (the TYPED arm asked it of a
+        # question's "the order would be refused"). Transient, display only,
+        # never saved (the `_last_parse_trace` rule, GR6).
+        # RR2-X2: "why did that fail" never records itself (asked twice, it
+        # would explain its own answer).
+        if trace.line and _ptrace.question_kind(trace.rows) != "why_failed":
+            _full = str(response.get("message") or "").strip()
+            _reply = {"line": trace.line.strip(), "rule": _rule,
+                      "message": _full.split("\n\n")[0][:400],
+                      "question": _ptrace.read_as_a_question(trace.rows),
+                      "turn": int(getattr(world, "current_turn", 0) or 0)}
+            world._last_reply = _reply
+            if not _reply["question"]:
+                world._last_order_reply = _reply
     if trace.wire:
         response["parse_trace"] = list(trace.rows)
 

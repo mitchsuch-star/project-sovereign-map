@@ -561,6 +561,17 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         _LEAD + r"(?:what(?:" + _APOS + r"s|\s+is)\s+(?:our|my|france" + _APOS + r"s)\s+"
         r"(?:army" + _APOS + r"s\s+)?doctrine"
         r"|how\s+(?:does|do)\s+(?:our|my)\s+army\s+fight)" + _TAIL, re.IGNORECASE)),
+    # SFR-H14 (SF-RR2, Oct 21, 2026): "whats the flaw in our doctrine" — the
+    # doctrine's flaw (or strength) asked of it, the apostrophe optional.
+    # Answered as `doctrine_own` (the seam `doctrine_flaw_kind`).
+    ("doctrine_flaw", re.compile(
+        _LEAD + r"(?:what(?:" + _APOS + r"?s|\s+is|\s+are)\s+(?:the\s+|our\s+)?"
+        r"(?:flaws?|weakness(?:es)?|strengths?|problems?|catch|trouble|weak\s+(?:point|spot))\s+"
+        r"(?:in|of|with)\s+(?:our|my|france" + _APOS + r"s|the\s+french)\s+(?:army" + _APOS + r"s\s+)?doctrine"
+        # RR2-X9: "whats our doctrine's flaw"
+        r"|what(?:" + _APOS + r"?s|\s+is|\s+are)\s+(?:our|my|france" + _APOS + r"s)\s+(?:army" + _APOS + r"s\s+)?"
+        r"doctrine(?:" + _APOS + r"s)?\s+(?:flaws?|weakness(?:es)?|strengths?|problems?|catch|weak\s+(?:point|spot)))"
+        + _TAIL, re.IGNORECASE)),
     ("doctrine_nation", re.compile(
         _LEAD + r"what(?:" + _APOS + r"s|\s+is|\s+are)\s+(?:the\s+)?(?P<name>[A-Za-z][\w .-]*?)"
         r"(?:" + _APOS + r"s)?\s+(?:army" + _APOS + r"s\s+)?"
@@ -733,7 +744,9 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         _LEAD + r"(?:can|could)\s+" + _HON
         + r"(?P<name>[\w'’-]+(?:\s+[\w'’-]+)?)"
         r"\s+(?:reach|get\s+to|make\s+it\s+to)\s+(?:the\s+)?"
-        r"(?P<place>.+?)" + _TAIL, re.IGNORECASE)),
+        r"(?P<place>.+?)"
+        # RR2-X4 (SF-RR2's sweep): "can Ney reach Vienna from Bohemia?"
+        r"(?:\s+from\s+(?:the\s+)?(?P<origin>[A-Za-z][\w'’ -]*?))?" + _TAIL, re.IGNORECASE)),
     # SR session-exit residue F2 (Sept 26, 2026): the NAMED what-if. The
     # subject is captured, so "should Davout attack Mack" weighs Davout, and
     # the verb reads its inflections and the province verbs ("what if Ney
@@ -824,8 +837,21 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
 # diplomatic points and the day's orders. Its own pattern (not a `_WIDE_KINDS`
 # row) because the parser must ask it BEFORE the diplomat's address, whose
 # name "diplomat" is a substring of "diplomatic".
+# SFR-D19 (SF-RR2, Oct 21, 2026): "how many action points do I have?" read
+# the rules of the day (the state desk's `ap` rule) while "how many actions
+# do I have left?" counted — the AP the help names are the day's orders.
+_ACTION_POINTS_RE = re.compile(r"\baction\s+points?\b|\baps?\b", re.IGNORECASE)
+
+
+def action_points_kind(text: str) -> Optional[Dict]:
+    """SFR-D19 (the seam): "how many action points (AP) do I have?" is the
+    day's orders counted first — it printed the rules of the day."""
+    if _ACTION_POINTS_RE.search(text or ""):
+        return {"kind": "points", "subject": "", "subject_type": "board", "lead": "orders"}
+    return None
 _POINTS_RE = re.compile(
-    _LEAD + r"(?:how\s+many\s+(?:(?:diplomatic\s+)?points|dps?|(?:military\s+|admin(?:istrative)?\s+)?"
+    _LEAD + r"(?:how\s+many\s+(?:(?:diplomatic\s+)?points|action\s+points?|aps?"
+    r"|dps?|(?:military\s+|admin(?:istrative)?\s+)?"
     r"(?:actions|orders))"
     r"(?:\s+(?:do|have|has)\s+(?:i|we|you|he|talleyrand)(?:\s+(?:got|have|left))?)?"
     r"(?:\s+(?:left|remaining|to\s+spend))?"
@@ -839,6 +865,8 @@ def classify_points_question(text: str) -> Optional[Dict]:
     if not text:
         return None
     if _POINTS_RE.match(text.strip()):
+        if _ACTION_POINTS_RE.search(text):
+            return action_points_kind(text)
         return {"kind": "points", "subject": "", "subject_type": "board"}
     return None
 
@@ -859,6 +887,12 @@ THE_DESK_READS_THE_ALARM = True
 # march and the price to keep each court out — off `coalition.league_forecast`
 # (the alarm's answer names it too). False = the two kinds shrug.
 THE_DESK_READS_THE_LEAGUE = True
+def doctrine_flaw_kind() -> Optional[Dict]:
+    """SFR-H14 (the seam): "whats the flaw in our doctrine" is the doctrine
+    answer — it shrugged."""
+    return {"kind": "doctrine_own", "subject": "", "subject_type": "board"}
+
+
 # CRT-7 / AAR-17: the kinds the desk's war-question rule owns (the desk
 # answers the war question).
 _WAR_QUESTION_KINDS = frozenset({"wars", "allies", "safe", "truce_clock",
@@ -897,6 +931,11 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
             return weighed
         if kind in _SUBJECTLESS_KINDS:
             return {"kind": kind, "subject": "", "subject_type": "board"}
+        if kind == "doctrine_flaw":
+            flaw = doctrine_flaw_kind()
+            if flaw is None:
+                continue
+            return flaw
         if kind == "doctrine_own":
             return {"kind": kind, "subject": "", "subject_type": "board"}
         if kind == "doctrine_nation":
@@ -955,8 +994,10 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
                              kind="who_holds")
             if not who or not where:
                 continue
+            origin = _resolve(groups.get("origin") or "", (), (), regions,
+                              kind="who_holds") if groups.get("origin") else None
             return {"kind": kind, "subject": who[0], "subject_type": "marshal",
-                    "place": where[0]}
+                    "place": where[0], "origin": origin[0] if origin else ""}
         if kind == "what_if":
             foe = _resolve(groups.get("name") or "", (), enemies, (),
                            kind="where")
@@ -2554,7 +2595,7 @@ def surface_pointer(kind: str) -> Optional[str]:
     return _pointer(kind)
 
 
-def _answer_points(world, player: str) -> str:
+def _answer_points(world, player: str, lead: str = "") -> str:
     """The session exit's residue (Sept 28, 2026): the Emperor's own counts,
     read off what the top bar and the command header print — the diplomatic
     pool, its ceiling (`diplomacy.displayed_dp_ceiling`) and the refill's
@@ -2577,6 +2618,14 @@ def _answer_points(world, player: str) -> str:
     head += (f"; what he leaves unspent carries one turn, to at most "
              f"{D.DP_BANK_CAP}")
     summary = world.get_action_summary()
+    if lead == "orders":
+        # SFR-D19: "how many action points do I have?" — the day's orders
+        # first (the header's own count), the diplomatic pool after.
+        return (f"Today {int(summary['actions_remaining'])} of "
+                f"{plural(int(summary['max_actions']), 'order')} (military actions) remain, Sire, and "
+                f"{int(summary['admin_actions_remaining'])} of "
+                f"{plural(int(summary['max_admin_actions']), 'administrative action')}. "
+                f"{head}.")
     return (f"{head}. Today {int(summary['actions_remaining'])} of "
             f"{plural(int(summary['max_actions']), 'order')} remain, and "
             f"{int(summary['admin_actions_remaining'])} of "
@@ -2620,8 +2669,16 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
         if kind == "keep_out":
             return _answer_keep_out(world, player, subject)
         if kind == "reach":
-            return _answer_reach(world, player, subject,
-                                 str(question.get("place") or ""))
+            answer = _answer_reach(world, player, subject,
+                                   str(question.get("place") or ""))
+            origin = str(question.get("origin") or "")
+            me = world.get_marshal(subject)
+            if answer and origin and me is not None and origin != me.location:
+                # RR2-X4: asked "from" where he does not stand — said, and
+                # reckoned from where he stands.
+                answer = (f"{_display(subject)} stands at {me.location}, not {origin}, Sire — "
+                          f"reckoned from where he stands: " + answer)
+            return answer
         if kind == "what_if":
             _named = str(question.get("marshal") or "")
             _foreign = bool(question.get("marshal_foreign"))
@@ -2653,7 +2710,7 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
         if kind == "own_army":
             return _answer_own_army(world, player)
         if kind == "points":
-            return _answer_points(world, player)
+            return _answer_points(world, player, str(question.get("lead") or ""))
         # CRT-7 / AAR-17: the war question and its kin.
         if kind == "wars":
             return _answer_wars(world, player)

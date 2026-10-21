@@ -5069,16 +5069,19 @@ def _enemy_strength_note(detail: Dict[str, int]) -> str:
     return "(known corps only — unscouted armies are not counted)"
 
 
-def _enemy_strength_estimate_detail(world, player_nation: str) -> Dict[str, int]:
+def _enemy_strength_estimate_detail(world, player_nation: str) -> Dict[str, Any]:
     """WO-10 (slice 12): the estimator's arithmetic with its COVERAGE —
     `total` (what the dispatch always used), `counted` (known enemy corps)
     and `exact` (those read at FULL). One pass; the ratio and its
-    qualifier come from the same walk."""
+    qualifier come from the same walk. SFR-H11 (SF-RR2): `names` — the
+    corps it counted, with their courts, so the desk can say what the
+    figure holds and what it leaves out."""
     total = 0
     counted = 0
     exact = 0
     # Track which marshal names we've already counted to avoid doubles
     counted_marshals: set = set()
+    names: List[tuple] = []
 
     for region_name, intel in world.intel.items():
         if intel.visibility == UNKNOWN:
@@ -5092,6 +5095,7 @@ def _enemy_strength_estimate_detail(world, player_nation: str) -> Dict[str, int]
                 continue
             counted_marshals.add(name)
             counted += 1
+            names.append((name, str(km.get("nation") or "")))
 
             if intel.visibility == FULL and "strength" in km:
                 total += int(km["strength"])
@@ -5106,7 +5110,8 @@ def _enemy_strength_estimate_detail(world, player_nation: str) -> Dict[str, int]
                 # No strength data at all — use region-level band
                 total += BAND_MIDPOINTS.get(intel.strength_band, 0)
 
-    return {"total": int(total), "counted": int(counted), "exact": int(exact)}
+    return {"total": int(total), "counted": int(counted), "exact": int(exact),
+            "names": names}
 
 
 # ============================================================================

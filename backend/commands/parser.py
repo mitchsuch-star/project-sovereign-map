@@ -1299,6 +1299,23 @@ A_QUESTION_IS_NEVER_SPLIT = True
 # retreat ("fall back - I don't like Swabia"); only "to/toward <place>"
 # makes it a march. False restores the phantom-destination refusal.
 A_REASON_TAIL_IS_NOT_A_DESTINATION = True
+# RR2-X12 (SF-RR2's census, October 21, 2026): "Davout strikes Mack, cavalry
+# to follow." — the strategic layer read the tail's "follow" as a FOLLOW of
+# nobody in particular and its generic target overrode the attack: Davout
+# marched to support Bernadotte. An attack the chain read on a named foe is
+# never replaced by a support or follow that names no friend (the seam
+# `_a_generic_follow_keeps_the_attack`).
+
+
+def _a_generic_follow_keeps_the_attack(action: str, strategic, target, known_enemies) -> bool:
+    """RR2-X12 (the seam): True when a strategic SUPPORT / FOLLOW with no
+    named friend would override the attack the chain read on a named foe."""
+    return bool(strategic and action == "attack"
+                and strategic.get("strategic_type") == "SUPPORT"
+                and (strategic.get("target") or "generic") == "generic"
+                and (target or "") in (known_enemies or ()))
+
+
 _DESTINATION_PREPOSITION_RE = re.compile(
     r"\b(?:fall\s+back|withdraw|retire|pull\s+back|retreat)\s+(?:to|towards?|into|on|upon|for)\s+\w",
     re.IGNORECASE)
@@ -2274,10 +2291,14 @@ class CommandParser:
                 # since the session exit of September 28, 2026, so is his
                 # count of the points ("Talleyrand, how many points do we
                 # have?" had been refused as a marshal typo).
+                # SF-RR2 (SFR-D16 / D26, RR2-X7): and the desk's own answers
+                # to the questions put to him — his mission, a peace's
+                # chances, the rest of the desk's diplomacy.
+                from backend.ai.state_desk import TALLEYRANDS_DESK_KINDS
                 if (addressed
                         and (llm_result.get("action") in ("enact_law", "repeal_law")
                              or (llm_result.get("question") or {}).get("kind")
-                             in ("laws", "points"))
+                             in ({"laws", "points"} | TALLEYRANDS_DESK_KINDS))
                         and (any(name in addressed.lower()
                                  for name in DIPLOMAT_ADDRESS_NAMES)
                              or addressed.lower().strip() in (
@@ -3661,6 +3682,13 @@ class CommandParser:
                     if (strategic and A_REASON_TAIL_IS_NOT_A_DESTINATION and str(llm_result.get("action") or "") == "retreat" and strategic.get("strategic_type") == "MOVE_TO" and not _names_a_destination_preposition(effective_text)):
                         strategic = None
                     if (strategic and _resolved_action == "retreat" and strategic.get("strategic_type") == "MOVE_TO" and (strategic.get("target") or "generic") == "generic"):
+                        strategic = None
+                    if (strategic and _resolved_action == "attack"
+                            and _a_generic_follow_keeps_the_attack(
+                                _resolved_action, strategic, command_dict.get("target"),
+                                self._get_known_enemies(world))):
+                        _ptrace.note("strategic", "generic_follow_kept_the_attack",
+                                     "SUPPORT", command_dict.get("target"))
                         strategic = None
                     if strategic:
                         result["is_strategic"] = True
