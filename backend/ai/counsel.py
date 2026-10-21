@@ -697,6 +697,8 @@ _SURFACE_FOR_KIND = {
     # GE-3: the Congress of Paris — the table of the great powers' answers,
     # their reasons and their prices (ENDGAME_PLAN §4).
     "congress": ("the Diplomatic Ledger's Congress tab", "press D, then 7"),
+    # SFR-B15: the satellites' chips (Invest, Loosen Rein, Cede Province…).
+    "vassals": ("the Diplomatic Ledger's Vassals tab", "press D, then 6"),
     "war": ("the war banner on the left", "click the war"),
     "gazette": ("Le Moniteur", "press N"),
     "log": ("the campaign log", "press L"),

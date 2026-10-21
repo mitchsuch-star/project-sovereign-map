@@ -1144,13 +1144,20 @@ def _display(name: str) -> str:
     return humanize_entity_name(name)
 
 
-def _court(world, nation: str) -> str:
-    from backend.display_names import display_nation
-    try:
-        return display_nation(nation)
-    except Exception as exc:
-        report(exc, "state_desk._court: display_nation")
-        return _display(nation)
+def _court(world, nation: str, *, start: bool = False) -> str:
+    """A court in a sentence — the question desk's (SFR-D14 (iv)): its
+    current name with the article English wants, "The" opening a sentence."""
+    from backend.ai.question_desk import _court as court_in_a_sentence
+    return court_in_a_sentence(world, nation, start=start)
+
+
+def _possessive(name: str) -> str:
+    from backend.ai.question_desk import _possessive as possessive
+    return possessive(name)
+
+
+def _cap(text: str) -> str:
+    return text[:1].upper() + text[1:]
 
 
 def _money(value) -> str:
@@ -1829,7 +1836,7 @@ def _answer_ability(world, name: str) -> str:
     if me is None:
         return f"I know no corps under {_display(name)}, Sire."
     if me.nation != world.player_nation:
-        return f"{_display(name)} is {_court(world, me.nation)}'s, Sire — his gifts are his court's affair."
+        return f"{_display(name)} is {_possessive(_court(world, me.nation))}, Sire — his gifts are his court's affair."
     ab = _build_ability(me, world) or {}
     title = ab.get("ability_name") or ""
     if not title:
@@ -1968,7 +1975,12 @@ def _answer_eta(world, name: str) -> str:
         return f"{_display(me.name)} holds no standing order, Sire — he stands at {me.location}."
     eta = order_eta_phrase(order, world.current_turn, movement_range=int(getattr(me, "movement_range", 1) or 1),
                            location=me.location)   # CC-X16
-    return f"{_display(me.name)} — {str(getattr(order, 'command_type', '')).lower()} {getattr(order, 'target', '')}: {eta}."
+    # RR3-X2 (SFR-D14 (ii)'s sibling): "Davout — move_to Franconia:  — 4
+    # turns out." spliced the raw type and a doubled dash; the order reads
+    # as the desk's "where is" answer reads it.
+    from backend.ai.question_desk import _order_phrase
+    phrase = _order_phrase(order).rstrip(".")
+    return f"{_display(me.name)}: {phrase[:1].lower()}{phrase[1:]}{eta}."
 
 
 def _answer_roster(world) -> str:
@@ -2179,8 +2191,8 @@ def _answer_foreign_fleet(world, nation: str) -> str:
     theirs = naval.get_fleet(world, nation) or {}
     ours = naval.get_fleet(world, world.player_nation) or {}
     if not theirs:
-        return f"{_court(world, nation)} keeps no fleet our Admiralty counts, Sire."
-    line = (f"{_court(world, nation)} musters {_plural(int(theirs.get('ships') or 0), 'sail')} "
+        return f"{_court(world, nation, start=True)} keeps no fleet our Admiralty counts, Sire."
+    line = (f"{_court(world, nation, start=True)} musters {_plural(int(theirs.get('ships') or 0), 'sail')} "
             f"({theirs.get('admiral') or 'their admiralty'}), Sire")
     if ours:
         line += f", against our {int(ours.get('ships') or 0)}"
@@ -2265,6 +2277,14 @@ def _answer_closure(world) -> str:
 
 # diplomacy ─────────────────────────────────────────────────────────────────
 
+def _price_in_words(payload) -> str:
+    """SFR-B12: the rung as a sentence says it (`intent.price_words`)."""
+    if not payload.get("price"):
+        return str(payload.get("price_display") or "nothing").lower()
+    from backend.game_logic.intent import price_words
+    return price_words(str(payload["price"]))
+
+
 def _intent_clause(world, nation: str) -> str:
     try:
         from backend.game_logic.intent import build_intent_payload
@@ -2272,7 +2292,7 @@ def _intent_clause(world, nation: str) -> str:
         if p.get("want_title"):
             line = (f"Talleyrand reads its design as {p['want_title']}, against "
                     f"{p.get('against_display') or 'nobody'}; it would go as far as "
-                    f"{str(p.get('price_display') or 'nothing').lower()} for it (weight {p.get('weight')}).")
+                    f"{_price_in_words(p)} for it (weight {p.get('weight')}).")
             extra = str(p.get("defenceless_prize_line") or "")
             return line + (f" {extra[0].upper() + extra[1:]}." if extra else "")
         if p.get("summary"):
@@ -2294,7 +2314,7 @@ def _answer_stance_nation(world, nation: str) -> str:
     words = {"WAR": "at war with us", "ARMISTICE": "under a truce with us", "PEACE": "at peace with us",
              "OPEN_BORDERS": "open to our armies", "NON_AGGRESSION": "bound to us by a non-aggression pact",
              "DEFENSIVE_ALLIANCE": "our defensive ally", "ALLIANCE": "our ally", "VASSAL": "our vassal"}
-    line = f"{court} is {words.get(state, state.lower())}, relation {rel:+d}, Sire."
+    line = f"{_cap(court)} is {words.get(state, state.lower())}, relation {rel:+d}, Sire."
     if member:
         line += " It stands in the coalition against us."
     intent = _intent_clause(world, nation)
@@ -2348,8 +2368,8 @@ def _answer_buyoff(world, nation: str) -> str:
     from backend.game_logic.instruments import compute_buyoff_price
     price = compute_buyoff_price(world, nation)
     if price is None:
-        return f"{_court(world, nation)} has no design we could buy off today, Sire."
-    return f"Buying off {_court(world, nation)}'s design would cost {_money(price)} gold, Sire, and one diplomatic point."
+        return f"{_court(world, nation, start=True)} has no design we could buy off today, Sire."
+    return f"Buying off {_possessive(_court(world, nation))} design would cost {_money(price)} gold, Sire, and one diplomatic point."
 
 
 def _answer_war_score(world, nation: str) -> str:
@@ -2373,22 +2393,22 @@ def _answer_weariness(world, nation: str) -> str:
         return _answer_war_effort(world, nation) or ""
     vis = _get_nation_visibility(nation, world)
     if VISIBILITY_PRIORITY.get(vis, 0) < VISIBILITY_PRIORITY.get(PARTIAL, 1):
-        return f"We have no reading of {court}'s war weariness, Sire — Talleyrand's agents have not reached that court."
+        return f"We have no reading of {_possessive(court)} war weariness, Sire — Talleyrand's agents have not reached that court."
     we = int((getattr(world, "war_exhaustion", None) or {}).get(nation, 0) or 0)
     word = "fresh" if we < 40 else "tiring" if we < 80 else "weary" if we < 120 else "exhausted"
-    line = f"{court}'s war weariness reads {we} — {word}, Sire. A court sues sooner the higher it climbs."
+    line = f"{_cap(_possessive(court))} war weariness reads {we} — {word}, Sire. A court sues sooner the higher it climbs."
     # PC-X68 (S14 part 3): a court the league's bond holds tires at its line.
     from backend.game_logic.ai_diplomacy import break_ranks_lines
     _lines = break_ranks_lines(world, nation)
     if _lines.get("bond"):
-        line += (f" {_court(world, _lines['bond'])}'s bond holds her to the league until "
+        line += (f" {_cap(_possessive(_court(world, _lines['bond'])))} bond holds her to the league until "
                  f"{int(_lines['exhaustion'])}.")
     return line
 
 
 def _answer_agenda(world, nation: str, place: str) -> str:
     from backend.ai.question_desk import _answer_wants
-    line = _answer_wants(world, nation) or f"{_court(world, nation)} pursues no design today, Sire."
+    line = _answer_wants(world, nation) or f"{_court(world, nation, start=True)} pursues no design today, Sire."
     try:
         from backend.game_logic.formations import get_formation_watch
         watch = get_formation_watch(world, nation)
@@ -2493,7 +2513,7 @@ def _answer_peace_forecast(world, nation: str, want: str) -> str:
                                         "target_nation": nation, "terms": {}}, world) or {}
     except Exception as exc:
         report(exc, "state_desk._answer_peace_forecast: calculate_acceptance")
-        return f"Talleyrand cannot read {court}'s temper today, Sire ({exc})."
+        return f"Talleyrand cannot read {_possessive(court)} temper today, Sire ({exc})."
     score = int(verdict.get("score") or 0)
     outcome = str(verdict.get("outcome") or "")
     feedback = verdict.get("feedback")
@@ -2558,17 +2578,17 @@ def _answer_vassal_status(world, nation: str, other: str) -> str:
     row = (getattr(world, "vassals", None) or {}).get(nation)
     if row:
         lord = row.get("lord") or ""
-        line = f"{court} is a vassal of {_court(world, lord)}, Sire — loyalty {int(row.get('loyalty') or 0)}, {_autonomy_word(row.get('autonomy'))}."
+        line = f"{_cap(court)} is a vassal of {_court(world, lord)}, Sire — loyalty {int(row.get('loyalty') or 0)}, {_autonomy_word(row.get('autonomy'))}."
         if other and other != lord:
-            line = f"No — {line}"
+            line = f"No — {court}{line[len(court):]}"
         return line
     state = str(world.get_diplomatic_state(player, nation) or "PEACE")
     if other:
         ostate = str(world.get_diplomatic_state(other, nation) or "PEACE")
         bond = {"ALLIANCE": "an ally", "DEFENSIVE_ALLIANCE": "a defensive ally", "WAR": "an enemy"}.get(ostate, "no vassal")
-        return (f"{court} is no vassal of {_court(world, other)}, Sire — {bond} of theirs"
+        return (f"{_cap(court)} is no vassal of {_court(world, other)}, Sire — {bond} of theirs"
                 + (", fighting beside them" if ostate == "ALLIANCE" and world.is_at_war(player, nation) else "") + ".")
-    return f"{court} is nobody's vassal, Sire — a court in its own right, {state.lower().replace('_', ' ')} with us."
+    return f"{_cap(court)} is nobody's vassal, Sire — a court in its own right, {state.lower().replace('_', ' ')} with us."
 
 
 def _answer_loyalty(world, nation: str) -> str:
@@ -2578,10 +2598,10 @@ def _answer_loyalty(world, nation: str) -> str:
     court = _court(world, nation)
     if not row or row.get("lord") != player:
         if row:
-            return f"{court} is {_court(world, row.get('lord') or '')}'s vassal, Sire — its loyalty is theirs to read."
-        return f"{court} is not our vassal, Sire."
+            return f"{_cap(court)} is {_possessive(_court(world, row.get('lord') or ''))} vassal, Sire — its loyalty is theirs to read."
+        return f"{_cap(court)} is not our vassal, Sire."
     loyalty = int(row.get("loyalty") or 0)
-    line = f"{court}'s loyalty stands at {loyalty} of 100, Sire"
+    line = f"{_cap(_possessive(court))} loyalty stands at {loyalty} of 100, Sire"
     try:
         f = forecast_vassal_loyalty(world, player, nation) or {}
         delta = int(f.get("forecast") or 0)
@@ -2747,7 +2767,7 @@ def _answer_province_count(world, nation: str) -> str:
     if who == player:
         total = len(getattr(world, "regions", {}) or {})
         return f"France holds {_plural(count, 'province')} of {total}, Sire."
-    return f"{_court(world, who)} holds {_plural(count, 'province')}, Sire."
+    return f"{_court(world, who, start=True)} holds {_plural(count, 'province')}, Sire."
 
 
 def _answer_can_build_at(world, place: str) -> str:
@@ -2817,7 +2837,7 @@ def _answer_enemy_moves(world, subject: str, subject_type: str) -> str:
                     seen.append(_display(m.name))
             line = f"No news from {shown} last turn, Sire"
             if holder:
-                line += f" — it is {_court(world, holder)}'s"
+                line += f" — it is {_possessive(_court(world, holder))}"
             if seen:
                 line += f", and {_join(seen)} {'stands' if len(seen) == 1 else 'stand'} there"
             return line + "."
@@ -2935,7 +2955,7 @@ def _answer_stability(world, place: str) -> str:
         return f"Our maps hold no entry for {place}, Sire."
     holder = str(getattr(region, "controller", "") or "")
     if holder != world.player_nation and not world.get_region_intel(place).visibility_at_least(PARTIAL):
-        return f"We have no reading of {place}'s order, Sire — it is {_court(world, holder)}'s and unscouted."
+        return f"We have no reading of {place}'s order, Sire — it is {_possessive(_court(world, holder))} and unscouted."
     stab = int(getattr(region, "stability", 0) or 0)
     label = ""
     try:
@@ -2972,7 +2992,7 @@ def _answer_buildings(world, place: str) -> str:
         return f"Our maps hold no entry for {place}, Sire."
     holder = str(getattr(region, "controller", "") or "")
     if holder != world.player_nation and not world.get_region_intel(place).visibility_at_least(FULL):
-        return f"{place} is {_court(world, holder)}'s, Sire — its works are not in view; scout it."
+        return f"{place} is {_possessive(_court(world, holder))}, Sire — its works are not in view; scout it."
     buildings = list(getattr(region, "buildings", None) or [])
     names = []
     for b in buildings:
@@ -3284,8 +3304,8 @@ def _answer_borders_nation(world, nation: str) -> str:
         if any(adj in theirs for adj in (getattr(region, "adjacent_regions", None) or [])):
             ours.append(name)
     if not ours:
-        return f"No province of ours touches {_court(world, nation)}'s, Sire."
-    return f"Our provinces on {_court(world, nation)}'s frontier, Sire: {_join(sorted(ours))}."
+        return f"No province of ours touches {_possessive(_court(world, nation))}, Sire."
+    return f"Our provinces on {_possessive(_court(world, nation))} frontier, Sire: {_join(sorted(ours))}."
 
 
 def _answer_war_with_place(world, place: str) -> str:
@@ -3310,7 +3330,7 @@ def _answer_holder(world, place: str) -> str:
     holder = str(getattr(region, "controller", "") or "")
     if holder == world.player_nation:
         return f"Yes, Sire — {place} is ours."
-    return "No, Sire — " + (_answer_region(world, "who_holds", place) or f"{place} is {_court(world, holder)}'s.")
+    return "No, Sire — " + (_answer_region(world, "who_holds", place) or f"{place} is {_possessive(_court(world, holder))}.")
 
 
 def _answer_who_is(world, foe: str) -> str:
@@ -3320,7 +3340,7 @@ def _answer_who_is(world, foe: str) -> str:
     if enemy is None:
         tomb = (getattr(world, "fallen_marshals", None) or {}).get(foe) or {}
         if tomb:
-            return f"{shown} has fallen, Sire — he was {_court(world, tomb.get('nation') or '')}'s."
+            return f"{shown} has fallen, Sire — he was {_possessive(_court(world, tomb.get('nation') or ''))}."
         return f"I know no commander named {shown}, Sire."
     court = _court(world, enemy.nation)
     state = str(world.get_diplomatic_state(player, enemy.nation) or "PEACE")
@@ -3497,7 +3517,7 @@ def _answer_strength_figure(world, nation: str) -> str:
     at_war = sorted(str(n) for n in (world.get_nations_at_war_with(player) or []))
     if nation:
         if nation in in_it:
-            line += f" {_court(world, nation)}'s corps in view are in it."
+            line += f" {_possessive(_court(world, nation))} corps in view are in it."
         else:
             army = re.sub(r"^Sire\s*—\s*", "", _answer_nation_army(world, nation))
             line += f" {_court(world, nation)} is not in it — {army}"
@@ -3569,7 +3589,7 @@ def _answer_happened_at(world, place: str) -> str:
                                        -int(r.get("turn", 0) or 0)))[:3]
     region = world.get_region(place)
     holder = str(getattr(region, "controller", "") or "") if region is not None else ""
-    tail = f" {place} is {_court(world, holder)}'s." if holder else ""
+    tail = f" {place} is {_possessive(_court(world, holder))}." if holder else ""
     if not hits:
         return f"Nothing at {place} is on our record, Sire.{tail}"
     lines = []
@@ -3589,13 +3609,13 @@ def _answer_court_holds(world, nation: str) -> str:
     court = _court(world, nation)
     held = sorted(world.get_nation_regions(nation) or [])
     if not held:
-        return f"{court} holds no province today, Sire."
+        return f"{_cap(court)} holds no province today, Sire."
     cap = str(world.get_nation_capital(nation) or "")
     shown = held[:6] + ([f"{len(held) - 6} more"] if len(held) > 6 else [])
-    line = (f"{court} is a court, Sire, not a province — it holds {_plural(len(held), 'province')}: "
+    line = (f"{_cap(court)} is a court, Sire, not a province — it holds {_plural(len(held), 'province')}: "
             f"{_join(shown)}" + (f", its capital {cap}" if cap and cap in held else "") + ".")
     return line + " " + _answer_stance_nation(world, nation).split(", Sire.")[0].replace(
-        f"{court} is ", "It is ", 1) + "."
+        f"{_cap(court)} is ", "It is ", 1) + "."
 
 
 def _answer_trust_all(world) -> str:
@@ -3679,14 +3699,14 @@ def _answer_in_play(world, nation: str) -> str:
         left = max(0, int(record.get("resolves_turn", 0) or 0) - int(world.current_turn))
         bids = record.get("bids") or {}
         ours = int(bids.get(world.player_nation, 0) or 0)
-        line = (f"Yes, Sire — {court}'s allegiance is in play; the flip resolves in "
+        line = (f"Yes, Sire — {_possessive(court)} allegiance is in play; the flip resolves in "
                 f"{_plural(left, 'turn')} (turn {int(record.get('resolves_turn', 0) or 0)}).")
         line += (f" We have laid {_money(ours)} gold before it." if ours else " We have laid no bid.")
         return line + " Its Cabinet row (F1 → the court → Bid for Their Allegiance) lays a sum."
     last = next((e for e in reversed(getattr(world, "event_log", None) or [])
                  if str(e.get("type", "")).startswith("allegiance_auction") and e.get("nation") == nation), None)
     others = [c for c in open_allegiance_auctions(world) if c != nation]
-    line = f"No, Sire — {court}'s allegiance is not in play today."
+    line = f"No, Sire — {_possessive(court)} allegiance is not in play today."
     if last:
         line += f" Its last auction ({str(last.get('type')).replace('allegiance_auction_', '')}) was on turn {int(last.get('turn', 0) or 0)}."
     if others:

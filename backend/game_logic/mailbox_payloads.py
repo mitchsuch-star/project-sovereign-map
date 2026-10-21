@@ -384,7 +384,7 @@ def build_pending_envoy_popup_from_terms(
 
     diplomats = getattr(world, "diplomats", {})
     diplomat = diplomats.get(nation)
-    diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
+    diplomat_name = diplomat.name if diplomat else _ambassador_of(nation)
     personality_raw = (
         diplomat.personality.value if diplomat and hasattr(diplomat.personality, "value")
         else str(diplomat.personality) if diplomat
@@ -606,3 +606,10 @@ def _orient_incoming_terms_for_player(terms: Dict, player_nation: str, source_na
     oriented["proposer_nation"] = player_nation
     oriented["target_nation"] = source_nation
     return oriented
+
+
+def _ambassador_of(nation: str) -> str:
+    """RR3-X3 (SFR-D14 (v)'s sibling): an envoy with no name is "the Italian
+    ambassador", never the tag spliced in ("the KingdomOfItaly ambassador")."""
+    from backend.display_names import nation_office
+    return nation_office(nation, "ambassador")

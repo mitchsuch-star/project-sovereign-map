@@ -2901,7 +2901,6 @@ def _standing_cost_detail(marshal, target) -> str:
     Lever down (`TRUST_NAMES_ITS_PRICE`) = the old sentence, byte for byte.
     """
     turns = int(getattr(marshal, "jealousy_turns_remaining", 0) or 0)
-    plural = "s" if turns != 1 else ""
     men = int(getattr(marshal, "strength", 0) or 0)
     leads = f"his {men:,} men to any battle {target.name} leads"
     if getattr(marshal, "personality", "") == "aggressive":
@@ -2952,11 +2951,25 @@ def _standing_cost_detail(marshal, target) -> str:
                 weight = (f"he brings {weight_phrase(_scale)} the weight of "
                           f"{leads}, for his faith in you is spent "
                           f"(trust {int(_bd['trust'])})")
+    stands = _stand_duration_phrase(turns)
     if THE_TOP_RUNG_PROMISES_NOTHING_HIGHER and _at_the_top_rung(marshal, target):
-        return (f"Free, and it fixes nothing. For {turns} more turn{plural} "
+        return (f"Free, and it fixes nothing. {stands} "
                 f"{weight}; the quarrel can grow no worse.")
-    return (f"Free, and it fixes nothing. For {turns} more turn{plural} "
+    return (f"Free, and it fixes nothing. {stands} "
             f"{weight}, and the quarrel may harden further.")
+
+
+def _stand_duration_phrase(turns: int) -> str:
+    """How long letting it stand costs — "For 3 more turns".
+
+    SFR-B6 (SF-RR3, October 21, 2026): a grievance with no turns left on
+    its clock read "For 0 more turns he brings NONE of his 22,000 men …" —
+    a threat with no duration. With nothing left on the clock the cost
+    lasts until the grievance lapses."""
+    turns = int(turns or 0)
+    if turns <= 0:
+        return "Until his grievance lapses"
+    return f"For {turns} more turn{'s' if turns != 1 else ''}"
 
 
 def _at_the_top_rung(marshal, target) -> bool:

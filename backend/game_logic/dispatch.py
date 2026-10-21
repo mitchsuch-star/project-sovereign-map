@@ -174,6 +174,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # standing army, so it ranks above a bare province (`region_lost` 75)
     # and below a broken corps of our own (90) — at equal scale the wound to
     # our own body still leads.
+    # SFR-D36 (SF-RR3, October 21, 2026): the candidate is weighed by
+    # `_vassal_lost_weight` (86, one above `own_mauled`) — this entry is
+    # FA-38's table weight, the seam's held-down value.
     "vassal_lost": 84,
     # ── CA9-F12: the mirror of the file's top-weight wound ──────────────
     # An enemy commander taken is PERMANENT, and it contains a decisive
@@ -593,12 +596,14 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "truce_signed": "Sire — a truce with {other} is signed. {line}",
     # WIN-D3 §4.3 — the beat names names and the deadline, and when a corps
     # has no land route it says so plainly rather than pretending (§5).
-    "road_home": "Sire — the war with {other} is over. {line}",
+    # SFR-D43 (SF-RR3): the opening reads the treaty — a truce pauses the
+    # war, it does not end it (`_war_end_opening`).
+    "road_home": "Sire — {opening} {line}",
     # FA-N61 (slice 12): the same class, a later moment. The peace was
     # signed turns ago and this corps was stranded after it, so the
     # sentence above would have told the player the war had just ended
     # every time the treaty picked somebody up.
-    "road_home_mid_treaty": "Sire — under the peace with {other}. {line}",
+    "road_home_mid_treaty": "Sire — under the {treaty} with {other}. {line}",
     "passage_lapsing": ("Sire — {who} {is_are} no nearer home, and the safe "
                         "passage {passage_clause}. After "
                         "that {his_their} corps will be interned where "
@@ -1392,6 +1397,263 @@ def _levy_yields(world, candidates, levy_said: Dict[str, Any]):
     return candidates, levy_said
 
 
+def _mid_treaty_road_is_current(world, e, player_nation) -> bool:
+    """A corps put on the road home mid-treaty is news the morning it
+    happens, and only while he is still abroad.
+
+    SFR-D30 (SF-RR3, October 21, 2026): the top-up is stamped at the tick,
+    after the turn advances, so the two-turn window read it a second
+    morning — "Ney is on the wrong side of the frontier at Swabia … 4 turns
+    of safe passage" the morning after "Ney arrives at Franche-Comte". The
+    current-news gate renders it once (the `europe_congress` idiom), and a
+    corps already home is not stranded (`evacuation_lapsing`'s rule)."""
+    if int(e.get("turn", -1)) != int(world.current_turn):
+        return False
+    named = (e.get("marshals") or [""])[0]
+    marshal = world.marshals.get(str(named)) if named else None
+    if marshal is None or getattr(marshal, "captured_by", ""):
+        return marshal is None
+    from backend.game_logic.withdrawal import get_home_zone, is_home_at
+    return not is_home_at(world, player_nation, marshal.location,
+                          set(get_home_zone(world, player_nation) or []))
+
+
+def _rides_beneath_classes() -> tuple:
+    """The news that rides beneath the lead when the slots are full.
+
+    EG-X3 (the economy gate, owned by SF-RR3; October 21, 2026): on CMD-H's
+    world turn 6 the Kingdom of Italy, our satellite, was eliminated and the
+    page never named it — the lead and both sub-beats were taken (Teulie's
+    capture, Ney's reversal, Massena broken) and `vassal_lost` had no slot.
+    A satellite lost rides beneath, as the league's news does (EG-X2) and a
+    standing crisis (SF-NAR-1)."""
+    return ("vassal_lost",)
+
+
+def _our_wound_weight(world, marshal_key: str, weight: int) -> int:
+    """A client's general taken or destroyed weighs as the satellite's wound.
+
+    SFR-B9 (SF-RR3, October 21, 2026): "Sire — General Teulie has been
+    taken" (95, the Emperor's own marshal's weight) led the DESC morning
+    while "TRAFALGAR: … 22 sail lost" (94) and THE LANDING rode beneath.
+    Teulie leads the Kingdom of Italy's contingent (`is_clients_general`):
+    his loss is the satellite's, weighed with `vassal_lost`."""
+    from backend.game_logic.contingent import is_clients_general
+    marshal = (getattr(world, "marshals", {}) or {}).get(str(marshal_key or ""))
+    if marshal is not None and is_clients_general(marshal):
+        return min(int(weight), _vassal_lost_weight())
+    return int(weight)
+
+
+def _vassal_lost_weight() -> int:
+    """A satellite lost weighs one above a mauled corps (85).
+
+    SFR-D36 (SF-RR3, October 21, 2026): "Murat was mauled at Tyrol" led the
+    morning the Kingdom of Italy was conquered, the satellite a sub-beat —
+    FA-38 set it below every wound of our own body (84). A whole kingdom
+    and its army lost is more than a corps bloodied; it stays below a
+    garrison stormed (87) and a broken corps (90)."""
+    return 86
+
+
+def _satellite_name(world, tag: str) -> str:
+    """"the Kingdom of Italy" — the satellite's name with its article
+    (RR3-X7: "Sire — Kingdom of Italy is no longer ours")."""
+    return with_definite_article(formed_display_name(world, tag))
+
+
+def _rout_field(window, e) -> str:
+    """Where a corps was broken — the field its battle was fought on.
+
+    SFR-D17 (SF-RR3, October 21, 2026): a forced retreat carries only
+    `from` (and `to`), and an ATTACKER'S `from` is the province he marched
+    out of — so one battle read "broken at Munich" beside "mauled at Tyrol".
+    The rout is placed on its battle's own `location` (the same turn's
+    battle naming him); an event that names its place keeps it."""
+    explicit = e.get("region") or e.get("location")
+    if explicit:
+        return str(explicit)
+    name = str(e.get("marshal") or "")
+    turn = e.get("turn")
+    for b in reversed(window):
+        if (b.get("type") == "battle" and b.get("turn") == turn
+                and name and name in (b.get("attacker"), b.get("defender"))
+                and b.get("location")):
+            return str(b["location"])
+    return str(e.get("from") or "the field")
+
+
+def _one_peace_one_line(candidates):
+    """One settlement that ends several wars is one line on the page.
+
+    RR3-X13 (found re-reading narration C6's CMD-H sample, SF-RR3, October
+    21, 2026): the settlement of the War for Bohemia ended the wars with
+    Austria, Britain and Russia on one morning, and each pair's road home
+    was its own candidate — the page led "the war with Britain is over" and
+    told Russia's beneath it, Austria's nowhere. The road-home beats of one
+    treaty word merge: "the war with Austria, Britain and Russia is over."
+    — each pair's distinct line once. A top-up (`road_home_mid_treaty`) is
+    a corps's news and never merges."""
+    candidates = _the_settlement_absorbs_its_roads(candidates)
+    roads = [c for c in candidates if c["class"] == "road_home"
+             and (c.get("fields") or {}).get("other")]
+    if len(roads) < 2:
+        return candidates
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    for c in roads:
+        groups.setdefault(str((c.get("fields") or {}).get("treaty") or "peace"), []).append(c)
+    merged: Dict[int, Dict[str, Any]] = {}
+    for treaty, group in groups.items():
+        if len(group) < 2:
+            continue
+        courts = sorted({str(g["fields"].get("other") or "") for g in group} - {""})
+        lines: List[str] = []
+        for g in group:
+            line = str(g["fields"].get("line") or "")
+            if line and line not in lines:
+                lines.append(line)
+        opening = _war_end_opening(treaty, _join_marshal_names(courts))
+        fields = dict(group[0]["fields"], other=_join_marshal_names(courts),
+                      opening=opening, line=" ".join(lines))
+        merged[id(group[0])] = dict(
+            group[0], fields=fields,
+            text=_HEADLINE_TEMPLATES["road_home"].format(**fields),
+            identity="road_home:" + "|".join(sorted(g["identity"] for g in group)))
+        for g in group[1:]:
+            merged[id(g)] = None
+    if not merged:
+        return candidates
+    return [merged.get(id(c), c) for c in candidates if merged.get(id(c), c) is not None]
+
+
+_A_ROAD_WITH_NO_NEWS = ("The peace grants safe passage home.",
+                        "The truce grants safe passage home.")
+
+
+def _settlement_peace(world, e, player_nation: str) -> Optional[Dict[str, Any]]:
+    """France's own settlement at the table, as a peace on the page — or None.
+
+    RR3-X13 (found re-reading narration C6's CMD-H sample, SF-RR3): the
+    settlement of the War for Bohemia ended the wars with Austria, Britain
+    and Russia and reached the page only through each pair's road home —
+    "the war with Britain is over" led, Austria's peace (a truce turned
+    peace, with no corridor to open) went untold. A bilateral peace has its
+    class (FA-D12, `peace_ratified`); the table's settlement now does too."""
+    if not e.get("war_ended"):
+        return None
+    ours = list(e.get("proposer_members") or [])
+    theirs = list(e.get("accepting_members") or [])
+    if player_nation in theirs:
+        ours, theirs = theirs, ours
+    if player_nation not in ours:
+        return None
+    courts = [formed_display_name(world, c) for c in (e.get("covered_enemy_participants") or theirs) if c]
+    if not courts:
+        return None
+    line = ("A white peace — the map stands as it was." if e.get("white_peace")
+            else "The war is over.")
+    return {"identity": f"peace_signed:settlement:{e.get('war_id') or '|'.join(courts)}",
+            "other": _join_marshal_names(courts), "line": line, "courts": courts}
+
+
+def _the_settlement_absorbs_its_roads(candidates):
+    """A road home of a court the settlement names says the same thing —
+    it rides the settlement's line (only when it names stranded corps)."""
+    peaces = [c for c in candidates if c["class"] == "peace_signed"
+              and str(c.get("identity", "")).startswith("peace_signed:settlement:")]
+    if not peaces:
+        return candidates
+    out = []
+    for c in candidates:
+        fields = c.get("fields") or {}
+        home = next((p for p in peaces if c["class"] == "road_home"
+                     and fields.get("other") in (p.get("fields") or {}).get("courts", [])), None)
+        if home is None:
+            out.append(c)
+            continue
+        line = str(fields.get("line") or "")
+        if line and line not in _A_ROAD_WITH_NO_NEWS and line not in home["text"]:
+            home["text"] = f"{home['text']} {line}"
+    return out
+
+
+def _declaration_is_news(world, key: str) -> bool:
+    """A declaration of war on (or by) France is news until a page told it.
+
+    RR3-X15 (found re-reading narration C6's CMD-H arm, SF-RR3, October 21,
+    2026): the league's declarations are stamped at the tick, after the
+    advance, so the two-turn window read them two mornings — Russia's
+    "Russia and France are at war" led the morning after it was declared,
+    over that morning's landing at Piedmont. The page's own memory
+    (`headline_lead_memory["declared_told"]`, the no-new-field idiom) keeps
+    the declarations a page has told, and on which morning; a re-read of
+    the same morning still tells them."""
+    told = (getattr(world, "headline_lead_memory", None) or {}).get("declared_told") or {}
+    return key not in told or int(told[key]) == int(getattr(world, "current_turn", 0) or 0)
+
+
+def _one_war_one_line(world, declarations, _add) -> None:
+    """The morning's declarations against (or by) France, one line.
+
+    RR3-X15: every declaration was its own `war_touches_us` candidate, keyed
+    on the class alone, so once one led the CA8-5 dedupe struck the rest —
+    the morning Britain, Russia, Austria, Sweden, Hanover and Sardinia
+    declared, the page said "Britain and France are at war" and nothing
+    more. One line names every court; each court's cause follows (the
+    first three)."""
+    if not declarations:
+        return
+    keys = "|".join(d["key"] for d in declarations)
+    if len(declarations) == 1:
+        _add("war_touches_us", f"war_touches_us:{keys}", line=declarations[0]["line"])
+    else:
+        courts = [formed_display_name(world, d["court"]) for d in declarations]
+        causes = [d["cause"] for d in declarations if d["cause"]][:3]
+        line = f"{_join_marshal_names(courts)} are at war with France."
+        if causes:
+            line = f"{line} {' '.join(causes)}"
+        _add("war_touches_us", f"war_touches_us:{keys}", line=line)
+
+
+def _declarations_told(world, memory, candidates, top, sub_beats) -> Dict[str, int]:
+    """The memory's told declarations, with the ones on today's page."""
+    now = int(getattr(world, "current_turn", 0) or 0)
+    told = {k: int(v) for k, v in (memory.get("declared_told") or {}).items()
+            if int(v) >= now - 4}
+    on_page = {top["text"], *sub_beats}
+    for c in candidates:
+        ident = str(c.get("identity") or "")
+        if c["class"] == "war_touches_us" and ident.startswith("war_touches_us:") \
+                and c["text"] in on_page:
+            for key in ident.split(":", 1)[1].split("|"):
+                told.setdefault(key, now)
+    return told
+
+
+def _brewing_is_news(world, e) -> bool:
+    """A league brewing is news the morning it begins.
+
+    RR3-X14 (SFR-D43's class — "repeats stale the next day"; found re-reading
+    narration C6's CMD-H sample): `coalition_brewing_started` is stamped at
+    the tick, after the turn advances, so the two-turn window told "the
+    courts of Europe are drawing together against us" two mornings running
+    (turn 30's page carried it beneath the next day's news). The
+    current-news gate renders it once (the `europe_congress` idiom)."""
+    return int(e.get("turn", -1)) == int(world.current_turn)
+
+
+def _war_end_opening(treaty: str, other: str) -> str:
+    """The road-home beat's first sentence — "the war with Austria is over."
+
+    SFR-D43 (SF-RR3, October 21, 2026): the corridor opens on a truce as on
+    a peace, and the beat said "the war with Britain is over" of a truce
+    whose own sub-beat warned the war resumes at its end."""
+    if treaty == "truce":
+        return (f"a truce with {other} holds the guns silent — the war is "
+                f"paused, not over.")
+    return f"the war with {other} is over."
+
+
 def _levy_count_statement(world, candidates, top, sub_beats, levy_said):
     """RS-D2: one more statement if the levy is on this page (lead or sub-beat)."""
     levy = next((c for c in candidates if c["class"] == "levy_open"), None)
@@ -1510,6 +1772,7 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "nation_formed": ("courts_treaties", 95),
     "nation_created": ("courts_treaties", 95),
     "allegiance_in_play": ("courts_treaties", 90),
+    "allegiance_settled": ("courts_treaties", 89),   # SFR-B4: the close
     "diplomatic_ai_ai_treaty": ("courts_treaties", 85),
     "diplomatic_auto_downgrade": ("courts_treaties", 80),
     "diplomatic_treaty_signed": ("courts_treaties", 78),
@@ -2024,6 +2287,7 @@ def _build_headline(world, player_nation: str,
             "fields": dict(fields),
         })
 
+    _declarations: List[Dict[str, Any]] = []      # RR3-X15
     for e in window:
         etype = e.get("type", "")
         if etype == "region_captured":
@@ -2171,8 +2435,9 @@ def _build_headline(world, player_nation: str,
                 # a supply nag. `_eliminate_nation` deletes the vassal row, so
                 # the lord is read off the EVENT and never off `world.vassals`.
                 _add("vassal_lost", f"vassal_lost:{fallen}",
-                     vassal=formed_display_name(world, fallen),
+                     vassal=_satellite_name(world, fallen),
                      detail="Conquered — the satellite is gone.")
+                candidates[-1]["weight"] = _vassal_lost_weight()   # SFR-D36
         elif etype in (
                 "vassal_broke_free", "vassal_defected", "vassal_transferred"):
             # FA-38: the other three ways an empire loses a satellite.
@@ -2197,8 +2462,9 @@ def _build_headline(world, player_nation: str,
             else:
                 _detail = "They have rebelled, and it is war."
             _add("vassal_lost", f"vassal_lost:{_vassal}",
-                 vassal=formed_display_name(world, _vassal),
+                 vassal=_satellite_name(world, _vassal),
                  detail=_detail)
+            candidates[-1]["weight"] = _vassal_lost_weight()   # SFR-D36
         elif etype == "marshal_captured":
             # ── CA9 F12 + N2: the capture has a DIRECTION ────────────────
             # `nation` is the CAPTIVE's own court (`combat_executor`'s
@@ -2244,6 +2510,9 @@ def _build_headline(world, player_nation: str,
                      # from the highest-weight headline in the file.
                      captor=(formed_display_name(world, cap_captor)
                              if cap_captor else "the enemy"))
+                # SFR-B9: a client's general taken is the satellite's wound.
+                candidates[-1]["weight"] = _our_wound_weight(
+                    world, e.get("marshal", ""), candidates[-1]["weight"])
             elif cap_captor == player_nation:
                 # Same dead-name discipline on the new slot — the captive's
                 # court is a nation tag too.
@@ -2331,6 +2600,8 @@ def _build_headline(world, player_nation: str,
                 _add("marshal_destroyed",
                      f"marshal_destroyed:{e.get('marshal', '?')}",
                      line=des_line)
+                candidates[-1]["weight"] = _our_wound_weight(
+                    world, e.get("marshal", ""), candidates[-1]["weight"])
             elif des_victor == player_nation:
                 _of = (f" of {with_definite_article(formed_display_name(world, des_nation))}"
                        if des_nation else "")
@@ -2391,7 +2662,7 @@ def _build_headline(world, player_nation: str,
                 continue
             m_nation = e.get("nation", "")
             marshal_disp = humanize_entity_name(e.get("marshal", "?"))
-            region = e.get("region", e.get("location", e.get("from", "the field")))
+            region = _rout_field(window, e)
             if m_nation == player_nation:
                 _add("own_broken", f"own_broken:{e.get('marshal', '?')}",
                      marshal=marshal_disp, region=region)
@@ -2543,6 +2814,13 @@ def _build_headline(world, player_nation: str,
                                   for c in candidates):
                 _add("peace_signed", f"peace_signed:{_other}",
                      other=formed_display_name(world, _other), line=_line)
+        elif etype == "settlement_summary":
+            # RR3-X13: the table's own settlement is France's peace too.
+            _peace = _settlement_peace(world, e, player_nation)
+            if _peace:
+                _add("peace_signed", _peace["identity"], other=_peace["other"],
+                     line=_peace["line"])
+                candidates[-1]["fields"]["courts"] = _peace["courts"]
         elif etype in ("diplomatic_war_declared", "war_declaration"):
             aggressor = e.get("aggressor") or e.get("nation", "")
             target = e.get("target", "")
@@ -2559,8 +2837,11 @@ def _build_headline(world, player_nation: str,
                 _line = f"{formed_display_name(world, other)} and France are at war."
                 if _cause:
                     _line = f"{_line} {_cause}"
-                if not _congress_told:
-                    _add("war_touches_us", line=_line)
+                _key = f"{aggressor}>{target}:{int(e.get('turn', 0) or 0)}"
+                if not _congress_told and _declaration_is_news(world, _key):
+                    # RR3-X15: gathered, then told as one line below.
+                    _declarations.append({"court": other, "line": _line,
+                                          "cause": _cause, "key": _key})
             elif etype == "war_declaration" and aggressor and target:
                 # AI-3 (Stage D): a war between other powers may lead the
                 # dispatch — with its STATED REASON (pin 4: no unexplained
@@ -2619,7 +2900,8 @@ def _build_headline(world, player_nation: str,
             # producer's own message names our corps and their destinations
             # (the campaign-log filter draws the same line).
             _pair = (e.get("nation_a", ""), e.get("nation_b", ""))
-            if player_nation in _pair:
+            if player_nation in _pair and (not e.get("mid_treaty")
+                                           or _mid_treaty_road_is_current(world, e, player_nation)):
                 _other = _pair[1] if _pair[0] == player_nation else _pair[0]
                 # FA-N61 (slice 12): a mid-treaty top-up is keyed on the
                 # CORPS, not the pair. The peace's own beat already holds
@@ -2634,10 +2916,16 @@ def _build_headline(world, player_nation: str,
                 _identity = (f"road_home:{_named}"
                              if e.get("mid_treaty")
                              else f"road_home:{'|'.join(sorted(_pair))}")
+                from backend.game_logic.withdrawal import treaty_word
+                _treaty = (str(e.get("treaty") or "")
+                           or treaty_word(world, player_nation, _other))
+                _other_shown = formed_display_name(world, _other)
                 _add("road_home_mid_treaty" if e.get("mid_treaty")
                      else "road_home",
                      identity=_identity,
-                     other=formed_display_name(world, _other),
+                     other=_other_shown,
+                     treaty=_treaty,
+                     opening=_war_end_opening(_treaty, _other_shown),
                      line=str(e.get("message", "")))
         elif etype == "evacuation_lapsing":
             # COLLECTED, not added one-by-one. The dispatch shows ONE
@@ -2713,9 +3001,11 @@ def _build_headline(world, player_nation: str,
             elif etype == "coalition_formed":
                 _add("war_touches_us",
                      line="a Coalition has formed against France.")
-            else:
+            elif _brewing_is_news(world, e):
                 _add("war_touches_us",
                      line="the courts of Europe are drawing together against us.")
+
+    _one_war_one_line(world, _declarations, _add)      # RR3-X15
 
     # WIN-D3: ONE beat for every corps whose safe passage is running out,
     # ordered by how little time is left. Aggregated rather than per-marshal
@@ -2911,7 +3201,7 @@ def _build_headline(world, player_nation: str,
     # existed — the game simply never spoke them.
     from backend.commands.economy_executor import get_levy_status
     _levy = get_levy_status(world, player_nation)
-    if _levy["open"]:
+    if _levy["open"] and not _levy_drawn_lately(world, player_nation):
         _capital = world.get_nation_capital(player_nation) or "the depots"
         _add("levy_open",
              headroom=f"{_levy['headroom']:,}",
@@ -3128,6 +3418,7 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
     homeland_said = dict((getattr(world, "headline_lead_memory", None) or {}).get("homeland_said") or {})
     if THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE:
         candidates, homeland_said = _homeland_yields(candidates, homeland_said)
+    candidates = _one_peace_one_line(candidates)      # RR3-X13
     candidates.sort(key=lambda c: c["weight"], reverse=True)
 
     # Creative audit July 19 2026: several candidates are STATE-based
@@ -3237,6 +3528,12 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
         if (THE_FAMINE_COUNTS_ITS_OWN_TURNS and _cand["class"] == "supply_strain"
                 and int(str(fmt.get("age") or 0) or 0) > 0):
             fmt["turns"] = int(fmt["age"])
+            # SFR-D33: and the toll of those same turns; SFR-D32 (b): and
+            # its subject, the men the count is true of.
+            fmt["losses"] = fmt.get("run_losses") or fmt.get("losses")
+            fmt["losses_dead"] = fmt.get("run_losses_dead") or fmt.get("losses_dead")
+            fmt["who"] = fmt.get("who_run") or fmt.get("who")
+            fmt["have"] = fmt.get("have_run") or fmt.get("have")
         # FA-N27: a variant may interpolate `{age}` (the marshal's arrears
         # clock). A candidate that carries no `age` — another producer, a
         # pre-fix save's memory — falls back to the run so the `except`
@@ -3392,6 +3689,15 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
             seen_keys.update(_headline_keys(_c))
             sub_beats.append(_c["text"])
             _league_said.add(_c["class"])
+    if EVERY_MORNING_HAS_A_FRONT_PAGE and not _alone:
+        # EG-X3: a satellite's fall is never crowded off the page.
+        _beneath = _rides_beneath_classes()
+        for _c in candidates:
+            if (_c["class"] not in _beneath
+                    or any(k in seen_keys for k in _headline_keys(_c))):
+                continue
+            seen_keys.update(_headline_keys(_c))
+            sub_beats.append(_c["text"])
     if record and THE_LEVY_YIELDS_ONCE_STATED:
         # RS-D2: a statement is a levy line the player actually READ —
         # the lead or a sub-beat — never a candidate the page had no room for.
@@ -3400,6 +3706,12 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
     if record and THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE:
         world.headline_lead_memory["homeland_said"] = _homeland_count_statement(
             candidates, top, sub_beats, homeland_said)
+    if record:
+        # RR3-X15: the declarations the page told (the lead or a sub-beat);
+        # the key rides the memory only while it holds one.
+        _told = _declarations_told(world, memory, candidates, top, sub_beats)
+        if _told:
+            world.headline_lead_memory["declared_told"] = _told
     return {
         "class": top["class"],
         "weight": int(top["weight"]),
@@ -4392,10 +4704,16 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
     # fallback, so the whole sentence describes one instant.
     # ────────────────────────────────────────────────────────────────────
     names = [m.name for m in here] or sorted(slot["marshals"])
+    _age = _famine_run(world, player_nation, region_name)
+    _toll = _famine_toll(world, player_nation, region_name, _age)
+    _veterans = _famine_veterans(world, player_nation, region_name, names, _age)
     return {
         "region": region_name,
         "fields": {
             "who": _join_marshal_names(names),
+            # SFR-D32 (b): the run's subject is who starved there that long.
+            "who_run": _join_marshal_names(_veterans),
+            "have_run": "have" if len(_veterans) > 1 else "has",
             # PC15-12: subject-verb agreement — the fallback "our corps"
             # (empty names) reads singular too.
             "stand": "stand" if len(names) > 1 else "stands",
@@ -4413,10 +4731,78 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
                             else f"{int(slot['losses']):,} men"),
             "turns": str(len(slot["turns"])),
             # SF7-X20: the famine's own run, the roster's count.
-            "age": str(_famine_run(world, player_nation, region_name)),
+            "age": str(_age),
+            # SFR-D33: the toll over that same run (the escalation's figure).
+            "run_losses": f"{_toll:,} men" if _toll is not None else f"{int(slot['losses']):,} men",
+            "run_losses_dead": (f"{_toll:,} men dead" if _toll is not None
+                                else (f"{int(slot['losses']):,} men dead" if THE_FAMINE_COUNTS_ITS_DEAD
+                                      else f"{int(slot['losses']):,} men")),
             "remedy": remedy,
         },
     }
+
+
+def _levy_drawn_lately(world, player_nation: str) -> bool:
+    """Did we raise men since the last morning?
+
+    SFR-D32 (a) (SF-RR3, October 21, 2026): the levy's standing line kept
+    its run through a draw — "3 turns now with … the depots standing full
+    … nobody has gone to collect them" the morning after "Augereau recruits
+    10,000 infantry at Paris". A morning after a levy drawn does not nag;
+    the next morning it is news again, from its first line."""
+    since = int(world.current_turn) - 1
+    return any(e.get("type") == "recruitment"
+               and e.get("nation") == player_nation
+               and int(e.get("turn", 0) or 0) >= since
+               for e in world.event_log)
+
+
+def _famine_toll(world, player_nation: str, region_name: str, run: int) -> Optional[int]:
+    """The men the famine at `region_name` took over its trailing `run` turns.
+
+    SFR-D33 (SF-RR3, October 21, 2026): the escalated famine line states the
+    run's count ("4 turns of famine at Munich now") beside the 3-turn
+    window's toll, so the toll fell as the count rose — "2,760 men lost in 3
+    turns" then "4 turns … 2,655 men gone". The toll is summed over the turns
+    the count names. None = no run to read (the window's figure stands)."""
+    run = int(run or 0)
+    if run <= 0:
+        return None
+    rows = [e for e in world.event_log
+            if e.get("type") == "supply_attrition"
+            and e.get("nation") == player_nation
+            and str(e.get("region") or "") == str(region_name)]
+    if not rows:
+        return None
+    last = max(int(e.get("turn", 0) or 0) for e in rows)
+    return sum(int(e.get("losses", 0) or 0) for e in rows
+               if int(e.get("turn", 0) or 0) > last - run)
+
+
+def _famine_veterans(world, player_nation: str, region_name: str,
+                     names, run: int) -> list:
+    """The corps that starved at `region_name` every turn of its run.
+
+    SFR-D32 (b) (SF-RR3, October 21, 2026): "Soult and Lannes have been 5
+    turns over what Munich can feed" — Soult had just arrived; the count was
+    Lannes's. The escalation's subject is the men the count is true of
+    (each with a famine row at the place every turn of the run); a newcomer
+    is still named on the roster and in the present-tense line."""
+    run = int(run or 0)
+    if run <= 1:
+        return list(names)
+    rows = [e for e in world.event_log
+            if e.get("type") == "supply_attrition"
+            and e.get("nation") == player_nation
+            and str(e.get("region") or "") == str(region_name)]
+    if not rows:
+        return list(names)
+    last = max(int(e.get("turn", 0) or 0) for e in rows)
+    wanted = set(range(last - run + 1, last + 1))
+    veterans = [n for n in names
+                if wanted <= {int(e.get("turn", 0) or 0) for e in rows
+                              if e.get("marshal") == n}]
+    return veterans or list(names)
 
 
 def _famine_run(world, player_nation: str, region_name: str) -> int:
@@ -7026,6 +7412,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "or standing now bids for the flip. Bid in the Cabinet: "
         "F1 → {nation_display} → Bid for Their Allegiance."
     ),
+    # SFR-B4 (SF-RR3): the auction's close, on the page that announced it
+    # (`ai_diplomacy._announce_allegiance_close` composes the line).
+    "allegiance_settled": "{line}",
     # DD-1 S8 Step 3 (SFR-D42) — a home province asked back from an ally.
     "province_returned": (
         "{holder_display} hands {region} back to {asker_display} — the liberated "
@@ -7144,7 +7533,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "Continent's ports are closed to {target}."
     ),
     "trafalgar": (
-        "TRAFALGAR: {winner_admiral}'s line has shattered the {loser_adjective} "
+        "{banner}: {winner_admiral}'s line has shattered the {loser_adjective} "
         "fleet — {loser_ships_lost} sail lost in a decisive action. "
         "{winner} commands the sea."
     ),
@@ -7265,6 +7654,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     # subsidy line stays MEDIUM by design.
     "broken_bargain": "HIGH",
     "allegiance_in_play": "HIGH",
+    "allegiance_settled": "HIGH",
     "province_returned": "HIGH",
     "province_changed_hands": "MEDIUM",  # DDB-43
     "corps_on_closed_soil": "HIGH",      # DDB-43
@@ -7413,6 +7803,31 @@ def dispatch_event_type_is_renderable(event_type: str) -> bool:
     return bool(text) and not text.startswith("Diplomatic event:")
 
 
+def _vassal_unrest_line(template_vars) -> str:
+    """"Talleyrand reports unrest in the Kingdom of Italy (loyalty 32). …"
+
+    SFR-B15 (SF-RR3, October 21, 2026): a satellite under 40 was reported
+    with no remedy the reader could act on — the beat printed the court's
+    raw tag ("unrest in KingdomOfItaly"), its levers as advice with no
+    button ("grant them autonomy" is the Loosen Rein chip), and never said
+    where they are. The line names the court, its loyalty, the remedy and
+    the tab that holds the chips (diplomacy is never typed)."""
+    from backend.ai.counsel import surface_pointer
+    from backend.display_names import display_nation, with_definite_article
+    tag = str(template_vars.get("nation") or "")
+    nation = with_definite_article(display_nation(tag)) if tag else "a satellite"
+    loyalty = template_vars.get("loyalty")
+    text = f"Talleyrand reports unrest in {nation}"
+    text += f" (loyalty {int(loyalty)})." if loyalty is not None else "."
+    hint = str(template_vars.get("recovery_hint") or "").strip()
+    if not hint:
+        return text
+    where = surface_pointer("vassals")
+    tail = (f" Invest, Loosen Rein and Cede Province… are on {where}."
+            if where else "")
+    return f"{text} {hint}{tail}"
+
+
 def queue_dispatch_event(world, event_type: str, template_vars: dict, fog_rule: str) -> None:
     """Append a diplomatic event to the pending dispatch queue.
 
@@ -7549,10 +7964,7 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         # A `.format()` on a template with an unsupplied key silently emits
         # the RAW template, braces and all, which is how the first cut
         # shipped "Talleyrand reports unrest in {nation}."
-        nation = template_vars.get("nation", "a satellite")
-        hint = str(template_vars.get("recovery_hint") or "").strip()
-        text = f"Talleyrand reports unrest in {nation}."
-        return f"{text} {hint}" if hint else text
+        return _vassal_unrest_line(template_vars)
 
     if event_type == "diplomatic_war_declared":
         nation = template_vars.get("nation", "Unknown")
@@ -7647,6 +8059,9 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
             nation=with_definite_article(
                 display_nation(str(template_vars.get("nation") or "")),
                 capitalize=True))
+    if event_type == "trafalgar" and "banner" not in template_vars:
+        # SFR-B8: a beat queued before the banner was named reads as it did.
+        template_vars = dict(template_vars, banner="TRAFALGAR")
     if event_type == "blockade_begins" and "trade_words" not in template_vars:
         # SR-5r RF-2: a beat queued before the Orders in Council could deepen
         # the cut carries no words — it was halved then (never a raw brace).

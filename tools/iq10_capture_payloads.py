@@ -1075,6 +1075,8 @@ def cap_layout_f3():
     # the grievance itself is staged — Murat's envy of Ney — not only the
     # card (the Step 7 frames found this shot shooting a payload of null).
     world.marshals["Murat"].jealous_of = "Ney"
+    # SFR-B6: a live grievance carries its clock (apply_jealousy grants >= 2).
+    world.marshals["Murat"].jealousy_turns_remaining = 3
     with _quiet():
         status = J.queue_confrontation_petition(
             world, world.marshals["Murat"], world.marshals["Ney"], level=0)

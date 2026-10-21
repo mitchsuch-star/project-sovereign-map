@@ -33,6 +33,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from backend.display_names import plural as _plural  # LV-9: the count and its noun
+
 AMENDS_STANDARD = "make_amends"
 AMENDS_GRIEVANCE = "make_amends_grievance"
 
@@ -235,7 +237,7 @@ def subjugate_actions(world: Any, player: str, target: str) -> List[Dict[str, An
     why = ""
     cooldown = int((getattr(world, "vassal_release_cooldowns", {}) or {}).get(target, 0) or 0)
     if cooldown > 0:
-        why = f"Recently released — {cooldown} turns before she can be made a vassal again."
+        why = f"Recently released — {_plural(cooldown, 'turn')} before she can be made a vassal again."
     if not why:
         why = subjugation_refusal(world, player, target) or ""
     return [{

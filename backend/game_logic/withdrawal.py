@@ -89,6 +89,36 @@ from typing import Dict, List, Optional, Set
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
+
+def treaty_word(world, nation_a: str, nation_b: str) -> str:
+    """What ended the war for this pair — "truce" or "peace".
+
+    SFR-D43 / SFR-D14 (vi) (SF-RR3, October 21, 2026): the corridor opens on
+    WAR -> ARMISTICE exactly as on a peace (§5), and every line it wrote
+    said the peace — "Sire — the war with Britain is over" headlined a
+    truce whose own sub-beat read "else the war resumes", and a top-up
+    read "under the peace with Austria". The pair's live state names it;
+    the events carry the word they were written under."""
+    state = str(world.get_diplomatic_state(nation_a, nation_b) or "")
+    return "truce" if state == "ARMISTICE" else "peace"
+
+
+def _shown(key: str) -> str:
+    """A marshal's roster key as the page shows it ("Archduke Charles")."""
+    from backend.display_names import humanize_entity_name
+    return humanize_entity_name(str(key))
+
+
+def _names_in_prose(names) -> str:
+    """"Massena and Murat", "Davout, Soult and Lannes".
+
+    SFR-D14 (iii) (SF-RR3, October 21, 2026): the grant's lists were comma
+    lists of roster keys — "Massena, Murat hold under your own orders",
+    "Massena, Napoleon can find no land route home". A list in a sentence
+    ends on "and"."""
+    from backend.commands.relay import join_names
+    return join_names(list(names))
+
 # ── The flip lever ────────────────────────────────────────────────────────
 # Arm A of the BASELINE_SERIES flip experiment (see the landing record).
 # False restores pre-slice behaviour exactly: no grant is ever written, the
@@ -742,6 +772,7 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
         "marshals": [m["marshal"] for m in marching],
         "destinations": {o["marshal"]: o["to"] for o in issued},
         "cut_off": [c["marshal"] for c in cut_off],
+        "treaty": treaty_word(world, nation_a, nation_b),
         "message": _grant_message(world, summary),
     })
     return summary
@@ -853,7 +884,7 @@ def _grant_message(world, summary: Dict) -> str:
 
     parts: List[str] = []
     if orders:
-        named = ", ".join(f"{o['marshal']} to {o['to']}" for o in orders[:4])
+        named = _names_in_prose([f"{_shown(o['marshal'])} to {o['to']}" for o in orders[:4]])
         more = "" if len(orders) <= 4 else f", and {len(orders) - 4} more behind them"
         corps = "corps stands" if len(marching) == 1 else "corps stand"
         parts.append(
@@ -862,7 +893,7 @@ def _grant_message(world, summary: Dict) -> str:
             f"have safe passage for {summary['turns']} turns while they "
             f"march.")
     if cut_off:
-        names = ", ".join(sorted({c["marshal"] for c in cut_off}))
+        names = _names_in_prose(sorted({_shown(c["marshal"]) for c in cut_off}))
         parts.append(
             f"{names} can find no land route home at all — cut off, and that "
             f"passage must be negotiated.")
@@ -896,16 +927,18 @@ def _grant_message(world, summary: Dict) -> str:
         from backend.display_names import with_definite_article
         from backend.game_logic.formations import formed_display_name
         parts.append(
-            f"{name} is marching home under "
+            f"{_shown(name)} is marching home under "
             f"{with_definite_article(formed_display_name(world, vassal))}'s colours.")
     if ordered:
-        named = ", ".join(sorted(ordered))
+        named = _names_in_prose(sorted(_shown(n) for n in ordered))
         holds = "holds" if len(ordered) == 1 else "hold"
         parts.append(
             f"{named} {holds} under your own orders and {'was' if len(ordered) == 1 else 'were'} "
             f"not moved — the treaty offers a road, it does not overrule the "
             f"Emperor. Their passage lapses with the corridor.")
 
+    if not parts and len(pair) == 2:
+        return f"The {treaty_word(world, pair[0], pair[1])} grants safe passage home."
     return " ".join(parts) or "The peace grants safe passage home."
 
 
@@ -1392,8 +1425,9 @@ def _offer_event(world, offer: Dict, counterpart: str,
         "destinations": {offer["marshal"]: offer["to"]},
         "cut_off": [],
         "mid_treaty": True,
+        "treaty": treaty_word(world, offer["nation"], counterpart),
         "message": (
-            f"{offer['marshal']} is on the wrong side of the frontier at "
+            f"{_shown(offer['marshal'])} is on the wrong side of the frontier at "
             f"{offer['from']}, Sire — the ground changed hands under him. "
             f"Berthier has put him on the road home to {offer['to']}; he has "
             f"{_plural(int(turns_left), 'turn')} of safe passage."),

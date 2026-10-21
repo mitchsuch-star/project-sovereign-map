@@ -4327,6 +4327,27 @@ def create_war_objective(
     return obj
 
 
+def _court_named(world, nation: str, *, start: bool = False) -> str:
+    """RR3-X4: a court in a sentence by its current name and article."""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    return with_definite_article(formed_display_name(world, nation), capitalize=start)
+
+
+def war_purpose_prompt(world, target: str) -> str:
+    """The War Purpose card's question — "Choose your war purpose against
+    the Papal States."
+
+    SFR-B13 (SF-RR3, October 21, 2026): every site that opens the card
+    spliced the raw court tag ("against PapalStates", "against Ottoman"),
+    and the card prints the message as sent. The court reads by its
+    current display name, with its article."""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    return (f"Choose your war purpose against "
+            f"{with_definite_article(formed_display_name(world, target))}.")
+
+
 def get_available_war_objectives(world, aggressor: str, target: str) -> list:
     """Return available objectives for the War Purpose popup."""
     target_capital = world.get_nation_capital(target)
@@ -10258,7 +10279,8 @@ def declare_war(
             attacker_paradox_warnings = _build_breach_warnings(attacker_breach_preview)
             defender_paradox_warnings = _build_breach_warnings(defender_breach_preview)
             paradox_msg = (
-                f"Sire, a crisis! {aggressor} has declared war on {target}. "
+                f"Sire, a crisis! {_court_named(world, aggressor, start=True)} has "
+                f"declared war on {_court_named(world, target)}. "
                 f"We are allied with both nations. We must choose a side."
             )
             # IGR-A2: the inline copy STAYS here — unlike the two confirm
@@ -10404,16 +10426,20 @@ def declare_war(
     from backend.notifications import (
         create_notification, NotificationPriority, WAR_DECLARED,
     )
-    war_message = f"{aggressor} has declared war on {target}."
+    # RR3-X4: the courts by name (`_court_named`), never their tags.
+    war_message = (f"{_court_named(world, aggressor, start=True)} has declared "
+                   f"war on {_court_named(world, target)}.")
     if breach_preview:
         war_message = (
-            f"{aggressor} has declared war on {target}, shattering the "
+            f"{_court_named(world, aggressor, start=True)} has declared war on "
+            f"{_court_named(world, target)}, shattering the "
             f"{breach_preview['treaty_type_display']}."
         )
     world.notifications.add(create_notification(
         WAR_DECLARED,
         NotificationPriority.HIGH,
-        f"War with {target}!" if aggressor == world.player_nation else f"{aggressor} Declares War!",
+        (f"War with {_court_named(world, target)}!" if aggressor == world.player_nation
+         else f"{_court_named(world, aggressor, start=True)} Declares War!"),
         war_message,
         int(world.current_turn),
     ))

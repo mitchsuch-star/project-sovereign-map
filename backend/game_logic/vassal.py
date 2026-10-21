@@ -1199,6 +1199,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                 queue_dispatch_event(
                     world, "diplomatic_vassal_unrest",
                     {"nation": vassal_name,
+                     "loyalty": int(new_loyalty),
                      "recovery_hint": recovery_hint_for_grip(
                          get_imperial_grip(world, lord))},
                     "player_vassal")

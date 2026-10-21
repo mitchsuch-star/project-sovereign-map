@@ -3091,7 +3091,8 @@ def remove_coalition_member(nation: str, world,
 
     events.append({
         "type": "coalition_member_left",
-        "message": f"{nation} has left the coalition.",
+        # RR3-X4: the court by name, never its tag ("Ottoman has left").
+        "message": f"{_left_name(world, nation)} has left the coalition.",
         "nation": nation,
     })
 
@@ -4700,3 +4701,10 @@ def league_march_line(world, reading: Optional[Dict[str, Any]] = None,
         tail = (f" {_plural(more, 'other member')} also {verb} off — the "
                 f"Dispatch (R) names why.")
     return "not every court of the league has struck us. " + " ".join(shown) + tail
+
+
+def _left_name(world, nation: str) -> str:
+    """RR3-X4: "The Ottoman Empire" at a sentence's head."""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    return with_definite_article(formed_display_name(world, nation), capitalize=True)

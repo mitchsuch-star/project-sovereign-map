@@ -178,6 +178,16 @@ def nation_adjective(nation: str) -> str:
     return demonym[:1].upper() + demonym[1:]
 
 
+def nation_office(nation: str, office: str) -> str:
+    """"the Austrian court", "the Ottoman ambassador".
+
+    SFR-D14 (v) (SF-RR3, October 21, 2026): the envoy's receipt spliced the
+    court's TAG as its adjective — "Talleyrand departs for the Austria
+    court" — and an envoy with no name read "the KingdomOfItaly
+    ambassador". The office takes the nation's adjective."""
+    return f"the {nation_adjective(nation)} {office}"
+
+
 # ============================================================================
 # OBJECTION DISPLAY — gerund form for objection context
 # Source: campaign_log.py _OBJECTION_DISPLAY

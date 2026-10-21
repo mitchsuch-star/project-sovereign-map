@@ -326,7 +326,8 @@ class TestTheRankIsTheCourtsOwn:
     def test_the_desk_and_the_wound(self, shipped):
         client, world = shipped
         msg = post(client, "where is Napoleon?").get("message", "")
-        assert msg.startswith("the Emperor Napoleon stands at"), msg
+        # SFR-D14 (i) (SF-RR3, October 21, 2026): the answer opens a sentence.
+        assert msg.startswith("The Emperor Napoleon stands at"), msg
         msg = post(client, "where is Ney?").get("message", "")
         assert msg.startswith("Marshal Ney stands at"), msg
         world.log_event({"type": "marshal_wounded", "marshal": "Napoleon",

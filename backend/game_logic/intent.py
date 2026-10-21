@@ -70,6 +70,23 @@ PRICE_DISPLAY = {
 # its own. False = the spliced adjective, byte-for-byte.
 
 
+def price_words(price: str) -> str:
+    """The rung as a sentence says it — "as far as {price_words}".
+
+    SFR-B12 (SF-RR3, October 21, 2026): the rung's LABEL is a ladder word,
+    and spliced into a sentence the bandwagon rung read "prepared to go as
+    far as service to the strong" — opaque without the ladder beside it
+    (the nation card's Intent line, Prussia at the boot). In a sentence it
+    says what the rung means (§3.1: serve the stronger power for payment);
+    the label stays the ladder's. The bottom rung is its noun. Every
+    sentence that splices a rung reads it here."""
+    if price == "indifferent":
+        return "indifference"
+    if price == "bandwagon":
+        return "joining the stronger side for pay"
+    return PRICE_DISPLAY.get(price, price).lower()
+
+
 def price_reach_phrase(price: str) -> str:
     """'prepared to go as far as war' — the ONE composition of a court's
     price for the "Their price:" / "Their court is …" sentences, so the
@@ -77,7 +94,7 @@ def price_reach_phrase(price: str) -> str:
     at another."""
     if price == "indifferent":
         return "not yet prepared to act on it"
-    return f"prepared to go as far as {PRICE_DISPLAY.get(price, price).lower()}"
+    return f"prepared to go as far as {price_words(price)}"
 
 # Blessed weight-derivation constants (in-band tunable; shape escalates).
 WEIGHT_BASE_BY_TYPE = {
@@ -695,12 +712,11 @@ def process_intent_movements(world) -> List[Dict]:
         view = movement["view"]
         nation_display = _live_nation_name(world, movement["nation"])
         price_display = PRICE_DISPLAY.get(view.price, view.price)
-        price_word = price_display.lower()
         # IQ-2: the eases template reads "{price} is now the length of its
         # tether" — the noun, not the adjective, for the bottom rung (a
         # court only EASES onto it; hardening can never land there).
-        if view.price == "indifferent":
-            price_word = "indifference"
+        # SFR-B12: the rung in words (`price_words`).
+        price_word = price_words(view.price)
         vars_ = {
             "nation": nation_display,
             "want": view.want_title or "its design",
@@ -860,7 +876,7 @@ def build_france_mirror_payload(world) -> Optional[dict]:
                       f"(alarm {weight}).")
     else:
         price_line = (f"The courts believe he will go as far as "
-                      f"{price_display.lower()} (alarm {weight}).")
+                      f"{price_words(price)} (alarm {weight}).")
     lines = [
         f"Read as: {read_as}.",
         price_line,

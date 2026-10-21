@@ -164,6 +164,20 @@ FORTIFY_DECAY_CONFIG = {
 }
 FORTIFY_DECAY_DEFAULT = {"start": 6, "rate": 0.01, "floor": 0.0}
 
+
+def _fortify_percents(old_bonus: float, new_bonus: float):
+    """The decay line's two figures — "9% → 8%", rounded, never truncated.
+
+    SFR-D44 (SF-RR3, October 21, 2026): a holding marshal's works decay a
+    quarter-point a turn, and both figures were truncated whole percents,
+    so the morning read "fortifications decay: 6% → 6%" three days in four
+    (and a float's drift truncated 19% to 18%). When the whole percents tie,
+    the line keeps a decimal so it says what moved."""
+    old, new = round(old_bonus * 100), round(new_bonus * 100)
+    if old != new:
+        return f"{old}%", f"{new}%"
+    return f"{old_bonus * 100:.1f}%", f"{new_bonus * 100:.1f}%"
+
 # ═══════ MANPOWER POOL CONSTANTS ═══════
 INFANTRY_RECRUIT_AMOUNT = 10000        # Troops per infantry recruit (unchanged)
 CAVALRY_RECRUIT_AMOUNT = 5000          # Troops per cavalry recruit (half infantry — precious)
@@ -14609,7 +14623,8 @@ class WorldState:
                             message = f"{marshal.name}'s fortifications have crumbled completely!"
                             event_type = "fortify_collapsed"
                     else:
-                        message = f"{marshal.name}'s fortifications decay: {old_percent}% → {new_percent}%"
+                        _was, _now = _fortify_percents(current_bonus, new_bonus)
+                        message = f"{marshal.name}'s fortifications decay: {_was} → {_now}"
                         event_type = "fortify_decayed"
 
                     debug_print(f"  [TACTICAL] FORTIFY DECAY: {marshal.name} defense {old_percent}% -> {new_percent}% (turn {turns_fortified})")
@@ -14663,7 +14678,7 @@ class WorldState:
                         "nation": marshal.nation,
                         "defense_bonus": new_percent,
                         "front_loaded": front_loaded,
-                        "message": f"{marshal.name}'s fortifications strengthen: +{new_percent}% defense" +
+                        "message": f"{marshal.name}'s fortifications strengthen: +{round(new_bonus * 100)}% defense" +
                                   (" (MAX)" if new_bonus >= max_bonus_rate else f" (max {max_percent}%)")
                     })
 

@@ -1703,6 +1703,32 @@ ARRIVAL_VERB_DONE = {"fortify": "fortifies", "drill": "drills his men",
                      "defend": "takes up a defensive stance", "hold": "holds it"}
 
 
+def _arrived_on_the_first_step(marshal, order) -> bool:
+    """A march to a province that its first step finished.
+
+    SFR-D21 (SF-RR3, October 21, 2026): a one-step march arrived at once,
+    but the issuing turn's tick skipped it ("Soult is marching to Swabia (0
+    turns remaining)") and the order stood a whole turn more — where the
+    cannon-fire question found it. Such a march is completed at its issuing
+    turn's tick by the arrival handler the next tick would have run. An
+    attack on arrival keeps its turn (the attack is the order's business,
+    not its arrival), and a march on a man is read against the man."""
+    return (order.command_type == "MOVE_TO"
+            and not order.path
+            and marshal.location == order.target
+            and not getattr(order, "attack_on_arrival", False)
+            and getattr(order, "target_type", "region") != "marshal")
+
+
+def _countdown_clause(remaining: int) -> str:
+    """" (2 turns remaining)" — or nothing when nothing remains (SFR-D21:
+    an order with no turn left never reads "(0 turns remaining)")."""
+    if remaining <= 0:
+        return ""
+    from backend.display_names import plural as _plural
+    return f" ({_plural(remaining, 'turn')} remaining)"
+
+
 def run_arrival_verb(executor, marshal, world, game_state) -> Optional[Dict]:
     """CC-4 / D7: the TACTICAL verb a march carries ("then fortify | drill |
     defend"), done where he stands — through the executor with
@@ -2046,6 +2072,12 @@ class StrategicOrderProcessor:
 
             # Skip orders issued THIS turn — first step already executed by executor.py
             issued = getattr(order, 'issued_turn', None)
+            if (issued is not None and issued == world.current_turn
+                    and _arrived_on_the_first_step(marshal, order)):
+                # SFR-D21: the march is done — completed at this tick by the
+                # arrival handler the next tick would have run.
+                reports.append(self._handle_move_to_arrival(marshal, world, game_state))
+                continue
             if issued is not None and issued == world.current_turn:
                 print(f"[STRATEGIC] {marshal.name}: SKIP - order issued this turn")
                 # CR-7-9: the issuing turn's tick COUNTS — a `hold for 1
@@ -2072,28 +2104,28 @@ class StrategicOrderProcessor:
                 # engine's hedge in the player's report; the plural agrees
                 # with the count now (one source, display_names.plural).
                 from backend.display_names import plural as _plural
-                _left = f"({_plural(remaining, 'turn')} remaining)"
+                _left = _countdown_clause(remaining)
                 if order.command_type == "HOLD":
                     if marshal.location == order.target or not order.target:
                         msg = f"{marshal.name} is holding position at {marshal.location}."
                         if timed:
-                            msg = (f"{marshal.name} is holding position at {marshal.location} "
+                            msg = (f"{marshal.name} is holding position at {marshal.location}"
                                    f"{_left}.")
                     else:
-                        msg = f"{marshal.name} is marching to hold {order_target_display(order.target)} {_left}."
+                        msg = f"{marshal.name} is marching to hold {order_target_display(order.target)}{_left}."
                 elif order.command_type == "PURSUE":
                     # N27 (CA9): `order.target` is a raw marshal KEY, so
                     # this printed the camelCase key rather than the man.
                     # Same family as the already-filed N42 / S5-2.
                     msg = (f"{marshal.name} is pursuing "
-                           f"{_hum(order.target)} "
+                           f"{_hum(order.target)}"
                            f"{_left}.")
                 elif order.command_type == "SUPPORT":
                     msg = (f"{marshal.name} is moving to support "
-                           f"{_hum(order.target)} "
+                           f"{_hum(order.target)}"
                            f"{_left}.")
                 else:  # MOVE_TO
-                    msg = f"{marshal.name} is marching to {order_target_display(order.target)} {_left}."
+                    msg = f"{marshal.name} is marching to {order_target_display(order.target)}{_left}."
 
                 if progress_note:
                     msg = f"{progress_note} {msg}"

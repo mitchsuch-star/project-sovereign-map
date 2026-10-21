@@ -2334,7 +2334,7 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "quarrel between us to close."
     ),
     "settlement_multi_court_table_talleyrand": (
-        "Sire, this settlement of {war_label} seats {court_count} courts at the "
+        "Sire, this settlement of {war_label} seats {court_count} at the "
         "table. {binding_constraint}"
     ),
     "settlement_multi_court_all_carry_talleyrand": (
@@ -2548,6 +2548,13 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
 def get_settlement_voice_template(template_key: str) -> Optional[str]:
     """Return committed Imperial Settlement copy by exact template key."""
     return SETTLEMENT_VOICE_TEMPLATES.get(str(template_key or ""))
+
+
+def _courts_at_the_table(count: int) -> str:
+    """EA-E4 (SF-RR3): "seats 1 court", never "seats 1 courts" — the count
+    and its noun agreeing (`display_names.plural`)."""
+    from backend.display_names import plural
+    return plural(int(count), "court")
 
 
 def resolve_settlement_voice_line(template_key: str, **slots: Any) -> str:
@@ -2873,7 +2880,7 @@ def resolve_multi_court_settlement_voice(
     table_narration = resolve_settlement_voice_line(
         "settlement_multi_court_table_talleyrand",
         war_label=war_label or "this war",
-        court_count=len(rows),
+        court_count=_courts_at_the_table(len(rows)),
         binding_constraint=binding,
     )
     return {

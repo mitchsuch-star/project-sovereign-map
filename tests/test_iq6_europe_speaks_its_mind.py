@@ -908,6 +908,10 @@ class TestT6TheDigestReadsTheWholeDispatch:
                 assert any(line.startswith(f"  - RAIL {dtype}:") for line in d.lines)
             elif dtype in INTENT_TYPES:
                 assert d.lines[-1] == f"- COURTS: {dtype} text"
+            elif dtype in pdriver.VASSAL_DISPATCH_TYPES:
+                # SFR-B15 (SF-RR3): a satellite's unrest prints as the
+                # dispatch does, on its own line.
+                assert d.lines[-1] == f"- VASSALS: {dtype} text"
             else:
                 assert d.lines[-1] == f"- DIPLO +1 medium/low ({dtype})", (dtype, d.lines)
             assert [r["dtype"] for r in d.records if r["kind"] == "dispatch_row"] == [dtype]

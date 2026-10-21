@@ -58,6 +58,29 @@ _SETTLEMENT_TIER2_ACTION_IDS = frozenset({
 _MACHINE_ACTION_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$")
 
 
+def _court_named(world, nation: str, *, start: bool = False) -> str:
+    """RR3-X4 (SFR-B13's sibling, SF-RR3): a court in the Chancery's replies
+    by its current name and article — "There is no treaty with the Ottoman
+    Empire to break", never the tag ("with Ottoman", "with PapalStates")."""
+    from backend.display_names import display_nation, with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    shown = (formed_display_name(world, nation) if world is not None
+             else display_nation(nation))
+    return with_definite_article(shown, capitalize=start)
+
+
+def _nation_office(nation: str, office: str) -> str:
+    """SFR-D14 (v): "the Austrian court" (`display_names.nation_office`)."""
+    from backend.display_names import nation_office
+    return nation_office(nation, office)
+
+
+def _war_purpose_prompt(world, target: str) -> str:
+    """SFR-B13: the War Purpose card's question (`diplomacy.war_purpose_prompt`)."""
+    from backend.game_logic import diplomacy as _diplomacy
+    return _diplomacy.war_purpose_prompt(world, target)
+
+
 def _court_is_gone(world, nation: str) -> bool:
     """True when `nation` holds no province and is not the player.
 
@@ -1112,7 +1135,7 @@ class DiplomaticExecutor:
                     display = _STATE_DISPLAY_NAMES.get(current_diplo_state, current_diplo_state)
                     return {
                         "success": False,
-                        "message": f"We already have {display} with {target_nation}. "
+                        "message": f"We already have {display} with {_court_named(world, target_nation)}. "
                                    f"Talleyrand sees no purpose in proposing what we already possess.",
                     }
 
@@ -1165,7 +1188,7 @@ class DiplomaticExecutor:
             if not cap["allowed"]:
                 return {
                     "success": False,
-                    "message": f"Cannot vassalize {target_nation}: {cap['reason']}.",
+                    "message": f"Cannot vassalize {_court_named(world, target_nation)}: {cap['reason']}.",
                     "diplomatic_dialogue": None,
                     "awaiting_diplomatic_response": False,
                 }
@@ -1473,14 +1496,14 @@ class DiplomaticExecutor:
                 _pretty = str(_state).replace("_", " ").lower()
                 return {
                     "success": False,
-                    "message": (f"Our {_pretty} with {target_nation} is a bond of 1805, "
+                    "message": (f"Our {_pretty} with {_court_named(world, target_nation)} is a bond of 1805, "
                                 f"not a treaty of ours, Your Excellency — there is nothing "
-                                f"to break. 'Talleyrand, downgrade relations with "
-                                f"{target_nation}' loosens it."),
+                                f"to break. The Cabinet's Downgrade (F1 → "
+                                f"{_court_named(world, target_nation)} → Downgrade) loosens it."),
                 }
             return {
                 "success": False,
-                "message": f"There is no treaty with {target_nation} to break, Your Excellency.",
+                "message": f"There is no treaty with {_court_named(world, target_nation)} to break, Your Excellency.",
             }
 
         confirmed = bool(diplomatic_data.get("confirmed_break"))
@@ -1501,7 +1524,7 @@ class DiplomaticExecutor:
             warnings = _build_breach_warnings(breach_preview)
             treaty_type_display = breach_preview["treaty_type_display"]
             confirm_text = (
-                f"Sire, breaking the {treaty_type_display} with {target_nation} "
+                f"Sire, breaking the {treaty_type_display} with {_court_named(world, target_nation)} "
                 f"without offering release will mark us as oath-breakers. "
                 f"Shall I proceed?"
             )
@@ -1567,13 +1590,13 @@ class DiplomaticExecutor:
         if current_state not in _DOWNGRADE_ORDER:
             return {
                 "success": False,
-                "message": f"Our relations with {target_nation} are already at their most basic level.",
+                "message": f"Our relations with {_court_named(world, target_nation)} are already at their most basic level.",
             }
         idx = _DOWNGRADE_ORDER.index(current_state)
         if idx >= len(_DOWNGRADE_ORDER) - 1:
             return {
                 "success": False,
-                "message": f"Our relations with {target_nation} are already at their most basic level.",
+                "message": f"Our relations with {_court_named(world, target_nation)} are already at their most basic level.",
             }
 
         # Check DP before calling (execute_downgrade doesn't check DP itself)
@@ -1937,7 +1960,7 @@ class DiplomaticExecutor:
         # ── Build result text: Talleyrand frame + target-court named ack ──
         talleyrand_line = (
             f"Talleyrand: \"The reparations have been delivered to "
-            f"{target_nation}, Sire.\""
+            f"{_court_named(world, target_nation)}, Sire.\""
         )
         ack_line = self._format_amends_acknowledgment(
             target_diplomat_name, target_nation,
@@ -2026,7 +2049,7 @@ class DiplomaticExecutor:
         # Non-cast fallback: "The Chancery of {nation}" voice with neutral
         # acknowledgment copy. Never emit the bare `foreign_office` string.
         return (
-            f"The Chancery of {target_nation}: "
+            f"The Chancery of {_court_named(None, target_nation)}: "
             f"\"The gesture from France is acknowledged.\""
         )
 
@@ -2329,7 +2352,7 @@ class DiplomaticExecutor:
         # conditions" clause — register is per-court, not per-variant).
         talleyrand_line = (
             f"Talleyrand: \"The reparations for the abandoned alliance "
-            f"have been delivered to {target_nation}, Sire.\""
+            f"have been delivered to {_court_named(world, target_nation)}, Sire.\""
         )
         ack_line = self._format_amends_acknowledgment(
             target_diplomat_name, target_nation,
@@ -2456,11 +2479,11 @@ class DiplomaticExecutor:
 
         for warning in bargain_warnings:
             beneficiary = warning.get("beneficiary", "")
-            text = warning.get("warning") or f"Active bargain with {beneficiary} targets {target_nation}."
+            text = warning.get("warning") or f"Active bargain with {beneficiary} targets {_court_named(world, target_nation)}."
             warnings.append({"severity": "medium", "text": text})
 
         if not summary:
-            summary.append(f"France is about to declare war on {target_nation}.")
+            summary.append(f"France is about to declare war on {_court_named(world, target_nation)}.")
 
         options = []
         if has_accept_path:
@@ -2533,7 +2556,7 @@ class DiplomaticExecutor:
             })
             return {
                 "success": True,
-                "message": f"Declaration against {target_nation} cancelled.",
+                "message": f"Declaration against {_court_named(world, target_nation)} cancelled.",
                 "suppress_proposal_result_popup": True,
             }
 
@@ -2678,7 +2701,7 @@ class DiplomaticExecutor:
         if current_state == "WAR":
             return {
                 "success": False,
-                "message": f"We are already at war with {target_nation}, Sire.",
+                "message": f"We are already at war with {_court_named(world, target_nation)}, Sire.",
             }
 
         # §4e: Armistice cooldown — include remaining turns in message
@@ -2711,7 +2734,7 @@ class DiplomaticExecutor:
             world.dialogue_manager.open_flow({
                 "type": "war_purpose_selection",
                 "target_nation": target_nation,
-                "message": f"Choose your war purpose against {target_nation}.",
+                "message": _war_purpose_prompt(world, target_nation),
                 "objectives": objectives,
                 "options": options,
                 "blocking": True,
@@ -2719,7 +2742,7 @@ class DiplomaticExecutor:
             })
             return {
                 "success": True,
-                "message": f"Choose your war purpose against {target_nation}.",
+                "message": _war_purpose_prompt(world, target_nation),
                 "war_purpose_popup": {
                     "target_nation": target_nation,
                     "objectives": objectives,
@@ -2780,7 +2803,7 @@ class DiplomaticExecutor:
             # noting the price, and that Europe keeps accounts.
             # ══════════════════════════════════════════════════════════
             warning_text = (
-                f"Sire, we have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
+                f"Sire, we have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {_court_named(world, target_nation)}. "
                 f"Setting a treaty aside is a matter of arithmetic, not of "
                 f"honour; permit me only to observe that Europe keeps the "
                 f"longer memory, and will price our next undertaking "
@@ -2829,7 +2852,7 @@ class DiplomaticExecutor:
                 f"of war costs {dp_cost} Diplomatic Point and the "
                 f"chancery holds {int(world.diplomatic_points)}. The "
                 f"province stands; nothing was relayed to "
-                f"{target_nation}.")
+                f"{_court_named(world, target_nation)}.")
             world.proposal_result_popup = {
                 "type": "proposal_result",
                 "result": "refused",
@@ -2847,7 +2870,7 @@ class DiplomaticExecutor:
         # Talleyrand STRONG objection if target is neutral and threat is high
         threat_level = getattr(world, 'threat_level', 0)
         _objects = current_state != "WAR" and threat_level > 50 and not confirmed_objection
-        _objection_text = (f"Sire, I must strongly advise against declaring war on {target_nation}. "
+        _objection_text = (f"Sire, I must strongly advise against declaring war on {_court_named(world, target_nation)}. "
                            f"Our threat level stands at {int(threat_level)} — the courts of Europe "
                            f"already whisper of coalition. Another war will only hasten their union against us.")
         # IQ-3 rider: after a spent league the alarm sits in the forties and
@@ -2915,7 +2938,7 @@ class DiplomaticExecutor:
             if _congress.sitting(world):
                 _congress_warning = (
                     f"Sire, the Congress of Paris is sitting. A declaration "
-                    f"on {target_nation} now would answer for Europe: the "
+                    f"on {_court_named(world, target_nation)} now would answer for Europe: the "
                     f"hold breaks and the Congress dissolves at this end turn "
                     f"— Europe's alarm +{_congress.dissolve_alarm(world)}, and "
                     f"{_congress.cooldown_turns(world)} turns before the "
@@ -2931,7 +2954,7 @@ class DiplomaticExecutor:
                     "concern_level": "STRONG",
                     "objection_text": _objection_text,
                     "defiance_risk": "High",
-                    "proposal_summary": f"Declare war on {target_nation}",
+                    "proposal_summary": f"Declare war on {_court_named(world, target_nation)}",
                     "action": "diplomatic_declare_war",
                     "target_nation": target_nation,
                     "war_objective": war_objective,
@@ -3124,7 +3147,7 @@ class DiplomaticExecutor:
         player = world.player_nation
         current_state = world.get_diplomatic_state(player, target_nation)
         if current_state != "WAR":
-            return {"success": False, "message": f"We are not at war with {target_nation}, Sire."}
+            return {"success": False, "message": f"We are not at war with {_court_named(world, target_nation)}, Sire."}
 
         diplo_key = world._make_diplo_key(player, target_nation)
         existing = world.war_objectives.get(diplo_key, {}).get(player)
@@ -3132,7 +3155,7 @@ class DiplomaticExecutor:
             if existing.get("type") != "defense":
                 return {
                     "success": False,
-                    "message": f"Our war purpose against {target_nation} is already set to "
+                    "message": f"Our war purpose against {_court_named(world, target_nation)} is already set to "
                                f"{existing.get('type', 'unknown').replace('_', ' ')}. "
                                f"It cannot be changed mid-war.",
                 }
@@ -3153,7 +3176,7 @@ class DiplomaticExecutor:
             world.dialogue_manager.open_flow({
                 "type": "war_purpose_selection",
                 "target_nation": target_nation,
-                "message": f"Choose your war purpose against {target_nation}.",
+                "message": _war_purpose_prompt(world, target_nation),
                 "objectives": objectives,
                 "options": options,
                 "is_defensive_set": True,
@@ -3162,7 +3185,7 @@ class DiplomaticExecutor:
             })
             return {
                 "success": True,
-                "message": f"Choose your war purpose against {target_nation}.",
+                "message": _war_purpose_prompt(world, target_nation),
                 "war_purpose_popup": {
                     "target_nation": target_nation,
                     "objectives": objectives,
@@ -3220,7 +3243,7 @@ class DiplomaticExecutor:
         _articles = declare_articles(world, player, target_nation, declared_terms or [])
         from backend.game_logic.diplomacy import OBJECTIVE_TYPE_DISPLAY
         display = OBJECTIVE_TYPE_DISPLAY.get(objective_type, objective_type)
-        message = f"War purpose declared: {display} against {target_nation}."
+        message = f"War purpose declared: {display} against {_court_named(world, target_nation)}."
         if _articles.get("display"):
             message = f"{message} {_articles['display']}"
         return {
@@ -3486,7 +3509,7 @@ class DiplomaticExecutor:
             if err == "not_at_war":
                 return {
                     "success": False,
-                    "message": f"We are not at war with {target_nation}, Sire.",
+                    "message": f"We are not at war with {_court_named(world, target_nation)}, Sire.",
                     "error": err,
                     "error_display": settlement_disabled_reason_display(err),
                 }
@@ -3504,7 +3527,7 @@ class DiplomaticExecutor:
                 "error_display": display_reason,
                 "message": (
                     f"Sire, the chancery cannot open a settlement with "
-                    f"{target_nation}: {display_reason}"
+                    f"{_court_named(world, target_nation)}: {display_reason}"
                 ),
             }
             # G4F-21: an archived war names its recovery surface so the
@@ -3672,7 +3695,7 @@ class DiplomaticExecutor:
                     "error_display": _display,
                     "message": (
                         f"Sire, the chancery cannot offer a white peace to "
-                        f"{target_nation}: {_display}"
+                        f"{_court_named(world, target_nation)}: {_display}"
                     ),
                 }
         resolution = resolve_or_backfill_war_instance_for_settlement(
@@ -3688,7 +3711,7 @@ class DiplomaticExecutor:
                 "error_display": display_reason,
                 "message": (
                     f"Sire, the chancery cannot offer a white peace to "
-                    f"{target_nation}: {display_reason}"
+                    f"{_court_named(world, target_nation)}: {display_reason}"
                 ),
             }
         war_id = resolution["war_id"]
@@ -3799,7 +3822,7 @@ class DiplomaticExecutor:
                 # PC-X44: the court named, and no bargain with it — said so
                 # (the Cabinet's row is offered only where one stands).
                 return {"success": False,
-                        "message": (f"We have struck no war bargain with {target_nation} "
+                        "message": (f"We have struck no war bargain with {_court_named(world, target_nation)} "
                                     f"to repudiate, Sire.")}
 
         if not bargain_id:
@@ -3893,14 +3916,14 @@ class DiplomaticExecutor:
         if current_state == "WAR":
             return {
                 "success": False,
-                "message": f"We are already at war with {target_nation}, Sire. Use a peace proposal with harsh demands instead.",
+                "message": f"We are already at war with {_court_named(world, target_nation)}, Sire. Use a peace proposal with harsh demands instead.",
             }
 
         # Pre-validation: ARMISTICE blocked (AM-15.2)
         if current_state == "ARMISTICE":
             return {
                 "success": False,
-                "message": f"An armistice is in effect with {target_nation}, Sire. Honor the terms before making new demands.",
+                "message": f"An armistice is in effect with {_court_named(world, target_nation)}, Sire. Honor the terms before making new demands.",
             }
 
         # Pre-validation: Vassal blocked
@@ -3908,7 +3931,7 @@ class DiplomaticExecutor:
         if target_nation in vassals:
             return {
                 "success": False,
-                "message": f"{target_nation} is our vassal, Sire. Use investment or autonomy changes instead.",
+                "message": f"{_court_named(world, target_nation, start=True)} is our vassal, Sire. Use investment or autonomy changes instead.",
             }
 
         # PL-14 §4: Global cooldown check (5-turn across ALL nations)
@@ -3936,7 +3959,7 @@ class DiplomaticExecutor:
             world.diplomatic_objection_popup = {
                 "type": "talleyrand_objection",
                 "severity": "STRONG",
-                "message": (f"Sire, an ultimatum to {target_nation} while our threat level stands at "
+                "message": (f"Sire, an ultimatum to {_court_named(world, target_nation)} while our threat level stands at "
                             f"{int(threat_level)} is most unwise. The other powers will see this as "
                             f"further aggression."),
                 "action": "diplomatic_ultimatum",
@@ -3976,8 +3999,8 @@ class DiplomaticExecutor:
             "type": "ultimatum_confirm",
             "target_nation": target_nation,
             "turn_created": int(world.current_turn),
-            "prompt": (f"Talleyrand presents the ultimatum terms for {target_nation}. "
-                       f"These demands are backed by military force — {target_nation} must comply or face consequences."),
+            "prompt": (f"Talleyrand presents the ultimatum terms for {_court_named(world, target_nation)}. "
+                       f"These demands are backed by military force — {_court_named(world, target_nation)} must comply or face consequences."),
             "options": [
                 {"label": "Customize Demands", "action": "ultimatum_customize"},
                 {"label": "Use Suggested", "action": "execute_ultimatum", "terms": terms},
@@ -4940,7 +4963,7 @@ class DiplomaticExecutor:
                 if not cap["allowed"]:
                     return {
                         "success": False,
-                        "message": f"Cannot vassalize {ctx.target_nation}: {cap['reason']}.",
+                        "message": f"Cannot vassalize {_court_named(ctx.world, ctx.target_nation)}: {cap['reason']}.",
                         "diplomatic_dialogue": ctx.dialogue,
                     }
 
@@ -5074,7 +5097,7 @@ class DiplomaticExecutor:
             return {
                 "success": True,
                 "message": (
-                    f"Talleyrand departs for the {ctx.target_nation} court with your {_proposal_display_name(proposal_type)} proposal. "
+                    f"Talleyrand departs for {_nation_office(ctx.target_nation, 'court')} with your {_proposal_display_name(proposal_type)} proposal. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
                 ),
             }
@@ -5208,7 +5231,7 @@ class DiplomaticExecutor:
                 "type": "proposal_confirm",
                 "target_nation": ctx.target_nation,
                 "talleyrand_text": (
-                    f"As you wish, Sire. I have drafted harsher terms for {ctx.target_nation}.{cap_msg}"
+                    f"As you wish, Sire. I have drafted harsher terms for {_court_named(ctx.world, ctx.target_nation)}.{cap_msg}"
                 ),
                 "options": options,
                 "context": context,
@@ -5362,7 +5385,7 @@ class DiplomaticExecutor:
                 add_threat(ctx.world, 5, "ultimatum_accepted")
                 ctx.world.ultimatum_global_cooldown = 5
                 desc_text = "; ".join(transfer_desc) if transfer_desc else "compliance"
-                outcome_msg = (f"{ctx.target_nation} has bowed to our ultimatum! "
+                outcome_msg = (f"{_court_named(ctx.world, ctx.target_nation, start=True)} has bowed to our ultimatum! "
                                f"Concessions: {desc_text}. (+{delivery_threat + 5} threat)")
             else:
                 # PL-19 §B: Rejection penalty scales with demand severity
@@ -5370,7 +5393,7 @@ class DiplomaticExecutor:
                 ctx.world.modify_nation_relation(player, ctx.target_nation, int(rejection_penalty))
                 ctx.world.casus_belli[diplo_key] = True
                 ctx.world.ultimatum_global_cooldown = 5
-                outcome_msg = (f"{ctx.target_nation} has rejected our ultimatum! "
+                outcome_msg = (f"{_court_named(ctx.world, ctx.target_nation, start=True)} has rejected our ultimatum! "
                                f"We now have casus belli — war declaration penalties will be halved. (+{delivery_threat} threat)")
 
             # Pop dialogue
@@ -5667,7 +5690,7 @@ class DiplomaticExecutor:
                 "type": "proposal_confirm",
                 "target_nation": ctx.target_nation,
                 "talleyrand_text": (
-                    f"A magnanimous approach, Sire. More generous terms for {ctx.target_nation}.{cap_msg}"
+                    f"A magnanimous approach, Sire. More generous terms for {_court_named(ctx.world, ctx.target_nation)}.{cap_msg}"
                 ),
                 "options": options,
                 "context": context,
@@ -6559,7 +6582,7 @@ class DiplomaticExecutor:
                 if not cap["allowed"]:
                     return {
                         "success": False,
-                        "message": f"Cannot vassalize {ctx.target_nation}: {cap['reason']}.",
+                        "message": f"Cannot vassalize {_court_named(ctx.world, ctx.target_nation)}: {cap['reason']}.",
                         "diplomatic_dialogue": ctx.dialogue,
                     }
 
@@ -6645,7 +6668,7 @@ class DiplomaticExecutor:
             return {
                 "success": True,
                 "message": (
-                    f"Talleyrand departs for the {ctx.target_nation} court despite his objections. "
+                    f"Talleyrand departs for {_nation_office(ctx.target_nation, 'court')} despite his objections. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
                 ),
             }
@@ -7290,7 +7313,7 @@ class DiplomaticExecutor:
         gold_mode = context.get("gold_mode", "per_turn")
         label_suffix = "gold/turn" if gold_mode == "per_turn" else "gold (immediate)"
 
-        text = f"How much gold shall we demand from {target_nation}, Sire? I suggest {int(gold)} {label_suffix}."
+        text = f"How much gold shall we demand from {_court_named(world, target_nation)}, Sire? I suggest {int(gold)} {label_suffix}."
         context["guidance_state"] = "ultimatum_gold"
 
         new_dialogue = {
@@ -7428,7 +7451,7 @@ class DiplomaticExecutor:
         for utype, pool in eligible:
             options.append({
                 "label": f"Demand {utype} (pool: {int(pool)})",
-                "description": f"Conscript {utype} from {target_nation}.",
+                "description": f"Conscript {utype} from {_court_named(world, target_nation)}.",
                 "action": "ultimatum_pick_manpower_type",
                 "terms": {"unit_type": utype},
             })

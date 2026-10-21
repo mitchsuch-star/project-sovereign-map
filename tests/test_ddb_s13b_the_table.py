@@ -413,7 +413,8 @@ class TestDDB10:
         assert [c["payload"]["amount"] for c in row["choices"]][:1] == [100]
         src = (REPO / "backend" / "game_logic" / "ai_diplomacy.py").read_text(encoding="utf-8")
         assert "A larger bid is " not in src
-        assert "chosen on the Cabinet row (F1 → {nation} → Bid" in src
+        # RR3-X12 (SF-RR3, October 21, 2026): the court by its name.
+        assert "chosen on the Cabinet row (F1 → {_shown} → Bid" in src
 
 
 # ═══════════════════════════════════════════════════════════════════════════

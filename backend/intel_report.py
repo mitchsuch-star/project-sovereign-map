@@ -12,7 +12,7 @@ Usage:
 """
 
 from typing import Dict, Any
-from backend.display_names import humanize_entity_name
+from backend.display_names import humanize_entity_name, plural
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
 )
@@ -275,11 +275,11 @@ def generate_intel_report(world) -> Dict[str, Any]:
         count = len(no_intelligence)
         if frontier:
             no_intel_summary = (
-                f"No word from {count} provinces beyond the frontiers of "
+                f"No word from {plural(count, 'province')} beyond the frontiers of "
                 f"{', '.join(frontier)}."
             )
         else:
-            no_intel_summary = f"No word from {count} provinces."
+            no_intel_summary = f"No word from {plural(count, 'province')}."
         lines.append(f"NO INTELLIGENCE: {no_intel_summary}")
         lines.append("")
 

@@ -732,6 +732,35 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               # Step 7 page turn for turn, and so does the tree with this seam
               # alone held down (DDB-X26's seam moves nothing here).
               "backend.game_logic.withdrawal:title_is_home=False",
+              # SF-RR3 "the page and the copy" (October 21, 2026): every page
+              # seam the slice added, held down — the rout's field (SFR-D17,
+              # turn 8's "broken at Bohemia"), the page's order (D36, B9,
+              # EG-X3), the satellite's article (RR3-X7), the levy and the
+              # famine (D32, D33), the road home (D30, D43, D14 vi / iii),
+              # the courts' rows that may lead a quiet page (B4, B12, B15) and
+              # the one-step march (D21, which re-times nothing here).
+              "backend.game_logic.dispatch:_rout_field=(a[1].get('region') or a[1].get('location') or a[1].get('from') or 'the field')",
+              "backend.game_logic.dispatch:_vassal_lost_weight=84",
+              "backend.game_logic.dispatch:_our_wound_weight=int(a[2])",
+              "backend.game_logic.dispatch:_rides_beneath_classes=()",
+              "backend.game_logic.dispatch:_satellite_name=__import__('backend.game_logic.formations').game_logic.formations.formed_display_name(a[0], a[1])",
+              "backend.game_logic.dispatch:_levy_drawn_lately=False",
+              "backend.game_logic.dispatch:_famine_toll=None",
+              "backend.game_logic.dispatch:_famine_veterans=list(a[3])",
+              "backend.game_logic.dispatch:_mid_treaty_road_is_current=True",
+              "backend.game_logic.withdrawal:treaty_word='peace'",
+              "backend.game_logic.withdrawal:_names_in_prose=', '.join(a[0])",
+              "backend.game_logic.ai_diplomacy:_announce_allegiance_close=None",
+              "backend.game_logic.intent:price_words=('indifference' if a[0] == 'indifferent' else __import__('backend.game_logic.intent').game_logic.intent.PRICE_DISPLAY.get(a[0], a[0]).lower())",
+              "backend.game_logic.dispatch:_vassal_unrest_line=('Talleyrand reports unrest in %s. %s' % (a[0].get('nation') or 'a satellite', a[0].get('recovery_hint') or '')).strip()",
+              "backend.commands.strategic:_arrived_on_the_first_step=False",
+              # ... and the two its C6 re-read found (RR3-X13 one peace one
+              # line, RR3-X14 the brewing told once).
+              "backend.game_logic.dispatch:_one_peace_one_line=a[0]",
+              "backend.game_logic.dispatch:_settlement_peace=None",
+              "backend.game_logic.dispatch:_brewing_is_news=True",
+              "backend.game_logic.dispatch:_declaration_is_news=True",
+              "backend.game_logic.dispatch:_one_war_one_line=[a[2]('war_touches_us', line=d['line']) for d in a[1]] and None",
               ]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

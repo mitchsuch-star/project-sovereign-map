@@ -225,26 +225,58 @@ def _display(name: str) -> str:
     return humanize_entity_name(name)
 
 
-def _court(world, nation: str) -> str:
+def _court(world, nation: str, *, start: bool = False) -> str:
+    """A court in a sentence — "the Kingdom of Italy", "Austria".
+
+    SFR-D14 (iv) (SF-RR3, October 21, 2026): the name came bare, so the
+    desk said "Milan is Kingdom of Italy's, Sire" and "a prisoner of
+    Ottoman Empire"; it carries the article English wants
+    (`with_definite_article`), capitalised where the court opens a
+    sentence (`start`)."""
     if not nation:
-        return "no one"
+        return "No one" if start else "no one"
+    from backend.display_names import with_definite_article
     try:
         from backend.game_logic.formations import formed_display_name
-        return formed_display_name(world, nation)
+        shown = formed_display_name(world, nation)
     except Exception as exc:
         report(exc, "question_desk._court: import backend.game_logic.formations")
-        return str(nation)
+        shown = str(nation)
+    return with_definite_article(shown, capitalize=start)
+
+
+def _possessive(name: str) -> str:
+    """"the Kingdom of Italy's", "the Papal States'" (SRX-22's rule)."""
+    return f"{name}'" if name.endswith("s") else f"{name}'s"
+
+
+def _cap(text: str) -> str:
+    """A sentence's first letter (a court opening it carries "The")."""
+    return text[:1].upper() + text[1:]
 
 
 def _order_clause(marshal) -> str:
     order = getattr(marshal, "strategic_order", None)
     if not order:
         return ""
-    kind = str(getattr(order, "command_type", "") or "").replace("_", " ").lower()
+    return " " + _order_phrase(order)
+
+
+def _order_phrase(order) -> str:
+    """"Under a standing order to march to Franche-Comte."
+
+    SFR-D14 (ii) (SF-RR3, October 21, 2026): the order's raw type was
+    lower-cased into the sentence — "Under a standing move to order —
+    Franche-Comte." The order's verb is the Ledger's own word for it."""
+    from backend.display_names import get_strategic_display
+    cmd = str(getattr(order, "command_type", "") or "")
+    verb = get_strategic_display(cmd).lower()
     target = getattr(order, "target", None)
     if target and target != "generic":
-        return f" Under a standing {kind} order — {_display(str(target))}."
-    return f" Under a standing {kind} order."
+        shown = _display(str(target))
+        return (f"Under a standing order to {verb} "
+                f"{'to ' if cmd == 'MOVE_TO' else ''}{shown}.")
+    return f"Under a standing order to {verb}."
 
 
 def _state_words(marshal) -> List[str]:
@@ -341,11 +373,20 @@ def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
     return f"{region_name} ({holder}): " + " ".join(lines)
 
 
+def _own_marshal_name(world, marshal) -> str:
+    """The answer's subject — "The Emperor Napoleon stands at Lorraine".
+
+    SFR-D14 (i) (SF-RR3): every line below opens with the name, and the
+    Emperor's honorific opened it lower-case ("the Emperor Napoleon stands
+    at …"); the title capitalises its article at a sentence's start."""
+    from backend.display_names import marshal_title
+    return marshal_title(world, marshal.name, start=True)
+
+
 def _answer_own_marshal(world, kind: str, marshal) -> str:
     # NP-X7 (SR-6b, Oct 2 2026): the rank through the ONE honorific — "the
     # Emperor Napoleon stands at Lorraine", never "Marshal Napoleon".
-    from backend.display_names import marshal_honorific
-    name = marshal_honorific(world, marshal.name)
+    name = _own_marshal_name(world, marshal)
     if getattr(marshal, "captured_by", ""):
         # DDB-16 (Pre-Deploy S13b part 2): where and since when — "held at
         # Vilna since turn 16". (The roster now carries our prisoners, so
@@ -1317,10 +1358,10 @@ def _answer_wants(world, nation: str) -> Optional[str]:
     court = _court(world, nation)
     view = get_active_agenda(nation, world)
     if view is None:
-        return (f"{court} pursues no design we can name, Sire — she plays for "
+        return (f"{_cap(court)} pursues no design we can name, Sire — she plays for "
                 f"survival and advantage as they come.")
     regions = ", ".join(view.regions) if getattr(view, "regions", None) else ""
-    line = f"{court} pursues {view.title}, Sire. {view.blurb}"
+    line = f"{_cap(court)} pursues {view.title}, Sire. {view.blurb}"
     if regions:
         line += f" The provinces in question: {regions}."
     pointer = surface_pointer("courts")
@@ -1384,9 +1425,9 @@ def _answer_demanded(world, player: str, court_tag: str) -> str:
         when = f" on turn {turn}" if turn else ""
         terms = "; ".join(lines) if lines else "terms the letter does not state"
         more = (f" {len(letters) - 1} older letter{'s' if len(letters) > 2 else ''} "
-                f"of {court}'s also wait{'s' if len(letters) == 2 else ''} in the mailbox."
+                f"of {_possessive(court)} also wait{'s' if len(letters) == 2 else ''} in the mailbox."
                 if len(letters) > 1 else "")
-        return (f"{court}'s envoy brought {what}{when}, Sire — it asks: {terms}. "
+        return (f"{_cap(_possessive(court))} envoy brought {what}{when}, Sire — it asks: {terms}. "
                 f"The letter waits in the mailbox.{more}")
     from backend.game_logic import congress as _congress
     record = _congress.record(world) or {}
@@ -1407,7 +1448,7 @@ def _answer_demanded(world, player: str, court_tag: str) -> str:
         if etype == "proposal_arrived" and str(event.get("source") or "") == court_tag:
             from backend.display_names import proposal_display_name
             what = proposal_display_name(str(event.get("proposal_type") or "")) or "a proposal"
-            return (f"{court}'s last letter came on turn {int(event.get('turn', 0) or 0)}, "
+            return (f"{_cap(_possessive(court))} last letter came on turn {int(event.get('turn', 0) or 0)}, "
                     f"Sire — {what.lower() if what[:1].isupper() else what}; it has "
                     f"been answered and its terms are no longer on the desk.")
     return f"No letter from {court} has reached the desk, Sire — nothing was demanded."
@@ -1452,7 +1493,7 @@ def _answer_where_nation(world, player: str, court_tag: str) -> str:
                     unseen.append(f"no word of {_display(m.name)}")
         clause = f"{court}: " + "; ".join(seen + unseen)
         parts.append(clause)
-    return "Sire — " + ". ".join(parts) + "."
+    return "Sire — " + ". ".join(parts[:1] + [_cap(p) for p in parts[1:]]) + "."
 
 
 def _league_is_read() -> bool:
@@ -1668,7 +1709,7 @@ def _answer_what_if(world, player: str, enemy_name: str,
     if probe is not None and friendly_fire_refusal(world, probe, enemy.nation):
         state = world.get_diplomatic_state(player, enemy.nation)
         bond = ("our vassal" if state == "VASSAL" else "our ally")
-        return (f"{shown} is {court}'s, and {court} is {bond}, Sire — "
+        return (f"{shown} is {_possessive(court)}, and {court} is {bond}, Sire — "
                 f"the order would be refused, and nothing spent. "
                 f"{CABINET_LINE_FOR_DESK}")
     state = world.get_diplomatic_state(player, enemy.nation)
@@ -1727,7 +1768,7 @@ def _the_named_corps(world, player: str, marshal_name: str, foreign: bool,
             return f"{shown_m} has fallen, Sire — he leads no army to weigh."
         return f"I know no corps under {shown_m}, Sire."
     if foreign or marshal.nation != player:
-        return (f"{shown_m} is {_court(world, marshal.nation)}'s, Sire — not "
+        return (f"{shown_m} is {_possessive(_court(world, marshal.nation))}, Sire — not "
                 f"ours to order; I can weigh the field only for a corps of ours.")
     if getattr(marshal, "captured_by", ""):
         return f"{shown_m} is a prisoner, Sire — he leads no army to weigh."
@@ -1871,7 +1912,7 @@ def _answer_what_if_region(world, player: str, region_name: str,
         state = world.get_diplomatic_state(player, holder)
         if friendly_fire_refusal(world, chosen, holder):
             bond = "our vassal" if state == "VASSAL" else "our ally"
-            return (f"{region_name} is {court}'s, and {court} is {bond}, Sire "
+            return (f"{region_name} is {_possessive(court)}, and {court} is {bond}, Sire "
                     f"— the order would be refused, and nothing spent. "
                     f"{CABINET_LINE_FOR_DESK}")
         if state == "ARMISTICE":
@@ -2143,7 +2184,7 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
         threats.append((steps, enemy, force))
     threats.sort(key=lambda t: (t[0], -int(t[1].strength)))
     parts = []
-    whose = "ours" if ours else f"{holder}'s"
+    whose = "ours" if ours else _possessive(holder)
     if own:
         parts.append(f"{region_name} is {whose}, Sire; "
                      + _join([f"{_display(m.name)}'s {int(m.strength):,}" for m in own])
@@ -2247,7 +2288,7 @@ def _safe_for_the_holder(world, player: str, region, region_name: str,
                  if enemy_soil else "Threats we can see")
         lines.append(f"{label}: {said(threats)}.")
     if cover:
-        lines.append(f"{holder}'s own we can see: {said(cover)}.")
+        lines.append(f"{_cap(_possessive(holder))} own we can see: {said(cover)}.")
     held = garrison > 0 or ours_in_it or any(s == 0 for s, _, _ in cover)
     if threats:
         nearest = threats[0][0]
@@ -2258,7 +2299,7 @@ def _safe_for_the_holder(world, player: str, region, region_name: str,
             lines.append("It is within reach of its enemies; what holds it "
                          "we cannot see.")
         elif nearest == 1 and not held:
-            lines.append(f"It lies open — nothing of {holder}'s stands in "
+            lines.append(f"It lies open — nothing of {_possessive(holder)} stands in "
                          f"the way." if enemy_soil else
                          "It is in danger — nothing stands in its way.")
         elif nearest == 1:

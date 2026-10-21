@@ -126,8 +126,11 @@ class TestTheDeclarationNamesItsCause:
     def test_the_consumer_appends_it_to_the_players_own_beat(self):
         src = (ROOT / "backend" / "game_logic" / "dispatch.py").read_text(
             encoding="utf-8")
+        # Re-seated by RR3-X15 (SF-RR3, October 21, 2026): the composed line
+        # is gathered and the morning's declarations told as one
+        # (`_one_war_one_line`), so the arm ends at the gathering.
         m = re.search(r'other = target if aggressor == player_nation else aggressor'
-                      r'(.{0,700}?)_add\("war_touches_us", line=_line\)', src, re.S)
+                      r'(.{0,900}?)_declarations\.append\(\{"court": other, "line": _line,', src, re.S)
         assert m, "the war_touches_us arm no longer composes the cause"
         body = m.group(1)
         assert "war_declaration_cause(world, aggressor, e)" in body

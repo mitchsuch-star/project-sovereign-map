@@ -2997,7 +2997,7 @@ def _build_ai_ultimatum_dialogue(proposal: Dict, world) -> Dict:
 
     diplomats = getattr(world, 'diplomats', {})
     diplomat = diplomats.get(nation)
-    diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
+    diplomat_name = diplomat.name if diplomat else _ambassador_of(nation)
 
     proposal_summary = _format_proposal_summary(terms)
     assessment = (
@@ -3184,7 +3184,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
 
     diplomats = getattr(world, 'diplomats', {})
     diplomat = diplomats.get(nation)
-    diplomat_name = diplomat.name if diplomat else f"the {nation} ambassador"
+    diplomat_name = diplomat.name if diplomat else _ambassador_of(nation)
 
     proposal_summary = _format_proposal_summary(terms)
     acceptance = calculate_acceptance(terms, world)
@@ -4236,21 +4236,22 @@ def process_allegiance_auctions(world) -> List[Dict]:
         # DD-1 S8 Step 3 (SFR-D40): the notice carries the verb — the
         # chip on the auction's own announcement (`action_command` rides
         # the ordinary typed pipeline, the dotation / recall idiom).
+        _shown = _court_display(world, nation)
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
-            f"{nation}'s allegiance is in play",
-            (f"The court of {nation} weighs its allegiance — the flip "
+            _allegiance_notice_title(world, nation),
+            (f"The court of {_shown} weighs its allegiance — the flip "
              f"resolves within {int(ALLEGIANCE_AUCTION_WINDOW)} turns. "
              f"Sponsorship, standing and a bid of gold win it."),
             turn,
             details={
                 "action_command": f"bid for {nation}, {int(DEFAULT_ALLEGIANCE_BID)} gold",
-                "action_label": f"Bid for {nation} ({int(DEFAULT_ALLEGIANCE_BID)}g, 1 DP)",
+                "action_label": f"Bid for {_shown} ({int(DEFAULT_ALLEGIANCE_BID)}g, 1 DP)",
                 "action_detail": (f"Lay {int(DEFAULT_ALLEGIANCE_BID)} gold before the court "
-                                  f"of {nation}; relations and standing patronage weigh "
+                                  f"of {_shown}; relations and standing patronage weigh "
                                   f"beside it when the flip resolves. Larger sums are "
-                                  f"chosen on the Cabinet row (F1 → {nation} → Bid "
+                                  f"chosen on the Cabinet row (F1 → {_shown} → Bid "
                                   f"for Their Allegiance)."),
             },
         ))
@@ -4270,6 +4271,7 @@ def process_allegiance_auctions(world) -> List[Dict]:
             }
             world.log_event(event)
             events.append(event)
+            _announce_allegiance_close(world, nation, "lapsed", None)
             continue
         if turn < int(record.get("resolves_turn", turn)):
             continue
@@ -4316,6 +4318,7 @@ def process_allegiance_auctions(world) -> List[Dict]:
             }
             world.log_event(event)
             events.append(event)
+            _announce_allegiance_close(world, nation, "no_suitor", None)
             continue
 
         if best == player:
@@ -4353,9 +4356,61 @@ def process_allegiance_auctions(world) -> List[Dict]:
         }
         world.log_event(event)
         events.append(event)
+        _announce_allegiance_close(world, nation, outcome, best)
 
     world.allegiance_auctions = auctions
     return events
+
+
+def _court_display(world, nation: str, *, start: bool = False) -> str:
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    return with_definite_article(formed_display_name(world, nation), capitalize=start)
+
+
+def _allegiance_notice_title(world, nation: str) -> str:
+    """The open auction's notice title — the ONE spelling the close retires
+    ("Sardinia's allegiance is in play", "The Papal States' allegiance …")."""
+    shown = _court_display(world, nation, start=True)
+    owner = shown + ("'" if shown.endswith("s") else "'s")
+    return f"{owner} allegiance is in play"
+
+
+def _announce_allegiance_close(world, nation: str, outcome: str, winner) -> None:
+    """The auction's close, on the page that announced it.
+
+    SFR-B4 (SF-RR3, October 21, 2026): "The allegiance of Sardinia is in
+    play" opened on the dispatch and the notice rail (CMD-A eight times in
+    forty turns) and its close was logged to the campaign log alone — no
+    page said who won the bidding or that it had closed, and the open
+    notice stood pending past its close. The close is a dispatch row in
+    the courts' family, and the open notice is retired."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.notifications import DIPLOMATIC_PROPOSAL
+    shown = _court_display(world, nation)
+    player = getattr(world, "player_nation", "France")
+    if outcome == "flipped" and winner:
+        line = (f"The bidding for {shown} is closed: she signs a defensive "
+                f"alliance with {_court_display(world, winner)}.")
+    elif outcome == "player_offer":
+        line = (f"The bidding for {shown} is closed in our favour: her envoy "
+                f"carries a pact to {_court_display(world, player)} — it waits "
+                f"in the mailbox.")
+    elif outcome == "player_won_no_pact":
+        line = (f"The bidding for {shown} is closed in our favour, but our "
+                f"relations are too cool for any pact the table can sign.")
+    elif outcome == "no_suitor":
+        line = (f"The bidding for {shown} is closed with no court to take "
+                f"her; she keeps her own counsel.")
+    else:
+        line = (f"The moment passes: {shown} no longer weighs the flip, and "
+                f"the bidding is closed.")
+    queue_dispatch_event(world, "allegiance_settled",
+                         {"nation": nation, "line": line}, "always")
+    title = _allegiance_notice_title(world, nation)
+    world.notifications.dismiss_by_type(
+        DIPLOMATIC_PROPOSAL,
+        filter_fn=lambda n: (n.get("base_title") or n.get("title")) == title)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -6180,3 +6235,10 @@ def process_mediation_offers(world) -> List[Dict]:
             produced.append(offer)
         break  # one arbiter speaks at a time, world-wide
     return produced
+
+
+def _ambassador_of(nation: str) -> str:
+    """RR3-X3 (SFR-D14 (v)'s sibling): an envoy with no name is "the Italian
+    ambassador", never the tag spliced in ("the KingdomOfItaly ambassador")."""
+    from backend.display_names import nation_office
+    return nation_office(nation, "ambassador")

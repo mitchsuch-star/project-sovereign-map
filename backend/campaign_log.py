@@ -2465,8 +2465,11 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
         return f"{marshal_title(ctx.world, marshal, start=True)} CAPTURED by {captor} at {location}"
 
     if ctx.event_type == "evacuation_granted":
-        a = ctx.event.get("nation_a", "")
-        b = ctx.event.get("nation_b", "")
+        # RR3-X5: the courts by name, never their tags ("KingdomOfItaly").
+        a = with_definite_article(display_nation(str(ctx.event.get("nation_a", ""))))
+        b = with_definite_article(display_nation(str(ctx.event.get("nation_b", ""))))
+        # SFR-D14 (vi): the treaty the corridor was written under.
+        treaty = str(ctx.event.get("treaty") or "peace")
         names = ctx.event.get("marshals") or []
         turns = int(ctx.event.get("turns") or 0)
         cut = ctx.event.get("cut_off") or []
@@ -2475,18 +2478,18 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
             # was signed turns ago; this corps was stranded after it, and the
             # standing treaty put him on the road. Rendering it with the
             # sentence above would announce the peace a second time.
-            who = ", ".join(names) or "A corps"
+            who = and_join([humanize_entity_name(n) for n in names]) or "A corps"
             dest = (ctx.event.get("destinations") or {}).get(
                 names[0] if names else "", "")
             return (f"{who} put on the road home from "
                     f"{ctx.event.get('region', 'the field')}"
                     + (f" to {dest}" if dest else "")
-                    + f" under the peace with {b} — {turns} turns")
+                    + f" under the {treaty} with {b} — {_plural(turns, 'turn')}")
         if not names and cut:
-            return (f"Peace between {a} and {b} — "
+            return (f"{treaty.capitalize()} between {a} and {b} — "
                     f"{', '.join(cut)} cut off, no road home")
-        head = (f"Safe passage home granted by the peace between {a} and "
-                f"{b} — {len(names)} corps, {turns} turns")
+        head = (f"Safe passage home granted by the {treaty} between {a} and "
+                f"{b} — {len(names)} corps, {_plural(turns, 'turn')}")
         return head + (f"; {', '.join(cut)} cut off" if cut else "")
 
     if ctx.event_type == "evacuation_lapsing":
@@ -3064,7 +3067,9 @@ def _oneliner_the_sea(ctx: OnelinerContext):
         winner = display_nation(ctx.event.get("winner", "Unknown"))
         loser = display_nation(ctx.event.get("loser", "Unknown"))
         if ctx.event.get("decisive"):
-            return (f"TRAFALGAR: {winner}'s line shatters {loser}'s fleet — "
+            # SFR-B8: the banner the action was logged under.
+            banner = str(ctx.event.get("banner") or "TRAFALGAR")
+            return (f"{banner}: {winner}'s line shatters {loser}'s fleet — "
                     f"a decisive action at sea")
         return f"Action at sea: {winner}'s squadrons get the better of {loser}"
 
@@ -3157,7 +3162,9 @@ def _oneliner_cascades_and_coalitions(ctx: OnelinerContext):
 
     if ctx.event_type == "coalition_declared":
         members = ctx.event.get("members", [])
-        members_str = ', '.join(members) if members else 'Unknown'
+        # RR3-X4: the members by name ("the Ottoman Empire"), never their tags.
+        members_str = (and_join([with_definite_article(display_nation(m)) for m in members])
+                       if members else 'Unknown')
         # Stage D review fix [r6]: an ECLIPSE coalition names its own
         # target — never dressed as a coalition against France.
         target = ctx.event.get("target_nation") or "France"
@@ -3308,7 +3315,8 @@ def _oneliner_the_fallen_and_the_clients(ctx: OnelinerContext):
         return f"{vassal}'s petition {ask} — {verdict}{tail}."
 
     if ctx.event_type == "coalition_member_left":
-        nation = ctx.event.get("nation", "Unknown")
+        nation = with_definite_article(display_nation(str(ctx.event.get("nation", "Unknown"))),
+                                       capitalize=True)
         return f"{nation} has left the coalition."
     return _NEXT_STAGE
 
@@ -3365,7 +3373,8 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
     if ctx.event_type == "coalition_brewing_started":
         threat = ctx.event.get("threat_level", 0)
         qualifying = ctx.event.get("qualifying_nations", [])
-        nations_str = ", ".join(qualifying) if qualifying else "several nations"
+        nations_str = (and_join([with_definite_article(display_nation(q)) for q in qualifying])
+                       if qualifying else "several nations")
         # Stage D review fix [r1]: name a non-France target explicitly.
         brew_target = ctx.event.get("target_nation") or "France"
         if brew_target != "France":

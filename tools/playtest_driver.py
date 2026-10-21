@@ -1083,6 +1083,9 @@ THE_DIGEST_READS_THE_WHOLE_DISPATCH = True
 # The AI-6 routine intent narration (`intent.process_intent_movements`).
 COURTS_DISPATCH_TYPES = ("intent_hardens", "intent_eases",
                          "intent_movement_tail")
+# SFR-B15 (SF-RR3): the satellites' unrest rows ride their own `- VASSALS:`
+# line, never the medium/low tally.
+VASSAL_DISPATCH_TYPES = ("diplomatic_vassal_unrest",)
 # IQ-7 R4 "the digest can finally see the web". The IQ-7 recon measured the
 # digest rendering 0 of 67 loyalty ticks, 0 of 3 tier crossings and 0 of 14
 # courting notices on the commanded arm — the first vassal line after the
@@ -1198,6 +1201,22 @@ def continuation_line(text, limit=400):
         return ""
     body = " / ".join(lines[1:3])
     return (body[: limit - 1] + "…") if len(body) > limit else body
+
+
+def _battle_for_digest(details):
+    """The battle a strategic report fought, as the digest reads a report.
+
+    SFR-D15 (SF-RR3, October 21, 2026): a standing order's battle rides the
+    report as `battle_details`, whose casualty summary is NESTED under
+    `battle_report`; read at the top level it fell to the first line of
+    the message — the tactical prefix "Murat leads the charge! (Aggressive:
+    +15% attack)" — and the digest printed a battle with no outcome, while
+    the client prints the outcome (`battle_message` and "Result:"). The
+    report inside is the battle."""
+    inner = details.get("battle_report") if isinstance(details, dict) else None
+    if isinstance(inner, dict) and isinstance(inner.get("casualty_summary"), dict):
+        return inner
+    return details
 
 
 def salient_line(text, limit=170):
@@ -2422,6 +2441,11 @@ class Digest:
             if dtype in COURTS_DISPATCH_TYPES:
                 # (b) Europe's temperature, on its own prefix. Never "RAIL".
                 self._md(f"- COURTS: {first_line(event.get('text'), 200) or dtype}")
+            elif dtype in VASSAL_DISPATCH_TYPES:
+                # SFR-B15: a satellite's unrest and its remedy, as the
+                # dispatch prints it (the client shows every row, MEDIUM
+                # in grey); the tally hid it from the vassals reader.
+                self._md(f"- VASSALS: {first_line(event.get('text'), 300) or dtype}")
             else:
                 unprinted[dtype] = unprinted.get(dtype, 0) + 1
         if unprinted:
@@ -2771,7 +2795,7 @@ class Answerer:
             if not isinstance(report, dict) or report.get("requires_input"):
                 continue
             if isinstance(report.get("battle_details"), dict):
-                self.d.battle(report["battle_details"])
+                self.d.battle(_battle_for_digest(report["battle_details"]))
             elif str(report.get("action") or "") == "combat":
                 self.d.battle({"headline": (
                     first_line(report.get("message"), 150)

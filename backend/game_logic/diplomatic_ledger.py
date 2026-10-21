@@ -738,6 +738,28 @@ def _build_war_weariness_line(nation: str, world):
 # TAB: VASSALS (client states — UI-6 interaction sweep)
 # ============================================================================
 
+def _tribute_note(world, name: str, tribute: int, rate_pct: int) -> str:
+    """The Vassals card's tribute line — "+812g/turn (75% of their income)".
+
+    SFR-B7 (SF-RR3, October 21, 2026): a remitted client read "Tribute:
+    +0g/turn (75% of their income)" — the rate quoted beside a zero, the
+    remission named four lines lower. A zero says why: the relief running
+    (and what resumes), or the enemy armies standing on the provinces the
+    lord would tithe (EC-W1, `vassal_tribute_owed`'s own skip)."""
+    from backend.display_names import plural
+    row = (getattr(world, "vassals", {}) or {}).get(name) or {}
+    left = int(row.get("remission_left", 0) or 0)
+    if left > 0:
+        return (f"+0g/turn — remitted for {plural(left, 'more collection')} "
+                f"({rate_pct}% of their income when it resumes)")
+    if int(tribute) <= 0:
+        disrupted = set(world.get_disrupted_regions() or [])
+        if any(r in disrupted for r in (world.get_nation_regions(name) or [])):
+            return (f"+0g/turn — enemy armies stand on the provinces we "
+                    f"would tithe ({rate_pct}% of the rest)")
+    return f"+{int(tribute):,}g/turn ({rate_pct}% of their income)"
+
+
 def _build_vassals(world) -> Dict[str, Any]:
     """Build the Vassals tab: the player's client states with the full
     decision picture (loyalty / autonomy / tribute / next-turn forecast)
@@ -835,6 +857,9 @@ def _build_vassals(world) -> Dict[str, Any]:
             "autonomy_name": AUTONOMY_NAMES.get(autonomy, "Satellite"),
             "tribute": int(tribute),
             "tribute_rate_pct": int(round(tribute_rate * 100)),
+            # SFR-B7: the card's tribute line, the remission named.
+            "tribute_note": _tribute_note(world, name, int(tribute),
+                                          int(round(tribute_rate * 100))),
             "loyalty_forecast": int(forecast),
             "loyalty_trend": trend,
             "contribution": contribution,

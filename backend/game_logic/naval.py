@@ -1978,10 +1978,36 @@ def _apply_side_losses(world, principal: str, enemy: str, frac: float) -> Dict[s
     return out
 
 
+# SFR-B8: the campaign's count of decisive fleet actions rides the
+# serialized `battle_counts` under a key no province carries.
+DECISIVE_ACTIONS_KEY = "decisive actions at sea"
+
+
+def fleet_action_banner(nth: int, result: Dict) -> str:
+    """The rail's banner for the campaign's nth decisive fleet action.
+
+    SFR-B8 (SF-RR3, October 21, 2026): every decisive action was headlined
+    "TRAFALGAR" — "TRAFALGAR: … 26 sail lost" then, a turn later,
+    "TRAFALGAR: … 12 sail lost". Trafalgar is the campaign's first decisive
+    action; a later one is named by its waters ("THE CHANNEL ACTION")."""
+    if int(nth) <= 1:
+        return "TRAFALGAR"
+    return str(result.get("battle_name") or "the action at sea").upper()
+
+
 def _log_fleet_action(world, result: Dict) -> None:
     from backend.game_logic.dispatch import queue_dispatch_event
+    banner = "ACTION AT SEA"
+    if result["decisive"]:
+        counts = getattr(world, "battle_counts", None)
+        if counts is None:
+            counts = world.battle_counts = {}
+        nth = int(counts.get(DECISIVE_ACTIONS_KEY, 0) or 0) + 1
+        counts[DECISIVE_ACTIONS_KEY] = nth
+        banner = fleet_action_banner(nth, result)
     event = {
         "type": "trafalgar" if result["decisive"] else "fleet_action",
+        "banner": banner,
         "turn": int(world.current_turn),
         "winner": result["winner"], "loser": result["loser"],
         "decisive": bool(result["decisive"]),
@@ -1999,6 +2025,7 @@ def _log_fleet_action(world, result: Dict) -> None:
         # FA-59: the LOSER's own sail, not the pooled side total.
         "loser_ships_lost": own_ships_lost(result, result["loser"]),
         "loser_losses_sentence": losses_sentence(result, result["loser"]),
+        "banner": banner,
     }, "always")
 
 

@@ -1568,8 +1568,13 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	# ── Tribute + contribution tier ──
 	var tribute = int(v.get("tribute", 0))
 	var tribute_pct = int(v.get("tribute_rate_pct", 75))
-	bbcode += "  Tribute: [color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(tribute) + "g/turn[/color]"
-	bbcode += " [color=#" + Utils.COLOR_INFO + "](" + str(tribute_pct) + "% of their income)[/color]"
+	if v.has("tribute_note"):
+		# SFR-B7: the backend's line names a zero's cause (a remission, an
+		# invaded client); an old payload keeps the old line.
+		bbcode += "  Tribute: [color=#" + Utils.COLOR_GOLD + "]" + str(v.get("tribute_note", "")) + "[/color]"
+	else:
+		bbcode += "  Tribute: [color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(tribute) + "g/turn[/color]"
+		bbcode += " [color=#" + Utils.COLOR_INFO + "](" + str(tribute_pct) + "% of their income)[/color]"
 	var contribution = str(v.get("contribution", "loyal"))
 	match contribution:
 		"loyal":

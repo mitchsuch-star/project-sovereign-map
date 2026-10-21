@@ -49,6 +49,12 @@ from backend import errors as _errors
 # reads the real figure without an executor instance.
 # ════════════════════════════════════════════════════════════════════════════
 
+def _war_purpose_prompt(world, target: str) -> str:
+    """SFR-B13: the War Purpose card's question (`diplomacy.war_purpose_prompt`)."""
+    from backend.game_logic import diplomacy as _diplomacy
+    return _diplomacy.war_purpose_prompt(world, target)
+
+
 def pair_contribution_breakdown(lead, ally, owner=None, *,
                                 without_grievance=False) -> dict:
     """How much of `ally`'s weight reaches a battle `lead` leads, and why.
@@ -6616,7 +6622,7 @@ class CombatExecutor:
             return {
                 "success": True,
                 "message": (
-                    f"Choose your war purpose against {target_nation}. "
+                    _war_purpose_prompt(ctx.world, target_nation) + " "
                     "Issue the attack again after the declaration is settled."
                 ),
                 "war_purpose_popup": popup,
@@ -11544,7 +11550,7 @@ class CombatExecutor:
         world.dialogue_manager.open_flow({
             "type": "war_purpose_selection",
             "target_nation": target_nation,
-            "message": f"Choose your war purpose against {target_nation}.",
+            "message": _war_purpose_prompt(world, target_nation),
             "objectives": objectives,
             "options": options,
             "blocking": True,
