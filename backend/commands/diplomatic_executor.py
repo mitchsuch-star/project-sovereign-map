@@ -455,7 +455,7 @@ class DiplomaticExecutor:
     # ════════════════════════════════════════════════════════════════
 
     _INSTRUMENT_ACTIONS = ("sponsor_design", "buy_off_design",
-                           "guarantee_nation")
+                           "guarantee_nation", "bind_to_war")
 
     def _instrument_preflight(self, command: Dict, game_state: Dict):
         """Shared gate: world, target nation resolved, 1 DP available.
@@ -858,6 +858,53 @@ class DiplomaticExecutor:
         return {"success": True, "message": message,
                 "guarantee": dict(result["record"]),
                 "new_state": game_state}
+
+    def _execute_bind_to_war(self, command: Dict, game_state: Dict) -> Dict:
+        """PC-R7 (ii) part 3 — the no-separate-peace bond (Chaumont), France
+        the payer: France pays a co-belligerent her own subsidy a turn for the
+        term, and the court makes no separate peace with the common enemy
+        while France fights on — a separate peace inside the term is a broken
+        bargain. The ONE mint the league's paymaster calls (`bond.mint_bond`,
+        GR5), refused in its gate's words; 1 DP. The Cabinet's "Bind <court>
+        to the War" row carries it (one choice per common enemy)."""
+        from backend.game_logic import bond as B
+        from backend.game_logic.instruments import INSTRUMENT_DP_COST
+        world, target, error = self._instrument_preflight(command, game_state)
+        if error:
+            return error
+        if not target:
+            return {"success": False,
+                    "message": ("Which court, Sire? An ally's page in the Cabinet (F1) "
+                                "carries Bind to the War, one choice for each enemy we share.")}
+        player = getattr(world, "player_nation", "France")
+        raw_text = (command.get("raw_input") or command.get("original_command")
+                    or command.get("raw_command") or "").lower()
+        enemy = str(command.get("enemy") or "")
+        if not enemy and " against " in raw_text:
+            from backend.game_logic.diplomatic_dialogue import get_known_nations
+            tail = raw_text.split(" against ", 1)[1]
+            enemy = next((n for n in sorted(get_known_nations(world), key=len, reverse=True)
+                          if n.lower() in tail), "")
+        if not enemy:
+            shared = B.shared_enemies(world, player, target)
+            if len(shared) == 1:
+                enemy = shared[0]
+            elif shared:
+                return {"success": False,
+                        "message": (f"Against which court, Sire — {', '.join(shared[:-1])} or "
+                                    f"{shared[-1]}? {target}'s page in the Cabinet carries a "
+                                    f"choice for each.")}
+            else:
+                return {"success": False,
+                        "message": f"France and {target} share no war, Sire — there is nothing to bind her to."}
+        result = B.mint_bond(world, payer=player, member=target, enemy=enemy)
+        if not result.get("success"):
+            return {"success": False, "message": f"Talleyrand: \"{result.get('message', '')}\""}
+        world.diplomatic_points = int(getattr(world, "diplomatic_points", 0) or 0) - INSTRUMENT_DP_COST
+        return {"success": True,
+                "message": (f"{result['message']} Talleyrand: \"Her word now has a price on it, "
+                            f"Sire — and so does ours: the gold must keep coming.\""),
+                "bond": dict(result["record"]), "new_state": game_state}
 
     def _is_pending_objection_dialogue(self, dialogue: Optional[Dict]) -> bool:
         """Return True when the active dialogue is the pre-send objection branch.
@@ -3506,6 +3553,15 @@ class DiplomaticExecutor:
         # the wizard's structured field; absent, the whole table as before.
         _counsel_coverage = [
             str(n) for n in (cmd.get("covered_enemy_participants") or []) if n]
+        # PC-R7 (ii) part 3: "Outbid <payer>'s Bond" opens the table with
+        # France's bid staged on the draft it would open with (the declared
+        # articles, else the bare peace) — `bond.bid_opening_terms`.
+        if int(cmd.get("bond_bid") or 0) > 0 and not settlement_terms:
+            from backend.game_logic.bond import bid_opening_terms
+            settlement_terms = bid_opening_terms(
+                world, war_id=war_id, payer=player, court=target_nation,
+                amount=int(cmd.get("bond_bid") or 0),
+                covered=_counsel_coverage or [target_nation])
         result = stage_settlement_confirm(
             world,
             war_id=war_id,

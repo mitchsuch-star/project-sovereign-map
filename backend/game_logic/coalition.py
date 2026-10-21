@@ -375,10 +375,15 @@ def war_exhaustion_terms(world, nation: str) -> Dict:
                     "held": list(extra.get("held") or []),
                     "subsidy_role": str(extra.get("subsidy_role") or "")})
         out["total"] = int(out["base"] + out["occupation"] + out["subsidy"] + out["finance"])
-        from backend.game_logic.ai_diplomacy import BREAK_RANKS_EXHAUSTION
-        if out["total"] > 0 and current <= BREAK_RANKS_EXHAUSTION:
-            out["forecast_turns"] = int(-(-(BREAK_RANKS_EXHAUSTION + 1 - current) // out["total"]))
-        elif current > BREAK_RANKS_EXHAUSTION:
+        # PC-R7 (ii) part 3 (PC-X52): she tires at her OWN line — the league's
+        # bond reads it deeper (`ai_diplomacy.break_ranks_lines`).
+        from backend.game_logic.ai_diplomacy import break_ranks_lines
+        _lines = break_ranks_lines(world, nation)
+        line = int(_lines["exhaustion"])
+        out["line"], out["bond"] = line, str(_lines["bond"])
+        if out["total"] > 0 and current <= line:
+            out["forecast_turns"] = int(-(-(line + 1 - current) // out["total"]))
+        elif current > line:
             out["forecast_turns"] = 0
     elif in_truce and truce_holds_exhaustion(world, nation):
         out["total"] = 0
@@ -425,10 +430,14 @@ def war_exhaustion_lines(world, nation: str) -> List[str]:
     line = (f"{name}'s exhaustion {cur} — wearing {t['total']:+d} a turn: "
             + ", ".join(parts) + ".")
     fc = t["forecast_turns"]
-    if cur > BREAK_RANKS_EXHAUSTION:
-        line += f" Spent: past {BREAK_RANKS_EXHAUSTION}, it treats."
+    # PC-X52: a bonded court tires at the bond's line, and the line says why.
+    tires = int(t.get("line") or BREAK_RANKS_EXHAUSTION)
+    bound = (f" ({formed_display_name(world, str(t['bond']))}'s bond holds her past "
+             f"{BREAK_RANKS_EXHAUSTION})" if t.get("bond") else "")
+    if cur > tires:
+        line += f" Spent: past {tires}, it treats."
     elif fc is not None:
-        line += (f" It tires at {BREAK_RANKS_EXHAUSTION} in about {fc} turn"
+        line += (f" It tires at {tires}{bound} in about {fc} turn"
                  f"{'s' if fc != 1 else ''}.")
     return [line]
 
@@ -3478,6 +3487,13 @@ def process_coalition_turn(world) -> List[Dict]:
     # ────────── 4. British subsidy (§4e) ──────────
     subsidy_events = _process_british_subsidy(world)
     events.extend(subsidy_events)
+
+    # ────────── 4b. The paymaster's bond (PC-R7 (ii) part 3, Chaumont) ──────
+    # After the exhaustion tick (3) and the subsidy (4): the paymaster binds
+    # the member that would break ranks now and whom the bond would hold —
+    # read by the next enemy phase's P1 (`bond.ai_paymaster_binds`).
+    from backend.game_logic.bond import ai_paymaster_binds
+    events.extend(ai_paymaster_binds(world))
 
     # ────────── 5. Cooldown decrement (§7c) ──────────
     if world.coalition_cooldown > 0:

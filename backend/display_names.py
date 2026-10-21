@@ -56,6 +56,7 @@ ACTION_DISPLAY = {
     "sponsor_design": "sponsors",                     # AI-2b (D5-2)
     "buy_off_design": "buys off",                     # AI-2b (D5-1)
     "guarantee_nation": "guarantees",                 # AI-2b (D5-3)
+    "bind_to_war": "binds to the war",                # PC-R7 (ii) part 3 (the bond)
     "build_fleet": "lays down a ship",                # DEF-5 naval (NV-0)
     "set_fleet_posture": "orders the fleet to",       # DEF-5 naval (NV-0)
     "naval_expedition": "embarks an expedition to",   # DEF-5 naval (NV-2)
@@ -224,6 +225,7 @@ OBJECTION_DISPLAY = {
     "sponsor_design": "sponsoring a design",        # AI-2b (no objections in v1)
     "buy_off_design": "buying off a design",        # AI-2b (no objections in v1)
     "guarantee_nation": "pledging a guarantee",     # AI-2b (no objections in v1)
+    "bind_to_war": "binding an ally to the war",    # PC-R7 (ii) part 3 (no objections)
     "build_fleet": "laying down a ship",            # DEF-5 naval (no objections in v1)
     "set_fleet_posture": "re-tasking the fleet",    # DEF-5 naval (no objections in v1)
     "naval_expedition": "embarking on the transports",  # DEF-5 naval (no objections in v1)
@@ -281,6 +283,7 @@ DEFIANCE_DISPLAY = {
     "sponsor_design": "sponsored a design",        # AI-2b (no defiance in v1)
     "buy_off_design": "bought off a design",       # AI-2b (no defiance in v1)
     "guarantee_nation": "pledged a guarantee",     # AI-2b (no defiance in v1)
+    "bind_to_war": "bound an ally to the war",     # PC-R7 (ii) part 3 (no defiance)
     "build_fleet": "laid down a ship",             # DEF-5 naval (no defiance in v1)
     "set_fleet_posture": "re-tasked the fleet",    # DEF-5 naval (no defiance in v1)
     "naval_expedition": "embarked an expedition",  # DEF-5 naval (no defiance in v1)
@@ -690,6 +693,13 @@ FEEDBACK_STRINGS = {
         "negative": "her loyalty to the league — she has no reason of her "
                     "own to break ranks yet",
         "positive": "she is ready to leave the league",
+    },
+    # PC-R7 (ii) part 3: the league's no-separate-peace bond (Chaumont) —
+    # only ever 0 or below; the positive key authored for the sign-flip rule.
+    "coalition_bond": {
+        "negative": "the paymaster's bond — a separate peace would forfeit "
+                    "its subsidy and break her word",
+        "positive": "no bond holds her to the league",
     },
     "stalemate_duration": {
         "negative": "the deadlock shows no sign of breaking",
@@ -1283,6 +1293,8 @@ ACCEPTANCE_COMPONENT_DISPLAY = {
     "abandoned_by_ally_acceptance_mod": "Abandoned ally grievance",
     # NA-3 §7 rider (a): the per-court agenda term on the settlement scorer
     "agenda_settlement_mod": "National design",
+    # PC-R7 (ii) part 3: the league's no-separate-peace bond (Chaumont)
+    "coalition_bond": "The league's bond",
 }
 
 

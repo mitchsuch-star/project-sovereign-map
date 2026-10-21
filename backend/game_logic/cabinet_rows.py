@@ -19,6 +19,10 @@ rule). The war purpose's row lives with the war's articles
                         sweetener, sums chosen on the row (PC-X46)
     subjugate_actions   Subjugate — the beaten court made a vassal by
                         conquest (PC-X47)
+    bond_actions        PC-R7 (ii) part 3, the league's bond (Chaumont): Bind
+                        <ally> to the War (one choice per shared enemy) and
+                        Outbid <payer>'s Bond (the table with her alone, the
+                        bid staged)
 
 Beside them in `diplomacy.get_available_diplomatic_actions`: the bid's sums
 (PC-X45), the treaty ladder's skip-ahead choices (PC-X48), the sponsor's
@@ -152,6 +156,66 @@ def recognition_actions(world: Any, player: str, target: str) -> List[Dict[str, 
                         f"+{int(C.SWEETENER_CAP)} — the Congress sits"),
         "choices": choices,
     }]
+
+
+def bond_actions(world: Any, player: str, target: str,
+                 actions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """PC-R7 (ii) part 3 — the league's no-separate-peace bond (Chaumont), on
+    the court's page, from the bond's own gate (`bond.mint_refusal`) and price:
+
+    * **Bind <court> to the War** — on a co-belligerent's page: France pays
+      her own subsidy a turn for the term, and the court makes no separate
+      peace with the enemy we share; one choice per shared enemy the gate
+      lets France bind her against (`diplomatic_executor._execute_bind_to_war`).
+    * **Outbid <payer>'s Bond** — on a court at war with France that the
+      league's paymaster binds: the bond's price named, and the table with
+      her alone opened with France's bid staged (the gold that pays the
+      bond's table price — `bond.bid_gold`), through Open Settlement's own
+      gate (the row beside it)."""
+    from backend.game_logic import bond as B
+    from backend.game_logic.instruments import INSTRUMENT_DP_COST
+    from backend.display_names import display_nation as _dn
+    rows: List[Dict[str, Any]] = []
+    dp = int(getattr(world, "diplomatic_points", 0) or 0)
+    shared = B.shared_enemies(world, player, target)
+    if shared:
+        amount = B.bond_amount(world, player)
+        choices = [{"label": f"Against {_dn(enemy)} — no separate peace with {_dn(enemy)}",
+                    "payload": {"enemy": enemy}}
+                   for enemy in shared if not B.mint_refusal(world, player, target, enemy)]
+        why = "" if choices else B.mint_refusal(world, player, target, shared[0])
+        if dp < INSTRUMENT_DP_COST:
+            why = f"Insufficient DP (need {int(INSTRUMENT_DP_COST)})."
+        rows.append({
+            "action": "bind_to_war", "display_name": f"Bind {_dn(target)} to the War ({amount}g/turn)",
+            "dp_cost": int(INSTRUMENT_DP_COST), "available": not why,
+            "disabled_reason": why, "disabled_reason_display": why,
+            "effect_text": (f"France pays her {amount} gold a turn for {B.bond_term_turns()} turns; she "
+                            f"makes no separate peace while France fights on — one inside the term "
+                            f"is a broken bargain (Chaumont)"),
+            "choices": choices if not why else [],
+        })
+    record = B.bond_on(world, target, player) if world.is_at_war(player, target) else None
+    table = next((a for a in actions if a.get("action") == "open_settlement"), None)
+    if record is not None and table is not None:
+        payer = _dn(str(record.get("payer")))
+        gold = B.bid_gold(world, record)
+        chest = int((getattr(world, "nation_gold", {}) or {}).get(player, 0) or 0)
+        why = "" if table.get("available") else str(table.get("disabled_reason_display")
+                                                     or table.get("disabled_reason") or "")
+        choices = ([{"label": f"Open the table with {gold:,} gold to {_dn(target)} "
+                              f"(+{B.table_price(world, record)})",
+                     "payload": {"bond_bid": int(gold)}}] if chest >= gold else [])
+        rows.append({
+            "action": "outbid_bond", "display_name": f"Outbid {payer}'s Bond — {_dn(target)} alone at the table",
+            "dp_cost": 0, "available": not why, "disabled_reason": why, "disabled_reason_display": why,
+            "effect_text": B.price_line(world, target, player,
+                                        war_instance=(getattr(world, "war_instances", {}) or {})
+                                        .get(str(table.get("war_id") or "")) or {}),
+            "war_id": str(table.get("war_id") or ""), "counsel_coverage": [target],
+            "choices": choices if not why else [],
+        })
+    return rows
 
 
 def subjugate_actions(world: Any, player: str, target: str) -> List[Dict[str, Any]]:

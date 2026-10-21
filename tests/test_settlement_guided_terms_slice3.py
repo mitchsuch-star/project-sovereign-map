@@ -57,6 +57,8 @@ _TEN_COMPONENTS = {
     # NA-3 §7 rider (a) — July 17, 2026: the per-court agenda term joined
     # the scorer (0 on agenda-less fixtures; the name is now historical).
     "agenda_settlement_mod",
+    # PC-R7 (ii) part 3 (October 20, 2026): the league's bond (0 with no bond)
+    "coalition_bond",
 }
 
 

@@ -847,6 +847,52 @@ def _pages(path):
     return out
 
 
+_CRISIS_AGED = (
+    re.compile(r"(\w+) has now gone unrewarded (\d+) turns?"),
+    re.compile(r"(\d+) turns? without settlement on (\w+)"),
+    re.compile(r"(\w+)'s claim is (\d+) turns? in arrears"),
+)
+_CRISIS_SUBJECT = re.compile(r"Marshal (\w+)|(\w+)'s household")
+
+
+def _crisis_episodes(pages, nag):
+    """S14 part 3: the page's standing crises as episodes keyed by (subject,
+    the turn the claim began) — read off each line's own age; a line with no
+    age joins its subject's next aged episode, else the subject's run of
+    un-aged lines it continues from the turn before, else opens its own."""
+    aged, unaged = [], []
+    for t, r in pages:
+        for x in [r.get("headline_text") or ""] + list(r.get("sub_beats") or []):
+            if not nag.search(x):
+                continue
+            hit = None
+            for i, rx in enumerate(_CRISIS_AGED):
+                m = rx.search(x)
+                if m:
+                    subject, age = (m.group(2), m.group(1)) if i == 1 else (m.group(1), m.group(2))
+                    hit = (subject, int(t) - int(age))
+                    break
+            if hit:
+                aged.append((t, hit))
+            else:
+                m = _CRISIS_SUBJECT.search(x)
+                unaged.append((t, (m.group(1) or m.group(2)) if m else x))
+    episodes: dict = {}
+    for t, key in aged:
+        episodes.setdefault(key, []).append(t)
+    runs: dict = {}
+    for t, subject in sorted(unaged, key=lambda u: u[0]):
+        later = [k for tt, k in aged if k[0] == subject and tt >= t and k[1] <= t]
+        if later:
+            key = later[0]
+        else:
+            last = runs.get(subject)
+            key = last[0] if last and last[1] in (t - 1, t) else (subject, t)
+            runs[subject] = (key, t)
+        episodes.setdefault(key, []).append(t)
+    return {k: sorted(set(v)) for k, v in episodes.items()}
+
+
 class TestTheDrivenArms:
     def test_no_turn_without_a_headline_and_no_raw_key(self, driven):
         _run, checklist = driven
@@ -909,8 +955,22 @@ class TestTheDrivenArms:
             if not on:
                 continue
             seen += 1
-            gaps = [t for t, r in pages if on[0] <= t <= on[-1] and t not in on]
-            assert gaps == [], (name, gaps)
+            # RE-SEATED by S14 part 3 (the bond, October 20, 2026), consciously:
+            # on CMD-M Britain binds a member at turn 7 and the campaign that
+            # follows is another one — Murat's claim (since turn 9) ends with
+            # his capture at Franconia on turn 21, Davout's with his own on
+            # turn 23, the peace of turn 24 sends both home, and a NEW claim
+            # of Murat's (since turn 24) is on the page from turn 28: three
+            # claims, each on the page every turn it stands, not one crisis
+            # with a gap (with the bond's mint held down neither is taken, and
+            # the page reads Murat's claim 13 … 21 and Davout's 22 … 40).
+            # The rule is per crisis — each claim stands on the page every turn
+            # IT stands — so a crisis is keyed by its subject and the turn its
+            # claim began (the line's own age; an un-aged line joins its
+            # subject's next aged one, or the run of un-aged lines it extends).
+            for (subject, start), turns_on in sorted(_crisis_episodes(pages, nag).items()):
+                gaps = [t for t, r in pages if turns_on[0] <= t <= turns_on[-1] and t not in turns_on]
+                assert gaps == [], (name, subject, start, gaps)
         assert seen >= 1
 
     def test_the_driver_records_the_whole_page(self, driven):

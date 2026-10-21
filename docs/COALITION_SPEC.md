@@ -469,6 +469,14 @@ Golden Rule 5 is the whole section: a winning court dictates **what the player m
 - **The league's letter is dry-run as the player's.** The writer is re-seated by contribution when the letter is written and its direction and price read the writer's own pair (`ai_diplomacy.letter_writer_and_score`); the consenting courts are the writer, the courts that would sue on their own and the courts with no stake (the leader stipulates for the courts that did not fight — §6a.1's mirror); a court with a stake that refuses keeps its war (`courts_the_letter_carries`, PC-F50's idiom).
 - **The clock (ruling H, §124.2)** is +8 at war plus occupation, subsidy and finance, named; the league gate reads the live rate. **The shield (ruling G, §124.3)**: a court whose capital the enemy holds accrues no defence ticking until it is regained.
 
+#### §6a.5 The league's bond — Chaumont (ruling J's last piece, the peace report §46; built S14 part 3, October 20, 2026, `SYSTEMS_REFERENCE.md` §135)
+
+This section OWNS the paymaster's no-separate-peace bond (`backend/game_logic/bond.py`).
+
+- **The record.** A dated D5 directed record of `kind="bond"`: the paymaster pays a member its own subsidy a turn (`agendas.get_paymaster_subsidy_amount`) for the directed record's term (10), and she makes no separate peace with France while the paymaster fights on. The paymaster binds the member that would break ranks now and whom the bond would hold (`bond.ai_paymaster_binds`, after the war subsidy); France binds her own co-belligerent through the same mint (the Cabinet's "Bind <ally> to the War").
+- **What it binds.** The member's break-ranks lines read deeper (the bond's points at the bilateral's score-to-points rate and §6a's ease rate — under a 400-gold bond −50 → −68, the Pressburg arm −30 → −48, exhaustion 80 → 200), so the loyalty penalty above applies while she is held; her row at the table carries the bond's price ("The league's bond" — the stream still owed at the table's gold rate) on her separate peace only — a package that covers the paymaster too is the league's common peace and prices nothing; the bilateral carries it beside the loyalty term (the per-turn stream at the sweetener rate). A separate peace inside the term is `bargain_reneged` against her; a truce breaks nothing.
+- **France bids against it.** Gold to her, or a compensation (§6a.1's table, the compensation clause) — priced, never a veto; the counsel names the sum, the table offers it, the Cabinet opens the table with it staged.
+
 ### §6b. Decisive Victory Impact
 
 When France wins a **decisive battle** (casualty ratio > 2:1, total casualties > 10000) against a coalition member:

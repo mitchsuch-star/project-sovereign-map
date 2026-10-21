@@ -3007,6 +3007,9 @@ func _redirect_diplomatic_command(command: String) -> bool:
 # Their Design".
 const DIPLO_CABINET_CONTROLS = [
 	["recognition", "Offer Gold for Recognition (while the Congress sits)"],
+	# PC-R7 (ii) part 3: the league's bond — bind an ally; outbid a paymaster
+	["bind ", "Bind to the War (an ally's page — one choice per enemy we share)"],
+	["bond", "Outbid Their Bond (the bonded court's page — the table with her alone, the bid staged)"],
 	["vassalize", "Subjugate (at war), or Propose Vassal (at peace)"],
 	["subjugate", "Subjugate (at war), or Propose Vassal (at peace)"],
 	["licen", "Sponsor Their Design — Licence"],
@@ -3114,6 +3117,11 @@ func _matches_cabinet_family(lower: String) -> bool:
 		# VS-3 cede: "cede Tyrol to Bavaria" / "grant Tyrol to Bavaria",
 		# gated on the court after "to" exactly as the parser gates it.
 		if ("cede " in lower or "grant " in lower) and _names_court_after_to(lower):
+			return true
+		# PC-R7 (ii) part 3 (Chaumont): the bond — "bind Bavaria to the war
+		# against Austria", on the parser's own gate (the word `bind` with the
+		# war or the separate peace, a court named).
+		if _contains_word(lower, "bind") and (_contains_word(lower, "war") or "separate peace" in lower):
 			return true
 	if _is_diplomat_addressed(lower):
 		for word in DIPLO_ADDRESS_EXEMPT_WORDS:

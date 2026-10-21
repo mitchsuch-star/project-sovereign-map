@@ -1132,6 +1132,9 @@ class EconomyExecutor:
                 owed = int(st.get("owed", amount))
                 tail = (f" ({owed}g owed — the chest pays {amount}g)"
                         if owed > amount else "")
+                if st.get("kind") == "bond":
+                    # PC-R7 (ii) part 3: the stream is the league's bond
+                    tail += " — the bond: no separate peace"
                 lines.append(f"    {'from' if incoming else 'to'} {who}: "
                              f"{'+' if incoming else '-'}{amount}g{tail}")
 

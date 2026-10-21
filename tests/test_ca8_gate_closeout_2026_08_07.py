@@ -748,6 +748,9 @@ class TestSpokenBlockerVocabulary:
             "burdened_participant_penalty", "projected_hegemony_mod",
             "abandoned_by_ally_acceptance_mod", "agenda_settlement_mod",
             "war_objective_alignment",
+            # PC-R7 (ii) part 3 (October 20, 2026): the league's bond on a
+            # separate peace — only ever 0 or below, so it speaks too.
+            "coalition_bond",
         }
         assert set(SPOKEN_BLOCKER_PHRASES) == expected
         for phrase in SPOKEN_BLOCKER_PHRASES.values():

@@ -1406,6 +1406,15 @@ _PEACE_INTENT_RE = re.compile(
     r"|\bpeace\s+(?:with|treaty|terms)\b")
 
 
+def _names_the_bond(command_lower: str) -> bool:
+    """PC-R7 (ii) part 3 (Chaumont): "bind Bavaria to the war against Austria"
+    is the no-separate-peace bond — not a declaration ("war against") nor a
+    peace overture ("separate peace"). The action chain's `bind_to_war` arm
+    reads the same gate (the word `bind` with the war or the separate peace)."""
+    return bool(re.search(r"\bbind\b", command_lower)
+                and re.search(r"\b(?:war|separate peace)\b", command_lower))
+
+
 def _mentions_peace_intent(command_lower: str) -> bool:
     return bool(_PEACE_INTENT_RE.search(command_lower))
 
@@ -3045,7 +3054,8 @@ class LLMClient:
         # declaration; `_parse_diplomatic_command` finishes the job. Review
         # round: never for a marshal-addressed order (`Ney, end the war of
         # attrition` is Ney's business, not Talleyrand's).
-        if _mentions_peace_intent(command_lower) and not _addressed_marshal:
+        if (_mentions_peace_intent(command_lower) and not _addressed_marshal
+                and not _names_the_bond(command_lower)):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
 
@@ -3059,7 +3069,8 @@ class LLMClient:
         ]
         # DD0-6 (October 10, 2026): "War with Portugal. Inform their
         # ambassador." — the declaration phrased as a fact, at the head.
-        if (any(kw in command_lower for kw in _war_keywords)
+        if (not _names_the_bond(command_lower)) and (
+                any(kw in command_lower for kw in _war_keywords)
                 or re.match(r"^\s*war\s+(?:with|on|against)\s+[a-z]", command_lower)
                 # DD0-17 (S4 part 3): the terse "declare war saxony".
                 or re.search(r"\bdeclare\s+war\b", command_lower)):
@@ -4076,6 +4087,12 @@ class LLMClient:
         elif (re.search(r'\bguarantee\b', command_lower)
               and any(n in command_lower for n in known_nations_lower)):
             action = "guarantee_nation"
+        # PC-R7 (ii) part 3 (Chaumont): the no-separate-peace bond — "bind
+        # Bavaria to the war against Austria". Gated on a known nation and
+        # the war (or the separate peace) in the line, so prose never fires it.
+        elif (_names_the_bond(command_lower)
+              and any(n in command_lower for n in known_nations_lower)):
+            action = "bind_to_war"
         # FA slice 7 (FA-80), sited LAST by the review round (R1-4 / R3-1):
         # "stay put" / "remain in Rhineland" / "rest your men" are the plain
         # WAIT only when no order verb above claimed the sentence — above the
@@ -4155,7 +4172,7 @@ class LLMClient:
         if action in ("invest_vassal", "release_vassal", "make_vassal",
                       "change_autonomy", "grant_region_to_vassal",
                       "sponsor_design", "buy_off_design",
-                      "guarantee_nation") and known_nations:
+                      "guarantee_nation", "bind_to_war") and known_nations:
             matched_form = _match_known_name(
                 command_lower, known_nations.keys())
             if matched_form:
@@ -4164,7 +4181,7 @@ class LLMClient:
             # before the against-clause; generic first-match could return
             # the aim. Cut the clause and re-match (the VS-3 C6 idiom);
             # the executor extracts the aim from the raw text itself.
-            if action == "sponsor_design" and " against " in command_lower:
+            if action in ("sponsor_design", "bind_to_war") and " against " in command_lower:
                 head = command_lower.split(" against ", 1)[0]
                 head_form = _match_known_name(head, known_nations.keys())
                 if head_form:

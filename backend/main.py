@@ -2997,6 +2997,9 @@ class CommandRequest(BaseModel):
     # peace row opens the table with the coverage the counsel priced (its own
     # name — the retired editor's `covered_enemy_participants` stays retired).
     counsel_coverage: list[str] | None = None
+    # PC-R7 (ii) part 3: the Cabinet's "Outbid <payer>'s Bond" opens the table
+    # with France's bid staged — the gold that pays the bond's table price.
+    bond_bid: int | None = None
     # GT-Slice-4: the SC-5R editor's structured Submit-for-Review fields
     # (`settlement_terms` / `selected_target_nation` /
     # `covered_enemy_participants`) are removed with the freeform editor
@@ -3869,6 +3872,8 @@ def _command_parse(ctx: CommandContext):
         if ctx.request.counsel_coverage:
             ctx.parsed["command"]["covered_enemy_participants"] = list(
                 ctx.request.counsel_coverage)
+        if ctx.request.bond_bid:
+            ctx.parsed["command"]["bond_bid"] = int(ctx.request.bond_bid)
         # DDB-R1: the answered ask's flags ride the re-parsed order (the
         # pursuit ask's answer is the attack, confirmed).
         for _flag, _value in (getattr(ctx, "_reissue_flags", None) or {}).items():

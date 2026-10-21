@@ -22,7 +22,11 @@ rules bind):
    inverse flow (§4.2b sell-neutrality): the payer buys the RECIPIENT's
    committed non-interference, and the recipient entering the war
    against the payer is reneging. One record shape, opposite flow —
-   one record minted, not two (§12.3).
+   one record minted, not two (§12.3). `kind="bond"` (PC-R7 (ii) part 3,
+   Chaumont — `backend/game_logic/bond.py`): the payer pays a co-belligerent
+   its subsidy a turn for her commitment not to sign a separate peace with
+   the aim while the payer fights on; a separate peace inside the term is
+   `bargain_reneged` against the MEMBER (`_bond_verdict`).
 
 3. **Guarantee — protect a border** (`world.diplomatic_guarantees`).
    Deters the coveter (an intent weight reduction, shown = applied) and
@@ -591,6 +595,38 @@ def _renege(world, *, breaker: str, victim: str, grievance_type: str,
     world.invalidate_bloc_members_cache()
 
 
+def _bond_verdict(world, record: Dict) -> str:
+    """PC-R7 (ii) part 3 — the bond's state this pass: "" (it binds, she
+    fights on), "reneged" (she made peace with the aim while the payer fights
+    on — her separate peace inside the term), or the lapse reason: "honoured"
+    (the league's common peace — the payer at peace too), "payer_at_peace"
+    (the payer left the war first; a truce of the payer's holds the bond
+    open), "subjugated" (she is the aim's vassal now — no peace of her own),
+    "followed_her_lord" (a client taken out by her lord's peace).
+    A truce of hers leaves the league intact and breaks nothing."""
+    payer = record.get("payer", "")
+    member = record.get("recipient", "")
+    aim = record.get("aim", "")
+    if _party_gone(world, aim):
+        return "honoured"
+    member_state = world.get_diplomatic_state(member, aim)
+    payer_state = world.get_diplomatic_state(payer, aim)
+    member_fights = member_state in ("WAR", "ARMISTICE")
+    payer_fights = payer_state in ("WAR", "ARMISTICE")
+    if member_fights:
+        return "" if payer_fights else "payer_at_peace"
+    lord = ((getattr(world, "vassals", {}) or {}).get(member) or {})
+    if isinstance(lord, dict) and lord.get("lord") == aim:
+        return "subjugated"
+    # PC-X67 (S14 part 3): a client taken out of the war by her LORD's peace
+    # (`diplomacy.follow_the_lord`) made no peace of her own — it lapses.
+    _lord = str(lord.get("lord") or "") if isinstance(lord, dict) else ""
+    if (_lord and _lord != payer
+            and world.get_diplomatic_state(_lord, aim) not in ("WAR", "ARMISTICE")):
+        return "followed_her_lord"
+    return "reneged" if payer_fights else "honoured"
+
+
 def _lapse(world, events: List[Dict], event: Dict) -> None:
     """A record ends WITHOUT a breaker (term served, or a war nobody can
     be honestly blamed for) — logged so the compact never vanishes
@@ -659,6 +695,30 @@ def process_instruments(world) -> List[Dict]:
                     "reason": "war_unattributed", "turn": turn,
                 })
             continue
+
+        # PC-R7 (ii) part 3 — the bond (Chaumont): the MEMBER is bound not
+        # to sign a separate peace with the aim while the payer fights on.
+        # Checked before the term, as the war arm is (an expiry-turn peace
+        # cannot slip the bond).
+        if kind == "bond":
+            verdict = _bond_verdict(world, record)
+            if verdict == "reneged":
+                _renege(
+                    world, breaker=recipient, victim=payer,
+                    grievance_type="bargain_reneged", source="coalition_bond",
+                    event={"type": "sponsorship_reneged", "kind": kind,
+                           "breaker": recipient, "victim": payer, "aim": aim,
+                           "turn": turn, "licence": False},
+                    events=events,
+                )
+                continue
+            if verdict:
+                _lapse(world, events, {
+                    "type": "instrument_lapsed", "instrument": kind,
+                    "payer": payer, "recipient": recipient, "aim": aim,
+                    "reason": verdict, "turn": turn,
+                })
+                continue
 
         # Pin 23's second arm: the payer GUARANTEEING the aim while the
         # sponsorship stands is reneging — but only a guarantee pledged
@@ -909,6 +969,11 @@ def build_instruments_line(world, nation: str) -> Optional[str]:
             continue
         aim = display_nation(record.get("aim") or "")
         amount = int(record.get("amount_per_turn", 0))
+        if record.get("kind") == "bond":
+            # PC-R7 (ii) part 3: the league's no-separate-peace bond, dated.
+            from backend.game_logic.bond import compact_words
+            pieces.append(compact_words(world, record))
+            continue
         if record.get("kind") == "neutrality":
             pieces.append(
                 f"{display_nation(payer)} has bought "
@@ -991,6 +1056,11 @@ def build_subsidy_payload(world) -> Optional[Dict]:
     else:
         line = (f"{display_nation(payer)} pays {display_nation(recipient)} "
                 f"{amount}g/turn to keep the field")
+    # PC-X58 (S14 part 3): the bonds the paymaster pays for, beside its subsidy.
+    from backend.game_logic.bond import binds_clause
+    bound = binds_clause(world, payer)
+    if bound:
+        line += f"; it {bound}"
     return {
         "payer": payer,
         "recipient": recipient,

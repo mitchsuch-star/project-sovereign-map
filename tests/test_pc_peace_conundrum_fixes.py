@@ -444,11 +444,11 @@ class TestTheSeries:
     def test_the_record_links_to_the_last_one_and_the_baseline(self):
         import sys as _sys
         _sys.path.insert(0, str(REPO / "tests"))
-        from test_ai_intent_threat_migration import BASELINE_SERIES
+        from test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_THE_BOND
         pc, ddb = self._records()
         assert pc["prior"] == ddb["arms"]["ALL"]["series"]
         assert pc["arms"]["0"]["series"] == pc["prior"]
-        assert BASELINE_SERIES == pc["arms"]["ALL"]["series"]
+        assert SERIES_BEFORE_THE_BOND == pc["arms"]["ALL"]["series"]  # PC-R7 (ii) part 3: the series before the bond moved it (`tests/test_ai_intent_threat_migration.SERIES_BEFORE_THE_BOND`)
         for arm, rec in pc["arms"].items():
             assert rec["first_divergence_vs_prior"] is None, arm
 

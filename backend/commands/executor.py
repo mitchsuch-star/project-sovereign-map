@@ -1793,7 +1793,7 @@ class CommandExecutor:
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
         # R72: Vassal commands (invest_vassal, change_autonomy, make_vassal) are free — they cost DP/gold, not military AP
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "diplomatic_ask_return", "diplomatic_bid", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "recognition_sweetener"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "diplomatic_ask_return", "diplomatic_bid", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "bind_to_war", "recognition_sweetener"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -3312,6 +3312,9 @@ class CommandExecutor:
             result = self._diplomatic._execute_buy_off_design(command, game_state)
         elif action == "guarantee_nation":
             result = self._diplomatic._execute_guarantee_nation(command, game_state)
+        elif action == "bind_to_war":
+            # PC-R7 (ii) part 3: the no-separate-peace bond (Chaumont)
+            result = self._diplomatic._execute_bind_to_war(command, game_state)
         # ════════════════════════════════════════════════════════════
         # GE-3 THE CONGRESS OF PARIS (docs/ENDGAME_PLAN.md §2)
         # ════════════════════════════════════════════════════════════

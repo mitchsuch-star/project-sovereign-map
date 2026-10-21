@@ -1603,7 +1603,13 @@ class TestTheAiIsNotFrozenInstead:
         # orders it has to refuse. With part 3's twelve seams down in the
         # child DDB-X3's figure returns (`tools/_pc_s13e3_wo_attribution.py`,
         # measured: 3 / 0).
-        assert cooldowns["gated"] == 3, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings)
+        # S14 part 3 (Pre-Deploy, October 20, 2026): 3 -> 2 — the league's
+        # bond: Britain binds Austria at turn 10 of the gated board (the
+        # re-pinned standing series board) and her gold re-times the AI's
+        # wars from index 21. With the bond's mint held down in the child
+        # S13e part 3's figure returns (`tools/_pc_s14p3_wo_attribution.py`,
+        # measured: 2 / 3, and 3 with every bond seam down).
+        assert cooldowns["gated"] == 2, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond)
 
 
 _COOLDOWN_PROBE = r'''

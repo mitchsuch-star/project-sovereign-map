@@ -1,32 +1,32 @@
 {
  "seed": "dd1-fuzz-2",
  "steps": 1000,
- "seconds": 48.9,
- "final_turn": 39,
+ "seconds": 66.6,
+ "final_turn": 35,
  "verbs": {
-  "end_turn": 330,
-  "break": 49,
-  "answer": 154,
-  "white_peace": 85,
-  "propose": 132,
+  "end_turn": 328,
+  "break": 51,
+  "answer": 155,
+  "white_peace": 84,
+  "propose": 133,
   "declare_war": 94,
   "make_vassal": 32,
   "common_peace": 51,
   "summon": 37,
-  "release_vassal": 36
+  "release_vassal": 35
  },
  "refusals": {
-  "propose: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 119,
+  "propose: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 120,
   "declare_war: Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.": 85,
-  "white_peace: A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.": 55,
+  "white_peace: A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.": 54,
   "common_peace: A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.": 36,
   "summon: The campaign has ended — no Congress will sit.": 33,
   "summon: The Congress cannot be summoned on N titled provinces — N are needed (N more to win and settle).": 4,
   "make_vassal: Cannot vassalize Portugal: Portugal is too powerful to vassalize (power: N% of France).": 4,
   "make_vassal: Prussia still stands — Berlin is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 4,
-  "answer: A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.": 3,
   "make_vassal: Cannot vassalize Spain: Spain is too powerful to vassalize (power: N% of France).": 3,
   "common_peace: Resolve the active settlement review before opening another war's settlement.": 2,
+  "answer: A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice.": 2,
   "propose: Insufficient Diplomatic Points. This proposal costs N DP, but we only have N.": 2,
   "make_vassal: Britain still stands — London is its own and N of its corps are in the field (its war score +N; it submits at -N). Tak": 2,
   "make_vassal: Cannot vassalize Switzerland: Switzerland is too powerful to vassalize (power: N% of France).": 2,
@@ -50,14 +50,14 @@
   "make_vassal: Hesse submits, but France cannot impose vassalage on so large a nation. Demand terms at the peace table instead.": 1,
   "make_vassal: Denmark still stands — Copenhagen is its own and N of its corps are in the field (its war score +N; it submits at -N). ": 1,
   "make_vassal: Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: N% of France).": 1,
-  "make_vassal: Russia still stands — Vilna is its own and N of its corps are in the field (its war score -N; it submits at -N). Take ": 1
+  "make_vassal: Russia still stands — Vilna is its own and N of its corps are in the field (its war score +N; it submits at -N). Take t": 1
  },
  "transitions": {
   "None→WAR": 23,
   "WAR→PEACE": 19,
-  "ALLIANCE→DEFENSIVE_ALLIANCE": 4,
   "VASSAL→PEACE": 4,
   "None→OPEN_BORDERS": 2,
+  "ALLIANCE→DEFENSIVE_ALLIANCE": 2,
   "DEFENSIVE_ALLIANCE→NON_AGGRESSION": 2,
   "OPEN_BORDERS→PEACE": 2,
   "ALLIANCE→PEACE": 1,
@@ -544,7 +544,7 @@
    "verb": "summon",
    "detail": "",
    "ok": false,
-   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
+   "refused": "The Congress cannot be summoned on 5 titled provinces — 45 are needed (40 more to win and settle)."
   },
   {
    "i": 77,
@@ -583,7 +583,7 @@
    "verb": "summon",
    "detail": "",
    "ok": false,
-   "refused": "The Congress cannot be summoned on 3 titled provinces — 45 are needed (42 more to win and settle)."
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
   },
   {
    "i": 83,
@@ -611,7 +611,7 @@
    "verb": "summon",
    "detail": "",
    "ok": false,
-   "refused": "The Congress cannot be summoned on 3 titled provinces — 45 are needed (42 more to win and settle)."
+   "refused": "The Congress cannot be summoned on 4 titled provinces — 45 are needed (41 more to win and settle)."
   },
   {
    "i": 87,
@@ -674,7 +674,7 @@
   {
    "i": 96,
    "verb": "end_turn",
-   "detail": "turn 36",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -687,13 +687,13 @@
   {
    "i": 98,
    "verb": "end_turn",
-   "detail": "turn 37",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 99,
    "verb": "end_turn",
-   "detail": "turn 38",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -706,35 +706,36 @@
   {
    "i": 101,
    "verb": "answer",
-   "detail": "incoming_settlement_offer → request_settlement_revision",
+   "detail": "",
    "ok": false,
-   "refused": "A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice."
+   "skipped": "no dialogue"
   },
   {
    "i": 102,
-   "verb": "end_turn",
-   "detail": "turn 39",
+   "verb": "propose",
+   "detail": "armistice → Naples (execute_proposal)",
    "ok": true
   },
   {
    "i": 103,
-   "verb": "end_turn",
-   "detail": "turn 39",
-   "ok": true
+   "verb": "break",
+   "detail": "",
+   "ok": false,
+   "skipped": "no treaty of ours"
   },
   {
    "i": 104,
-   "verb": "release_vassal",
+   "verb": "break",
    "detail": "",
    "ok": false,
-   "skipped": "no vassal of ours"
+   "skipped": "no treaty of ours"
   },
   {
    "i": 105,
-   "verb": "white_peace",
-   "detail": "Sardinia",
+   "verb": "answer",
+   "detail": "",
    "ok": false,
-   "refused": "A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice."
+   "skipped": "no dialogue"
   },
   {
    "i": 106,
@@ -760,8 +761,9 @@
   {
    "i": 109,
    "verb": "propose",
-   "detail": "armistice → Sardinia (execute_proposal)",
-   "ok": true
+   "detail": "armistice → Sardinia",
+   "ok": false,
+   "refused": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns."
   },
   {
    "i": 110,
@@ -794,7 +796,7 @@
   {
    "i": 114,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -828,7 +830,7 @@
   {
    "i": 119,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -855,7 +857,7 @@
   {
    "i": 123,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -863,18 +865,18 @@
    "verb": "make_vassal",
    "detail": "Britain",
    "ok": false,
-   "refused": "Britain still stands — London is its own and 4 of its corps are in the field (its war score +99; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Britain still stands — London is its own and 4 of its corps are in the field (its war score +79; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 125,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 126,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -915,7 +917,7 @@
   {
    "i": 132,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -928,7 +930,7 @@
   {
    "i": 134,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -983,13 +985,13 @@
   {
    "i": 142,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 143,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1009,7 +1011,7 @@
   {
    "i": 146,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1043,7 +1045,7 @@
   {
    "i": 151,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1077,13 +1079,13 @@
   {
    "i": 156,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 157,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1096,7 +1098,7 @@
   {
    "i": 159,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1150,7 +1152,7 @@
   {
    "i": 167,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1158,18 +1160,18 @@
    "verb": "make_vassal",
    "detail": "Britain",
    "ok": false,
-   "refused": "Britain still stands — London is its own and 4 of its corps are in the field (its war score +99; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Britain still stands — London is its own and 4 of its corps are in the field (its war score +79; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 169,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 170,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1189,13 +1191,13 @@
   {
    "i": 173,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 174,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1236,7 +1238,7 @@
   {
    "i": 180,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1256,7 +1258,7 @@
   {
    "i": 183,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1269,7 +1271,7 @@
   {
    "i": 185,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1317,13 +1319,13 @@
   {
    "i": 192,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 193,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1336,7 +1338,7 @@
   {
    "i": 195,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1349,7 +1351,7 @@
   {
    "i": 197,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1362,7 +1364,7 @@
   {
    "i": 199,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1375,7 +1377,7 @@
   {
    "i": 201,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1388,7 +1390,7 @@
   {
    "i": 203,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1401,7 +1403,7 @@
   {
    "i": 205,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1413,7 +1415,7 @@
   {
    "i": 207,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1477,18 +1479,18 @@
    "verb": "make_vassal",
    "detail": "Prussia",
    "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +45; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +59; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 217,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 218,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1508,7 +1510,7 @@
   {
    "i": 221,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1534,7 +1536,7 @@
   {
    "i": 225,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1561,7 +1563,7 @@
   {
    "i": 229,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1588,7 +1590,7 @@
   {
    "i": 233,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1601,7 +1603,7 @@
   {
    "i": 235,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1635,7 +1637,7 @@
   {
    "i": 240,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1648,19 +1650,19 @@
   {
    "i": 242,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 243,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 244,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1673,7 +1675,7 @@
   {
    "i": 246,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1693,7 +1695,7 @@
   {
    "i": 249,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1755,7 +1757,7 @@
   {
    "i": 258,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1768,13 +1770,13 @@
   {
    "i": 260,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 261,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1801,7 +1803,7 @@
   {
    "i": 265,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1821,7 +1823,7 @@
   {
    "i": 268,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1834,7 +1836,7 @@
   {
    "i": 270,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1847,13 +1849,13 @@
   {
    "i": 272,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 273,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1872,7 +1874,7 @@
   {
    "i": 276,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1947,13 +1949,13 @@
   {
    "i": 287,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 288,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -1987,7 +1989,7 @@
   {
    "i": 293,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2021,7 +2023,7 @@
   {
    "i": 298,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2041,7 +2043,7 @@
   {
    "i": 301,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2061,7 +2063,7 @@
   {
    "i": 304,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2074,7 +2076,7 @@
   {
    "i": 306,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2108,7 +2110,7 @@
   {
    "i": 311,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2161,13 +2163,13 @@
   {
    "i": 319,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 320,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2180,7 +2182,7 @@
   {
    "i": 322,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2235,19 +2237,19 @@
   {
    "i": 330,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 331,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 332,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2365,13 +2367,13 @@
   {
    "i": 349,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 350,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2384,13 +2386,13 @@
   {
    "i": 352,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 353,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2466,7 +2468,7 @@
   {
    "i": 364,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2500,7 +2502,7 @@
   {
    "i": 369,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2541,13 +2543,13 @@
   {
    "i": 375,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 376,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2560,7 +2562,7 @@
   {
    "i": 378,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2573,7 +2575,7 @@
   {
    "i": 380,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2599,7 +2601,7 @@
   {
    "i": 384,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2661,7 +2663,7 @@
   {
    "i": 393,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2674,7 +2676,7 @@
   {
    "i": 395,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2694,7 +2696,7 @@
   {
    "i": 398,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2721,7 +2723,7 @@
   {
    "i": 402,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2769,19 +2771,19 @@
   {
    "i": 409,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 410,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 411,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2855,19 +2857,19 @@
   {
    "i": 422,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 423,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 424,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2894,7 +2896,7 @@
   {
    "i": 428,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2913,7 +2915,7 @@
   {
    "i": 431,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2926,19 +2928,19 @@
   {
    "i": 433,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 434,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 435,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2951,7 +2953,7 @@
   {
    "i": 437,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2971,7 +2973,7 @@
   {
    "i": 440,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -2998,13 +3000,13 @@
   {
    "i": 444,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 445,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3017,13 +3019,13 @@
   {
    "i": 447,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 448,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3036,7 +3038,7 @@
   {
    "i": 450,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3063,7 +3065,7 @@
   {
    "i": 454,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3097,7 +3099,7 @@
   {
    "i": 459,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3110,13 +3112,13 @@
   {
    "i": 461,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 462,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3157,13 +3159,13 @@
   {
    "i": 468,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 469,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3211,31 +3213,31 @@
   {
    "i": 476,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 477,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 478,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 479,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 480,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3255,19 +3257,19 @@
   {
    "i": 483,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 484,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 485,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3308,7 +3310,7 @@
   {
    "i": 491,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3328,7 +3330,7 @@
   {
    "i": 494,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3341,7 +3343,7 @@
   {
    "i": 496,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3361,13 +3363,13 @@
   {
    "i": 499,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 500,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3387,7 +3389,7 @@
   {
    "i": 503,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3416,19 +3418,19 @@
    "verb": "make_vassal",
    "detail": "Denmark",
    "ok": false,
-   "refused": "Denmark still stands — Copenhagen is its own and 1 of its corps are in the field (its war score +1; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Denmark still stands — Copenhagen is its own and 1 of its corps are in the field (its war score +0; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 508,
    "verb": "make_vassal",
    "detail": "Prussia",
    "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +45; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +59; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 509,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3446,13 +3448,13 @@
   {
    "i": 512,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 513,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3493,7 +3495,7 @@
   {
    "i": 519,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3540,7 +3542,7 @@
   {
    "i": 526,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3553,13 +3555,13 @@
   {
    "i": 528,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 529,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3579,7 +3581,7 @@
   {
    "i": 532,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3619,7 +3621,7 @@
   {
    "i": 538,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3646,7 +3648,7 @@
   {
    "i": 542,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3673,7 +3675,7 @@
   {
    "i": 546,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3686,7 +3688,7 @@
   {
    "i": 548,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3699,7 +3701,7 @@
   {
    "i": 550,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3740,13 +3742,13 @@
   {
    "i": 556,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 557,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3787,7 +3789,7 @@
   {
    "i": 563,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3830,12 +3832,12 @@
    "verb": "make_vassal",
    "detail": "Naples",
    "ok": false,
-   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +1; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +0; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 570,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3848,31 +3850,31 @@
   {
    "i": 572,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 573,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 574,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 575,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 576,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3885,7 +3887,7 @@
   {
    "i": 578,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3905,7 +3907,7 @@
   {
    "i": 581,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3918,7 +3920,7 @@
   {
    "i": 583,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3931,19 +3933,19 @@
   {
    "i": 585,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 586,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 587,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -3998,7 +4000,7 @@
   {
    "i": 595,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4018,7 +4020,7 @@
   {
    "i": 598,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4079,7 +4081,7 @@
   {
    "i": 607,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4106,19 +4108,19 @@
   {
    "i": 611,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 612,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 613,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4138,7 +4140,7 @@
   {
    "i": 616,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4151,7 +4153,7 @@
   {
    "i": 618,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4163,7 +4165,7 @@
   {
    "i": 620,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4218,19 +4220,19 @@
   {
    "i": 628,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 629,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 630,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4243,7 +4245,7 @@
   {
    "i": 632,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4251,7 +4253,7 @@
    "verb": "make_vassal",
    "detail": "Prussia",
    "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +45; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +59; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 634,
@@ -4262,13 +4264,13 @@
   {
    "i": 635,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 636,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4295,7 +4297,7 @@
   {
    "i": 640,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4322,7 +4324,7 @@
   {
    "i": 644,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4349,19 +4351,19 @@
   {
    "i": 648,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 649,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 650,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4395,7 +4397,7 @@
   {
    "i": 655,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4408,13 +4410,13 @@
   {
    "i": 657,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 658,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4422,7 +4424,7 @@
    "verb": "make_vassal",
    "detail": "Austria",
    "ok": false,
-   "refused": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +23; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +21; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 660,
@@ -4434,7 +4436,7 @@
   {
    "i": 661,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4447,7 +4449,7 @@
   {
    "i": 663,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4467,13 +4469,13 @@
   {
    "i": 666,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 667,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4486,7 +4488,7 @@
   {
    "i": 669,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4506,7 +4508,7 @@
   {
    "i": 672,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4519,7 +4521,7 @@
   {
    "i": 674,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4532,13 +4534,13 @@
   {
    "i": 676,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 677,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4585,7 +4587,7 @@
   {
    "i": 684,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4612,19 +4614,19 @@
   {
    "i": 688,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 689,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 690,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4644,7 +4646,7 @@
   {
    "i": 693,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4671,7 +4673,7 @@
   {
    "i": 697,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4704,13 +4706,13 @@
   {
    "i": 702,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 703,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4737,7 +4739,7 @@
   {
    "i": 707,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4770,13 +4772,13 @@
   {
    "i": 712,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 713,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4789,13 +4791,13 @@
   {
    "i": 715,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 716,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4849,13 +4851,13 @@
   {
    "i": 724,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 725,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4923,13 +4925,13 @@
   {
    "i": 735,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 736,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4942,7 +4944,7 @@
   {
    "i": 738,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -4975,13 +4977,13 @@
   {
    "i": 743,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 744,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5001,7 +5003,7 @@
   {
    "i": 747,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5014,13 +5016,13 @@
   {
    "i": 749,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 750,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5047,13 +5049,13 @@
   {
    "i": 754,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 755,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5080,7 +5082,7 @@
   {
    "i": 759,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5093,7 +5095,7 @@
   {
    "i": 761,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5106,7 +5108,7 @@
   {
    "i": 763,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5131,7 +5133,7 @@
   {
    "i": 767,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5144,13 +5146,13 @@
   {
    "i": 769,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 770,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5170,13 +5172,13 @@
   {
    "i": 773,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 774,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5202,7 +5204,7 @@
   {
    "i": 778,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5215,7 +5217,7 @@
   {
    "i": 780,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5235,7 +5237,7 @@
   {
    "i": 783,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5275,7 +5277,7 @@
   {
    "i": 789,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5283,7 +5285,7 @@
    "verb": "make_vassal",
    "detail": "Naples",
    "ok": false,
-   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +1; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Naples still stands — Naples is its own and 1 of its corps are in the field (its war score +0; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 791,
@@ -5295,7 +5297,7 @@
   {
    "i": 792,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5310,7 +5312,7 @@
    "verb": "make_vassal",
    "detail": "Prussia",
    "ok": false,
-   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +45; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Prussia still stands — Berlin is its own and 3 of its corps are in the field (its war score +59; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 795,
@@ -5329,7 +5331,7 @@
   {
    "i": 797,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5349,7 +5351,7 @@
   {
    "i": 800,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5357,7 +5359,7 @@
    "verb": "make_vassal",
    "detail": "Austria",
    "ok": false,
-   "refused": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +23; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +21; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 802,
@@ -5397,7 +5399,7 @@
   {
    "i": 807,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5410,13 +5412,13 @@
   {
    "i": 809,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 810,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5452,18 +5454,18 @@
    "verb": "make_vassal",
    "detail": "Russia",
    "ok": false,
-   "refused": "Russia still stands — Vilna is its own and 3 of its corps are in the field (its war score -12; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
+   "refused": "Russia still stands — Vilna is its own and 3 of its corps are in the field (its war score +4; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table."
   },
   {
    "i": 816,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 817,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5476,7 +5478,7 @@
   {
    "i": 819,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5489,7 +5491,7 @@
   {
    "i": 821,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5502,13 +5504,13 @@
   {
    "i": 823,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 824,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5542,7 +5544,7 @@
   {
    "i": 829,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5555,7 +5557,7 @@
   {
    "i": 831,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5568,7 +5570,7 @@
   {
    "i": 833,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5616,7 +5618,7 @@
   {
    "i": 840,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5636,7 +5638,7 @@
   {
    "i": 843,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5655,13 +5657,13 @@
   {
    "i": 846,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 847,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5674,13 +5676,13 @@
   {
    "i": 849,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 850,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5693,7 +5695,7 @@
   {
    "i": 852,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5706,7 +5708,7 @@
   {
    "i": 854,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5726,7 +5728,7 @@
   {
    "i": 857,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5766,7 +5768,7 @@
   {
    "i": 863,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5814,13 +5816,13 @@
   {
    "i": 870,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 871,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5833,7 +5835,7 @@
   {
    "i": 873,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5867,7 +5869,7 @@
   {
    "i": 878,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5894,19 +5896,19 @@
   {
    "i": 882,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 883,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 884,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5919,19 +5921,19 @@
   {
    "i": 886,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 887,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 888,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5972,7 +5974,7 @@
   {
    "i": 894,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -5998,7 +6000,7 @@
   {
    "i": 898,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6039,13 +6041,13 @@
   {
    "i": 904,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 905,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6079,7 +6081,7 @@
   {
    "i": 910,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6092,7 +6094,7 @@
   {
    "i": 912,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6105,7 +6107,7 @@
   {
    "i": 914,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6132,13 +6134,13 @@
   {
    "i": 918,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 919,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6151,7 +6153,7 @@
   {
    "i": 921,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6171,7 +6173,7 @@
   {
    "i": 924,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6184,13 +6186,13 @@
   {
    "i": 926,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 927,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6245,7 +6247,7 @@
   {
    "i": 935,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6258,13 +6260,13 @@
   {
    "i": 937,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 938,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6291,13 +6293,13 @@
   {
    "i": 942,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 943,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6310,7 +6312,7 @@
   {
    "i": 945,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6358,19 +6360,19 @@
   {
    "i": 952,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 953,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 954,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6383,7 +6385,7 @@
   {
    "i": 956,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6410,25 +6412,25 @@
   {
    "i": 960,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 961,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 962,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 963,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6448,7 +6450,7 @@
   {
    "i": 966,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6475,7 +6477,7 @@
   {
    "i": 970,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6502,7 +6504,7 @@
   {
    "i": 974,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6543,7 +6545,7 @@
   {
    "i": 980,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6555,7 +6557,7 @@
   {
    "i": 982,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6568,7 +6570,7 @@
   {
    "i": 984,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6616,19 +6618,19 @@
   {
    "i": 991,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 992,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 993,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6641,7 +6643,7 @@
   {
    "i": 995,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
@@ -6661,13 +6663,13 @@
   {
    "i": 998,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {
    "i": 999,
    "verb": "end_turn",
-   "detail": "turn 39",
+   "detail": "turn 35",
    "ok": true
   },
   {

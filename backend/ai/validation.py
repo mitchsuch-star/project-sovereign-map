@@ -113,6 +113,9 @@ VALID_ACTIONS: Set[str] = {
     "sponsor_design",    # "sponsor Prussia against Hanover, 200 gold" (0 = licence)
     "buy_off_design",    # "buy off Prussia" — compensation, price derived
     "guarantee_nation",  # "guarantee Saxony" — pledge to defend
+    # PC-R7 (ii) part 3 (Chaumont): "bind Bavaria to the war against Austria"
+    # — the no-separate-peace bond, 1 DP + the subsidy a turn
+    "bind_to_war",
     # DEF-5 naval — "The Wooden Wall" (NAVAL_SPEC §9): the four verbs.
     "build_fleet",       # "build ships" / "lay down a ship" — 1 admin AP + 400g
     "set_fleet_posture",  # "blockade the enemy" / "guard home waters"
@@ -148,6 +151,7 @@ META_ACTIONS: Set[str] = {
     "sponsor_design",
     "buy_off_design",
     "guarantee_nation",
+    "bind_to_war",  # PC-R7 (ii) part 3: the bond
     # DEF-5 naval — nation-level fleet orders, no marshal needed
     # (naval_expedition is deliberately NOT here: it carries a corps).
     "build_fleet",

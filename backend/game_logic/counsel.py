@@ -270,6 +270,12 @@ def _bilateral_road(world, player: str, court: str, ptype: str, road: str,
                 f"A peace without demands would be {verdict_word} ({plain_score}).")
             if plain_score >= ACCEPT_SCORE and score < ACCEPT_SCORE:
                 out["carries_plain"] = True
+        # PC-R7 (ii) part 3: the league's bond, priced here too — the road
+        # that outbids it is the table with her alone.
+        from backend.game_logic.bond import price_line as _bond_price
+        out["bond_line"] = _bond_price(world, court, player)
+        if out["bond_line"]:
+            trade = f"{trade} {out['bond_line']}"
         out["trade"] = trade
         out["separate_peace"] = words
     else:
@@ -389,6 +395,14 @@ def _table_road(world, player: str, court: str, *, alone: bool,
             trade = f"{trade} {_declared_words(world, war_id, player, _priced)}"
         if words:
             trade = f"{trade} {words['display']}"
+        # PC-R7 (ii) part 3: the league's bond on her — its price at this
+        # table and France's bid against it, named ("Britain's bond costs her
+        # 40 at the table …; 1,000 gold to her pays it — or Franconia …").
+        from backend.game_logic.bond import price_line as _bond_price
+        _inst = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+        out["bond_line"] = _bond_price(world, court, player, war_instance=_inst)
+        if out["bond_line"]:
+            trade = f"{trade} {out['bond_line']}"
         out["trade"] = trade
         out["separate_peace"] = words
         # Ruling K item 1's lever: the payment that would carry this court

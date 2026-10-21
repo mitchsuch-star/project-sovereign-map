@@ -4651,7 +4651,7 @@
    "action": "propose_peace",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Unlikely",
+   "likelihood": "Hopeless",
    "verdict": "signed",
    "message": "Treaty signed: At War → Peace with Austria.",
    "type_sent": "peace",
@@ -17445,9 +17445,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 8.46,
+ "clone_ms_mean": 11.71,
  "clones": 476,
- "seconds": 34.8,
+ "seconds": 45.7,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

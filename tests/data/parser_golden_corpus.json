@@ -3630,6 +3630,18 @@
       "notes": "D5-3 guarantee. The mock arm is gated on a known nation in text so prose like 'guarantee our supply lines' never fires it."
     },
     {
+      "id": "pcr7-bind-to-war",
+      "utterance": "bind bavaria to the war against austria",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "bind_to_war",
+        "target": "Bavaria"
+      },
+      "source": "tests/test_pc_rulings.py — PC-R7 (ii) part 3 (the bond, Chaumont)",
+      "notes": "The no-separate-peace bond, France the payer — the Cabinet row's echo (F1 → Bavaria → Bind Bavaria to the War → Against Austria). The mock arm is gated on a known nation and the war (or the separate peace) in the line; the target is the court before the against-clause."
+    },
+    {
       "id": "igr-a3-move-to-austria-names-the-nation",
       "utterance": "Ney, move to Austria",
       "world": "1805",

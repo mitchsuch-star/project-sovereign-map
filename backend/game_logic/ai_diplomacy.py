@@ -1980,33 +1980,60 @@ BREAK_RANKS_LONG_WAR_SCORE = -60      # … at war score < -60
 WAR_EXHAUSTION_PER_TURN_AT_WAR = 8    # coalition.py's own tick (+8 a turn at war)
 
 
+def break_ranks_lines(world, nation: str, *, depth: Optional[Dict] = None) -> Dict:
+    """P1's four lines for `nation`, as the clause reads them TODAY: `score`
+    (< -50), `exhaustion` (> 80), `long_war_score` (< -60 after 8 turns),
+    `pressburg` (< -30, a satisfied design) — each read DEEPER while the
+    league's bond binds her (PC-R7 (ii) part 3, Chaumont: `bond.
+    break_ranks_depth` — the score lines by the bond's points at the
+    bilateral's score rate, the exhaustion line by §6a's ease rate). `depth`
+    overrides the read (the paymaster's would-be bond). `bond` names the
+    payer, "" without one. ONE read for the clause, the league gate's clock,
+    the war popup's "she tires at" and the truce's spent line."""
+    from backend.game_logic.agendas import AGENDA_SEPARATE_PEACE_SCORE
+    if depth is None:
+        from backend.game_logic.bond import break_ranks_depth
+        depth = break_ranks_depth(world, nation, getattr(world, "player_nation", "France"))
+    d_score = int((depth or {}).get("score", 0) or 0)
+    d_we = int((depth or {}).get("exhaustion", 0) or 0)
+    return {
+        "score": BREAK_RANKS_WAR_SCORE - d_score,
+        "exhaustion": BREAK_RANKS_EXHAUSTION + d_we,
+        "long_war_score": BREAK_RANKS_LONG_WAR_SCORE - d_score,
+        "pressburg": AGENDA_SEPARATE_PEACE_SCORE - d_score,
+        "bond": str((depth or {}).get("payer") or ""),
+        "depth": {"score": d_score, "exhaustion": d_we},
+    }
+
+
 def coalition_break_ranks_reason(world, nation: str, *, war_score: int,
-                                 diplo_key: str) -> Optional[str]:
+                                 diplo_key: str, depth: Optional[Dict] = None) -> Optional[str]:
     """Why a coalition member may sue on its own — P1's break-ranks clause
     as ONE predicate: `score` (war score < -50), `exhaustion` (WE > 80),
     `long_war` (8+ turns at war and score < -60), `pressburg` (NA-2 §5.4: a
     court whose design is satisfied, at score < -30). None = it stays
     loyal. `diplo_key` is the member's pair with the player (the war
-    duration is pair-keyed, as P1 reads it).
+    duration is pair-keyed, as P1 reads it). PC-R7 (ii) part 3: the lines
+    are `break_ranks_lines` — deeper while the league's bond binds her
+    (`depth` overrides the bond's read: the paymaster's would-be bond).
 
     Kept exactly as P1 wrote it, including a limb that cannot fire: a score
     under -60 is under -50, so the `long_war` arm is subsumed by `score`
     and has been dead since it was written (found while extracting; kept
     so P1 behaves byte-identically, recorded here rather than repaired —
     changing the clause is a balance question, not this row's)."""
-    from backend.game_logic.agendas import (
-        AGENDA_SEPARATE_PEACE_SCORE, agenda_separate_peace_ready,
-    )
+    from backend.game_logic.agendas import agenda_separate_peace_ready
+    lines = break_ranks_lines(world, nation, depth=depth)
     war_duration = int(world.current_turn) - int(
         world.war_start_turns.get(diplo_key, world.current_turn))
     nation_we = int(world.war_exhaustion.get(nation, 0) or 0)
-    if war_score < BREAK_RANKS_WAR_SCORE:
+    if war_score < lines["score"]:
         return "score"
-    if nation_we > BREAK_RANKS_EXHAUSTION:
+    if nation_we > lines["exhaustion"]:
         return "exhaustion"
-    if war_duration >= BREAK_RANKS_LONG_WAR_TURNS and war_score < BREAK_RANKS_LONG_WAR_SCORE:
+    if war_duration >= BREAK_RANKS_LONG_WAR_TURNS and war_score < lines["long_war_score"]:
         return "long_war"
-    if war_score < AGENDA_SEPARATE_PEACE_SCORE and agenda_separate_peace_ready(nation, world):
+    if war_score < lines["pressburg"] and agenda_separate_peace_ready(nation, world):
         return "pressburg"
     return None
 
@@ -2109,6 +2136,9 @@ def court_own_readiness(world, court: str, opponent: str) -> Dict:
               if at_war and in_league else None)
     sues = bool(at_war and score < threshold)
     exhaustion = int(world.war_exhaustion.get(court, 0) or 0)
+    # PC-R7 (ii) part 3: the league's bond on her (the payer's name, "" without)
+    from backend.game_logic.bond import bond_on
+    _bond = bond_on(world, court, opponent) if (at_war and in_league) else None
     return {
         "court": court, "opponent": opponent, "at_war": at_war,
         "score": int(score), "threshold": int(threshold), "sues": sues,
@@ -2117,6 +2147,7 @@ def court_own_readiness(world, court: str, opponent: str) -> Dict:
         "letter": ("peace" if (sues and score < P1_PEACE_SPLIT)
                    else "truce" if sues else ""),
         "exhaustion": exhaustion,
+        "bond": str((_bond or {}).get("payer") or ""),
     }
 
 
@@ -2211,10 +2242,14 @@ def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
     # constant; a paymaster at +10 passes 80 sooner than the constant said.
     from backend.game_logic.coalition import war_exhaustion_rate
     rate = max(1, int(war_exhaustion_rate(world, leader)))
-    turns = max(1, -(-(BREAK_RANKS_EXHAUSTION + 1 - exhaustion) // rate))
+    # PC-R7 (ii) part 3 (PC-X52): the clock runs to the leader's OWN line — a
+    # bonded leader tires at the bond's deeper line, never at the stock 80.
+    lines = break_ranks_lines(world, leader)
+    turns = max(1, -(-(int(lines["exhaustion"]) + 1 - exhaustion) // rate))
     return {"reason": "league_not_spent" if leagues_war else "war_not_spent",
             "leader": leader, "war_score": war_score,
-            "exhaustion": exhaustion, "rate": int(rate), "turns_at_most": int(turns)}
+            "exhaustion": exhaustion, "rate": int(rate), "turns_at_most": int(turns),
+            "line": int(lines["exhaustion"]), "bond": str(lines["bond"])}
 
 
 def league_offer_gate_display(world, gate: Dict) -> str:
@@ -2224,17 +2259,20 @@ def league_offer_gate_display(world, gate: Dict) -> str:
     turns = int(gate.get("turns_at_most") or 1)
     # PC-R5: the rate said, so the clock can be checked ("+10 a turn").
     rate = int(gate.get("rate") or WAR_EXHAUSTION_PER_TURN_AT_WAR)
+    line = int(gate.get("line") or BREAK_RANKS_EXHAUSTION)
+    bound = (f" — {formed_display_name(world, str(gate['bond']))}'s bond holds her past "
+             f"{BREAK_RANKS_EXHAUSTION}" if gate.get("bond") else "")
     if str(gate.get("reason") or "") == "war_not_spent":
         # PR-D1d: a war the player declared — the leader has not broken ranks.
         return (f"{leader} has not broken ranks on the war we declared, Sire — it "
                 f"names no terms while it can still fight (exhaustion "
-                f"{int(gate.get('exhaustion') or 0)} of {BREAK_RANKS_EXHAUSTION}, "
+                f"{int(gate.get('exhaustion') or 0)} of {line}{bound}, "
                 f"wearing at +{rate} a turn; at "
                 f"most {turns} turn{'s' if turns != 1 else ''}, sooner if the war "
                 f"turns against it).")
     return (f"{leader} leads a league that is not yet spent, Sire — it names no terms "
             f"while it can still fight (exhaustion {int(gate.get('exhaustion') or 0)} of "
-            f"{BREAK_RANKS_EXHAUSTION}, wearing at +{rate} a turn; at most {turns} "
+            f"{line}{bound}, wearing at +{rate} a turn; at most {turns} "
             f"turn{'s' if turns != 1 else ''}, "
             f"sooner if the war turns against it).")
 
@@ -2608,8 +2646,13 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # a winning member's dictated letter is the league's own instrument
     # (ruling I; the ulm pin: Britain leads the league and dictates), not a
     # desertion; the judgement is recorded on the row.
+    # PC-X65 (S14 part 3): a member the league's bond binds writes no separate
+    # dictated letter of her own — the league's letter is her road
+    # (`bond.holds_her_letter`; her paymaster's own letter is untouched).
+    from backend.game_logic.bond import holds_her_letter
     if (proposal is None and is_at_war and war_score > 40
-            and not _one_envoy_for_this_war(world, nation, player)):
+            and not _one_envoy_for_this_war(world, nation, player)
+            and not holds_her_letter(world, nation, player)):
         ptype = "harsh_peace"
         if not _is_on_cooldown(nation, ptype, world, war_score):
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
@@ -5296,7 +5339,11 @@ def letter_consenting_courts(world, player: str, covered: List[str],
         if court in out:
             continue
         try:
-            if court_own_readiness(world, str(court), player).get("sues"):
+            # PC-X66 (S14 part 3): her own readiness is no consent to a letter
+            # that leaves her paymaster at war — the bond prices her row.
+            from backend.game_logic.bond import consent_held
+            if (court_own_readiness(world, str(court), player).get("sues")
+                    and not consent_held(world, str(court), covered, player)):
                 out.append(str(court))
                 continue
         except Exception as exc:
@@ -5431,9 +5478,14 @@ def leave_a_winning_court_its_war(world, player: str, covered: List[str]) -> Lis
     side = int(sum_stored_side_score(world, player, covered))
     if side <= -SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
         return covered
+    # PC-X66 (S14 part 3): the payer of a bond binding a covered court treats
+    # with her — never left its war while she signs (Chaumont).
+    from backend.game_logic.bond import letter_keeps_payers
+    payers = set(letter_keeps_payers(world, covered, player))
     return [
         n for n in covered
-        if int(get_war_score_for(world, n, player) or 0) < SETTLEMENT_OFFER_DECISIVE_WAR_SCORE
+        if n in payers
+        or int(get_war_score_for(world, n, player) or 0) < SETTLEMENT_OFFER_DECISIVE_WAR_SCORE
     ]
 
 

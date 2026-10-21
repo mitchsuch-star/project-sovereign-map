@@ -85,6 +85,8 @@ FAMILY_ACTIONS = {
     "repudiate_bargain",
     # PC-X46: the Congress's sweetener has its row (while the Congress sits)
     "recognition_sweetener",
+    # PC-R7 (ii) part 3: the league's bond — Bind to the War on an ally's page
+    "bind_to_war",
 }
 
 # Documented exclusions — these reach the backend as they always did,
@@ -268,6 +270,9 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
                 return "cabinet"
         if ("cede " in lower or "grant " in lower) and any(
                 (" to " + form) in lower for form in forms):
+            return "cabinet"
+        # PC-R7 (ii) part 3: the bond, on the parser's own gate.
+        if _has_word(lower, "bind") and (_has_word(lower, "war") or "separate peace" in lower):
             return "cabinet"
     if any(_has_word(lower, n) for n in lists["address_names"]):
         if any(w in lower for w in lists["address_exempt"]):

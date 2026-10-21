@@ -1481,7 +1481,25 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # is byte-identical to the series before it; DDB-R3's capitulation (arm N)
 # and DDB-X1's landing (arm L) are byte-identical — neither is reached here.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# RE-PINNED by PC-R7 (ii) part 3 — the league's bond (Pre-Deploy S14 part 3,
+# October 20, 2026; `BUG_FIXES.md` §PC PC-R7; `SYSTEMS_REFERENCE.md` §135):
+# at turn 10 Austria breaks ranks on exhaustion and the paymaster's bond
+# would hold her, so Britain binds her (`bond.ai_paymaster_binds` — 300 gold a
+# turn for 10 turns; the passive France signs nothing, so the bond serves its
+# term and expires unbroken). Attribution (`tools/_pc_s14p3_series_arms.py`,
+# `tools/_pc_s14p3_series_arms_final.json`): arm 0 (every rule down)
+# reproduces the old series byte for byte; every READ of the bond — the
+# deeper break-ranks lines (D), the table's price (T), the bilateral's (L),
+# the truce's hope (S) — is byte-identical alone; arm B alone (the mint, its
+# gold on the Subsidies line) diverges at [21] and EQUALS the shipped ALL —
+# the bond's gold moves France's alarm 2 from [25]/[28] to [21].
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# The standing series of every attribution record through S14 part 2 — the
+# series before the bond moved it (the bond record's `prior`). The historical
+# records' links (each part's ALL arm was the standing series in its day) read
+# this, never the live BASELINE_SERIES.
+SERIES_BEFORE_THE_BOND = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

@@ -1716,7 +1716,9 @@ VASSAL_FAMILY_ACTIONS = ("invest_vassal", "release_vassal",
                          "grant_region_to_vassal",
                          # AI-2b: instrument targets are nations too
                          "sponsor_design", "buy_off_design",
-                         "guarantee_nation")
+                         "guarantee_nation",
+                         # PC-R7 (ii) part 3: the bond binds a nation
+                         "bind_to_war")
 
 
 def _is_nation_demonym(target: Optional[str], world) -> bool:
@@ -1855,6 +1857,7 @@ class CommandParser:
             "sponsor_design",    # Directed sponsorship / licence
             "buy_off_design",    # Compensation — buy off a design
             "guarantee_nation",  # Pledge to defend a nation
+            "bind_to_war",       # PC-R7 (ii) part 3: the no-separate-peace bond
             # Strategic actions (LLM may return these directly) — P8-4 sync
             "pursue",           # Strategic PURSUE - chasing enemy marshal
             "support",          # Strategic SUPPORT - marching to ally
@@ -2145,7 +2148,8 @@ class CommandParser:
         if llm_result.get("action") in (
                 "change_autonomy", "invest_vassal", "release_vassal",
                 "make_vassal", "grant_region_to_vassal",
-                "sponsor_design", "buy_off_design", "guarantee_nation"):
+                "sponsor_design", "buy_off_design", "guarantee_nation",
+                "bind_to_war"):
             if llm_result.get("marshal") and not llm_result.get("target"):
                 llm_result["target"] = llm_result["marshal"]
             llm_result["marshal"] = None

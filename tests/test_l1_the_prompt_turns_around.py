@@ -201,7 +201,12 @@ class TestTheCassetteAttribution:
     list is rendered from `VALID_ACTIONS`, which gained the two verbs
     (`diplomatic_ask_return`, `diplomatic_bid`) — every parse prompt moved by
     the same two lines; the fingerprints were re-stamped keylessly (the
-    responses untouched), the manifest's hashes with them."""
+    responses untouched), the manifest's hashes with them.
+
+    ⚑ Re-derived at S14 part 3 (October 20, 2026): `VALID_ACTIONS` gained the
+    bond's verb (`bind_to_war`) — every parse prompt moved by one line (+13
+    characters; the Berthier recovery prompt +18), re-stamped keylessly the
+    same way."""
 
     @pytest.mark.parametrize("cid", sorted(RESTAMP))
     def test_both_arms(self, cid, monkeypatch):

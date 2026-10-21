@@ -1991,6 +1991,11 @@ def _answer_coalition(world) -> str:
             f"{_court(world, leader) if leader else 'no one'}, Sire.")
     if pay:
         line += f" {_court(world, pay)} pays the subsidies."
+        # PC-X57 (S14 part 3): and the bonds it pays for, said beside them.
+        from backend.game_logic.bond import binds_clause
+        bound = binds_clause(world, pay)
+        if bound:
+            line += f" It {bound}."
     return line
 
 
@@ -2026,7 +2031,14 @@ def _answer_weariness(world, nation: str) -> str:
         return f"We have no reading of {court}'s war weariness, Sire — Talleyrand's agents have not reached that court."
     we = int((getattr(world, "war_exhaustion", None) or {}).get(nation, 0) or 0)
     word = "fresh" if we < 40 else "tiring" if we < 80 else "weary" if we < 120 else "exhausted"
-    return f"{court}'s war weariness reads {we} — {word}, Sire. A court sues sooner the higher it climbs."
+    line = f"{court}'s war weariness reads {we} — {word}, Sire. A court sues sooner the higher it climbs."
+    # PC-X68 (S14 part 3): a court the league's bond holds tires at its line.
+    from backend.game_logic.ai_diplomacy import break_ranks_lines
+    _lines = break_ranks_lines(world, nation)
+    if _lines.get("bond"):
+        line += (f" {_court(world, _lines['bond'])}'s bond holds her to the league until "
+                 f"{int(_lines['exhaustion'])}.")
+    return line
 
 
 def _answer_agenda(world, nation: str, place: str) -> str:

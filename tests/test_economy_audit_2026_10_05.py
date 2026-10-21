@@ -656,7 +656,7 @@ class TestTheSeriesRecord:
         rec = json.loads((ROOT / "tools" / "_econ_audit_series_arms_final.json")
                          .read_text(encoding="utf-8"))
         assert rec["arms"]["0"]["series"] == rec["prior"]
-        from tests.test_ai_intent_threat_migration import BASELINE_SERIES
+        from tests.test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_THE_BOND
         # RE-SEATED by the economy gate (October 5, 2026): the audit's ALL
         # arm is the gate's prior; the gate's ALL arm is the standing series.
         gate = json.loads((ROOT / "tools" / "_econ_gate_series_arms_final.json")
@@ -668,7 +668,7 @@ class TestTheSeriesRecord:
         ddb = json.loads((ROOT / "tools" / "_ddb_s13b_series_arms_final.json")
                          .read_text(encoding="utf-8"))
         assert gate["arms"]["ALL"]["series"] == ddb["prior"]
-        assert ddb["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert ddb["arms"]["ALL"]["series"] == SERIES_BEFORE_THE_BOND  # PC-R7 (ii) part 3: the series before the bond moved it (`tests/test_ai_intent_threat_migration.SERIES_BEFORE_THE_BOND`)
         # every lever the audit landed has its own arm
         assert set(rec["levers"]) == set("DFSBTGCVKWAMOR")
 

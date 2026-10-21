@@ -2837,6 +2837,14 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
             return _collapsed_refusal_line(ctx.event, ptype, count)
         return f"{refused_by} rebuffs {proposer} ({ptype})"
 
+    # PC-R7 (ii) part 3: the league's bond rides the directed records' events
+    # (granted / reneged / expired / lapsed with kind "bond") — its own words.
+    if ctx.event.get("kind") == "bond" or ctx.event.get("instrument") == "bond":
+        from backend.game_logic.bond import log_line as _bond_log_line
+        _line = _bond_log_line(ctx.event_type, ctx.event)
+        if _line:
+            return _line
+
     # AI-2b: the D5 counter-instruments.
     if ctx.event_type == "sponsorship_granted":
         payer = display_nation(ctx.event.get("payer", "Unknown"))

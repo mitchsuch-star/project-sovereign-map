@@ -264,7 +264,7 @@ class TestTheMeasuredBoard:
         re-recorded once more. RF-3's arm 1 is now the prior record the drill
         fix's arm 0 (every drill lever down) reproduces byte for byte; the
         drill fix's arm 1 is the standing series."""
-        from tests.test_ai_intent_threat_migration import BASELINE_SERIES
+        from tests.test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_THE_BOND
         drill = json.loads((ROOT / "tools" / "_drill_fix_series_arms.json").read_text(
             encoding="utf-8"))
         assert self.ARMS["arms"]["1"]["series"] == drill["recorded"]
@@ -362,4 +362,4 @@ class TestTheMeasuredBoard:
             encoding="utf-8"))
         assert gate["arms"]["ALL"]["series"] == ddb["prior"]
         assert ddb["arms"]["0"]["series"] == ddb["prior"]
-        assert BASELINE_SERIES == ddb["arms"]["ALL"]["series"]
+        assert SERIES_BEFORE_THE_BOND == ddb["arms"]["ALL"]["series"]  # PC-R7 (ii) part 3: the series before the bond moved it (`tests/test_ai_intent_threat_migration.SERIES_BEFORE_THE_BOND`)

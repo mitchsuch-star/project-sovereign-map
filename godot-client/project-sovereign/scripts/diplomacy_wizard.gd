@@ -1065,6 +1065,23 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 		if wp_coverage is Array and wp_coverage.size() > 0:
 			data["counsel_coverage"] = wp_coverage
 		return data
+	if action_id == "outbid_bond":
+		# PC-R7 (ii) part 3: "Outbid <payer>'s Bond" opens the table with the
+		# court alone and France's bid staged (the row's choice carries it).
+		var bid_data = {
+			"action": "propose_common_peace",
+			"target_nation": _selected_nation,
+		}
+		var bid_war = str(action_payload.get("war_id", ""))
+		if bid_war != "":
+			bid_data["war_id"] = bid_war
+		var bid_coverage = action_payload.get("counsel_coverage", [])
+		if bid_coverage is Array and bid_coverage.size() > 0:
+			bid_data["counsel_coverage"] = bid_coverage
+		var bid_gold = int(float(action_payload.get("bond_bid", 0)))
+		if bid_gold > 0:
+			bid_data["bond_bid"] = bid_gold
+		return bid_data
 	if action_id == "grant_region_to_vassal":
 		# VS-3: the sub-picker's chosen province rides the structured
 		# `region` field. Clicking the parent button without a pick sends
@@ -1089,6 +1106,9 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 # driving each one — tests/test_cn4_the_chip_honesty_census.py).
 const ECHO_IS_DISPLAY_ONLY = {
 	"propose_white_peace": "sent from the diplomacy screen — typed, this line would propose a peace treaty with terms",
+	# PC-R7 (ii) part 3: the bid rides the structured road (the court alone,
+	# France's gold staged); typed, the line opens the whole table, no bid.
+	"outbid_bond": "sent from the diplomacy screen — typed, this line would open the whole table without the bid",
 }
 
 
@@ -1114,6 +1134,15 @@ func _build_command(action_id: String, nation: String, action_payload: Dictionar
 			return "buy off " + nation
 		"guarantee_nation":
 			return "guarantee " + nation
+		# PC-R7 (ii) part 3 (Chaumont): the bond — the ally bound against the
+		# enemy chosen on the row; the paymaster's bond outbid at the table.
+		"bind_to_war":
+			var enemy = str(action_payload.get("enemy", ""))
+			if enemy == "":
+				return "bind " + nation + " to the war"
+			return "bind " + nation + " to the war against " + enemy
+		"outbid_bond":
+			return "propose common peace with " + nation
 		# DD-1 S8 Step 3 (October 12, 2026) — the verbs. The ask-back's row
 		# carries the province (one chip per home province the ally holds);
 		# the bid's echo names the default sum the backend chip quotes.

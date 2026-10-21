@@ -747,14 +747,14 @@ class TestTheSeries:
     def test_the_record_links_to_the_last_one_and_the_baseline(self):
         import sys as _sys
         _sys.path.insert(0, str(REPO / "tests"))
-        from test_ai_intent_threat_migration import BASELINE_SERIES
+        from test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_THE_BOND
         rec = self._record()
         pc = json.loads((REPO / "tools" / "_pc_series_arms_final.json").read_text(encoding="utf-8"))
-        assert rec["prior"] == pc["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert rec["prior"] == pc["arms"]["ALL"]["series"] == SERIES_BEFORE_THE_BOND  # PC-R7 (ii) part 3: the series before the bond moved it (`tests/test_ai_intent_threat_migration.SERIES_BEFORE_THE_BOND`)
         assert set(rec["arms"]) == {"0", "C", "Y", "H", "W", "G", "R", "ALL"}
         for arm, row in rec["arms"].items():
             assert row["first_divergence_vs_prior"] is None, arm
-        assert rec["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert rec["arms"]["ALL"]["series"] == SERIES_BEFORE_THE_BOND  # PC-R7 (ii) part 3: the series before the bond
 
     def test_the_seams_were_reached(self):
         rec = self._record()
@@ -1373,14 +1373,14 @@ class TestTheSeriesPart2:
     def test_the_record_links_to_the_last_one_and_the_baseline(self):
         import sys as _sys
         _sys.path.insert(0, str(REPO / "tests"))
-        from test_ai_intent_threat_migration import BASELINE_SERIES
+        from test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_THE_BOND
         rec = self._record()
         part1 = json.loads((REPO / "tools" / "_pc_s13e_series_arms_final.json").read_text(encoding="utf-8"))
-        assert rec["prior"] == part1["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert rec["prior"] == part1["arms"]["ALL"]["series"] == SERIES_BEFORE_THE_BOND  # PC-R7 (ii) part 3: the series before the bond moved it (`tests/test_ai_intent_threat_migration.SERIES_BEFORE_THE_BOND`)
         assert set(rec["arms"]) == {"0", "L", "E", "H", "T", "I", "ALL"}
         for arm, row in rec["arms"].items():
             assert row["first_divergence_vs_prior"] is None, arm
-        assert rec["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert rec["arms"]["ALL"]["series"] == SERIES_BEFORE_THE_BOND  # PC-R7 (ii) part 3: the series before the bond
 
     def test_the_seams_were_reached(self):
         rec = self._record()
@@ -2653,7 +2653,8 @@ class TestPCR7:
         assert "territory_compensate" in SETTLEMENT_LIVE_CLAUSE_TYPES
         bug = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
         row = next(ln for ln in bug.splitlines() if ln.startswith("| **PC-R7**"))
-        assert "OPEN" in row and "TestPCR7" in row
+        # S14 part 3 (October 20, 2026): the bond landed and the row CLOSED.
+        assert "CLOSED" in row and "TestPCR7" in row
         assert "S14 part 2" in row and "bond" in row and "declared goals" in row
         status = (REPO / "docs" / "STATUS.md").read_text(encoding="utf-8")
         assert "S14 part 2" in status
@@ -3020,7 +3021,8 @@ class TestPCR7:
         assert DG.MAX_DECLARED_ARTICLES == 2 and DG.DROPPED_REFUND_DIVISOR == 2
         bug = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
         row = next(ln for ln in bug.splitlines() if ln.startswith("| **PC-R7**"))
-        assert "OPEN" in row and "S14 part 3" in row and "bond" in row
+        # S14 part 3 (October 20, 2026): the bond landed and the row CLOSED.
+        assert "CLOSED" in row and "S14 part 3" in row and "bond" in row
         assert "test_ii_the_bond_is_priced_and_biddable" in row
         status = (REPO / "docs" / "STATUS.md").read_text(encoding="utf-8")
         assert "S14 part 3" in status and "bond" in status
@@ -3277,6 +3279,152 @@ class TestPCR7:
         D._cleanup_old_war_objectives(w3)
         arts = w3.war_objectives[k]["France"]["declared_terms"]
         assert [(a["settled"], a["refund"]) for a in arts] == [("dropped", 4), ("dropped", 4)]
+
+    # ── S14 part 3 — the bond (Chaumont) ────────────────────────────────────
+
+    def test_ii_the_bond_is_priced_and_biddable(self, ulm_t18, vienna_held):
+        """THE done-when of PC-R7 (ii)'s last piece (S14 part 3): the league's
+        no-separate-peace bond is MINTED by the paymaster through the one mint
+        (GR5), dated and serialized; PRICED in the bonded member's break-ranks
+        read (deeper lines), at the table (her row's named component, 0 on the
+        common peace) and in the bilateral; REPUDIATED as a broken bargain when
+        she signs alone inside the term; and BIDDABLE — France's gold (or a
+        compensation) offsets the component exactly, the table offers the bid,
+        the counsel names it, the Cabinet opens the table with it staged."""
+        from backend.game_logic import bond as B
+        from backend.game_logic.instruments import (
+            build_instruments_line, has_renege_grievance, process_instruments,
+        )
+        w = ulm_t18
+        k = w._make_diplo_key("Austria", "France")
+        score = int(D.get_war_score_for(w, "Austria", "France"))
+        # The gap, measured first: spent at 174, she breaks ranks on exhaustion.
+        assert AI.coalition_break_ranks_reason(w, "Austria", war_score=score, diplo_key=k) == "exhaustion"
+        alone_before = _row(_preview(w, terms=[], covered=["Austria"]), "Austria")["total"]
+        assert alone_before == 7
+        # (1) MINTED by the paymaster — the member about to break ranks, whom the
+        # bond's depth would hold; one D5 record of kind "bond", dated.
+        with _quiet():
+            events = B.ai_paymaster_binds(w)
+        assert [(e["type"], e["kind"], e["payer"], e["recipient"], e["aim"], e["amount"], e["turns"])
+                for e in events] == [("sponsorship_granted", "bond", "Britain", "Austria", "France", 400, 10)]
+        rec = B.bond_on(w, "Austria", "France")
+        assert (rec["started_turn"], rec["expiry_turn"], rec["turns_remaining"]) == (18, 28, 10)
+        back = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+        assert [(r["kind"], r["payer"], r["recipient"]) for r in back.directed_sponsorships
+                if r["kind"] == "bond"] == [("bond", "Britain", "Austria")]
+        assert ("Britain binds Austria to the war against France — no separate peace "
+                "(400g/turn, 10 turns left, since turn 18)") in build_instruments_line(w, "Austria")
+        # (2) PRICED in the break-ranks read: the lines read deeper by the bond's
+        # strength (12 = 400 a turn at the bilateral's 3 a 100) — the score lines
+        # by 12 / 0.65 = 18, the exhaustion line by 12 × 10 = 120.
+        assert (B.strength(rec), B.table_price(w, rec), B.bid_gold(w, rec)) == (12, 40, 1000)
+        lines = AI.break_ranks_lines(w, "Austria")
+        assert (lines["score"], lines["exhaustion"], lines["pressburg"], lines["bond"]) == (-68, 200, -48, "Britain")
+        assert AI.coalition_break_ranks_reason(w, "Austria", war_score=score, diplo_key=k) is None
+        own = AI.court_own_readiness(w, "Austria", "France")
+        assert own["loyal"] and own["bond"] == "Britain"
+        # (3) PRICED at the table — her separate peace forfeits the stream still
+        # owed (400 × 10 at 25 gold a point, capped at 40); the common peace 0.
+        alone = _row(_preview(w, terms=[], covered=["Austria"]), "Austria")
+        assert (alone["total"], _comp(alone, "coalition_bond")) == (alone_before - 40, -40)
+        whole = _row(_preview(w, terms=[], covered=["Austria", "Britain", "Russia"]), "Austria")
+        assert _comp(whole, "coalition_bond") == 0
+        # … and in the bilateral, beside the loyalty term.
+        with _quiet():
+            acc = D.calculate_acceptance({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                                          "sweeteners": [], "demands": [], "clauses": []}, w)
+        assert acc["components"]["coalition_bond"] == -12
+        # (4) BIDDABLE — the bid's 1,000 gold is credited +40 by the table's own
+        # gold rate: it offsets the bond exactly (priced, never a veto).
+        bid = [{"type": "peace"}, {"type": "gold_indemnity", "from": "France", "to": "Austria", "amount": 1000}]
+        assert _row(_preview(w, terms=bid, covered=["Austria"]), "Austria")["total"] == alone_before
+        price = ("Britain's bond costs her 40 at the table (12 in a bilateral peace); 1,000 gold to her "
+                 "pays it")
+        assert B.price_line(w, "Austria", "France").startswith(price)
+        reading = CS.read_counsel(w, "Austria")
+        table_road = next(r for r in reading["roads"] if r["road"] == "table_alone")
+        assert price in table_road["trade"]
+        rows = _rows(w, "Austria")
+        outbid = next(r for r in rows if r["action"] == "outbid_bond")
+        assert outbid["display_name"] == "Outbid Britain's Bond — Austria alone at the table"
+        assert outbid["counsel_coverage"] == ["Austria"]
+        assert outbid["choices"] == [{"label": "Open the table with 1,000 gold to Austria (+40)",
+                                      "payload": {"bond_bid": 1000}}]
+        assert B.bid_opening_terms(w, war_id="war_1", payer="France", court="Austria", amount=1000,
+                                   covered=["Austria"])[-1] == bid[-1]
+        # (5) REPUDIATED: her separate peace inside the term is a broken bargain
+        # against HER — the strongest grievance, Britain's mark against Austria.
+        with _quiet():
+            w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                              "sweeteners": [], "demands": [], "clauses": []})
+            events = process_instruments(w)
+        broken = [e for e in events if e.get("kind") == "bond"]
+        assert [(e["type"], e["breaker"], e["victim"]) for e in broken] == [
+            ("sponsorship_reneged", "Austria", "Britain")]
+        assert has_renege_grievance(w, "Britain", "Austria")
+        assert B.live_bonds(w) == []
+        # (6) the moderate Pressburg on the Vienna-held board: the same mint (the
+        # paymaster's function) prices it 71 → 31, and France's bid carries it
+        # again — or a compensation pays most of it, named by the counsel's words.
+        v = vienna_held
+        moderate = [TYROL_TO_BAVARIA, FRANCONIA_FOR_TYROL]
+        assert _row(_preview(v, terms=moderate, covered=["Austria"]), "Austria")["total"] == 71
+        with _quiet():
+            assert B.mint_bond(v, payer="Britain", member="Austria", enemy="France")["success"]
+        assert _row(_preview(v, terms=moderate, covered=["Austria"]), "Austria")["total"] == 31
+        bid_v = moderate + [{"type": "gold_indemnity", "from": "France", "to": "Austria", "amount": 1000}]
+        body = _preview(v, terms=bid_v, covered=["Austria"])
+        assert _row(body, "Austria")["total"] == 71 and body["overall_acceptance"]["carries"]
+        assert B.price_line(v, "Austria", "France", war_instance=v.war_instances["war_1"]) == (
+            price + " — or Franconia, Bavaria's (+35), most of it.")
+
+    def test_ii_s_the_paymaster_binds_only_whom_its_gold_can_hold(self, vienna_held):
+        """The AI's rule, measured on the Vienna-held board: Austria at −54 with
+        her design satisfied breaks ranks on the Pressburg arm (−30), and under
+        a 400-gold bond that arm reads −48 — past the bond's reach, so Britain
+        does not bind her (Pressburg, 1805: Britain's gold could not hold
+        Vienna). A loyal court is never bound (nothing to buy)."""
+        from backend.game_logic import bond as B
+        w = vienna_held
+        score = int(D.get_war_score_for(w, "Austria", "France"))
+        k = w._make_diplo_key("Austria", "France")
+        held = B.depth_for_strength(B.strength({"amount_per_turn": B.bond_amount(w, "Britain")}))
+        assert held == {"score": 18, "exhaustion": 120}
+        assert AI.coalition_break_ranks_reason(w, "Austria", war_score=score, diplo_key=k, depth=held) == "pressburg"
+        with _quiet():
+            assert B.ai_paymaster_binds(w) == []
+        assert B.live_bonds(w) == []
+
+    def test_ii_t_france_binds_her_own_ally_through_the_same_mint(self, vienna_held):
+        """GR5: the player's Cabinet row (F1 → Bavaria → Bind Bavaria to the
+        War, a choice per shared enemy) sends the one mint; Austria's peace to
+        the bonded Bavaria reads the bond in the bilateral; the door claims the
+        typed verb (diplomacy is never typed)."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import bond as B
+        w = vienna_held
+        row = next(r for r in _rows(w, "Bavaria") if r["action"] == "bind_to_war")
+        assert row["display_name"] == "Bind Bavaria to the War (300g/turn)" and row["available"]
+        assert row["choices"] == [{"label": "Against Austria — no separate peace with Austria",
+                                   "payload": {"enemy": "Austria"}}]
+        dp = int(w.diplomatic_points)
+        with _quiet():
+            res = CommandExecutor()._diplomatic._execute_bind_to_war(
+                {"action": "bind_to_war", "target": "Bavaria",
+                 "raw_input": "bind Bavaria to the war against Austria"}, {"world": w})
+        assert res["success"], res
+        assert res["message"].startswith("France binds Bavaria to the war against Austria: no separate "
+                                         "peace for 10 turns, 300 gold a turn.")
+        assert int(w.diplomatic_points) == dp - 1
+        assert [(r["payer"], r["recipient"], r["aim"]) for r in B.live_bonds(w)] == [("France", "Bavaria", "Austria")]
+        with _quiet():
+            acc = D.calculate_acceptance({"type": "peace", "proposer_nation": "Austria", "target_nation": "Bavaria",
+                                          "sweeteners": [], "demands": [], "clauses": []}, w)
+        assert acc["components"]["coalition_bond"] == -9
+        main_gd = (SCRIPTS / "main.gd").read_text(encoding="utf-8")
+        assert '_contains_word(lower, "bind")' in main_gd
+        assert '["bind ", "Bind to the War' in main_gd
 
 
 class TestTheS14Part1Siblings:
@@ -3629,6 +3777,221 @@ class TestTheS14Part2Siblings:
         assert "DIPLO_NO_HOME_KEYWORDS" not in main          # PC-X43 … X45 emptied it
         family = main[main.index("const DIPLO_FAMILY_KEYWORDS"):main.index("const DIPLO_NATION_GATED_PREFIXES")]
         assert '"set war purpose"' in family
+
+
+class TestTheS14Part3Siblings:
+    """PC-R7 (ii) part 3's sibling sweep (S14 part 3, October 20, 2026 —
+    the bond, Chaumont): every read of the break-ranks lines, every road out
+    of a war, every surface that says what the paymaster pays, every reader of
+    a directed record's kind. PC-X52 … X60, each FIXED in the part."""
+
+    @staticmethod
+    def _bind(w, payer="Britain", member="Austria", enemy="France"):
+        from backend.game_logic import bond as B
+        with _quiet():
+            res = B.mint_bond(w, payer=payer, member=member, enemy=enemy)
+        assert res["success"], res
+        return res["record"]
+
+    def test_x52_the_clock_runs_to_her_own_line(self, ulm_t18):
+        """The exhaustion forecast and the league gate's clock read the stock
+        80 — a bonded court tires at the bond's line (200 under a 400g bond)."""
+        from backend.game_logic.coalition import war_exhaustion_lines, war_exhaustion_terms
+        w = ulm_t18
+        assert war_exhaustion_terms(w, "Austria")["line"] == 80
+        self._bind(w)
+        assert war_exhaustion_terms(w, "Austria")["line"] == 200
+        assert "It tires at 200 (Britain's bond holds her past 80) in about 4 turns." in war_exhaustion_lines(
+            w, "Austria")[0]
+        gate = {"leader": "Austria", "reason": "league_not_spent", "turns_at_most": 4, "rate": 8,
+                "exhaustion": 174, "line": 200, "bond": "Britain"}
+        assert "exhaustion 174 of 200 — Britain's bond holds her past 80" in AI.league_offer_gate_display(w, gate)
+
+    def test_x53_a_bonded_mate_is_spent_at_the_bonds_line(self, vienna_held):
+        """The truce's hope read a league mate spent at the stock 80; a mate
+        the paymaster binds is spent at the bond's line, so her league term
+        keeps the loser's hope alive."""
+        w = vienna_held
+        _kill_hope(w)
+        assert D.truce_hope_alive(w, "Austria", "France")["members"] == []
+        self._bind(w, member="Russia")
+        hope = D.truce_hope_alive(w, "Austria", "France")
+        assert hope["members"] == ["Russia"] and "league" in hope["alive_terms"]
+
+    def test_x54_the_bond_is_a_subsidy_flowing_to_her(self, vienna_held):
+        """The truce's hope read only the paymaster's war subsidy; the bond is
+        gold flowing to her too."""
+        w = vienna_held
+        _kill_hope(w)
+        assert D.truce_hope_alive(w, "Austria", "France")["subsidy"] is None
+        self._bind(w)
+        hope = D.truce_hope_alive(w, "Austria", "France")
+        assert hope["subsidy"] == {"payer": "Britain", "amount": 400, "bond": True}
+        assert hope["alive"]
+
+    def test_x55_the_ai_pair_exits_read_the_bond(self, vienna_held):
+        """The mutual-exhaustion exit and the beaten sub-pair's suit — the AI's
+        own roads out of a war beside France — never read a bond: France's
+        bonded ally would leave and be branded the next turn. The bonded
+        court's lines read deeper there too."""
+        from backend.game_logic import settlement_third_party as TP
+        w = vienna_held
+        w.war_exhaustion["Bavaria"] = TP.PAIR_EXIT_WE_FLOOR
+        w.war_exhaustion["Austria"] = TP.PAIR_EXIT_WE_FLOOR
+        _force_pair(w, "Bavaria", "Austria", 0)
+        joined = int(w.current_turn) - TP.PAIR_EXIT_MIN_TURNS
+        assert TP.pair_is_mutually_exhausted(w, "Bavaria", "Austria", joined)
+        self._bind(w, payer="France", member="Bavaria", enemy="Austria")
+        assert not TP.pair_is_mutually_exhausted(w, "Bavaria", "Austria", joined)
+        from backend.game_logic.ai_diplomacy import effective_peace_threshold
+        line = int(effective_peace_threshold("Bavaria", "Austria", w))
+        _force_pair(w, "Bavaria", "Austria", line - 1)
+        assert TP.sub_pair_loser_sues(w, "Bavaria", "Austria", joined) is None
+        _force_pair(w, "Bavaria", "Austria", line - 20)
+        assert TP.sub_pair_loser_sues(w, "Bavaria", "Austria", joined)[0] == "Bavaria"
+
+    def test_x56_the_war_popup_names_the_bond(self, ulm_t18):
+        from backend.game_logic.war_status import build_active_wars
+        w = ulm_t18
+        self._bind(w)
+        with _quiet():
+            rows = build_active_wars(w)["wars"]
+        lines = [ln for r in rows for ln in ((r.get("peace_table") or {}).get("lines") or [])]
+        assert any(ln.startswith("Austria is bound not to sign alone: Britain's bond costs her 40 at the table")
+                   for ln in lines), lines
+
+    def test_x57_x58_the_paymasters_surfaces_name_the_bonds(self, ulm_t18):
+        from backend.ai.state_desk import _answer_coalition
+        from backend.game_logic.instruments import build_subsidy_payload
+        w = ulm_t18
+        self._bind(w)
+        clause = "binds Austria to the war against France (400g a turn, 10 turns left) — no separate peace"
+        assert f"It {clause}." in _answer_coalition(w)
+        assert build_subsidy_payload(w)["line"].endswith(f"; it {clause}")
+
+    def test_x59_x60_the_log_and_the_report_say_bond(self, vienna_held):
+        """The campaign log read a bond's grant as "Britain sponsors Austria
+        against France"; the economy report's Subsidies line named no reason."""
+        from backend.campaign_log import format_event_oneliner
+        from backend.commands.executor import CommandExecutor
+        w = vienna_held
+        with _quiet():
+            CommandExecutor()._diplomatic._execute_bind_to_war(
+                {"action": "bind_to_war", "target": "Bavaria",
+                 "raw_input": "bind Bavaria to the war against Austria"}, {"world": w})
+        granted = next(e for e in w.event_log if e.get("type") == "sponsorship_granted" and e.get("kind") == "bond")
+        assert format_event_oneliner(granted) == (
+            "France binds Bavaria to the war against Austria — no separate peace for 10 turns (300g/turn)")
+        assert format_event_oneliner({"type": "sponsorship_reneged", "kind": "bond", "breaker": "Bavaria",
+                                      "victim": "France", "aim": "Austria"}) == (
+            "THE BROKEN BARGAIN: Bavaria breaks the bond with France — a separate peace with Austria "
+            "inside the term")
+        with _quiet():
+            res = CommandExecutor()._economy._execute_economy({"action": "economy"}, {"world": w})
+        assert "to Bavaria: -300g — the bond: no separate peace" in res["message"]
+
+    def test_x61_x62_a_bonded_truce_never_ripens_into_her_separate_peace(self, ulm_t18):
+        """The truce's automatic exits (the courted peace, the dictated peace)
+        signed a bonded court's separate peace for her — and the renege arm
+        then branded her for it. The bond closes them (the war resumes; a peace
+        with her runs through the table, where the bond is priced), and the
+        truce's words name the bond (the hope's stream as the bond)."""
+        w = ulm_t18
+        k = w._make_diplo_key("Austria", "France")
+        self._bind(w)
+        w.diplomatic_states[k] = "ARMISTICE"
+        w.nation_relations[k] = 90
+        exit_ = D.armistice_expiry_exit(w, "Austria", "France")
+        assert exit_["exit"] == "war" and exit_["bond"] == {"payer": "Britain", "member": "Austria"}
+        words = D.truce_words(w, "Austria", "France")
+        assert ("Austria is bound by Britain's bond not to sign alone; a peace with her runs through "
+                "the table") in words["heading_line"]
+        assert words["cure"] is None
+        free = _board("ulm_t18_paris_fallen.json")
+        free.diplomatic_states[k] = "ARMISTICE"
+        free.nation_relations[k] = 90
+        assert D.armistice_expiry_exit(free, "Austria", "France")["exit"] == "peace"
+
+    def test_x62_the_truce_names_the_bonds_stream(self, vienna_held):
+        w = vienna_held
+        _kill_hope(w)
+        self._bind(w)
+        assert "Britain's bond (400 a turn) flows to her" in D.truce_words(w, "Austria", "France")["hope_line"]
+
+    def test_x63_the_weak_link_is_nearest_her_own_line(self, ulm_t18):
+        from backend.game_logic.war_status import build_active_wars
+        w = ulm_t18
+
+        def weak(world):
+            with _quiet():
+                info = build_active_wars(world).get("coalition") or {}
+            return info.get("weak_link")
+        assert weak(w) == "Austria"                 # 174, the most spent
+        self._bind(w)
+        assert weak(w) == "Britain"                 # Austria held to 200: 145 is nearest its line
+
+    def test_x64_a_loyal_court_sends_no_letter_of_her_own(self, vienna_held):
+        """The war popup said "her letter comes" of a court that would sue by
+        her own threshold while P1's league clause holds her — and now the
+        bond is why."""
+        from backend.game_logic.war_status import build_active_wars
+        w = vienna_held
+        _force_pair(w, "Austria", "France", -45)
+        self._bind(w)
+        own = AI.court_own_readiness(w, "Austria", "France")
+        assert own["sues"] and own["loyal"] and own["bond"] == "Britain"
+        with _quiet():
+            rows = build_active_wars(w)["wars"]
+        lines = [ln for r in rows for ln in ((r.get("peace_table") or {}).get("lines") or [])]
+        assert any(ln.startswith("Austria's own court would sue at ")
+                   and ln.endswith("Britain's bond holds her to the league — no letter of her own.")
+                   for ln in lines), lines
+
+    def test_x65_a_bonded_winner_writes_no_separate_dictated_letter(self, ulm_t18):
+        """P8's dictated harsh peace from a bonded winning member is her
+        separate peace; the league's letter is her road. Her paymaster's own
+        dictated letter is untouched (Britain is not bound)."""
+        from backend.game_logic import bond as B
+        w = ulm_t18
+        _force_pair(w, "Austria", "France", 55)
+        assert not B.holds_her_letter(w, "Austria", "France")
+        self._bind(w)
+        assert B.holds_her_letter(w, "Austria", "France")
+        assert not B.holds_her_letter(w, "Britain", "France")
+        with _quiet():
+            proposal = AI.process_diplomatic_phase("Austria", w)
+        assert (proposal or {}).get("proposal_type") != "harsh_peace", proposal
+
+    def test_x66_the_league_letter_treats_with_her_payer(self, vienna_held):
+        """A bonded court's readiness is no consent to a letter that leaves her
+        paymaster at war; a letter that covers her keeps her paymaster on it
+        however well it is winning."""
+        w = vienna_held
+        _force_pair(w, "Austria", "France", -45)
+        assert AI.letter_consenting_courts(w, "France", ["Austria"]) == ["Austria"]
+        self._bind(w)
+        assert AI.letter_consenting_courts(w, "France", ["Austria"]) == []
+        assert AI.letter_consenting_courts(w, "France", ["Austria", "Britain"])[:1] == ["Austria"]
+        _force_pair(w, "Britain", "France", AI.SETTLEMENT_OFFER_DECISIVE_WAR_SCORE + 5)
+        assert "Britain" in AI.leave_a_winning_court_its_war(w, "France", ["Austria", "Britain"])
+
+    def test_x67_a_client_that_follows_her_lord_out_breaks_nothing(self, vienna_held):
+        from backend.game_logic.instruments import _bond_verdict
+        w = vienna_held
+        record = {"kind": "bond", "payer": "Russia", "recipient": "Holland", "aim": "Britain"}
+        for a, b, state in (("Holland", "Britain", "PEACE"), ("France", "Britain", "PEACE"),
+                            ("Russia", "Britain", "WAR")):
+            w.diplomatic_states[w._make_diplo_key(a, b)] = state
+        assert (w.vassals.get("Holland") or {}).get("lord") == "France"
+        assert _bond_verdict(w, record) == "followed_her_lord"
+        w.diplomatic_states[w._make_diplo_key("France", "Britain")] = "WAR"
+        assert _bond_verdict(w, record) == "reneged"
+
+    def test_x68_the_state_desk_names_her_line(self, ulm_t18):
+        from backend.ai.state_desk import _answer_weariness
+        w = ulm_t18
+        self._bind(w)
+        assert _answer_weariness(w, "Austria").endswith("Britain's bond holds her to the league until 200.")
 
 
 class TestDiplomacyIsNeverTyped:

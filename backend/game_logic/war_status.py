@@ -210,6 +210,9 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
                     "sues": bool(own.get("sues")),
                     "break_ranks": str(own.get("break_ranks") or ""),
                     "letter": str(own.get("letter") or ""),
+                    # PC-R7 (ii) part 3: the league's bond on her (its payer)
+                    "bond": str(own.get("bond") or ""),
+                    "loyal": bool(own.get("loyal")),
                 })
             out["carries"] = bool((body.get("overall_acceptance") or {}).get("carries"))
     line = f"The peace table reads the war at {int(pressure)} — {out['tier_display']}"
@@ -236,6 +239,13 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
                 c["letter"], "her letter comes")
             why = {"score": "beaten", "exhaustion": "spent", "long_war": "worn down",
                    "pressburg": "satisfied"}.get(c["break_ranks"], "")
+            # PC-X64 (S14 part 3): a league member with no reason of her own to
+            # break ranks sends no letter of her own (P1's clause) — and the
+            # bond, where one binds her, is why.
+            if c.get("loyal"):
+                held = (f"{formed_display_name(world, c['bond'])}'s bond holds her to the league"
+                        if c.get("bond") else "she holds to the league")
+                letter = f"{held} — no letter of her own"
             out["lines"].append(
                 f"{formed_display_name(world, c['nation'])}'s own court would sue at "
                 f"{c['own_threshold']} (she reads {c['own_score']}"
@@ -248,6 +258,14 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
             f"{_names} {'is' if len(_not_consulted) == 1 else 'are'} covered, not consulted "
             f"— under the 10 % stake floor; the side's peace binds "
             f"{'her' if len(_not_consulted) == 1 else 'them'}.")
+    # PC-R7 (ii) part 3 (PC-X56): the league's bond on a court, named with its
+    # price and France's bid — the war popup said nothing of it.
+    from backend.game_logic.bond import price_line as _bond_price
+    for c in out["courts"]:
+        _words = _bond_price(world, c["nation"], france) if c.get("bond") else ""
+        if _words:
+            out["lines"].append(
+                f"{formed_display_name(world, c['nation'])} is bound not to sign alone: {_words}")
     if int(field) != int(pressure):
         out["lag_note"] = (
             f"This turn's battles and captures count from next turn: the table "
@@ -738,10 +756,16 @@ def build_active_wars(world) -> Dict[str, Any]:
         # FA-N75: same reader as `members` above — the collapsed row's
         # own `war_exhaustion` is the LEADER's, so this loop could only
         # ever nominate the leader or nobody.
+        # PC-X63 (S14 part 3): the weak link is the member nearest her OWN
+        # line — a court the league's bond holds tires at the bond's line
+        # (`ai_diplomacy.break_ranks_lines`), not at the stock 80.
+        from backend.game_logic.ai_diplomacy import BREAK_RANKS_EXHAUSTION, break_ranks_lines
         for w in _coalition_rows(wars):
             if w["in_coalition"] and w["war_exhaustion"] is not None:
-                if w["war_exhaustion"] > max_we:
-                    max_we = w["war_exhaustion"]
+                _slack = int(break_ranks_lines(world, str(w["opponent"]))["exhaustion"]) - BREAK_RANKS_EXHAUSTION
+                _read = int(w["war_exhaustion"]) - _slack
+                if _read > max_we:
+                    max_we = _read
                     weak_link = w["opponent"]
 
         coalition_info = {

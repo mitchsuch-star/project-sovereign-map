@@ -961,6 +961,20 @@ class TestArmBScriptedFrance:
                 fought_at = i
                 break
         pursued = after if fought_at is None else after[:fought_at + 1]
+        # PC-R7 (ii) part 3 (the bond, October 20, 2026), re-seated
+        # consciously: the scene plays on further still. Britain binds
+        # Austria at turn 14 (the paymaster's bond, 400 a turn) and the paid
+        # court grows into the next hegemon — by turn 25 Russia's deck
+        # advances to the arbiter AGAINST AUSTRIA (Vienna, 1815), before the
+        # Finnish War opens. Measured: with the bond's mint held down
+        # (`bond.ai_paymaster_binds`) Russia wants the Gulf and the Straits
+        # through turn 25. The shape stands: the named design against a third
+        # party from the signing until its war opens or the deck's own advance
+        # turns her on a new hegemon — never back against the partner.
+        advanced = next((i for i, r in enumerate(pursued)
+                         if r["intents"]["Russia"][0] == "arbiter_of_europe"), None)
+        if advanced is not None:
+            pursued = pursued[:advanced]
         assert len(pursued) >= 4, (fought_at, [r["intents"]["Russia"] for r in after[:6]])
         for row in pursued:
             want, against = row["intents"]["Russia"][0], row["intents"]["Russia"][1]

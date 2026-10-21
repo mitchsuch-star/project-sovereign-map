@@ -782,6 +782,7 @@ def _court_demand_suggestions(
     promised_regions: Set[str],
     treasury_remaining: int,
     income_cache: Dict[str, int],
+    covered_courts: Iterable[str] = (),
 ) -> List[Dict[str, Any]]:
     """Guided Terms §3.1/§3.2/§4 — ``demand_suggestions[]`` for one court row.
 
@@ -1195,6 +1196,13 @@ def _court_demand_suggestions(
         world, court=court, war_id=war_id, draft_key=draft_key, war_instance=war_instance,
         proposer_side_participants=proposer_side_participants,
         proposer_leader=proposer_leader, promised_regions=promised_regions))
+    # PC-R7 (ii) part 3: France's bid against the league's bond on this
+    # court's separate peace (`bond.guided_suggestions`).
+    from backend.game_logic.bond import guided_suggestions as _bond_rows
+    offer_group.extend(_bond_rows(
+        world, court=court, war_id=war_id, draft_key=draft_key,
+        proposer_side_participants=proposer_side_participants, proposer_leader=proposer_leader,
+        covered=covered_courts, treasury_remaining=int(treasury_remaining)))
     recurring_offer = _gold_per_turn_prefill(
         world,
         payer=proposer_leader,
@@ -3989,6 +3997,7 @@ def build_settlement_confirm_dialogue(
                         guided_treasury_line.get("remaining", 0) or 0
                     ),
                     income_cache=guided_income_cache,
+                    covered_courts=covered,
                 )
     if dialogue_mode == "PROPOSE" and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
         # PROPOSE is the conversational front: an authoring rail, not a

@@ -431,4 +431,14 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert gate["arms"]["ALL"]["series"] == ddb["prior"]
         assert ddb["arms"]["0"]["series"] == ddb["prior"]
-        assert BASELINE_SERIES == ddb["arms"]["ALL"]["series"]
+        # RE-SEATED by PC-R7 (ii) part 3 "the bond" (Pre-Deploy S14 part 3,
+        # October 20, 2026): one more link — the DD-B record's ALL arm is the
+        # prior the bond's arm 0 (every bond rule down in the child)
+        # reproduces byte for byte (the parts between were byte-identical),
+        # and its ALL arm (the shipped tree: Britain binds Austria at turn 10)
+        # is the standing series (`tools/_pc_s14p3_series_arms_final.json`).
+        bond = json.loads((ROOT / "tools" / "_pc_s14p3_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert ddb["arms"]["ALL"]["series"] == bond["prior"]
+        assert bond["arms"]["0"]["series"] == bond["prior"]
+        assert BASELINE_SERIES == bond["arms"]["ALL"]["series"]

@@ -4899,10 +4899,14 @@ def truce_hope_alive(world, loser: str, victor: str) -> Dict[str, Any]:
         else:
             side_mates = [str(n) for n in world.get_nations_at_war_with(victor)
                           if str(n) != loser]
+        from backend.game_logic.bond import break_ranks_depth as _bond_depth
         for mate in sorted(set(side_mates)):
             if not world.is_at_war(mate, victor):
                 continue
-            if int(we.get(mate, 0) or 0) >= TRUCE_SPENT_EXHAUSTION:
+            # PC-X53 (S14 part 3): a mate the league's bond binds is spent at
+            # the bond's line, not the stock one (`bond.break_ranks_depth`).
+            spent_at = TRUCE_SPENT_EXHAUSTION + int(_bond_depth(world, mate, victor)["exhaustion"])
+            if int(we.get(mate, 0) or 0) >= spent_at:
                 continue
             members.append(mate)
     subsidy = None
@@ -4910,6 +4914,11 @@ def truce_hope_alive(world, loser: str, victor: str) -> Dict[str, Any]:
     if (plan and str(plan.get("recipient") or "") == loser
             and str(plan.get("payer") or "") != victor):
         subsidy = {"payer": str(plan.get("payer") or ""), "amount": int(plan.get("amount") or 0)}
+    if subsidy is None and loser and victor:
+        # PC-X54 (S14 part 3): the league's bond is a subsidy flowing to her
+        # too — her paymaster's gold keeps her hope alive while it binds her.
+        from backend.game_logic.bond import hope_subsidy
+        subsidy = hope_subsidy(world, loser, victor)
     victor_we = int(we.get(victor, 0) or 0) if victor else 0
     loser_we = int(we.get(loser, 0) or 0) if loser else 0
     alive_terms: List[str] = []
@@ -4946,7 +4955,15 @@ def armistice_expiry_exit(world, nation_a: str, nation_b: str) -> Dict[str, Any]
     who = truce_loser(world, nation_a, nation_b)
     loser, victor = who["loser"], who["victor"]
     hope = truce_hope_alive(world, loser, victor) if loser else None
-    if loser and int(who["loser_score"]) <= TRUCE_DICTATED_SCORE and hope and not hope["alive"]:
+    # PC-X61 (S14 part 3): a court the league's bond binds against the other
+    # never has her truce ripen, nor dictated, into her separate peace — the
+    # war resumes; a peace with her runs through the table, where the bond is
+    # priced (`bond.pair_bond`).
+    from backend.game_logic.bond import pair_bond
+    _bond = pair_bond(world, nation_a, nation_b)
+    if _bond is not None:
+        exit_ = "war"
+    elif loser and int(who["loser_score"]) <= TRUCE_DICTATED_SCORE and hope and not hope["alive"]:
         exit_ = "dictated"
     elif projected >= ARMISTICE_AUTO_PEACE_RELATION:
         exit_ = "peace"
@@ -4957,6 +4974,8 @@ def armistice_expiry_exit(world, nation_a: str, nation_b: str) -> Dict[str, Any]
         "loser_score": int(who["loser_score"]), "hope": hope,
         "relation": relation, "projected": projected, "remaining": remaining,
         "line": int(ARMISTICE_AUTO_PEACE_RELATION),
+        "bond": ({"payer": str(_bond.get("payer") or ""), "member": str(_bond.get("recipient") or "")}
+                 if _bond is not None else None),
     }
 
 
@@ -5064,7 +5083,9 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
             pieces.append(", ".join(_fdn(world, m) for m in hope["members"])
                           + (" fights on, unspent" if len(hope["members"]) == 1 else " fight on, unspent"))
         if hope.get("subsidy"):
-            pieces.append(f"{_fdn(world, hope['subsidy']['payer'])}'s subsidy "
+            # PC-X62: the bond's stream is named as the bond
+            _what = "bond" if hope["subsidy"].get("bond") else "subsidy"
+            pieces.append(f"{_fdn(world, hope['subsidy']['payer'])}'s {_what} "
                           f"({int(hope['subsidy']['amount'])} a turn) flows to her")
         ex = hope.get("exhaustion") or {}
         if int(ex.get("victor", 0)) > int(ex.get("loser", 0)):
@@ -5100,6 +5121,13 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
             f"{int(exit_['projected'])}, at or past {line}; what each side holds is titled by "
             f"the signature."
         )
+    elif exit_.get("bond"):
+        # PC-X61: the bond closes the truce's automatic exits
+        heading_line = (
+            f"At expiry: the war resumes where it stood — {_fdn(world, exit_['bond']['member'])} is "
+            f"bound by {_fdn(world, exit_['bond']['payer'])}'s bond not to sign alone; a peace with "
+            f"her runs through the table, where the bond is priced."
+        )
     else:
         heading_line = (
             f"At expiry: the war resumes where it stood — relations stand at "
@@ -5108,7 +5136,7 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
         )
     cure = None
     cure_line = ""
-    if exit_["exit"] == "war":
+    if exit_["exit"] == "war" and not exit_.get("bond"):
         gap = int(line - int(exit_["projected"]))
         gain = int(mission_effect_magnitude(world, "IMPROVE_RELATIONS", "relation_change") or 0)
         if gap > 0 and gain > 0:
@@ -9103,6 +9131,19 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         coalition_loyalty = int(coalition_loyalty_penalty(world, target, proposer))
         score += coalition_loyalty
 
+    # PC-R7 (ii) part 3 — the league's bond (Chaumont): a court bound not to
+    # sign a separate peace with the proposer prices what breaking it costs
+    # her — the bond's stream at this formula's own gold-a-turn sweetener
+    # rate (`bond.bilateral_component`); France bids against it with what the
+    # walk already prices (gold, a compensation). Peace only (a truce breaks
+    # nothing); any proposer (GR5 — an AI court's peace with France's bonded
+    # ally reads it too).
+    coalition_bond = 0
+    if proposal_type == "peace" and target and proposer:
+        from backend.game_logic.bond import bilateral_component
+        coalition_bond = int(bilateral_component(world, court=target, proposer=proposer))
+        score += coalition_bond
+
     hard_reject_posture = 0
     if proposal_type in _DEEP_TREATY_TYPES and has_hard_reject_posture(world, proposer, target):
         if _shared_enemy_exists(world, proposer, target) and not world.is_at_war(proposer, target):
@@ -9201,6 +9242,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     }
     components["court_favour_mod"] = int(court_favour_value)
     components["coalition_loyalty"] = int(coalition_loyalty)
+    components["coalition_bond"] = int(coalition_bond)
 
     # ── Feedback (§6f) ──
     feedback = _generate_feedback(outcome, components)
@@ -9217,6 +9259,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         # projected relation term and rounds ONCE, as the formula does.
         **({"relation_free_score": int(round(raw_score - relation_mod))
                                     + int(coalition_loyalty)
+                                    + int(coalition_bond)
                                     + (hard_reject_posture
                                        if hard_reject_posture > -100 else 0)}),
     }
@@ -9228,7 +9271,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
     trackable = {
         "base_disposition", "war_score_modifier", "relation_modifier",
         "war_weariness", "war_age_penalty", "stalemate_duration",
-        "coalition_loyalty",
+        "coalition_loyalty", "coalition_bond",
         "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
         "hegemony_target_mod", "bilateral_betrayal_mod",
@@ -14209,13 +14252,16 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     # PC-X43 / X44 (the user's rule: diplomacy is never typed): Make Amends
     # and the bargain's repudiation, from the executors' own gates.
     from backend.game_logic.cabinet_rows import (
-        amends_actions, recognition_actions, repudiate_actions, subjugate_actions,
+        amends_actions, bond_actions, recognition_actions, repudiate_actions,
+        subjugate_actions,
     )
     actions.extend(amends_actions(world, player, target_nation))
     actions.extend(repudiate_actions(world, player, target_nation))
     # PC-X46 / X47: the Congress's sweetener and the conquest's vassalage
     actions.extend(recognition_actions(world, player, target_nation))
     actions.extend(subjugate_actions(world, player, target_nation))
+    # PC-R7 (ii) part 3: the league's bond — bind an ally, outbid a paymaster
+    actions.extend(bond_actions(world, player, target_nation, actions))
     # PC-X48: the ladder's higher rungs ride the next rung's row
     _attach_skip_ahead(actions, state, _proposal_action)
 

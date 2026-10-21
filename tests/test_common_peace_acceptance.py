@@ -1167,6 +1167,9 @@ def test_one_covered_enemy_common_peace_uses_full_formula():
         # NA-3 §7 rider (a): the per-court agenda term (0 on this
         # agenda-less fixture — every exact-number pin above is untouched).
         "agenda_settlement_mod",
+        # PC-R7 (ii) part 3 (October 20, 2026): the league's bond on a
+        # separate peace (0 with no bond — every pin above untouched).
+        "coalition_bond",
     }
     assert set(result["components"].keys()) == expected
 

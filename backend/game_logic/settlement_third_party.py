@@ -224,7 +224,11 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     for proposer, other in ((attackers_leader, defenders_leader),
                             (defenders_leader, attackers_leader)):
         score = int(get_war_score_for(world, proposer, other))
-        threshold = effective_peace_threshold(proposer, other, world)
+        # PC-X55 (S14 part 3): a court the league's bond binds against the
+        # other sues only past the bond's deeper line (the pair exits' rule).
+        from backend.game_logic.bond import break_ranks_depth
+        threshold = effective_peace_threshold(proposer, other, world) - int(
+            break_ranks_depth(world, proposer, other)["score"])
         # single-sourced (Aug 2026 audit): the force margin IS the broker
         # ask band — a bare literal here desynced on retune
         margin = BROKER_ASK_MARGIN if force else 0
@@ -487,13 +491,16 @@ def pair_is_mutually_exhausted(world, a: str, b: str,
     Short-circuit order is the original's: the war score is only asked for
     once age and weariness both pass.
     """
+    from backend.game_logic.bond import break_ranks_depth
     from backend.game_logic.diplomacy import get_war_score_for
     turn = int(getattr(world, "current_turn", 0))
     if turn - int(joined_turn) < PAIR_EXIT_MIN_TURNS:
         return False
     exhaustion = getattr(world, "war_exhaustion", {}) or {}
-    if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR
-            or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR):
+    # PC-X55 (S14 part 3): a court bound not to sign a separate peace with the
+    # other is spent at the bond's deeper line (`bond.break_ranks_depth`).
+    if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR + int(break_ranks_depth(world, a, b)["exhaustion"])
+            or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR + int(break_ranks_depth(world, b, a)["exhaustion"])):
         return False
     return abs(int(get_war_score_for(world, a, b))) <= PAIR_EXIT_STAGNANT_SCORE
 
@@ -512,10 +519,14 @@ def sub_pair_loser_sues(world, a: str, b: str, joined_turn: int):
     turn = int(getattr(world, "current_turn", 0))
     if turn - int(joined_turn) < SUB_PAIR_SUE_MIN_TURNS:
         return None
+    from backend.game_logic.bond import break_ranks_depth
     candidates = []
     for loser, winner in ((a, b), (b, a)):
         score = int(get_war_score_for(world, loser, winner))
-        if score < int(effective_peace_threshold(loser, winner, world)):
+        # PC-X55: a bonded loser sues only past the bond's deeper line.
+        line = int(effective_peace_threshold(loser, winner, world)) - int(
+            break_ranks_depth(world, loser, winner)["score"])
+        if score < line:
             candidates.append((score, loser, winner))
     if not candidates:
         return None
@@ -678,7 +689,9 @@ def _maybe_ask_france_to_broker(world, war_id: str, war: Dict) -> None:
     for proposer, other in ((attackers_leader, defenders_leader),
                             (defenders_leader, attackers_leader)):
         score = int(get_war_score_for(world, proposer, other))
-        threshold = effective_peace_threshold(proposer, other, world)
+        from backend.game_logic.bond import break_ranks_depth
+        threshold = effective_peace_threshold(proposer, other, world) - int(
+            break_ranks_depth(world, proposer, other)["score"])  # PC-X55
         if threshold + BROKER_ASK_MARGIN > score >= threshold:
             asker = proposer
             break

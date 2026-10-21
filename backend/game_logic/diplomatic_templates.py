@@ -2598,6 +2598,9 @@ SPOKEN_BLOCKER_PHRASES: Dict[str, str] = {
     "abandoned_by_ally_acceptance_mod": (
         "the memory of being abandoned still governs their pen"),
     "agenda_settlement_mod": "the terms cut against their national design",
+    # PC-R7 (ii) part 3: the paymaster's bond on a separate peace (Chaumont)
+    "coalition_bond": (
+        "their paymaster's bond weighs against a peace signed without the league"),
     "war_objective_alignment": (
         "the terms would end the war without the object it was fought for"),
 }

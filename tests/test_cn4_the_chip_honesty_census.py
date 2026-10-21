@@ -447,7 +447,7 @@ class TestEveryPanelChipIsHonoured:
         for (action_id, nation, payload), (echo, note) in zip(cases, echoes):
             assert echo == _expected_echo(action_id, nation, payload), (
                 action_id, payload, echo)
-            assert bool(note) == (action_id == "propose_white_peace"), (action_id, note)
+            assert bool(note) == (action_id in ("propose_white_peace", "outbid_bond")), (action_id, note)
         assert [f"cede {CEDE_REGION} to Holland", ""] in echoes
         assert ["cede territory to Holland", ""] in echoes
 
@@ -774,6 +774,9 @@ WIZARD_NATION = {  # a court on which the action is legal on the staged board
     "set_war_purpose": "Austria",   # PC-X42: a war on the boot's defensive purpose
     "set_autonomy": "Holland",      # PC-X50: a satellite of ours
     "make_amends_grievance": "Prussia", "repudiate_bargain": "Prussia",
+    # PC-R7 (ii) part 3: the bond — France binds her ally Bavaria (at war with
+    # Austria at the boot); the outbid opens the table with Austria
+    "bind_to_war": "Bavaria", "outbid_bond": "Austria",
 }
 PROPOSAL_WORD = {  # the treaty the confirm dialogue must name
     "propose_armistice": "Armistice", "propose_peace": "Peace Treaty",
@@ -802,6 +805,8 @@ def _wizard_cases():
             payloads = [{"amount": 2000}, {}]                  # PC-X46
         if action_id == "set_autonomy":
             payloads = [{"level": "puppet"}, {}]               # PC-X50
+        if action_id == "bind_to_war":
+            payloads = [{"enemy": "Austria"}, {}]              # PC-R7 (ii) part 3
         for payload in payloads:
             cases.append([action_id, nation, payload])
     return cases
@@ -816,6 +821,8 @@ def _expected_echo(action_id, nation, payload):
         expr = rets[1] if payload.get("aim") else rets[0]
     elif action_id == "grant_region_to_vassal":
         expr = rets[1] if payload.get("region") else rets[0]
+    elif action_id == "bind_to_war":
+        expr = rets[1] if payload.get("enemy") else rets[0]
     else:
         assert len(rets) == 1, (action_id, rets)
         expr = rets[0]
@@ -824,7 +831,8 @@ def _expected_echo(action_id, nation, payload):
                     amount=payload.get("amount", default_amount),
                     level=payload.get("level", "satellite"),
                     cede_region=payload.get("region", ""),
-                    ask_region=payload.get("region", ""))
+                    ask_region=payload.get("region", ""),
+                    enemy=payload.get("enemy", ""))
 
 
 def _wizard_board():
@@ -860,7 +868,7 @@ class TestTheWizardSaysWhatItSends:
             nation = WIZARD_NATION.get(action_id, "Prussia")
             for ret in re.findall(r"return (.+)", code):
                 text = _compose(ret.strip(), nation=nation, aim="Hanover", amount=200, level="satellite",
-                                cede_region=CEDE_REGION, ask_region="")
+                                cede_region=CEDE_REGION, ask_region="", enemy="Austria")
                 client = _wizard_board()
                 if action_id == "cancel_mission":
                     # A LIVE mission: "court" opens the confirm; begin it.
@@ -902,7 +910,8 @@ class TestTheWizardSaysWhatItSends:
         # last; every other structured arm has one return.
         echo = _compose(rets[-1].strip() if region else rets[0].strip(),
                         nation=nation, cede_region=region)
-        data = {"action": {"open_settlement": "propose_common_peace"}.get(action_id, action_id),
+        data = {"action": {"open_settlement": "propose_common_peace",
+                           "outbid_bond": "propose_common_peace"}.get(action_id, action_id),
                 "target_nation": nation}
         data.update(payload or {})
         client = _wizard_board()
@@ -933,7 +942,9 @@ class TestTheWizardSaysWhatItSends:
         cases = [("open_settlement", "Austria", None),
                  ("propose_white_peace", "Austria", None),
                  ("grant_region_to_vassal", "Holland", {"region": CEDE_REGION}),
-                 ("grant_region_to_vassal", "Holland", None)]
+                 ("grant_region_to_vassal", "Holland", None),
+                 # PC-R7 (ii) part 3: the bid rides the structured road only
+                 ("outbid_bond", "Austria", {"counsel_coverage": ["Austria"], "bond_bid": 1000})]
         for action_id, nation, payload in cases:
             echo, structured, typed, s_state, t_state = self._structured(
                 action_id, nation, payload)
@@ -944,7 +955,7 @@ class TestTheWizardSaysWhatItSends:
             else:
                 assert same, (action_id, echo, (structured.get("message") or "")[:80],
                               (typed.get("message") or "")[:80])
-        assert display_only == {"propose_white_peace"}
+        assert display_only == {"propose_white_peace", "outbid_bond"}
 
     def test_the_cede_echo_names_the_province(self, env):
         echo, structured, typed, s_state, _t = self._structured(

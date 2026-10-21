@@ -1733,6 +1733,8 @@ class WorldState:
             "sponsor_design": 0,
             "buy_off_design": 0,
             "guarantee_nation": 0,
+            # PC-R7 (ii) part 3: the bond — 1 DP in-executor, never AP.
+            "bind_to_war": 0,
             # DD-1 S8 Step 3 — the verbs: 1 DP each in-executor, never AP.
             "diplomatic_ask_return": 0,
             "diplomatic_bid": 0,

@@ -348,7 +348,9 @@ class TestFAN81TheWizardMirrorsTheTransitGate:
             structured[arm.group(1)] = m.group(1)
         assert structured == {"open_settlement": "propose_common_peace",
                               "propose_white_peace": "propose_white_peace",
-                              "grant_region_to_vassal": "grant_region_to_vassal"}, structured
+                              "grant_region_to_vassal": "grant_region_to_vassal",
+                              # PC-R7 (ii) part 3: the bond outbid at the table
+                              "outbid_bond": "propose_common_peace"}, structured
         parser = CommandParser(use_real_llm=False)
         table = _wizard_echo_table()
         drift = []
