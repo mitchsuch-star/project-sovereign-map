@@ -30,7 +30,7 @@ from tests.test_moments_engine import _at, _letter, _make_current, _rich, _tick
 REPO = Path(__file__).resolve().parents[1]
 SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
 FIXTURE = REPO / "tests" / "fixtures" / "moments_block.json"
-ARMED = ("bavarian_match", "throne_of_holland", "decree_of_berlin")
+ARMED = ("bavarian_match", "throne_of_holland", "crown_of_the_reich", "decree_of_berlin")
 
 
 def _quiet():
@@ -69,21 +69,27 @@ class TestTheShippedBlock:
 
     def test_the_boot_is_armed_on_its_authored_turns(self, world):
         assert MO.armed(world)
-        assert {e["id"]: e["turn"] for e in MO.deck(world)} == {
-            "bavarian_match": 8, "throne_of_holland": 18, "decree_of_berlin": 29}
+        assert {e["id"]: e.get("turn") for e in MO.deck(world)} == {
+            "bavarian_match": 8, "throne_of_holland": 18, "crown_of_the_reich": None,
+            "decree_of_berlin": 29}                       # the Reich is causal: no turn
         assert world.to_dict()["moments"]["state"] == {}
 
 
 class TestTheRoadMatrix:
-    """§3.6: M1 and M2 ride every road; M4 rides no road and Road III, and is
-    forsworn on Roads I and II (the Crown of the Reich's three cells are
-    part 3's)."""
+    """§3.6, the twelve cells: M1 and M2 ride every road; M3 rides Road I
+    only (it waits while no road is proclaimed — its anchor is Road I's
+    Confederation — and is forsworn on II and III); M4 rides no road and
+    Road III, and is forsworn on I and II."""
 
     @pytest.mark.parametrize("road, gates", [
-        ("", {"bavarian_match": "open", "throne_of_holland": "open", "decree_of_berlin": "open"}),
-        ("rhine", {"bavarian_match": "open", "throne_of_holland": "open", "decree_of_berlin": "forsworn"}),
-        ("crowns", {"bavarian_match": "open", "throne_of_holland": "open", "decree_of_berlin": "forsworn"}),
-        ("system", {"bavarian_match": "open", "throne_of_holland": "open", "decree_of_berlin": "open"}),
+        ("", {"bavarian_match": "open", "throne_of_holland": "open", "crown_of_the_reich": "wait",
+              "decree_of_berlin": "open"}),
+        ("rhine", {"bavarian_match": "open", "throne_of_holland": "open", "crown_of_the_reich": "open",
+                   "decree_of_berlin": "forsworn"}),
+        ("crowns", {"bavarian_match": "open", "throne_of_holland": "open", "crown_of_the_reich": "forsworn",
+                    "decree_of_berlin": "forsworn"}),
+        ("system", {"bavarian_match": "open", "throne_of_holland": "open", "crown_of_the_reich": "forsworn",
+                    "decree_of_berlin": "open"}),
     ])
     def test_each_cell(self, world, road, gates):
         if road:

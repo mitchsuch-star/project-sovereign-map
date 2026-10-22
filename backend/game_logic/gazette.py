@@ -218,6 +218,10 @@ _SPECIAL_WEIGHTS = {
     "a nation proclaimed": 85,
     "a design of the Empire fulfilled": 83,
     "THE SUN OF AUSTERLITZ": 82,
+    # S14c part 3 (docs/EVENTS_SPEC.md §2 M3): the Emperor demands Francis lay
+    # down the crown of the Holy Roman Empire — printed in the NEXT issue,
+    # on that answer only (the letter's Accept, never its decline).
+    "THE EMPIRE IS NO MORE": 81,
     # VP-1 (S14b part 3, the record §4): THE DECISIVE PEACE — the treaty
     # that sealed a road, printed in the NEXT issue (the stamp lands in the
     # end-turn tail, after the paper went to press), as the Congress's is.
@@ -390,6 +394,11 @@ def _special_candidates(world, turn_events: List[Dict]):
                 _add("a design of the Empire fulfilled", f"fulfilled:{event.get('design')}")
             elif _phase == "prologue":
                 _add("THE SUN OF AUSTERLITZ", f"prologue@{event.get('turn')}")
+        if (etype == "moment" and str(event.get("nation") or "") == player
+                and str(event.get("phase") or "") == "answered"
+                and str(event.get("moment") or "") == "crown_of_the_reich"
+                and str(event.get("answer") or "") == "accept"):
+            _add("THE EMPIRE IS NO MORE", "moment:crown_of_the_reich")
         if etype == "congress" and str(event.get("nation") or "") == player:
             _phase = str(event.get("phase") or "")
             if _phase == "summoned":

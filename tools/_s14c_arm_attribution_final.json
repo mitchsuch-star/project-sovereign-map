@@ -1,5 +1,5 @@
 {
- "_part": "S14c — the nine commanded arms on each part's tree: part 1 against S14b part 3's measured tree (vs_s14b_part3_tree); part 2's first landing against part 1's (vs_part1_tree); part 2's second landing — the deck ARMED — against the first landing's (vs_part2a_tree), with the moments' tick held down as the control (vs_part2a_tree_tick_down) and each arm's letters (moments_reach).",
+ "_part": "S14c — the nine commanded arms on each part's tree: part 1 against S14b part 3's measured tree (vs_s14b_part3_tree); part 2's first landing against part 1's (vs_part1_tree); part 2's second landing — the deck ARMED — against the first landing's (vs_part2a_tree), with the moments' tick held down as the control (vs_part2a_tree_tick_down) and each arm's letters (moments_reach). Part 3: the commanded arms against part 2b's tree (vs_part2b_tree) and the VP-1 road arms' moments (road_arms_part3).",
  "vs_s14b_part3_tree": {
   "CMD-H": {
    "game": "equal",
@@ -478,5 +478,292 @@
    ]
   ]
  },
- "_attribution_part2b": "Armed, the letters reach the commanded arms and nothing else moves: the Bavarian Match arrives in 7 of 9 (turn 8; turn 10 on austerlitz, its band) — a commanded France keeps Bavaria allied, where the passive board loses her by turn 5 — and the Throne of Holland in 5 (turn 18 or 19, where her loyalty dips); the Decree of Berlin in none (no client would shut a port). The driver declines each (`--moment` absent = decline): the Match's decline is Bavaria's goodwill -5, which parts CMD-A's game stream at turn 31 (the chest -18) and CMD-M's at turn 29 (-50); the other arms keep their game and view streams and part only by the letters' own rows (the envoy list, the campaign log, the popup answer). With the tick held down CMD-A, CMD-M and CMD-H equal the first landing's tree record for record — every parting is the moments' own reach."
+ "_attribution_part2b": "Armed, the letters reach the commanded arms and nothing else moves: the Bavarian Match arrives in 7 of 9 (turn 8; turn 10 on austerlitz, its band) — a commanded France keeps Bavaria allied, where the passive board loses her by turn 5 — and the Throne of Holland in 5 (turn 18 or 19, where her loyalty dips); the Decree of Berlin in none (no client would shut a port). The driver declines each (`--moment` absent = decline): the Match's decline is Bavaria's goodwill -5, which parts CMD-A's game stream at turn 31 (the chest -18) and CMD-M's at turn 29 (-50); the other arms keep their game and view streams and part only by the letters' own rows (the envoy list, the campaign log, the popup answer). With the tick held down CMD-A, CMD-M and CMD-H equal the first landing's tree record for record — every parting is the moments' own reach.",
+ "vs_part2b_tree": {
+  "CMD-H": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1229,
+    1229
+   ]
+  },
+  "CMD-A": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1179,
+    1179
+   ]
+  },
+  "CMD-M": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1146,
+    1146
+   ]
+  },
+  "OP": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    757,
+    757
+   ]
+  },
+  "FLD": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    441,
+    441
+   ]
+  },
+  "DL": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    148,
+    148
+   ]
+  },
+  "LAW": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    451,
+    451
+   ]
+  },
+  "VOLTE": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1288,
+    1288
+   ]
+  },
+  "FC": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    101,
+    101
+   ]
+  }
+ },
+ "road_arms_part3": {
+  "stamps": "VP1-RH turn 13 on all three seeds, VP1-TH turn 20 on all three, VP1-CS never — unchanged from S14b part 3 (and on part 2b's tree)",
+  "moments": {
+   "VP1-CS-austerlitz": {
+    "crown_of_the_reich": [
+     "passed",
+     2,
+     "forsworn"
+    ],
+    "bavarian_match": [
+     "answered",
+     10,
+     "decline"
+    ],
+    "throne_of_holland": [
+     "answered",
+     21,
+     "decline"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     31,
+     "premise"
+    ]
+   },
+   "VP1-CS-historical": {
+    "crown_of_the_reich": [
+     "passed",
+     2,
+     "forsworn"
+    ],
+    "bavarian_match": [
+     "answered",
+     8,
+     "decline"
+    ],
+    "throne_of_holland": [
+     "passed",
+     21,
+     "premise"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     32,
+     "premise"
+    ]
+   },
+   "VP1-CS-marengo": {
+    "crown_of_the_reich": [
+     "passed",
+     2,
+     "forsworn"
+    ],
+    "bavarian_match": [
+     "answered",
+     8,
+     "decline"
+    ],
+    "throne_of_holland": [
+     "passed",
+     20,
+     "premise"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     32,
+     "premise"
+    ]
+   },
+   "VP1-RH-austerlitz": {
+    "decree_of_berlin": [
+     "passed",
+     10,
+     "forsworn"
+    ],
+    "bavarian_match": [
+     "answered",
+     10,
+     "decline"
+    ],
+    "crown_of_the_reich": [
+     "passed",
+     18,
+     "premise"
+    ],
+    "throne_of_holland": [
+     "answered",
+     19,
+     "decline"
+    ]
+   },
+   "VP1-RH-historical": {
+    "bavarian_match": [
+     "answered",
+     8,
+     "decline"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     10,
+     "forsworn"
+    ],
+    "crown_of_the_reich": [
+     "passed",
+     18,
+     "premise"
+    ],
+    "throne_of_holland": [
+     "answered",
+     18,
+     "decline"
+    ]
+   },
+   "VP1-RH-marengo": {
+    "bavarian_match": [
+     "answered",
+     8,
+     "decline"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     10,
+     "forsworn"
+    ],
+    "crown_of_the_reich": [
+     "answered",
+     17,
+     "decline"
+    ],
+    "throne_of_holland": [
+     "passed",
+     19,
+     "crowded"
+    ]
+   },
+   "VP1-TH-austerlitz": {
+    "crown_of_the_reich": [
+     "passed",
+     8,
+     "forsworn"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     8,
+     "forsworn"
+    ],
+    "bavarian_match": [
+     "answered",
+     10,
+     "decline"
+    ],
+    "throne_of_holland": [
+     "answered",
+     19,
+     "decline"
+    ]
+   },
+   "VP1-TH-historical": {
+    "crown_of_the_reich": [
+     "passed",
+     8,
+     "forsworn"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     8,
+     "forsworn"
+    ],
+    "bavarian_match": [
+     "answered",
+     8,
+     "decline"
+    ],
+    "throne_of_holland": [
+     "answered",
+     18,
+     "decline"
+    ]
+   },
+   "VP1-TH-marengo": {
+    "crown_of_the_reich": [
+     "passed",
+     8,
+     "forsworn"
+    ],
+    "decree_of_berlin": [
+     "passed",
+     8,
+     "forsworn"
+    ],
+    "bavarian_match": [
+     "answered",
+     8,
+     "decline"
+    ],
+    "throne_of_holland": [
+     "answered",
+     17,
+     "decline"
+    ]
+   }
+  },
+  "_reading": "The Crown of the Reich reaches VP1-RH on marengo (turn 17, declined — no change; Holland's letter, waiting behind it, is crowded out on its last eligible turn: passed(crowded), its decline applied, its receipt on screen — R2 on a real arm); on historical and austerlitz it passes on its premise (Austria, brought to terms by subjugation, stands France's vassal through the window — no fork to offer). It is forsworn on every CS and TH arm, the Decree on every RH and TH arm."
+ }
 }

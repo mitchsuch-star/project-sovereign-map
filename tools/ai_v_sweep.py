@@ -1266,6 +1266,10 @@ def _variance_signature(digest: dict) -> dict:
         "courts_at_fight": derived["courts_at_fight"],
         "first_fight_turn": derived["first_fight_turn"],
         "eliminations": derived["eliminations"],
+        # S14c part 3 (EVENTS_SPEC §5, clause B / the teeth controls): each
+        # moment's arrival turns, RUN-sourced (`fire_turns` off the rows) —
+        # never the boot's resolved windows (the graft pin reads the run).
+        "moment_turns": derived.get("fire_turns", {}),
     }
 
 

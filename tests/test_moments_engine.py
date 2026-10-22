@@ -139,10 +139,10 @@ class TestUnarmed:
         assert MO.tick(bare) == []
         assert bare.to_dict() == before and bare.to_dict()["moments"] == {}
 
-    def test_the_shipped_scenario_arms_only_what_part_2_owns(self):
+    def test_the_shipped_scenario_arms_the_whole_deck(self):
         data = json.loads(SCENARIO.read_text(encoding="utf-8"))
         assert [e["id"] for e in data["moments"]["deck"]] == [
-            "bavarian_match", "throne_of_holland", "decree_of_berlin"]   # the Reich: part 3
+            "bavarian_match", "throne_of_holland", "crown_of_the_reich", "decree_of_berlin"]
 
     def test_every_reader_answers_nothing_on_an_unarmed_world(self, world):
         world.moments = {}

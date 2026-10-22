@@ -2058,7 +2058,7 @@
             }
         ]
     },
-    "_moments_comment": "S14c 'Events and Historical Moments' (docs/EVENTS_SPEC.md §2-§5; armed by part 2's second landing): the authored letters of the record — the Bavarian Match (T8), the Throne of Holland (T18, when Holland slips), the Decree of Berlin (T29, only where it would shut a port). Each window's turn varies per campaign seed inside its band (historical = value); the Crown of the Reich (Road I, causal) arms in part 3. The staged deck tests/fixtures/moments_block.json holds the four, pinned equal.",
+    "_moments_comment": "S14c 'Events and Historical Moments' (docs/EVENTS_SPEC.md §2-§5; armed by part 2's second landing): the authored letters of the record — the Bavarian Match (T8), the Throne of Holland (T18, when Holland slips), the Decree of Berlin (T29, only where it would shut a port). Each window's turn varies per campaign seed inside its band (historical = value); the Crown of the Reich (Road I, causal — a turn after the Confederation is told) armed by part 3. The staged deck tests/fixtures/moments_block.json holds the four, pinned equal.",
     "moments": {
         "owner": "France",
         "pacing": {
@@ -2169,6 +2169,49 @@
                 },
                 "decline": {
                     "caption": "Keep the Republic",
+                    "ops": []
+                }
+            },
+            {
+                "id": "crown_of_the_reich",
+                "kind": "letter",
+                "title": "The Crown of the Reich",
+                "lag": 1,
+                "grace": 2,
+                "when": {
+                    "predicate": "design_fulfilled",
+                    "design": "rhine.confederation",
+                    "court": "Austria"
+                },
+                "roads": [
+                    "rhine"
+                ],
+                "voice": {
+                    "speaker": "cabinet"
+                },
+                "record": "With the Confederation signed, Napoleon told Francis II to lay down the crown of the Holy Roman Empire (historically 22 July 1806); Francis did so on 6 August, and the Reich of a thousand years ended.",
+                "accept": {
+                    "caption": "Demand the abdication",
+                    "ops": [
+                        {
+                            "op": "loyalty",
+                            "design_courts": "rhine.confederation",
+                            "delta": 10
+                        },
+                        {
+                            "op": "relation",
+                            "court": "Austria",
+                            "delta": -15
+                        },
+                        {
+                            "op": "alarm",
+                            "amount": 3,
+                            "source": "moment_reich"
+                        }
+                    ]
+                },
+                "decline": {
+                    "caption": "Let Francis keep his crown",
                     "ops": []
                 }
             },

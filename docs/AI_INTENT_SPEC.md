@@ -741,6 +741,19 @@ which was false, and split it in two).** Across the N-seed sweep, *every* seed m
 
 A seed that fails any of these is a build failure, not a colourful opening.
 
+> **S14c amendment A3 (October 22, 2026; `docs/EVENTS_SPEC.md` §5, landed by its part 3) — the moments' windows.** The
+> moments (`world.moments`) carry a Tier 2 band of their own: only the dates of the Bavarian Match, the Throne of Holland
+> and the Decree of Berlin vary, by `seeded_int(seed, "moment::<id>::turn", lo, hi)` inside their authored bands,
+> resolved at boot (`campaign_variance.resolve_moment_turns` — the band stripped, an int serialized); the causal Crown
+> of the Reich never varies. Seven clauses hold on every seed of the sweep, pinned like the six above
+> (`tests/test_moments_reich.py`): **A** the deck's content (ids, predicates, ops, prices, grace, roads, copy) is
+> byte-identical; **B** every resolved turn lies in its band and `historical` resolves to the authored value; **C** the
+> unperturbed schedule keeps the pacing's gap; **D** every windowed moment closes before the Verdict, and a causal one
+> resolving at or past it is passed; **E** eligibility reads the board and the designs, never the seed; **F** an
+> unbanded entry has the same turn on every seed; **G** a moment the board contradicts is passed, never forced. The
+> teeth controls read them through the run: `_variance_signature` gains `moment_turns` (the arrival turns off the run's
+> own rows, never the boot — the graft pin).
+
 > **v1.3 correction — the fifth clause used to read "· no minor boots at war," and it is false on the
 > shipped scenario.** `europe_1805.json`'s `starting_wars` are France→Britain, France→Austria,
 > France→Russia, **Spain→Britain, Holland→Britain, Bavaria→Austria and KingdomOfItaly→Austria**;

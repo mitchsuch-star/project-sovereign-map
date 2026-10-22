@@ -1,6 +1,6 @@
 # S14c — "Events and Historical Moments": the gate record
 
-**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation**; **part 1 ✅ LANDED October 22, 2026** (the engine and its transport, unarmed — the landing record §13); **part 2 ✅ LANDED October 22, 2026** in two landings (the client and the instruments — §14; three letters armed — §15) ("make design calls please do research"), on master at `131eeebf`. **Owner:** Pre-Deploy S14c (`docs/PRE_DEPLOY_PLAN.md` §2, sized 4.0), built in four parts (§9). Nothing is built. In code the deck is **moments** — module `backend/game_logic/moments.py`, world field `world.moments`, scenario key `moments`, log type `moment` — because "event" already means `event_log`, `log_event` and `queue_dispatch_event`.
+**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation**; **part 1 ✅ LANDED October 22, 2026** (the engine and its transport, unarmed — the landing record §13); **part 2 ✅ LANDED October 22, 2026** in two landings (the client and the instruments — §14; three letters armed — §15); **part 3 ✅ LANDED October 22, 2026** (the Crown of the Reich, the windows, the matrix — §16) ("make design calls please do research"), on master at `131eeebf`. **Owner:** Pre-Deploy S14c (`docs/PRE_DEPLOY_PLAN.md` §2, sized 4.0), built in four parts (§9). Nothing is built. In code the deck is **moments** — module `backend/game_logic/moments.py`, world field `world.moments`, scenario key `moments`, log type `moment` — because "event" already means `event_log`, `log_event` and `queue_dispatch_event`.
 
 **How it was ruled.** Eight read-only researchers mapped the seed machinery, the content menu, the transports, the seams, the history and the calendar, the drama the game already derives, pacing and caps, and the client, series and pins. Three designers drafted complete proposals from three angles (history-first, player-experience-first, systems-reuse-first); three judges scored them through a historian's, an architect's and a playtester's lens (history-first 8 / 7 / 8, player-first 7 / 8 / 7, systems-first 5 / 5 / 4); a synthesis took the history-first base and grafted the judges' named improvements; two adversarial critics checked it against the repo (with probes on the booted 1805 world) and against the rules and the history, and returned 30 corrections — three blocking — **every one applied below or answered (§12)**. The critics' probes changed the deck: the first synthesis promised consequences the shipped board does not have (the Holland letter's closure, the Decree's bite), and those are now gated on the board that makes them true, or measured as zero and said so.
 
@@ -230,7 +230,7 @@ A moment letter has **no court**: no `target_nation`, no `context.source`; `cont
 - *Second landing:* the shipped block with M1, M2, M4; the M1 / M2 / M4 matrix cells; the suite-reach head (§7); `tools/_s14c_series_arms.py`; the re-pin if any arm bites. — ✅ LANDED October 22, 2026 (§15; the series byte-identical, no re-pin)
 - *Done when:* each letter arrives on a staged board at its resolved turn (M2 also on the `historical` passive board where Holland's loyalty dips) and is `passed(premise)` where its premise fails; each answer applies exactly its quote through `/respond_to_diplomatic_dialogue`; the Holland closure line equals `closed_ports_against` after the op (at war with Britain: unchanged, said so; at peace: −2); the Decree arrives only where `decree_clients` would be non-empty, and its line equals `terms_line` plus the admin clause and the real closure delta; every lapse surface prints a whole sentence; a standing letter's notice survives an unrelated lapse; the `iter_queue` census green; frames at 1.0 and 2.0 show both answers above the fold; the parse harness exits 0; the series byte-identical or re-pinned naming S14c.
 
-**Part 3 — the Reich, the windows, the rest of the matrix**
+**Part 3 — the Reich, the windows, the rest of the matrix** — ✅ LANDED October 22, 2026 (§16)
 - *Scope:* M3 and its Moniteur special; the M3 matrix cells (the full 12 green); R1 and R2 on staged crisis and crowd boards; clauses A–G over `SWEEP_SEEDS`; the backfill's `passed(before_save)` marks on the T10 and T20 fixtures (a causal entry included).
 - *Done when:* on a staged Road I board the Confederation fulfils and the Reich letter arrives a turn later; Accept raises each vassal member's loyalty, costs Austria 15 and the alarm 3, and the special runs in the next issue; on Roads II and III it never arrives; all 12 cells pass; a staged crisis defers a letter and a crowded-out letter ends on screen; the same seed twice compares EQUAL and variance forced off compares EQUAL to `historical`.
 
@@ -411,3 +411,32 @@ The block armed on a scratch tree (`git archive` of the first landing's commit),
 ### 15.3 Measured
 
 `BASELINE_SERIES` byte-identical on every arm (0, M0, X8, MW, ML, MK, MN, MH, MR, ALL) — now with real reach: the armed store ticks 40 times, the Throne of Holland is delivered once (turn 18), kept across one AI phase, lapses once as its empty decline (one court-less lapse, no cooldown key), one row; the Match and the Decree pass on their false premises; nothing reaches the threat series (`tools/_s14c_series_arms_final.json`). Of the nine commanded arms, seven meet the Bavarian Match (turn 8; turn 10 on austerlitz, its band) and five the Throne of Holland, none the Decree; the driver declines each, and the Match's decline (Bavaria −5) parts CMD-A's game stream at turn 31 (the chest −18) and CMD-M's at turn 29 (−50) — the other arms part only by the letters' own rows; with the tick held down CMD-A, CMD-M and CMD-H equal the first landing's tree record for record (`tools/_s14c_arm_attribution_final.json`). The suite-reach head: on a scratch tree armed with the block, three tests reacted — the engine's unarmed pins, re-seated consciously on a world with no block — and no reader of the queue, the mailbox counts, the lapse rows or the Gazette moved (the other fourteen failures were a scratch tree's own: no Godot import cache, no untracked art, no .git).
+
+---
+
+## §16 Part 3 — the Crown of the Reich, the windows, the matrix (October 22, 2026)
+
+**✅ LANDED October 22, 2026.** Rules `SYSTEMS_REFERENCE.md` §147.11; pins `tests/test_moments_reich.py` (and `tests/test_moments_armed.py`'s matrix, now twelve cells); A3 written into `docs/AI_INTENT_SPEC.md` §3.8.1.
+
+### 16.1 Built
+
+- **M3 shipped:** the scenario's deck is now the staged fixture's four entries — the Crown of the Reich causal (`lag` 1 from the morning the Confederation is told, `imperial_designs.fulfilled_turn` + 1), Road I only, Austria active and not France's vassal.
+- **Le Moniteur:** `_SPECIAL_WEIGHTS` gains "THE EMPIRE IS NO MORE" (81, the free slot) and `_special_candidates` prints it on the letter's Accept only — the `moment` / `answered` row with `moment` `crown_of_the_reich` and `answer` `accept` — in the next issue (the answer is logged during the turn the paper is printed after).
+- **The matrix, twelve cells:** M1 and M2 every road; M3 Road I (it waits while no road is proclaimed — its anchor is Road I's — and is forsworn on II and III); M4 no road and Road III, forsworn on I and II.
+- **The clauses (A3):** A–G pinned over the ten sweep seeds on the shipped boot; `tools/ai_v_sweep.py`'s `_variance_signature` gains `moment_turns`, run-sourced (`fire_turns` off the rows — never the boot, so the graft pin holds), and the existing teeth controls (the same seed twice EQUAL, variance forced off EQUAL to `historical`) read it.
+- **R1 and R2** are pinned on staged boards since part 1 (`TestPacing`: a foregrounded crisis defers a letter within its grace; still waiting when its grace ends, it is `passed(crowded)`, its decline applied, its receipt and row on screen); the backfill's causal entry since part 1 (`test_the_backfill_passes_a_causal_entry_already_due`), the archived saves' windows since part 2b.
+
+### 16.2 The done-when, item by item
+
+| §9 Part 3 done-when | Landed |
+|---|---|
+| on a staged Road I board the Confederation fulfils and the Reich letter arrives a turn later | the Rhine proclaimed through its button, Bavaria, Hesse and Saxony held, the designs' own tick latches the Confederation; nothing on the morning that tells it, the letter the next (`test_it_arrives_a_turn_after_the_confederation_is_told`) |
+| Accept raises each vassal member's loyalty, costs Austria 15 and the alarm 3, and the special runs in the next issue | through `/respond_to_diplomatic_dialogue`; the special in `_special_candidates` of the answered row; the decline changes nothing and prints nothing |
+| on Roads II and III it never arrives | `passed(forsworn)` |
+| all 12 cells pass | `TestTheRoadMatrix` |
+| a staged crisis defers a letter and a crowded-out letter ends on screen | `TestPacing` (part 1) |
+| the same seed twice compares EQUAL and variance forced off compares EQUAL to `historical` | the teeth controls of `tests/test_ai_intent_assurance.py`, the signature now carrying `moment_turns` |
+
+### 16.3 Measured
+
+`BASELINE_SERIES` byte-identical on all ten arms with the whole deck armed (`tools/_s14c_series_arms_final.json` — the passive France proclaims no road, so the Reich never anchors); the nine commanded arms equal part 2b's tree record for record (no commanded France proclaims Road I); the VP-1 road arms stamp as before (RH turn 13, TH turn 20 on all three seeds, CS never) — the Reich reaches VP1-RH on marengo (turn 17, declined), and Holland's letter waiting behind it is crowded out on its last eligible turn with its receipt (R2 on a real arm); on historical and austerlitz the Reich passes on its premise (Austria stands France's vassal through the window). The census reads 9 open rows (UXR-4); the ratchet unchanged.
