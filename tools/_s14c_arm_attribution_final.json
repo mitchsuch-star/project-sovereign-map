@@ -1,5 +1,5 @@
 {
- "_part": "S14c \u2014 the nine commanded arms on each part's tree: part 1 against S14b part 3's measured tree (vs_s14b_part3_tree); part 2's first landing against part 1's (vs_part1_tree).",
+ "_part": "S14c — the nine commanded arms on each part's tree: part 1 against S14b part 3's measured tree (vs_s14b_part3_tree); part 2's first landing against part 1's (vs_part1_tree); part 2's second landing — the deck ARMED — against the first landing's (vs_part2a_tree), with the moments' tick held down as the control (vs_part2a_tree_tick_down) and each arm's letters (moments_reach).",
  "vs_s14b_part3_tree": {
   "CMD-H": {
    "game": "equal",
@@ -83,7 +83,7 @@
    ]
   }
  },
- "_attribution": "Every arm equal record for record \u2014 the game and view streams and every digest record: the shipped boot authors no moments block, and no commanded France met an ultimatum, an offered crown or a broker's ask whose stamp the registry (S14C-X8, X18-X20) now opens.",
+ "_attribution": "Every arm equal record for record — the game and view streams and every digest record: the shipped boot authors no moments block, and no commanded France met an ultimatum, an offered crown or a broker's ask whose stamp the registry (S14C-X8, X18-X20) now opens.",
  "vs_part1_tree": {
   "CMD-H": {
    "game": "equal",
@@ -167,5 +167,316 @@
    ]
   }
  },
- "_attribution_part2a": "Every arm equal record for record: no commanded France met a moment letter (the shipped boot authors none), a two-turn call to arms beside a lapse, an open allegiance auction beside an answer, or an autonomy row the driver prints."
+ "_attribution_part2a": "Every arm equal record for record: no commanded France met a moment letter (the shipped boot authors none), a two-turn call to arms beside a lapse, an open allegiance auction beside an answer, or an autonomy row the driver prints.",
+ "vs_part2a_tree": {
+  "CMD-H": {
+   "game": "equal",
+   "view": "equal",
+   "records": "record 281: {\"kind\": \"ledger\", \"bill_notes\": {\"state_charges_rate_note\": \"rate points \\u2014 each draws 1g per 2,500g of the chest above the 2,000g floor, so a fuller chest pays more; every 1,000g spent from it cuts next turn's draw by 129g\", \"state_charges_delta_note\": \"84g more than last turn's charge \\u2014  | {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"The Cabinet\", \"proposal_type\": \"moment letter\", \"proposal_type_display\": \"A Moment of History\", \"state\": \"ACTIVE\"}]}",
+   "n_records": [
+    1216,
+    1229
+   ]
+  },
+  "CMD-A": {
+   "game": "parts at turn 31: (31, 'ledger', 48073, 352, 28, 108821) | (31, 'ledger', 48055, 335, 28, 108821)",
+   "view": "equal",
+   "records": "record 338: {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"KingdomOfItaly\", \"proposal_type\": \"client petition\", \"proposal_type_display\": \"Client's Petition\", \"state\": \"ACTIVE\"}]} | {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"KingdomOfItaly\", \"proposal_type\": \"client petition\", \"proposal_type_display\": \"Client's Petition\", \"state\": \"ACTIVE\"}, {\"nation\": \"The Cabinet\", \"proposal_type\": \"moment letter\", \"proposal_type_display\": \"A Moment of History\", \"state\": \"WAITIN",
+   "n_records": [
+    1169,
+    1179
+   ]
+  },
+  "CMD-M": {
+   "game": "parts at turn 29: (29, 'ledger', 30516, 2549, 28, 46386) | (29, 'ledger', 30466, 2501, 28, 46386)",
+   "view": "equal",
+   "records": "record 231: {\"kind\": \"ledger\", \"bill_notes\": {\"state_charges_rate_note\": \"rate points \\u2014 each draws 1g per 2,500g of the chest above the 2,000g floor, so a fuller chest pays more; every 1,000g spent from it cuts next turn's draw by 84g\", \"state_charges_delta_note\": \"100g more than last turn's charge \\u2014  | {\"kind\": \"popup\", \"key\": \"diplomatic_dialogue\", \"summary\": \"moment_letter #11\", \"answer\": \"reject_ai_proposal\"}",
+   "n_records": [
+    1135,
+    1146
+   ]
+  },
+  "OP": {
+   "game": "equal",
+   "view": "equal",
+   "records": "record 313: {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"Prussia\", \"proposal_type\": \"defensive alliance\", \"proposal_type_display\": \"Defensive Alliance\", \"state\": \"ACTIVE\"}]} | {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"Prussia\", \"proposal_type\": \"defensive alliance\", \"proposal_type_display\": \"Defensive Alliance\", \"state\": \"ACTIVE\"}, {\"nation\": \"The Cabinet\", \"proposal_type\": \"moment letter\", \"proposal_type_display\": \"A Moment of History\", \"state\": \"WAITING\"}",
+   "n_records": [
+    745,
+    757
+   ]
+  },
+  "FLD": {
+   "game": "equal",
+   "view": "equal",
+   "records": "record 301: {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"Saxony\", \"proposal_type\": \"open borders\", \"proposal_type_display\": \"Open Borders Agreement\", \"state\": \"ACTIVE\"}, {\"nation\": \"Hesse\", \"proposal_type\": \"non aggression\", \"proposal_type_display\": \"Non-Aggression Pact\", \"state\": \"WAITING\"}]} | {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"Saxony\", \"proposal_type\": \"open borders\", \"proposal_type_display\": \"Open Borders Agreement\", \"state\": \"ACTIVE\"}, {\"nation\": \"The Cabinet\", \"proposal_type\": \"moment letter\", \"proposal_type_display\": \"A Moment of History\", \"state\": \"WAITING\"}, {",
+   "n_records": [
+    437,
+    441
+   ]
+  },
+  "DL": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    148,
+    148
+   ]
+  },
+  "LAW": {
+   "game": "equal",
+   "view": "equal",
+   "records": "record 297: {\"kind\": \"ledger\", \"bill_notes\": {\"state_charges_rate_note\": \"rate points \\u2014 each draws 1g per 2,500g of the chest above the 2,000g floor, so a fuller chest pays more; every 1,000g spent from it cuts next turn's draw by 149g\", \"state_charges_delta_note\": \"80g more than last turn's charge \\u2014  | {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"The Cabinet\", \"proposal_type\": \"moment letter\", \"proposal_type_display\": \"A Moment of History\", \"state\": \"ACTIVE\"}]}",
+   "n_records": [
+    446,
+    451
+   ]
+  },
+  "VOLTE": {
+   "game": "equal",
+   "view": "equal",
+   "records": "record 282: {\"kind\": \"ledger\", \"bill_notes\": {\"state_charges_rate_note\": \"rate points \\u2014 each draws 1g per 2,500g of the chest above the 2,000g floor, so a fuller chest pays more; every 1,000g spent from it cuts next turn's draw by 129g\", \"state_charges_delta_note\": \"107g more than last turn's charge \\u2014 | {\"kind\": \"envoys\", \"lapsed\": [], \"pending\": [{\"nation\": \"The Cabinet\", \"proposal_type\": \"moment letter\", \"proposal_type_display\": \"A Moment of History\", \"state\": \"ACTIVE\"}]}",
+   "n_records": [
+    1278,
+    1288
+   ]
+  },
+  "FC": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    101,
+    101
+   ]
+  }
+ },
+ "vs_part2a_tree_tick_down": {
+  "CMD-A": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1169,
+    1169
+   ]
+  },
+  "CMD-M": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1135,
+    1135
+   ]
+  },
+  "CMD-H": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1216,
+    1216
+   ]
+  }
+ },
+ "moments_reach": {
+  "CMD-A": [
+   [
+    10,
+    "moment",
+    "The Bavarian Match — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #20",
+    "reject_ai_proposal"
+   ],
+   [
+    10,
+    "moment",
+    "The Bavarian Match — the Emperor answers: Let Baden keep her"
+   ],
+   [
+    19,
+    "moment",
+    "The Throne of Holland — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #28",
+    "reject_ai_proposal"
+   ],
+   [
+    19,
+    "moment",
+    "The Throne of Holland — the Emperor answers: Keep the Republic"
+   ]
+  ],
+  "CMD-H": [
+   [
+    8,
+    "moment",
+    "The Bavarian Match — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #14",
+    "reject_ai_proposal"
+   ],
+   [
+    8,
+    "moment",
+    "The Bavarian Match — the Emperor answers: Let Baden keep her"
+   ],
+   [
+    18,
+    "moment",
+    "The Throne of Holland — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #26",
+    "reject_ai_proposal"
+   ],
+   [
+    18,
+    "moment",
+    "The Throne of Holland — the Emperor answers: Keep the Republic"
+   ]
+  ],
+  "CMD-M": [
+   [
+    "popup",
+    "moment_letter #11",
+    "reject_ai_proposal"
+   ],
+   [
+    8,
+    "moment",
+    "The Bavarian Match — a letter of the record is laid before the Emperor"
+   ],
+   [
+    8,
+    "moment",
+    "The Bavarian Match — the Emperor answers: Let Baden keep her"
+   ],
+   [
+    19,
+    "moment",
+    "The Throne of Holland — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #22",
+    "reject_ai_proposal"
+   ],
+   [
+    19,
+    "moment",
+    "The Throne of Holland — the Emperor answers: Keep the Republic"
+   ]
+  ],
+  "DL": [],
+  "FC": [],
+  "FLD": [
+   [
+    8,
+    "moment",
+    "The Bavarian Match — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #21",
+    "reject_ai_proposal"
+   ],
+   [
+    8,
+    "moment",
+    "The Bavarian Match — the Emperor answers: Let Baden keep her"
+   ]
+  ],
+  "LAW": [
+   [
+    8,
+    "moment",
+    "The Bavarian Match — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #16",
+    "reject_ai_proposal"
+   ],
+   [
+    8,
+    "moment",
+    "The Bavarian Match — the Emperor answers: Let Baden keep her"
+   ]
+  ],
+  "OP": [
+   [
+    8,
+    "moment",
+    "The Bavarian Match — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #26",
+    "reject_ai_proposal"
+   ],
+   [
+    8,
+    "moment",
+    "The Bavarian Match — the Emperor answers: Let Baden keep her"
+   ],
+   [
+    "popup",
+    "moment_letter #45",
+    "reject_ai_proposal"
+   ],
+   [
+    18,
+    "moment",
+    "The Throne of Holland — a letter of the record is laid before the Emperor"
+   ],
+   [
+    18,
+    "moment",
+    "The Throne of Holland — the Emperor answers: Keep the Republic"
+   ]
+  ],
+  "VOLTE": [
+   [
+    8,
+    "moment",
+    "The Bavarian Match — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #13",
+    "reject_ai_proposal"
+   ],
+   [
+    8,
+    "moment",
+    "The Bavarian Match — the Emperor answers: Let Baden keep her"
+   ],
+   [
+    18,
+    "moment",
+    "The Throne of Holland — a letter of the record is laid before the Emperor"
+   ],
+   [
+    "popup",
+    "moment_letter #31",
+    "reject_ai_proposal"
+   ],
+   [
+    18,
+    "moment",
+    "The Throne of Holland — the Emperor answers: Keep the Republic"
+   ]
+  ]
+ },
+ "_attribution_part2b": "Armed, the letters reach the commanded arms and nothing else moves: the Bavarian Match arrives in 7 of 9 (turn 8; turn 10 on austerlitz, its band) — a commanded France keeps Bavaria allied, where the passive board loses her by turn 5 — and the Throne of Holland in 5 (turn 18 or 19, where her loyalty dips); the Decree of Berlin in none (no client would shut a port). The driver declines each (`--moment` absent = decline): the Match's decline is Bavaria's goodwill -5, which parts CMD-A's game stream at turn 31 (the chest -18) and CMD-M's at turn 29 (-50); the other arms keep their game and view streams and part only by the letters' own rows (the envoy list, the campaign log, the popup answer). With the tick held down CMD-A, CMD-M and CMD-H equal the first landing's tree record for record — every parting is the moments' own reach."
 }

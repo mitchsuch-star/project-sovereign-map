@@ -13,11 +13,26 @@ byte-identical one). Chained from `tools/_vp1_series_arms_final.json`:
     X9 = the court-less lapse (`dialogue_manager._extract_lapse_info`'s
          fallback) — reach only: the lapse rows written with no nation.
 
-Part 2 extends it (MW the window resolver, ML the lapse default, MK the
-residence, MN the rows, MH the wizard exclusion, MR the receipt) when it arms
-the deck.
+Part 2's second landing ARMS the deck (M1, M2, M4 in the shipped scenario)
+and adds a seam per piece of a letter's reach (the record §7):
 
-    python tools/_s14c_series_arms.py [--arms 0,M0,X8,ALL] [--jobs 3]
+    MW = the window resolver (`campaign_variance.resolve_moment_turns`) —
+         down: identity. Reach: windows resolved off their value (0 on the
+         `historical` series).
+    ML = the lapse default (`moments.lapse_default`) — down: the letter
+         lapses with no decline applied. Reach: lapses applied.
+    MK = the two-turn residence (`moments.keeps_open`) — down: never kept
+         (a letter lapses after its first turn). Reach: the end-turn reads
+         that kept a letter across an AI phase.
+    MN = the rows (`moments._log`, the arrival's rail notice) — down: no log
+         row, no notice. Reach: the rows written.
+    MH = the wizard exclusion (`DialogueManager.has_current_turn_offers`'s
+         moment arm) — down: a moment letter locks the wizard as a court's
+         offer does. Reach: the reads whose answer the exclusion changed.
+    MR = the crowd-out receipt (`moments._crowd_out`) — down: the letter
+         passes silently, no decline, no receipt. Reach: crowd-outs.
+
+    python tools/_s14c_series_arms.py [--arms 0,M0,X8,MW,ML,MK,MN,MH,MR,ALL] [--jobs 3]
 
 Writes tools/_s14c_series_arms_final.json (committed with the landing record).
 """
@@ -34,9 +49,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests" / "test_ai_intent_threat_migration.py"
-PRIOR_RECORD = ROOT / "tools" / "_vp1_series_arms_final.json"
-SEAMS = ("M0", "X8")
-ARMS = {"0": set(), "M0": {"M0"}, "X8": {"X8"}, "ALL": set(SEAMS)}
+PRIOR_RECORD = ROOT / "tools" / "_vp1_series_arms_final.json"  # the unarmed series (S14b part 3's ALL)
+SEAMS = ("M0", "X8", "MW", "ML", "MK", "MN", "MH", "MR")
+ARMS = {"0": set(), **{s: {s} for s in SEAMS}, "ALL": set(SEAMS)}
 
 CHILD = r"""
 import sys, runpy, atexit, collections
@@ -57,6 +72,12 @@ def _counted_tick(world):
 MO.tick = _counted_tick
 _lapse = MO.lapse_default
 def _counted_lapse(world, letter):
+    if "ML" in DOWN and MO.is_moment_letter(letter):
+        row = MO.status_row(world, MO.moment_id_of(letter))
+        if row:
+            row.update(status=MO.STATUS_LAPSED, answer=MO.ANSWER_DECLINE)
+        _c["moment_lapses"] += 1
+        return {{}}
     out = _lapse(world, letter)
     if out:
         _c["moment_lapses"] += 1
@@ -65,8 +86,58 @@ MO.lapse_default = _counted_lapse
 _crowd = MO._crowd_out
 def _counted_crowd(world, e, turn):
     _c["moment_receipts"] += 1
+    if "MR" in DOWN:
+        return MO._pass(world, e, MO.PASS_CROWDED, turn)
     return _crowd(world, e, turn)
 MO._crowd_out = _counted_crowd
+from backend.game_logic import campaign_variance as CV
+_rmt = CV.resolve_moment_turns
+def _counted_rmt(moments, seed, historical=None):
+    before = [e.get("turn") for e in (moments.get("deck") or []) if isinstance(e, dict)]
+    if "MW" in DOWN:
+        for e in (moments.get("deck") or []):
+            if isinstance(e, dict) and isinstance(e.get("turn"), dict):
+                e["turn"] = int(e["turn"].get("value") or 0)
+        return moments
+    out = _rmt(moments, seed, historical=historical)
+    after = [e.get("turn") for e in (moments.get("deck") or []) if isinstance(e, dict)]
+    _c["windows_off_value"] += sum(1 for b, a in zip(before, after)
+                                   if isinstance(b, dict) and a != b.get("value"))
+    return out
+CV.resolve_moment_turns = _counted_rmt
+_keeps = MO.keeps_open
+def _counted_keeps(dialogue, current_turn):
+    out = _keeps(dialogue, current_turn)
+    if out:
+        _c["kept_across_a_phase"] += 1
+    return False if "MK" in DOWN else out
+MO.keeps_open = _counted_keeps
+_log = MO._log
+def _counted_log(world, phase, e, **fields):
+    _c["moment_rows"] += 1
+    if "MN" in DOWN:
+        return None
+    return _log(world, phase, e, **fields)
+MO._log = _counted_log
+_deliver = MO.deliver_letter
+def _counted_deliver(world, e, turn):
+    out = _deliver(world, e, turn)
+    if "MN" in DOWN:
+        MO._dismiss_notice(world, str(e.get("id")))
+    return out
+MO.deliver_letter = _counted_deliver
+_hcto = DMOD.DialogueManager.has_current_turn_offers
+def _counted_hcto(self):
+    out = _hcto(self)
+    if not out:
+        items = [d for d in ([self._current] if self._current else []) + list(self._queue)]
+        locks = any(d.get("type", "") in self.CURRENT_TURN_OFFER_TYPES for d in items)
+        if locks:
+            _c["wizard_reads_unlocked"] += 1
+            if "MH" in DOWN:
+                return True
+    return out
+DMOD.DialogueManager.has_current_turn_offers = _counted_hcto
 _ntk = TR.non_treaty_kind
 def _counted_ntk(letter):
     out = _ntk(letter)
@@ -82,7 +153,8 @@ def _counted_eli(self, dialogue):
     return out
 DMOD.DialogueManager._extract_lapse_info = _counted_eli
 _KEYS = ("moments_armed_ticks", "letters_delivered", "moment_lapses", "moment_receipts",
-         "non_treaty_reads", "courtless_lapses")
+         "non_treaty_reads", "courtless_lapses", "windows_off_value", "kept_across_a_phase",
+         "moment_rows", "wizard_reads_unlocked")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

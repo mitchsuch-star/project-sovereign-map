@@ -126,18 +126,26 @@ def _stage_decree_board(world):
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestUnarmed:
-    def test_the_shipped_scenario_authors_no_moments_block(self):
-        data = json.loads(SCENARIO.read_text(encoding="utf-8"))
-        assert "moments" not in data   # part 2 ships the block
+    """A world whose scenario authors no block is UNARMED — the bare flag
+    world, the tutorial, the legacy rollback. Re-seated consciously by S14c
+    part 2's second landing, which ARMED the shipped 1805 boot (its pins:
+    tests/test_moments_armed.py): these read a world with no block."""
 
-    def test_the_booted_world_is_unarmed_and_the_tick_touches_nothing(self, world):
-        assert world.moments == {} and not MO.armed(world)
-        before = copy.deepcopy(world.to_dict())
-        assert _tick(world) == []
-        assert world.to_dict() == before
-        assert world.to_dict()["moments"] == {}
+    def test_a_world_with_no_block_is_unarmed_and_the_tick_touches_nothing(self):
+        from backend.models.world_state import WorldState
+        bare = WorldState(player_nation="France")
+        assert bare.moments == {} and not MO.armed(bare)
+        before = copy.deepcopy(bare.to_dict())
+        assert MO.tick(bare) == []
+        assert bare.to_dict() == before and bare.to_dict()["moments"] == {}
+
+    def test_the_shipped_scenario_arms_only_what_part_2_owns(self):
+        data = json.loads(SCENARIO.read_text(encoding="utf-8"))
+        assert [e["id"] for e in data["moments"]["deck"]] == [
+            "bavarian_match", "throne_of_holland", "decree_of_berlin"]   # the Reich: part 3
 
     def test_every_reader_answers_nothing_on_an_unarmed_world(self, world):
+        world.moments = {}
         assert MO.deck(world) == [] and MO.owner(world) == ""
         assert MO.status(world, "bavarian_match") == ""
         court_letter = {"type": "incoming_proposal", "target_nation": "Prussia",

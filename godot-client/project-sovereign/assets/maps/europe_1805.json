@@ -2057,5 +2057,160 @@
                 ]
             }
         ]
+    },
+    "_moments_comment": "S14c 'Events and Historical Moments' (docs/EVENTS_SPEC.md §2-§5; armed by part 2's second landing): the authored letters of the record — the Bavarian Match (T8), the Throne of Holland (T18, when Holland slips), the Decree of Berlin (T29, only where it would shut a port). Each window's turn varies per campaign seed inside its band (historical = value); the Crown of the Reich (Road I, causal) arms in part 3. The staged deck tests/fixtures/moments_block.json holds the four, pinned equal.",
+    "moments": {
+        "owner": "France",
+        "pacing": {
+            "max_open": 1,
+            "min_gap": 3
+        },
+        "deck": [
+            {
+                "id": "bavarian_match",
+                "kind": "letter",
+                "title": "The Bavarian Match",
+                "date": "1806-01-14",
+                "turn": {
+                    "value": 8,
+                    "band": [
+                        8,
+                        10
+                    ]
+                },
+                "grace": 2,
+                "when": {
+                    "predicate": "court_warm",
+                    "court": "Bavaria",
+                    "min_relation": 30
+                },
+                "roads": [
+                    "any"
+                ],
+                "voice": {
+                    "speaker": "cabinet"
+                },
+                "record": "Eugène, adopted by Napoleon, wed Augusta of Bavaria at Munich (historically 14 January 1806); she had been promised to Baden's heir, and Munich yielded to the Emperor's pressing.",
+                "accept": {
+                    "caption": "Seal the match",
+                    "ops": [
+                        {
+                            "op": "dp",
+                            "amount": 2
+                        },
+                        {
+                            "op": "gold",
+                            "amount": 1000
+                        },
+                        {
+                            "op": "relation",
+                            "court": "Bavaria",
+                            "delta": 20
+                        },
+                        {
+                            "op": "loyalty",
+                            "court": "Bavaria",
+                            "delta": 15
+                        },
+                        {
+                            "op": "alarm",
+                            "amount": 3,
+                            "source": "moment_bavarian_match"
+                        }
+                    ]
+                },
+                "decline": {
+                    "caption": "Let Baden keep her",
+                    "ops": [
+                        {
+                            "op": "relation",
+                            "court": "Bavaria",
+                            "delta": -5
+                        }
+                    ]
+                }
+            },
+            {
+                "id": "throne_of_holland",
+                "kind": "letter",
+                "title": "The Throne of Holland",
+                "date": "1806-06-05",
+                "turn": {
+                    "value": 18,
+                    "band": [
+                        17,
+                        19
+                    ]
+                },
+                "grace": 2,
+                "when": {
+                    "predicate": "vassal_slipping",
+                    "court": "Holland",
+                    "below_autonomy": 2,
+                    "loyalty_at_most": 70
+                },
+                "roads": [
+                    "any"
+                ],
+                "voice": {
+                    "speaker": "envoy",
+                    "nation": "Holland"
+                },
+                "record": "Historically the Batavian Republic asked for a king and was given Napoleon's brother Louis (5 June 1806); the alternative was annexation, which came in 1810 when Louis would not enforce the System.",
+                "accept": {
+                    "caption": "Crown Louis",
+                    "ops": [
+                        {
+                            "op": "autonomy",
+                            "court": "Holland",
+                            "level": 2
+                        }
+                    ]
+                },
+                "decline": {
+                    "caption": "Keep the Republic",
+                    "ops": []
+                }
+            },
+            {
+                "id": "decree_of_berlin",
+                "kind": "letter",
+                "title": "The Decree of Berlin",
+                "date": "1806-11-21",
+                "turn": {
+                    "value": 29,
+                    "band": [
+                        28,
+                        30
+                    ]
+                },
+                "grace": 2,
+                "when": {
+                    "predicate": "law_bites",
+                    "law": "berlin_decree"
+                },
+                "roads": [
+                    "none",
+                    "system"
+                ],
+                "voice": {
+                    "speaker": "talleyrand"
+                },
+                "record": "Historically, from Berlin after Jena (21 November 1806), Napoleon declared the British Isles in a state of blockade and shut every port of his allies to British goods.",
+                "accept": {
+                    "caption": "Sign the Decree",
+                    "ops": [
+                        {
+                            "op": "enact_law",
+                            "law": "berlin_decree"
+                        }
+                    ]
+                },
+                "decline": {
+                    "caption": "Not yet",
+                    "ops": []
+                }
+            }
+        ]
     }
 }
