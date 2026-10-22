@@ -236,6 +236,8 @@ The draft's `≥70 → +1 / 40–69 0 / 20–39 −2 / <20 −4` is **retired**.
 floor(−4) = −8/turn ≈ 13 turns to 0. Enemy side auto-bounds to the −2 tier (proxy
 floors at 25).
 
+> **Amended by VP-1 (`VP1_DESIGNS_SPEC.md` §2.1, A3 — part 1 landed October 22, 2026):** while the Protector of the Rhine's construction holds on the proclaimed road, a Confederation member's DOWNWARD `AUTONOMY_DRIFT` term (satellite −2, puppet −4) is suspended — one seam, `vassal.autonomy_drift`, read by `process_vassal_loyalty` and `forecast_vassal_loyalty` alike, so every loyalty surface shows what is applied. The grip term above is untouched. Dormant until S14b part 2 ships the road in the 1805 scenario.
+
 ### 2.4 The remaining answered questions (from the memo)
 
 - **Q3 — "No cheap recovery":** a `get_authority_lever_multiplier(world, lord)` returns

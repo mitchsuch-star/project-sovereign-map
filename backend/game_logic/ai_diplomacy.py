@@ -3597,6 +3597,15 @@ def generate_counter_offer(
     if author and author != player_nation:
         nation_dp = getattr(world, 'nation_dp', {})
         current_dp = nation_dp.get(author, 0)
+        if dry_run and author not in (nation_dp or {}):
+            # VP1-X12 (Pre-Deploy S14b part 1): before the first advance no
+            # court's purse is written yet, so turn 1's preview read every
+            # court as penniless — "REJECT likely — no workable counter" for
+            # Bavaria's vassalage, which the advance then countered at 50
+            # ACCEPT. The dry run projects the DP the court will hold when
+            # the proposal resolves (the regen, its seat). Display only.
+            from backend.game_logic.diplomacy import regen_dp_for, sovereign_seat_bonus
+            current_dp = int(regen_dp_for(world, author)) + int(sovereign_seat_bonus(world, author))
         if current_dp < 1:
             return None  # AI can't afford counter-offer — reject instead
         if not dry_run:

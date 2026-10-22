@@ -1,0 +1,74 @@
+{
+ "CMD-H": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   1216,
+   1216
+  ]
+ },
+ "CMD-A": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   1168,
+   1168
+  ]
+ },
+ "CMD-M": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   1135,
+   1135
+  ]
+ },
+ "OP": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   745,
+   745
+  ]
+ },
+ "FLD": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   437,
+   437
+  ]
+ },
+ "DL": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   148,
+   148
+  ]
+ },
+ "LAW": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   446,
+   446
+  ]
+ },
+ "VOLTE": {
+  "game": "equal",
+  "view": "equal",
+  "records": "equal",
+  "n_records": [
+   1278,
+   1278
+  ]
+ }
+}

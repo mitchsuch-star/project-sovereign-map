@@ -232,6 +232,14 @@ def _derive_intent(nation: str, world) -> IntentView:
     agenda = get_active_agenda(nation, world)
     if agenda is None:
         return _indifferent(nation)
+    # VP1-X9 (Pre-Deploy S14b part 1, `docs/VP1_DESIGNS_SPEC.md` §7): the
+    # docstring's promise made a rule — the PLAYER's authored plans never feed
+    # an intent (his designs live in `imperial_designs`, which no AI reads); a
+    # player-side deck in `world.agendas` would read as indifferent. The
+    # survival posture is the board's, not a plan, and stays (byte-identical:
+    # France authors no deck).
+    if not agenda.survival and nation == getattr(world, "player_nation", None):
+        return _indifferent(nation)
 
     if agenda.survival:
         against = _survival_threat(nation, world)

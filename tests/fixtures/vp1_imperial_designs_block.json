@@ -1,0 +1,88 @@
+{
+ "_comment": "VP-1 'The Emperor's Designs' (docs/VP1_DESIGNS_SPEC.md §2, §8) — the authored block S14b part 2 ships in europe_1805.json under the key `imperial_designs`. Part 1 arms it on a STAGED scenario only (tests/test_vp1_the_emperors_designs.py), so no player road reaches the shipped boot before its Cabinet page exists.",
+ "owner": "France",
+ "roads": [
+  {
+   "id": "rhine",
+   "title": "The Protector of the Rhine",
+   "proclamation": "The Act of Confederation",
+   "alarm_source": "act_of_confederation",
+   "gate": {"type": "ally_or_vassal", "court": "Bavaria", "reason": "Bavaria must stand with France"},
+   "teeth_proclaim": {"alarm": 8, "relations": {"Austria": -10, "Prussia": -10}},
+   "designs": [
+    {
+     "id": "rhine.confederation",
+     "title": "The Confederation of the Rhine",
+     "role": "construction",
+     "type": "clients",
+     "courts": ["Bavaria", "Hesse", "Saxony", "Hanover"],
+     "need": 3,
+     "hold": 4,
+     "reward": {"type": "drift_shield"},
+     "alarm_source": "act_of_confederation",
+     "teeth_fulfil": {"alarm": 10, "relations": {"Austria": -30, "Prussia": -30}}
+    },
+    {
+     "id": "rhine.german_crown",
+     "title": "A German Crown Brought to Terms",
+     "role": "seal",
+     "type": "brought_to_terms",
+     "courts": ["Austria", "Prussia"]
+    }
+   ]
+  },
+  {
+   "id": "crowns",
+   "title": "The Crowns of Italy",
+   "proclamation": "The Schönbrunn Proclamation",
+   "alarm_source": "schonbrunn",
+   "gate": {"type": "vassal", "court": "KingdomOfItaly", "reason": "the Kingdom of Italy must be France's"},
+   "teeth_proclaim": {"alarm": 8, "relations": {"Naples": -10, "Spain": -10}},
+   "designs": [
+    {
+     "id": "crowns.naples",
+     "title": "The Throne of Naples",
+     "role": "construction",
+     "type": "titled",
+     "provinces": ["Naples"],
+     "hold": 1,
+     "reward": {"type": "authority", "amount": 15}
+    },
+    {
+     "id": "crowns.iron_crown",
+     "title": "The Iron Crown",
+     "role": "seal",
+     "type": "titled_and_terms",
+     "provinces": ["Milan", "Piedmont", "Carniola"],
+     "courts": ["Austria"]
+    }
+   ]
+  },
+  {
+   "id": "system",
+   "title": "The Continental System",
+   "proclamation": "The Blockade of the British Isles",
+   "alarm_source": "blockade",
+   "gate": {"type": "at_war_with_trade_dominance", "reason": "France must be at war with the mistress of the seas"},
+   "teeth_proclaim": {"alarm": 8, "relations": {"Portugal": -15, "Denmark": -15}},
+   "designs": [
+    {
+     "id": "system.blockade",
+     "title": "The Blockade of the British Isles",
+     "role": "construction",
+     "type": "shut_ports",
+     "hold": 6,
+     "reward": {"type": "order_decay", "amount": 2},
+     "alarm_source": "blockade",
+     "teeth_fulfil": {"relations": {"Russia": -10, "Sweden": -10, "Denmark": -10}}
+    },
+    {
+     "id": "system.continent_peace",
+     "title": "The Peace of the Continent",
+     "role": "seal",
+     "type": "britain_signs"
+    }
+   ]
+  }
+ ]
+}

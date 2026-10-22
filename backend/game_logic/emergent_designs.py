@@ -347,6 +347,16 @@ def revanche_line_after(world, written: List[Dict], applied_clauses) -> str:
     return " ".join(lines)
 
 
+def held_cessions_are_punitive() -> bool:
+    """VP1-X1's seam (Pre-Deploy S14b part 1, `docs/VP1_DESIGNS_SPEC.md`
+    §10): the bilateral ratifier's cession of a province the receiver's house
+    already holds (no soil moves) reaches the punitive record, as the table's
+    applier's does. Measured: France holding Tyrol and Carniola signed a peace
+    ceding both and the record was empty — the volte-face stayed open after
+    a partition. The series arms hold it down (False)."""
+    return True
+
+
 def collect_cessions_from_clauses(clauses) -> Dict[str, List[Tuple[str, str]]]:
     """Aggregate applied territory clauses into the `record_punitive_cessions`
     shape — victim -> ordered (province, receiver) pairs, the first

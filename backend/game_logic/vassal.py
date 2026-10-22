@@ -825,6 +825,19 @@ def lord_garrison_present(world, lord: str, capital_name: str) -> bool:
     return False
 
 
+def autonomy_drift(world, vassal_name: str, autonomy: int) -> int:
+    """The per-turn autonomy drift — the ONE reading the tick and the
+    forecast share. VP-1 (S14b, docs/VP1_DESIGNS_SPEC.md §2.1, A3): a
+    Confederation member's DOWNWARD drift is suspended while the Rhine
+    construction holds (the Protector's shield)."""
+    drift = int(AUTONOMY_DRIFT.get(autonomy, 0))
+    if drift < 0:
+        from backend.game_logic.imperial_designs import drift_suspended
+        if drift_suspended(world, vassal_name):
+            return 0
+    return drift
+
+
 def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
     """Knowable steady-state next-turn loyalty delta for ONE vassal.
 
@@ -838,7 +851,7 @@ def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
     """
     state = (getattr(world, 'vassals', {}) or {}).get(vassal_name) or {}
     autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
-    drift = int(AUTONOMY_DRIFT.get(autonomy, 0))
+    drift = autonomy_drift(world, vassal_name, autonomy)
 
     # Step 2: the lord's garrison (VP-D1 single-source predicate).
     garrison_present = False
@@ -961,7 +974,7 @@ def process_vassal_loyalty(world) -> List[dict]:
 
         # 1. Autonomy drift
         autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
-        drift = AUTONOMY_DRIFT.get(autonomy, 0)
+        drift = autonomy_drift(world, vassal_name, autonomy)
         drift_label = ("puppet resentment" if autonomy == AUTONOMY_PUPPET
                        else "satellite drift" if autonomy == AUTONOMY_SATELLITE
                        else "autonomous confidence")

@@ -1344,6 +1344,7 @@ class RatifyTreatyContext:
     _carried_in: Any = field(init=False)
     _carried_rewarded: Any = field(init=False)   # PC-F81's second road (S13e part 4)
     _bilateral_dropped: Any = field(init=False)  # PC-X21: a cession that could not carry, named
+    _held_cessions: Any = field(init=False)  # VP1-X1: ceded ground the receiver's house already held
     _articles_settled: Any = field(init=False)   # PC-R7 (ii) part 2: the war's declared articles
 
 
@@ -1580,6 +1581,11 @@ class WorldState:
         # scenario at from_scenario; empty on a world whose scenario authors
         # none (the legacy world, the tutorial, a created client).
         self.doctrines: Dict[str, object] = {}
+        # VP-1 (S14b part 1, docs/VP1_DESIGNS_SPEC.md §3): the ONE store of
+        # France's designs — {block: the scenario's authored key, state: the
+        # road, holds, latches, terms}. Empty (unarmed) on a world whose
+        # scenario authors none. No AI code reads it.
+        self.imperial_designs: Dict[str, object] = {}
         # AI-3r §2.6 (gate ruling R1): the authored statecraft OVERRIDE —
         # scenario key `statecraft`, per-nation, `wary_of` sub-key only in
         # v1. Merged over the nation_config code table at get_statecraft.
@@ -8792,6 +8798,7 @@ class WorldState:
             "reforms": copy.deepcopy(self.reforms),
             # SR-7d DC-0: the doctrines (one store, scenario and save).
             "doctrines": copy.deepcopy(self.doctrines),
+            "imperial_designs": copy.deepcopy(self.imperial_designs),  # VP-1: scenario key = save key
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -9375,6 +9382,10 @@ class WorldState:
         # backfilled by `save_manager._backfill_doctrines`.
         from backend.game_logic.doctrines import store_from_data as _doctrine_store
         world.doctrines = _doctrine_store(data)
+        # VP-1 (S14b part 1): the designs — one shape function for the
+        # scenario's authored block and the save's store.
+        from backend.game_logic.imperial_designs import store_from_data as _designs_store
+        world.imperial_designs = _designs_store(data)
         # AI-3r §2.6 (R1): the scenario statecraft override (wary_of
         # posture). Absent on pre-AI-3r saves = empty = code table only.
         # The scenario key and the save key are one ("statecraft").
@@ -13085,6 +13096,7 @@ class WorldState:
         # Apply one-time clauses (shared)
         ctx.applied_treaty_clauses: List[Dict] = []
         ctx._bilateral_dropped = []
+        ctx._held_cessions = []
         for clause_index, clause in enumerate(ctx.treaty_clauses):
             ctype = clause.get("type", "")
             amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
@@ -13175,7 +13187,10 @@ class WorldState:
                                 _hold and to_nation and _house(_hold) == _house(str(to_nation))):
                             # already the receiver's, or held by the receiver's own
                             # house (its satellite): the status quo titles it at
-                            # the signature (SR-1a; GE-1's satellite rule) — no move
+                            # the signature (SR-1a; GE-1's satellite rule) — no move.
+                            # VP1-X1: but it IS a cession the court signed — the
+                            # punitive record reads it (the table's applier does).
+                            ctx._held_cessions.append((region_name, from_nation, to_nation))
                             continue
                         from backend.game_logic.settlement_validation import (
                             bilateral_cession_carries as _ohc,
@@ -13526,8 +13541,17 @@ class WorldState:
             collect_cessions_from_clauses, record_punitive_cessions,
         )
         from backend.game_logic.compensation import compensation_offsets
+        _punitive_input = collect_cessions_from_clauses(ctx.applied_treaty_clauses)
+        from backend.game_logic.emergent_designs import held_cessions_are_punitive
+        if held_cessions_are_punitive():
+            # VP1-X1: the bilateral arm's ceded ground the receiver's house
+            # already held — a partition signed over occupied soil.
+            for _region, _from, _to in (getattr(ctx, "_held_cessions", None) or []):
+                _rows = _punitive_input.setdefault(str(_from), [])
+                if all(r != _region for r, _rcv in _rows):
+                    _rows.append((str(_region), str(_to)))
         record_punitive_cessions(
-            self, collect_cessions_from_clauses(ctx.applied_treaty_clauses),
+            self, _punitive_input,
             offsets=compensation_offsets(ctx.applied_treaty_clauses))
 
         # GE-1: once per ratification — titles for every SIGNED cession

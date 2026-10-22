@@ -2511,7 +2511,8 @@ def note_ratification(world, parties: Iterable[str], war_ending: bool,
     """A war-ending treaty the player ratified with a great power latches
     its recognition (§2.4 — "the beaten court SUES; ratifying it flips the
     court to recognizes"). Called from `game_end.note_ratification` (both
-    top-level ratifiers).
+    top-level ratifiers, and — VP1-X2 — the armistice's two signed exits,
+    `game_end.note_armistice_exit`).
 
     Only a SIGNED peace latches, and only one of two kinds (review round,
     finding #0 — the first cut latched every war-ending peace at any time,
@@ -2525,8 +2526,12 @@ def note_ratification(world, parties: Iterable[str], war_ending: bool,
       the applied cessions: Pressburg, Tilsit).
 
     Any other peace feeds the at-peace formula like every court's. A truce
-    that RUNS OUT into peace is not a signature and never latches (the ARMISTICE
-    arm's price names the signed peace, the one road that does).
+    that RUNS OUT into peace is SIGNED (PC-R2: the dictated peace on the held
+    line, or the courted peace), so it latches by the same two kinds as a
+    ratifier's (VP1-X2, Pre-Deploy S14b part 1 — it bypassed this hook, and a
+    dictated peace that left Vienna titled to France latched nothing where
+    the bilateral peace on the same board latched `capital`); a truce that
+    COLLAPSES back into war signs nothing.
 
     RS-D1: a third kind — `capital_kept`, the great powers whose capital the
     signed peace leaves in the Emperor's bloc (the caller reads the map after

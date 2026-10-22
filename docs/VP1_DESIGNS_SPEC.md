@@ -1,6 +1,6 @@
 # VP-1 — "The Emperor's Designs": the gate record
 
-**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation** ("make design calls please do research"), on master at `200cdf91`. **Owner:** Pre-Deploy S14b (`docs/PRE_DEPLOY_PLAN.md` §2), built in three parts (§9). **Nothing is built by this record.**
+**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation** ("make design calls please do research"), on master at `200cdf91`. **Owner:** Pre-Deploy S14b (`docs/PRE_DEPLOY_PLAN.md` §2), built in three parts (§9). **Part 1 — the substrate, unarmed — ✅ LANDED October 22, 2026 (landing record §12).** Parts 2 and 3 to build.
 
 **How it was ruled.** Eight read-only researchers verified the mechanics each design would hook; three designers drafted complete proposals from three angles (history-first, player-experience-first, systems-reuse-first); three judges scored them through a historian's, an architect's and a playtester's lens; one synthesis merged the highest-scored (history-first) with the best of the others; two adversarial critics checked it against the repo and the project's rules and returned 35 corrections, every one applied below or answered. Plan 3's "five gate questions" (`docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md` line 52) are not in the repo — only their recommendations are — so Q1–Q5 answer those recommendations and say so.
 
@@ -37,7 +37,7 @@ Kept as ruled, and named so no part reverses it: ruling J / PC-R7 (ii) — the p
 | 12 | Beside the Congress and the Verdict? | **A waypoint toward the Congress**: the Verdict +2 as a score term, not a floor (A2); no Congress term granted. The Rhine construction **can** move the Congress count (§10). | A tier floor of 2 (erases the Congress's distinction); granting Congress recognition (counts twice). |
 | 13 | WO-D4(b)? | **Absorbed as Road III (§5).** | §5 |
 | 14 | SF-ECON-1? | **Absorbed: one verb, four Acts of the Empire (§5).** | §5 |
-| 15 | The done-when arm? | **VP1-CS**, a new script copied from the Tilsit road (§9 Part 3); the land roads' arms reported per seed beside it. | `commanded_full40` (peaks at 10/26 ports, never cedes a province to France); staged fixtures alone; tuning the 50% line. |
+| 15 | The done-when arm? | **VP1-CS**, a new script copied from the Tilsit road (§9 Part 3); the land roads' arms reported per seed beside it. *Part 1's head measured (§12.1): the Tilsit road latches the Blockade on no seed at K = 6 today, so by §10's own condition **VP1-RH carries the done-when** and VP1-CS is reported per seed beside it.* | `commanded_full40` (peaks at 10/26 ports, never cedes a province to France); staged fixtures alone; tuning the 50% line. |
 | 16 | Condition (c)? | **The sentence below.** | A Congress-only sentence (the Congress is unreached on every played road); copy promising Westphalia, a Bonaparte Naples or a peacetime System. |
 | 17 | Siblings (Rule 10)? | **VP1-X1 … X10 (§10)**, filed in `BUG_FIXES.md` §VP1 with this record; each reproduced before it is built. | Building on any of them unreproduced. |
 
@@ -223,11 +223,11 @@ New threat sources carry ledger labels (`act_of_confederation`, `schonbrunn`, `b
 ## §10 Risks, re-open conditions, siblings
 
 **Risks and re-open conditions**
-- **Only Road III is measured to complete.** No played arm has reached a partition Pressburg or a clean volte-face (France's war score against Austria runs +8 to −7 on the archives). The record and the store copy say so; VP1-RH and VP1-TH report the land roads per seed.
+- **No road is measured to complete on today's tree.** Road III was, on the October 4 archive (the Tilsit road latched K = 6 on turns 16 / 16 / 13); part 1's head re-ran it and it no longer does (§12.1). No played arm has reached a partition Pressburg or a clean volte-face (France's war score against Austria runs +8 to −7 on the archives). The record and the store copy say so; VP1-RH carries the done-when, and VP1-CS and VP1-TH report per seed.
 - **Road III has no margin.** Spain's exit and the coalition pulling members back can unlatch it — reported per seed.
 - **The Rhine road may be too easy** (Bavaria's vassalage is cheap on turn 1). If it latches before turn 10 on every seed, the need rises to 4 of 4 or the hold to 6, in band.
 - **The Rhine road can open the Congress.** A satellite at loyalty ≥ 40 titles its homeland (`province_title_kind`): with Bavaria (3), Hesse (2) and Hanover (6) the bloc reaches 46 against `hold_titled` 45. That is a real interplay, not a defect — the Confederation was the Empire's bid for recognition — measured on VP1-RH, and its alarm against the Congress's hold ceiling (80) reported per arm.
-- **The arm may not complete.** If no seed latches at K = 6, VP1-RH becomes the done-when arm, and the record says so.
+- **The arm may not complete.** If no seed latches at K = 6, VP1-RH becomes the done-when arm, and the record says so. **Fired (§12.1):** the Tilsit road latches on no seed today; VP1-RH is the done-when arm.
 - **Re-open:** a France deck in `world.agendas` only if S14e finds Europe blind to France's road; a larger act deck only if S14e sees DDB-D7's idle chest again.
 
 **Siblings (Rule 10)** — filed in `BUG_FIXES.md` §VP1 with this record; each reproduced on a board before it is built.
@@ -257,3 +257,51 @@ New threat sources carry ledger labels (`act_of_confederation`, `schonbrunn`, `b
 | S14c's events deck (the Confederation of the Rhine, the end of the Holy Roman Empire, the Berlin Decree, Tilsit) | S14c (`PRE_DEPLOY_PLAN.md` §2) — a hand-off line written into its row with this record | an event on one of these moments reads `world.imperial_designs`, never fires on a forsworn road, never doubles a proclamation | S14c's own pins | S14c's row |
 
 **Struck from every surface, not deferred:** Westphalia, a Bonaparte Naples, Rome 1809, a peacetime road into the System, Trianon licences, the Milan Decree's cut, an AI reading of France's road, a France deck in `world.agendas`.
+
+---
+
+## §12 Part 1 landing record — the substrate, unarmed (October 22, 2026)
+
+*Built on master after `6bc0564e`; rows `BUG_FIXES.md` §VP1 (X1, X2, X3, X9 FIXED; X11, X12 found and FIXED; X13 found and OPEN at part 2's head); rules `SYSTEMS_REFERENCE.md` §143; pins `tests/test_vp1_the_emperors_designs.py`; the authored block `tests/fixtures/vp1_imperial_designs_block.json` (the shipped scenario carries none until part 2); the instruments `tools/_vp1_series_arms.py` and `tools/_vp1_arm_attribution.py` (`_final.json` each).*
+
+### 12.1 The head — reproduced first
+
+- **The §2 facts hold on today's tree.** Rhine 0 of 3 (Bavaria allied, Hesse, Saxony and Hanover at peace and free); Iron Crown 2 of 3 (Milan and Piedmont titled as the Kingdom of Italy's homeland, Carniola Austria's); the System 10 of 26 against a derived line of 13 (France 4, Spain 3, Holland 2, the Kingdom of Italy 1 — as a satellite of a lord at war); all three road gates open at boot; with Bavaria, Hesse and Hanover as satellites the bloc titles 46 against the Congress's 45 (§10's interplay, as recorded).
+- **The Tilsit road does not latch the Blockade at K = 6 on any seed.** The NAV1T arms on the archive's own argv (`sf_nav1_tilsit_road.json`, 30 turns, decline-from Britain, Portugal, the Papal States, Naples, Austria, Russia; mock LLM, `PYTHONHASHSEED=0`) peak at 15 / 14 / 15 of 26 (historical / austerlitz / marengo); the longest run at 13 or more is **3 / 4 / 3 end turns**. The ports leave on the same beats on every seed: Spain's exit −3 at end turn 15 (Britain and Spain sign); on historical Russia and Austria, enrolled at turns 12–13, leave together at end turn 20 when the Fourth Coalition forms (marengo: Austria at 17, Russia at 20; austerlitz: Russia never enrolls — it countered, and the decline-from policy refused). Britain's bond binds Austria from turn 4 on every seed and Russia from turn 9 (10 on austerlitz); both renege into the coalition. The October 4 archive's latch (turns 16 / 16 / 13) does not reproduce. **Ruled by the record's own condition (§10):** K stays 6 — never moved to fit an arm — and VP1-RH carries part 3's done-when; VP1-CS is built and reported per seed beside it.
+- **VP1-X1** reproduced only partly (the title, the gained list and the Revanche's reconciliation read the signed terms and saw the held cession; the punitive record alone missed it); **X2** and **X3** reproduced on boards. Each is recorded on its row.
+- **One new find, VP1-X12**: turn 1's Cabinet withheld the counter the advance makes (no AI purse is written before the first regen). Fixed here; its sweep filed **VP1-X13** (the AI courts open with empty purses while France opens with her regen) at part 2's head.
+
+### 12.2 Built
+
+- **`backend/game_logic/imperial_designs.py`** — the store `world.imperial_designs = {block, state}` (`fresh_state`, `from_block`, `store_from_data`: one shape for the scenario key and the save), the closed sets (three roads, six design types, three gate types, the manners `subjugation` › `partition` › `moderate`), the §8 tunables as named ints; the six predicates (`design_reading`: `client_rows`, `ports_reading` derived from `cs_shutout_pct`, `province_title_kind`, `terms_met`), the gate (`gate_met`), the branch (`proclaim_refusal` — the one predicate the part-2 executor, the road page and the counsel ask; `proclaim` writes once and applies the teeth); the terms latch (`note_ratification`: the manner read off the treaty's own terms with ruling J's netting — `compensation_offsets` / `net_of_compensation` exactly as the Revanche line nets it — written before any proclamation, so a Pressburg signed first seals the road proclaimed after it; `note_war` breaks it); the tick (`tick`: holds run only on the proclaimed road, latch, lapse, the one-shot reward through the `rewarded` latch); the live-gated rewards (`drift_suspended`, `order_decay`); THE DECISIVE PEACE's rule (`decisive_peace_reading`, the six conditions named) with its stamp seam `decisive_peace_released()` returning False until part 3; the payload (`build_designs_payload` — ints, None unarmed, built on every read: a handful of courts, three provinces and the port list, no region scan).
+- **The hooks:** `game_end.note_ratification` (the one chokepoint both ratifiers and now the armistice's exits pass) → the terms latch; `diplomacy.set_diplomatic_state` (beside `note_war_entry`) → `note_war`; `game_end.process_end_of_turn` (after the Congress, before the Verdict) → `tick`; `vassal.autonomy_drift` (the tick's and the forecast's one drift reading) → the shield; `coalition._calculate_threat_decay` → the order; `diplomatic_templates.continental_system_lift_offered` → off for the proclaimed System's life.
+- **Content and persistence:** `_validate_imperial_designs` (the closed sets, the courts against the roster, the provinces against the registry, one construction and one seal per road); `WorldState.imperial_designs` serialized, read by `store_from_data`; `save_manager._backfill_imperial_designs` (the `_backfill_reforms` idiom — the 1805 campaign only, a carried store never overwritten).
+- **The siblings:** VP1-X1 (`RatifyTreatyContext._held_cessions`, the seam `emergent_designs.held_cessions_are_punitive`), X2 (`game_end.note_armistice_exit`), X3 and X11 (`game_end.receiver_in_bloc`), X9 (the guard in `intent._derive_intent`), X12 (`diplomacy.regen_dp_for`).
+
+### 12.3 Measured
+
+- **`BASELINE_SERIES` byte-identical** on every arm — none, the store (D), X1, X2, X3, X12 and all down together — with every reach counted and **zero**: the shipped boot is unarmed, so no read finds an armed store, and the ambient sim signs no held cession, no cession to a vassal, no armistice exit and builds no dry-run counter before a purse is written (`tools/_vp1_series_arms_final.json`).
+- **The eight commanded arms** (CMD-H, CMD-A, CMD-M, OP, FLD, DL, LAW, VOLTE) re-run on the part's tree: every digest record equal to the S14b head's archive `docs/audits/score_runs/2026_10_21_rr6x3/` but the run's own stamps (`tools/_vp1_arm_attribution_final.json`).
+- **Untouched pins pass unedited:** `test_nation_agendas.py` (France deckless), `test_ai_intent_emergent_designs.py`, `test_ai_intent_system_wiring.py`, the historical envelope.
+
+### 12.4 The done-when (§9 Part 1), item by item
+
+| Item | Pin |
+|---|---|
+| boot readings Rhine 0 / 3, Iron Crown 2 / 3, System 10 / 26 | `TestTheStore::test_the_boot_readings` |
+| each predicate latches on its staged board and lapses when broken | `TestThePredicates` (the Confederation on its fourth end turn, Naples, the Blockade on its sixth, the partition, subjugation, the moderate peace and its window, the Iron Crown, Britain's signature and the lift clause) |
+| a Pressburg before the proclamation seals after it | `test_a_partition_before_the_proclamation_seals_after_it` |
+| the reward seams apply only while held; the one-shot pays once across a save and load | `test_the_confederation_latches_on_its_fourth_end_turn_and_shields`, `test_the_blockade_latches_on_its_sixth_end_turn_and_orders_the_continent`, `test_the_throne_of_naples_pays_its_authority_once` |
+| the shipped boot is unarmed | `test_the_shipped_boot_is_unarmed`; a pre-VP-1 save armed by its scenario, never overwritten: `test_a_pre_vp1_save_is_armed_by_its_scenario_and_never_overwritten` |
+| the deckless pins pass unedited | §12.3 |
+| X1–X3 pinned red (seam down) then green | `TestVP1X1…`, `TestVP1X2…`, `TestVP1X2OnThePcR2Board`, `TestVP1X3…` |
+| `BASELINE_SERIES` byte-identical with the reach counted | §12.3 |
+| THE DECISIVE PEACE's rule computed, the stamp held | `TestTheDecisivePeaceRule` |
+| the full suite green through the hook | the part's commit |
+
+### 12.5 Carried into their specs (the amendments this part lands)
+
+- **A1** — `NATION_AGENDAS_SPEC.md` §9's player-France row: France's goals live in `world.imperial_designs`, never `world.agendas`.
+- **A3** — `VASSAL_DEEPENING_SPEC.md` §2.3: the Protector's shield suspends a member's downward `AUTONOMY_DRIFT` term (the grip term untouched).
+- **A5** — `NATION_AGENDAS_SPEC.md` §9's seed note: no design pays gold.
+- A2, A4 (the Verdict's term, the fifth register) and A6 (ROADMAP row 13) land with part 3.

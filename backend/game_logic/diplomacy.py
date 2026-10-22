@@ -2978,6 +2978,9 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
             # that court's treaty recognition (the Congress's latch).
             from backend.game_logic.congress import note_war_entry
             note_war_entry(world, nation_a, nation_b)
+            # VP-1 (S14b): ... and the Emperor's terms with that court.
+            from backend.game_logic.imperial_designs import note_war as _designs_war
+            _designs_war(world, nation_a, nation_b)
             # The Tilsit clause's exit (SCORE_FINISH_SPEC §6.6 item 7): a
             # member that goes to war with the System's lord leaves the
             # System — every road to war passes this setter, so every road
@@ -11762,31 +11765,41 @@ def dp_refill(regen: int, unspent: int) -> Tuple[int, int]:
     return pool, max(0, pool - regen)
 
 
+def regen_dp_for(world, nation: str) -> int:
+    """The DP a nation's court regenerates this advance, before the seat and
+    the bank — the ONE reading `_process_dp_regen` applies and the counter's
+    dry run projects before the first regen has written a purse (VP1-X12)."""
+    return calculate_dp(*_regen_inputs(world, nation))
+
+
+def _regen_inputs(world, nation: str):
+    """(diplomat, authority, controls_capital) — the regen's three inputs."""
+    diplomats = getattr(world, 'diplomats', {})
+    nation_auth = getattr(world, 'nation_authority', {})
+    diplomat = diplomats.get(nation)
+    if nation == world.player_nation:
+        authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
+    else:
+        authority = nation_auth.get(nation, 60)
+    # World-scoped (item 7): with the legacy global, every Europe-only
+    # nation (and Britain via the Netherlands proxy miss) was treated as
+    # "capital lost" → permanent -1 DP every turn.
+    capital = world.get_nation_capital(nation)
+    controls_capital = False
+    if capital and capital in world.regions:
+        controls_capital = world.regions[capital].controller == nation
+    return diplomat, authority, controls_capital
+
+
 def _process_dp_regen(world) -> None:
     """Regenerate DP for all nations — the regen plus one turn's unspent
     points (DP-1, `dp_refill`), up to DP_BANK_CAP."""
-    diplomats = getattr(world, 'diplomats', {})
-    nation_auth = getattr(world, 'nation_authority', {})
-
     all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
     for nation in all_nations:
         # R81: Skip eliminated nations (0 regions + 0 marshals)
         if nation != world.player_nation and _is_nation_eliminated(world, nation):
             continue
-        diplomat = diplomats.get(nation)
-        if nation == world.player_nation:
-            authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
-        else:
-            authority = nation_auth.get(nation, 60)
-
-        # World-scoped (item 7): with the legacy global, every Europe-only
-        # nation (and Britain via the Netherlands proxy miss) was treated as
-        # "capital lost" → permanent -1 DP every turn.
-        capital = world.get_nation_capital(nation)
-        controls_capital = False
-        if capital and capital in world.regions:
-            controls_capital = world.regions[capital].controller == nation
-
+        diplomat, authority, controls_capital = _regen_inputs(world, nation)
         dp = calculate_dp(diplomat, authority, controls_capital)
 
         # NP-5 THE SEAT (NAPOLEON_SPEC §8, N11): +1 DP while the nation's
@@ -12089,6 +12102,10 @@ def _process_armistice_expiration(world) -> List[Dict]:
             # as its terms (the stream runs on: the treaty record persists).
             from backend.game_logic.game_end import take_status_quo_titled as _take_sq
             _take_sq(world)
+            # VP1-X2: whether the Emperor was a vassal BEFORE the signature
+            # (the ratifiers' own `_player_was_vassal`).
+            _pl = getattr(world, "player_nation", "")
+            _was_vassal = bool(((getattr(world, "vassals", {}) or {}).get(_pl) or {}).get("lord"))
             resolve_pair_to_resolved(world, diplo_key)
             set_diplomatic_state(world, nation_a, nation_b, "PEACE", reason)
             _sq_entries = _take_sq(world, [diplo_key])
@@ -12104,9 +12121,23 @@ def _process_armistice_expiration(world) -> List[Dict]:
             write_settlement_peace_floors(world, [{
                 "pair": diplo_key, "current_state_before": "ARMISTICE", "final_state": "PEACE"}])
             # GE-1 review round: the war this truce ends is a peace the
-            # record counts — the truce itself never was one.
-            from backend.game_logic.game_end import count_peace
-            count_peace(world, nation_a, nation_b)
+            # record counts — the truce itself never was one. VP1-X2: and it
+            # is a SIGNED peace (PC-R2), so it runs the ratifiers' one note —
+            # the dictated exit's terms are the truce's sureties AND its held
+            # line, which the loser's signature leaves with the victor.
+            from backend.game_logic.game_end import count_peace, note_armistice_exit
+            _exit_clauses = [dict(c) for c in ((_treaty or {}).get("clauses") or [])
+                             if isinstance(c, dict)] if isinstance(_treaty, dict) else []
+            if dictated:
+                _held_line = list((truce_sureties_for(world, nation_a, nation_b) or {}).get("held") or [])
+                _loser, _victor = str(exit_.get("loser") or ""), str(exit_.get("victor") or "")
+                if _held_line and _loser and _victor:
+                    _exit_clauses.append({"type": "territory_cede", "from": _loser,
+                                          "to": _victor, "regions": _held_line,
+                                          "held_line": True})
+            note_armistice_exit(world, nation_a, nation_b, clauses=_exit_clauses,
+                                source="armistice_dictated" if dictated else "armistice_expired_peace",
+                                was_vassal=_was_vassal)
             # SR-1b: the clients' truces thaw with the lord's.
             for x, y in client_pairs_that_follow(world, nation_a, nation_b, "PEACE"):
                 client_key = world._make_diplo_key(x, y)

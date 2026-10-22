@@ -528,6 +528,11 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
         # taken (review #42; dormant without a summons).
         from backend.game_logic import gazette as _gazette
         _gazette.recompose_congress_column(world)
+        # VP-1 (S14b part 1): the designs' holds, latches and one-shot rewards
+        # — after the Congress (a design's peace may latch it), before the
+        # Verdict. THE DECISIVE PEACE's stamp is part 3's (its seam is held).
+        from backend.game_logic import imperial_designs as _designs
+        _designs.tick(world, int(turn_ended))
     vt = verdict_turn(world)
     if (vt is not None and int(turn_ended) >= vt
             and terminal_ending(world) is None
@@ -1305,6 +1310,10 @@ def title_signed_cessions(world, terms: Iterable[Dict[str, Any]]) -> None:
             continue
         if term.get("type") not in ("territory_cede", "territory"):
             continue
+        if term.get("held_line"):
+            # VP1-X2: a dictated peace's held line — the setter already titled
+            # it as the status quo's retention (its `retained` mark kept).
+            continue
         receiver = str(term.get("to") or "")
         ceder = str(term.get("from") or "")
         if not receiver or not ceder:
@@ -1900,6 +1909,42 @@ def take_recognition_lines(world) -> List[str]:
     return [str(x) for x in (lines or []) if x]
 
 
+def receiver_in_bloc(world, receiver: str, player: str) -> bool:
+    """VP1-X3 / X11 (Pre-Deploy S14b part 1, `docs/VP1_DESIGNS_SPEC.md` §10):
+    a cession's receiver is the Emperor's when it is France or a court of her
+    vassal chain — the rule `_ours`, the giver line, `capital_kept` and
+    `congress._beaten_recently` already read. The beaten latch and the gained
+    counter read the literal `to == player`, so Austria ceding Carniola to the
+    Kingdom of Italy (Pressburg's Venetia) latched nothing. A seam (the series
+    arms hold it down to the literal)."""
+    receiver = str(receiver or "")
+    if not receiver or not player:
+        return False
+    return receiver == player or str(world._top_overlord(receiver) or receiver) == player
+
+
+def note_armistice_exit(world, nation_a: str, nation_b: str, *,
+                        clauses: Iterable[Dict[str, Any]], source: str,
+                        was_vassal: bool) -> None:
+    """VP1-X2 (Pre-Deploy S14b part 1): an armistice that ripens into a
+    signed peace (the dictated exit on the held line, or the courted exit —
+    PC-R2: the peace is SIGNED) is a ratification the Emperor signs, and runs
+    `note_ratification` like every ratifier: the treaties row, the Congress's
+    treaty latch, the Humbled-Peace check, the designs' terms. It counted the
+    peace alone (`count_peace`), so a dictated peace that left Vienna titled
+    to France read REFUSES at the Congress where the bilateral peace on the
+    same board read RECOGNIZES. An AI–AI pair keeps `count_peace` exactly (a
+    no-op). A seam (the series arms hold it down to `count_peace`)."""
+    player = _player(world)
+    if not player or player not in (nation_a, nation_b):
+        count_peace(world, nation_a, nation_b)
+        return
+    counterparts = [n for n in (nation_a, nation_b) if n != player]
+    note_ratification(world, signed_terms=list(clauses or []), applied_clauses=[],
+                      was_vassal=bool(was_vassal), counterparts=counterparts,
+                      war_ending=True, source=str(source))
+
+
 def count_peace(world, nation_a: str, nation_b: str) -> None:
     """A peace that no ratifier signs — an armistice that runs out into
     PEACE (`diplomacy._process_armistice_expiration`). The truce itself was
@@ -1966,7 +2011,8 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
             names = _territory_term_regions(term)
             if term.get("from") == player:
                 ceded.update(r for r in names if not _ours(r))
-            elif term.get("to") == player:
+            elif receiver_in_bloc(world, str(term.get("to") or ""), player):
+                # VP1-X11 (X3's twin): gained by the Emperor's bloc.
                 gained.update(r for r in names if _ours(r))
     for term in applied:
         if term.get("type") == "create_client" and term.get("from") == player:
@@ -1998,7 +2044,7 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
     for term in signed + applied:
         if term.get("type") not in ("territory_cede", "territory"):
             continue
-        if term.get("to") != player or not term.get("from"):
+        if not term.get("from") or not receiver_in_bloc(world, str(term.get("to") or ""), player):
             continue
         if any(_ours(r) for r in _territory_term_regions(term)):
             giver = str(term.get("from"))
@@ -2022,6 +2068,11 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
     # The wording rides the ratifier's own summary (`take_recognition_lines`
     # — a same-turn hand-off, like the status-quo stash).
     world._recognition_lines = _congress.recognition_lines(world, latched or {})
+    # VP-1 (S14b, docs/VP1_DESIGNS_SPEC.md §3): the Emperor's terms with each
+    # court — a fact recorded at every treaty he signs (the seals read it).
+    from backend.game_logic import imperial_designs as _designs
+    _designs.note_ratification(world, terms=signed + applied,
+                               counterparts=parties, war_ending=bool(war_ending))
     homeland = list((getattr(world, "nation_starting_regions", {}) or {}).get(player, []) or [])
     capital = world.get_nation_capital(player) or ""
     ceded_home = ceded & set(homeland)

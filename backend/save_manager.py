@@ -433,6 +433,9 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # scenario's table (a raised contingent would otherwise take the
     # generic "<Adjective> Contingent" name).
     _backfill_contingent_commanders(world)
+    # VP-1 (S14b): a pre-VP-1 save of a scenario that NOW authors the
+    # Emperor's designs is armed with them, a fresh state (no road).
+    _backfill_imperial_designs(world)
 
     # GE-1 verification round: a fallen campaign's save that does not
     # name its own Final file — written by 975f1f13, which stamped
@@ -714,6 +717,31 @@ def _backfill_doctrines(world: WorldState) -> None:
         if store:
             world.doctrines = store
             refresh_doctrine_terms(world)
+            return
+
+
+def _backfill_imperial_designs(world: WorldState) -> None:
+    """VP-1 (docs/VP1_DESIGNS_SPEC.md §3): arm a pre-VP-1 save with the
+    designs its scenario NOW authors (the `_backfill_reforms` idiom): ONLY the
+    1805 campaign, and a save already carrying a store is never overwritten."""
+    if getattr(world, "imperial_designs", None):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    from backend.game_logic.imperial_designs import store_from_data
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                store = store_from_data(json.load(fh))
+        except (OSError, ValueError):
+            continue
+        if store:
+            world.imperial_designs = store
             return
 
 

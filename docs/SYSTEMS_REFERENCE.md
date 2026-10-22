@@ -11781,3 +11781,40 @@ The order (`strategic.pursue_known_location`, the single source of the issuance 
 
 `tools/_rr6_x3_arm_attribution.py` (`child` runs the driver in-process with the rule or RR6-X8 held down at its seam; `run` drives every arm all-down, rule-down and X8-down beside a `score_run.py run` of the shipped tree and names the first GAME parting from the entry archive), `tools/_rr6_x3_series_arms.py` (the series with the reach counted). The C4 probe (`narration_c4_intel_row`) accepts a live row placed in sight (FULL or PARTIAL), the rule's own reading.
 
+## 143. THE EMPEROR'S DESIGNS — THE SUBSTRATE, UNARMED (VP-1 part 1; VP1-X1, X2, X3, X9, X11, X12; Pre-Deploy S14b, October 22, 2026)
+
+*The gate record `docs/VP1_DESIGNS_SPEC.md` (§12 the part's landing record). `BUG_FIXES.md` §VP1 (X1, X2, X3, X9, X11, X12 FIXED; X13 OPEN at part 2's head). Pins `tests/test_vp1_the_emperors_designs.py`. The series' `tools/_vp1_series_arms.py` and the arms' `tools/_vp1_arm_attribution.py` (`_final.json` each).*
+
+### 143.1 The store — `world.imperial_designs`
+
+France's own objectives live in their OWN store (the record's A1), never `world.agendas`: no AI code reads it. `{"block": <the scenario's authored imperial_designs key>, "state": {road, proclaimed_turn, prologue_turn, fulfilled, rewarded, hold, terms, britain_signed, acts}}` — one shape for the scenario key and the save (`imperial_designs.store_from_data`). A world with no authored block is **unarmed**: every reader answers None / False / 0 and nothing is shown. The shipped 1805 scenario authors none until S14b part 2 builds the road page, so no road a player could only type ships; part 1 arms it on a staged scenario carrying the block part 2 ships (`tests/fixtures/vp1_imperial_designs_block.json`).
+
+### 143.2 Roads, designs, the branch
+
+Three roads of two designs each — a construction, then a seal: **rhine** (`clients`: 3 of Bavaria, Hesse, Saxony, Hanover under the owner's protection at loyalty ≥ 40, held 4 end turns; `brought_to_terms`: Austria or Prussia), **crowns** (`titled`: Naples, held 1; `titled_and_terms`: Milan, Piedmont, Carniola and Austria brought to terms), **system** (`shut_ports`: the Congress's SHUT OUT line, ceil(`cs_shutout_pct` × the continental ports / 100) = 13 of 26, held K = 6; `britain_signs`: the trade-dominance court's war-ending peace after the Blockade, a great power enrolled, no lift clause, the homeland whole). Each road has a gate (`ally_or_vassal`, `vassal`, `at_war_with_trade_dominance`). `proclaim_refusal` is the ONE predicate the executor, the road page and the counsel ask (no block, a second road — "cannot be undone", the reign ended, the capital lost, the Emperor captive, France a vassal, the gate shut); `proclaim` writes the choice once and applies the proclamation's teeth (alarm, relations). Holds run only on the proclaimed road; a forsworn design never fulfils. The tick (`game_end.process_end_of_turn`, after the Congress, before the Verdict) advances the holds, latches, marks a latched design whose live reading fails as **lapsed**, and pays the one-shot reward once through the `rewarded` latch (+15 authority for Naples).
+
+### 143.3 The terms latch — a fact, recorded before any proclamation
+
+`game_end.note_ratification` — the one chokepoint both ratifiers and the armistice's signed exits pass — hands every war-ending treaty the player signs to `imperial_designs.note_ratification`, which records the owner's terms with each counterpart court in one closed set of **manners** (precedence `subjugation` › `partition` › `moderate`): `subjugation` she is the owner's vassal; `partition` at least 2 of her homeland provinces, or her capital, ceded to the owner's chain net of compensation; `moderate` a homeland cession with a compensation, completed by her alliance with the owner within 20 turns. The cession list is netted by `compensation_offsets` / `net_of_compensation` exactly as the Revanche line nets it (ruling J kept), so the manner and the Revanche can never disagree. Guarded: no province of the owner's opening homeland in her bloc at the signature. A new war between them breaks it (`note_war`, beside `note_war_entry`). Because the latch is a fact, a Pressburg signed on turn 7 seals the road proclaimed on turn 8.
+
+### 143.4 The rewards — never gold
+
+- **The Protector's shield** (`drift_suspended`, A3): while the proclaimed Rhine construction holds, a member's downward `AUTONOMY_DRIFT` term is 0 — read through `vassal.autonomy_drift`, the one drift reading the tick and the forecast share, so every loyalty surface shows what is applied.
+- **The Continent's order** (`order_decay`): while the proclaimed Blockade holds, the owner's alarm decays 2 more a turn (`coalition._calculate_threat_decay`, outside the cap).
+- **The lifting stops** (`diplomatic_templates.continental_system_lift_offered`): the proclaimed System no longer drafts its own lifting into the owner's offers to Britain.
+
+### 143.5 THE DECISIVE PEACE — the rule, the stamp held
+
+`decisive_peace_reading` computes the record's six conditions, each named (proclaimed; both designs latched; the construction holds — the System's read by its enrolled members, since Britain's peace reopens the ports; the sealing court at peace, gone or subject; the realm free — capital held, the Emperor free, France sovereign, no fall clock, no Humbled Peace; the homeland whole against the sealing court's bloc and every enemy). Its stamp seam `decisive_peace_released()` returns False until part 3 lands the register, the client and the arms.
+
+### 143.6 The siblings
+
+- **VP1-X1:** the bilateral ratifier's cession of a province the receiver's house already holds reaches the punitive record (`RatifyTreatyContext._held_cessions`, transient; the seam `emergent_designs.held_cessions_are_punitive`) — no soil moves, no alarm, no announcement.
+- **VP1-X2:** the armistice's two signed exits (the dictated peace on the held line, the courted peace — PC-R2) run `game_end.note_armistice_exit`: `note_ratification` when the player is a party (the held line rides as a `held_line` cession that `title_signed_cessions` leaves to the setter's retained title), `count_peace` exactly for an AI–AI pair.
+- **VP1-X3 / X11:** the beaten latch and the gained counter read the bloc (`game_end.receiver_in_bloc` — France or a court of her vassal chain; an ally is not the bloc).
+- **VP1-X9:** `intent._derive_intent` reads a player-side deck as indifferent (survival stays).
+- **VP1-X12:** the counter's dry run projects the purse the first regen writes (`diplomacy.regen_dp_for` + the seat) when a court has none yet; turn 1's Cabinet bands now agree with the advance on all eight banded rows.
+
+### 143.7 Measured
+
+`BASELINE_SERIES` byte-identical on every arm with the reach counted and zero; the eight commanded arms equal to the S14b head's archive record for record; the deckless pins untouched (`VP1_DESIGNS_SPEC.md` §12.3). The Tilsit road no longer latches the Blockade at K = 6 on any seed (longest run 3 / 4 / 3 end turns), so VP1-RH carries part 3's done-when (§12.1).

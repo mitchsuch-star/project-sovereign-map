@@ -1596,6 +1596,11 @@ def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
         if len(cs_members) >= 2:
             decay += 1
 
+    # VP-1 (S14b, docs/VP1_DESIGNS_SPEC.md §2.5): the Continent's order —
+    # the Blockade's live reward, outside the cap, on the designs' owner.
+    from backend.game_logic.imperial_designs import order_decay
+    decay += order_decay(world, tgt)
+
     return int(decay)
 
 

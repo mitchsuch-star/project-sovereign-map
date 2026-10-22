@@ -1030,6 +1030,117 @@ def _known_region_names(data: dict) -> Set[str]:
         return set()
 
 
+def _validate_imperial_designs(result, data: dict, known_nations: Set[str]) -> None:
+    """VP-1 (docs/VP1_DESIGNS_SPEC.md §3): the authored `imperial_designs`
+    block — {owner, roads: [{id, title, proclamation, gate, designs: [two],
+    teeth_proclaim?}]}. The owner is a scenario nation; road ids, gate types,
+    design types and roles come from the closed sets; each road carries one
+    construction and one seal; every named court is a scenario nation and
+    every named province exists; holds, needs and teeth sit in their bands."""
+    if "imperial_designs" not in data:
+        return
+    from backend.game_logic import imperial_designs as ID
+    block = data.get("imperial_designs")
+    if not isinstance(block, dict):
+        result.add_error("imperial_designs", f"Must be an object, got {type(block).__name__}")
+        return
+    regions = set(data["regions"]) if isinstance(data.get("regions"), dict) else set()
+    # The 1805 scenario's courts are the Europe roster (the registry injects
+    # the map, so a court with no authored marshal — Hesse, Saxony — is still
+    # a nation of the scenario); its provinces are the registry's.
+    known_nations = set(known_nations or ())
+    if data.get("sovereign_map") == "europe":
+        from backend.nation_config import EUROPE_ROSTER
+        known_nations |= set(EUROPE_ROSTER)
+        if not regions:
+            try:
+                from backend.models.region import create_europe_regions
+                regions = set(create_europe_regions())
+            except Exception as exc:  # the CLI may run without the registry
+                from backend.errors import report
+                report(exc, "validator._validate_imperial_designs: create_europe_regions")
+    owner = block.get("owner")
+    if not isinstance(owner, str) or not owner:
+        result.add_error("imperial_designs.owner", "Must name the nation whose designs these are")
+    elif known_nations and owner not in known_nations:
+        result.add_error("imperial_designs.owner", f"Unknown nation '{owner}'")
+    roads = block.get("roads")
+    if not isinstance(roads, list) or not roads:
+        result.add_error("imperial_designs.roads", "Must be a non-empty list")
+        return
+    seen_roads: Set[str] = set()
+    seen_designs: Set[str] = set()
+
+    def _int_in(path: str, value, lo: int, hi: int) -> None:
+        if isinstance(value, bool) or not isinstance(value, int) or not lo <= value <= hi:
+            result.add_error(path, f"Must be an integer in {lo}..{hi}, got {value!r}")
+
+    def _teeth(path: str, teeth) -> None:
+        if teeth is None:
+            return
+        if not isinstance(teeth, dict):
+            result.add_error(path, "Must be an object")
+            return
+        if "alarm" in teeth:
+            _int_in(f"{path}.alarm", teeth["alarm"], 0, 20)
+        for court, delta in (teeth.get("relations") or {}).items():
+            if known_nations and court not in known_nations:
+                result.add_error(f"{path}.relations.{court}", f"Unknown nation '{court}'")
+            _int_in(f"{path}.relations.{court}", delta, -50, 0)
+
+    for i, road in enumerate(roads):
+        path = f"imperial_designs.roads[{i}]"
+        if not isinstance(road, dict):
+            result.add_error(path, "Must be an object")
+            continue
+        rid = road.get("id")
+        if rid not in ID.ROADS:
+            result.add_error(f"{path}.id", f"Must be one of {list(ID.ROADS)}, got {rid!r}")
+        elif rid in seen_roads:
+            result.add_error(f"{path}.id", f"Duplicate road '{rid}'")
+        seen_roads.add(str(rid))
+        for key in ("title", "proclamation"):
+            if not isinstance(road.get(key), str) or not road.get(key):
+                result.add_error(f"{path}.{key}", "Must be a non-empty string")
+        gate = road.get("gate") or {}
+        if not isinstance(gate, dict) or gate.get("type") not in ID.GATE_TYPES:
+            result.add_error(f"{path}.gate.type", f"Must be one of {list(ID.GATE_TYPES)}")
+        elif gate.get("court") and known_nations and gate["court"] not in known_nations:
+            result.add_error(f"{path}.gate.court", f"Unknown nation '{gate['court']}'")
+        _teeth(f"{path}.teeth_proclaim", road.get("teeth_proclaim"))
+        designs = road.get("designs")
+        if not isinstance(designs, list) or len(designs) != 2:
+            result.add_error(f"{path}.designs", "Must list exactly two designs (a construction, then a seal)")
+            continue
+        roles = [d.get("role") if isinstance(d, dict) else None for d in designs]
+        if roles != [ID.ROLE_CONSTRUCTION, ID.ROLE_SEAL]:
+            result.add_error(f"{path}.designs", f"Roles must be [construction, seal], got {roles}")
+        for j, d in enumerate(designs):
+            dpath = f"{path}.designs[{j}]"
+            if not isinstance(d, dict):
+                continue
+            did = d.get("id")
+            if not isinstance(did, str) or not did:
+                result.add_error(f"{dpath}.id", "Must be a non-empty string")
+            elif did in seen_designs:
+                result.add_error(f"{dpath}.id", f"Duplicate design '{did}'")
+            seen_designs.add(str(did))
+            if d.get("type") not in ID.DESIGN_TYPES:
+                result.add_error(f"{dpath}.type", f"Must be one of {list(ID.DESIGN_TYPES)}")
+            courts = d.get("courts") or []
+            for court in courts:
+                if known_nations and court not in known_nations:
+                    result.add_error(f"{dpath}.courts", f"Unknown nation '{court}'")
+            for province in d.get("provinces") or []:
+                if regions and province not in regions:
+                    result.add_error(f"{dpath}.provinces", f"Unknown region '{province}'")
+            if "need" in d:
+                _int_in(f"{dpath}.need", d["need"], 1, max(1, len(courts)))
+            if "hold" in d:
+                _int_in(f"{dpath}.hold", d["hold"], 1, 12)
+            _teeth(f"{dpath}.teeth_fulfil", d.get("teeth_fulfil"))
+
+
 def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:
     """SR-7d DC-0 (DOCTRINES_SPEC §1, §9): the authored `doctrines` block —
     {court: {name, says, strength, flaw, cured_by, shared_on_purpose?}} and
@@ -2009,6 +2120,9 @@ def validate_scenario(
     # SR-7d DC-0 (DOCTRINES_SPEC §1/§9): the authored `doctrines` block and
     # the `poor_country` list.
     _validate_doctrines(result, data, statecraft_known)
+
+    # VP-1 (docs/VP1_DESIGNS_SPEC.md §3): the authored `imperial_designs` block.
+    _validate_imperial_designs(result, data, statecraft_known)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

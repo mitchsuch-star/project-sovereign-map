@@ -4130,6 +4130,13 @@ def continental_system_lift_offered(world, proposer: str, target: str) -> bool:
         return False
     if str(proposer) != continental_system_lord(world):
         return False
+    # VP-1 (S14b, docs/VP1_DESIGNS_SPEC.md §2.5): the Blockade's proclamation
+    # turns the drafting off for the road's life — the Emperor who proclaimed
+    # the System does not offer to lift it.
+    from backend.game_logic import imperial_designs as _designs
+    if (_designs.proclaimed_road(world) == _designs.ROAD_SYSTEM
+            and str(proposer) == _designs.owner(world)):
+        return False
     if not list(getattr(world, "continental_system_members", []) or []):
         return False
     return not continental_system_lifted(world)
